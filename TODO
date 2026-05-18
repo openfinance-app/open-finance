@@ -1,1 +1,21 @@
+TODO:
 1-create rules from Import view
+
+[text](skrooge_exports/my_export.csv)
+[text](skrooge_exports/my_export.json)
+[text](skrooge_exports/my_export.qif)
+[text](skrooge_exports/my_export.sqlite)
+[text](skrooge_exports/my_export.xml)
+
+- Subscription Plan Implementation:
+    - Landing page
+        - Design sure
+        - Capture screenshot
+        - Live demo
+    - Stripe
+        - 1 month trial
+            - Custom Features available only via subscription
+                - account syncing: Lunch Flow.
+                - More accurate Financial data (rates, quotes) with external provider.
+                - AI services: OpenAI.
+                - Email notif
