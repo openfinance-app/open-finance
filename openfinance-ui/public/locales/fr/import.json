@@ -108,6 +108,8 @@
     "fileEmpty": "Le fichier sélectionné est vide (0 octet). Veuillez sélectionner un fichier valide."
   },
   "review": {
+    "loadingTitle": "Analyse des transactions",
+    "loadingDescription": "L'IA catégorise vos transactions. Cela peut prendre quelques minutes avec des modèles locaux.",
     "autoAssignedCount": "{{count}} transaction(s) automatiquement assignée(s).",
     "autoAssignedDescription": "Les catégories ont été assignées en fonction de votre historique de transactions. Vous pouvez ajuster n'importe quelle affectation ci-dessous.",
     "adjustAny": "Vous pouvez ajuster n'importe quelle affectation ci-dessous.",

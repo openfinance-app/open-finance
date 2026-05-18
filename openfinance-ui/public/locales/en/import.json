@@ -108,6 +108,8 @@
     "fileEmpty": "The selected file is empty (0 bytes). Please select a valid file."
   },
   "review": {
+    "loadingTitle": "Analyzing transactions",
+    "loadingDescription": "AI is categorizing your transactions. This may take a few minutes with local models.",
     "autoAssignedCount": "{{count}} transaction(s) automatically assigned.",
     "autoAssignedDescription": "Categories were assigned based on your transaction history. You can adjust any assignment below.",
     "adjustAny": "You can adjust any assignment below.",

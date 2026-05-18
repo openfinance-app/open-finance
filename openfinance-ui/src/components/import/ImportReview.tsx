@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
 import { SimpleSelect } from '@/components/ui/SimpleSelect';
+import { CategorySelect } from '@/components/ui/CategorySelect';
 import {
   AlertCircle,
   ChevronDown,
@@ -51,12 +52,12 @@ export interface ImportReviewProps {
 type FilterType = 'all' | 'duplicates' | 'errors';
 
 interface EditState {
-  category: string;
+  categoryId: number | undefined;
   payee: string;
   memo: string;
 }
 
-const INFO_PREFIXES = ['AUTO-MATCH:', 'CATEGORY_SUGGESTION:', 'CATEGORY_UNKNOWN:', 'DUPLICATE:', 'RULE_MATCH:', 'RULE_SKIP:'];
+const INFO_PREFIXES = ['AUTO-MATCH:', 'AI_MATCH:', 'CATEGORY_SUGGESTION:', 'CATEGORY_UNKNOWN:', 'DUPLICATE:', 'RULE_MATCH:', 'RULE_SKIP:'];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -188,7 +189,7 @@ export function ImportReview({
 
   // Multi-edit state
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-  const [bulkCategory, setBulkCategory] = useState<string>('');
+  const [bulkCategoryId, setBulkCategoryId] = useState<number | undefined>(undefined);
   const [bulkPayee, setBulkPayee] = useState<string>('');
 
   // Per-row inline editing
@@ -351,20 +352,24 @@ export function ImportReview({
   // Handlers — bulk edit
   // -------------------------------------------------------------------------
   const handleBulkApply = () => {
-    if (selectedRows.size === 0 || (!bulkCategory && !bulkPayee)) return;
+    if (selectedRows.size === 0 || (!bulkCategoryId && !bulkPayee)) return;
+
+    const bulkCategoryName = bulkCategoryId
+      ? categories.find((c) => c.id === bulkCategoryId)?.name ?? null
+      : null;
 
     const updated = transactions.map((t, idx) => {
       if (!selectedRows.has(idx)) return t;
       return {
         ...t,
-        ...(bulkCategory ? { category: bulkCategory } : {}),
+        ...(bulkCategoryName ? { category: bulkCategoryName } : {}),
         ...(bulkPayee.trim() ? { payee: bulkPayee.trim() } : {}),
       };
     });
 
     onTransactionsChange(updated);
     setSelectedRows(new Set());
-    setBulkCategory('');
+    setBulkCategoryId(undefined);
     setBulkPayee('');
   };
 
@@ -373,26 +378,21 @@ export function ImportReview({
   // -------------------------------------------------------------------------
   const startEditing = (originalIndex: number) => {
     const t = transactions[originalIndex];
-    // Resolve raw category string to a system category name so the <select>
-    // renders the correct option.  Priority:
-    //   1. The category mapping already defined by the user (sourceCategory → categoryId)
-    //   2. A case-insensitive exact match against system category names
-    //   3. Fall back to the raw string (will show as "no category" if unrecognised)
-    let resolvedCategory = t.category ?? '';
-    if (resolvedCategory) {
-      const mappedId = categoryMappings[resolvedCategory];
+    // Resolve raw category string to a category ID for the CategorySelect.
+    let resolvedCategoryId: number | undefined = undefined;
+    if (t.category) {
+      const mappedId = categoryMappings[t.category];
       if (mappedId != null) {
-        const sys = categories.find((c) => c.id === mappedId);
-        if (sys) resolvedCategory = sys.name;
+        resolvedCategoryId = mappedId;
       } else {
         const sys = categories.find(
-          (c) => c.name.toLowerCase() === resolvedCategory.toLowerCase()
+          (c) => c.name.toLowerCase() === t.category!.toLowerCase()
         );
-        if (sys) resolvedCategory = sys.name;
+        if (sys) resolvedCategoryId = sys.id;
       }
     }
     setEditState({
-      category: resolvedCategory,
+      categoryId: resolvedCategoryId,
       payee: t.payee ?? '',
       memo: t.memo ?? '',
     });
@@ -400,11 +400,15 @@ export function ImportReview({
   };
 
   const commitEdit = (originalIndex: number) => {
+    const categoryName = editState.categoryId
+      ? categories.find((c) => c.id === editState.categoryId)?.name ?? null
+      : null;
+
     const updated = transactions.map((t, idx) => {
       if (idx !== originalIndex) return t;
       return {
         ...t,
-        category: editState.category || null,
+        category: categoryName,
         payee: editState.payee,
         memo: editState.memo || null,
       };
@@ -542,27 +546,21 @@ export function ImportReview({
                   <div className="flex items-center space-x-2 flex-shrink-0 ml-4">
                     <span className="hidden sm:block text-text-tertiary">→</span>
                     <div className="w-48">
-                      <SimpleSelect
-                        value={mappedId?.toString() ?? ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
+                      <CategorySelect
+                        value={mappedId ?? undefined}
+                        onValueChange={(val) => {
                           const next = { ...categoryMappings };
-                          if (!val) {
+                          if (val == null) {
                             delete next[name];
                           } else {
-                            next[name] = parseInt(val, 10);
+                            next[name] = val;
                           }
                           onCategoryMappingsChange(next);
                         }}
+                        placeholder={t('review.categoryAssignments.notMapped')}
+                        allowNone
                         className={`w-full text-xs ${!isMapped ? 'border-amber-400' : ''}`}
-                      >
-                        <option value="">{t('review.categoryAssignments.notMapped')}</option>
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </SimpleSelect>
+                      />
                     </div>
                     {isMapped ? (
                       <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
@@ -589,20 +587,14 @@ export function ImportReview({
 
           <div className="flex-1 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full">
             {/* Bulk Category */}
-            <div className="relative flex-1 min-w-0">
-              <Tag className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-tertiary pointer-events-none" />
-              <SimpleSelect
-                value={bulkCategory}
-                onChange={(e) => setBulkCategory(e.target.value)}
-                className="w-full pl-7"
-              >
-                <option value="">{t('review.bulkAction.setCategory')}</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
-              </SimpleSelect>
+            <div className="flex-1 min-w-0">
+              <CategorySelect
+                value={bulkCategoryId}
+                onValueChange={setBulkCategoryId}
+                placeholder={t('review.bulkAction.setCategory')}
+                allowNone
+                className="w-full"
+              />
             </div>
 
             {/* Bulk Payee */}
@@ -699,6 +691,7 @@ export function ImportReview({
                     !INFO_PREFIXES.some((p) => e.startsWith(p))
                   );
                   const hasRuleMatch = transaction.validationErrors.some((e) => e.startsWith('RULE_MATCH:'));
+                  const hasAIMatch = transaction.validationErrors.some((e) => e.startsWith('AI_MATCH:'));
                   const hasRuleSkip = transaction.validationErrors.some((e) => e.startsWith('RULE_SKIP:'));
                   const isDuplicate = transaction.potentialDuplicate;
 
@@ -765,20 +758,15 @@ export function ImportReview({
                         {/* Category */}
                         <td className="py-2.5 px-4 text-sm min-w-[160px]">
                           {isEditing ? (
-                            <SimpleSelect
-                              value={editState.category}
-                              onChange={(e) =>
-                                setEditState((s) => ({ ...s, category: e.target.value }))
+                            <CategorySelect
+                              value={editState.categoryId}
+                              onValueChange={(val) =>
+                                setEditState((s) => ({ ...s, categoryId: val }))
                               }
+                              placeholder={t('review.table.noCategory')}
+                              allowNone
                               className="w-full text-sm"
-                            >
-                              <option value="">{t('review.table.noCategory')}</option>
-                              {categories.map((c) => (
-                                <option key={c.id} value={c.name}>
-                                  {c.name}
-                                </option>
-                              ))}
-                            </SimpleSelect>
+                            />
                           ) : transaction.category ? (
                             <span className="inline-flex items-center space-x-1">
                               <Tag className="h-3 w-3 text-text-tertiary flex-shrink-0" />
@@ -837,6 +825,14 @@ export function ImportReview({
                                 <span className="flex items-center space-x-1">
                                   <Sparkles className="h-3 w-3" />
                                   <span>Matched</span>
+                                </span>
+                              </Badge>
+                            )}
+                            {hasAIMatch && !hasRuleMatch && (
+                              <Badge variant="info" size="sm" className="bg-violet-500/10 text-violet-600 border-violet-500/20">
+                                <span className="flex items-center space-x-1">
+                                  <Sparkles className="h-3 w-3" />
+                                  <span>AI</span>
                                 </span>
                               </Badge>
                             )}

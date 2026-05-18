@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -40,8 +41,11 @@ import org.openfinance.repository.UserRepository;
 import org.openfinance.service.parser.CsvParser;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -94,6 +98,8 @@ public class ImportService {
     private final TransactionService transactionService;
     private final TransactionSplitService transactionSplitService;
     private final NetWorthRepository netWorthRepository;
+    private final AICategorizationService aiCategorizationService;
+    private final MessageSource messageSource;
 
     /**
      * Start a new import session and parse the uploaded file.
@@ -328,7 +334,7 @@ public class ImportService {
      * @return list of imported transactions with duplicate flags and category
      *         suggestions
      */
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<ImportedTransaction> reviewTransactions(Long sessionId, Long userId) {
         log.info("Reviewing transactions for session: {}", sessionId);
 
@@ -1085,11 +1091,17 @@ public class ImportService {
 
         // Load all user categories
         List<Category> userCategories = categoryRepository.findByUserId(userId);
-        Map<String, Category> categoryMapExact = new HashMap<>();
+        Locale locale = LocaleContextHolder.getLocale();
 
-        // Build exact match map (lowercase keys)
+        // Build exact match map using translated display names (matching what the
+        // frontend sees)
+        // Key: lowercase display name, Value: display name (properly cased)
+        Map<String, String> categoryDisplayMap = new HashMap<>();
+        Map<String, Category> categoryMapExact = new HashMap<>();
         for (Category cat : userCategories) {
-            categoryMapExact.put(cat.getName().toLowerCase().trim(), cat);
+            String displayName = resolveDisplayName(cat, locale);
+            categoryMapExact.put(displayName.toLowerCase().trim(), cat);
+            categoryDisplayMap.put(cat.getName().toLowerCase().trim(), displayName);
         }
 
         // Process each transaction
@@ -1137,7 +1149,8 @@ public class ImportService {
             // Try exact match first
             if (categoryMapExact.containsKey(normalizedCategory)) {
                 Category matched = categoryMapExact.get(normalizedCategory);
-                tx.setCategory(matched.getName()); // Store matched category name
+                String displayName = resolveDisplayName(matched, locale);
+                tx.setCategory(displayName); // Store translated category name
                 log.debug("Exact match: '{}' → category ID {}", importedCategory, matched.getId());
                 continue;
             }
@@ -1147,7 +1160,8 @@ public class ImportService {
             double bestSimilarity = 0.0;
 
             for (Category cat : userCategories) {
-                double similarity = calculateStringSimilarity(normalizedCategory, cat.getName().toLowerCase());
+                String displayName = resolveDisplayName(cat, locale);
+                double similarity = calculateStringSimilarity(normalizedCategory, displayName.toLowerCase());
                 if (similarity > bestSimilarity && similarity >= 0.80) {
                     bestSimilarity = similarity;
                     bestMatch = cat;
@@ -1155,12 +1169,13 @@ public class ImportService {
             }
 
             if (bestMatch != null) {
-                tx.setCategory(bestMatch.getName()); // Store suggested category name
+                String displayName = resolveDisplayName(bestMatch, locale);
+                tx.setCategory(displayName); // Store translated category name
                 tx.addValidationError(String.format(
                         "CATEGORY_SUGGESTION: Imported category '%s' matched to '%s' (%.0f%% similarity)",
-                        importedCategory, bestMatch.getName(), bestSimilarity * 100));
+                        importedCategory, displayName, bestSimilarity * 100));
                 log.debug("Fuzzy match: '{}' → '{}' ({:.0f}%)",
-                        importedCategory, bestMatch.getName(), bestSimilarity * 100);
+                        importedCategory, displayName, bestSimilarity * 100);
             } else {
                 // No match found - mark for user review/creation
                 tx.addValidationError(String.format(
@@ -1169,6 +1184,28 @@ public class ImportService {
                 log.debug("Unknown category: '{}' - will be created", importedCategory);
             }
         }
+
+        // Final tier: AI-based categorization for any remaining uncategorized
+        // transactions
+        try {
+            aiCategorizationService.categorizeWithAI(transactions, userCategories);
+        } catch (Exception e) {
+            log.warn("AI categorization failed (non-blocking): {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Resolve the display name for a category in the given locale.
+     * System categories use their nameKey for i18n; user categories use their
+     * stored name.
+     */
+    private String resolveDisplayName(Category category, Locale locale) {
+        if (Boolean.TRUE.equals(category.getIsSystem())
+                && category.getNameKey() != null
+                && !category.getNameKey().isBlank()) {
+            return messageSource.getMessage(category.getNameKey(), null, category.getName(), locale);
+        }
+        return category.getName();
     }
 
     /**

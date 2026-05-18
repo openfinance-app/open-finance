@@ -58,7 +58,7 @@ export const importService = {
   },
 
   /**
-   * Get transactions for review
+   * Get transactions for review (includes AI categorization which may take longer)
    */
   getTransactions: async (sessionId: number): Promise<ImportTransactionDTO[]> => {
     const encryptionKey = sessionStorage.getItem('encryption_key');
@@ -72,6 +72,7 @@ export const importService = {
         headers: {
           'X-Encryption-Key': encryptionKey,
         },
+        timeout: 600000, // 10 minutes — AI categorization with local models can be slow
       }
     );
     return response.data;

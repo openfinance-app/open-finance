@@ -585,8 +585,16 @@ export function ImportWizard() {
         {currentStep === 'review' && (
           <div>
             {isLoadingTransactions ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center justify-center py-12 gap-4">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="text-center">
+                  <p className="text-sm font-medium text-text-primary">
+                    {t('review.loadingTitle')}
+                  </p>
+                  <p className="text-xs text-text-secondary mt-1">
+                    {t('review.loadingDescription')}
+                  </p>
+                </div>
               </div>
             ) : (
               <ImportReview

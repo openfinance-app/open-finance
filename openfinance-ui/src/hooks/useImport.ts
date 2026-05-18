@@ -104,6 +104,7 @@ export function useImportTransactions(
     // state — the backend rejects /review requests for those sessions with 400.
     enabled: !!sessionId && !isTerminal,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1, // AI categorization is slow; avoid aggressive retries
   });
 }
 
