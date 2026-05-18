@@ -3,8 +3,93 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderWithProviders, screen, fireEvent } from '@/test/test-utils';
-import { act } from 'react';
 import { RuleActionBuilder, type ActionDraft } from './RuleActionBuilder';
+
+// ---------------------------------------------------------------------------
+// Mocks — Radix UI Select and custom components don't render in jsdom
+// (see LESSONS_LEARNED.md entry #2 and #6)
+// ---------------------------------------------------------------------------
+
+vi.mock('@/components/ui/CategorySelect', () => ({
+  CategorySelect: ({
+    value,
+    onValueChange,
+    placeholder,
+  }: {
+    value?: number;
+    onValueChange: (id: number | undefined) => void;
+    placeholder?: string;
+  }) => (
+    <select
+      aria-label="Category name"
+      value={value ?? ''}
+      onChange={e => onValueChange(e.target.value ? Number(e.target.value) : undefined)}
+    >
+      <option value="">{placeholder ?? 'Select category'}</option>
+      <option value="1">Groceries</option>
+      <option value="2">Transport</option>
+    </select>
+  ),
+}));
+
+vi.mock('@/components/ui/PayeeSelector', () => ({
+  PayeeSelector: ({
+    value,
+    onValueChange,
+    placeholder,
+  }: {
+    value?: string;
+    onValueChange: (val: string | undefined) => void;
+    placeholder?: string;
+  }) => (
+    <select
+      aria-label="Payee name"
+      value={value ?? ''}
+      onChange={e => onValueChange(e.target.value || undefined)}
+    >
+      <option value="">{placeholder ?? 'Select payee'}</option>
+      <option value="Store">Store</option>
+      <option value="Amazon">Amazon</option>
+    </select>
+  ),
+}));
+
+vi.mock('@/components/transactions/TagInput', () => ({
+  TagInput: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string[];
+    onChange: (tags: string[]) => void;
+    placeholder?: string;
+  }) => (
+    <input
+      aria-label="Tag name"
+      value={value.join(',')}
+      placeholder={placeholder}
+      onChange={e => onChange(e.target.value ? e.target.value.split(',') : [])}
+    />
+  ),
+}));
+
+// Mock hooks consumed inside ActionParams
+vi.mock('@/hooks/useCategories', () => ({
+  useCategories: () => ({
+    data: [
+      { id: 1, name: 'Groceries' },
+      { id: 2, name: 'Transport' },
+    ],
+  }),
+}));
+
+vi.mock('@/hooks/useTransactionTags', () => ({
+  usePopularTags: () => ({ data: ['food', 'travel'] }),
+}));
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 describe('RuleActionBuilder', () => {
   const mockOnChange = vi.fn();
@@ -42,7 +127,8 @@ describe('RuleActionBuilder', () => {
     );
 
     expect(screen.getByDisplayValue('Set Category')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Groceries')).toBeInTheDocument();
+    // CategorySelect mock renders a <select> — value is the ID resolved from name
+    expect(screen.getByRole('combobox', { name: 'Category name' })).toBeInTheDocument();
   });
 
   it('should add a new action when add button is clicked', () => {
@@ -130,7 +216,7 @@ describe('RuleActionBuilder', () => {
     ]);
   });
 
-  it('should render text input for SET_CATEGORY action', () => {
+  it('should render category selector for SET_CATEGORY action', () => {
     const actions: ActionDraft[] = [
       {
         actionType: 'SET_CATEGORY',
@@ -146,10 +232,10 @@ describe('RuleActionBuilder', () => {
       />
     );
 
-    expect(screen.getByRole('textbox', { name: 'Category name' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Category name' })).toBeInTheDocument();
   });
 
-  it('should render text input for SET_PAYEE action', () => {
+  it('should render payee selector for SET_PAYEE action', () => {
     const actions: ActionDraft[] = [
       {
         actionType: 'SET_PAYEE',
@@ -165,10 +251,10 @@ describe('RuleActionBuilder', () => {
       />
     );
 
-    expect(screen.getByRole('textbox', { name: 'Payee name' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Payee name' })).toBeInTheDocument();
   });
 
-  it('should render text input for ADD_TAG action', () => {
+  it('should render tag input for ADD_TAG action', () => {
     const actions: ActionDraft[] = [
       {
         actionType: 'ADD_TAG',
@@ -268,11 +354,11 @@ describe('RuleActionBuilder', () => {
     expect(screen.getByText('Transaction will be skipped during import.')).toBeInTheDocument();
   });
 
-  it('should update action value when input changes', () => {
+  it('should call onChange when category is selected', () => {
     const actions: ActionDraft[] = [
       {
         actionType: 'SET_CATEGORY',
-        actionValue: 'Old Category',
+        actionValue: 'Groceries',
         sortOrder: 0,
       },
     ];
@@ -284,13 +370,14 @@ describe('RuleActionBuilder', () => {
       />
     );
 
-    const input = screen.getByRole('textbox', { name: 'Category name' });
-    fireEvent.change(input, { target: { value: 'New Category' } });
+    // The mock select uses numeric IDs; selecting id=2 → Transport
+    const categorySelect = screen.getByRole('combobox', { name: 'Category name' });
+    fireEvent.change(categorySelect, { target: { value: '2' } });
 
     expect(mockOnChange).toHaveBeenCalledWith([
       {
         actionType: 'SET_CATEGORY',
-        actionValue: 'New Category',
+        actionValue: 'Transport',
         sortOrder: 0,
       },
     ]);
@@ -323,7 +410,6 @@ describe('RuleActionBuilder', () => {
     fireEvent.change(descriptionInput, { target: { value: 'New description' } });
 
     expect(mockOnChange).toHaveBeenCalledTimes(3);
-    // Each change calls onChange with the updated actions based on current props
     expect(mockOnChange).toHaveBeenNthCalledWith(1, [
       {
         actionType: 'ADD_SPLIT',
@@ -336,7 +422,7 @@ describe('RuleActionBuilder', () => {
     expect(mockOnChange).toHaveBeenNthCalledWith(2, [
       {
         actionType: 'ADD_SPLIT',
-        actionValue: 'Old Category', // Props didn't update, so uses original
+        actionValue: 'Old Category',
         actionValue2: '20.00',
         actionValue3: 'Old description',
         sortOrder: 0,

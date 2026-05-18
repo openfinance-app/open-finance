@@ -4,6 +4,86 @@ import { act } from 'react';
 import { RuleForm } from './RuleForm';
 import type { TransactionRule, TransactionRuleRequest } from '@/types/transactionRules';
 
+// ---------------------------------------------------------------------------
+// Mocks — Radix UI Select and custom components don't render in jsdom
+// (see LESSONS_LEARNED.md entry #2 and #6)
+// ---------------------------------------------------------------------------
+
+vi.mock('@/components/ui/CategorySelect', () => ({
+  CategorySelect: ({
+    value,
+    onValueChange,
+    placeholder,
+  }: {
+    value?: number;
+    onValueChange: (id: number | undefined) => void;
+    placeholder?: string;
+  }) => (
+    <select
+      aria-label="Category name"
+      value={value ?? ''}
+      onChange={e => onValueChange(e.target.value ? Number(e.target.value) : undefined)}
+    >
+      <option value="">{placeholder ?? 'Select category'}</option>
+      <option value="1">Groceries</option>
+      <option value="2">Transport</option>
+    </select>
+  ),
+}));
+
+vi.mock('@/components/ui/PayeeSelector', () => ({
+  PayeeSelector: ({
+    value,
+    onValueChange,
+    placeholder,
+  }: {
+    value?: string;
+    onValueChange: (val: string | undefined) => void;
+    placeholder?: string;
+  }) => (
+    <select
+      aria-label="Payee name"
+      value={value ?? ''}
+      onChange={e => onValueChange(e.target.value || undefined)}
+    >
+      <option value="">{placeholder ?? 'Select payee'}</option>
+      <option value="Store">Store</option>
+    </select>
+  ),
+}));
+
+vi.mock('@/components/transactions/TagInput', () => ({
+  TagInput: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string[];
+    onChange: (tags: string[]) => void;
+    placeholder?: string;
+  }) => (
+    <input
+      aria-label="Tag name"
+      value={value.join(',')}
+      placeholder={placeholder}
+      onChange={e => onChange(e.target.value ? e.target.value.split(',') : [])}
+    />
+  ),
+}));
+
+vi.mock('@/hooks/useCategories', () => ({
+  useCategories: () => ({
+    data: [
+      { id: 1, name: 'Groceries' },
+      { id: 2, name: 'Transport' },
+    ],
+  }),
+}));
+
+vi.mock('@/hooks/useTransactionTags', () => ({
+  usePopularTags: () => ({ data: ['food', 'travel'] }),
+}));
+
 describe('RuleForm', () => {
   const mockOnSubmit = vi.fn();
   const mockOnOpenChange = vi.fn();
@@ -189,8 +269,9 @@ describe('RuleForm', () => {
     const addActionButton = screen.getByRole('button', { name: /add action/i });
     fireEvent.click(addActionButton);
 
-    const actionValueInput = screen.getByRole('textbox', { name: 'Category name' });
-    fireEvent.change(actionValueInput, { target: { value: 'Groceries' } });
+    // CategorySelect is mocked as a <select>; choose option with value '1' → 'Groceries'
+    const categorySelect = screen.getByRole('combobox', { name: 'Category name' });
+    fireEvent.change(categorySelect, { target: { value: '1' } });
 
     // Submit
     const submitButton = screen.getByRole('button', { name: /create rule/i });
@@ -236,7 +317,8 @@ describe('RuleForm', () => {
     expect(screen.getByLabelText(/priority/i)).toHaveValue(5);
     expect(screen.getByText('Inactive')).toBeInTheDocument();
     expect(screen.getByDisplayValue('test')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Groceries')).toBeInTheDocument();
+    // CategorySelect is mocked as a <select>; the selected option matches the name 'Groceries'
+    expect(screen.getByRole('combobox', { name: 'Category name' })).toBeInTheDocument();
   });
 
   it('should call onOpenChange when cancel is clicked', () => {
