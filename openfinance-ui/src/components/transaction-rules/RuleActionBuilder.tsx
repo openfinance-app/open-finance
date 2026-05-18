@@ -20,6 +20,11 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { CategorySelect } from '@/components/ui/CategorySelect';
+import { PayeeSelector } from '@/components/ui/PayeeSelector';
+import { TagInput } from '@/components/transactions/TagInput';
+import { useCategories } from '@/hooks/useCategories';
+import { usePopularTags } from '@/hooks/useTransactionTags';
 import type { RuleAction, RuleActionType } from '@/types/transactionRules';
 
 // ---------------------------------------------------------------------------
@@ -62,39 +67,57 @@ interface ActionParamsProps {
 }
 
 function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
+  const { data: categories = [] } = useCategories();
+  const { data: popularTags = [] } = usePopularTags();
+
   switch (action.actionType) {
-    case 'SET_CATEGORY':
+    case 'SET_CATEGORY': {
+      // CategorySelect uses numeric IDs; actionValue stores category name
+      const selectedId = categories.find((c) => c.name === action.actionValue)?.id;
       return (
-        <Input
-          placeholder={t('form.actions.placeholders.category')}
-          value={action.actionValue ?? ''}
-          onChange={(e) => onChange(index, { actionValue: e.target.value })}
-          className="flex-1"
-          aria-label="Category name"
-        />
+        <div className="flex-1">
+          <CategorySelect
+            value={selectedId}
+            onValueChange={(id) => {
+              const cat = categories.find((c) => c.id === id);
+              onChange(index, { actionValue: cat?.name ?? '' });
+            }}
+            placeholder={t('form.actions.placeholders.category')}
+            className="w-full"
+          />
+        </div>
       );
+    }
 
     case 'SET_PAYEE':
       return (
-        <Input
-          placeholder={t('form.actions.placeholders.payee')}
-          value={action.actionValue ?? ''}
-          onChange={(e) => onChange(index, { actionValue: e.target.value })}
-          className="flex-1"
-          aria-label="Payee name"
-        />
+        <div className="flex-1">
+          <PayeeSelector
+            value={action.actionValue || undefined}
+            onValueChange={(val) => onChange(index, { actionValue: val ?? '' })}
+            placeholder={t('form.actions.placeholders.payee')}
+            allowNewPayee
+            className="w-full"
+          />
+        </div>
       );
 
-    case 'ADD_TAG':
+    case 'ADD_TAG': {
+      const tags = action.actionValue
+        ? action.actionValue.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
       return (
-        <Input
-          placeholder={t('form.actions.placeholders.tag')}
-          value={action.actionValue ?? ''}
-          onChange={(e) => onChange(index, { actionValue: e.target.value })}
-          className="flex-1"
-          aria-label="Tag name"
-        />
+        <div className="flex-1">
+          <TagInput
+            value={tags}
+            onChange={(newTags) => onChange(index, { actionValue: newTags.join(',') })}
+            suggestions={popularTags}
+            placeholder={t('form.actions.placeholders.tag')}
+            maxTags={10}
+          />
+        </div>
       );
+    }
 
     case 'SET_DESCRIPTION':
       return (
