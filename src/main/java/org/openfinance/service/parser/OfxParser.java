@@ -195,22 +195,29 @@ public class OfxParser {
      *
      * OFX SGML uses two kinds of elements:
      * <ul>
-     *   <li><b>Leaf elements</b>: {@code <TAG>value} — the value follows immediately on
-     *       the same line, no closing tag is present. These must become
-     *       {@code <TAG>value</TAG>}.</li>
-     *   <li><b>Container/aggregate elements</b>: {@code <TAG>} on a line by themselves,
-     *       followed by nested content and a corresponding {@code </TAG>} closing tag.
-     *       These already have closing tags and must be left as-is.</li>
+     * <li><b>Leaf elements</b>: {@code <TAG>value} — the value follows immediately
+     * on
+     * the same line, no closing tag is present. These must become
+     * {@code <TAG>value</TAG>}.</li>
+     * <li><b>Container/aggregate elements</b>: {@code <TAG>} on a line by
+     * themselves,
+     * followed by nested content and a corresponding {@code </TAG>} closing tag.
+     * These already have closing tags and must be left as-is.</li>
      * </ul>
      *
-     * Strategy: tokenise the input line-by-line, tracking which open tags are aggregates
-     * (have explicit closing tags in the source).  For every {@code <TAG>value} line that
-     * does NOT already have a matching close tag anywhere in the remaining source, append
+     * Strategy: tokenise the input line-by-line, tracking which open tags are
+     * aggregates
+     * (have explicit closing tags in the source). For every {@code <TAG>value} line
+     * that
+     * does NOT already have a matching close tag anywhere in the remaining source,
+     * append
      * a closing tag immediately after the value.
      */
     private String convertSGMLToXML(String sgml) {
-        // Pre-compute the set of tag names that have explicit closing tags in the source.
-        // These are aggregate/container tags — we must NOT add extra closing tags for them.
+        // Pre-compute the set of tag names that have explicit closing tags in the
+        // source.
+        // These are aggregate/container tags — we must NOT add extra closing tags for
+        // them.
         java.util.Set<String> aggregateTags = new java.util.HashSet<>();
         java.util.regex.Pattern closeTagPattern = java.util.regex.Pattern.compile("</([A-Za-z0-9_.:-]+)>");
         java.util.regex.Matcher closeMatcher = closeTagPattern.matcher(sgml);
@@ -219,11 +226,14 @@ public class OfxParser {
         }
 
         // Pattern: open tag followed immediately by a non-tag value on the same token.
-        // Captures: group(1)=tag-name, group(2)=value (may be empty for pure container tags).
+        // Captures: group(1)=tag-name, group(2)=value (may be empty for pure container
+        // tags).
         // Pattern: open tag followed immediately by a non-tag value on the same token.
-        // Captures: group(1)=tag-name, group(2)=value (may be empty for pure container tags).
+        // Captures: group(1)=tag-name, group(2)=value (may be empty for pure container
+        // tags).
         // Added \\s* to handle tags with extra spaces like <TAG >.
-        // Regex to match <TAG>VALUE. Note that [^<\r\n]* stops at the next tag or newline.
+        // Regex to match <TAG>VALUE. Note that [^<\r\n]* stops at the next tag or
+        // newline.
         java.util.regex.Pattern tokenPattern = java.util.regex.Pattern.compile(
                 "<([A-Za-z0-9_.:-]+)\\s*>([^<\r\n]*)");
         java.util.regex.Matcher tokenMatcher = tokenPattern.matcher(sgml);
@@ -242,6 +252,8 @@ public class OfxParser {
                 // Leaf tag — add closing tag immediately after the value.
                 // Trim the value here for the XML content but keep the match structure.
                 String trimmedValue = value.trim();
+                // Escape bare ampersands that are not already valid XML entities
+                trimmedValue = trimmedValue.replaceAll("&(?!amp;|lt;|gt;|quot;|apos;|#)", "&amp;");
                 tokenMatcher.appendReplacement(sb,
                         "<" + tag + ">"
                                 + java.util.regex.Matcher.quoteReplacement(trimmedValue)
@@ -398,7 +410,8 @@ public class OfxParser {
         // MEMO
         String memo = getElementText(stmtTrn, "MEMO");
 
-        // Use MEMO as part of payee if present, as French OFX files often put the real merchant in MEMO
+        // Use MEMO as part of payee if present, as French OFX files often put the real
+        // merchant in MEMO
         if (memo != null && !memo.trim().isEmpty()) {
             if (name != null && !name.trim().isEmpty()) {
                 builder.payee(name.trim() + " - " + memo.trim());

@@ -355,7 +355,8 @@ public class ImportService {
         if (session.getMetadata() != null && !session.getMetadata().trim().isEmpty()) {
             try {
                 Map<String, Object> metadataMap = objectMapper.readValue(
-                        session.getMetadata(), new TypeReference<Map<String, Object>>() {});
+                        session.getMetadata(), new TypeReference<Map<String, Object>>() {
+                        });
                 if (metadataMap.containsKey("ledgerBalance")) {
                     ledgerBalance = new BigDecimal(metadataMap.get("ledgerBalance").toString());
                 }
@@ -515,6 +516,25 @@ public class ImportService {
                 } catch (Exception e) {
                     log.warn("Error extracting ledger metadata during auto-create: {}", e.getMessage());
                 }
+            }
+            // The OFX ledgerBalance is the ENDING balance (after all transactions).
+            // The account's openingBalance must be: ledgerBalance - net of imported
+            // transactions
+            // so that recalculateBalance (openingBalance + income - expenses) =
+            // ledgerBalance.
+            if (ledgerBalance.compareTo(BigDecimal.ZERO) != 0) {
+                List<ImportedTransaction> parsedTxs = deserializeTransactions(session.getMetadata());
+                BigDecimal transactionNet = parsedTxs.stream()
+                        .filter(tx -> !tx.hasErrors())
+                        .map(tx -> {
+                            if (tx.getAmount().compareTo(BigDecimal.ZERO) >= 0) {
+                                return tx.getAmount().abs(); // INCOME adds
+                            } else {
+                                return tx.getAmount().abs().negate(); // EXPENSE subtracts
+                            }
+                        })
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                ledgerBalance = ledgerBalance.subtract(transactionNet);
             }
             resolvedAccountId = createAccountForImport(userId, session, encryptionKey, ledgerBalance, fileCurrency);
         }
