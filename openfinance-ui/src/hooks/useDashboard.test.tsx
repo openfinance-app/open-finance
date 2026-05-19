@@ -181,6 +181,19 @@ describe('useDashboard hooks', () => {
         params: { period: 30 },
       });
     });
+
+    it('should fetch portfolio performance with date range', async () => {
+      const mockPerformance = [{ date: '2026-03-01', value: 52000 }];
+      mockedApiClient.get.mockResolvedValue({ data: mockPerformance });
+      const dateRange = { from: '2026-02-18', to: '2026-05-19' };
+
+      const { result } = renderHook(() => usePortfolioPerformance(91, dateRange), { wrapper });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/dashboard/portfolio-performance', {
+        params: { startDate: '2026-02-18', endDate: '2026-05-19' },
+      });
+    });
   });
 
   // ── useBorrowingCapacity ────────────────────────────────────────────────

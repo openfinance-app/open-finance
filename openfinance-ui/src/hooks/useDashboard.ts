@@ -95,9 +95,12 @@ const fetchAssetAllocation = async (): Promise<IAssetAllocation[]> => {
   return response.data;
 };
 
-const fetchPortfolioPerformance = async (period: number = 30): Promise<IPortfolioPerformance[]> => {
+const fetchPortfolioPerformance = async (
+  period: number = 30,
+  dateRange?: DateRange,
+): Promise<IPortfolioPerformance[]> => {
   const response = await apiClient.get<IPortfolioPerformance[]>('/dashboard/portfolio-performance', {
-    params: { period },
+    params: periodParams(period, dateRange),
   });
   return response.data;
 };
@@ -243,10 +246,10 @@ export const useAssetAllocation = () =>
     retry: 1,
   });
 
-export const usePortfolioPerformance = (period: number = 30) =>
+export const usePortfolioPerformance = (period: number = 30, dateRange?: DateRange) =>
   useQuery({
-    queryKey: ['dashboard', 'portfolio-performance', period],
-    queryFn: () => fetchPortfolioPerformance(period),
+    queryKey: ['dashboard', 'portfolio-performance', periodKey(period, dateRange)],
+    queryFn: () => fetchPortfolioPerformance(period, dateRange),
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });

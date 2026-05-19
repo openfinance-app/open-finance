@@ -258,7 +258,7 @@ export default function DashboardPage() {
   const { data: cashFlow, isLoading: cashFlowLoading } = useCashFlow(periodDays, activeDateRange);
   const { data: netWorthHistory, isLoading: historyLoading } = useNetWorthHistory(historyPeriod, activeDateRange);
   const { data: assetAllocations, isLoading: allocationLoading } = useAssetAllocation();
-  const { data: portfolioPerformances, isLoading: performanceLoading } = usePortfolioPerformance(periodDays);
+  const { data: portfolioPerformances, isLoading: performanceLoading } = usePortfolioPerformance(periodDays, activeDateRange);
   const { data: borrowingCapacity, isLoading: borrowingLoading } = useBorrowingCapacity(periodDays, activeDateRange);
   const { data: netWorthAllocations, isLoading: netWorthAllocationLoading } = useNetWorthAllocation();
   const { data: estimatedInterest } = useEstimatedInterest(selectedPeriod === 'CUSTOM' ? '1M' : selectedPeriod);
@@ -459,7 +459,7 @@ export default function DashboardPage() {
   };
 
   // ── Loading skeleton ────────────────────────────────────────────────────────
-  if (summaryLoading || cashFlowLoading || historyLoading || allocationLoading || performanceLoading || borrowingLoading || netWorthAllocationLoading) {
+  if (!summary && (summaryLoading || cashFlowLoading || historyLoading || allocationLoading || performanceLoading || borrowingLoading || netWorthAllocationLoading)) {
     return (
       <div className="animate-pulse space-y-6">
         <div className="h-8 bg-surface-elevated rounded w-48"></div>

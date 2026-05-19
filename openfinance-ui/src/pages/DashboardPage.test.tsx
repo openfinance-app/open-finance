@@ -6,8 +6,10 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
 import { renderWithProviders, mockAuthentication, clearAuthentication } from '@/test/test-utils';
+import { server } from '@/test/mocks/server';
 import DashboardPage from '@/pages/DashboardPage';
 
 
@@ -144,6 +146,72 @@ describe('DashboardPage Integration Tests', () => {
       const periodButtons = document.querySelectorAll('button[class*="period"]');
       // Period selector exists even if buttons don't have specific test IDs
       expect(periodButtons.length >= 0).toBe(true);
+    });
+
+    it('should keep custom date range inputs mounted during refetch', async () => {
+      const delayedJson = async (body: unknown) => {
+        await new Promise(resolve => setTimeout(resolve, 250));
+        return HttpResponse.json(body);
+      };
+
+      server.use(
+        http.get('/api/v1/dashboard/cashflow', () => delayedJson({ income: 5000, expenses: 3000, savings: 2000 })),
+        http.get('/api/v1/dashboard/networth-history', () => delayedJson([
+          { date: '2026-01-01', netWorth: 18000.0 },
+          { date: '2026-02-01', netWorth: 19000.0 },
+          { date: '2026-02-04', netWorth: 20000.0 },
+        ])),
+        http.get('/api/v1/dashboard/portfolio-performance', () => delayedJson({
+          totalValue: 50000.0,
+          totalGainLoss: 5000.0,
+          percentageChange: 11.11,
+          performance: [
+            { date: '2026-01-01', value: 45000.0 },
+            { date: '2026-01-15', value: 47000.0 },
+          ],
+        })),
+        http.get('/api/v1/dashboard/borrowing-capacity', () => delayedJson({
+          estimatedCapacity: 50000.0,
+          monthlyIncome: 6000.0,
+          monthlyDebtObligations: 1000.0,
+          debtToIncomeRatio: 16.67,
+          isHealthy: true,
+        })),
+        http.get('/api/v1/dashboard/cashflow-sankey', () => delayedJson({
+          totalIncome: 5000,
+          totalExpenses: 3000,
+          surplus: 2000,
+          incomeSources: [],
+          expenseCategories: [],
+          period: 30,
+        })),
+        http.get('/api/v1/transactions/search', () => delayedJson({ content: [] }))
+      );
+
+      renderWithProviders(<DashboardPage />);
+
+      await screen.findAllByText(/Net Worth/i);
+
+      const customButton = await screen.findByRole('button', {
+        name: /custom|personnalisée/i,
+      });
+
+      fireEvent.click(customButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/date range|plage de dates personnalisée/i)).toBeInTheDocument();
+      });
+
+      const dateInputs = screen.getAllByDisplayValue(/^\d{4}-\d{2}-\d{2}$/);
+      expect(dateInputs).toHaveLength(2);
+
+      fireEvent.change(dateInputs[0], { target: { value: '2026-01-01' } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/date range|plage de dates personnalisée/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /dashboard|tableau de bord/i })).toBeInTheDocument();
+        expect(screen.getByDisplayValue('2026-01-01')).toBeInTheDocument();
+      });
     });
   });
 

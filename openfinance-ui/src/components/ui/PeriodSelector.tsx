@@ -82,10 +82,23 @@ export interface PeriodSelectorProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function PeriodSelector({ selectedPeriod, onPeriodChange, className }: PeriodSelectorProps) {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const [customRange, setCustomRange] = useState<DateRange>(defaultCustomRange);
   const [customOpen, setCustomOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  const formatCustomLabelDate = (isoDate: string): string => {
+    const date = new Date(`${isoDate}T00:00:00`);
+    if (Number.isNaN(date.getTime())) {
+      return isoDate;
+    }
+
+    return new Intl.DateTimeFormat(i18n.language || undefined, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  };
 
   // Close popover on outside click
   useEffect(() => {
@@ -132,7 +145,7 @@ export function PeriodSelector({ selectedPeriod, onPeriodChange, className }: Pe
 
   // Label shown on the custom button
   const customLabel = isCustomActive
-    ? `${customRange.from.slice(5)} → ${customRange.to.slice(5)}` // e.g. "01-15 → 02-15"
+    ? `${formatCustomLabelDate(customRange.from)} → ${formatCustomLabelDate(customRange.to)}`
     : t('dateRange.custom');
 
   return (
