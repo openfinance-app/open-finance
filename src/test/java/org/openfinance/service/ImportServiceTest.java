@@ -27,16 +27,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.openfinance.dto.ImportParseResult;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.openfinance.service.OperationHistoryService;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openfinance.dto.ImportParseResult;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
@@ -53,9 +51,8 @@ import org.openfinance.repository.UserRepository;
 import org.openfinance.service.parser.CsvParser;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
-import javax.crypto.SecretKey;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Unit tests for ImportService.
@@ -124,9 +121,9 @@ class ImportServiceTest {
         private TransactionRuleService transactionRuleService;
 
         @Mock
-    private OperationHistoryService operationHistoryService;
+        private OperationHistoryService operationHistoryService;
 
-    @InjectMocks
+        @InjectMocks
         private ImportService importService;
 
         private static final Long USER_ID = 123L;
@@ -314,7 +311,8 @@ class ImportServiceTest {
                 when(importSessionRepository.findById(1L)).thenReturn(Optional.of(qfxSession));
                 when(fileStorageService.getFileContent(UPLOAD_ID))
                                 .thenReturn(new ByteArrayInputStream("OFX content".getBytes()));
-                ImportParseResult ofxResult = ImportParseResult.builder().transactions(testTransactions).ledgerBalance(BigDecimal.ZERO).currency("USD").build();
+                ImportParseResult ofxResult = ImportParseResult.builder().transactions(testTransactions)
+                                .ledgerBalance(BigDecimal.ZERO).currency("USD").build();
                 when(ofxParser.parseFileToResult(any(InputStream.class), anyString())).thenReturn(ofxResult);
                 when(objectMapper.writeValueAsString(any())).thenReturn("{\"transactions\":[],\"count\":2}");
 
@@ -363,7 +361,8 @@ class ImportServiceTest {
 
                 when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
                 when(fileStorageService.getFileContent(UPLOAD_ID)).thenReturn(mockStream);
-                ImportParseResult ofxResult = ImportParseResult.builder().transactions(testTransactions).ledgerBalance(BigDecimal.ZERO).currency("USD").build();
+                ImportParseResult ofxResult = ImportParseResult.builder().transactions(testTransactions)
+                                .ledgerBalance(BigDecimal.ZERO).currency("USD").build();
                 when(ofxParser.parseFileToResult(any(InputStream.class), anyString()))
                                 .thenReturn(ofxResult);
                 when(objectMapper.writeValueAsString(any())).thenReturn("{\"transactions\":[]}");
@@ -431,7 +430,8 @@ class ImportServiceTest {
                 assertThat(result).hasSize(testTransactions.size());
 
                 verify(importSessionRepository).findById(1L);
-                verify(objectMapper, times(2)).readValue(anyString(), any(com.fasterxml.jackson.core.type.TypeReference.class));
+                verify(objectMapper, times(3)).readValue(anyString(),
+                                any(com.fasterxml.jackson.core.type.TypeReference.class));
         }
 
         @Test
@@ -490,7 +490,8 @@ class ImportServiceTest {
                 when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
 
                 // When
-                ImportSession result = importService.confirmImport(1L, USER_ID, ACCOUNT_ID, categoryMappings, true, null);
+                ImportSession result = importService.confirmImport(1L, USER_ID, ACCOUNT_ID, categoryMappings, true,
+                                null);
 
                 // Then
                 assertThat(result).isNotNull();
@@ -544,7 +545,8 @@ class ImportServiceTest {
                 when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
 
                 // When & Then
-                assertThatThrownBy(() -> importService.confirmImport(1L, USER_ID, ACCOUNT_ID, new HashMap<>(), true, null))
+                assertThatThrownBy(
+                                () -> importService.confirmImport(1L, USER_ID, ACCOUNT_ID, new HashMap<>(), true, null))
                                 .isInstanceOf(IllegalStateException.class)
                                 .hasMessageContaining("Session cannot be confirmed");
         }
@@ -659,7 +661,8 @@ class ImportServiceTest {
         // ========================================
 
         /**
-         * Helper: build a minimal persisted Transaction for use as an "existing" record.
+         * Helper: build a minimal persisted Transaction for use as an "existing"
+         * record.
          */
         private Transaction buildExistingTransaction(LocalDate date, BigDecimal amount,
                         String description, String externalReference) {
@@ -681,9 +684,11 @@ class ImportServiceTest {
          * Helper: drive detectDuplicates via reviewTransactions() so we go through the
          * real service method without needing reflection.
          *
-         * <p>Uses {@code "QIF"} as the file format by default. Pass {@code "OFX"} to
+         * <p>
+         * Uses {@code "QIF"} as the file format by default. Pass {@code "OFX"} to
          * activate Tier 0 (intra-session reference) and Tier 1 (DB exact-reference)
-         * duplicate checks.</p>
+         * duplicate checks.
+         * </p>
          */
         private List<ImportedTransaction> runReview(List<ImportedTransaction> parsed,
                         List<Transaction> existing) throws Exception {
@@ -890,7 +895,8 @@ class ImportServiceTest {
                                 .validationErrors(new ArrayList<>())
                                 .build();
 
-                // When — QIF format: Tier 0/1 must be skipped; Tier 2 won't match (different payee+amount)
+                // When — QIF format: Tier 0/1 must be skipped; Tier 2 won't match (different
+                // payee+amount)
                 List<ImportedTransaction> result = runReview(List.of(first, second), Collections.emptyList(), "QIF");
 
                 // Then: neither transaction should be flagged as a duplicate
@@ -918,7 +924,8 @@ class ImportServiceTest {
                                 .validationErrors(new ArrayList<>())
                                 .build();
 
-                // When — QIF format: Tier 1 must NOT fire; Tier 2 also won't match (payee/amount differ)
+                // When — QIF format: Tier 1 must NOT fire; Tier 2 also won't match
+                // (payee/amount differ)
                 List<ImportedTransaction> result = runReview(List.of(incoming), List.of(existing), "QIF");
 
                 // Then: should NOT be flagged (no Tier 1 match, no Tier 2 fuzzy match)
@@ -948,7 +955,8 @@ class ImportServiceTest {
                 // When — QIF format: Tier 1 skipped, but Tier 2 must fire and catch it
                 List<ImportedTransaction> result = runReview(List.of(incoming), List.of(existing), "QIF");
 
-                // Then: Tier 2 fuzzy match catches the duplicate even though a check number exists
+                // Then: Tier 2 fuzzy match catches the duplicate even though a check number
+                // exists
                 assertThat(result.get(0).isPotentialDuplicate()).isTrue();
                 assertThat(result.get(0).getValidationErrors())
                                 .anyMatch(e -> e.startsWith("DUPLICATE:"));

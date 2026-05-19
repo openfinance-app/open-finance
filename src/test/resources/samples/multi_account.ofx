@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OFX>
+  <BANKMSGSRSV1>
+    <STMTTRNRS>
+      <STMTRS>
+        <CURDEF>USD</CURDEF>
+        <BANKACCTFROM>
+          <BANKID>111000025</BANKID>
+          <ACCTID>CHK-001</ACCTID>
+          <ACCTTYPE>CHECKING</ACCTTYPE>
+        </BANKACCTFROM>
+        <BANKTRANLIST>
+          <DTSTART>20240101000000</DTSTART>
+          <DTEND>20240131235959</DTEND>
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20240105000000</DTPOSTED>
+            <TRNAMT>2500.00</TRNAMT>
+            <FITID>CHK-TX-001</FITID>
+            <NAME>Payroll</NAME>
+            <MEMO>January salary</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240106</DTPOSTED>
+            <TRNAMT>-85.40</TRNAMT>
+            <FITID>CHK-TX-002</FITID>
+            <NAME>Groceries</NAME>
+            <MEMO>Weekly groceries</MEMO>
+          </STMTTRN>
+        </BANKTRANLIST>
+        <LEDGERBAL>
+          <BALAMT>2414.60</BALAMT>
+          <DTASOF>20240131235959</DTASOF>
+        </LEDGERBAL>
+      </STMTRS>
+    </STMTTRNRS>
+    <STMTTRNRS>
+      <STMTRS>
+        <CURDEF>USD</CURDEF>
+        <BANKACCTFROM>
+          <BANKID>111000025</BANKID>
+          <ACCTID>SAV-002</ACCTID>
+          <ACCTTYPE>SAVINGS</ACCTTYPE>
+        </BANKACCTFROM>
+        <BANKTRANLIST>
+          <DTSTART>20240101000000</DTSTART>
+          <DTEND>20240131235959</DTEND>
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20240107</DTPOSTED>
+            <TRNAMT>12.75</TRNAMT>
+            <FITID>SAV-TX-001</FITID>
+            <NAME>Interest</NAME>
+            <MEMO>Monthly interest</MEMO>
+          </STMTTRN>
+        </BANKTRANLIST>
+        <LEDGERBAL>
+          <BALAMT>12.75</BALAMT>
+          <DTASOF>20240131235959</DTASOF>
+        </LEDGERBAL>
+      </STMTRS>
+    </STMTTRNRS>
+  </BANKMSGSRSV1>
+</OFX>

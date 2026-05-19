@@ -1,0 +1,53 @@
+!Type:Cat
+NMaison:Ménage
+E
+^
+NTransfert
+E
+^
+NAlimentation:Épicerie
+E
+^
+NDivers:Achat Divers
+E
+^
+!Account
+N00000463202
+TBank
+D01584-00000463202
+^
+!Type:Bank
+D2022-10-06
+T-14.75
+PFACTURE CARTE
+MDébit  DU 051022 WECASA          14 PARIS 14     CARTE   4974XXXXXXXX4225
+CR
+LMaison:Ménage
+^
+D2022-12-19
+T-39.6
+PFACTURE CARTE
+MDébit  DU 181222 AFRO-EXOTIQUE.C CARTE   4974XXXXXXXX4225                FRA
+CR
+SAlimentation:Épicerie
+EDU 181222 AFRO-EXOTIQUE.C CARTE   4974XXXXXXXX4225                FRA
+$-17.7
+SDivers:Achat Divers
+$-7.6
+SDivers:Achat Divers
+EExpédition
+$-14.3
+^
+!Account
+N00035387058
+TCash
+D30004031830003538705824
+^
+!Type:Cash
+D2024-12-19
+T30000
+PVIRT CPTE A CPTE EMIS
+MDébit  SUR LE CE 30004031830003538705824
+CR
+L[00000463202]/Transfert
+^

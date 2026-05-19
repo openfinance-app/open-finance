@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.openfinance.dto.ImportParseResult;
 import org.openfinance.dto.ImportedTransaction;
 import org.springframework.stereotype.Component;
@@ -296,20 +297,6 @@ public class OfxParser {
 
             List<ImportedTransaction> transactions = new ArrayList<>();
 
-            // Global account ID from the first ACCTID element
-            String globalAccountId = null;
-            NodeList acctIdList = doc.getElementsByTagName("ACCTID");
-            if (acctIdList.getLength() > 0) {
-                globalAccountId = acctIdList.item(0).getTextContent().trim();
-            }
-
-            // Global currency
-            String globalCurrency = null;
-            NodeList curDefList = doc.getElementsByTagName("CURDEF");
-            if (curDefList.getLength() > 0) {
-                globalCurrency = curDefList.item(0).getTextContent().trim();
-            }
-
             // Ledger balance
             BigDecimal ledgerBalance = null;
             NodeList ledgerBalList = doc.getElementsByTagName("LEDGERBAL");
@@ -323,33 +310,63 @@ public class OfxParser {
 
             int index = 0;
 
-            // Bank / credit-card transactions
-            NodeList stmtTrnList = doc.getElementsByTagName("STMTTRN");
-            for (int i = 0; i < stmtTrnList.getLength(); i++) {
-                Element el = (Element) stmtTrnList.item(i);
-                ImportedTransaction txn = parseTransaction(el, fileName, ++index, globalAccountId, globalCurrency);
-                if (txn != null) {
-                    transactions.add(txn);
+            String fileCurrency = null;
+
+            NodeList stmtRsList = doc.getElementsByTagName("STMTRS");
+            for (int i = 0; i < stmtRsList.getLength(); i++) {
+                Element stmtRs = (Element) stmtRsList.item(i);
+                String accountId = extractAccountId(stmtRs, "BANKACCTFROM");
+                String statementCurrency = extractStatementCurrency(stmtRs);
+                if (fileCurrency == null && statementCurrency != null && !statementCurrency.isEmpty()) {
+                    fileCurrency = statementCurrency;
+                }
+                NodeList stmtTrnList = stmtRs.getElementsByTagName("STMTTRN");
+                for (int j = 0; j < stmtTrnList.getLength(); j++) {
+                    Element el = (Element) stmtTrnList.item(j);
+                    ImportedTransaction txn = parseTransaction(el, fileName, ++index, accountId, statementCurrency);
+                    if (txn != null) {
+                        transactions.add(txn);
+                    }
                 }
             }
 
-            NodeList ccStmtTrnList = doc.getElementsByTagName("CCSTMTTRN");
-            for (int i = 0; i < ccStmtTrnList.getLength(); i++) {
-                Element el = (Element) ccStmtTrnList.item(i);
-                ImportedTransaction txn = parseTransaction(el, fileName, ++index, globalAccountId, globalCurrency);
-                if (txn != null) {
-                    transactions.add(txn);
+            NodeList ccStmtRsList = doc.getElementsByTagName("CCSTMTRS");
+            for (int i = 0; i < ccStmtRsList.getLength(); i++) {
+                Element stmtRs = (Element) ccStmtRsList.item(i);
+                String accountId = extractAccountId(stmtRs, "CCACCTFROM");
+                String statementCurrency = extractStatementCurrency(stmtRs);
+                if (fileCurrency == null && statementCurrency != null && !statementCurrency.isEmpty()) {
+                    fileCurrency = statementCurrency;
+                }
+                NodeList stmtTrnList = stmtRs.getElementsByTagName("CCSTMTTRN");
+                for (int j = 0; j < stmtTrnList.getLength(); j++) {
+                    Element el = (Element) stmtTrnList.item(j);
+                    ImportedTransaction txn = parseTransaction(el, fileName, ++index, accountId, statementCurrency);
+                    if (txn != null) {
+                        transactions.add(txn);
+                    }
                 }
             }
 
-            // Investment transactions
-            parseInvestmentTransactions(doc, fileName, globalAccountId, transactions);
+            NodeList invStmtRsList = doc.getElementsByTagName("INVSTMTRS");
+            for (int i = 0; i < invStmtRsList.getLength(); i++) {
+                Element invStmtRs = (Element) invStmtRsList.item(i);
+                String accountId = extractAccountId(invStmtRs, "INVACCTFROM");
+                if ((accountId == null || accountId.isEmpty()) && getElementText(invStmtRs, "BROKERID") != null) {
+                    accountId = getElementText(invStmtRs, "BROKERID");
+                }
+                String statementCurrency = extractStatementCurrency(invStmtRs);
+                if (fileCurrency == null && statementCurrency != null && !statementCurrency.isEmpty()) {
+                    fileCurrency = statementCurrency;
+                }
+                index = parseInvestmentTransactions(invStmtRs, fileName, accountId, transactions, index);
+            }
 
             log.info("OFX parsing complete: {} transactions parsed from {}", transactions.size(), fileName);
             return org.openfinance.dto.ImportParseResult.builder()
                     .transactions(transactions)
                     .ledgerBalance(ledgerBalance != null ? ledgerBalance : BigDecimal.ZERO)
-                    .currency(globalCurrency)
+                    .currency(fileCurrency)
                     .build();
 
         } catch (Exception e) {
@@ -462,9 +479,10 @@ public class OfxParser {
      * TOTAL is used for the amount when present.
      * Security name comes from MEMO or SECID/UNIQUEID.
      */
-    private void parseInvestmentTransactions(Document doc, String fileName,
-            String globalAccountId,
-            List<ImportedTransaction> transactions) {
+    private int parseInvestmentTransactions(Element invStmtRs, String fileName,
+            String accountId,
+            List<ImportedTransaction> transactions,
+            int index) {
         // All investment aggregate types that may contain an INVTRAN sub-element
         String[] invTranTypes = {
                 "BUYMF", "BUYSTOCK", "BUYDEBT", "BUYOPT", "BUYOTHER",
@@ -473,17 +491,17 @@ public class OfxParser {
                 "MARGININTEREST", "TRANSFER", "CLOSUREOPT"
         };
 
-        int idx = transactions.size();
         for (String typeName : invTranTypes) {
-            NodeList nodes = doc.getElementsByTagName(typeName);
+            NodeList nodes = invStmtRs.getElementsByTagName(typeName);
             for (int i = 0; i < nodes.getLength(); i++) {
                 Element el = (Element) nodes.item(i);
-                ImportedTransaction txn = parseInvestmentTransaction(el, typeName, fileName, ++idx, globalAccountId);
+                ImportedTransaction txn = parseInvestmentTransaction(el, typeName, fileName, ++index, accountId);
                 if (txn != null) {
                     transactions.add(txn);
                 }
             }
         }
+        return index;
     }
 
     private ImportedTransaction parseInvestmentTransaction(Element invEl, String typeName,
@@ -588,6 +606,25 @@ public class OfxParser {
             return text != null ? text.trim() : null;
         }
         return null;
+    }
+
+    private String extractAccountId(Element statement, String accountContainerTag) {
+        NodeList containers = statement.getElementsByTagName(accountContainerTag);
+        if (containers.getLength() == 0) {
+            return null;
+        }
+        return getElementText((Element) containers.item(0), "ACCTID");
+    }
+
+    private String extractStatementCurrency(Element statement) {
+        String currency = getElementText(statement, "CURDEF");
+        if (currency == null || currency.isEmpty()) {
+            currency = getElementText(statement, "CURRENCY");
+        }
+        if (currency == null || currency.isEmpty()) {
+            currency = getElementText(statement, "CURSYM");
+        }
+        return currency;
     }
 
     private LocalDate parseDate(String dateStr) {

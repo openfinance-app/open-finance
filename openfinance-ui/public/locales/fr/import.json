@@ -14,6 +14,10 @@
     "csv": {
       "name": "CSV (valeurs séparées par des virgules)",
       "description": "Format de tableur générique contenant des données de transactions"
+    },
+    "json": {
+      "name": "JSON (export Skrooge)",
+      "description": "Export Skrooge haute fidélité avec comptes, transferts et transactions ventilées"
     }
   },
   "howTo": {
@@ -23,7 +27,7 @@
       "Connectez-vous à votre banque en ligne ou au site de votre établissement financier",
       "Accédez à vos relevés de compte ou à l'historique de vos transactions",
       "Recherchez les options « Télécharger » ou « Exporter »",
-      "Sélectionnez QIF, OFX/QFX ou CSV comme format d'export",
+      "Sélectionnez QIF, OFX/QFX, CSV ou JSON Skrooge comme format d'export",
       "Choisissez la plage de dates souhaitée",
       "Téléchargez le fichier et importez-le ci-dessous"
     ]
@@ -46,7 +50,7 @@
   "wizard": {
     "upload": {
       "title": "Téléverser le fichier",
-      "description": "Sélectionnez un fichier QIF, OFX/QFX ou CSV à importer"
+      "description": "Sélectionnez un fichier QIF, OFX/QFX, CSV ou JSON Skrooge à importer"
     },
     "account": {
       "title": "Sélectionner le compte",

@@ -1,10 +1,5 @@
 package org.openfinance.service;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,19 +7,32 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Service for validating uploaded import files.
  * Checks file size, type, content, and performs basic security checks.
  *
- * <p>Requirement REQ-2.5.1.1: File Format Support - File validation</p>
+ * <p>
+ * Requirement REQ-2.5.1.1: File Format Support - File validation
+ * </p>
  *
- * <p>Validation checks:</p>
+ * <p>
+ * Validation checks:
+ * </p>
  * <ul>
- *   <li>File size within configured limits</li>
- *   <li>File extension matches allowed types</li>
- *   <li>File content matches detected format</li>
- *   <li>Basic malicious content detection</li>
- *   <li>File not empty</li>
+ * <li>File size within configured limits</li>
+ * <li>File extension matches allowed types</li>
+ * <li>File content matches detected format</li>
+ * <li>Basic malicious content detection</li>
+ * <li>File not empty</li>
  * </ul>
  *
  * @author Open-Finance Development Team
@@ -37,6 +45,7 @@ public class FileValidationService {
 
     private final List<String> allowedExtensions;
     private final long maxFileSize;
+    private final ObjectMapper objectMapper;
 
     /**
      * Constructor to initialize file validation service.
@@ -45,11 +54,12 @@ public class FileValidationService {
      * @param maxFileSizeString Maximum file size (e.g., "10MB")
      */
     public FileValidationService(
-            @Value("${application.import.allowed-extensions:.qif,.ofx,.qfx,.csv}") String allowedExtensions,
+            @Value("${application.import.allowed-extensions:.qif,.ofx,.qfx,.csv,.json}") String allowedExtensions,
             @Value("${spring.servlet.multipart.max-file-size:10MB}") String maxFileSizeString) {
         this.allowedExtensions = Arrays.asList(allowedExtensions.split(","));
         this.maxFileSize = parseFileSize(maxFileSizeString);
-        log.info("Initialized file validation with allowed extensions: {} and max size: {} bytes", 
+        this.objectMapper = new ObjectMapper();
+        log.info("Initialized file validation with allowed extensions: {} and max size: {} bytes",
                 this.allowedExtensions, this.maxFileSize);
     }
 
@@ -91,8 +101,7 @@ public class FileValidationService {
         if (file.getSize() > maxFileSize) {
             return ValidationResult.error(
                     String.format("File size (%d bytes) exceeds maximum allowed size (%d bytes)",
-                            file.getSize(), maxFileSize)
-            );
+                            file.getSize(), maxFileSize));
         }
 
         // Check filename
@@ -111,8 +120,7 @@ public class FileValidationService {
         if (extension == null || !allowedExtensions.contains(extension.toLowerCase())) {
             return ValidationResult.error(
                     String.format("File type '%s' not allowed. Allowed types: %s",
-                            extension, String.join(", ", allowedExtensions))
-            );
+                            extension, String.join(", ", allowedExtensions)));
         }
 
         // Detect file format by content
@@ -130,8 +138,12 @@ public class FileValidationService {
             // This is a warning, not a hard error - allow import to proceed
         }
 
+        if ("json".equalsIgnoreCase(detectedFormat) && !isValidJson(file)) {
+            return ValidationResult.error("File contains invalid JSON");
+        }
+
         // Basic security check for malicious content
-        if (containsMaliciousContent(file)) {
+        if (containsMaliciousContent(file, detectedFormat)) {
             return ValidationResult.error("File contains potentially malicious content");
         }
 
@@ -157,13 +169,13 @@ public class FileValidationService {
      * Detects the file format by inspecting content.
      * 
      * @param file The file to inspect
-     * @return Detected format: "qif", "ofx", "qfx", or "csv"
+     * @return Detected format: "qif", "ofx", "qfx", "csv", or "json"
      * @throws IOException if file cannot be read
      */
     public String detectFileFormat(MultipartFile file) throws IOException {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(file.getInputStream()))) {
-            
+
             String firstLine = reader.readLine();
             if (firstLine == null) {
                 return "unknown";
@@ -177,9 +189,27 @@ public class FileValidationService {
                 return "qif";
             }
 
+            // Check for Skrooge JSON export format
+            if (firstLine.startsWith("{") || firstLine.startsWith("[")) {
+                StringBuilder sampleBuilder = new StringBuilder(firstLine);
+                for (int i = 0; i < 4; i++) {
+                    String nextLine = reader.readLine();
+                    if (nextLine == null) {
+                        break;
+                    }
+                    sampleBuilder.append(nextLine.trim());
+                }
+
+                String sample = sampleBuilder.toString();
+                if (sample.contains("\"account\"") || sample.contains("\"operation\"")
+                        || sample.contains("\"suboperation\"")) {
+                    return "json";
+                }
+            }
+
             // Check for OFX/QFX format (XML or SGML)
-            if (firstLine.contains("<?xml") || firstLine.contains("OFX") || 
-                firstLine.contains("<OFX>") || firstLine.startsWith("OFXHEADER")) {
+            if (firstLine.startsWith("<?xml") || firstLine.contains("<OFX>")
+                    || firstLine.startsWith("OFXHEADER")) {
                 // QFX is essentially OFX format
                 return "ofx";
             }
@@ -201,10 +231,10 @@ public class FileValidationService {
      * @param file The file to check
      * @return true if potentially malicious content is detected
      */
-    private boolean containsMaliciousContent(MultipartFile file) {
+    private boolean containsMaliciousContent(MultipartFile file, String detectedFormat) {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(file.getInputStream()))) {
-            
+
             String line;
             int lineCount = 0;
             int maxLinesToCheck = 100; // Only check first 100 lines for performance
@@ -212,6 +242,15 @@ public class FileValidationService {
             while ((line = reader.readLine()) != null && lineCount < maxLinesToCheck) {
                 lineCount++;
                 String lowerLine = line.toLowerCase();
+
+                if (lineCount == 1 && (line.startsWith("MZ") || line.startsWith("PK"))) {
+                    log.warn("Detected executable file signature in file");
+                    return true;
+                }
+
+                if ("json".equalsIgnoreCase(detectedFormat)) {
+                    continue;
+                }
 
                 // Check for script tags
                 if (lowerLine.contains("<script") || lowerLine.contains("javascript:")) {
@@ -224,12 +263,6 @@ public class FileValidationService {
                     log.warn("Detected SQL injection pattern in file at line {}", lineCount);
                     return true;
                 }
-
-                // Check for executable file signatures
-                if (line.startsWith("MZ") || line.startsWith("PK")) { // Windows EXE or ZIP
-                    log.warn("Detected executable file signature in file");
-                    return true;
-                }
             }
 
             return false;
@@ -237,6 +270,19 @@ public class FileValidationService {
             log.error("Error checking file content for malicious patterns", e);
             // On error, assume file is suspicious
             return true;
+        }
+    }
+
+    private boolean isValidJson(MultipartFile file) {
+        try {
+            objectMapper.readTree(file.getInputStream());
+            return true;
+        } catch (JsonProcessingException e) {
+            log.warn("Detected invalid JSON content", e);
+            return false;
+        } catch (IOException e) {
+            log.error("Error validating JSON content", e);
+            return false;
         }
     }
 

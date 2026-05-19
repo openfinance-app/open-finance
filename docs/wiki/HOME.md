@@ -39,7 +39,7 @@
 | Page                                  | Description                                                        |
 | ------------------------------------- | ------------------------------------------------------------------ |
 | [Dashboard](dashboard.md)             | Net-worth summary, cashflow, Sankey diagram, portfolio performance |
-| [Import & Export](import-export.md)   | QIF/OFX/QFX import, CSV/JSON export, duplicate detection           |
+| [Import & Export](import-export.md)   | JSON/QIF/OFX/QFX/CSV import, CSV/JSON export, duplicate detection  |
 | [Backup & Restore](backup-restore.md) | Encrypted backups, restore, upload from file                       |
 
 ### AI & Intelligence

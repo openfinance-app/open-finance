@@ -1,0 +1,24 @@
+!Account
+NChecking Account
+TBank
+^
+!Type:Bank
+D01/08/2024
+T-500.00
+PTransfer to Savings
+MAutomatic transfer
+L[Savings Account]
+NCHK-QIF-002
+^
+!Account
+NSavings Account
+TSav
+^
+!Type:Bank
+D01/08/2024
+T500.00
+PTransfer from Checking
+MAutomatic transfer
+L[Checking Account]
+NSAV-QIF-001
+^

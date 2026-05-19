@@ -1,9 +1,6 @@
 package org.openfinance.service.parser;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.openfinance.dto.ImportedTransaction;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -13,8 +10,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.openfinance.dto.ImportedTransaction;
 
 /**
  * Comprehensive test suite for CSV parser.
@@ -50,6 +49,15 @@ class CsvParserTest {
     private List<ImportedTransaction> parseCsv(String content) throws IOException {
         InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
         return parser.parseFile(inputStream, "test.csv");
+    }
+
+    private String readFixture(String resourcePath) throws IOException {
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new IOException("Fixture not found: " + resourcePath);
+            }
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
     // ========== Basic Parsing Tests ==========
@@ -829,6 +837,19 @@ class CsvParserTest {
         assertThat(salary.hasErrors()).isFalse();
 
         // All transactions valid
+        transactions.forEach(tx -> assertThat(tx.hasErrors()).isFalse());
+    }
+
+    @Test
+    @DisplayName("Should parse multi-account CSV sample fixture")
+    void testParseMultiAccountCsvSampleFixture() throws IOException {
+        List<ImportedTransaction> transactions = parseCsv(readFixture("samples/multi_account.csv"));
+
+        assertThat(transactions).hasSize(3);
+        assertThat(transactions.get(0).getAccountName()).isEqualTo("Checking Account");
+        assertThat(transactions.get(0).getAccountNumber()).isEqualTo("CHK-CSV-001");
+        assertThat(transactions.get(2).getAccountName()).isEqualTo("Savings Account");
+        assertThat(transactions.get(2).getAccountNumber()).isEqualTo("SAV-CSV-002");
         transactions.forEach(tx -> assertThat(tx.hasErrors()).isFalse());
     }
 

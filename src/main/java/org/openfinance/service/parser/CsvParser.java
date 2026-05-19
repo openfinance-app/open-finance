@@ -320,8 +320,13 @@ public class CsvParser {
         builder.referenceNumber(refNum);
 
         // Account Name / Number
-        String account = getValue(row, headerMap, "account", "accountname", "accountnumber", "acctid");
-        builder.accountName(account);
+        String accountName = getValue(row, headerMap, "account", "accountname");
+        String accountNumber = getValue(row, headerMap, "accountnumber", "acctid");
+        if ((accountName == null || accountName.isEmpty()) && accountNumber != null && !accountNumber.isEmpty()) {
+            accountName = accountNumber;
+        }
+        builder.accountName(accountName);
+        builder.accountNumber(accountNumber);
 
         // Currency (ISO code, e.g., USD, EUR, GBP)
         String currency = getValue(row, headerMap, "currency", "curr", "currencycode", "iso");

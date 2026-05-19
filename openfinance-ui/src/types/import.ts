@@ -46,7 +46,7 @@ export type ImportSessionStatus =
 /**
  * File format types
  */
-export type FileFormat = 'QIF' | 'OFX' | 'CSV';
+export type FileFormat = 'QIF' | 'OFX' | 'CSV' | 'JSON';
 
 /**
  * Import session response from backend

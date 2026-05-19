@@ -1,18 +1,23 @@
 package org.openfinance.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Unit tests for FileValidationService.
- * Tests file validation logic including size, type, format detection, and security checks.
+ * Tests file validation logic including size, type, format detection, and
+ * security checks.
  *
  * @author Open-Finance Development Team
  * @version 1.0
@@ -25,7 +30,7 @@ class FileValidationServiceTest {
 
     @BeforeEach
     void setUp() {
-        fileValidationService = new FileValidationService(".qif,.ofx,.qfx,.csv", "10MB");
+        fileValidationService = new FileValidationService(".qif,.ofx,.qfx,.csv,.json", "10MB");
     }
 
     @Test
@@ -37,8 +42,7 @@ class FileValidationServiceTest {
                 "file",
                 "transactions.qif",
                 "text/plain",
-                qifContent.getBytes()
-        );
+                qifContent.getBytes());
 
         // When
         FileValidationService.ValidationResult result = fileValidationService.validate(file);
@@ -58,8 +62,7 @@ class FileValidationServiceTest {
                 "file",
                 "transactions.ofx",
                 "text/xml",
-                ofxContent.getBytes()
-        );
+                ofxContent.getBytes());
 
         // When
         FileValidationService.ValidationResult result = fileValidationService.validate(file);
@@ -78,8 +81,7 @@ class FileValidationServiceTest {
                 "file",
                 "transactions.csv",
                 "text/csv",
-                csvContent.getBytes()
-        );
+                csvContent.getBytes());
 
         // When
         FileValidationService.ValidationResult result = fileValidationService.validate(file);
@@ -90,6 +92,89 @@ class FileValidationServiceTest {
     }
 
     @Test
+    @DisplayName("Should validate Skrooge JSON file successfully")
+    void shouldValidateSkroogeJsonFileSuccessfully() {
+        String jsonContent = """
+                {
+                  "account": [],
+                  "operation": [],
+                  "suboperation": []
+                }
+                """;
+        MultipartFile file = new MockMultipartFile(
+                "file",
+                "transactions.json",
+                "application/json",
+                jsonContent.getBytes());
+
+        FileValidationService.ValidationResult result = fileValidationService.validate(file);
+
+        assertTrue(result.isValid());
+        assertEquals("json", result.getDetectedFormat());
+    }
+
+    @Test
+    @DisplayName("Should allow Skrooge JSON with embedded HTML and SQL history")
+    void shouldAllowSkroogeJsonWithEmbeddedHtmlAndSqlHistory() {
+        String jsonContent = """
+                {
+                    "account": [],
+                    "operation": [],
+                    "suboperation": [],
+                    "document": [
+                        {
+                            "t_value": "<html><body><script src='https://code.jquery.com/jquery.js'></script></body></html>"
+                        },
+                        {
+                            "t_sqlorder": "DELETE FROM operation WHERE id=2758"
+                        }
+                    ]
+                }
+                """;
+        MultipartFile file = new MockMultipartFile(
+                "file",
+                "transactions.json",
+                "application/json",
+                jsonContent.getBytes());
+
+        FileValidationService.ValidationResult result = fileValidationService.validate(file);
+
+        assertTrue(result.isValid());
+        assertEquals("json", result.getDetectedFormat());
+    }
+
+    @Test
+    @DisplayName("Should detect JSON before embedded OFX markers")
+    void shouldDetectJsonBeforeEmbeddedOfxMarkers() throws IOException {
+        String jsonContent = """
+                {"account":[],"operation":[],"suboperation":[],"document":[{"t_value":"<?xml version='1.0'?><OFX><script src='https://example.com/x.js'></script></OFX>"}]}
+                """;
+        MultipartFile file = new MockMultipartFile(
+                "file",
+                "transactions.json",
+                "application/json",
+                jsonContent.getBytes());
+
+        assertEquals("json", fileValidationService.detectFileFormat(file));
+        assertTrue(fileValidationService.validate(file).isValid());
+    }
+
+    @Test
+    @DisplayName("Should reject invalid JSON file")
+    void shouldRejectInvalidJsonFile() {
+        MultipartFile file = new MockMultipartFile(
+                "file",
+                "transactions.json",
+                "application/json",
+                "{\"account\": [}".getBytes());
+
+        FileValidationService.ValidationResult result = fileValidationService.validate(file);
+
+        assertFalse(result.isValid());
+        assertEquals("File contains invalid JSON", result.getErrorMessage());
+    }
+
+    @Test
     @DisplayName("Should reject empty file")
     void shouldRejectEmptyFile() {
         // Given
@@ -97,8 +182,7 @@ class FileValidationServiceTest {
                 "file",
                 "empty.qif",
                 "text/plain",
-                new byte[0]
-        );
+                new byte[0]);
 
         // When
         FileValidationService.ValidationResult result = fileValidationService.validate(file);
@@ -117,8 +201,7 @@ class FileValidationServiceTest {
                 "file",
                 "large.qif",
                 "text/plain",
-                largeContent
-        );
+                largeContent);
 
         // When
         FileValidationService.ValidationResult result = fileValidationService.validate(file);
@@ -136,8 +219,7 @@ class FileValidationServiceTest {
                 "file",
                 "document.pdf",
                 "application/pdf",
-                "PDF content".getBytes()
-        );
+                "PDF content".getBytes());
 
         // When
         FileValidationService.ValidationResult result = fileValidationService.validate(file);
@@ -155,8 +237,7 @@ class FileValidationServiceTest {
                 "file",
                 "../../../etc/passwd.qif",
                 "text/plain",
-                "!Type:Bank\n".getBytes()
-        );
+                "!Type:Bank\n".getBytes());
 
         // When
         FileValidationService.ValidationResult result = fileValidationService.validate(file);
@@ -175,8 +256,7 @@ class FileValidationServiceTest {
                 "file",
                 "malicious.qif",
                 "text/plain",
-                maliciousContent.getBytes()
-        );
+                maliciousContent.getBytes());
 
         // When
         FileValidationService.ValidationResult result = fileValidationService.validate(file);
@@ -195,8 +275,7 @@ class FileValidationServiceTest {
                 "file",
                 "malicious.qif",
                 "text/plain",
-                maliciousContent.getBytes()
-        );
+                maliciousContent.getBytes());
 
         // When
         FileValidationService.ValidationResult result = fileValidationService.validate(file);
@@ -214,8 +293,7 @@ class FileValidationServiceTest {
                 "file",
                 null,
                 "text/plain",
-                "content".getBytes()
-        );
+                "content".getBytes());
 
         // When
         FileValidationService.ValidationResult result = fileValidationService.validate(file);
@@ -234,8 +312,7 @@ class FileValidationServiceTest {
                 "file",
                 "test.qif",
                 "text/plain",
-                qifContent.getBytes()
-        );
+                qifContent.getBytes());
 
         // When
         String detectedFormat = fileValidationService.detectFileFormat(file);
@@ -253,8 +330,7 @@ class FileValidationServiceTest {
                 "file",
                 "test.ofx",
                 "text/plain",
-                ofxContent.getBytes()
-        );
+                ofxContent.getBytes());
 
         // When
         String detectedFormat = fileValidationService.detectFileFormat(file);
@@ -272,14 +348,35 @@ class FileValidationServiceTest {
                 "file",
                 "test.csv",
                 "text/csv",
-                csvContent.getBytes()
-        );
+                csvContent.getBytes());
 
         // When
         String detectedFormat = fileValidationService.detectFileFormat(file);
 
         // Then
         assertEquals("csv", detectedFormat);
+    }
+
+    @Test
+    @DisplayName("Should detect Skrooge JSON format by core collections")
+    void shouldDetectJsonFormatByCoreCollections() throws IOException {
+        String jsonContent = """
+                {
+                  "bank": [],
+                  "account": [],
+                  "operation": [],
+                  "suboperation": []
+                }
+                """;
+        MultipartFile file = new MockMultipartFile(
+                "file",
+                "test.json",
+                "application/json",
+                jsonContent.getBytes());
+
+        String detectedFormat = fileValidationService.detectFileFormat(file);
+
+        assertEquals("json", detectedFormat);
     }
 
     @Test
@@ -291,8 +388,7 @@ class FileValidationServiceTest {
                 "file",
                 "test.txt",
                 "text/plain",
-                unknownContent.getBytes()
-        );
+                unknownContent.getBytes());
 
         // When
         String detectedFormat = fileValidationService.detectFileFormat(file);
@@ -317,8 +413,7 @@ class FileValidationServiceTest {
                 "file",
                 "transactions.qfx",
                 "text/xml",
-                qfxContent.getBytes()
-        );
+                qfxContent.getBytes());
 
         // When
         FileValidationService.ValidationResult result = fileValidationService.validate(file);
@@ -337,8 +432,7 @@ class FileValidationServiceTest {
                 "file",
                 "accounts.qif",
                 "text/plain",
-                qifContent.getBytes()
-        );
+                qifContent.getBytes());
 
         // When
         FileValidationService.ValidationResult result = fileValidationService.validate(file);
@@ -352,15 +446,14 @@ class FileValidationServiceTest {
     @DisplayName("Should parse file size correctly for KB")
     void shouldParseFileSizeKb() {
         // Given & When
-        FileValidationService service = new FileValidationService(".qif,.ofx,.qfx,.csv", "512KB");
-        
+        FileValidationService service = new FileValidationService(".qif,.ofx,.qfx,.csv,.json", "512KB");
+
         byte[] content = new byte[600 * 1024]; // 600KB
         MultipartFile file = new MockMultipartFile(
                 "file",
                 "large.qif",
                 "text/plain",
-                content
-        );
+                content);
 
         // Then
         FileValidationService.ValidationResult result = service.validate(file);
@@ -372,14 +465,13 @@ class FileValidationServiceTest {
     @DisplayName("Should allow file at exact size limit")
     void shouldAllowFileAtExactSizeLimit() {
         // Given
-        FileValidationService service = new FileValidationService(".qif,.ofx,.qfx,.csv", "1KB");
+        FileValidationService service = new FileValidationService(".qif,.ofx,.qfx,.csv,.json", "1KB");
         byte[] content = new byte[1024]; // Exactly 1KB
         MultipartFile file = new MockMultipartFile(
                 "file",
                 "exact.qif",
                 "text/plain",
-                content
-        );
+                content);
 
         // When
         FileValidationService.ValidationResult result = service.validate(file);

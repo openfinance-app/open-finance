@@ -42,6 +42,9 @@ export default function ImportPage() {
                 <li>
                   <strong>{t('supportedFormats.csv.name')}</strong> - {t('supportedFormats.csv.description')}
                 </li>
+                <li>
+                  <strong>{t('supportedFormats.json.name')}</strong> - {t('supportedFormats.json.description')}
+                </li>
               </ul>
             </div>
           </div>

@@ -17,7 +17,7 @@ interface FileUploadProps {
   acceptedFormats?: string[];
 }
 
-const DEFAULT_ACCEPTED_FORMATS = ['.qif', '.ofx', '.qfx', '.csv'];
+const DEFAULT_ACCEPTED_FORMATS = ['.qif', '.ofx', '.qfx', '.csv', '.json'];
 const DEFAULT_MAX_SIZE_MB = 10;
 
 export function FileUpload({

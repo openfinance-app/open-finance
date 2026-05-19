@@ -1,9 +1,5 @@
 package org.openfinance.service.parser;
 
-import lombok.extern.slf4j.Slf4j;
-import org.openfinance.dto.ImportedTransaction;
-import org.springframework.stereotype.Component;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +11,11 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.openfinance.dto.ImportedTransaction;
+import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Parser for Quicken Interchange Format (QIF) files.
@@ -28,12 +29,15 @@ import java.util.List;
  * - File sections start with !Type: header (e.g., !Type:Bank, !Type:CCard)
  *
  * Supported Field Codes:
- * - D = Date (formats: MM/DD/YYYY, DD/MM/YYYY, MM/DD/YY, DD/MM/YY, and variants with - or . separators)
+ * - D = Date (formats: MM/DD/YYYY, DD/MM/YYYY, MM/DD/YY, DD/MM/YY, and variants
+ * with - or . separators)
  * - T = Amount (negative for expenses, positive for income)
- * - U = Amount (duplicate of T, used in newer Quicken versions - fallback if T absent)
+ * - U = Amount (duplicate of T, used in newer Quicken versions - fallback if T
+ * absent)
  * - P = Payee/Description
  * - M = Memo/Notes
- * - L = Category (may contain class suffix after '/' and/or transfer syntax [AccountName])
+ * - L = Category (may contain class suffix after '/' and/or transfer syntax
+ * [AccountName])
  * - N = Check/Reference number
  * - C = Cleared status (c/cleared, *=cleared, X=reconciled)
  * - A = Address (multiple lines, ignored)
@@ -46,14 +50,17 @@ import java.util.List;
  *
  * !Type directives handled:
  * - Bank, CCard, Cash, Oth A, Oth L, Oth S - standard transaction parsing
- * - Invst  - investment transactions (parsed with key fields: N/action, Y/security, I/price, Q/quantity, T/amount)
+ * - Invst - investment transactions (parsed with key fields: N/action,
+ * Y/security, I/price, Q/quantity, T/amount)
  * - Memorized - skipped gracefully
- * - Prices   - skipped gracefully
+ * - Prices - skipped gracefully
  * - Bill, Invoice, Tax - skipped gracefully
- * - !Account - multi-account context: captures account name for subsequent transactions
+ * - !Account - multi-account context: captures account name for subsequent
+ * transactions
  * - !Option:AllXfr - logged and ignored
  *
  * Example QIF file:
+ * 
  * <pre>
  * !Type:Bank
  * D01/15/2024
@@ -81,29 +88,29 @@ public class QifParser {
      * Order matters — try most specific / common formats first.
      */
     private static final DateTimeFormatter[] DATE_FORMATS = {
-        DateTimeFormatter.ofPattern("MM/dd/yyyy"),  // US with 4-digit year
-        DateTimeFormatter.ofPattern("dd/MM/yyyy"),  // International with 4-digit year
-        DateTimeFormatter.ofPattern("yyyy-MM-dd"),  // ISO format
-        DateTimeFormatter.ofPattern("MM/dd/yy"),    // US with 2-digit year
-        DateTimeFormatter.ofPattern("dd/MM/yy"),    // International with 2-digit year
-        DateTimeFormatter.ofPattern("M/d/yyyy"),    // US no leading zeros
-        DateTimeFormatter.ofPattern("d/M/yyyy"),    // International no leading zeros
-        DateTimeFormatter.ofPattern("M/d/yy"),      // US 2-digit year no leading zeros
-        DateTimeFormatter.ofPattern("d/M/yy"),      // International 2-digit year no leading zeros
-        // Dash-separated variants
-        DateTimeFormatter.ofPattern("MM-dd-yyyy"),
-        DateTimeFormatter.ofPattern("dd-MM-yyyy"),
-        DateTimeFormatter.ofPattern("MM-dd-yy"),
-        DateTimeFormatter.ofPattern("dd-MM-yy"),
-        DateTimeFormatter.ofPattern("M-d-yyyy"),
-        DateTimeFormatter.ofPattern("d-M-yyyy"),
-        // Dot-separated variants
-        DateTimeFormatter.ofPattern("MM.dd.yyyy"),
-        DateTimeFormatter.ofPattern("dd.MM.yyyy"),
-        DateTimeFormatter.ofPattern("MM.dd.yy"),
-        DateTimeFormatter.ofPattern("dd.MM.yy"),
-        DateTimeFormatter.ofPattern("M.d.yyyy"),
-        DateTimeFormatter.ofPattern("d.M.yyyy"),
+            DateTimeFormatter.ofPattern("MM/dd/yyyy"), // US with 4-digit year
+            DateTimeFormatter.ofPattern("dd/MM/yyyy"), // International with 4-digit year
+            DateTimeFormatter.ofPattern("yyyy-MM-dd"), // ISO format
+            DateTimeFormatter.ofPattern("MM/dd/yy"), // US with 2-digit year
+            DateTimeFormatter.ofPattern("dd/MM/yy"), // International with 2-digit year
+            DateTimeFormatter.ofPattern("M/d/yyyy"), // US no leading zeros
+            DateTimeFormatter.ofPattern("d/M/yyyy"), // International no leading zeros
+            DateTimeFormatter.ofPattern("M/d/yy"), // US 2-digit year no leading zeros
+            DateTimeFormatter.ofPattern("d/M/yy"), // International 2-digit year no leading zeros
+            // Dash-separated variants
+            DateTimeFormatter.ofPattern("MM-dd-yyyy"),
+            DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+            DateTimeFormatter.ofPattern("MM-dd-yy"),
+            DateTimeFormatter.ofPattern("dd-MM-yy"),
+            DateTimeFormatter.ofPattern("M-d-yyyy"),
+            DateTimeFormatter.ofPattern("d-M-yyyy"),
+            // Dot-separated variants
+            DateTimeFormatter.ofPattern("MM.dd.yyyy"),
+            DateTimeFormatter.ofPattern("dd.MM.yyyy"),
+            DateTimeFormatter.ofPattern("MM.dd.yy"),
+            DateTimeFormatter.ofPattern("dd.MM.yy"),
+            DateTimeFormatter.ofPattern("M.d.yyyy"),
+            DateTimeFormatter.ofPattern("d.M.yyyy"),
     };
 
     /**
@@ -111,8 +118,7 @@ public class QifParser {
      * records parsed from them).
      */
     private static final List<String> SKIP_TYPES = List.of(
-            "memorized", "prices", "bill", "invoice", "tax"
-    );
+            "memorized", "prices", "bill", "invoice", "tax");
 
     /**
      * Parse QIF file and extract transactions.
@@ -449,19 +455,26 @@ public class QifParser {
      * - Category class separator: Category/Class or Category:SubCat/Class
      */
     private void parseCategoryField(String value, ImportedTransaction.ImportedTransactionBuilder builder) {
-        if (value.startsWith("[") && value.endsWith("]")) {
-            // Transfer — strip brackets; class suffix not applicable here
-            String accountName = value.substring(1, value.length() - 1);
-            builder.accountName(accountName);
+        int slashPos = value.indexOf('/');
+        String categoryValue = slashPos >= 0 ? value.substring(0, slashPos).trim() : value;
+        String classValue = slashPos >= 0 ? value.substring(slashPos + 1).trim() : null;
+
+        if (categoryValue.startsWith("[") && categoryValue.endsWith("]")) {
+            String accountName = categoryValue.substring(1, categoryValue.length() - 1).trim();
+            builder.transfer(true);
+            builder.toAccountName(accountName);
             builder.category("Transfer");
+            if (classValue != null && !classValue.isEmpty()) {
+                ImportedTransaction peek = builder.build();
+                List<String> tags = new ArrayList<>(peek.getTags());
+                tags.add(classValue);
+                builder.tags(tags);
+            }
         } else {
-            // Strip class suffix (text after '/') and use as tag
-            int slashPos = value.indexOf('/');
             if (slashPos >= 0) {
-                String classValue = value.substring(slashPos + 1).trim();
-                String category = value.substring(0, slashPos).trim();
+                String category = categoryValue;
                 builder.category(category.isEmpty() ? null : category);
-                if (!classValue.isEmpty()) {
+                if (classValue != null && !classValue.isEmpty()) {
                     // Store class as a tag on the transaction
                     ImportedTransaction peek = builder.build();
                     List<String> tags = new ArrayList<>(peek.getTags());
@@ -486,7 +499,7 @@ public class QifParser {
      * Finalize split transaction entries and add to transaction builder.
      */
     private void finalizeSplits(ImportedTransaction.ImportedTransactionBuilder transaction,
-                                List<ImportedTransaction.SplitEntry> splits) {
+            List<ImportedTransaction.SplitEntry> splits) {
         if (!splits.isEmpty()) {
             transaction.splits(new ArrayList<>(splits));
         }
@@ -496,8 +509,8 @@ public class QifParser {
      * Build final ImportedTransaction and perform validation.
      */
     private ImportedTransaction buildTransaction(ImportedTransaction.ImportedTransactionBuilder builder,
-                                                 int lineNumber,
-                                                 String fileName) {
+            int lineNumber,
+            String fileName) {
         builder.lineNumber(lineNumber);
         builder.sourceFileName(fileName);
 
@@ -522,23 +535,23 @@ public class QifParser {
         }
 
         if (transaction.getTransactionDate() != null &&
-            transaction.getTransactionDate().isAfter(LocalDate.now())) {
+                transaction.getTransactionDate().isAfter(LocalDate.now())) {
             transaction.addValidationError("Transaction date cannot be in the future");
         }
 
         if (transaction.isSplitTransaction()) {
             BigDecimal totalSplitAmount = transaction.getSplits().stream()
-                .map(ImportedTransaction.SplitEntry::getAmount)
-                .filter(amt -> amt != null)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    .map(ImportedTransaction.SplitEntry::getAmount)
+                    .filter(amt -> amt != null)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             if (transaction.getAmount() != null) {
                 // QIF split amounts are stored as positive values regardless of the parent
                 // transaction sign — compare absolute values to handle expense splits correctly
                 if (totalSplitAmount.abs().compareTo(transaction.getAmount().abs()) != 0) {
                     transaction.addValidationError(
-                        String.format("Split amounts (%s) do not match transaction amount (%s)",
-                        totalSplitAmount, transaction.getAmount()));
+                            String.format("Split amounts (%s) do not match transaction amount (%s)",
+                                    totalSplitAmount, transaction.getAmount()));
                 }
             }
         }
@@ -548,9 +561,11 @@ public class QifParser {
      * Parse date from QIF file, trying multiple date formats.
      *
      * Handles:
-     * - Apostrophe-notation for post-2000 years (e.g., 01/15'00 → 01/1500 → parsed with 2-digit year)
+     * - Apostrophe-notation for post-2000 years (e.g., 01/15'00 → 01/1500 → parsed
+     * with 2-digit year)
      * - Separator variants: '/', '-', '.'
-     * - European number format dates are disambiguated by trying all formats in order
+     * - European number format dates are disambiguated by trying all formats in
+     * order
      */
     private LocalDate parseDate(String dateStr, int lineNumber) {
         if (dateStr == null || dateStr.isEmpty()) {
@@ -582,7 +597,7 @@ public class QifParser {
      * - Currency symbol stripping: $, €, £
      */
     private BigDecimal parseAmount(String amountStr, int lineNumber,
-                                   ImportedTransaction.ImportedTransactionBuilder transaction) {
+            ImportedTransaction.ImportedTransactionBuilder transaction) {
         if (amountStr == null || amountStr.isEmpty()) {
             log.warn("Line {}: Empty amount string", lineNumber);
             return null;
@@ -591,10 +606,10 @@ public class QifParser {
         try {
             // Remove currency symbols and whitespace
             String cleaned = amountStr
-                .replace("$", "")
-                .replace("€", "")
-                .replace("£", "")
-                .replace(" ", "");
+                    .replace("$", "")
+                    .replace("€", "")
+                    .replace("£", "")
+                    .replace(" ", "");
 
             // Detect European format: dot used as thousands separator, comma as decimal
             // e.g., "1.234,56" → "1234.56"

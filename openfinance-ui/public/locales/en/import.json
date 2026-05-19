@@ -14,6 +14,10 @@
     "csv": {
       "name": "CSV (Comma-Separated Values)",
       "description": "Generic spreadsheet format with transaction data"
+    },
+    "json": {
+      "name": "JSON (Skrooge export)",
+      "description": "High-fidelity Skrooge export with accounts, transfers and split transactions"
     }
   },
   "howTo": {
@@ -23,7 +27,7 @@
       "Log in to your online banking or financial institution website",
       "Navigate to your account statements or transaction history",
       "Look for \"Download\" or \"Export\" options",
-      "Select QIF, OFX/QFX, or CSV as the export format",
+      "Select QIF, OFX/QFX, CSV, or Skrooge JSON as the export format",
       "Choose your desired date range",
       "Download the file and upload it below"
     ]
@@ -46,7 +50,7 @@
   "wizard": {
     "upload": {
       "title": "Upload File",
-      "description": "Select a QIF, OFX/QFX or CSV file to import"
+      "description": "Select a QIF, OFX/QFX, CSV, or Skrooge JSON file to import"
     },
     "account": {
       "title": "Select Account",

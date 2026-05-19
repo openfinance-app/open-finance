@@ -3,13 +3,16 @@ package org.openfinance.service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -20,6 +23,9 @@ import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.ImportParseResult;
 import org.openfinance.dto.ImportedTransaction;
+import org.openfinance.dto.SkroogeImportMetadata;
+import org.openfinance.dto.SkroogeImportParseResult;
+import org.openfinance.dto.TransactionRequest;
 import org.openfinance.dto.TransactionSplitRequest;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
@@ -27,6 +33,7 @@ import org.openfinance.entity.Category;
 import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
+import org.openfinance.entity.Institution;
 import org.openfinance.entity.Transaction;
 // Import TransactionType enum
 import org.openfinance.entity.TransactionType;
@@ -35,12 +42,15 @@ import org.openfinance.exception.ResourceNotFoundException;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.ImportSessionRepository;
+import org.openfinance.repository.InstitutionRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
+import org.openfinance.security.EncryptionService;
 import org.openfinance.service.parser.CsvParser;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
+import org.openfinance.service.parser.SkroogeJsonParser;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.scheduling.annotation.Async;
@@ -81,16 +91,21 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ImportService {
 
+    private static final int TRANSACTION_DESCRIPTION_MAX_LENGTH = 255;
+    private static final int TRANSACTION_NOTES_MAX_LENGTH = 1000;
+    private static final int TRANSACTION_PAYEE_MAX_LENGTH = 100;
+    private static final int TRANSACTION_TAGS_MAX_LENGTH = 500;
+
     private final ImportSessionRepository importSessionRepository;
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
-    private final FileValidationService fileValidationService;
     private final QifParser qifParser;
     private final OfxParser ofxParser;
     private final CsvParser csvParser;
+    private final SkroogeJsonParser skroogeJsonParser;
     private final ObjectMapper objectMapper;
     private final AutoCategorizationService autoCategorizationService;
     private final AccountService accountService;
@@ -100,6 +115,8 @@ public class ImportService {
     private final NetWorthRepository netWorthRepository;
     private final AICategorizationService aiCategorizationService;
     private final MessageSource messageSource;
+    private final EncryptionService encryptionService;
+    private final InstitutionRepository institutionRepository;
 
     /**
      * Start a new import session and parse the uploaded file.
@@ -253,6 +270,16 @@ public class ImportService {
                 case "CSV":
                     transactions = csvParser.parseFile(fileStream, session.getFileName());
                     break;
+                case "JSON":
+                    SkroogeImportParseResult skroogeResult = skroogeJsonParser.parseFile(fileStream,
+                            session.getFileName());
+                    transactions = skroogeResult.getTransactions();
+                    if (skroogeResult.getCurrency() != null) {
+                        fileCurrency = skroogeResult.getCurrency();
+                    }
+                    session.setMetadata(serializeTransactions(transactions, ledgerBalance, fileCurrency,
+                            Map.of("skroogeMetadata", skroogeResult.getSkroogeMetadata())));
+                    break;
                 default:
                     throw new IllegalArgumentException("Unsupported file format: " + session.getFileFormat());
             }
@@ -307,7 +334,9 @@ public class ImportService {
 
             // Store parsed transactions in metadata (JSON format)
             // Note: In production, consider storing in separate table for large imports
-            session.setMetadata(serializeTransactions(transactions, ledgerBalance, fileCurrency));
+            if (!"JSON".equalsIgnoreCase(session.getFileFormat())) {
+                session.setMetadata(serializeTransactions(transactions, ledgerBalance, fileCurrency));
+            }
 
             importSessionRepository.save(session);
 
@@ -373,7 +402,8 @@ public class ImportService {
                 log.warn("Error extracting ledger metadata during review: {}", e.getMessage());
             }
         }
-        session.setMetadata(serializeTransactions(transactions, ledgerBalance, fileCurrency));
+        session.setMetadata(serializeTransactions(transactions, ledgerBalance, fileCurrency,
+                preserveMetadata(session.getMetadata())));
 
         // Update status to REVIEWING if not already
         if (session.getStatus() == ImportStatus.PARSED) {
@@ -464,7 +494,8 @@ public class ImportService {
             }
         }
 
-        session.setMetadata(serializeTransactions(transactions, ledgerBalance, fileCurrency));
+        session.setMetadata(serializeTransactions(transactions, ledgerBalance, fileCurrency,
+                preserveMetadata(session.getMetadata())));
         return importSessionRepository.save(session);
     }
 
@@ -492,6 +523,16 @@ public class ImportService {
 
         if (!session.isConfirmable()) {
             throw new IllegalStateException("Session cannot be confirmed. Current status: " + session.getStatus());
+        }
+
+        if ("JSON".equalsIgnoreCase(session.getFileFormat()) && hasSkroogeMetadata(session.getMetadata())) {
+            return confirmSkroogeImport(session, userId, categoryMappings, skipDuplicates, encryptionKey);
+        }
+
+        List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
+        if (shouldUseImportedAccountRouting(transactions)) {
+            return confirmImportedAccountImport(session, userId, accountId, categoryMappings,
+                    skipDuplicates, encryptionKey, transactions);
         }
 
         // Resolve target account: use provided ID, fall back to session's accountId,
@@ -559,9 +600,6 @@ public class ImportService {
         importSessionRepository.save(session);
 
         try {
-            // Deserialize transactions
-            List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
-
             // Separate blocking-error transactions from importable ones
             List<ImportedTransaction> errorTxs = transactions.stream()
                     .filter(ImportedTransaction::hasErrors)
@@ -790,7 +828,7 @@ public class ImportService {
         String extension = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
 
         // Validate extension
-        if (!List.of("qif", "ofx", "qfx", "csv").contains(extension)) {
+        if (!List.of("qif", "ofx", "qfx", "csv", "json").contains(extension)) {
             throw new IllegalArgumentException("Unsupported file extension: " + extension);
         }
 
@@ -1258,6 +1296,7 @@ public class ImportService {
      * @param encryptionKey   the user's encryption key
      * @return the created Category entity
      */
+    @SuppressWarnings("unused")
     private Category createCategoryForImport(String categoryName, Long userId,
             TransactionType transactionType,
             String encryptionKey) {
@@ -1289,6 +1328,665 @@ public class ImportService {
                 .anyMatch(error -> error.startsWith("DUPLICATE:"));
     }
 
+    private ImportSession confirmSkroogeImport(ImportSession session, Long userId,
+            Map<String, Long> categoryMappings, boolean skipDuplicates, SecretKey encryptionKey) {
+        session.setStatus(ImportStatus.IMPORTING);
+        importSessionRepository.save(session);
+
+        List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
+        List<ImportedTransaction> errorTxs = transactions.stream()
+                .filter(ImportedTransaction::hasErrors)
+                .collect(Collectors.toList());
+        List<ImportedTransaction> validTxs = transactions.stream()
+                .filter(tx -> !tx.hasErrors())
+                .collect(Collectors.toList());
+        List<ImportedTransaction> duplicateTxs = validTxs.stream()
+                .filter(this::isDuplicate)
+                .collect(Collectors.toList());
+        List<ImportedTransaction> toImport = validTxs.stream()
+                .filter(tx -> !skipDuplicates || !isDuplicate(tx))
+                .collect(Collectors.toList());
+
+        SkroogeImportMetadata skroogeMetadata = extractSkroogeMetadata(session.getMetadata());
+        Map<Long, Long> institutionIdsBySource = ensureInstitutions(skroogeMetadata);
+        Map<Long, Long> accountIdsBySource = ensureAccounts(skroogeMetadata, institutionIdsBySource, userId,
+                encryptionKey);
+        Map<Long, Long> categoryIdsBySource = ensureCategories(skroogeMetadata, userId, categoryMappings);
+
+        int imported = 0;
+        int saveFailed = 0;
+        Set<String> processedTransferGroups = new java.util.HashSet<>();
+        Set<Long> affectedAccountIds = new java.util.HashSet<>(accountIdsBySource.values());
+
+        for (ImportedTransaction importedTx : toImport) {
+            try {
+                if (importedTx.isTransfer()) {
+                    if (importedTx.getTransferGroupKey() == null
+                            || !processedTransferGroups.add(importedTx.getTransferGroupKey())) {
+                        continue;
+                    }
+                    Long fromAccountId = accountIdsBySource.get(importedTx.getSourceAccountId());
+                    Long toAccountId = accountIdsBySource.get(importedTx.getToAccountSourceId());
+                    if (fromAccountId == null || toAccountId == null) {
+                        throw new IllegalStateException("Unable to resolve transfer accounts for "
+                                + importedTx.getTransferGroupKey());
+                    }
+                    TransactionRequest transferRequest = TransactionRequest.builder()
+                            .accountId(fromAccountId)
+                            .toAccountId(toAccountId)
+                            .type(TransactionType.TRANSFER)
+                            .amount(normalizeAmount(importedTx.getAmount()))
+                            .currency(resolveTransactionCurrency(importedTx, fromAccountId))
+                            .date(importedTx.getTransactionDate())
+                            .description(truncate(importedTx.getPayee(), TRANSACTION_DESCRIPTION_MAX_LENGTH))
+                            .notes(truncate(importedTx.getMemo(), TRANSACTION_NOTES_MAX_LENGTH))
+                            .payee(truncate(importedTx.getPayee(), TRANSACTION_PAYEE_MAX_LENGTH))
+                            .tags(importedTx.getTags() != null && !importedTx.getTags().isEmpty()
+                                    ? truncate(String.join(",", importedTx.getTags()), TRANSACTION_TAGS_MAX_LENGTH)
+                                    : null)
+                            .build();
+                    transactionService.createTransfer(userId, transferRequest, encryptionKey);
+                    imported++;
+                    continue;
+                }
+
+                Long accountId = accountIdsBySource.get(importedTx.getSourceAccountId());
+                if (accountId == null) {
+                    throw new IllegalStateException("Unable to resolve account for source account "
+                            + importedTx.getSourceAccountId());
+                }
+                Transaction transaction = convertToTransaction(importedTx, accountId, userId, categoryMappings,
+                        categoryIdsBySource);
+                Transaction saved = transactionRepository.save(transaction);
+                if (importedTx.isSplitTransaction()) {
+                    transactionSplitService.saveSplits(saved.getId(),
+                            buildSplitRequests(importedTx, userId, categoryMappings, categoryIdsBySource),
+                            encryptionKey);
+                }
+                transactionService.syncTransactionFts(saved, importedTx.getPayee(), importedTx.getMemo());
+                imported++;
+            } catch (Exception ex) {
+                log.error("Error saving Skrooge transaction {}: {}", importedTx.getReferenceNumber(), ex.getMessage(),
+                        ex);
+                saveFailed++;
+            }
+        }
+
+        for (Long affectedAccountId : affectedAccountIds) {
+            try {
+                accountService.recalculateBalance(affectedAccountId, userId);
+            } catch (Exception ex) {
+                log.warn("Failed to recalculate balance for account {} after Skrooge import: {}",
+                        affectedAccountId, ex.getMessage());
+            }
+        }
+
+        int duplicatesSkipped = skipDuplicates ? duplicateTxs.size() : 0;
+        session.setImportedCount(imported);
+        session.setDuplicateCount(duplicateTxs.size());
+        session.setErrorCount(errorTxs.size());
+        session.setSkippedCount(duplicatesSkipped + errorTxs.size() + saveFailed);
+        session.setStatus(ImportStatus.COMPLETED);
+        session.setCompletedAt(LocalDateTime.now());
+        if (accountIdsBySource.size() == 1) {
+            session.setAccountId(accountIdsBySource.values().iterator().next());
+        }
+
+        try {
+            toImport.stream()
+                    .map(ImportedTransaction::getTransactionDate)
+                    .filter(date -> date != null)
+                    .reduce((left, right) -> left.isAfter(right) ? left : right)
+                    .ifPresent(maxDate -> netWorthRepository.deleteByUserIdAndSnapshotDateBefore(userId, maxDate));
+        } catch (Exception ex) {
+            log.warn("Failed to invalidate net worth snapshots after Skrooge import for user {}: {}",
+                    userId, ex.getMessage());
+        }
+
+        importSessionRepository.save(session);
+        return session;
+    }
+
+    private ImportSession confirmImportedAccountImport(ImportSession session, Long userId,
+            Long requestedAccountId,
+            Map<String, Long> categoryMappings,
+            boolean skipDuplicates,
+            SecretKey encryptionKey,
+            List<ImportedTransaction> transactions) {
+        session.setStatus(ImportStatus.IMPORTING);
+        importSessionRepository.save(session);
+
+        List<ImportedTransaction> errorTxs = transactions.stream()
+                .filter(ImportedTransaction::hasErrors)
+                .collect(Collectors.toList());
+        List<ImportedTransaction> validTxs = transactions.stream()
+                .filter(tx -> !tx.hasErrors())
+                .collect(Collectors.toList());
+        List<ImportedTransaction> duplicateTxs = validTxs.stream()
+                .filter(this::isDuplicate)
+                .collect(Collectors.toList());
+        List<ImportedTransaction> toImport = validTxs.stream()
+                .filter(tx -> !skipDuplicates || !isDuplicate(tx))
+                .collect(Collectors.toList());
+
+        String fileCurrency = extractFileCurrency(session.getMetadata(), userId);
+        final Long initialFallbackAccountId = requestedAccountId != null ? requestedAccountId : session.getAccountId();
+        Account fallbackAccount = initialFallbackAccountId != null
+                ? accountRepository.findByIdAndUserId(initialFallbackAccountId, userId)
+                        .orElseThrow(
+                                () -> new ResourceNotFoundException("Account not found: " + initialFallbackAccountId))
+                : null;
+
+        Map<String, ImportedAccountDescriptor> descriptorsByKey = collectImportedAccounts(toImport, fileCurrency);
+        Map<String, Long> accountIdsByKey = ensureImportedAccounts(descriptorsByKey, fallbackAccount,
+                userId, encryptionKey);
+
+        Long resolvedFallbackAccountId = initialFallbackAccountId;
+        if (resolvedFallbackAccountId == null && fallbackAccount == null && accountIdsByKey.size() == 1) {
+            resolvedFallbackAccountId = accountIdsByKey.values().iterator().next();
+        }
+        if (resolvedFallbackAccountId == null && requiresFallbackAccount(toImport)) {
+            resolvedFallbackAccountId = createAccountForImport(userId, session, encryptionKey, BigDecimal.ZERO,
+                    fileCurrency);
+        }
+
+        int imported = 0;
+        int saveFailed = 0;
+        Set<Long> affectedAccountIds = new java.util.HashSet<>(accountIdsByKey.values());
+        if (resolvedFallbackAccountId != null) {
+            affectedAccountIds.add(resolvedFallbackAccountId);
+        }
+        Set<String> processedTransferKeys = new java.util.HashSet<>();
+
+        for (ImportedTransaction importedTx : toImport) {
+            try {
+                Long sourceAccountId = resolveImportedAccountId(importedTx, accountIdsByKey, resolvedFallbackAccountId);
+
+                if (importedTx.isTransfer() && importedTx.getToAccountName() != null
+                        && !importedTx.getToAccountName().isBlank()) {
+                    Long destinationAccountId = resolveImportedDestinationAccountId(importedTx, accountIdsByKey,
+                            resolvedFallbackAccountId);
+                    if (sourceAccountId == null || destinationAccountId == null) {
+                        throw new IllegalStateException("Unable to resolve transfer accounts for imported transaction");
+                    }
+
+                    String transferKey = buildImportedTransferKey(importedTx, sourceAccountId, destinationAccountId);
+                    if (!processedTransferKeys.add(transferKey)) {
+                        continue;
+                    }
+
+                    TransactionRequest transferRequest = TransactionRequest.builder()
+                            .accountId(sourceAccountId)
+                            .toAccountId(destinationAccountId)
+                            .type(TransactionType.TRANSFER)
+                            .amount(normalizeAmount(importedTx.getAmount()))
+                            .currency(resolveTransactionCurrency(importedTx, sourceAccountId))
+                            .date(importedTx.getTransactionDate())
+                            .description(truncate(importedTx.getPayee(), TRANSACTION_DESCRIPTION_MAX_LENGTH))
+                            .notes(truncate(importedTx.getMemo(), TRANSACTION_NOTES_MAX_LENGTH))
+                            .payee(truncate(importedTx.getPayee(), TRANSACTION_PAYEE_MAX_LENGTH))
+                            .tags(importedTx.getTags() != null && !importedTx.getTags().isEmpty()
+                                    ? truncate(String.join(",", importedTx.getTags()), TRANSACTION_TAGS_MAX_LENGTH)
+                                    : null)
+                            .build();
+                    transactionService.createTransfer(userId, transferRequest, encryptionKey);
+                    affectedAccountIds.add(sourceAccountId);
+                    affectedAccountIds.add(destinationAccountId);
+                    imported++;
+                    continue;
+                }
+
+                if (sourceAccountId == null) {
+                    throw new IllegalStateException("Unable to resolve account for imported transaction");
+                }
+
+                Transaction transaction = convertToTransaction(importedTx, sourceAccountId, userId, categoryMappings);
+                Transaction saved = transactionRepository.save(transaction);
+                if (importedTx.isSplitTransaction()) {
+                    List<TransactionSplitRequest> splitRequests = buildSplitRequests(importedTx, userId,
+                            categoryMappings, Map.of());
+                    transactionSplitService.saveSplits(saved.getId(), splitRequests, encryptionKey);
+                }
+                transactionService.syncTransactionFts(saved, importedTx.getPayee(), importedTx.getMemo());
+                affectedAccountIds.add(sourceAccountId);
+                imported++;
+            } catch (Exception ex) {
+                log.error("Error saving imported transaction {}: {}", importedTx.getReferenceNumber(), ex.getMessage(),
+                        ex);
+                saveFailed++;
+            }
+        }
+
+        for (Long affectedAccountId : affectedAccountIds) {
+            try {
+                accountService.recalculateBalance(affectedAccountId, userId);
+            } catch (Exception ex) {
+                log.warn("Failed to recalculate balance for account {} after multi-account import: {}",
+                        affectedAccountId, ex.getMessage());
+            }
+        }
+
+        int duplicatesSkipped = skipDuplicates ? duplicateTxs.size() : 0;
+        session.setImportedCount(imported);
+        session.setDuplicateCount(duplicateTxs.size());
+        session.setErrorCount(errorTxs.size());
+        session.setSkippedCount(duplicatesSkipped + errorTxs.size() + saveFailed);
+        session.setStatus(ImportStatus.COMPLETED);
+        session.setCompletedAt(LocalDateTime.now());
+
+        Set<Long> resolvedAccountIds = new java.util.HashSet<>(affectedAccountIds);
+        if (resolvedAccountIds.size() == 1) {
+            session.setAccountId(resolvedAccountIds.iterator().next());
+        }
+
+        try {
+            toImport.stream()
+                    .map(ImportedTransaction::getTransactionDate)
+                    .filter(date -> date != null)
+                    .reduce((left, right) -> left.isAfter(right) ? left : right)
+                    .ifPresent(maxDate -> netWorthRepository.deleteByUserIdAndSnapshotDateBefore(userId, maxDate));
+        } catch (Exception ex) {
+            log.warn("Failed to invalidate net worth snapshots after multi-account import for user {}: {}",
+                    userId, ex.getMessage());
+        }
+
+        importSessionRepository.save(session);
+        return session;
+    }
+
+    private Map<Long, Long> ensureInstitutions(SkroogeImportMetadata metadata) {
+        Map<Long, Long> institutionIdsBySource = new HashMap<>();
+        List<Institution> existingInstitutions = institutionRepository.findAll();
+        for (SkroogeImportMetadata.SkroogeInstitution institution : metadata.getInstitutions()) {
+            if (institution.getName() == null || institution.getName().isBlank()) {
+                log.warn("Skipping Skrooge institution {} because it has no usable name", institution.getSourceId());
+                continue;
+            }
+            Institution existing = existingInstitutions.stream()
+                    .filter(candidate -> candidate.getName() != null
+                            && candidate.getName().equalsIgnoreCase(institution.getName()))
+                    .findFirst()
+                    .orElseGet(() -> institutionRepository.save(Institution.builder()
+                            .name(institution.getName())
+                            .country(institution.getCountry())
+                            .logo(institution.getLogo())
+                            .isSystem(false)
+                            .build()));
+            institutionIdsBySource.put(institution.getSourceId(), existing.getId());
+        }
+        return institutionIdsBySource;
+    }
+
+    private Map<Long, Long> ensureAccounts(SkroogeImportMetadata metadata,
+            Map<Long, Long> institutionIdsBySource,
+            Long userId,
+            SecretKey encryptionKey) {
+        Map<Long, Long> accountIdsBySource = new HashMap<>();
+        List<Account> existingAccounts = accountRepository.findByUserId(userId);
+        for (SkroogeImportMetadata.SkroogeAccount account : metadata.getAccounts()) {
+            Account matchingAccount = findMatchingAccount(existingAccounts, account, encryptionKey);
+            if (matchingAccount == null) {
+                AccountRequest accountRequest = AccountRequest.builder()
+                        .name(account.getName())
+                        .type(account.getAccountType() != null ? account.getAccountType() : AccountType.OTHER)
+                        .currency(account.getCurrency() != null ? account.getCurrency() : "USD")
+                        .initialBalance(
+                                account.getOpeningBalance() != null ? account.getOpeningBalance() : BigDecimal.ZERO)
+                        .openingDate(account.getOpeningDate())
+                        .description(account.getDescription())
+                        .accountNumber(account.getAccountNumber())
+                        .institutionId(account.getSourceInstitutionId() != null
+                                ? institutionIdsBySource.get(account.getSourceInstitutionId())
+                                : null)
+                        .build();
+                AccountResponse created = accountService.createAccount(userId, accountRequest, encryptionKey);
+                matchingAccount = accountRepository.findById(created.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Account not found: " + created.getId()));
+                existingAccounts.add(matchingAccount);
+            }
+            accountIdsBySource.put(account.getSourceId(), matchingAccount.getId());
+        }
+        return accountIdsBySource;
+    }
+
+    private Account findMatchingAccount(List<Account> existingAccounts,
+            SkroogeImportMetadata.SkroogeAccount importedAccount,
+            SecretKey encryptionKey) {
+        for (Account existingAccount : existingAccounts) {
+            if (matchesImportedAccount(existingAccount, importedAccount.getName(), importedAccount.getAccountNumber(),
+                    encryptionKey)) {
+                return existingAccount;
+            }
+        }
+        return null;
+    }
+
+    private boolean shouldUseImportedAccountRouting(List<ImportedTransaction> transactions) {
+        return transactions.stream().anyMatch(this::hasImportedAccountReference);
+    }
+
+    private boolean hasImportedAccountReference(ImportedTransaction transaction) {
+        return (transaction.getAccountName() != null && !transaction.getAccountName().isBlank())
+                || (transaction.getAccountNumber() != null && !transaction.getAccountNumber().isBlank())
+                || (transaction.getToAccountName() != null && !transaction.getToAccountName().isBlank());
+    }
+
+    private Map<String, ImportedAccountDescriptor> collectImportedAccounts(List<ImportedTransaction> transactions,
+            String defaultCurrency) {
+        Map<String, ImportedAccountDescriptor> descriptors = new LinkedHashMap<>();
+        for (ImportedTransaction transaction : transactions) {
+            registerImportedAccountDescriptor(descriptors, transaction.getAccountName(), transaction.getAccountNumber(),
+                    transaction.getCurrency(), transaction.getTransactionDate(), defaultCurrency);
+            registerImportedAccountDescriptor(descriptors, transaction.getToAccountName(), null,
+                    transaction.getCurrency(), transaction.getTransactionDate(), defaultCurrency);
+        }
+        return descriptors;
+    }
+
+    private void registerImportedAccountDescriptor(Map<String, ImportedAccountDescriptor> descriptors,
+            String accountName,
+            String accountNumber,
+            String currency,
+            LocalDate transactionDate,
+            String defaultCurrency) {
+        String descriptorKey = buildImportedAccountKey(accountName, accountNumber);
+        if (descriptorKey == null) {
+            return;
+        }
+
+        ImportedAccountDescriptor existing = descriptors.get(descriptorKey);
+        String resolvedName = accountName != null && !accountName.isBlank()
+                ? accountName.trim()
+                : existing != null && existing.name() != null ? existing.name()
+                        : formatAccountSuggestion(accountNumber);
+        String resolvedNumber = accountNumber != null && !accountNumber.isBlank()
+                ? accountNumber.trim()
+                : existing != null ? existing.accountNumber() : null;
+        String resolvedCurrency = currency != null && !currency.isBlank()
+                ? currency.trim()
+                : existing != null && existing.currency() != null ? existing.currency() : defaultCurrency;
+        LocalDate openingDate = existing != null && existing.openingDate() != null
+                ? existing.openingDate()
+                : transactionDate;
+        if (openingDate != null && transactionDate != null && transactionDate.isBefore(openingDate)) {
+            openingDate = transactionDate;
+        }
+
+        descriptors.put(descriptorKey, new ImportedAccountDescriptor(descriptorKey, resolvedName, resolvedNumber,
+                resolvedCurrency, openingDate));
+    }
+
+    private Map<String, Long> ensureImportedAccounts(Map<String, ImportedAccountDescriptor> descriptorsByKey,
+            Account fallbackAccount,
+            Long userId,
+            SecretKey encryptionKey) {
+        Map<String, Long> accountIdsByKey = new HashMap<>();
+        List<Account> existingAccounts = accountRepository.findByUserId(userId);
+        for (ImportedAccountDescriptor descriptor : descriptorsByKey.values()) {
+            Account matchingAccount = fallbackAccount != null
+                    && matchesImportedAccount(fallbackAccount, descriptor.name(), descriptor.accountNumber(),
+                            encryptionKey)
+                                    ? fallbackAccount
+                                    : findMatchingAccount(existingAccounts, descriptor, encryptionKey);
+            if (matchingAccount == null && fallbackAccount != null && descriptorsByKey.size() == 1) {
+                matchingAccount = fallbackAccount;
+            }
+            if (matchingAccount == null) {
+                AccountRequest accountRequest = AccountRequest.builder()
+                        .name(descriptor.name())
+                        .type(AccountType.CHECKING)
+                        .currency(descriptor.currency() != null ? descriptor.currency() : "USD")
+                        .initialBalance(BigDecimal.ZERO)
+                        .openingDate(descriptor.openingDate() != null ? descriptor.openingDate() : LocalDate.now())
+                        .accountNumber(descriptor.accountNumber())
+                        .build();
+                AccountResponse created = accountService.createAccount(userId, accountRequest, encryptionKey);
+                matchingAccount = accountRepository.findById(created.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Account not found: " + created.getId()));
+                existingAccounts.add(matchingAccount);
+            }
+            accountIdsByKey.put(descriptor.key(), matchingAccount.getId());
+        }
+        return accountIdsByKey;
+    }
+
+    private Account findMatchingAccount(List<Account> existingAccounts,
+            ImportedAccountDescriptor descriptor,
+            SecretKey encryptionKey) {
+        for (Account existingAccount : existingAccounts) {
+            if (matchesImportedAccount(existingAccount, descriptor.name(), descriptor.accountNumber(), encryptionKey)) {
+                return existingAccount;
+            }
+        }
+        return null;
+    }
+
+    private boolean matchesImportedAccount(Account existingAccount, String importedName, String importedAccountNumber,
+            SecretKey encryptionKey) {
+        String existingName = decryptQuietly(existingAccount.getName(), encryptionKey);
+        String existingAccountNumber = decryptQuietly(existingAccount.getAccountNumber(), encryptionKey);
+        boolean sameName = existingName != null && importedName != null
+                && existingName.equalsIgnoreCase(importedName);
+        boolean sameNumber = importedAccountNumber != null
+                && !importedAccountNumber.isBlank()
+                && existingAccountNumber != null
+                && existingAccountNumber.equalsIgnoreCase(importedAccountNumber);
+        return sameName || sameNumber;
+    }
+
+    private String buildImportedAccountKey(String accountName, String accountNumber) {
+        if (accountNumber != null && !accountNumber.isBlank()) {
+            return "number:" + accountNumber.trim().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+        }
+        if (accountName != null && !accountName.isBlank()) {
+            return "name:" + accountName.trim().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+        }
+        return null;
+    }
+
+    private Long resolveImportedAccountId(ImportedTransaction importedTx,
+            Map<String, Long> accountIdsByKey,
+            Long fallbackAccountId) {
+        String descriptorKey = buildImportedAccountKey(importedTx.getAccountName(), importedTx.getAccountNumber());
+        if (descriptorKey != null && accountIdsByKey.containsKey(descriptorKey)) {
+            return accountIdsByKey.get(descriptorKey);
+        }
+        return fallbackAccountId;
+    }
+
+    private Long resolveImportedDestinationAccountId(ImportedTransaction importedTx,
+            Map<String, Long> accountIdsByKey,
+            Long fallbackAccountId) {
+        String descriptorKey = buildImportedAccountKey(importedTx.getToAccountName(), null);
+        if (descriptorKey != null && accountIdsByKey.containsKey(descriptorKey)) {
+            return accountIdsByKey.get(descriptorKey);
+        }
+        return fallbackAccountId;
+    }
+
+    private boolean requiresFallbackAccount(List<ImportedTransaction> transactions) {
+        return transactions.stream().anyMatch(transaction -> !transaction.isTransfer()
+                && (transaction.getAccountName() == null || transaction.getAccountName().isBlank())
+                && (transaction.getAccountNumber() == null || transaction.getAccountNumber().isBlank()));
+    }
+
+    private String buildImportedTransferKey(ImportedTransaction transaction, Long sourceAccountId,
+            Long destinationAccountId) {
+        long lowerAccountId = Math.min(sourceAccountId, destinationAccountId);
+        long higherAccountId = Math.max(sourceAccountId, destinationAccountId);
+        return String.join("|",
+                transaction.getTransactionDate() != null ? transaction.getTransactionDate().toString() : "",
+                normalizeAmount(transaction.getAmount()).toPlainString(),
+                String.valueOf(lowerAccountId),
+                String.valueOf(higherAccountId));
+    }
+
+    private String decryptQuietly(String encryptedValue, SecretKey encryptionKey) {
+        if (encryptedValue == null || encryptedValue.isBlank()) {
+            return null;
+        }
+        try {
+            return encryptionService.decrypt(encryptedValue, encryptionKey);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private Map<Long, Long> ensureCategories(SkroogeImportMetadata metadata,
+            Long userId,
+            Map<String, Long> categoryMappings) {
+        Map<Long, Long> categoryIdsBySource = new HashMap<>();
+        List<Category> existingCategories = categoryRepository.findByUserId(userId);
+        Map<Long, String> existingPathsById = buildCategoryPaths(existingCategories);
+
+        for (SkroogeImportMetadata.SkroogeCategory category : metadata.getCategories()) {
+            Long mappedId = categoryMappings != null ? categoryMappings.get(category.getFullName()) : null;
+            if (mappedId == null && categoryMappings != null) {
+                mappedId = categoryMappings.get(category.getName());
+            }
+            if (mappedId != null) {
+                categoryIdsBySource.put(category.getSourceId(), mappedId);
+                continue;
+            }
+
+            Long parentId = category.getParentSourceId() != null
+                    ? categoryIdsBySource.get(category.getParentSourceId())
+                    : null;
+            Category matchingCategory = existingCategories.stream()
+                    .filter(existingCategory -> existingCategory.getType() == category.getType())
+                    .filter(existingCategory -> Objects.equals(existingCategory.getParentId(), parentId))
+                    .filter(existingCategory -> category.getName().equalsIgnoreCase(existingCategory.getName()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (matchingCategory == null) {
+                matchingCategory = categoryRepository.save(Category.builder()
+                        .userId(userId)
+                        .name(category.getName())
+                        .type(category.getType())
+                        .parentId(parentId)
+                        .isSystem(false)
+                        .icon("tag")
+                        .color("#6B7280")
+                        .build());
+                existingCategories.add(matchingCategory);
+                existingPathsById.put(matchingCategory.getId(), category.getFullName());
+            }
+            categoryIdsBySource.put(category.getSourceId(), matchingCategory.getId());
+        }
+
+        return categoryIdsBySource;
+    }
+
+    private Map<Long, String> buildCategoryPaths(List<Category> categories) {
+        Map<Long, Category> categoriesById = categories.stream()
+                .collect(Collectors.toMap(Category::getId, category -> category));
+        Map<Long, String> pathsById = new HashMap<>();
+        for (Category category : categories) {
+            pathsById.put(category.getId(), buildCategoryPath(category, categoriesById));
+        }
+        return pathsById;
+    }
+
+    private String buildCategoryPath(Category category, Map<Long, Category> categoriesById) {
+        List<String> segments = new ArrayList<>();
+        Category current = category;
+        while (current != null) {
+            segments.add(0, current.getName());
+            current = current.getParentId() != null ? categoriesById.get(current.getParentId()) : null;
+        }
+        return String.join(":", segments);
+    }
+
+    private List<TransactionSplitRequest> buildSplitRequests(ImportedTransaction importedTx,
+            Long userId,
+            Map<String, Long> categoryMappings,
+            Map<Long, Long> categoryIdsBySource) {
+        List<Category> userCategories = categoryRepository.findByUserId(userId);
+        return importedTx.getSplits().stream()
+                .map(splitEntry -> {
+                    Long categoryId = splitEntry.getSourceCategoryId() != null
+                            ? categoryIdsBySource.get(splitEntry.getSourceCategoryId())
+                            : null;
+                    if (categoryId == null && splitEntry.getCategory() != null && categoryMappings != null) {
+                        categoryId = categoryMappings.get(splitEntry.getCategory());
+                    }
+                    if (categoryId == null && splitEntry.getCategory() != null) {
+                        String categoryName = splitEntry.getCategory().contains(":")
+                                ? splitEntry.getCategory().substring(splitEntry.getCategory().lastIndexOf(':') + 1)
+                                        .trim()
+                                : splitEntry.getCategory().trim();
+                        categoryId = userCategories.stream()
+                                .filter(category -> category.getName().equalsIgnoreCase(categoryName))
+                                .findFirst()
+                                .map(Category::getId)
+                                .orElse(null);
+                    }
+                    return TransactionSplitRequest.builder()
+                            .categoryId(categoryId)
+                            .amount(normalizeAmount(splitEntry.getAmount()))
+                            .description(truncate(splitEntry.getMemo(), TRANSACTION_DESCRIPTION_MAX_LENGTH))
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    private boolean hasSkroogeMetadata(String metadata) {
+        return readMetadataMap(metadata).containsKey("skroogeMetadata");
+    }
+
+    private SkroogeImportMetadata extractSkroogeMetadata(String metadata) {
+        Object value = readMetadataMap(metadata).get("skroogeMetadata");
+        if (value == null) {
+            throw new IllegalStateException("Skrooge metadata missing from import session");
+        }
+        return objectMapper.convertValue(value, SkroogeImportMetadata.class);
+    }
+
+    private Map<String, Object> preserveMetadata(String metadata) {
+        Map<String, Object> preserved = readMetadataMap(metadata);
+        preserved.remove("transactions");
+        preserved.remove("count");
+        preserved.remove("ledgerBalance");
+        preserved.remove("fileCurrency");
+        preserved.remove("timestamp");
+        return preserved;
+    }
+
+    private Map<String, Object> readMetadataMap(String metadata) {
+        if (metadata == null || metadata.trim().isEmpty()) {
+            return new HashMap<>();
+        }
+        try {
+            return objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {
+            });
+        } catch (JsonProcessingException ex) {
+            log.warn("Failed to read import metadata: {}", ex.getMessage());
+            return new HashMap<>();
+        }
+    }
+
+    private String resolveTransactionCurrency(ImportedTransaction importedTx, Long accountId) {
+        if (importedTx.getCurrency() != null && !importedTx.getCurrency().isBlank()) {
+            return importedTx.getCurrency();
+        }
+        return accountRepository.findById(accountId)
+                .map(Account::getCurrency)
+                .orElse("USD");
+    }
+
+    private String extractFileCurrency(String metadata, Long userId) {
+        Map<String, Object> metadataMap = readMetadataMap(metadata);
+        Object fileCurrency = metadataMap.get("fileCurrency");
+        if (fileCurrency != null && !fileCurrency.toString().isBlank()) {
+            return fileCurrency.toString();
+        }
+        return userRepository.findById(userId)
+                .map(User::getBaseCurrency)
+                .filter(currency -> currency != null && !currency.isBlank())
+                .orElse("USD");
+    }
+
     /**
      * Convert ImportedTransaction to Transaction entity.
      * The {@code referenceNumber} from the imported file is persisted as
@@ -1297,9 +1995,14 @@ public class ImportService {
      */
     private Transaction convertToTransaction(ImportedTransaction importedTx, Long accountId,
             Long userId, Map<String, Long> categoryMappings) {
+        return convertToTransaction(importedTx, accountId, userId, categoryMappings, Map.of());
+    }
+
+    private Transaction convertToTransaction(ImportedTransaction importedTx, Long accountId,
+            Long userId, Map<String, Long> categoryMappings, Map<Long, Long> categoryIdsBySource) {
         // Determine transaction type based on amount
         TransactionType transactionType;
-        BigDecimal amount = importedTx.getAmount().abs(); // Always use positive amount
+        BigDecimal amount = normalizeAmount(importedTx.getAmount());
 
         if (importedTx.getAmount().compareTo(BigDecimal.ZERO) >= 0) {
             transactionType = TransactionType.INCOME;
@@ -1313,10 +2016,12 @@ public class ImportService {
                 .accountId(accountId)
                 .date(importedTx.getTransactionDate())
                 .amount(amount)
-                .currency("USD") // Default currency - TODO: get from account
-                .description(importedTx.getPayee())
-                .notes(importedTx.getMemo())
-                .payee(importedTx.getPayee())
+                .currency(importedTx.getCurrency() != null && !importedTx.getCurrency().isBlank()
+                        ? importedTx.getCurrency()
+                        : "USD")
+                .description(truncate(importedTx.getPayee(), TRANSACTION_DESCRIPTION_MAX_LENGTH))
+                .notes(truncate(importedTx.getMemo(), TRANSACTION_NOTES_MAX_LENGTH))
+                .payee(truncate(importedTx.getPayee(), TRANSACTION_PAYEE_MAX_LENGTH))
                 .type(transactionType)
                 .externalReference(importedTx.getReferenceNumber()) // Persist for future dedup
                 .isDeleted(false);
@@ -1324,7 +2029,12 @@ public class ImportService {
         // Map category
         if (importedTx.getCategory() != null && !importedTx.getCategory().trim().isEmpty()) {
             String categoryName = importedTx.getCategory().trim();
-            Long categoryId = categoryMappings != null ? categoryMappings.get(categoryName) : null;
+            Long categoryId = importedTx.getSourceCategoryId() != null
+                    ? categoryIdsBySource.get(importedTx.getSourceCategoryId())
+                    : null;
+            if (categoryId == null) {
+                categoryId = categoryMappings != null ? categoryMappings.get(categoryName) : null;
+            }
 
             if (categoryId != null) {
                 log.debug("Mapping category '{}' using provided mapping to ID {}", categoryName, categoryId);
@@ -1356,6 +2066,29 @@ public class ImportService {
         return builder.build();
     }
 
+    private String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
+    }
+
+    private BigDecimal normalizeAmount(BigDecimal amount) {
+        if (amount == null) {
+            return null;
+        }
+
+        BigDecimal normalized = amount.abs().setScale(4, RoundingMode.HALF_UP);
+        if (normalized.compareTo(new BigDecimal("0.01")) < 0) {
+            throw new IllegalArgumentException("Imported amount is below minimum supported value: " + amount);
+        }
+        int integerDigits = normalized.precision() - normalized.scale();
+        if (integerDigits > 15) {
+            throw new IllegalArgumentException("Imported amount exceeds supported precision: " + amount);
+        }
+        return normalized;
+    }
+
     /**
      * Serialize transactions to JSON string for metadata storage.
      * Uses Jackson ObjectMapper for proper JSON serialization.
@@ -1367,8 +2100,16 @@ public class ImportService {
      */
     private String serializeTransactions(List<ImportedTransaction> transactions, BigDecimal ledgerBalance,
             String fileCurrency) {
+        return serializeTransactions(transactions, ledgerBalance, fileCurrency, Map.of());
+    }
+
+    private String serializeTransactions(List<ImportedTransaction> transactions, BigDecimal ledgerBalance,
+            String fileCurrency, Map<String, Object> extraMetadata) {
         try {
             Map<String, Object> metadata = new HashMap<>();
+            if (extraMetadata != null && !extraMetadata.isEmpty()) {
+                metadata.putAll(extraMetadata);
+            }
             metadata.put("transactions", transactions);
             metadata.put("count", transactions.size());
             metadata.put("ledgerBalance", ledgerBalance);
@@ -1416,6 +2157,10 @@ public class ImportService {
             log.error("Error deserializing transactions: {}", e.getMessage(), e);
             return new ArrayList<>();
         }
+    }
+
+    private record ImportedAccountDescriptor(String key, String name, String accountNumber, String currency,
+            LocalDate openingDate) {
     }
 
     /**

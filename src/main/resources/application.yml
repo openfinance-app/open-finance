@@ -111,7 +111,7 @@ application:
     base-currency: EUR
     cache-ttl: 86400
   import:
-    allowed-extensions: .qif,.ofx,.qfx,.csv
+    allowed-extensions: .qif,.ofx,.qfx,.csv,.json
     temp-directory: ./temp/imports
     cleanup-after-hours: 24
   attachment:

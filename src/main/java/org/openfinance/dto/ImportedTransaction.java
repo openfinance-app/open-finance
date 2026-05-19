@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -85,6 +87,21 @@ public class ImportedTransaction {
     private String accountName;
 
     /**
+     * Source account ID from the import format, when available.
+     * 
+     * <p>
+     * Used by high-fidelity importers (such as Skrooge JSON) to preserve
+     * stable account relationships without relying on fuzzy name matching.
+     * </p>
+     */
+    private Long sourceAccountId;
+
+    /**
+     * Source account number from the import format, when available.
+     */
+    private String accountNumber;
+
+    /**
      * Line number in source file (for error reporting)
      */
     private Integer lineNumber;
@@ -125,6 +142,33 @@ public class ImportedTransaction {
     private String currency;
 
     /**
+     * Source category ID from the import format, when available.
+     */
+    private Long sourceCategoryId;
+
+    /**
+     * Indicates whether this imported transaction represents one side of a
+     * transfer between two accounts.
+     */
+    @Builder.Default
+    private boolean transfer = false;
+
+    /**
+     * Stable key linking both sides of an imported transfer.
+     */
+    private String transferGroupKey;
+
+    /**
+     * Destination account name for imported transfer transactions.
+     */
+    private String toAccountName;
+
+    /**
+     * Destination account source ID for imported transfer transactions.
+     */
+    private Long toAccountSourceId;
+
+    /**
      * Tags associated with this transaction (e.g., from CSV "tags" column or
      * QIF category classes).
      */
@@ -133,16 +177,18 @@ public class ImportedTransaction {
 
     /**
      * Prefixes that mark informational / advisory messages rather than blocking
-     * validation errors.  Messages with these prefixes are surfaced in the UI
+     * validation errors. Messages with these prefixes are surfaced in the UI
      * review step for transparency but must NOT prevent a transaction from being
      * imported via the {@link #hasErrors()} check.
      *
      * <ul>
-     *   <li>{@code AUTO-MATCH:} — auto-categorisation hit from transaction history</li>
-     *   <li>{@code CATEGORY_SUGGESTION:} — fuzzy-matched category suggestion</li>
-     *   <li>{@code CATEGORY_UNKNOWN:} — category from file not found in user's list</li>
-     *   <li>{@code DUPLICATE:} — possible duplicate; handled separately by
-     *       {@link #isDuplicate()} and the {@code skipDuplicates} flag</li>
+     * <li>{@code AUTO-MATCH:} — auto-categorisation hit from transaction
+     * history</li>
+     * <li>{@code CATEGORY_SUGGESTION:} — fuzzy-matched category suggestion</li>
+     * <li>{@code CATEGORY_UNKNOWN:} — category from file not found in user's
+     * list</li>
+     * <li>{@code DUPLICATE:} — possible duplicate; handled separately by
+     * {@link #isDuplicate()} and the {@code skipDuplicates} flag</li>
      * </ul>
      */
     private static final List<String> INFO_PREFIXES = List.of(
@@ -150,8 +196,9 @@ public class ImportedTransaction {
             "CATEGORY_SUGGESTION:",
             "CATEGORY_UNKNOWN:",
             "DUPLICATE:",
-            "RULE_MATCH:"   // Requirement: REQ-TR-4.6 — informational rule-match annotation (non-blocking)
-            // Note: "RULE_SKIP:" is intentionally NOT listed here — it IS blocking (REQ-TR-4.7)
+            "RULE_MATCH:" // Requirement: REQ-TR-4.6 — informational rule-match annotation (non-blocking)
+    // Note: "RULE_SKIP:" is intentionally NOT listed here — it IS blocking
+    // (REQ-TR-4.7)
     );
 
     /**
@@ -164,12 +211,14 @@ public class ImportedTransaction {
     /**
      * Check if transaction has <em>blocking</em> validation errors.
      *
-     * <p>Informational annotations written by the auto-categorisation and
+     * <p>
+     * Informational annotations written by the auto-categorisation and
      * duplicate-detection helpers (prefixed with {@code AUTO-MATCH:},
      * {@code CATEGORY_SUGGESTION:}, {@code CATEGORY_UNKNOWN:}) are stored in the
      * same list for UI display purposes but are <strong>not</strong> considered
-     * errors for import filtering.  Only entries that do not start with a known
-     * informational prefix are treated as real errors.</p>
+     * errors for import filtering. Only entries that do not start with a known
+     * informational prefix are treated as real errors.
+     * </p>
      */
     public boolean hasErrors() {
         return validationErrors.stream()
@@ -179,6 +228,7 @@ public class ImportedTransaction {
     /**
      * Check if transaction is a split transaction
      */
+    @JsonIgnore
     public boolean isSplitTransaction() {
         return splits != null && !splits.isEmpty();
     }
@@ -200,6 +250,11 @@ public class ImportedTransaction {
          * Memo for this split
          */
         private String memo;
+
+        /**
+         * Source category ID from the import format, when available.
+         */
+        private Long sourceCategoryId;
 
         /**
          * Amount for this split

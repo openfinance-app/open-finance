@@ -1,0 +1,4 @@
+date,amount,payee,memo,category,referencenumber,accountname,accountnumber,currency
+2024-01-05,2500.00,Payroll,January salary,Income:Salary,CSV-CHK-001,Checking Account,CHK-CSV-001,USD
+2024-01-06,-120.45,Utility Company,Electric bill,Utilities,CSV-CHK-002,Checking Account,CHK-CSV-001,USD
+2024-01-31,15.20,Interest,Monthly interest,Income:Interest,CSV-SAV-001,Savings Account,SAV-CSV-002,USD

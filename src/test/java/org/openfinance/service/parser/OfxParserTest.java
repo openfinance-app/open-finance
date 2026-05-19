@@ -1,9 +1,7 @@
 package org.openfinance.service.parser;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.openfinance.dto.ImportedTransaction;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -13,8 +11,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.openfinance.dto.ImportedTransaction;
 
 /**
  * Comprehensive test suite for OFX/QFX parser.
@@ -37,6 +37,15 @@ class OfxParserTest {
         return parser.parseFileToResult(inputStream, "test.ofx").getTransactions();
     }
 
+    private String readFixture(String resourcePath) throws IOException {
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new IOException("Fixture not found: " + resourcePath);
+            }
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
     // ========================================
     // Basic SGML Parsing Tests
     // ========================================
@@ -54,7 +63,7 @@ class OfxParserTest {
                 COMPRESSION:NONE
                 OLDFILEUID:NONE
                 NEWFILEUID:NONE
-                
+
                 <OFX>
                 <SIGNONMSGSRSV1>
                 <SONRS>
@@ -158,21 +167,79 @@ class OfxParserTest {
         List<ImportedTransaction> transactions = parseOfx(ofx);
 
         assertThat(transactions).hasSize(3);
-        
+
         ImportedTransaction tx1 = transactions.get(0);
         assertThat(tx1.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 15));
         assertThat(tx1.getAmount()).isEqualByComparingTo(new BigDecimal("-45.67"));
         assertThat(tx1.getPayee()).isEqualTo("STARBUCKS - Coffee purchase");
-        
+
         ImportedTransaction tx2 = transactions.get(1);
         assertThat(tx2.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 16));
         assertThat(tx2.getAmount()).isEqualByComparingTo(new BigDecimal("1500.00"));
         assertThat(tx2.getPayee()).isEqualTo("PAYROLL DEPOSIT - Salary");
-        
+
         ImportedTransaction tx3 = transactions.get(2);
         assertThat(tx3.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 17));
         assertThat(tx3.getAmount()).isEqualByComparingTo(new BigDecimal("-120.50"));
         assertThat(tx3.getPayee()).isEqualTo("GROCERY STORE");
+    }
+
+    @Test
+    @DisplayName("Should keep statement account IDs separate in multi-account OFX files")
+    void testParseMultipleStatementsWithDistinctAccountIds() throws IOException {
+        String ofx = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <OFX>
+                    <BANKMSGSRSV1>
+                        <STMTTRNRS>
+                            <STMTRS>
+                                <CURDEF>USD</CURDEF>
+                                <BANKACCTFROM>
+                                    <BANKID>111000025</BANKID>
+                                    <ACCTID>CHK-001</ACCTID>
+                                    <ACCTTYPE>CHECKING</ACCTTYPE>
+                                </BANKACCTFROM>
+                                <BANKTRANLIST>
+                                    <STMTTRN>
+                                        <TRNTYPE>DEBIT</TRNTYPE>
+                                        <DTPOSTED>20240110</DTPOSTED>
+                                        <TRNAMT>-25.00</TRNAMT>
+                                        <FITID>CHK-TX-1</FITID>
+                                        <NAME>Grocer</NAME>
+                                    </STMTTRN>
+                                </BANKTRANLIST>
+                            </STMTRS>
+                        </STMTTRNRS>
+                        <STMTTRNRS>
+                            <STMTRS>
+                                <CURDEF>USD</CURDEF>
+                                <BANKACCTFROM>
+                                    <BANKID>111000025</BANKID>
+                                    <ACCTID>SAV-002</ACCTID>
+                                    <ACCTTYPE>SAVINGS</ACCTTYPE>
+                                </BANKACCTFROM>
+                                <BANKTRANLIST>
+                                    <STMTTRN>
+                                        <TRNTYPE>CREDIT</TRNTYPE>
+                                        <DTPOSTED>20240111</DTPOSTED>
+                                        <TRNAMT>5.25</TRNAMT>
+                                        <FITID>SAV-TX-1</FITID>
+                                        <NAME>Interest</NAME>
+                                    </STMTTRN>
+                                </BANKTRANLIST>
+                            </STMTRS>
+                        </STMTTRNRS>
+                    </BANKMSGSRSV1>
+                </OFX>
+                """;
+
+        List<ImportedTransaction> transactions = parseOfx(ofx);
+
+        assertThat(transactions).hasSize(2);
+        assertThat(transactions.get(0).getAccountName()).isEqualTo("CHK-001");
+        assertThat(transactions.get(1).getAccountName()).isEqualTo("SAV-002");
+        assertThat(transactions.get(0).getReferenceNumber()).isEqualTo("CHK-TX-1");
+        assertThat(transactions.get(1).getReferenceNumber()).isEqualTo("SAV-TX-1");
     }
 
     @Test
@@ -227,13 +294,13 @@ class OfxParserTest {
         List<ImportedTransaction> transactions = parseOfx(ofx);
 
         assertThat(transactions).hasSize(2);
-        
+
         ImportedTransaction tx1 = transactions.get(0);
         assertThat(tx1.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 15));
         assertThat(tx1.getAmount()).isEqualByComparingTo(new BigDecimal("-89.99"));
         assertThat(tx1.getPayee()).isEqualTo("AMAZON.COM - Online purchase");
         assertThat(tx1.getReferenceNumber()).isEqualTo("CC202401150001");
-        
+
         ImportedTransaction tx2 = transactions.get(1);
         assertThat(tx2.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 20));
         assertThat(tx2.getAmount()).isEqualByComparingTo(new BigDecimal("50.00"));
@@ -896,8 +963,8 @@ class OfxParserTest {
         assertThat(transactions).hasSize(1);
         ImportedTransaction tx = transactions.get(0);
         assertThat(tx.hasErrors()).isTrue();
-        assertThat(tx.getValidationErrors()).anyMatch(error -> 
-            error.contains("Invalid date format") || error.contains("date is required"));
+        assertThat(tx.getValidationErrors())
+                .anyMatch(error -> error.contains("Invalid date format") || error.contains("date is required"));
     }
 
     @Test
@@ -928,8 +995,8 @@ class OfxParserTest {
         assertThat(transactions).hasSize(1);
         ImportedTransaction tx = transactions.get(0);
         assertThat(tx.hasErrors()).isTrue();
-        assertThat(tx.getValidationErrors()).anyMatch(error -> 
-            error.contains("Invalid amount format") || error.contains("amount is required"));
+        assertThat(tx.getValidationErrors())
+                .anyMatch(error -> error.contains("Invalid amount format") || error.contains("amount is required"));
     }
 
     @Test
@@ -968,7 +1035,7 @@ class OfxParserTest {
     void testFutureDates() throws IOException {
         LocalDate futureDate = LocalDate.now().plusDays(10);
         String futureDateStr = futureDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
-        
+
         String ofx = String.format("""
                 OFXHEADER:100
                 DATA:OFXSGML
@@ -1044,8 +1111,20 @@ class OfxParserTest {
 
         // Should throw IOException for malformed XML
         assertThatThrownBy(() -> parseOfx(ofx))
-            .isInstanceOf(IOException.class)
-            .hasMessageContaining("Failed to parse OFX file");
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("Failed to parse OFX file");
+    }
+
+    @Test
+    @DisplayName("Should parse multi-account OFX sample fixture")
+    void testParseMultiAccountOfxSampleFixture() throws IOException {
+        List<ImportedTransaction> transactions = parseOfx(readFixture("samples/multi_account.ofx"));
+
+        assertThat(transactions).hasSize(3);
+        assertThat(transactions.get(0).getAccountName()).isEqualTo("CHK-001");
+        assertThat(transactions.get(1).getAccountName()).isEqualTo("CHK-001");
+        assertThat(transactions.get(2).getAccountName()).isEqualTo("SAV-002");
+        transactions.forEach(tx -> assertThat(tx.hasErrors()).isFalse());
     }
 
     // ========================================
@@ -1065,7 +1144,7 @@ class OfxParserTest {
                 COMPRESSION:NONE
                 OLDFILEUID:NONE
                 NEWFILEUID:NONE
-                
+
                 <OFX>
                 <SIGNONMSGSRSV1>
                 <SONRS>
@@ -1169,25 +1248,25 @@ class OfxParserTest {
         List<ImportedTransaction> transactions = parseOfx(ofx);
 
         assertThat(transactions).hasSize(7);
-        
+
         // Verify first transaction (salary)
         ImportedTransaction tx1 = transactions.get(0);
         assertThat(tx1.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 1));
         assertThat(tx1.getAmount()).isEqualByComparingTo(new BigDecimal("2500.00"));
         assertThat(tx1.getPayee()).isEqualTo("PAYROLL DEPOSIT - Direct Deposit Salary");
         assertThat(tx1.hasErrors()).isFalse();
-        
+
         // Verify check transaction
         ImportedTransaction tx2 = transactions.get(1);
         assertThat(tx2.getReferenceNumber()).isEqualTo("2456");
         assertThat(tx2.getPayee()).isEqualTo("LANDLORD INC - Rent January");
         assertThat(tx2.getAmount()).isEqualByComparingTo(new BigDecimal("-1200.00"));
-        
+
         // Verify grocery transaction
         ImportedTransaction tx3 = transactions.get(2);
         assertThat(tx3.getPayee()).isEqualTo("SAFEWAY STORE #1234 - GROCERIES");
         assertThat(tx3.getAmount()).isEqualByComparingTo(new BigDecimal("-85.43"));
-        
+
         // Verify all transactions are valid
         assertThat(transactions).allMatch(tx -> !tx.hasErrors());
     }
@@ -1277,19 +1356,19 @@ class OfxParserTest {
         List<ImportedTransaction> transactions = parseOfx(ofx);
 
         assertThat(transactions).hasSize(5);
-        
+
         // Verify first purchase
         ImportedTransaction tx1 = transactions.get(0);
         assertThat(tx1.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 3));
         assertThat(tx1.getAmount()).isEqualByComparingTo(new BigDecimal("-89.99"));
         assertThat(tx1.getPayee()).isEqualTo("AMAZON.COM - AMZN Marketplace Purchase");
         assertThat(tx1.hasErrors()).isFalse();
-        
+
         // Verify return credit
         ImportedTransaction tx4 = transactions.get(3);
         assertThat(tx4.getAmount()).isEqualByComparingTo(new BigDecimal("89.99"));
         assertThat(tx4.getPayee()).isEqualTo("AMAZON.COM - RETURN CREDIT");
-        
+
         // Verify all transactions are valid
         assertThat(transactions).allMatch(tx -> !tx.hasErrors());
     }
@@ -1443,7 +1522,7 @@ class OfxParserTest {
                 DATA:OFXSGML
                 VERSION:102
                 CHARSET:1252
-                
+
                 <OFX>
                 <BANKMSGSRSV1>
                 <STMTTRNRS>
@@ -1474,7 +1553,8 @@ class OfxParserTest {
     @DisplayName("Should fall back to XML parse when SGML header present but no bare <OFX> tag found")
     void testSgmlFallbackToXmlWhenNoOfxTag() throws IOException {
         // Has OFXHEADER (triggers SGML detection) but also an <?xml> declaration,
-        // meaning the body is OFX 2.x XML — the parser should route to the XML path and succeed.
+        // meaning the body is OFX 2.x XML — the parser should route to the XML path and
+        // succeed.
         String ofx = """
                 OFXHEADER:100
                 DATA:OFXSGML
@@ -1505,4 +1585,3 @@ class OfxParserTest {
         assertThat(transactions.get(0).getAmount()).isEqualByComparingTo(new BigDecimal("200.00"));
     }
 }
-
