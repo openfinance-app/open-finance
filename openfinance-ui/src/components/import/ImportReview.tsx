@@ -16,7 +16,6 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
-import { SimpleSelect } from '@/components/ui/SimpleSelect';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import {
   AlertCircle,
@@ -194,7 +193,7 @@ export function ImportReview({
 
   // Per-row inline editing
   const [editingRow, setEditingRow] = useState<number | null>(null);
-  const [editState, setEditState] = useState<EditState>({ category: '', payee: '', memo: '' });
+  const [editState, setEditState] = useState<EditState>({ categoryId: undefined, payee: '', memo: '' });
 
   // Auto-assign notification
   const [autoAssignedCount, setAutoAssignedCount] = useState<number>(0);
@@ -615,7 +614,7 @@ export function ImportReview({
               variant="primary"
               size="sm"
               onClick={handleBulkApply}
-              disabled={!bulkCategory && !bulkPayee}
+              disabled={!bulkCategoryId && !bulkPayee}
               className="flex-1 sm:flex-none"
             >
               <Edit2 className="h-4 w-4 mr-1.5" />

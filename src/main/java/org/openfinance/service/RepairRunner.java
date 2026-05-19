@@ -1,25 +1,24 @@
 package org.openfinance.service;
 
+import java.util.Base64;
+import java.util.List;
+import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.*;
 import org.openfinance.repository.*;
+import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.security.KeyManagementService;
-import org.openfinance.repository.RecurringTransactionRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
-import java.util.Base64;
-import java.util.List;
-
 /**
- * Repair runner to detect and re-encrypt plaintext/malformed ciphertext stored in the DB.
- * Disabled by default; enable with property `app.repair.enabled=true`.
+ * Repair runner to detect and re-encrypt plaintext/malformed ciphertext stored in the DB. Disabled
+ * by default; enable with property `app.repair.enabled=true`.
  *
- * This is intentionally conservative: by default it runs in "dry-run" mode and only logs
+ * <p>This is intentionally conservative: by default it runs in "dry-run" mode and only logs
  * candidates. If you enable it with `app.repair.execute=true` it will perform in-place
  * re-encryption for the demo user using `app.repair.demo-master-password` to derive the key.
  */
@@ -53,15 +52,24 @@ public class RepairRunner implements CommandLineRunner {
         if (!repairEnabled) return;
         log.info("RepairRunner: scan started (execute={})", repairExecute);
 
-        userRepository.findByUsername("demo").ifPresent(user -> {
-            try {
-                byte[] salt = Base64.getDecoder().decode(user.getMasterPasswordSalt());
-                SecretKey key = keyManagementService.deriveKey(demoMasterPassword.toCharArray(), salt);
-                repairForUser(user, key);
-            } catch (Exception e) {
-                log.error("RepairRunner: failed to derive key for demo user: {}", e.getMessage(), e);
-            }
-        });
+        userRepository
+                .findByUsername("demo")
+                .ifPresent(
+                        user -> {
+                            try {
+                                byte[] salt =
+                                        Base64.getDecoder().decode(user.getMasterPasswordSalt());
+                                SecretKey key =
+                                        keyManagementService.deriveKey(
+                                                demoMasterPassword.toCharArray(), salt);
+                                repairForUser(user, key);
+                            } catch (Exception e) {
+                                log.error(
+                                        "RepairRunner: failed to derive key for demo user: {}",
+                                        e.getMessage(),
+                                        e);
+                            }
+                        });
 
         log.info("RepairRunner: scan completed");
     }
@@ -94,17 +102,28 @@ public class RepairRunner implements CommandLineRunner {
         }
     }
 
-    private void maybeReencryptAndSave(Object entity, java.util.function.Consumer<Object> saver, String fieldName, String storedValue, SecretKey key) {
+    private void maybeReencryptAndSave(
+            Object entity,
+            java.util.function.Consumer<Object> saver,
+            String fieldName,
+            String storedValue,
+            SecretKey key) {
         if (storedValue == null) return;
         if (canDecrypt(storedValue, key)) return; // ok
 
         boolean plaintext = looksLikePlaintext(storedValue);
         if (!plaintext) {
-            log.warn("RepairRunner: stored {} looks encrypted but failed decryption for value='{}'. Skipping to avoid data corruption.", fieldName, abbreviate(storedValue));
+            log.warn(
+                    "RepairRunner: stored {} looks encrypted but failed decryption for value='{}'. Skipping to avoid data corruption.",
+                    fieldName,
+                    abbreviate(storedValue));
             return;
         }
 
-        log.info("RepairRunner: will re-encrypt {} (userId={})", fieldName, (entity instanceof HasUserId ? ((HasUserId) entity).getUserId() : "?"));
+        log.info(
+                "RepairRunner: will re-encrypt {} (userId={})",
+                fieldName,
+                (entity instanceof HasUserId ? ((HasUserId) entity).getUserId() : "?"));
         if (repairExecute) {
             String newEnc = encryptionService.encrypt(storedValue, key);
             // caller should set field on entity and save - we use the provided saver
@@ -121,18 +140,26 @@ public class RepairRunner implements CommandLineRunner {
         List<org.openfinance.entity.Budget> budgets = budgetRepository.findByUserId(userId);
         for (var b : budgets) {
             String amt = b.getAmount();
-            maybeReencryptAndSave(b, newVal -> b.setAmount((String) newVal), "budget.amount", amt, key);
+            maybeReencryptAndSave(
+                    b, newVal -> b.setAmount((String) newVal), "budget.amount", amt, key);
             if (repairExecute) budgetRepository.save(b);
         }
     }
 
     private void repairRecurringTransactions(Long userId, SecretKey key) {
-        List<org.openfinance.entity.RecurringTransaction> list = recurringTransactionRepository.findByUserId(userId);
+        List<org.openfinance.entity.RecurringTransaction> list =
+                recurringTransactionRepository.findByUserId(userId);
         for (var r : list) {
             String desc = r.getDescription();
             String notes = r.getNotes();
-            maybeReencryptAndSave(r, newVal -> r.setDescription((String) newVal), "recurring.description", desc, key);
-            maybeReencryptAndSave(r, newVal -> r.setNotes((String) newVal), "recurring.notes", notes, key);
+            maybeReencryptAndSave(
+                    r,
+                    newVal -> r.setDescription((String) newVal),
+                    "recurring.description",
+                    desc,
+                    key);
+            maybeReencryptAndSave(
+                    r, newVal -> r.setNotes((String) newVal), "recurring.notes", notes, key);
             if (repairExecute) recurringTransactionRepository.save(r);
         }
     }
@@ -142,8 +169,14 @@ public class RepairRunner implements CommandLineRunner {
         for (var t : list) {
             String desc = t.getDescription();
             String notes = t.getNotes();
-            maybeReencryptAndSave(t, newVal -> t.setDescription((String) newVal), "transaction.description", desc, key);
-            maybeReencryptAndSave(t, newVal -> t.setNotes((String) newVal), "transaction.notes", notes, key);
+            maybeReencryptAndSave(
+                    t,
+                    newVal -> t.setDescription((String) newVal),
+                    "transaction.description",
+                    desc,
+                    key);
+            maybeReencryptAndSave(
+                    t, newVal -> t.setNotes((String) newVal), "transaction.notes", notes, key);
             if (repairExecute) transactionRepository.save(t);
         }
     }
@@ -153,8 +186,14 @@ public class RepairRunner implements CommandLineRunner {
         for (var a : list) {
             String name = a.getName();
             String accnum = a.getAccountNumber();
-            maybeReencryptAndSave(a, newVal -> a.setName((String) newVal), "account.name", name, key);
-            maybeReencryptAndSave(a, newVal -> a.setAccountNumber((String) newVal), "account.account_number", accnum, key);
+            maybeReencryptAndSave(
+                    a, newVal -> a.setName((String) newVal), "account.name", name, key);
+            maybeReencryptAndSave(
+                    a,
+                    newVal -> a.setAccountNumber((String) newVal),
+                    "account.account_number",
+                    accnum,
+                    key);
             if (repairExecute) accountRepository.save(a);
         }
     }
@@ -165,37 +204,94 @@ public class RepairRunner implements CommandLineRunner {
             String name = a.getName();
             String notes = a.getNotes();
             maybeReencryptAndSave(a, newVal -> a.setName((String) newVal), "asset.name", name, key);
-            maybeReencryptAndSave(a, newVal -> a.setNotes((String) newVal), "asset.notes", notes, key);
+            maybeReencryptAndSave(
+                    a, newVal -> a.setNotes((String) newVal), "asset.notes", notes, key);
             if (repairExecute) assetRepository.save(a);
         }
     }
 
     private void repairRealEstate(Long userId, SecretKey key) {
-        List<org.openfinance.entity.RealEstateProperty> list = realEstateRepository.findByUserId(userId);
+        List<org.openfinance.entity.RealEstateProperty> list =
+                realEstateRepository.findByUserId(userId);
         for (var p : list) {
-            maybeReencryptAndSave(p, newVal -> p.setName((String) newVal), "realestate.name", p.getName(), key);
-            maybeReencryptAndSave(p, newVal -> p.setAddress((String) newVal), "realestate.address", p.getAddress(), key);
-            maybeReencryptAndSave(p, newVal -> p.setPurchasePrice((String) newVal), "realestate.purchase_price", p.getPurchasePrice(), key);
-            maybeReencryptAndSave(p, newVal -> p.setCurrentValue((String) newVal), "realestate.current_value", p.getCurrentValue(), key);
-            maybeReencryptAndSave(p, newVal -> p.setRentalIncome((String) newVal), "realestate.rental_income", p.getRentalIncome(), key);
-            maybeReencryptAndSave(p, newVal -> p.setNotes((String) newVal), "realestate.notes", p.getNotes(), key);
-            maybeReencryptAndSave(p, newVal -> p.setDocuments((String) newVal), "realestate.documents", p.getDocuments(), key);
+            maybeReencryptAndSave(
+                    p, newVal -> p.setName((String) newVal), "realestate.name", p.getName(), key);
+            maybeReencryptAndSave(
+                    p,
+                    newVal -> p.setAddress((String) newVal),
+                    "realestate.address",
+                    p.getAddress(),
+                    key);
+            maybeReencryptAndSave(
+                    p,
+                    newVal -> p.setPurchasePrice((String) newVal),
+                    "realestate.purchase_price",
+                    p.getPurchasePrice(),
+                    key);
+            maybeReencryptAndSave(
+                    p,
+                    newVal -> p.setCurrentValue((String) newVal),
+                    "realestate.current_value",
+                    p.getCurrentValue(),
+                    key);
+            maybeReencryptAndSave(
+                    p,
+                    newVal -> p.setRentalIncome((String) newVal),
+                    "realestate.rental_income",
+                    p.getRentalIncome(),
+                    key);
+            maybeReencryptAndSave(
+                    p,
+                    newVal -> p.setNotes((String) newVal),
+                    "realestate.notes",
+                    p.getNotes(),
+                    key);
+            maybeReencryptAndSave(
+                    p,
+                    newVal -> p.setDocuments((String) newVal),
+                    "realestate.documents",
+                    p.getDocuments(),
+                    key);
             if (repairExecute) realEstateRepository.save(p);
         }
     }
 
     private void repairLiabilities(Long userId, SecretKey key) {
-        List<org.openfinance.entity.Liability> list = liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        List<org.openfinance.entity.Liability> list =
+                liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId);
         for (var l : list) {
-            maybeReencryptAndSave(l, newVal -> l.setName((String) newVal), "liability.name", l.getName(), key);
-            maybeReencryptAndSave(l, newVal -> l.setPrincipal((String) newVal), "liability.principal", l.getPrincipal(), key);
-            maybeReencryptAndSave(l, newVal -> l.setCurrentBalance((String) newVal), "liability.current_balance", l.getCurrentBalance(), key);
-            maybeReencryptAndSave(l, newVal -> l.setInterestRate((String) newVal), "liability.interest", l.getInterestRate(), key);
-            maybeReencryptAndSave(l, newVal -> l.setMinimumPayment((String) newVal), "liability.minimum_payment", l.getMinimumPayment(), key);
+            maybeReencryptAndSave(
+                    l, newVal -> l.setName((String) newVal), "liability.name", l.getName(), key);
+            maybeReencryptAndSave(
+                    l,
+                    newVal -> l.setPrincipal((String) newVal),
+                    "liability.principal",
+                    l.getPrincipal(),
+                    key);
+            maybeReencryptAndSave(
+                    l,
+                    newVal -> l.setCurrentBalance((String) newVal),
+                    "liability.current_balance",
+                    l.getCurrentBalance(),
+                    key);
+            maybeReencryptAndSave(
+                    l,
+                    newVal -> l.setInterestRate((String) newVal),
+                    "liability.interest",
+                    l.getInterestRate(),
+                    key);
+            maybeReencryptAndSave(
+                    l,
+                    newVal -> l.setMinimumPayment((String) newVal),
+                    "liability.minimum_payment",
+                    l.getMinimumPayment(),
+                    key);
             if (repairExecute) liabilityRepository.save(l);
         }
     }
 
     // Minimal interface so we can try to show userId in logs when available
-    private interface HasUserId { Long getUserId(); }
+    private interface HasUserId {
+        Long getUserId();
+    }
 }

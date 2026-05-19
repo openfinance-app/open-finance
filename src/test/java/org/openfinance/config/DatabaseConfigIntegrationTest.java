@@ -4,16 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 // Removed unused static import
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.PreparedStatement;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
 import org.springframework.test.context.ActiveProfiles;
 
 /**
@@ -31,7 +30,7 @@ import org.springframework.test.context.ActiveProfiles;
  *   <li>Flyway migrations have executed successfully
  *   <li>System tables created by initial migration exist
  * </ul>
- * 
+ *
  * <p>Note: This test uses the default profile (SQLite) to test the production database
  * configuration, not the H2 test profile used by other tests.
  *
@@ -40,7 +39,9 @@ import org.springframework.test.context.ActiveProfiles;
  * @since 0.1.0
  */
 @SpringBootTest
-@ActiveProfiles(profiles = {}, inheritProfiles = false)
+@ActiveProfiles(
+        profiles = {},
+        inheritProfiles = false)
 @DisplayName("Database Configuration Integration Tests")
 class DatabaseConfigIntegrationTest {
 
@@ -116,7 +117,9 @@ class DatabaseConfigIntegrationTest {
             // Some SQLite JDBC drivers / environments may return 0 if PRAGMA wasn't applied on
             // the connection. Accept both 0 and 1 but assert we received a valid integer.
             assertThat(foreignKeysEnabled)
-                    .withFailMessage("Foreign keys PRAGMA should return 0 or 1, but was: " + foreignKeysEnabled)
+                    .withFailMessage(
+                            "Foreign keys PRAGMA should return 0 or 1, but was: "
+                                    + foreignKeysEnabled)
                     .isBetween(0, 1);
         }
     }
@@ -228,8 +231,8 @@ class DatabaseConfigIntegrationTest {
             assertThat(integrityResult)
                     .isNotNull()
                     .isEqualToIgnoringCase("ok")
-                    .withFailMessage("Database integrity check should pass, but was: "
-                            + integrityResult);
+                    .withFailMessage(
+                            "Database integrity check should pass, but was: " + integrityResult);
         }
     }
 

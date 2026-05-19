@@ -4,16 +4,18 @@ import java.util.Random;
 import java.util.UUID;
 
 /**
- * Utility class for generating mock/random data for testing.
- * Provides methods to generate realistic test data.
+ * Utility class for generating mock/random data for testing. Provides methods to generate realistic
+ * test data.
  */
 public final class MockDataGenerator {
 
     private static final Random RANDOM = new Random();
-    private static final String[] FIRST_NAMES =
-            {"John", "Jane", "Alice", "Bob", "Charlie", "Diana", "Edward", "Fiona"};
-    private static final String[] LAST_NAMES =
-            {"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis"};
+    private static final String[] FIRST_NAMES = {
+        "John", "Jane", "Alice", "Bob", "Charlie", "Diana", "Edward", "Fiona"
+    };
+    private static final String[] LAST_NAMES = {
+        "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis"
+    };
     private static final String[] DOMAINS = {"example.com", "test.com", "demo.org", "sample.net"};
 
     private MockDataGenerator() {

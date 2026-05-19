@@ -43,6 +43,7 @@ class InstitutionServiceTest {
     private Institution systemInstitution;
     private Institution customInstitution;
     private InstitutionRequest validRequest;
+    private static final Long USER_ID = 1L;
 
     @BeforeEach
     void setUp() {
@@ -66,6 +67,7 @@ class InstitutionServiceTest {
                         .country("FR")
                         .logo("customlogo")
                         .isSystem(false)
+                        .userId(USER_ID)
                         .createdAt(LocalDateTime.now().minusHours(1))
                         .updatedAt(LocalDateTime.now().minusHours(1))
                         .build();
@@ -83,16 +85,16 @@ class InstitutionServiceTest {
     void shouldGetAllInstitutions() {
         // Arrange
         List<Institution> institutions = List.of(systemInstitution, customInstitution);
-        when(institutionRepository.findAllByOrderByCountryAscNameAsc()).thenReturn(institutions);
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(institutions);
 
         // Act
-        List<InstitutionResponse> result = institutionService.getAllInstitutions();
+        List<InstitutionResponse> result = institutionService.getAllInstitutions(USER_ID);
 
         // Assert
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getId()).isEqualTo(1L);
         assertThat(result.get(1).getId()).isEqualTo(2L);
-        verify(institutionRepository).findAllByOrderByCountryAscNameAsc();
+        verify(institutionRepository).findAllByUser(USER_ID);
     }
 
     @Test
@@ -126,16 +128,17 @@ class InstitutionServiceTest {
     void shouldGetInstitutionsByCountry() {
         // Arrange
         List<Institution> frenchInstitutions = List.of(systemInstitution, customInstitution);
-        when(institutionRepository.findByCountryOrderByNameAsc("FR"))
+        when(institutionRepository.findByCountryAndUser("FR", USER_ID))
                 .thenReturn(frenchInstitutions);
 
         // Act
-        List<InstitutionResponse> result = institutionService.getInstitutionsByCountry("FR");
+        List<InstitutionResponse> result =
+                institutionService.getInstitutionsByCountry("FR", USER_ID);
 
         // Assert
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getCountry()).isEqualTo("FR");
-        verify(institutionRepository).findByCountryOrderByNameAsc("FR");
+        verify(institutionRepository).findByCountryAndUser("FR", USER_ID);
     }
 
     @Test
@@ -158,45 +161,45 @@ class InstitutionServiceTest {
     void shouldGetCustomInstitutions() {
         // Arrange
         List<Institution> customInstitutions = List.of(customInstitution);
-        when(institutionRepository.findByIsSystemFalseOrderByNameAsc())
+        when(institutionRepository.findByIsSystemFalseAndUserIdOrderByNameAsc(USER_ID))
                 .thenReturn(customInstitutions);
 
         // Act
-        List<InstitutionResponse> result = institutionService.getCustomInstitutions();
+        List<InstitutionResponse> result = institutionService.getCustomInstitutions(USER_ID);
 
         // Assert
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getIsSystem()).isFalse();
-        verify(institutionRepository).findByIsSystemFalseOrderByNameAsc();
+        verify(institutionRepository).findByIsSystemFalseAndUserIdOrderByNameAsc(USER_ID);
     }
 
     @Test
     void shouldSearchInstitutions() {
         // Arrange
         List<Institution> searchResults = List.of(systemInstitution);
-        when(institutionRepository.searchByName("BNP")).thenReturn(searchResults);
+        when(institutionRepository.searchByNameAndUser("BNP", USER_ID)).thenReturn(searchResults);
 
         // Act
-        List<InstitutionResponse> result = institutionService.searchInstitutions("BNP");
+        List<InstitutionResponse> result = institutionService.searchInstitutions("BNP", USER_ID);
 
         // Assert
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getName()).isEqualTo("BNP Paribas");
-        verify(institutionRepository).searchByName("BNP");
+        verify(institutionRepository).searchByNameAndUser("BNP", USER_ID);
     }
 
     @Test
     void shouldGetCountries() {
         // Arrange
         List<String> countries = List.of("FR", "DE", "IT");
-        when(institutionRepository.findDistinctCountries()).thenReturn(countries);
+        when(institutionRepository.findDistinctCountriesByUser(USER_ID)).thenReturn(countries);
 
         // Act
-        List<String> result = institutionService.getCountries();
+        List<String> result = institutionService.getCountries(USER_ID);
 
         // Assert
         assertThat(result).containsExactly("FR", "DE", "IT");
-        verify(institutionRepository).findDistinctCountries();
+        verify(institutionRepository).findDistinctCountriesByUser(USER_ID);
     }
 
     @Test
@@ -217,7 +220,7 @@ class InstitutionServiceTest {
         when(institutionRepository.save(any(Institution.class))).thenReturn(savedInstitution);
 
         // Act
-        InstitutionResponse result = institutionService.createInstitution(validRequest);
+        InstitutionResponse result = institutionService.createInstitution(validRequest, USER_ID);
 
         // Assert
         assertThat(result.getId()).isEqualTo(3L);
@@ -253,7 +256,8 @@ class InstitutionServiceTest {
         when(institutionRepository.save(any(Institution.class))).thenReturn(updatedInstitution);
 
         // Act
-        InstitutionResponse result = institutionService.updateInstitution(2L, updateRequest);
+        InstitutionResponse result =
+                institutionService.updateInstitution(2L, updateRequest, USER_ID);
 
         // Assert
         assertThat(result.getName()).isEqualTo("Updated Bank");
@@ -270,7 +274,7 @@ class InstitutionServiceTest {
         // Act & Assert
         assertThrows(
                 InstitutionNotFoundException.class,
-                () -> institutionService.updateInstitution(999L, validRequest));
+                () -> institutionService.updateInstitution(999L, validRequest, USER_ID));
         verify(institutionRepository).findById(999L);
         verify(institutionRepository, never()).save(any(Institution.class));
     }
@@ -283,7 +287,7 @@ class InstitutionServiceTest {
         // Act & Assert
         assertThrows(
                 IllegalStateException.class,
-                () -> institutionService.updateInstitution(1L, validRequest));
+                () -> institutionService.updateInstitution(1L, validRequest, USER_ID));
         verify(institutionRepository).findById(1L);
         verify(institutionRepository, never()).save(any(Institution.class));
     }
@@ -295,7 +299,7 @@ class InstitutionServiceTest {
         when(institutionRepository.isInUse(2L)).thenReturn(false);
 
         // Act
-        institutionService.deleteInstitution(2L);
+        institutionService.deleteInstitution(2L, USER_ID);
 
         // Assert
         verify(institutionRepository).findById(2L);
@@ -311,7 +315,7 @@ class InstitutionServiceTest {
         // Act & Assert
         assertThrows(
                 InstitutionNotFoundException.class,
-                () -> institutionService.deleteInstitution(999L));
+                () -> institutionService.deleteInstitution(999L, USER_ID));
         verify(institutionRepository).findById(999L);
         verify(institutionRepository, never()).delete(any(Institution.class));
     }
@@ -322,7 +326,9 @@ class InstitutionServiceTest {
         when(institutionRepository.findById(1L)).thenReturn(Optional.of(systemInstitution));
 
         // Act & Assert
-        assertThrows(IllegalStateException.class, () -> institutionService.deleteInstitution(1L));
+        assertThrows(
+                IllegalStateException.class,
+                () -> institutionService.deleteInstitution(1L, USER_ID));
         verify(institutionRepository).findById(1L);
         verify(institutionRepository, never()).isInUse(anyLong());
         verify(institutionRepository, never()).delete(any(Institution.class));
@@ -338,7 +344,7 @@ class InstitutionServiceTest {
         assertThrows(
                 IllegalStateException.class,
                 () -> {
-                    institutionService.deleteInstitution(2L);
+                    institutionService.deleteInstitution(2L, USER_ID);
                 });
         verify(institutionRepository).findById(2L);
         verify(institutionRepository).isInUse(2L);
@@ -398,7 +404,7 @@ class InstitutionServiceTest {
         when(institutionRepository.save(any(Institution.class))).thenReturn(savedInstitution);
 
         // Act
-        InstitutionResponse result = institutionService.createInstitution(noLogoRequest);
+        InstitutionResponse result = institutionService.createInstitution(noLogoRequest, USER_ID);
 
         // Assert
         verify(logoFetchService).fetchLogo("New Bank");
@@ -430,7 +436,7 @@ class InstitutionServiceTest {
         when(institutionRepository.save(any(Institution.class))).thenReturn(savedInstitution);
 
         // Act
-        institutionService.createInstitution(requestWithLogo);
+        institutionService.createInstitution(requestWithLogo, USER_ID);
 
         // Assert
         verify(logoFetchService, never()).fetchLogo(any());
@@ -457,7 +463,7 @@ class InstitutionServiceTest {
         when(institutionRepository.save(any(Institution.class))).thenReturn(savedInstitution);
 
         // Act
-        InstitutionResponse result = institutionService.createInstitution(noLogoRequest);
+        InstitutionResponse result = institutionService.createInstitution(noLogoRequest, USER_ID);
 
         // Assert
         verify(logoFetchService).fetchLogo("Unknown Corp");

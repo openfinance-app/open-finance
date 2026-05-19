@@ -10,10 +10,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * Open-Finance Backend Application
  *
- * <p>Main entry point for the Open-Finance personal wealth management application. This
- * application provides comprehensive wealth tracking including bank accounts, investment
- * portfolios, insurance, real estate, loans, and budget management with automated market data
- * updates.
+ * <p>Main entry point for the Open-Finance personal wealth management application. This application
+ * provides comprehensive wealth tracking including bank accounts, investment portfolios, insurance,
+ * real estate, loans, and budget management with automated market data updates.
  *
  * <p>Requirements: REQ-1.1 (Java/Spring Boot), REQ-1.2 (Architecture)
  *

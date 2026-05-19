@@ -6,14 +6,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * Exception thrown when an account is not found in the database.
  *
- * <p>This exception is typically thrown when attempting to retrieve, update,
- * or delete an account by ID that doesn't exist or doesn't belong to the user.</p>
+ * <p>This exception is typically thrown when attempting to retrieve, update, or delete an account
+ * by ID that doesn't exist or doesn't belong to the user.
  *
- * <p>Requirement REQ-3.2: Authorization - Users can only access their own accounts</p>
+ * <p>Requirement REQ-3.2: Authorization - Users can only access their own accounts
  */
 @ResponseStatus(HttpStatus.NOT_FOUND)
 public class AccountNotFoundException extends RuntimeException {
-    
+
     /**
      * Constructs a new AccountNotFoundException with a detail message.
      *
@@ -22,7 +22,7 @@ public class AccountNotFoundException extends RuntimeException {
     public AccountNotFoundException(String message) {
         super(message);
     }
-    
+
     /**
      * Constructs a new AccountNotFoundException with a detail message and cause.
      *
@@ -32,7 +32,7 @@ public class AccountNotFoundException extends RuntimeException {
     public AccountNotFoundException(String message, Throwable cause) {
         super(message, cause);
     }
-    
+
     /**
      * Creates an exception for an account not found by ID.
      *
@@ -42,7 +42,7 @@ public class AccountNotFoundException extends RuntimeException {
     public static AccountNotFoundException byId(Long accountId) {
         return new AccountNotFoundException("Account not found with id: " + accountId);
     }
-    
+
     /**
      * Creates an exception for an account not found for a specific user.
      *

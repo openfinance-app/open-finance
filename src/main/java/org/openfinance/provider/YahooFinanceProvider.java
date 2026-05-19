@@ -2,6 +2,13 @@ package org.openfinance.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.HistoricalPrice;
 import org.openfinance.dto.MarketQuote;
@@ -15,65 +22,40 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.StreamSupport;
-
 /**
  * Implementation of MarketDataProvider using Yahoo Finance API.
  *
- * <p>
- * This provider fetches real-time and historical financial data from Yahoo
- * Finance's public API.
+ * <p>This provider fetches real-time and historical financial data from Yahoo Finance's public API.
  * It supports stocks, ETFs, cryptocurrencies, and currency pairs.
- * </p>
  *
- * <p>
- * <strong>API Endpoints:</strong>
- * </p>
+ * <p><strong>API Endpoints:</strong>
+ *
  * <ul>
- * <li>Quote/Batch:
- * https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=1d&interval=1d</li>
- * <li>Search: https://query1.finance.yahoo.com/v1/finance/search?q=apple</li>
- * <li>Historical:
- * https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?period1=...&period2=...&interval=1d</li>
+ *   <li>Quote/Batch:
+ *       https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=1d&interval=1d
+ *   <li>Search: https://query1.finance.yahoo.com/v1/finance/search?q=apple
+ *   <li>Historical:
+ *       https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?period1=...&period2=...&interval=1d
  * </ul>
  *
- * <p>
- * <strong>Note:</strong> The v7/finance/quote endpoint is no longer used as it
- * requires
- * authentication. All quote data is now sourced from v8/finance/chart which
- * remains publicly
+ * <p><strong>Note:</strong> The v7/finance/quote endpoint is no longer used as it requires
+ * authentication. All quote data is now sourced from v8/finance/chart which remains publicly
  * accessible and also supports currency pairs (e.g. XOFUSD=X).
- * </p>
  *
- * <p>
- * <strong>Rate Limiting:</strong> Yahoo Finance has no official rate limits for
- * public API,
- * but excessive requests may result in temporary blocks. Use caching to
- * minimize requests.
- * </p>
+ * <p><strong>Rate Limiting:</strong> Yahoo Finance has no official rate limits for public API, but
+ * excessive requests may result in temporary blocks. Use caching to minimize requests.
  *
- * <p>
- * <strong>Error Handling:</strong> Throws MarketDataException for invalid
- * symbols, network errors,
- * or malformed responses. Uses Spring Retry with exponential backoff for
- * transient failures.
- * </p>
+ * <p><strong>Error Handling:</strong> Throws MarketDataException for invalid symbols, network
+ * errors, or malformed responses. Uses Spring Retry with exponential backoff for transient
+ * failures.
  *
- * <p>
- * <strong>Retry Strategy:</strong>
- * </p>
+ * <p><strong>Retry Strategy:</strong>
+ *
  * <ul>
- * <li>Max attempts: 3</li>
- * <li>Initial delay: 1 second</li>
- * <li>Multiplier: 2.0 (exponential backoff)</li>
- * <li>Max delay: 10 seconds</li>
+ *   <li>Max attempts: 3
+ *   <li>Initial delay: 1 second
+ *   <li>Multiplier: 2.0 (exponential backoff)
+ *   <li>Max delay: 10 seconds
  * </ul>
  *
  * @author Open Finance Team
@@ -98,16 +80,20 @@ public class YahooFinanceProvider implements MarketDataProvider {
      */
     public YahooFinanceProvider(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
-        this.webClient = WebClient.builder()
-                .baseUrl(BASE_URL)
-                .defaultHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
-                .build();
+        this.webClient =
+                WebClient.builder()
+                        .baseUrl(BASE_URL)
+                        .defaultHeader(
+                                "User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
+                        .build();
         log.info("YahooFinanceProvider initialized with base URL: {}", BASE_URL);
     }
 
     @Override
-    @Retryable(retryFor = { MarketDataException.class,
-            WebClientResponseException.class }, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2.0, maxDelay = 10000))
+    @Retryable(
+            retryFor = {MarketDataException.class, WebClientResponseException.class},
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 1000, multiplier = 2.0, maxDelay = 10000))
     public MarketQuote getQuote(String symbol) {
         if (symbol == null || symbol.trim().isEmpty()) {
             throw new IllegalArgumentException("Symbol cannot be null or empty");
@@ -116,29 +102,45 @@ public class YahooFinanceProvider implements MarketDataProvider {
         log.debug("Fetching quote for symbol: {}", symbol);
 
         try {
-            String response = webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path(CHART_ENDPOINT + "/" + symbol)
-                            .queryParam("range", "1d")
-                            .queryParam("interval", "1d")
-                            .build())
-                    .retrieve()
-                    .onStatus(status -> status.is4xxClientError(), clientResponse -> {
-                        log.warn("Client error fetching quote for {}: {}", symbol, clientResponse.statusCode());
-                        return Mono.error(new MarketDataException(
-                                "Symbol not found: " + symbol,
-                                symbol,
-                                clientResponse.statusCode().value()));
-                    })
-                    .onStatus(status -> status.is5xxServerError(), clientResponse -> {
-                        log.error("Server error fetching quote for {}: {}", symbol, clientResponse.statusCode());
-                        return Mono.error(new MarketDataException(
-                                "Market data service unavailable",
-                                symbol,
-                                clientResponse.statusCode().value()));
-                    })
-                    .bodyToMono(String.class)
-                    .block();
+            String response =
+                    webClient
+                            .get()
+                            .uri(
+                                    uriBuilder ->
+                                            uriBuilder
+                                                    .path(CHART_ENDPOINT + "/" + symbol)
+                                                    .queryParam("range", "1d")
+                                                    .queryParam("interval", "1d")
+                                                    .build())
+                            .retrieve()
+                            .onStatus(
+                                    status -> status.is4xxClientError(),
+                                    clientResponse -> {
+                                        log.warn(
+                                                "Client error fetching quote for {}: {}",
+                                                symbol,
+                                                clientResponse.statusCode());
+                                        return Mono.error(
+                                                new MarketDataException(
+                                                        "Symbol not found: " + symbol,
+                                                        symbol,
+                                                        clientResponse.statusCode().value()));
+                                    })
+                            .onStatus(
+                                    status -> status.is5xxServerError(),
+                                    clientResponse -> {
+                                        log.error(
+                                                "Server error fetching quote for {}: {}",
+                                                symbol,
+                                                clientResponse.statusCode());
+                                        return Mono.error(
+                                                new MarketDataException(
+                                                        "Market data service unavailable",
+                                                        symbol,
+                                                        clientResponse.statusCode().value()));
+                                    })
+                            .bodyToMono(String.class)
+                            .block();
 
             JsonNode root = objectMapper.readTree(response);
             JsonNode result = root.path("chart").path("result");
@@ -164,18 +166,19 @@ public class YahooFinanceProvider implements MarketDataProvider {
     /**
      * Recovery method when getQuote() fails after all retry attempts.
      *
-     * <p>
-     * This method is called when the maximum retry attempts are exhausted.
-     * It logs the failure and re-throws the exception so the caller can handle it.
-     * </p>
+     * <p>This method is called when the maximum retry attempts are exhausted. It logs the failure
+     * and re-throws the exception so the caller can handle it.
      *
-     * @param e      the exception that caused the failure
+     * @param e the exception that caused the failure
      * @param symbol the symbol that was being fetched
      * @throws MarketDataException always thrown to propagate the failure
      */
     @Recover
     public MarketQuote recoverGetQuote(MarketDataException e, String symbol) {
-        log.error("Failed to fetch quote for {} after all retry attempts: {}", symbol, e.getMessage());
+        log.error(
+                "Failed to fetch quote for {} after all retry attempts: {}",
+                symbol,
+                e.getMessage());
         throw e;
     }
 
@@ -195,16 +198,23 @@ public class YahooFinanceProvider implements MarketDataProvider {
             try {
                 quotes.add(getQuote(symbol));
             } catch (Exception e) {
-                log.warn("Failed to fetch quote for symbol {}, skipping: {}", symbol, e.getMessage());
+                log.warn(
+                        "Failed to fetch quote for symbol {}, skipping: {}",
+                        symbol,
+                        e.getMessage());
             }
         }
 
-        log.info("Successfully fetched {} quotes out of {} requested", quotes.size(), symbols.size());
+        log.info(
+                "Successfully fetched {} quotes out of {} requested",
+                quotes.size(),
+                symbols.size());
         return quotes;
     }
 
     @Override
-    public List<HistoricalPrice> getHistoricalPrices(String symbol, LocalDate startDate, LocalDate endDate) {
+    public List<HistoricalPrice> getHistoricalPrices(
+            String symbol, LocalDate startDate, LocalDate endDate) {
         if (symbol == null || symbol.trim().isEmpty()) {
             throw new IllegalArgumentException("Symbol cannot be null or empty");
         }
@@ -221,20 +231,29 @@ public class YahooFinanceProvider implements MarketDataProvider {
         log.debug("Fetching historical prices for {} from {} to {}", symbol, startDate, endDate);
 
         try {
-            String response = webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path(CHART_ENDPOINT + "/" + symbol)
-                            .queryParam("period1", period1)
-                            .queryParam("period2", period2)
-                            .queryParam("interval", "1d")
-                            .build())
-                    .retrieve()
-                    .onStatus(status -> status.isError(), clientResponse -> Mono.error(new MarketDataException(
-                            "Failed to fetch historical prices for: " + symbol,
-                            symbol,
-                            clientResponse.statusCode().value())))
-                    .bodyToMono(String.class)
-                    .block();
+            String response =
+                    webClient
+                            .get()
+                            .uri(
+                                    uriBuilder ->
+                                            uriBuilder
+                                                    .path(CHART_ENDPOINT + "/" + symbol)
+                                                    .queryParam("period1", period1)
+                                                    .queryParam("period2", period2)
+                                                    .queryParam("interval", "1d")
+                                                    .build())
+                            .retrieve()
+                            .onStatus(
+                                    status -> status.isError(),
+                                    clientResponse ->
+                                            Mono.error(
+                                                    new MarketDataException(
+                                                            "Failed to fetch historical prices for: "
+                                                                    + symbol,
+                                                            symbol,
+                                                            clientResponse.statusCode().value())))
+                            .bodyToMono(String.class)
+                            .block();
 
             JsonNode root = objectMapper.readTree(response);
             JsonNode chart = root.path("chart").path("result");
@@ -254,9 +273,10 @@ public class YahooFinanceProvider implements MarketDataProvider {
 
             for (int i = 0; i < size; i++) {
                 long timestamp = timestamps.get(i).asLong();
-                LocalDate date = Instant.ofEpochSecond(timestamp)
-                        .atZone(ZoneId.systemDefault())
-                        .toLocalDate();
+                LocalDate date =
+                        Instant.ofEpochSecond(timestamp)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDate();
 
                 JsonNode opens = indicators.path("open");
                 JsonNode highs = indicators.path("high");
@@ -270,16 +290,18 @@ public class YahooFinanceProvider implements MarketDataProvider {
                     continue;
                 }
 
-                HistoricalPrice price = HistoricalPrice.builder()
-                        .symbol(symbol)
-                        .date(date)
-                        .open(getBigDecimal(opens.get(i)))
-                        .high(getBigDecimal(highs.get(i)))
-                        .low(getBigDecimal(lows.get(i)))
-                        .close(getBigDecimal(closes.get(i)))
-                        .adjustedClose(adjCloses != null ? getBigDecimal(adjCloses.get(i)) : null)
-                        .volume(volumes.get(i).isNull() ? null : volumes.get(i).asLong())
-                        .build();
+                HistoricalPrice price =
+                        HistoricalPrice.builder()
+                                .symbol(symbol)
+                                .date(date)
+                                .open(getBigDecimal(opens.get(i)))
+                                .high(getBigDecimal(highs.get(i)))
+                                .low(getBigDecimal(lows.get(i)))
+                                .close(getBigDecimal(closes.get(i)))
+                                .adjustedClose(
+                                        adjCloses != null ? getBigDecimal(adjCloses.get(i)) : null)
+                                .volume(volumes.get(i).isNull() ? null : volumes.get(i).asLong())
+                                .build();
 
                 prices.add(price);
             }
@@ -291,7 +313,8 @@ public class YahooFinanceProvider implements MarketDataProvider {
             throw e;
         } catch (Exception e) {
             log.error("Error fetching historical prices for symbol: {}", symbol, e);
-            throw new MarketDataException("Failed to fetch historical prices for: " + symbol, symbol, null, e);
+            throw new MarketDataException(
+                    "Failed to fetch historical prices for: " + symbol, symbol, null, e);
         }
     }
 
@@ -304,18 +327,26 @@ public class YahooFinanceProvider implements MarketDataProvider {
         log.debug("Searching for symbols matching: {}", query);
 
         try {
-            String response = webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path(SEARCH_ENDPOINT)
-                            .queryParam("q", query)
-                            .build())
-                    .retrieve()
-                    .onStatus(status -> status.isError(), clientResponse -> Mono.error(new MarketDataException(
-                            "Failed to search for: " + query,
-                            null,
-                            clientResponse.statusCode().value())))
-                    .bodyToMono(String.class)
-                    .block();
+            String response =
+                    webClient
+                            .get()
+                            .uri(
+                                    uriBuilder ->
+                                            uriBuilder
+                                                    .path(SEARCH_ENDPOINT)
+                                                    .queryParam("q", query)
+                                                    .build())
+                            .retrieve()
+                            .onStatus(
+                                    status -> status.isError(),
+                                    clientResponse ->
+                                            Mono.error(
+                                                    new MarketDataException(
+                                                            "Failed to search for: " + query,
+                                                            null,
+                                                            clientResponse.statusCode().value())))
+                            .bodyToMono(String.class)
+                            .block();
 
             JsonNode root = objectMapper.readTree(response);
             JsonNode quotes = root.path("quotes");
@@ -328,17 +359,22 @@ public class YahooFinanceProvider implements MarketDataProvider {
             List<SymbolSearchResult> results = new ArrayList<>();
             for (JsonNode quoteNode : quotes) {
                 try {
-                    SymbolSearchResult result = SymbolSearchResult.builder()
-                            .symbol(quoteNode.path("symbol").asText())
-                            .name(quoteNode.path("longname").asText(
-                                    quoteNode.path("shortname").asText("")))
-                            .type(quoteNode.path("quoteType").asText(""))
-                            .exchange(quoteNode.path("exchDisp").asText(
-                                    quoteNode.path("exchange").asText("")))
-                            .exchangeDisplay(quoteNode.path("exchDisp").asText(""))
-                            .sector(quoteNode.path("sector").asText(null))
-                            .industry(quoteNode.path("industry").asText(null))
-                            .build();
+                    SymbolSearchResult result =
+                            SymbolSearchResult.builder()
+                                    .symbol(quoteNode.path("symbol").asText())
+                                    .name(
+                                            quoteNode
+                                                    .path("longname")
+                                                    .asText(quoteNode.path("shortname").asText("")))
+                                    .type(quoteNode.path("quoteType").asText(""))
+                                    .exchange(
+                                            quoteNode
+                                                    .path("exchDisp")
+                                                    .asText(quoteNode.path("exchange").asText("")))
+                                    .exchangeDisplay(quoteNode.path("exchDisp").asText(""))
+                                    .sector(quoteNode.path("sector").asText(null))
+                                    .industry(quoteNode.path("industry").asText(null))
+                                    .build();
                     results.add(result);
                 } catch (Exception e) {
                     log.warn("Failed to parse search result", e);
@@ -357,8 +393,7 @@ public class YahooFinanceProvider implements MarketDataProvider {
     }
 
     /**
-     * Parses quote data from a v8/finance/chart result meta node into a MarketQuote
-     * object.
+     * Parses quote data from a v8/finance/chart result meta node into a MarketQuote object.
      *
      * @param meta the meta JSON node from the chart result
      * @return the parsed MarketQuote
@@ -366,20 +401,22 @@ public class YahooFinanceProvider implements MarketDataProvider {
     private MarketQuote parseChartMeta(JsonNode meta) {
         return MarketQuote.builder()
                 .symbol(meta.path("symbol").asText())
-                .name(meta.path("longName").asText(
-                        meta.path("shortName").asText("")))
+                .name(meta.path("longName").asText(meta.path("shortName").asText("")))
                 .price(getBigDecimal(meta.path("regularMarketPrice")))
-                .change(safeChange(getBigDecimal(meta.path("regularMarketPrice")),
-                        getBigDecimal(meta.path("chartPreviousClose"))))
+                .change(
+                        safeChange(
+                                getBigDecimal(meta.path("regularMarketPrice")),
+                                getBigDecimal(meta.path("chartPreviousClose"))))
                 .previousClose(getBigDecimal(meta.path("chartPreviousClose")))
                 .dayHigh(getBigDecimal(meta.path("regularMarketDayHigh")))
                 .dayLow(getBigDecimal(meta.path("regularMarketDayLow")))
-                .volume(meta.path("regularMarketVolume").isNull()
-                        ? null
-                        : meta.path("regularMarketVolume").asLong())
+                .volume(
+                        meta.path("regularMarketVolume").isNull()
+                                ? null
+                                : meta.path("regularMarketVolume").asLong())
                 .currency(meta.path("currency").asText("USD"))
-                .exchange(meta.path("fullExchangeName").asText(
-                        meta.path("exchangeName").asText("")))
+                .exchange(
+                        meta.path("fullExchangeName").asText(meta.path("exchangeName").asText("")))
                 .timestamp(LocalDateTime.now())
                 .marketState(meta.path("marketState").asText("UNKNOWN"))
                 .quoteType(meta.path("instrumentType").asText(""))
@@ -401,8 +438,7 @@ public class YahooFinanceProvider implements MarketDataProvider {
 
     /** Returns price − previousClose, or null if price is unavailable. */
     private BigDecimal safeChange(BigDecimal price, BigDecimal previousClose) {
-        if (price == null)
-            return null;
+        if (price == null) return null;
         return price.subtract(previousClose != null ? previousClose : BigDecimal.ZERO);
     }
 }

@@ -1,5 +1,12 @@
 package org.openfinance.scheduler;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -16,25 +23,17 @@ import org.openfinance.entity.User;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.service.UnusualTransactionDetectionService;
 
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 /**
  * Unit tests for {@link UnusualTransactionDetectionScheduler}.
  *
- * <p>
- * Covers:
+ * <p>Covers:
+ *
  * <ul>
- * <li>Startup execution: runs when mode requires it, skipped when not</li>
- * <li>runDetection: iterates all users, passes correct lookback window</li>
- * <li>Per-user error isolation: one user failure does not stop processing</li>
- * <li>Empty user list: no calls to detection service</li>
- * <li>Default cron constant value</li>
+ *   <li>Startup execution: runs when mode requires it, skipped when not
+ *   <li>runDetection: iterates all users, passes correct lookback window
+ *   <li>Per-user error isolation: one user failure does not stop processing
+ *   <li>Empty user list: no calls to detection service
+ *   <li>Default cron constant value
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
@@ -42,17 +41,13 @@ import static org.mockito.Mockito.*;
 @DisplayName("UnusualTransactionDetectionScheduler Unit Tests")
 class UnusualTransactionDetectionSchedulerTest {
 
-    @Mock
-    private UnusualTransactionDetectionService detectionService;
+    @Mock private UnusualTransactionDetectionService detectionService;
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
-    @Mock
-    private SchedulerProperties schedulerProperties;
+    @Mock private SchedulerProperties schedulerProperties;
 
-    @InjectMocks
-    private UnusualTransactionDetectionScheduler scheduler;
+    @InjectMocks private UnusualTransactionDetectionScheduler scheduler;
 
     private SchedulerProperties.SchedulerConfig schedulerConfig;
 
@@ -148,11 +143,16 @@ class UnusualTransactionDetectionSchedulerTest {
             when(userRepository.findAll()).thenReturn(List.of(u1));
             when(detectionService.detectAndPersist(anyLong(), any())).thenReturn(0);
 
-            LocalDateTime before = LocalDateTime.now().minusHours(UnusualTransactionDetectionScheduler.LOOKBACK_HOURS);
+            LocalDateTime before =
+                    LocalDateTime.now()
+                            .minusHours(UnusualTransactionDetectionScheduler.LOOKBACK_HOURS);
             scheduler.runDetection();
-            LocalDateTime after = LocalDateTime.now().minusHours(UnusualTransactionDetectionScheduler.LOOKBACK_HOURS);
+            LocalDateTime after =
+                    LocalDateTime.now()
+                            .minusHours(UnusualTransactionDetectionScheduler.LOOKBACK_HOURS);
 
-            ArgumentCaptor<LocalDateTime> sinceCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
+            ArgumentCaptor<LocalDateTime> sinceCaptor =
+                    ArgumentCaptor.forClass(LocalDateTime.class);
             verify(detectionService).detectAndPersist(eq(1L), sinceCaptor.capture());
 
             LocalDateTime capturedSince = sinceCaptor.getValue();

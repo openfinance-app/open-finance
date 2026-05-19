@@ -2,20 +2,17 @@ package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
-import org.openfinance.service.OperationHistoryService;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.entity.User;
@@ -25,25 +22,23 @@ import org.openfinance.repository.UserRepository;
 @DisplayName("UserLoginStateService Unit Tests")
 class UserLoginStateServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
-    @Mock
-    private OperationHistoryService operationHistoryService;
+    @Mock private OperationHistoryService operationHistoryService;
 
-    @InjectMocks
-    private UserLoginStateService userLoginStateService;
+    @InjectMocks private UserLoginStateService userLoginStateService;
 
     private User testUser;
 
     @BeforeEach
     void setUp() {
-        testUser = User.builder()
-                .id(1L)
-                .username("testuser")
-                .failedLoginAttempts(2)
-                .lockedUntil(LocalDateTime.now().minusMinutes(5))
-                .build();
+        testUser =
+                User.builder()
+                        .id(1L)
+                        .username("testuser")
+                        .failedLoginAttempts(2)
+                        .lockedUntil(LocalDateTime.now().minusMinutes(5))
+                        .build();
     }
 
     @Test
@@ -59,7 +54,7 @@ class UserLoginStateServiceTest {
         // Then
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
-        
+
         User savedUser = userCaptor.getValue();
         assertThat(savedUser.getFailedLoginAttempts()).isZero();
         assertThat(savedUser.getLockedUntil()).isNull();

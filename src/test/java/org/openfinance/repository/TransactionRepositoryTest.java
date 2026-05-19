@@ -1,5 +1,11 @@
 package org.openfinance.repository;
 
+import static org.assertj.core.api.Assertions.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,54 +15,45 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.TestPropertySource;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.*;
-
 /**
  * Integration tests for TransactionRepository.
- * 
- * <p>Uses @DataJpaTest which configures an in-memory H2 database
- * and provides transactional test execution with rollback.</p>
- * 
+ *
+ * <p>Uses @DataJpaTest which configures an in-memory H2 database and provides transactional test
+ * execution with rollback.
+ *
  * <p>Tests cover:
+ *
  * <ul>
- *   <li>CRUD operations</li>
- *   <li>User isolation queries</li>
- *   <li>Date range filtering</li>
- *   <li>Account and category filtering</li>
- *   <li>Transaction type filtering (INCOME, EXPENSE, TRANSFER)</li>
- *   <li>Soft-delete handling</li>
- *   <li>Reconciliation status filtering</li>
- *   <li>Count and existence checks</li>
+ *   <li>CRUD operations
+ *   <li>User isolation queries
+ *   <li>Date range filtering
+ *   <li>Account and category filtering
+ *   <li>Transaction type filtering (INCOME, EXPENSE, TRANSFER)
+ *   <li>Soft-delete handling
+ *   <li>Reconciliation status filtering
+ *   <li>Count and existence checks
  * </ul>
- * 
- * <p>Requirement REQ-2.4: Transaction management and data access</p>
+ *
+ * <p>Requirement REQ-2.4: Transaction management and data access
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@TestPropertySource(properties = {
-    "spring.flyway.enabled=false",
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
-})
+@TestPropertySource(
+        properties = {
+            "spring.flyway.enabled=false",
+            "spring.jpa.hibernate.ddl-auto=create-drop",
+            "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
+        })
 @DisplayName("TransactionRepository Integration Tests")
 class TransactionRepositoryTest {
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    @Autowired private CategoryRepository categoryRepository;
 
     private User testUser1;
     private User testUser2;
@@ -75,103 +72,112 @@ class TransactionRepositoryTest {
         accountRepository.deleteAll();
         categoryRepository.deleteAll();
         userRepository.deleteAll();
-        
+
         // Create test users
-        testUser1 = User.builder()
-                .username("testuser1")
-                .email("user1@example.com")
-                .passwordHash("$2a$10$hashedPasswordExample123456789")
-                .masterPasswordSalt("base64EncodedSaltExample==")
-                .build();
+        testUser1 =
+                User.builder()
+                        .username("testuser1")
+                        .email("user1@example.com")
+                        .passwordHash("$2a$10$hashedPasswordExample123456789")
+                        .masterPasswordSalt("base64EncodedSaltExample==")
+                        .build();
         testUser1 = userRepository.save(testUser1);
-        
-        testUser2 = User.builder()
-                .username("testuser2")
-                .email("user2@example.com")
-                .passwordHash("$2a$10$hashedPasswordExample987654321")
-                .masterPasswordSalt("base64EncodedSaltExample22==")
-                .build();
+
+        testUser2 =
+                User.builder()
+                        .username("testuser2")
+                        .email("user2@example.com")
+                        .passwordHash("$2a$10$hashedPasswordExample987654321")
+                        .masterPasswordSalt("base64EncodedSaltExample22==")
+                        .build();
         testUser2 = userRepository.save(testUser2);
-        
+
         // Create test accounts
-        checkingAccount = Account.builder()
-                .userId(testUser1.getId())
-                .name("Checking Account")
-                .type(AccountType.CHECKING)
-                .currency("USD")
-                .balance(new BigDecimal("5000.00"))
-                .isActive(true)
-                .build();
+        checkingAccount =
+                Account.builder()
+                        .userId(testUser1.getId())
+                        .name("Checking Account")
+                        .type(AccountType.CHECKING)
+                        .currency("USD")
+                        .balance(new BigDecimal("5000.00"))
+                        .isActive(true)
+                        .build();
         checkingAccount = accountRepository.save(checkingAccount);
-        
-        savingsAccount = Account.builder()
-                .userId(testUser1.getId())
-                .name("Savings Account")
-                .type(AccountType.SAVINGS)
-                .currency("USD")
-                .balance(new BigDecimal("10000.00"))
-                .isActive(true)
-                .build();
+
+        savingsAccount =
+                Account.builder()
+                        .userId(testUser1.getId())
+                        .name("Savings Account")
+                        .type(AccountType.SAVINGS)
+                        .currency("USD")
+                        .balance(new BigDecimal("10000.00"))
+                        .isActive(true)
+                        .build();
         savingsAccount = accountRepository.save(savingsAccount);
-        
+
         // Create test categories
-        salaryCategory = Category.builder()
-                .userId(testUser1.getId())
-                .name("Salary")
-                .type(CategoryType.INCOME)
-                .icon("💰")
-                .isSystem(true)
-                .build();
+        salaryCategory =
+                Category.builder()
+                        .userId(testUser1.getId())
+                        .name("Salary")
+                        .type(CategoryType.INCOME)
+                        .icon("💰")
+                        .isSystem(true)
+                        .build();
         salaryCategory = categoryRepository.save(salaryCategory);
-        
-        groceryCategory = Category.builder()
-                .userId(testUser1.getId())
-                .name("Groceries")
-                .type(CategoryType.EXPENSE)
-                .icon("🛒")
-                .isSystem(false)
-                .build();
+
+        groceryCategory =
+                Category.builder()
+                        .userId(testUser1.getId())
+                        .name("Groceries")
+                        .type(CategoryType.EXPENSE)
+                        .icon("🛒")
+                        .isSystem(false)
+                        .build();
         groceryCategory = categoryRepository.save(groceryCategory);
-        
+
         // Create test transactions
-        incomeTransaction = Transaction.builder()
-                .userId(testUser1.getId())
-                .accountId(checkingAccount.getId())
-                .type(TransactionType.INCOME)
-                .amount(new BigDecimal("3000.00"))
-                .currency("USD")
-                .categoryId(salaryCategory.getId())
-                .date(LocalDate.of(2026, 1, 15))
-                .description("Monthly Salary")
-                .isReconciled(false)
-                .isDeleted(false)
-                .build();
-        
-        expenseTransaction = Transaction.builder()
-                .userId(testUser1.getId())
-                .accountId(checkingAccount.getId())
-                .type(TransactionType.EXPENSE)
-                .amount(new BigDecimal("150.50"))
-                .currency("USD")
-                .categoryId(groceryCategory.getId())
-                .date(LocalDate.of(2026, 1, 20))
-                .description("Weekly groceries")
-                .isReconciled(false)
-                .isDeleted(false)
-                .build();
-        
-        transferTransaction = Transaction.builder()
-                .userId(testUser1.getId())
-                .accountId(checkingAccount.getId())
-                .toAccountId(savingsAccount.getId())
-                .type(TransactionType.TRANSFER)
-                .amount(new BigDecimal("500.00"))
-                .currency("USD")
-                .date(LocalDate.of(2026, 1, 25))
-                .description("Transfer to savings")
-                .isReconciled(false)
-                .isDeleted(false)
-                .build();
+        incomeTransaction =
+                Transaction.builder()
+                        .userId(testUser1.getId())
+                        .accountId(checkingAccount.getId())
+                        .type(TransactionType.INCOME)
+                        .amount(new BigDecimal("3000.00"))
+                        .currency("USD")
+                        .categoryId(salaryCategory.getId())
+                        .date(LocalDate.of(2026, 1, 15))
+                        .description("Monthly Salary")
+                        .isReconciled(false)
+                        .isDeleted(false)
+                        .build();
+
+        expenseTransaction =
+                Transaction.builder()
+                        .userId(testUser1.getId())
+                        .accountId(checkingAccount.getId())
+                        .type(TransactionType.EXPENSE)
+                        .amount(new BigDecimal("150.50"))
+                        .currency("USD")
+                        .categoryId(groceryCategory.getId())
+                        .date(LocalDate.of(2026, 1, 20))
+                        .description("Weekly groceries")
+                        .isReconciled(false)
+                        .isDeleted(false)
+                        .build();
+
+        transferTransaction =
+                Transaction.builder()
+                        .userId(testUser1.getId())
+                        .accountId(checkingAccount.getId())
+                        .toAccountId(savingsAccount.getId())
+                        .type(TransactionType.TRANSFER)
+                        .amount(new BigDecimal("500.00"))
+                        .currency("USD")
+                        .date(LocalDate.of(2026, 1, 25))
+                        .description("Transfer to savings")
+                        .isReconciled(false)
+                        .isDeleted(false)
+                        .build();
     }
 
     // === CRUD Operation Tests ===
@@ -253,27 +259,29 @@ class TransactionRepositoryTest {
         transactionRepository.save(incomeTransaction);
         transactionRepository.save(expenseTransaction);
         transactionRepository.save(transferTransaction);
-        
+
         // Create transaction for different user
-        Account user2Account = Account.builder()
-                .userId(testUser2.getId())
-                .name("User2 Account")
-                .type(AccountType.CHECKING)
-                .currency("USD")
-                .balance(BigDecimal.ZERO)
-                .isActive(true)
-                .build();
+        Account user2Account =
+                Account.builder()
+                        .userId(testUser2.getId())
+                        .name("User2 Account")
+                        .type(AccountType.CHECKING)
+                        .currency("USD")
+                        .balance(BigDecimal.ZERO)
+                        .isActive(true)
+                        .build();
         user2Account = accountRepository.save(user2Account);
-        
-        Transaction user2Transaction = Transaction.builder()
-                .userId(testUser2.getId())
-                .accountId(user2Account.getId())
-                .type(TransactionType.INCOME)
-                .amount(new BigDecimal("1000.00"))
-                .currency("USD")
-                .date(LocalDate.of(2026, 1, 10))
-                .isDeleted(false)
-                .build();
+
+        Transaction user2Transaction =
+                Transaction.builder()
+                        .userId(testUser2.getId())
+                        .accountId(user2Account.getId())
+                        .type(TransactionType.INCOME)
+                        .amount(new BigDecimal("1000.00"))
+                        .currency("USD")
+                        .date(LocalDate.of(2026, 1, 10))
+                        .isDeleted(false)
+                        .build();
         transactionRepository.save(user2Transaction);
 
         // When
@@ -292,10 +300,12 @@ class TransactionRepositoryTest {
         Transaction savedTransaction = transactionRepository.save(incomeTransaction);
 
         // When
-        Optional<Transaction> found = transactionRepository.findByIdAndUserId(
-                savedTransaction.getId(), testUser1.getId());
-        Optional<Transaction> notFound = transactionRepository.findByIdAndUserId(
-                savedTransaction.getId(), testUser2.getId());
+        Optional<Transaction> found =
+                transactionRepository.findByIdAndUserId(
+                        savedTransaction.getId(), testUser1.getId());
+        Optional<Transaction> notFound =
+                transactionRepository.findByIdAndUserId(
+                        savedTransaction.getId(), testUser2.getId());
 
         // Then
         assertThat(found).isPresent();
@@ -330,11 +340,13 @@ class TransactionRepositoryTest {
         transactionRepository.save(transferTransaction);
 
         // When
-        List<Transaction> checkingTransactions = transactionRepository.findByAccountId(checkingAccount.getId());
+        List<Transaction> checkingTransactions =
+                transactionRepository.findByAccountId(checkingAccount.getId());
 
         // Then
         assertThat(checkingTransactions).hasSize(3);
-        assertThat(checkingTransactions).extracting(Transaction::getDescription)
+        assertThat(checkingTransactions)
+                .extracting(Transaction::getDescription)
                 .contains("Monthly Salary", "Weekly groceries", "Transfer to savings");
     }
 
@@ -346,8 +358,9 @@ class TransactionRepositoryTest {
         transactionRepository.save(expenseTransaction);
 
         // When
-        List<Transaction> transactions = transactionRepository.findByUserIdAndAccountId(
-                testUser1.getId(), checkingAccount.getId());
+        List<Transaction> transactions =
+                transactionRepository.findByUserIdAndAccountId(
+                        testUser1.getId(), checkingAccount.getId());
 
         // Then
         assertThat(transactions).hasSize(2);
@@ -360,13 +373,16 @@ class TransactionRepositoryTest {
         transactionRepository.save(transferTransaction);
 
         // When
-        List<Transaction> checkingTransactions = transactionRepository.findByAccountId(checkingAccount.getId());
-        List<Transaction> savingsTransactions = transactionRepository.findByAccountId(savingsAccount.getId());
+        List<Transaction> checkingTransactions =
+                transactionRepository.findByAccountId(checkingAccount.getId());
+        List<Transaction> savingsTransactions =
+                transactionRepository.findByAccountId(savingsAccount.getId());
 
         // Then - Transfer should appear in both accounts
         assertThat(checkingTransactions).hasSize(1);
         assertThat(savingsTransactions).hasSize(1);
-        assertThat(checkingTransactions.get(0).getId()).isEqualTo(savingsTransactions.get(0).getId());
+        assertThat(checkingTransactions.get(0).getId())
+                .isEqualTo(savingsTransactions.get(0).getId());
     }
 
     // === Date Range Filtering Tests ===
@@ -380,11 +396,9 @@ class TransactionRepositoryTest {
         transactionRepository.save(transferTransaction); // Jan 25
 
         // When
-        List<Transaction> transactions = transactionRepository.findByUserIdAndDateBetween(
-                testUser1.getId(),
-                LocalDate.of(2026, 1, 16),
-                LocalDate.of(2026, 1, 24)
-        );
+        List<Transaction> transactions =
+                transactionRepository.findByUserIdAndDateBetween(
+                        testUser1.getId(), LocalDate.of(2026, 1, 16), LocalDate.of(2026, 1, 24));
 
         // Then
         assertThat(transactions).hasSize(1);
@@ -399,11 +413,9 @@ class TransactionRepositoryTest {
         transactionRepository.save(expenseTransaction); // Jan 20
 
         // When
-        List<Transaction> transactions = transactionRepository.findByUserIdAndDateBetween(
-                testUser1.getId(),
-                LocalDate.of(2026, 1, 15),
-                LocalDate.of(2026, 1, 20)
-        );
+        List<Transaction> transactions =
+                transactionRepository.findByUserIdAndDateBetween(
+                        testUser1.getId(), LocalDate.of(2026, 1, 15), LocalDate.of(2026, 1, 20));
 
         // Then - Both boundary dates included
         assertThat(transactions).hasSize(2);
@@ -419,13 +431,15 @@ class TransactionRepositoryTest {
         transactionRepository.save(expenseTransaction);
 
         // When
-        List<Transaction> salaryTransactions = transactionRepository.findByCategoryId(salaryCategory.getId());
-        List<Transaction> groceryTransactions = transactionRepository.findByCategoryId(groceryCategory.getId());
+        List<Transaction> salaryTransactions =
+                transactionRepository.findByCategoryId(salaryCategory.getId());
+        List<Transaction> groceryTransactions =
+                transactionRepository.findByCategoryId(groceryCategory.getId());
 
         // Then
         assertThat(salaryTransactions).hasSize(1);
         assertThat(salaryTransactions.get(0).getDescription()).isEqualTo("Monthly Salary");
-        
+
         assertThat(groceryTransactions).hasSize(1);
         assertThat(groceryTransactions.get(0).getDescription()).isEqualTo("Weekly groceries");
     }
@@ -438,8 +452,9 @@ class TransactionRepositoryTest {
         transactionRepository.save(expenseTransaction);
 
         // When
-        List<Transaction> transactions = transactionRepository.findByUserIdAndCategoryId(
-                testUser1.getId(), salaryCategory.getId());
+        List<Transaction> transactions =
+                transactionRepository.findByUserIdAndCategoryId(
+                        testUser1.getId(), salaryCategory.getId());
 
         // Then
         assertThat(transactions).hasSize(1);
@@ -457,20 +472,23 @@ class TransactionRepositoryTest {
         transactionRepository.save(transferTransaction);
 
         // When
-        List<Transaction> incomeTransactions = transactionRepository.findByUserIdAndType(
-                testUser1.getId(), TransactionType.INCOME);
-        List<Transaction> expenseTransactions = transactionRepository.findByUserIdAndType(
-                testUser1.getId(), TransactionType.EXPENSE);
-        List<Transaction> transferTransactions = transactionRepository.findByUserIdAndType(
-                testUser1.getId(), TransactionType.TRANSFER);
+        List<Transaction> incomeTransactions =
+                transactionRepository.findByUserIdAndType(
+                        testUser1.getId(), TransactionType.INCOME);
+        List<Transaction> expenseTransactions =
+                transactionRepository.findByUserIdAndType(
+                        testUser1.getId(), TransactionType.EXPENSE);
+        List<Transaction> transferTransactions =
+                transactionRepository.findByUserIdAndType(
+                        testUser1.getId(), TransactionType.TRANSFER);
 
         // Then
         assertThat(incomeTransactions).hasSize(1);
         assertThat(incomeTransactions.get(0).getDescription()).isEqualTo("Monthly Salary");
-        
+
         assertThat(expenseTransactions).hasSize(1);
         assertThat(expenseTransactions.get(0).getDescription()).isEqualTo("Weekly groceries");
-        
+
         assertThat(transferTransactions).hasSize(1);
         assertThat(transferTransactions.get(0).getDescription()).isEqualTo("Transfer to savings");
     }
@@ -486,7 +504,8 @@ class TransactionRepositoryTest {
         transactionRepository.save(expenseTransaction); // Not reconciled
 
         // When
-        List<Transaction> unreconciled = transactionRepository.findUnreconciledByAccountId(checkingAccount.getId());
+        List<Transaction> unreconciled =
+                transactionRepository.findUnreconciledByAccountId(checkingAccount.getId());
 
         // Then
         assertThat(unreconciled).hasSize(1);
@@ -500,12 +519,13 @@ class TransactionRepositoryTest {
         // Given
         expenseTransaction.setDate(LocalDate.of(2026, 1, 10));
         transactionRepository.save(expenseTransaction);
-        
+
         transferTransaction.setDate(LocalDate.of(2026, 1, 5));
         transactionRepository.save(transferTransaction);
 
         // When
-        List<Transaction> unreconciled = transactionRepository.findUnreconciledByAccountId(checkingAccount.getId());
+        List<Transaction> unreconciled =
+                transactionRepository.findUnreconciledByAccountId(checkingAccount.getId());
 
         // Then
         assertThat(unreconciled).hasSize(2);
@@ -552,10 +572,12 @@ class TransactionRepositoryTest {
         Transaction savedTransaction = transactionRepository.save(incomeTransaction);
 
         // When
-        boolean exists = transactionRepository.existsByIdAndUserId(
-                savedTransaction.getId(), testUser1.getId());
-        boolean notExists = transactionRepository.existsByIdAndUserId(
-                savedTransaction.getId(), testUser2.getId());
+        boolean exists =
+                transactionRepository.existsByIdAndUserId(
+                        savedTransaction.getId(), testUser1.getId());
+        boolean notExists =
+                transactionRepository.existsByIdAndUserId(
+                        savedTransaction.getId(), testUser2.getId());
 
         // Then
         assertThat(exists).isTrue();
@@ -570,8 +592,9 @@ class TransactionRepositoryTest {
         Transaction savedTransaction = transactionRepository.save(incomeTransaction);
 
         // When
-        boolean exists = transactionRepository.existsByIdAndUserId(
-                savedTransaction.getId(), testUser1.getId());
+        boolean exists =
+                transactionRepository.existsByIdAndUserId(
+                        savedTransaction.getId(), testUser1.getId());
 
         // Then
         assertThat(exists).isFalse();

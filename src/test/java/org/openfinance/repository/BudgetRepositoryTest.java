@@ -1,5 +1,10 @@
 package org.openfinance.repository;
 
+import static org.assertj.core.api.Assertions.*;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,50 +18,44 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.TestPropertySource;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.*;
-
 /**
  * Integration tests for BudgetRepository.
- * 
- * <p>Uses @DataJpaTest which configures an in-memory H2 database
- * and provides transactional test execution with rollback.</p>
- * 
+ *
+ * <p>Uses @DataJpaTest which configures an in-memory H2 database and provides transactional test
+ * execution with rollback.
+ *
  * <p>Tests cover:
+ *
  * <ul>
- *   <li>CRUD operations</li>
- *   <li>User isolation queries</li>
- *   <li>Period filtering (WEEKLY, MONTHLY, QUARTERLY, YEARLY)</li>
- *   <li>Category-based queries</li>
- *   <li>Active budget queries (date range filtering)</li>
- *   <li>Rollover budget queries</li>
- *   <li>Count and existence checks</li>
+ *   <li>CRUD operations
+ *   <li>User isolation queries
+ *   <li>Period filtering (WEEKLY, MONTHLY, QUARTERLY, YEARLY)
+ *   <li>Category-based queries
+ *   <li>Active budget queries (date range filtering)
+ *   <li>Rollover budget queries
+ *   <li>Count and existence checks
  * </ul>
- * 
- * <p>Requirement REQ-2.9.1.1: Budget creation and management</p>
- * <p>Requirement REQ-2.9.1.2: Budget tracking by period and category</p>
+ *
+ * <p>Requirement REQ-2.9.1.1: Budget creation and management
+ *
+ * <p>Requirement REQ-2.9.1.2: Budget tracking by period and category
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@TestPropertySource(properties = {
-    "spring.flyway.enabled=false",
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
-})
+@TestPropertySource(
+        properties = {
+            "spring.flyway.enabled=false",
+            "spring.jpa.hibernate.ddl-auto=create-drop",
+            "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
+        })
 @DisplayName("BudgetRepository Integration Tests")
 class BudgetRepositoryTest {
 
-    @Autowired
-    private BudgetRepository budgetRepository;
+    @Autowired private BudgetRepository budgetRepository;
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    @Autowired private CategoryRepository categoryRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
     private User testUser1;
     private User testUser2;
@@ -72,84 +71,91 @@ class BudgetRepositoryTest {
         budgetRepository.deleteAll();
         categoryRepository.deleteAll();
         userRepository.deleteAll();
-        
+
         // Create test users
-        testUser1 = User.builder()
-                .username("testuser1")
-                .email("user1@example.com")
-                .passwordHash("$2a$10$hashedPasswordExample123456789")
-                .masterPasswordSalt("base64EncodedSaltExample==")
-                .build();
+        testUser1 =
+                User.builder()
+                        .username("testuser1")
+                        .email("user1@example.com")
+                        .passwordHash("$2a$10$hashedPasswordExample123456789")
+                        .masterPasswordSalt("base64EncodedSaltExample==")
+                        .build();
         testUser1 = userRepository.save(testUser1);
-        
-        testUser2 = User.builder()
-                .username("testuser2")
-                .email("user2@example.com")
-                .passwordHash("$2a$10$hashedPasswordExample987654321")
-                .masterPasswordSalt("base64EncodedSaltExample22==")
-                .build();
+
+        testUser2 =
+                User.builder()
+                        .username("testuser2")
+                        .email("user2@example.com")
+                        .passwordHash("$2a$10$hashedPasswordExample987654321")
+                        .masterPasswordSalt("base64EncodedSaltExample22==")
+                        .build();
         testUser2 = userRepository.save(testUser2);
-        
+
         // Create test categories
-        groceriesCategory = Category.builder()
-                .userId(testUser1.getId())
-                .name("Groceries")
-                .type(CategoryType.EXPENSE)
-                .icon("🛒")
-                .color("#EF4444")
-                .isSystem(false)
-                .build();
+        groceriesCategory =
+                Category.builder()
+                        .userId(testUser1.getId())
+                        .name("Groceries")
+                        .type(CategoryType.EXPENSE)
+                        .icon("🛒")
+                        .color("#EF4444")
+                        .isSystem(false)
+                        .build();
         groceriesCategory = categoryRepository.save(groceriesCategory);
-        
-        diningCategory = Category.builder()
-                .userId(testUser1.getId())
-                .name("Dining Out")
-                .type(CategoryType.EXPENSE)
-                .icon("🍽️")
-                .color("#F59E0B")
-                .isSystem(false)
-                .build();
+
+        diningCategory =
+                Category.builder()
+                        .userId(testUser1.getId())
+                        .name("Dining Out")
+                        .type(CategoryType.EXPENSE)
+                        .icon("🍽️")
+                        .color("#F59E0B")
+                        .isSystem(false)
+                        .build();
         diningCategory = categoryRepository.save(diningCategory);
-        
+
         // Create test budgets
         // Monthly budget for February 2026
-        monthlyGroceriesBudget = Budget.builder()
-                .userId(testUser1.getId())
-                .categoryId(groceriesCategory.getId())
-                .amount("encryptedAmount500") // In real usage, this would be encrypted
-                .currency("USD")
-                .period(BudgetPeriod.MONTHLY)
-                .startDate(LocalDate.of(2026, 2, 1))
-                .endDate(LocalDate.of(2026, 2, 28))
-                .rollover(false)
-                .notes("Monthly grocery budget")
-                .build();
-        
+        monthlyGroceriesBudget =
+                Budget.builder()
+                        .userId(testUser1.getId())
+                        .categoryId(groceriesCategory.getId())
+                        .amount("encryptedAmount500") // In real usage, this would be encrypted
+                        .currency("USD")
+                        .period(BudgetPeriod.MONTHLY)
+                        .startDate(LocalDate.of(2026, 2, 1))
+                        .endDate(LocalDate.of(2026, 2, 28))
+                        .rollover(false)
+                        .notes("Monthly grocery budget")
+                        .build();
+
         // Weekly budget for current week
-        weeklyDiningBudget = Budget.builder()
-                .userId(testUser1.getId())
-                .categoryId(diningCategory.getId())
-                .amount("encryptedAmount150") // In real usage, this would be encrypted
-                .currency("USD")
-                .period(BudgetPeriod.WEEKLY)
-                .startDate(LocalDate.of(2026, 2, 1))
-                .endDate(LocalDate.of(2026, 2, 7))
-                .rollover(true)
-                .notes("Weekly dining budget with rollover")
-                .build();
-        
+        weeklyDiningBudget =
+                Budget.builder()
+                        .userId(testUser1.getId())
+                        .categoryId(diningCategory.getId())
+                        .amount("encryptedAmount150") // In real usage, this would be encrypted
+                        .currency("USD")
+                        .period(BudgetPeriod.WEEKLY)
+                        .startDate(LocalDate.of(2026, 2, 1))
+                        .endDate(LocalDate.of(2026, 2, 7))
+                        .rollover(true)
+                        .notes("Weekly dining budget with rollover")
+                        .build();
+
         // Quarterly budget (Q1 2026)
-        quarterlyBudget = Budget.builder()
-                .userId(testUser1.getId())
-                .categoryId(groceriesCategory.getId())
-                .amount("encryptedAmount1500") // In real usage, this would be encrypted
-                .currency("USD")
-                .period(BudgetPeriod.QUARTERLY)
-                .startDate(LocalDate.of(2026, 1, 1))
-                .endDate(LocalDate.of(2026, 3, 31))
-                .rollover(false)
-                .notes("Q1 grocery budget")
-                .build();
+        quarterlyBudget =
+                Budget.builder()
+                        .userId(testUser1.getId())
+                        .categoryId(groceriesCategory.getId())
+                        .amount("encryptedAmount1500") // In real usage, this would be encrypted
+                        .currency("USD")
+                        .period(BudgetPeriod.QUARTERLY)
+                        .startDate(LocalDate.of(2026, 1, 1))
+                        .endDate(LocalDate.of(2026, 3, 31))
+                        .rollover(false)
+                        .notes("Q1 grocery budget")
+                        .build();
     }
 
     // === CRUD Operation Tests ===
@@ -232,27 +238,29 @@ class BudgetRepositoryTest {
         // Given
         budgetRepository.save(monthlyGroceriesBudget);
         budgetRepository.save(weeklyDiningBudget);
-        
-        Category user2Category = Category.builder()
-                .userId(testUser2.getId())
-                .name("User2 Category")
-                .type(CategoryType.EXPENSE)
-                .icon("💰")
-                .color("#10B981")
-                .isSystem(false)
-                .build();
+
+        Category user2Category =
+                Category.builder()
+                        .userId(testUser2.getId())
+                        .name("User2 Category")
+                        .type(CategoryType.EXPENSE)
+                        .icon("💰")
+                        .color("#10B981")
+                        .isSystem(false)
+                        .build();
         user2Category = categoryRepository.save(user2Category);
-        
-        Budget user2Budget = Budget.builder()
-                .userId(testUser2.getId())
-                .categoryId(user2Category.getId())
-                .amount("encryptedAmount300")
-                .currency("USD")
-                .period(BudgetPeriod.MONTHLY)
-                .startDate(LocalDate.of(2026, 2, 1))
-                .endDate(LocalDate.of(2026, 2, 28))
-                .rollover(false)
-                .build();
+
+        Budget user2Budget =
+                Budget.builder()
+                        .userId(testUser2.getId())
+                        .categoryId(user2Category.getId())
+                        .amount("encryptedAmount300")
+                        .currency("USD")
+                        .period(BudgetPeriod.MONTHLY)
+                        .startDate(LocalDate.of(2026, 2, 1))
+                        .endDate(LocalDate.of(2026, 2, 28))
+                        .rollover(false)
+                        .build();
         budgetRepository.save(user2Budget);
 
         // When
@@ -273,8 +281,10 @@ class BudgetRepositoryTest {
         Budget savedBudget = budgetRepository.save(monthlyGroceriesBudget);
 
         // When
-        Optional<Budget> found = budgetRepository.findByIdAndUserId(savedBudget.getId(), testUser1.getId());
-        Optional<Budget> notFound = budgetRepository.findByIdAndUserId(savedBudget.getId(), testUser2.getId());
+        Optional<Budget> found =
+                budgetRepository.findByIdAndUserId(savedBudget.getId(), testUser1.getId());
+        Optional<Budget> notFound =
+                budgetRepository.findByIdAndUserId(savedBudget.getId(), testUser2.getId());
 
         // Then
         assertThat(found).isPresent();
@@ -293,10 +303,14 @@ class BudgetRepositoryTest {
         budgetRepository.save(quarterlyBudget);
 
         // When
-        List<Budget> monthlyBudgets = budgetRepository.findByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.MONTHLY);
-        List<Budget> weeklyBudgets = budgetRepository.findByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.WEEKLY);
-        List<Budget> quarterlyBudgets = budgetRepository.findByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.QUARTERLY);
-        List<Budget> yearlyBudgets = budgetRepository.findByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.YEARLY);
+        List<Budget> monthlyBudgets =
+                budgetRepository.findByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.MONTHLY);
+        List<Budget> weeklyBudgets =
+                budgetRepository.findByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.WEEKLY);
+        List<Budget> quarterlyBudgets =
+                budgetRepository.findByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.QUARTERLY);
+        List<Budget> yearlyBudgets =
+                budgetRepository.findByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.YEARLY);
 
         // Then
         assertThat(monthlyBudgets).hasSize(1);
@@ -319,12 +333,15 @@ class BudgetRepositoryTest {
         budgetRepository.save(weeklyDiningBudget); // Different category
 
         // When
-        List<Budget> groceriesBudgets = budgetRepository.findByCategoryId(groceriesCategory.getId());
+        List<Budget> groceriesBudgets =
+                budgetRepository.findByCategoryId(groceriesCategory.getId());
         List<Budget> diningBudgets = budgetRepository.findByCategoryId(diningCategory.getId());
 
         // Then
         assertThat(groceriesBudgets).hasSize(2);
-        assertThat(groceriesBudgets).extracting("categoryId").containsOnly(groceriesCategory.getId());
+        assertThat(groceriesBudgets)
+                .extracting("categoryId")
+                .containsOnly(groceriesCategory.getId());
         assertThat(diningBudgets).hasSize(1);
         assertThat(diningBudgets).extracting("categoryId").containsOnly(diningCategory.getId());
     }
@@ -338,13 +355,16 @@ class BudgetRepositoryTest {
         budgetRepository.save(weeklyDiningBudget);
 
         // When
-        List<Budget> userGroceriesBudgets = budgetRepository.findByUserIdAndCategoryId(
-                testUser1.getId(), groceriesCategory.getId());
+        List<Budget> userGroceriesBudgets =
+                budgetRepository.findByUserIdAndCategoryId(
+                        testUser1.getId(), groceriesCategory.getId());
 
         // Then
         assertThat(userGroceriesBudgets).hasSize(2);
         assertThat(userGroceriesBudgets).extracting("userId").containsOnly(testUser1.getId());
-        assertThat(userGroceriesBudgets).extracting("categoryId").containsOnly(groceriesCategory.getId());
+        assertThat(userGroceriesBudgets)
+                .extracting("categoryId")
+                .containsOnly(groceriesCategory.getId());
     }
 
     // === Active Budget Tests (Date Range Filtering) ===
@@ -358,21 +378,25 @@ class BudgetRepositoryTest {
         budgetRepository.save(quarterlyBudget); // Jan 1 - Mar 31
 
         // When - Check Feb 5, 2026 (should find all three)
-        List<Budget> activeBudgetsFeb5 = budgetRepository.findActiveByUserIdAndDate(
-                testUser1.getId(), LocalDate.of(2026, 2, 5));
-        
+        List<Budget> activeBudgetsFeb5 =
+                budgetRepository.findActiveByUserIdAndDate(
+                        testUser1.getId(), LocalDate.of(2026, 2, 5));
+
         // When - Check Feb 10, 2026 (should find monthly and quarterly, not weekly)
-        List<Budget> activeBudgetsFeb10 = budgetRepository.findActiveByUserIdAndDate(
-                testUser1.getId(), LocalDate.of(2026, 2, 10));
-        
+        List<Budget> activeBudgetsFeb10 =
+                budgetRepository.findActiveByUserIdAndDate(
+                        testUser1.getId(), LocalDate.of(2026, 2, 10));
+
         // When - Check Dec 15, 2025 (should find none)
-        List<Budget> activeBudgetsDec = budgetRepository.findActiveByUserIdAndDate(
-                testUser1.getId(), LocalDate.of(2025, 12, 15));
+        List<Budget> activeBudgetsDec =
+                budgetRepository.findActiveByUserIdAndDate(
+                        testUser1.getId(), LocalDate.of(2025, 12, 15));
 
         // Then
         assertThat(activeBudgetsFeb5).hasSize(3);
         assertThat(activeBudgetsFeb10).hasSize(2); // Weekly budget expired
-        assertThat(activeBudgetsFeb10).extracting("period")
+        assertThat(activeBudgetsFeb10)
+                .extracting("period")
                 .containsExactlyInAnyOrder(BudgetPeriod.MONTHLY, BudgetPeriod.QUARTERLY);
         assertThat(activeBudgetsDec).isEmpty();
     }
@@ -386,12 +410,14 @@ class BudgetRepositoryTest {
         budgetRepository.save(quarterlyBudget);
 
         // When - Find active monthly budgets on Feb 5
-        List<Budget> activeMonthly = budgetRepository.findActiveByUserIdAndPeriodAndDate(
-                testUser1.getId(), BudgetPeriod.MONTHLY, LocalDate.of(2026, 2, 5));
-        
+        List<Budget> activeMonthly =
+                budgetRepository.findActiveByUserIdAndPeriodAndDate(
+                        testUser1.getId(), BudgetPeriod.MONTHLY, LocalDate.of(2026, 2, 5));
+
         // When - Find active weekly budgets on Feb 5
-        List<Budget> activeWeekly = budgetRepository.findActiveByUserIdAndPeriodAndDate(
-                testUser1.getId(), BudgetPeriod.WEEKLY, LocalDate.of(2026, 2, 5));
+        List<Budget> activeWeekly =
+                budgetRepository.findActiveByUserIdAndPeriodAndDate(
+                        testUser1.getId(), BudgetPeriod.WEEKLY, LocalDate.of(2026, 2, 5));
 
         // Then
         assertThat(activeMonthly).hasSize(1);
@@ -410,12 +436,15 @@ class BudgetRepositoryTest {
         budgetRepository.save(quarterlyBudget); // Same category, different period
 
         // When
-        Optional<Budget> monthlyBudget = budgetRepository.findByUserIdAndCategoryIdAndPeriod(
-                testUser1.getId(), groceriesCategory.getId(), BudgetPeriod.MONTHLY);
-        Optional<Budget> quarterlyFound = budgetRepository.findByUserIdAndCategoryIdAndPeriod(
-                testUser1.getId(), groceriesCategory.getId(), BudgetPeriod.QUARTERLY);
-        Optional<Budget> weeklyNotFound = budgetRepository.findByUserIdAndCategoryIdAndPeriod(
-                testUser1.getId(), groceriesCategory.getId(), BudgetPeriod.WEEKLY);
+        Optional<Budget> monthlyBudget =
+                budgetRepository.findByUserIdAndCategoryIdAndPeriod(
+                        testUser1.getId(), groceriesCategory.getId(), BudgetPeriod.MONTHLY);
+        Optional<Budget> quarterlyFound =
+                budgetRepository.findByUserIdAndCategoryIdAndPeriod(
+                        testUser1.getId(), groceriesCategory.getId(), BudgetPeriod.QUARTERLY);
+        Optional<Budget> weeklyNotFound =
+                budgetRepository.findByUserIdAndCategoryIdAndPeriod(
+                        testUser1.getId(), groceriesCategory.getId(), BudgetPeriod.WEEKLY);
 
         // Then
         assertThat(monthlyBudget).isPresent();
@@ -433,21 +462,23 @@ class BudgetRepositoryTest {
         // Given
         budgetRepository.save(monthlyGroceriesBudget); // rollover = false
         budgetRepository.save(weeklyDiningBudget); // rollover = true
-        
-        Budget anotherRolloverBudget = Budget.builder()
-                .userId(testUser1.getId())
-                .categoryId(diningCategory.getId())
-                .amount("encryptedAmount200")
-                .currency("USD")
-                .period(BudgetPeriod.MONTHLY)
-                .startDate(LocalDate.of(2026, 3, 1))
-                .endDate(LocalDate.of(2026, 3, 31))
-                .rollover(true)
-                .build();
+
+        Budget anotherRolloverBudget =
+                Budget.builder()
+                        .userId(testUser1.getId())
+                        .categoryId(diningCategory.getId())
+                        .amount("encryptedAmount200")
+                        .currency("USD")
+                        .period(BudgetPeriod.MONTHLY)
+                        .startDate(LocalDate.of(2026, 3, 1))
+                        .endDate(LocalDate.of(2026, 3, 31))
+                        .rollover(true)
+                        .build();
         budgetRepository.save(anotherRolloverBudget);
 
         // When
-        List<Budget> rolloverBudgets = budgetRepository.findRolloverBudgetsByUserId(testUser1.getId());
+        List<Budget> rolloverBudgets =
+                budgetRepository.findRolloverBudgetsByUserId(testUser1.getId());
 
         // Then
         assertThat(rolloverBudgets).hasSize(2);
@@ -465,12 +496,14 @@ class BudgetRepositoryTest {
         budgetRepository.save(quarterlyBudget); // Ends Mar 31
 
         // When - Check for expired budgets as of Mar 1, 2026
-        List<Budget> expiredBudgets = budgetRepository.findExpiredBudgetsByUserId(
-                testUser1.getId(), LocalDate.of(2026, 3, 1));
+        List<Budget> expiredBudgets =
+                budgetRepository.findExpiredBudgetsByUserId(
+                        testUser1.getId(), LocalDate.of(2026, 3, 1));
 
         // Then - Monthly (Feb 28) and Weekly (Feb 7) should be expired
         assertThat(expiredBudgets).hasSize(2);
-        assertThat(expiredBudgets).extracting("period")
+        assertThat(expiredBudgets)
+                .extracting("period")
                 .containsExactlyInAnyOrder(BudgetPeriod.MONTHLY, BudgetPeriod.WEEKLY);
     }
 
@@ -502,10 +535,12 @@ class BudgetRepositoryTest {
         budgetRepository.save(quarterlyBudget);
 
         // When
-        Long countFeb5 = budgetRepository.countActiveByUserIdAndDate(
-                testUser1.getId(), LocalDate.of(2026, 2, 5));
-        Long countFeb10 = budgetRepository.countActiveByUserIdAndDate(
-                testUser1.getId(), LocalDate.of(2026, 2, 10));
+        Long countFeb5 =
+                budgetRepository.countActiveByUserIdAndDate(
+                        testUser1.getId(), LocalDate.of(2026, 2, 5));
+        Long countFeb10 =
+                budgetRepository.countActiveByUserIdAndDate(
+                        testUser1.getId(), LocalDate.of(2026, 2, 10));
 
         // Then
         assertThat(countFeb5).isEqualTo(3L); // All active
@@ -521,9 +556,12 @@ class BudgetRepositoryTest {
         budgetRepository.save(quarterlyBudget);
 
         // When
-        Long monthlyCount = budgetRepository.countByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.MONTHLY);
-        Long weeklyCount = budgetRepository.countByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.WEEKLY);
-        Long yearlyCount = budgetRepository.countByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.YEARLY);
+        Long monthlyCount =
+                budgetRepository.countByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.MONTHLY);
+        Long weeklyCount =
+                budgetRepository.countByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.WEEKLY);
+        Long yearlyCount =
+                budgetRepository.countByUserIdAndPeriod(testUser1.getId(), BudgetPeriod.YEARLY);
 
         // Then
         assertThat(monthlyCount).isEqualTo(1L);
@@ -540,10 +578,12 @@ class BudgetRepositoryTest {
         budgetRepository.save(monthlyGroceriesBudget);
 
         // When
-        boolean existsMonthly = budgetRepository.existsByUserIdAndCategoryIdAndPeriod(
-                testUser1.getId(), groceriesCategory.getId(), BudgetPeriod.MONTHLY);
-        boolean existsWeekly = budgetRepository.existsByUserIdAndCategoryIdAndPeriod(
-                testUser1.getId(), groceriesCategory.getId(), BudgetPeriod.WEEKLY);
+        boolean existsMonthly =
+                budgetRepository.existsByUserIdAndCategoryIdAndPeriod(
+                        testUser1.getId(), groceriesCategory.getId(), BudgetPeriod.MONTHLY);
+        boolean existsWeekly =
+                budgetRepository.existsByUserIdAndCategoryIdAndPeriod(
+                        testUser1.getId(), groceriesCategory.getId(), BudgetPeriod.WEEKLY);
 
         // Then
         assertThat(existsMonthly).isTrue();
@@ -569,20 +609,24 @@ class BudgetRepositoryTest {
         budgetRepository.save(monthlyGroceriesBudget); // Feb 1-28
 
         // When - Check start date
-        List<Budget> activeOnStart = budgetRepository.findActiveByUserIdAndDate(
-                testUser1.getId(), LocalDate.of(2026, 2, 1));
-        
+        List<Budget> activeOnStart =
+                budgetRepository.findActiveByUserIdAndDate(
+                        testUser1.getId(), LocalDate.of(2026, 2, 1));
+
         // When - Check end date
-        List<Budget> activeOnEnd = budgetRepository.findActiveByUserIdAndDate(
-                testUser1.getId(), LocalDate.of(2026, 2, 28));
-        
+        List<Budget> activeOnEnd =
+                budgetRepository.findActiveByUserIdAndDate(
+                        testUser1.getId(), LocalDate.of(2026, 2, 28));
+
         // When - Check day before start
-        List<Budget> activeBeforeStart = budgetRepository.findActiveByUserIdAndDate(
-                testUser1.getId(), LocalDate.of(2026, 1, 31));
-        
+        List<Budget> activeBeforeStart =
+                budgetRepository.findActiveByUserIdAndDate(
+                        testUser1.getId(), LocalDate.of(2026, 1, 31));
+
         // When - Check day after end
-        List<Budget> activeAfterEnd = budgetRepository.findActiveByUserIdAndDate(
-                testUser1.getId(), LocalDate.of(2026, 3, 1));
+        List<Budget> activeAfterEnd =
+                budgetRepository.findActiveByUserIdAndDate(
+                        testUser1.getId(), LocalDate.of(2026, 3, 1));
 
         // Then
         assertThat(activeOnStart).hasSize(1); // Inclusive
@@ -604,7 +648,9 @@ class BudgetRepositoryTest {
 
         // Then - Should be ordered by start date DESC (most recent first)
         assertThat(budgets).hasSize(3);
-        assertThat(budgets.get(0).getStartDate()).isEqualTo(LocalDate.of(2026, 2, 1)); // Monthly or Weekly
-        assertThat(budgets.get(2).getStartDate()).isEqualTo(LocalDate.of(2026, 1, 1)); // Quarterly (oldest)
+        assertThat(budgets.get(0).getStartDate())
+                .isEqualTo(LocalDate.of(2026, 2, 1)); // Monthly or Weekly
+        assertThat(budgets.get(2).getStartDate())
+                .isEqualTo(LocalDate.of(2026, 1, 1)); // Quarterly (oldest)
     }
 }

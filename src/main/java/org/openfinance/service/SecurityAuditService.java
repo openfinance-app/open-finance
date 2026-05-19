@@ -17,11 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
  * <em>outside</em> any active transaction and are auto-committed immediately by SQLite.
  *
  * <p>Why NOT_SUPPORTED instead of REQUIRES_NEW:<br>
- * SQLite WAL mode uses snapshot isolation. If a nested {@code REQUIRES_NEW} transaction writes
- * to the database while the outer transaction still holds a read snapshot, SQLite raises
- * {@code SQLITE_BUSY_SNAPSHOT} when the outer transaction later tries to commit its own writes.
- * Running the audit log write outside any transaction (auto-commit) avoids this conflict entirely,
- * while still guaranteeing the audit entry is persisted independently of the caller's outcome.
+ * SQLite WAL mode uses snapshot isolation. If a nested {@code REQUIRES_NEW} transaction writes to
+ * the database while the outer transaction still holds a read snapshot, SQLite raises {@code
+ * SQLITE_BUSY_SNAPSHOT} when the outer transaction later tries to commit its own writes. Running
+ * the audit log write outside any transaction (auto-commit) avoids this conflict entirely, while
+ * still guaranteeing the audit entry is persisted independently of the caller's outcome.
  *
  * <p>Requirement TASK-15.1.7: Security logging — authentication attempts and authorization
  * failures.
@@ -41,9 +41,9 @@ public class SecurityAuditService {
      * Records a security event for the given username.
      *
      * <p>This method runs with propagation {@code NOT_SUPPORTED} — it is executed outside any
-     * active transaction and is auto-committed by SQLite immediately. This prevents
-     * {@code SQLITE_BUSY_SNAPSHOT} errors that occur in WAL mode when a nested
-     * {@code REQUIRES_NEW} transaction writes while the caller's read snapshot is still open.
+     * active transaction and is auto-committed by SQLite immediately. This prevents {@code
+     * SQLITE_BUSY_SNAPSHOT} errors that occur in WAL mode when a nested {@code REQUIRES_NEW}
+     * transaction writes while the caller's read snapshot is still open.
      *
      * @param userId the database user ID (may be {@code null} for pre-authentication events)
      * @param username the username involved in the event
@@ -88,8 +88,8 @@ public class SecurityAuditService {
     /**
      * Records a security event without an HTTP request context (e.g., scheduled jobs).
      *
-     * <p>Runs outside any active transaction (auto-committed). See
-     * {@link #logEvent(Long, String, EventType, HttpServletRequest, String)} for details.
+     * <p>Runs outside any active transaction (auto-committed). See {@link #logEvent(Long, String,
+     * EventType, HttpServletRequest, String)} for details.
      *
      * @param userId the database user ID (may be {@code null})
      * @param username the username involved in the event

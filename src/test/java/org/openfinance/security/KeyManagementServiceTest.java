@@ -2,22 +2,21 @@
 
 package org.openfinance.security;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import javax.crypto.SecretKey;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Unit tests for KeyManagementService.
- * 
+ *
  * <p>Tests key derivation with PBKDF2, salt generation, and secure key handling.
- * 
+ *
  * @author Open-Finance Development Team
  * @version 1.0
  * @since 2026-01-30
@@ -62,7 +61,9 @@ class KeyManagementServiceTest {
         SecretKey key2 = keyManagementService.deriveKey(masterPassword, salt);
 
         // Then
-        assertArrayEquals(key1.getEncoded(), key2.getEncoded(),
+        assertArrayEquals(
+                key1.getEncoded(),
+                key2.getEncoded(),
                 "Same password and salt should produce identical keys");
     }
 
@@ -79,7 +80,8 @@ class KeyManagementServiceTest {
         SecretKey key2 = keyManagementService.deriveKey(password2, salt);
 
         // Then
-        assertFalse(Arrays.equals(key1.getEncoded(), key2.getEncoded()),
+        assertFalse(
+                Arrays.equals(key1.getEncoded(), key2.getEncoded()),
                 "Different passwords should produce different keys");
     }
 
@@ -96,7 +98,8 @@ class KeyManagementServiceTest {
         SecretKey key2 = keyManagementService.deriveKey(masterPassword, salt2);
 
         // Then
-        assertFalse(Arrays.equals(key1.getEncoded(), key2.getEncoded()),
+        assertFalse(
+                Arrays.equals(key1.getEncoded(), key2.getEncoded()),
                 "Different salts should produce different keys");
     }
 
@@ -107,9 +110,12 @@ class KeyManagementServiceTest {
         byte[] salt = keyManagementService.generateSalt();
 
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            keyManagementService.deriveKey(null, salt);
-        }, "Deriving key with null password should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    keyManagementService.deriveKey(null, salt);
+                },
+                "Deriving key with null password should throw IllegalArgumentException");
     }
 
     @Test
@@ -120,9 +126,12 @@ class KeyManagementServiceTest {
         byte[] salt = keyManagementService.generateSalt();
 
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            keyManagementService.deriveKey(emptyPassword, salt);
-        }, "Deriving key with empty password should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    keyManagementService.deriveKey(emptyPassword, salt);
+                },
+                "Deriving key with empty password should throw IllegalArgumentException");
     }
 
     @Test
@@ -132,9 +141,12 @@ class KeyManagementServiceTest {
         char[] masterPassword = "Password".toCharArray();
 
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            keyManagementService.deriveKey(masterPassword, null);
-        }, "Deriving key with null salt should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    keyManagementService.deriveKey(masterPassword, null);
+                },
+                "Deriving key with null salt should throw IllegalArgumentException");
     }
 
     @Test
@@ -145,9 +157,12 @@ class KeyManagementServiceTest {
         byte[] invalidSalt = new byte[8]; // Wrong size
 
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            keyManagementService.deriveKey(masterPassword, invalidSalt);
-        }, "Deriving key with invalid salt size should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    keyManagementService.deriveKey(masterPassword, invalidSalt);
+                },
+                "Deriving key with invalid salt size should throw IllegalArgumentException");
     }
 
     @Test
@@ -175,8 +190,7 @@ class KeyManagementServiceTest {
         }
 
         // Then
-        assertEquals(sampleSize, uniqueSalts.size(),
-                "All generated salts should be unique");
+        assertEquals(sampleSize, uniqueSalts.size(), "All generated salts should be unique");
     }
 
     @Test
@@ -237,9 +251,11 @@ class KeyManagementServiceTest {
     @DisplayName("Should handle clearing null key")
     void shouldHandleClearingNullKey() {
         // When/Then - should not throw exception
-        assertDoesNotThrow(() -> {
-            keyManagementService.clearKey(null);
-        }, "Clearing null key should not throw exception");
+        assertDoesNotThrow(
+                () -> {
+                    keyManagementService.clearKey(null);
+                },
+                "Clearing null key should not throw exception");
     }
 
     @Test
@@ -286,7 +302,8 @@ class KeyManagementServiceTest {
         SecretKey key2 = keyManagementService.deriveKey(password2, salt);
 
         // Then
-        assertFalse(Arrays.equals(key1.getEncoded(), key2.getEncoded()),
+        assertFalse(
+                Arrays.equals(key1.getEncoded(), key2.getEncoded()),
                 "Passwords differing by one character should produce completely different keys");
     }
 
@@ -294,18 +311,24 @@ class KeyManagementServiceTest {
     @DisplayName("Should throw exception when constructed with too few iterations")
     void shouldThrowExceptionWhenConstructedWithTooFewIterations() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            new KeyManagementServiceImpl(5000, 256);
-        }, "Constructing with iterations < 10000 should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    new KeyManagementServiceImpl(5000, 256);
+                },
+                "Constructing with iterations < 10000 should throw IllegalArgumentException");
     }
 
     @Test
     @DisplayName("Should throw exception when constructed with invalid key size")
     void shouldThrowExceptionWhenConstructedWithInvalidKeySize() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            new KeyManagementServiceImpl(100000, 512);
-        }, "Constructing with invalid key size should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    new KeyManagementServiceImpl(100000, 512);
+                },
+                "Constructing with invalid key size should throw IllegalArgumentException");
     }
 
     @Test

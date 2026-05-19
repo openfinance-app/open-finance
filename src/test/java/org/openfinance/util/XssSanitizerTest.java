@@ -1,11 +1,11 @@
 package org.openfinance.util;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class XssSanitizerTest {
 
@@ -93,7 +93,8 @@ class XssSanitizerTest {
     @Test
     void shouldStripMultipleTagsAndVectors() {
         // Given: complex input
-        String input = "<script>alert(1)</script><b>Hello</b> <a href=\"#\" onclick=\"evil()\">Link</a> <img src=x onerror=alert(1)>";
+        String input =
+                "<script>alert(1)</script><b>Hello</b> <a href=\"#\" onclick=\"evil()\">Link</a> <img src=x onerror=alert(1)>";
         // When/Then
         // Expected result: Hello Link
         assertEquals("Hello Link", XssSanitizer.sanitize(input));

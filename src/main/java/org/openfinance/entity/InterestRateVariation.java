@@ -1,12 +1,5 @@
 package org.openfinance.entity;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -18,20 +11,23 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * Entity representing a historical interest rate variation for an account.
- */
+/** Entity representing a historical interest rate variation for an account. */
 @Entity
-@Table(name = "interest_rate_variations", indexes = {
-        @Index(name = "idx_interest_variation_account", columnList = "account_id")
-})
+@Table(
+        name = "interest_rate_variations",
+        indexes = {@Index(name = "idx_interest_variation_account", columnList = "account_id")})
 @Data
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

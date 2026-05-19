@@ -1,6 +1,8 @@
 package org.openfinance.service.ai;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.Duration;
+import java.util.List;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,30 +13,28 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
-import java.util.List;
-
 /**
  * Client service for interacting with Ollama AI API.
- * 
- * <p>This service provides methods to send prompts to Ollama and receive responses,
- * supporting both single-shot completions and streaming responses.</p>
- * 
- * <p><strong>Ollama API Endpoints:</strong></p>
+ *
+ * <p>This service provides methods to send prompts to Ollama and receive responses, supporting both
+ * single-shot completions and streaming responses.
+ *
+ * <p><strong>Ollama API Endpoints:</strong>
+ *
  * <ul>
- *   <li>POST /api/generate - Generate completion for a prompt</li>
- *   <li>POST /api/chat - Chat with conversation history</li>
- *   <li>GET /api/tags - List available models</li>
+ *   <li>POST /api/generate - Generate completion for a prompt
+ *   <li>POST /api/chat - Chat with conversation history
+ *   <li>GET /api/tags - List available models
  * </ul>
- * 
- * @deprecated Use {@link AIProvider} with {@link OllamaAIProvider} instead.
- *             This class is retained for backward compatibility and will be removed
- *             in a future release. The {@code AIProvider} abstraction supports multiple
- *             AI backends (Ollama, OpenAI) via the {@code application.ai.provider}
- *             configuration property.
+ *
+ * @deprecated Use {@link AIProvider} with {@link OllamaAIProvider} instead. This class is retained
+ *     for backward compatibility and will be removed in a future release. The {@code AIProvider}
+ *     abstraction supports multiple AI backends (Ollama, OpenAI) via the {@code
+ *     application.ai.provider} configuration property.
  * @see AIProvider
  * @see OllamaAIProvider
- * @see <a href="https://github.com/ollama/ollama/blob/main/docs/api.md">Ollama API Documentation</a>
+ * @see <a href="https://github.com/ollama/ollama/blob/main/docs/api.md">Ollama API
+ *     Documentation</a>
  * @since Sprint 11
  */
 @Deprecated(since = "Sprint 11.5 — AI Provider Abstraction", forRemoval = true)
@@ -65,21 +65,30 @@ public class OllamaClient {
         this.model = model;
         this.maxTokens = maxTokens;
         this.temperature = temperature;
-        
-        this.webClient = WebClient.builder()
-                .baseUrl(baseUrl)
-                .defaultHeader("Content-Type", "application/json")
-                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024)) // 10MB buffer
-                .build();
-        
-        log.info("Initialized OllamaClient with base URL: {}, model: {}, timeout: {}s", 
-                baseUrl, model, timeoutSeconds);
+
+        this.webClient =
+                WebClient.builder()
+                        .baseUrl(baseUrl)
+                        .defaultHeader("Content-Type", "application/json")
+                        .codecs(
+                                configurer ->
+                                        configurer
+                                                .defaultCodecs()
+                                                .maxInMemorySize(10 * 1024 * 1024)) // 10MB buffer
+                        .build();
+
+        log.info(
+                "Initialized OllamaClient with base URL: {}, model: {}, timeout: {}s",
+                baseUrl,
+                model,
+                timeoutSeconds);
     }
 
     /**
      * Sends a prompt to Ollama and returns the complete response.
-     * 
-     * <p><strong>Example Usage:</strong></p>
+     *
+     * <p><strong>Example Usage:</strong>
+     *
      * <pre>{@code
      * String response = ollamaClient.sendPrompt(
      *     "What is my current net worth?",
@@ -93,29 +102,32 @@ public class OllamaClient {
      * @throws OllamaException if the API call fails
      */
     public Mono<String> sendPrompt(String prompt, String context) {
-        log.debug("Sending prompt to Ollama: {} (context length: {} chars)", 
-                prompt.substring(0, Math.min(50, prompt.length())), context.length());
+        log.debug(
+                "Sending prompt to Ollama: {} (context length: {} chars)",
+                prompt.substring(0, Math.min(50, prompt.length())),
+                context.length());
 
         ChatRequest request = new ChatRequest();
         request.setModel(model);
         request.setStream(false);
-        
+
         // Add system message with financial context
         ChatMessage systemMsg = new ChatMessage();
         systemMsg.setRole("system");
         systemMsg.setContent(buildSystemPrompt(context));
-        
+
         // Add user message
         ChatMessage userMsg = new ChatMessage();
         userMsg.setRole("user");
         userMsg.setContent(prompt);
-        
+
         request.setMessages(List.of(systemMsg, userMsg));
-        
+
         // Options for generation
         request.setOptions(new GenerationOptions(temperature, maxTokens));
 
-        return webClient.post()
+        return webClient
+                .post()
                 .uri("/api/chat")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -123,22 +135,30 @@ public class OllamaClient {
                 .bodyToMono(ChatResponse.class)
                 .map(response -> response.getMessage().getContent())
                 .timeout(Duration.ofSeconds(60))
-                .doOnSuccess(response -> log.debug("Received response from Ollama: {} chars", 
-                        response != null ? response.length() : 0))
+                .doOnSuccess(
+                        response ->
+                                log.debug(
+                                        "Received response from Ollama: {} chars",
+                                        response != null ? response.length() : 0))
                 .doOnError(error -> log.error("Error calling Ollama API: {}", error.getMessage()))
-                .onErrorMap(WebClientResponseException.class, e -> 
-                        new OllamaException("Ollama API error: " + e.getStatusCode(), e))
-                .onErrorMap(e -> !(e instanceof OllamaException), e ->
-                        new OllamaException("Failed to connect to Ollama: " + e.getMessage(), e));
+                .onErrorMap(
+                        WebClientResponseException.class,
+                        e -> new OllamaException("Ollama API error: " + e.getStatusCode(), e))
+                .onErrorMap(
+                        e -> !(e instanceof OllamaException),
+                        e ->
+                                new OllamaException(
+                                        "Failed to connect to Ollama: " + e.getMessage(), e));
     }
 
     /**
      * Streams the AI response in real-time as it's generated.
-     * 
-     * <p>Each emitted string represents a chunk of the response. Concatenate
-     * all chunks to get the complete response.</p>
-     * 
-     * <p><strong>Example Usage:</strong></p>
+     *
+     * <p>Each emitted string represents a chunk of the response. Concatenate all chunks to get the
+     * complete response.
+     *
+     * <p><strong>Example Usage:</strong>
+     *
      * <pre>{@code
      * ollamaClient.streamResponse(prompt, context)
      *     .doOnNext(chunk -> System.out.print(chunk))
@@ -153,25 +173,27 @@ public class OllamaClient {
      * @throws OllamaException if the API call fails
      */
     public Flux<String> streamResponse(String prompt, String context) {
-        log.debug("Streaming response from Ollama for prompt: {}", 
+        log.debug(
+                "Streaming response from Ollama for prompt: {}",
                 prompt.substring(0, Math.min(50, prompt.length())));
 
         ChatRequest request = new ChatRequest();
         request.setModel(model);
         request.setStream(true);
-        
+
         ChatMessage systemMsg = new ChatMessage();
         systemMsg.setRole("system");
         systemMsg.setContent(buildSystemPrompt(context));
-        
+
         ChatMessage userMsg = new ChatMessage();
         userMsg.setRole("user");
         userMsg.setContent(prompt);
-        
+
         request.setMessages(List.of(systemMsg, userMsg));
         request.setOptions(new GenerationOptions(temperature, maxTokens));
 
-        return webClient.post()
+        return webClient
+                .post()
                 .uri("/api/chat")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -181,11 +203,16 @@ public class OllamaClient {
                 .filter(content -> content != null && !content.isEmpty())
                 .timeout(Duration.ofSeconds(120))
                 .doOnComplete(() -> log.debug("Streaming response completed"))
-                .doOnError(error -> log.error("Error streaming from Ollama: {}", error.getMessage()))
-                .onErrorMap(WebClientResponseException.class, e -> 
-                        new OllamaException("Ollama API error: " + e.getStatusCode(), e))
-                .onErrorMap(e -> !(e instanceof OllamaException), e ->
-                        new OllamaException("Failed to stream from Ollama: " + e.getMessage(), e));
+                .doOnError(
+                        error -> log.error("Error streaming from Ollama: {}", error.getMessage()))
+                .onErrorMap(
+                        WebClientResponseException.class,
+                        e -> new OllamaException("Ollama API error: " + e.getStatusCode(), e))
+                .onErrorMap(
+                        e -> !(e instanceof OllamaException),
+                        e ->
+                                new OllamaException(
+                                        "Failed to stream from Ollama: " + e.getMessage(), e));
     }
 
     /**
@@ -194,7 +221,8 @@ public class OllamaClient {
      * @return Mono<Boolean> true if Ollama is available, false otherwise
      */
     public Mono<Boolean> isAvailable() {
-        return webClient.get()
+        return webClient
+                .get()
                 .uri("/api/tags")
                 .retrieve()
                 .bodyToMono(String.class)
@@ -213,14 +241,14 @@ public class OllamaClient {
     private String buildSystemPrompt(String context) {
         return """
                 You are a knowledgeable financial advisor assistant helping users manage their personal finances.
-                
+
                 Your role is to:
                 - Provide clear, actionable financial advice
                 - Analyze spending patterns and suggest improvements
                 - Help users understand their financial health
                 - Recommend budget adjustments and savings strategies
                 - Explain financial concepts in simple terms
-                
+
                 Important guidelines:
                 - Base your advice on the user's actual financial data provided below
                 - Be conservative and risk-aware in recommendations
@@ -228,12 +256,13 @@ public class OllamaClient {
                 - Always remind users to consult a licensed financial advisor for major decisions
                 - Format currency amounts clearly (e.g., $1,234.56)
                 - Keep responses concise but informative
-                
+
                 Current Financial Context:
                 %s
-                
+
                 If the context is insufficient to answer a question, acknowledge this and ask for clarification.
-                """.formatted(context);
+                """
+                .formatted(context);
     }
 
     // ===========================
@@ -257,6 +286,7 @@ public class OllamaClient {
     @Data
     private static class GenerationOptions {
         private double temperature;
+
         @JsonProperty("num_predict")
         private int numPredict;
 
@@ -271,15 +301,15 @@ public class OllamaClient {
         private String model;
         private ChatMessage message;
         private boolean done;
+
         @JsonProperty("created_at")
         private String createdAt;
+
         @JsonProperty("total_duration")
         private Long totalDuration;
     }
 
-    /**
-     * Custom exception for Ollama API errors.
-     */
+    /** Custom exception for Ollama API errors. */
     public static class OllamaException extends RuntimeException {
         public OllamaException(String message) {
             super(message);

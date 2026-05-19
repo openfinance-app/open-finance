@@ -1,5 +1,11 @@
 package org.openfinance.repository;
 
+import static org.assertj.core.api.Assertions.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -10,43 +16,33 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.TestPropertySource;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.*;
-
 /**
  * Integration tests for RecurringTransactionRepository.
- * 
- * <p>Tests all 16 query methods with comprehensive scenarios including
- * user isolation, active filtering, due date checking, and authorization.</p>
- * 
- * <p>Requirements: REQ-2.3.6 - Recurring transaction repository operations</p>
+ *
+ * <p>Tests all 16 query methods with comprehensive scenarios including user isolation, active
+ * filtering, due date checking, and authorization.
+ *
+ * <p>Requirements: REQ-2.3.6 - Recurring transaction repository operations
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@TestPropertySource(properties = {
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.show-sql=false",
-    "spring.flyway.enabled=false",
-    "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
-})
+@TestPropertySource(
+        properties = {
+            "spring.jpa.hibernate.ddl-auto=create-drop",
+            "spring.jpa.show-sql=false",
+            "spring.flyway.enabled=false",
+            "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
+        })
 @DisplayName("RecurringTransactionRepository Integration Tests")
 class RecurringTransactionRepositoryTest {
 
-    @Autowired
-    private RecurringTransactionRepository recurringTransactionRepository;
+    @Autowired private RecurringTransactionRepository recurringTransactionRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    @Autowired private CategoryRepository categoryRepository;
 
     private User user1;
     private User user2;
@@ -65,74 +61,81 @@ class RecurringTransactionRepositoryTest {
         userRepository.deleteAll();
 
         // Create test users
-        user1 = User.builder()
-                .username("user1")
-                .email("user1@test.com")
-                .passwordHash("$2a$10$hashedPasswordExample123456789")
-                .masterPasswordSalt("base64EncodedSaltExample==")
-                .baseCurrency("USD")
-                .build();
+        user1 =
+                User.builder()
+                        .username("user1")
+                        .email("user1@test.com")
+                        .passwordHash("$2a$10$hashedPasswordExample123456789")
+                        .masterPasswordSalt("base64EncodedSaltExample==")
+                        .baseCurrency("USD")
+                        .build();
         user1 = userRepository.save(user1);
 
-        user2 = User.builder()
-                .username("user2")
-                .email("user2@test.com")
-                .passwordHash("$2a$10$hashedPasswordExample123456789")
-                .masterPasswordSalt("base64EncodedSaltExample==")
-                .baseCurrency("USD")
-                .build();
+        user2 =
+                User.builder()
+                        .username("user2")
+                        .email("user2@test.com")
+                        .passwordHash("$2a$10$hashedPasswordExample123456789")
+                        .masterPasswordSalt("base64EncodedSaltExample==")
+                        .baseCurrency("USD")
+                        .build();
         user2 = userRepository.save(user2);
 
         // Create test accounts
-        account1User1 = Account.builder()
-                .userId(user1.getId())
-                .name("encrypted-Checking Account")
-                .type(AccountType.CHECKING)
-                .balance(new BigDecimal("1000.00"))
-                .currency("USD")
-                .isActive(true)
-                .build();
+        account1User1 =
+                Account.builder()
+                        .userId(user1.getId())
+                        .name("encrypted-Checking Account")
+                        .type(AccountType.CHECKING)
+                        .balance(new BigDecimal("1000.00"))
+                        .currency("USD")
+                        .isActive(true)
+                        .build();
         account1User1 = accountRepository.save(account1User1);
 
-        account2User1 = Account.builder()
-                .userId(user1.getId())
-                .name("encrypted-Savings Account")
-                .type(AccountType.SAVINGS)
-                .balance(new BigDecimal("5000.00"))
-                .currency("USD")
-                .isActive(true)
-                .build();
+        account2User1 =
+                Account.builder()
+                        .userId(user1.getId())
+                        .name("encrypted-Savings Account")
+                        .type(AccountType.SAVINGS)
+                        .balance(new BigDecimal("5000.00"))
+                        .currency("USD")
+                        .isActive(true)
+                        .build();
         account2User1 = accountRepository.save(account2User1);
 
-        account1User2 = Account.builder()
-                .userId(user2.getId())
-                .name("encrypted-Checking Account")
-                .type(AccountType.CHECKING)
-                .balance(new BigDecimal("2000.00"))
-                .currency("USD")
-                .isActive(true)
-                .build();
+        account1User2 =
+                Account.builder()
+                        .userId(user2.getId())
+                        .name("encrypted-Checking Account")
+                        .type(AccountType.CHECKING)
+                        .balance(new BigDecimal("2000.00"))
+                        .currency("USD")
+                        .isActive(true)
+                        .build();
         account1User2 = accountRepository.save(account1User2);
 
         // Create test categories
-        categoryExpense = Category.builder()
-                .userId(user1.getId())
-                .name("encrypted-Rent")
-                .type(CategoryType.EXPENSE)
-                .icon("home")
-                .color("#FF0000")
-                .isSystem(false)
-                .build();
+        categoryExpense =
+                Category.builder()
+                        .userId(user1.getId())
+                        .name("encrypted-Rent")
+                        .type(CategoryType.EXPENSE)
+                        .icon("home")
+                        .color("#FF0000")
+                        .isSystem(false)
+                        .build();
         categoryExpense = categoryRepository.save(categoryExpense);
 
-        categoryIncome = Category.builder()
-                .userId(user1.getId())
-                .name("encrypted-Salary")
-                .type(CategoryType.INCOME)
-                .icon("dollar")
-                .color("#00FF00")
-                .isSystem(false)
-                .build();
+        categoryIncome =
+                Category.builder()
+                        .userId(user1.getId())
+                        .name("encrypted-Salary")
+                        .type(CategoryType.INCOME)
+                        .icon("dollar")
+                        .color("#00FF00")
+                        .isSystem(false)
+                        .build();
         categoryIncome = categoryRepository.save(categoryIncome);
     }
 
@@ -146,11 +149,13 @@ class RecurringTransactionRepositoryTest {
         @DisplayName("Should save and find recurring transaction by ID")
         void shouldSaveAndFindById() {
             // Arrange
-            RecurringTransaction recurring = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
 
             // Act
             RecurringTransaction saved = recurringTransactionRepository.save(recurring);
-            Optional<RecurringTransaction> found = recurringTransactionRepository.findById(saved.getId());
+            Optional<RecurringTransaction> found =
+                    recurringTransactionRepository.findById(saved.getId());
 
             // Assert
             assertThat(found).isPresent();
@@ -164,12 +169,14 @@ class RecurringTransactionRepositoryTest {
         @DisplayName("Should delete recurring transaction by ID")
         void shouldDeleteById() {
             // Arrange
-            RecurringTransaction recurring = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             RecurringTransaction saved = recurringTransactionRepository.save(recurring);
 
             // Act
             recurringTransactionRepository.deleteById(saved.getId());
-            Optional<RecurringTransaction> found = recurringTransactionRepository.findById(saved.getId());
+            Optional<RecurringTransaction> found =
+                    recurringTransactionRepository.findById(saved.getId());
 
             // Assert
             assertThat(found).isEmpty();
@@ -186,22 +193,32 @@ class RecurringTransactionRepositoryTest {
         @DisplayName("findByUserId() should return only user's recurring transactions")
         void shouldReturnOnlyUserRecurringTransactions() {
             // Arrange
-            RecurringTransaction recurring1User1 = createMonthlyRent(user1, account1User1, categoryExpense);
-            RecurringTransaction recurring2User1 = createBiweeklySalary(user1, account1User1, categoryIncome);
-            RecurringTransaction recurringUser2 = createMonthlyRent(user2, account1User2, categoryExpense);
+            RecurringTransaction recurring1User1 =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring2User1 =
+                    createBiweeklySalary(user1, account1User1, categoryIncome);
+            RecurringTransaction recurringUser2 =
+                    createMonthlyRent(user2, account1User2, categoryExpense);
 
-            recurringTransactionRepository.saveAll(List.of(recurring1User1, recurring2User1, recurringUser2));
+            recurringTransactionRepository.saveAll(
+                    List.of(recurring1User1, recurring2User1, recurringUser2));
 
             // Act
-            List<RecurringTransaction> user1Recurring = recurringTransactionRepository.findByUserId(user1.getId());
-            List<RecurringTransaction> user2Recurring = recurringTransactionRepository.findByUserId(user2.getId());
+            List<RecurringTransaction> user1Recurring =
+                    recurringTransactionRepository.findByUserId(user1.getId());
+            List<RecurringTransaction> user2Recurring =
+                    recurringTransactionRepository.findByUserId(user2.getId());
 
             // Assert
             assertThat(user1Recurring).hasSize(2);
-            assertThat(user1Recurring).extracting(RecurringTransaction::getUserId).containsOnly(user1.getId());
+            assertThat(user1Recurring)
+                    .extracting(RecurringTransaction::getUserId)
+                    .containsOnly(user1.getId());
 
             assertThat(user2Recurring).hasSize(1);
-            assertThat(user2Recurring).extracting(RecurringTransaction::getUserId).containsOnly(user2.getId());
+            assertThat(user2Recurring)
+                    .extracting(RecurringTransaction::getUserId)
+                    .containsOnly(user2.getId());
         }
 
         @Test
@@ -211,7 +228,8 @@ class RecurringTransactionRepositoryTest {
             Long nonExistentUserId = 99999L;
 
             // Act
-            List<RecurringTransaction> result = recurringTransactionRepository.findByUserId(nonExistentUserId);
+            List<RecurringTransaction> result =
+                    recurringTransactionRepository.findByUserId(nonExistentUserId);
 
             // Assert
             assertThat(result).isEmpty();
@@ -231,36 +249,44 @@ class RecurringTransactionRepositoryTest {
             RecurringTransaction active1 = createMonthlyRent(user1, account1User1, categoryExpense);
             active1.setIsActive(true);
 
-            RecurringTransaction active2 = createBiweeklySalary(user1, account1User1, categoryIncome);
+            RecurringTransaction active2 =
+                    createBiweeklySalary(user1, account1User1, categoryIncome);
             active2.setIsActive(true);
 
-            RecurringTransaction inactive = createWeeklySubscription(user1, account1User1, categoryExpense);
+            RecurringTransaction inactive =
+                    createWeeklySubscription(user1, account1User1, categoryExpense);
             inactive.setIsActive(false);
 
             recurringTransactionRepository.saveAll(List.of(active1, active2, inactive));
 
             // Act
-            List<RecurringTransaction> activeRecurring = recurringTransactionRepository.findByUserIdAndIsActive(user1.getId());
+            List<RecurringTransaction> activeRecurring =
+                    recurringTransactionRepository.findByUserIdAndIsActive(user1.getId());
 
             // Assert
             assertThat(activeRecurring).hasSize(2);
-            assertThat(activeRecurring).extracting(RecurringTransaction::getIsActive).containsOnly(true);
+            assertThat(activeRecurring)
+                    .extracting(RecurringTransaction::getIsActive)
+                    .containsOnly(true);
         }
 
         @Test
         @DisplayName("findByUserIdAndIsActive() should return empty list when all are inactive")
         void shouldReturnEmptyListWhenAllInactive() {
             // Arrange
-            RecurringTransaction inactive1 = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction inactive1 =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             inactive1.setIsActive(false);
 
-            RecurringTransaction inactive2 = createWeeklySubscription(user1, account1User1, categoryExpense);
+            RecurringTransaction inactive2 =
+                    createWeeklySubscription(user1, account1User1, categoryExpense);
             inactive2.setIsActive(false);
 
             recurringTransactionRepository.saveAll(List.of(inactive1, inactive2));
 
             // Act
-            List<RecurringTransaction> activeRecurring = recurringTransactionRepository.findByUserIdAndIsActive(user1.getId());
+            List<RecurringTransaction> activeRecurring =
+                    recurringTransactionRepository.findByUserIdAndIsActive(user1.getId());
 
             // Assert
             assertThat(activeRecurring).isEmpty();
@@ -277,11 +303,13 @@ class RecurringTransactionRepositoryTest {
         @DisplayName("findByIdAndUserId() should return recurring transaction when owned by user")
         void shouldReturnRecurringTransactionWhenOwnedByUser() {
             // Arrange
-            RecurringTransaction recurring = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             RecurringTransaction saved = recurringTransactionRepository.save(recurring);
 
             // Act
-            Optional<RecurringTransaction> found = recurringTransactionRepository.findByIdAndUserId(saved.getId(), user1.getId());
+            Optional<RecurringTransaction> found =
+                    recurringTransactionRepository.findByIdAndUserId(saved.getId(), user1.getId());
 
             // Assert
             assertThat(found).isPresent();
@@ -292,11 +320,13 @@ class RecurringTransactionRepositoryTest {
         @DisplayName("findByIdAndUserId() should return empty when not owned by user")
         void shouldReturnEmptyWhenNotOwnedByUser() {
             // Arrange
-            RecurringTransaction recurring = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             RecurringTransaction saved = recurringTransactionRepository.save(recurring);
 
             // Act
-            Optional<RecurringTransaction> found = recurringTransactionRepository.findByIdAndUserId(saved.getId(), user2.getId());
+            Optional<RecurringTransaction> found =
+                    recurringTransactionRepository.findByIdAndUserId(saved.getId(), user2.getId());
 
             // Assert
             assertThat(found).isEmpty();
@@ -306,11 +336,14 @@ class RecurringTransactionRepositoryTest {
         @DisplayName("existsByIdAndUserId() should return true when owned by user")
         void shouldReturnTrueWhenOwnedByUser() {
             // Arrange
-            RecurringTransaction recurring = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             RecurringTransaction saved = recurringTransactionRepository.save(recurring);
 
             // Act
-            boolean exists = recurringTransactionRepository.existsByIdAndUserId(saved.getId(), user1.getId());
+            boolean exists =
+                    recurringTransactionRepository.existsByIdAndUserId(
+                            saved.getId(), user1.getId());
 
             // Assert
             assertThat(exists).isTrue();
@@ -320,11 +353,14 @@ class RecurringTransactionRepositoryTest {
         @DisplayName("existsByIdAndUserId() should return false when not owned by user")
         void shouldReturnFalseWhenNotOwnedByUser() {
             // Arrange
-            RecurringTransaction recurring = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             RecurringTransaction saved = recurringTransactionRepository.save(recurring);
 
             // Act
-            boolean exists = recurringTransactionRepository.existsByIdAndUserId(saved.getId(), user2.getId());
+            boolean exists =
+                    recurringTransactionRepository.existsByIdAndUserId(
+                            saved.getId(), user2.getId());
 
             // Assert
             assertThat(exists).isFalse();
@@ -334,12 +370,16 @@ class RecurringTransactionRepositoryTest {
         @DisplayName("deleteByIdAndUserId() should delete only when owned by user")
         void shouldDeleteOnlyWhenOwnedByUser() {
             // Arrange
-            RecurringTransaction recurring1 = createMonthlyRent(user1, account1User1, categoryExpense);
-            RecurringTransaction recurring2 = createBiweeklySalary(user1, account1User1, categoryIncome);
+            RecurringTransaction recurring1 =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring2 =
+                    createBiweeklySalary(user1, account1User1, categoryIncome);
             recurringTransactionRepository.saveAll(List.of(recurring1, recurring2));
 
             // Act
-            int deletedCount = recurringTransactionRepository.deleteByIdAndUserId(recurring1.getId(), user2.getId());
+            int deletedCount =
+                    recurringTransactionRepository.deleteByIdAndUserId(
+                            recurring1.getId(), user2.getId());
 
             // Assert
             assertThat(deletedCount).isZero();
@@ -354,10 +394,12 @@ class RecurringTransactionRepositoryTest {
     class DueRecurringTransactionsTests {
 
         @Test
-        @DisplayName("findDueRecurringTransactions() should return active recurring where nextOccurrence is today")
+        @DisplayName(
+                "findDueRecurringTransactions() should return active recurring where nextOccurrence is today")
         void shouldReturnDueRecurringTransactionsForToday() {
             // Arrange
-            RecurringTransaction dueToday = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction dueToday =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             dueToday.setNextOccurrence(LocalDate.now());
             dueToday.setIsActive(true);
             dueToday.setEndDate(null);
@@ -365,7 +407,8 @@ class RecurringTransactionRepositoryTest {
             recurringTransactionRepository.save(dueToday);
 
             // Act
-            List<RecurringTransaction> dueRecurring = recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
+            List<RecurringTransaction> dueRecurring =
+                    recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
 
             // Assert
             assertThat(dueRecurring).hasSize(1);
@@ -373,7 +416,8 @@ class RecurringTransactionRepositoryTest {
         }
 
         @Test
-        @DisplayName("findDueRecurringTransactions() should return active recurring where nextOccurrence is in past (overdue)")
+        @DisplayName(
+                "findDueRecurringTransactions() should return active recurring where nextOccurrence is in past (overdue)")
         void shouldReturnOverdueRecurringTransactions() {
             // Arrange
             RecurringTransaction overdue = createMonthlyRent(user1, account1User1, categoryExpense);
@@ -384,7 +428,8 @@ class RecurringTransactionRepositoryTest {
             recurringTransactionRepository.save(overdue);
 
             // Act
-            List<RecurringTransaction> dueRecurring = recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
+            List<RecurringTransaction> dueRecurring =
+                    recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
 
             // Assert
             assertThat(dueRecurring).hasSize(1);
@@ -403,17 +448,20 @@ class RecurringTransactionRepositoryTest {
             recurringTransactionRepository.save(future);
 
             // Act
-            List<RecurringTransaction> dueRecurring = recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
+            List<RecurringTransaction> dueRecurring =
+                    recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
 
             // Assert
             assertThat(dueRecurring).isEmpty();
         }
 
         @Test
-        @DisplayName("findDueRecurringTransactions() should exclude inactive recurring transactions")
+        @DisplayName(
+                "findDueRecurringTransactions() should exclude inactive recurring transactions")
         void shouldExcludeInactiveRecurringTransactions() {
             // Arrange
-            RecurringTransaction inactive = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction inactive =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             inactive.setNextOccurrence(LocalDate.now());
             inactive.setIsActive(false);
             inactive.setEndDate(null);
@@ -421,7 +469,8 @@ class RecurringTransactionRepositoryTest {
             recurringTransactionRepository.save(inactive);
 
             // Act
-            List<RecurringTransaction> dueRecurring = recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
+            List<RecurringTransaction> dueRecurring =
+                    recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
 
             // Assert
             assertThat(dueRecurring).isEmpty();
@@ -439,17 +488,20 @@ class RecurringTransactionRepositoryTest {
             recurringTransactionRepository.save(ended);
 
             // Act
-            List<RecurringTransaction> dueRecurring = recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
+            List<RecurringTransaction> dueRecurring =
+                    recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
 
             // Assert
             assertThat(dueRecurring).isEmpty();
         }
 
         @Test
-        @DisplayName("findDueRecurringTransactions() should include recurring with endDate = null (indefinite)")
+        @DisplayName(
+                "findDueRecurringTransactions() should include recurring with endDate = null (indefinite)")
         void shouldIncludeIndefiniteRecurringTransactions() {
             // Arrange
-            RecurringTransaction indefinite = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction indefinite =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             indefinite.setNextOccurrence(LocalDate.now());
             indefinite.setIsActive(true);
             indefinite.setEndDate(null);
@@ -457,7 +509,8 @@ class RecurringTransactionRepositoryTest {
             recurringTransactionRepository.save(indefinite);
 
             // Act
-            List<RecurringTransaction> dueRecurring = recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
+            List<RecurringTransaction> dueRecurring =
+                    recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
 
             // Assert
             assertThat(dueRecurring).hasSize(1);
@@ -465,10 +518,12 @@ class RecurringTransactionRepositoryTest {
         }
 
         @Test
-        @DisplayName("findDueRecurringTransactions() should include recurring with endDate in future")
+        @DisplayName(
+                "findDueRecurringTransactions() should include recurring with endDate in future")
         void shouldIncludeRecurringWithEndDateInFuture() {
             // Arrange
-            RecurringTransaction futureEnd = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction futureEnd =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             futureEnd.setNextOccurrence(LocalDate.now());
             futureEnd.setIsActive(true);
             futureEnd.setEndDate(LocalDate.now().plusMonths(6));
@@ -476,32 +531,40 @@ class RecurringTransactionRepositoryTest {
             recurringTransactionRepository.save(futureEnd);
 
             // Act
-            List<RecurringTransaction> dueRecurring = recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
+            List<RecurringTransaction> dueRecurring =
+                    recurringTransactionRepository.findDueRecurringTransactions(LocalDate.now());
 
             // Assert
             assertThat(dueRecurring).hasSize(1);
         }
 
         @Test
-        @DisplayName("findDueRecurringTransactionsByUserId() should return only user's due recurring")
+        @DisplayName(
+                "findDueRecurringTransactionsByUserId() should return only user's due recurring")
         void shouldReturnOnlyUsersDueRecurringTransactions() {
             // Arrange
-            RecurringTransaction dueUser1 = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction dueUser1 =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             dueUser1.setNextOccurrence(LocalDate.now());
             dueUser1.setIsActive(true);
 
-            RecurringTransaction dueUser2 = createMonthlyRent(user2, account1User2, categoryExpense);
+            RecurringTransaction dueUser2 =
+                    createMonthlyRent(user2, account1User2, categoryExpense);
             dueUser2.setNextOccurrence(LocalDate.now());
             dueUser2.setIsActive(true);
 
             recurringTransactionRepository.saveAll(List.of(dueUser1, dueUser2));
 
             // Act
-            List<RecurringTransaction> user1DueRecurring = recurringTransactionRepository.findDueRecurringTransactionsByUserId(user1.getId(), LocalDate.now());
+            List<RecurringTransaction> user1DueRecurring =
+                    recurringTransactionRepository.findDueRecurringTransactionsByUserId(
+                            user1.getId(), LocalDate.now());
 
             // Assert
             assertThat(user1DueRecurring).hasSize(1);
-            assertThat(user1DueRecurring).extracting(RecurringTransaction::getUserId).containsOnly(user1.getId());
+            assertThat(user1DueRecurring)
+                    .extracting(RecurringTransaction::getUserId)
+                    .containsOnly(user1.getId());
         }
     }
 
@@ -512,33 +575,45 @@ class RecurringTransactionRepositoryTest {
     class FrequencyFilteringTests {
 
         @Test
-        @DisplayName("findByUserIdAndFrequency() should return only recurring transactions with specified frequency")
+        @DisplayName(
+                "findByUserIdAndFrequency() should return only recurring transactions with specified frequency")
         void shouldReturnOnlyRecurringWithSpecifiedFrequency() {
             // Arrange
-            RecurringTransaction monthly1 = createMonthlyRent(user1, account1User1, categoryExpense);
-            RecurringTransaction monthly2 = createMonthlySubscription(user1, account1User1, categoryExpense);
-            RecurringTransaction biweekly = createBiweeklySalary(user1, account1User1, categoryIncome);
-            RecurringTransaction weekly = createWeeklySubscription(user1, account1User1, categoryExpense);
+            RecurringTransaction monthly1 =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction monthly2 =
+                    createMonthlySubscription(user1, account1User1, categoryExpense);
+            RecurringTransaction biweekly =
+                    createBiweeklySalary(user1, account1User1, categoryIncome);
+            RecurringTransaction weekly =
+                    createWeeklySubscription(user1, account1User1, categoryExpense);
 
             recurringTransactionRepository.saveAll(List.of(monthly1, monthly2, biweekly, weekly));
 
             // Act
-            List<RecurringTransaction> monthlyRecurring = recurringTransactionRepository.findByUserIdAndFrequency(user1.getId(), RecurringFrequency.MONTHLY);
+            List<RecurringTransaction> monthlyRecurring =
+                    recurringTransactionRepository.findByUserIdAndFrequency(
+                            user1.getId(), RecurringFrequency.MONTHLY);
 
             // Assert
             assertThat(monthlyRecurring).hasSize(2);
-            assertThat(monthlyRecurring).extracting(RecurringTransaction::getFrequency).containsOnly(RecurringFrequency.MONTHLY);
+            assertThat(monthlyRecurring)
+                    .extracting(RecurringTransaction::getFrequency)
+                    .containsOnly(RecurringFrequency.MONTHLY);
         }
 
         @Test
-        @DisplayName("findByUserIdAndFrequency() should return empty list when no matching frequency")
+        @DisplayName(
+                "findByUserIdAndFrequency() should return empty list when no matching frequency")
         void shouldReturnEmptyListWhenNoMatchingFrequency() {
             // Arrange
             RecurringTransaction monthly = createMonthlyRent(user1, account1User1, categoryExpense);
             recurringTransactionRepository.save(monthly);
 
             // Act
-            List<RecurringTransaction> dailyRecurring = recurringTransactionRepository.findByUserIdAndFrequency(user1.getId(), RecurringFrequency.DAILY);
+            List<RecurringTransaction> dailyRecurring =
+                    recurringTransactionRepository.findByUserIdAndFrequency(
+                            user1.getId(), RecurringFrequency.DAILY);
 
             // Assert
             assertThat(dailyRecurring).isEmpty();
@@ -555,11 +630,13 @@ class RecurringTransactionRepositoryTest {
         @DisplayName("findByAccountId() should return recurring where account is source")
         void shouldReturnRecurringWhereAccountIsSource() {
             // Arrange
-            RecurringTransaction recurring = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             recurringTransactionRepository.save(recurring);
 
             // Act
-            List<RecurringTransaction> accountRecurring = recurringTransactionRepository.findByAccountId(account1User1.getId());
+            List<RecurringTransaction> accountRecurring =
+                    recurringTransactionRepository.findByAccountId(account1User1.getId());
 
             // Assert
             assertThat(accountRecurring).hasSize(1);
@@ -567,14 +644,16 @@ class RecurringTransactionRepositoryTest {
         }
 
         @Test
-        @DisplayName("findByAccountId() should return recurring where account is destination (transfer)")
+        @DisplayName(
+                "findByAccountId() should return recurring where account is destination (transfer)")
         void shouldReturnRecurringWhereAccountIsDestination() {
             // Arrange
             RecurringTransaction transfer = createTransfer(user1, account1User1, account2User1);
             recurringTransactionRepository.save(transfer);
 
             // Act
-            List<RecurringTransaction> account2Recurring = recurringTransactionRepository.findByAccountId(account2User1.getId());
+            List<RecurringTransaction> account2Recurring =
+                    recurringTransactionRepository.findByAccountId(account2User1.getId());
 
             // Assert
             assertThat(account2Recurring).hasSize(1);
@@ -585,18 +664,25 @@ class RecurringTransactionRepositoryTest {
         @DisplayName("findByUserIdAndAccountId() should return recurring for user and account")
         void shouldReturnRecurringForUserAndAccount() {
             // Arrange
-            RecurringTransaction recurring1 = createMonthlyRent(user1, account1User1, categoryExpense);
-            RecurringTransaction recurring2 = createBiweeklySalary(user1, account2User1, categoryIncome);
-            RecurringTransaction recurringUser2 = createMonthlyRent(user2, account1User2, categoryExpense);
+            RecurringTransaction recurring1 =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring2 =
+                    createBiweeklySalary(user1, account2User1, categoryIncome);
+            RecurringTransaction recurringUser2 =
+                    createMonthlyRent(user2, account1User2, categoryExpense);
 
             recurringTransactionRepository.saveAll(List.of(recurring1, recurring2, recurringUser2));
 
             // Act
-            List<RecurringTransaction> account1Recurring = recurringTransactionRepository.findByUserIdAndAccountId(user1.getId(), account1User1.getId());
+            List<RecurringTransaction> account1Recurring =
+                    recurringTransactionRepository.findByUserIdAndAccountId(
+                            user1.getId(), account1User1.getId());
 
             // Assert
             assertThat(account1Recurring).hasSize(1);
-            assertThat(account1Recurring).extracting(RecurringTransaction::getAccountId).containsOnly(account1User1.getId());
+            assertThat(account1Recurring)
+                    .extracting(RecurringTransaction::getAccountId)
+                    .containsOnly(account1User1.getId());
         }
     }
 
@@ -607,24 +693,28 @@ class RecurringTransactionRepositoryTest {
     class EndingSoonTests {
 
         @Test
-        @DisplayName("findEndingSoon() should return recurring transactions ending within date range")
+        @DisplayName(
+                "findEndingSoon() should return recurring transactions ending within date range")
         void shouldReturnRecurringEndingSoon() {
             // Arrange
             LocalDate today = LocalDate.now();
             LocalDate in30Days = today.plusDays(30);
 
-            RecurringTransaction endingSoon = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction endingSoon =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             endingSoon.setEndDate(today.plusDays(15));
             endingSoon.setIsActive(true);
 
-            RecurringTransaction endingLater = createBiweeklySalary(user1, account1User1, categoryIncome);
+            RecurringTransaction endingLater =
+                    createBiweeklySalary(user1, account1User1, categoryIncome);
             endingLater.setEndDate(today.plusDays(60));
             endingLater.setIsActive(true);
 
             recurringTransactionRepository.saveAll(List.of(endingSoon, endingLater));
 
             // Act
-            List<RecurringTransaction> endingSoonList = recurringTransactionRepository.findEndingSoon(user1.getId(), today, in30Days);
+            List<RecurringTransaction> endingSoonList =
+                    recurringTransactionRepository.findEndingSoon(user1.getId(), today, in30Days);
 
             // Assert
             assertThat(endingSoonList).hasSize(1);
@@ -638,14 +728,16 @@ class RecurringTransactionRepositoryTest {
             LocalDate today = LocalDate.now();
             LocalDate in30Days = today.plusDays(30);
 
-            RecurringTransaction inactive = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction inactive =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             inactive.setEndDate(today.plusDays(15));
             inactive.setIsActive(false);
 
             recurringTransactionRepository.save(inactive);
 
             // Act
-            List<RecurringTransaction> endingSoonList = recurringTransactionRepository.findEndingSoon(user1.getId(), today, in30Days);
+            List<RecurringTransaction> endingSoonList =
+                    recurringTransactionRepository.findEndingSoon(user1.getId(), today, in30Days);
 
             // Assert
             assertThat(endingSoonList).isEmpty();
@@ -658,14 +750,16 @@ class RecurringTransactionRepositoryTest {
             LocalDate today = LocalDate.now();
             LocalDate in30Days = today.plusDays(30);
 
-            RecurringTransaction indefinite = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction indefinite =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             indefinite.setEndDate(null);
             indefinite.setIsActive(true);
 
             recurringTransactionRepository.save(indefinite);
 
             // Act
-            List<RecurringTransaction> endingSoonList = recurringTransactionRepository.findEndingSoon(user1.getId(), today, in30Days);
+            List<RecurringTransaction> endingSoonList =
+                    recurringTransactionRepository.findEndingSoon(user1.getId(), today, in30Days);
 
             // Assert
             assertThat(endingSoonList).isEmpty();
@@ -682,9 +776,12 @@ class RecurringTransactionRepositoryTest {
         @DisplayName("countByUserId() should return total count of recurring transactions")
         void shouldReturnTotalCountOfRecurringTransactions() {
             // Arrange
-            RecurringTransaction recurring1 = createMonthlyRent(user1, account1User1, categoryExpense);
-            RecurringTransaction recurring2 = createBiweeklySalary(user1, account1User1, categoryIncome);
-            RecurringTransaction recurring3 = createWeeklySubscription(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring1 =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring2 =
+                    createBiweeklySalary(user1, account1User1, categoryIncome);
+            RecurringTransaction recurring3 =
+                    createWeeklySubscription(user1, account1User1, categoryExpense);
             recurring3.setIsActive(false);
 
             recurringTransactionRepository.saveAll(List.of(recurring1, recurring2, recurring3));
@@ -697,18 +794,22 @@ class RecurringTransactionRepositoryTest {
         }
 
         @Test
-        @DisplayName("countByUserIdAndIsActive() should return count of active recurring transactions")
+        @DisplayName(
+                "countByUserIdAndIsActive() should return count of active recurring transactions")
         void shouldReturnCountOfActiveRecurringTransactions() {
             // Arrange
             RecurringTransaction active1 = createMonthlyRent(user1, account1User1, categoryExpense);
-            RecurringTransaction active2 = createBiweeklySalary(user1, account1User1, categoryIncome);
-            RecurringTransaction inactive = createWeeklySubscription(user1, account1User1, categoryExpense);
+            RecurringTransaction active2 =
+                    createBiweeklySalary(user1, account1User1, categoryIncome);
+            RecurringTransaction inactive =
+                    createWeeklySubscription(user1, account1User1, categoryExpense);
             inactive.setIsActive(false);
 
             recurringTransactionRepository.saveAll(List.of(active1, active2, inactive));
 
             // Act
-            long activeCount = recurringTransactionRepository.countByUserIdAndIsActive(user1.getId());
+            long activeCount =
+                    recurringTransactionRepository.countByUserIdAndIsActive(user1.getId());
 
             // Assert
             assertThat(activeCount).isEqualTo(2);
@@ -738,25 +839,32 @@ class RecurringTransactionRepositoryTest {
         @DisplayName("findByUserId() should order by nextOccurrence ASC")
         void shouldOrderByNextOccurrenceAscending() {
             // Arrange
-            RecurringTransaction recurring1 = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring1 =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             recurring1.setNextOccurrence(LocalDate.now().plusDays(10));
 
-            RecurringTransaction recurring2 = createBiweeklySalary(user1, account1User1, categoryIncome);
+            RecurringTransaction recurring2 =
+                    createBiweeklySalary(user1, account1User1, categoryIncome);
             recurring2.setNextOccurrence(LocalDate.now().plusDays(5));
 
-            RecurringTransaction recurring3 = createWeeklySubscription(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring3 =
+                    createWeeklySubscription(user1, account1User1, categoryExpense);
             recurring3.setNextOccurrence(LocalDate.now().plusDays(15));
 
             recurringTransactionRepository.saveAll(List.of(recurring1, recurring2, recurring3));
 
             // Act
-            List<RecurringTransaction> orderedRecurring = recurringTransactionRepository.findByUserId(user1.getId());
+            List<RecurringTransaction> orderedRecurring =
+                    recurringTransactionRepository.findByUserId(user1.getId());
 
             // Assert
             assertThat(orderedRecurring).hasSize(3);
-            assertThat(orderedRecurring.get(0).getNextOccurrence()).isEqualTo(LocalDate.now().plusDays(5));
-            assertThat(orderedRecurring.get(1).getNextOccurrence()).isEqualTo(LocalDate.now().plusDays(10));
-            assertThat(orderedRecurring.get(2).getNextOccurrence()).isEqualTo(LocalDate.now().plusDays(15));
+            assertThat(orderedRecurring.get(0).getNextOccurrence())
+                    .isEqualTo(LocalDate.now().plusDays(5));
+            assertThat(orderedRecurring.get(1).getNextOccurrence())
+                    .isEqualTo(LocalDate.now().plusDays(10));
+            assertThat(orderedRecurring.get(2).getNextOccurrence())
+                    .isEqualTo(LocalDate.now().plusDays(15));
         }
 
         @Test
@@ -765,18 +873,22 @@ class RecurringTransactionRepositoryTest {
             // Arrange
             LocalDate today = LocalDate.now();
 
-            RecurringTransaction recurring1 = createMonthlyRent(user1, account1User1, categoryExpense);
+            RecurringTransaction recurring1 =
+                    createMonthlyRent(user1, account1User1, categoryExpense);
             recurring1.setEndDate(today.plusDays(20));
             recurring1.setIsActive(true);
 
-            RecurringTransaction recurring2 = createBiweeklySalary(user1, account1User1, categoryIncome);
+            RecurringTransaction recurring2 =
+                    createBiweeklySalary(user1, account1User1, categoryIncome);
             recurring2.setEndDate(today.plusDays(10));
             recurring2.setIsActive(true);
 
             recurringTransactionRepository.saveAll(List.of(recurring1, recurring2));
 
             // Act
-            List<RecurringTransaction> endingSoonList = recurringTransactionRepository.findEndingSoon(user1.getId(), today, today.plusDays(30));
+            List<RecurringTransaction> endingSoonList =
+                    recurringTransactionRepository.findEndingSoon(
+                            user1.getId(), today, today.plusDays(30));
 
             // Assert
             assertThat(endingSoonList).hasSize(2);
@@ -804,7 +916,8 @@ class RecurringTransactionRepositoryTest {
                 .build();
     }
 
-    private RecurringTransaction createBiweeklySalary(User user, Account account, Category category) {
+    private RecurringTransaction createBiweeklySalary(
+            User user, Account account, Category category) {
         return RecurringTransaction.builder()
                 .userId(user.getId())
                 .accountId(account.getId())
@@ -820,7 +933,8 @@ class RecurringTransactionRepositoryTest {
                 .build();
     }
 
-    private RecurringTransaction createWeeklySubscription(User user, Account account, Category category) {
+    private RecurringTransaction createWeeklySubscription(
+            User user, Account account, Category category) {
         return RecurringTransaction.builder()
                 .userId(user.getId())
                 .accountId(account.getId())
@@ -836,7 +950,8 @@ class RecurringTransactionRepositoryTest {
                 .build();
     }
 
-    private RecurringTransaction createMonthlySubscription(User user, Account account, Category category) {
+    private RecurringTransaction createMonthlySubscription(
+            User user, Account account, Category category) {
         return RecurringTransaction.builder()
                 .userId(user.getId())
                 .accountId(account.getId())

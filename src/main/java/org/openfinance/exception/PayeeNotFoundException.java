@@ -2,10 +2,11 @@ package org.openfinance.exception;
 
 /**
  * Exception thrown when a payee is not found.
- * 
- * <p>Requirements: Payee Management Feature</p>
+ *
+ * <p>Requirements: Payee Management Feature
  */
-public class PayeeNotFoundException extends ResourceNotFoundException implements LocalizableException {
+public class PayeeNotFoundException extends ResourceNotFoundException
+        implements LocalizableException {
 
     private final String messageKey;
     private final Object[] messageArgs;
@@ -13,9 +14,9 @@ public class PayeeNotFoundException extends ResourceNotFoundException implements
     public PayeeNotFoundException(Long id) {
         super("Payee not found with id: " + id);
         this.messageKey = "error.payee.not.found";
-        this.messageArgs = new Object[]{id};
+        this.messageArgs = new Object[] {id};
     }
-    
+
     public PayeeNotFoundException(String message) {
         super(message);
         this.messageKey = null;

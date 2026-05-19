@@ -1,16 +1,16 @@
 package org.openfinance.entity;
 
+import static org.assertj.core.api.Assertions.*;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.*;
-
 /**
  * Unit tests for PropertyType enum.
- * 
- * <p>Tests enum values, helper methods, and business logic for property classifications.</p>
- * 
- * <p>Requirements: REQ-2.16.1 (Property Type Management)</p>
+ *
+ * <p>Tests enum values, helper methods, and business logic for property classifications.
+ *
+ * <p>Requirements: REQ-2.16.1 (Property Type Management)
  */
 @DisplayName("PropertyType Enum Tests")
 class PropertyTypeTest {
@@ -21,16 +21,16 @@ class PropertyTypeTest {
     @DisplayName("Should have all required property types")
     void shouldHaveAllRequiredPropertyTypes() {
         PropertyType[] types = PropertyType.values();
-        
+
         assertThat(types).hasSize(6);
-        assertThat(types).contains(
-            PropertyType.RESIDENTIAL,
-            PropertyType.COMMERCIAL,
-            PropertyType.LAND,
-            PropertyType.MIXED_USE,
-            PropertyType.INDUSTRIAL,
-            PropertyType.OTHER
-        );
+        assertThat(types)
+                .contains(
+                        PropertyType.RESIDENTIAL,
+                        PropertyType.COMMERCIAL,
+                        PropertyType.LAND,
+                        PropertyType.MIXED_USE,
+                        PropertyType.INDUSTRIAL,
+                        PropertyType.OTHER);
     }
 
     @Test
@@ -59,7 +59,7 @@ class PropertyTypeTest {
     @DisplayName("Should throw exception for invalid enum value")
     void shouldThrowExceptionForInvalidValue() {
         assertThatThrownBy(() -> PropertyType.valueOf("INVALID"))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     // ========== DISPLAY NAME TESTS ==========
@@ -142,8 +142,9 @@ class PropertyTypeTest {
     @DisplayName("Should correctly classify residential rental properties")
     void shouldClassifyResidentialRentalProperties() {
         PropertyType type = PropertyType.RESIDENTIAL;
-        
-        // Note: RESIDENTIAL is NOT marked as income-generating in the enum (only COMMERCIAL, INDUSTRIAL, MIXED_USE are)
+
+        // Note: RESIDENTIAL is NOT marked as income-generating in the enum (only COMMERCIAL,
+        // INDUSTRIAL, MIXED_USE are)
         assertThat(type.isIncomeGenerating()).isFalse();
         assertThat(type.hasResidentialComponent()).isTrue();
         assertThat(type.getDisplayName()).isEqualTo("Residential");
@@ -153,7 +154,7 @@ class PropertyTypeTest {
     @DisplayName("Should correctly classify commercial properties")
     void shouldClassifyCommercialProperties() {
         PropertyType type = PropertyType.COMMERCIAL;
-        
+
         assertThat(type.isIncomeGenerating()).isTrue();
         assertThat(type.hasResidentialComponent()).isFalse();
         assertThat(type.getDisplayName()).isEqualTo("Commercial");
@@ -163,7 +164,7 @@ class PropertyTypeTest {
     @DisplayName("Should correctly classify vacant land")
     void shouldClassifyVacantLand() {
         PropertyType type = PropertyType.LAND;
-        
+
         assertThat(type.isIncomeGenerating()).isFalse();
         assertThat(type.hasResidentialComponent()).isFalse();
         assertThat(type.getDisplayName()).isEqualTo("Land");
@@ -173,7 +174,7 @@ class PropertyTypeTest {
     @DisplayName("Should correctly classify mixed-use properties")
     void shouldClassifyMixedUseProperties() {
         PropertyType type = PropertyType.MIXED_USE;
-        
+
         assertThat(type.isIncomeGenerating()).isTrue();
         assertThat(type.hasResidentialComponent()).isTrue();
         assertThat(type.getDisplayName()).isEqualTo("Mixed-Use");

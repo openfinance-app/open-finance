@@ -1,5 +1,7 @@
 package org.openfinance.scheduler;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.config.SchedulerProperties;
@@ -11,50 +13,34 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 /**
- * Scheduled job that runs daily to detect unusual or potentially fraudulent
- * transactions for every active user.
+ * Scheduled job that runs daily to detect unusual or potentially fraudulent transactions for every
+ * active user.
  *
- * <p>
- * The job analyses transactions that were <em>created</em> (imported or entered
- * manually) since the previous run. For each newly created transaction it
- * applies
- * the rule-based statistical algorithms implemented in
- * {@link UnusualTransactionDetectionService} and persists any anomalies as
- * {@code UNUSUAL_TRANSACTION} {@link org.openfinance.entity.Insight} records,
- * which are surfaced to the user through the existing insight/notification
- * pipeline.
- * </p>
+ * <p>The job analyses transactions that were <em>created</em> (imported or entered manually) since
+ * the previous run. For each newly created transaction it applies the rule-based statistical
+ * algorithms implemented in {@link UnusualTransactionDetectionService} and persists any anomalies
+ * as {@code UNUSUAL_TRANSACTION} {@link org.openfinance.entity.Insight} records, which are surfaced
+ * to the user through the existing insight/notification pipeline.
  *
- * <p>
- * <strong>Default Schedule:</strong> Daily at 01:00 AM — intentionally one
- * hour after midnight so that the recurring-transaction scheduler (00:00) and
- * the
- * net-worth snapshot scheduler (00:05) have already completed their work.
- * </p>
+ * <p><strong>Default Schedule:</strong> Daily at 01:00 AM — intentionally one hour after midnight
+ * so that the recurring-transaction scheduler (00:00) and the net-worth snapshot scheduler (00:05)
+ * have already completed their work.
  *
- * <p>
- * <strong>Configurable Frequency</strong>
- * ({@code application.scheduled.unusual-transaction-detection.mode}):
- * </p>
+ * <p><strong>Configurable Frequency</strong> ({@code
+ * application.scheduled.unusual-transaction-detection.mode}):
+ *
  * <ul>
- * <li>{@code DEFAULT} — daily at 01:00 AM</li>
- * <li>{@code STARTUP_ONLY} — once on application startup, no periodic
- * schedule</li>
- * <li>{@code STARTUP_AND_EVERY_X_HOURS} — on startup then every
- * {@code interval-hours} hours</li>
- * <li>{@code EVERY_HOUR} — once per hour</li>
- * <li>{@code DAILY} — once per day at midnight</li>
+ *   <li>{@code DEFAULT} — daily at 01:00 AM
+ *   <li>{@code STARTUP_ONLY} — once on application startup, no periodic schedule
+ *   <li>{@code STARTUP_AND_EVERY_X_HOURS} — on startup then every {@code interval-hours} hours
+ *   <li>{@code EVERY_HOUR} — once per hour
+ *   <li>{@code DAILY} — once per day at midnight
  * </ul>
  *
- * <p>
- * <strong>Lookback window:</strong> the scheduler looks back
- * {@value #LOOKBACK_HOURS} hours from the current run time so that a brief
- * outage or restart does not cause transactions to be silently skipped.
- * </p>
+ * <p><strong>Lookback window:</strong> the scheduler looks back {@value #LOOKBACK_HOURS} hours from
+ * the current run time so that a brief outage or restart does not cause transactions to be silently
+ * skipped.
  *
  * @see UnusualTransactionDetectionService
  * @see SchedulerProperties
@@ -69,8 +55,8 @@ public class UnusualTransactionDetectionScheduler implements ApplicationRunner {
     static final String DEFAULT_CRON = "0 0 1 * * ?";
 
     /**
-     * How many hours back from "now" to look for newly created transactions.
-     * Set to 25 h so a brief outage or delayed run does not miss transactions.
+     * How many hours back from "now" to look for newly created transactions. Set to 25 h so a brief
+     * outage or delayed run does not miss transactions.
      */
     static final int LOOKBACK_HOURS = 25;
 
@@ -85,7 +71,8 @@ public class UnusualTransactionDetectionScheduler implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         if (schedulerProperties.getUnusualTransactionDetection().isRunOnStartup()) {
-            log.info("Executing startup unusual transaction detection (mode={})",
+            log.info(
+                    "Executing startup unusual transaction detection (mode={})",
                     schedulerProperties.getUnusualTransactionDetection().getMode());
             runDetection();
         }
@@ -98,20 +85,24 @@ public class UnusualTransactionDetectionScheduler implements ApplicationRunner {
     /**
      * Daily job to detect unusual transactions across all users.
      *
-     * <p>
-     * The effective cron is resolved once at startup via Spring SpEL from
-     * {@link SchedulerProperties.SchedulerConfig#effectiveCron(String)}.
-     * When mode is {@code STARTUP_ONLY} the cron resolves to {@code "-"}, which
-     * instructs Spring not to schedule any periodic execution.
-     * </p>
+     * <p>The effective cron is resolved once at startup via Spring SpEL from {@link
+     * SchedulerProperties.SchedulerConfig#effectiveCron(String)}. When mode is {@code STARTUP_ONLY}
+     * the cron resolves to {@code "-"}, which instructs Spring not to schedule any periodic
+     * execution.
      */
-    @Scheduled(cron = "#{schedulerProperties.unusualTransactionDetection.effectiveCron('"
-            + DEFAULT_CRON + "')}")
+    @Scheduled(
+            cron =
+                    "#{schedulerProperties.unusualTransactionDetection.effectiveCron('"
+                            + DEFAULT_CRON
+                            + "')}")
     public void runDetection() {
         LocalDateTime startTime = LocalDateTime.now();
         LocalDateTime since = startTime.minusHours(LOOKBACK_HOURS);
 
-        log.info("Starting unusual transaction detection at {} (lookback since {})", startTime, since);
+        log.info(
+                "Starting unusual transaction detection at {} (lookback since {})",
+                startTime,
+                since);
 
         List<User> users = userRepository.findAll();
         int totalInsights = 0;
@@ -126,13 +117,20 @@ public class UnusualTransactionDetectionScheduler implements ApplicationRunner {
                 totalInsights += count;
             } catch (Exception e) {
                 failedUsers++;
-                log.error("Error detecting unusual transactions for user {}: {}",
-                        user.getId(), e.getMessage(), e);
+                log.error(
+                        "Error detecting unusual transactions for user {}: {}",
+                        user.getId(),
+                        e.getMessage(),
+                        e);
             }
         }
 
         long durationMs = java.time.Duration.between(startTime, LocalDateTime.now()).toMillis();
-        log.info("Unusual transaction detection complete: users={}, insights={}, failed={}, duration={}ms",
-                users.size(), totalInsights, failedUsers, durationMs);
+        log.info(
+                "Unusual transaction detection complete: users={}, insights={}, failed={}, duration={}ms",
+                users.size(),
+                totalInsights,
+                failedUsers,
+                durationMs);
     }
 }

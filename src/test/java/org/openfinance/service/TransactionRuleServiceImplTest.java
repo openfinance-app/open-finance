@@ -8,14 +8,12 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.openfinance.service.OperationHistoryService;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.ImportedTransaction;
@@ -31,17 +29,12 @@ import org.openfinance.repository.TransactionRuleRepository;
 /**
  * Unit tests for {@link TransactionRuleServiceImpl#applyRules}.
  *
- * <p>
- * Uses a richer dataset that exercises every condition field, every operator,
- * every action type, priority ordering, disabled-rule skipping,
- * stop-on-first-match,
- * AND-logic multi-condition evaluation, and edge cases.
- * </p>
+ * <p>Uses a richer dataset that exercises every condition field, every operator, every action type,
+ * priority ordering, disabled-rule skipping, stop-on-first-match, AND-logic multi-condition
+ * evaluation, and edge cases.
  *
- * <p>
- * Requirements covered: REQ-TR-2.1, REQ-TR-2.2, REQ-TR-2.3, REQ-TR-2.4,
- * REQ-TR-3.1, REQ-TR-3.2, REQ-TR-3.3, REQ-TR-4.1–REQ-TR-4.7
- * </p>
+ * <p>Requirements covered: REQ-TR-2.1, REQ-TR-2.2, REQ-TR-2.3, REQ-TR-2.4, REQ-TR-3.1, REQ-TR-3.2,
+ * REQ-TR-3.3, REQ-TR-4.1–REQ-TR-4.7
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("TransactionRuleServiceImpl — applyRules (rules engine)")
@@ -49,24 +42,22 @@ class TransactionRuleServiceImplTest {
 
     private static final Long USER_ID = 42L;
 
-    @Mock
-    private TransactionRuleRepository transactionRuleRepository;
+    @Mock private TransactionRuleRepository transactionRuleRepository;
 
-    @Mock
-    private TransactionRuleMapper transactionRuleMapper;
+    @Mock private TransactionRuleMapper transactionRuleMapper;
 
-    @Mock
-    private OperationHistoryService operationHistoryService;
+    @Mock private OperationHistoryService operationHistoryService;
 
-    @InjectMocks
-    private TransactionRuleServiceImpl service;
+    @InjectMocks private TransactionRuleServiceImpl service;
 
     // -----------------------------------------------------------------------
     // Builder helpers — keep tests readable
     // -----------------------------------------------------------------------
 
     /** Builds a minimal enabled rule in priority order. */
-    private static TransactionRule rule(String name, int priority,
+    private static TransactionRule rule(
+            String name,
+            int priority,
             List<TransactionRuleCondition> conditions,
             List<TransactionRuleAction> actions) {
         return TransactionRule.builder()
@@ -80,7 +71,8 @@ class TransactionRuleServiceImplTest {
                 .build();
     }
 
-    private static TransactionRule disabledRule(String name,
+    private static TransactionRule disabledRule(
+            String name,
             List<TransactionRuleCondition> conditions,
             List<TransactionRuleAction> actions) {
         TransactionRule r = rule(name, 0, conditions, actions);
@@ -88,9 +80,8 @@ class TransactionRuleServiceImplTest {
         return r;
     }
 
-    private static TransactionRuleCondition condition(RuleConditionField field,
-            RuleConditionOperator op,
-            String value) {
+    private static TransactionRuleCondition condition(
+            RuleConditionField field, RuleConditionOperator op, String value) {
         return TransactionRuleCondition.builder()
                 .field(field)
                 .operator(op)
@@ -107,7 +98,8 @@ class TransactionRuleServiceImplTest {
                 .build();
     }
 
-    private static TransactionRuleAction action(RuleActionType type, String v1, String v2, String v3) {
+    private static TransactionRuleAction action(
+            RuleActionType type, String v1, String v2, String v3) {
         return TransactionRuleAction.builder()
                 .actionType(type)
                 .actionValue(v1)
@@ -117,16 +109,19 @@ class TransactionRuleServiceImplTest {
                 .build();
     }
 
-    /**
-     * 20-transaction dataset covering every kind of payee/amount/type combination.
-     */
+    /** 20-transaction dataset covering every kind of payee/amount/type combination. */
     private List<ImportedTransaction> richDataset() {
         List<ImportedTransaction> txs = new ArrayList<>();
 
         // 0 — Supermarket expense, high amount
         txs.add(tx("CARREFOUR MARKET PARIS 9", null, new BigDecimal("-187.45"), "EXPENSE"));
         // 1 — Online retail, mixed case
-        txs.add(tx("Amazon Marketplace", "AMZN PRIME ANNUAL", new BigDecimal("-139.00"), "EXPENSE"));
+        txs.add(
+                tx(
+                        "Amazon Marketplace",
+                        "AMZN PRIME ANNUAL",
+                        new BigDecimal("-139.00"),
+                        "EXPENSE"));
         // 2 — Salary deposit (income)
         txs.add(tx("ACME CORP", "VIREMENT SALAIRE MARS 2026", new BigDecimal("3500.00"), "INCOME"));
         // 3 — Netflix subscription
@@ -150,7 +145,12 @@ class TransactionRuleServiceImplTest {
         // 12 — Large irregular income (dividend)
         txs.add(tx("BOURSORAMA BANQUE", "DIVIDENDES Q1 2026", new BigDecimal("1200.00"), "INCOME"));
         // 13 — Payroll tax refund (income, small)
-        txs.add(tx("IMPÔTS.GOUV.FR", "REMBOURSEMENT TROP-PERÇU", new BigDecimal("320.00"), "INCOME"));
+        txs.add(
+                tx(
+                        "IMPÔTS.GOUV.FR",
+                        "REMBOURSEMENT TROP-PERÇU",
+                        new BigDecimal("320.00"),
+                        "INCOME"));
         // 14 — Uber ride (description contains 'uber', amount low)
         txs.add(tx("UBER *TRIP", "COURSE TAXI", new BigDecimal("-23.40"), "EXPENSE"));
         // 15 — Train ticket — exact amount rule
@@ -167,7 +167,8 @@ class TransactionRuleServiceImplTest {
         return txs;
     }
 
-    private static ImportedTransaction tx(String payee, String memo, BigDecimal amount, String typeHint) {
+    private static ImportedTransaction tx(
+            String payee, String memo, BigDecimal amount, String typeHint) {
         return ImportedTransaction.builder()
                 .transactionDate(LocalDate.of(2026, 4, 1))
                 .payee(payee)
@@ -195,10 +196,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("CONTAINS — case-insensitive substring match (index 0: carrefour)")
         void contains_caseInsensitive() {
-            TransactionRule r = rule("Supermarket", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "carrefour")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Groceries")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "Supermarket",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "carrefour")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Groceries")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -211,10 +220,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("CONTAINS — memo searched too (index 2: virement salaire)")
         void contains_searchInMemo() {
-            TransactionRule r = rule("Salary", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "salaire")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Income:Salary")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "Salary",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "salaire")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Income:Salary")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -229,12 +246,22 @@ class TransactionRuleServiceImplTest {
         @DisplayName("NOT_CONTAINS — matches amazon tx when checking no 'netflix'")
         void notContains_noMatch() {
             // Rule: description NOT contains 'netflix' AND contains 'amazon'
-            TransactionRule r = rule("Amazon-non-netflix", 0,
-                    List.of(
-                            condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.NOT_CONTAINS, "netflix"),
-                            condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "amazon")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Shopping:Online")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "Amazon-non-netflix",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.NOT_CONTAINS,
+                                            "netflix"),
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "amazon")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Shopping:Online")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -250,17 +277,26 @@ class TransactionRuleServiceImplTest {
             // payee="BNP PARIBAS", memo="AVIS DE PRÉLEVEMENT"
             // buildDescription concatenates; full lower: "bnp paribas avis de prélevement"
             String target = "BNP PARIBAS AVIS DE PRÉLEVEMENT".toLowerCase();
-            TransactionRule r = rule("BNP Advisory", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.EQUALS, target)),
-                    List.of(action(RuleActionType.SKIP_TRANSACTION, null)));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "BNP Advisory",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.EQUALS,
+                                            target)),
+                            List.of(action(RuleActionType.SKIP_TRANSACTION, null)));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
             Set<Integer> matched = service.applyRules(txs, USER_ID);
 
             assertThat(matched).containsExactly(17);
-            assertThat(txs.get(17).hasErrors()).isTrue(); // RULE_SKIP and RULE_MATCH are both errors
+            assertThat(txs.get(17).hasErrors())
+                    .isTrue(); // RULE_SKIP and RULE_MATCH are both errors
         }
 
         @Test
@@ -269,10 +305,18 @@ class TransactionRuleServiceImplTest {
             // Rule: description NOT_EQUALS "spotify ab premium 1 month" → matches every tx
             // except #16
             String spotifyDesc = "spotify ab premium 1 month";
-            TransactionRule r = rule("Non-Spotify", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.NOT_EQUALS, spotifyDesc)),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Other")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "Non-Spotify",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.NOT_EQUALS,
+                                            spotifyDesc)),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Other")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -286,10 +330,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("CONTAINS on null-payee tx uses memo (index 18: remboursement collègue)")
         void contains_nullPayee_usesMemo() {
-            TransactionRule r = rule("Reimbursement", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "remboursement")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Transfer:Reimbursement")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "Reimbursement",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "remboursement")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Transfer:Reimbursement")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -312,10 +364,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("GREATER_THAN — large expenses > 100")
         void greaterThan() {
-            TransactionRule r = rule("LargeExpense", 0,
-                    List.of(condition(RuleConditionField.AMOUNT, RuleConditionOperator.GREATER_THAN, "100")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Large:Expense")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "LargeExpense",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.AMOUNT,
+                                            RuleConditionOperator.GREATER_THAN,
+                                            "100")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Large:Expense")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -330,10 +390,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("LESS_THAN — micro-transactions < 10")
         void lessThan() {
-            TransactionRule r = rule("MicroTx", 0,
-                    List.of(condition(RuleConditionField.AMOUNT, RuleConditionOperator.LESS_THAN, "10")),
-                    List.of(action(RuleActionType.ADD_TAG, "micro")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "MicroTx",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.AMOUNT,
+                                            RuleConditionOperator.LESS_THAN,
+                                            "10")),
+                            List.of(action(RuleActionType.ADD_TAG, "micro")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -348,10 +416,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("EQUALS — exact amount match (index 15: 89.00 train ticket)")
         void equals_exactAmount() {
-            TransactionRule r = rule("TrainTicket", 0,
-                    List.of(condition(RuleConditionField.AMOUNT, RuleConditionOperator.EQUALS, "89.00")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Transport:Train")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "TrainTicket",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.AMOUNT,
+                                            RuleConditionOperator.EQUALS,
+                                            "89.00")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Transport:Train")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -364,10 +440,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("NOT_EQUALS — all except the 89.00 ticket")
         void notEquals_amount() {
-            TransactionRule r = rule("NotTrain", 0,
-                    List.of(condition(RuleConditionField.AMOUNT, RuleConditionOperator.NOT_EQUALS, "89.00")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Other")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "NotTrain",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.AMOUNT,
+                                            RuleConditionOperator.NOT_EQUALS,
+                                            "89.00")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Other")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -380,10 +464,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("GREATER_OR_EQUAL — amounts >= 29.99")
         void greaterOrEqual() {
-            TransactionRule r = rule("GymOrMore", 0,
-                    List.of(condition(RuleConditionField.AMOUNT, RuleConditionOperator.GREATER_OR_EQUAL, "29.99")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Bill")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "GymOrMore",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.AMOUNT,
+                                            RuleConditionOperator.GREATER_OR_EQUAL,
+                                            "29.99")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Bill")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -398,10 +490,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("LESS_OR_EQUAL — amounts <= 29.99")
         void lessOrEqual() {
-            TransactionRule r = rule("UpToGym", 0,
-                    List.of(condition(RuleConditionField.AMOUNT, RuleConditionOperator.LESS_OR_EQUAL, "29.99")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Small")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "UpToGym",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.AMOUNT,
+                                            RuleConditionOperator.LESS_OR_EQUAL,
+                                            "29.99")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Small")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -417,10 +517,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("Amount zero — LESS_THAN 0.01 matches debit advisory (index 17)")
         void zeroAmountMatchesLessThan() {
-            TransactionRule r = rule("ZeroAmount", 0,
-                    List.of(condition(RuleConditionField.AMOUNT, RuleConditionOperator.LESS_THAN, "0.01")),
-                    List.of(action(RuleActionType.SKIP_TRANSACTION, null)));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "ZeroAmount",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.AMOUNT,
+                                            RuleConditionOperator.LESS_THAN,
+                                            "0.01")),
+                            List.of(action(RuleActionType.SKIP_TRANSACTION, null)));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -432,10 +540,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("Malformed condition value — condition is skipped, no match")
         void malformedAmountConditionValue() {
-            TransactionRule r = rule("BrokenRule", 0,
-                    List.of(condition(RuleConditionField.AMOUNT, RuleConditionOperator.EQUALS, "not-a-number")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Bad")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "BrokenRule",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.AMOUNT,
+                                            RuleConditionOperator.EQUALS,
+                                            "not-a-number")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Bad")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             Set<Integer> matched = service.applyRules(richDataset(), USER_ID);
@@ -455,10 +571,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("EQUALS INCOME — indices 2, 8, 12, 13, 18")
         void equalsIncome() {
-            TransactionRule r = rule("AllIncome", 0,
-                    List.of(condition(RuleConditionField.TRANSACTION_TYPE, RuleConditionOperator.EQUALS, "INCOME")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Income")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "AllIncome",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.TRANSACTION_TYPE,
+                                            RuleConditionOperator.EQUALS,
+                                            "INCOME")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Income")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -474,10 +598,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("EQUALS EXPENSE — 15 negative txs + zero-amount")
         void equalsExpense() {
-            TransactionRule r = rule("AllExpenses", 0,
-                    List.of(condition(RuleConditionField.TRANSACTION_TYPE, RuleConditionOperator.EQUALS, "EXPENSE")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Expense")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "AllExpenses",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.TRANSACTION_TYPE,
+                                            RuleConditionOperator.EQUALS,
+                                            "EXPENSE")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Expense")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -485,17 +617,25 @@ class TransactionRuleServiceImplTest {
 
             // Negative amounts only: 0,1,3,4,5,6,7,9,10,11,14,15,16,19
             // zero(17) is INCOME per engine (0 >= 0)
-            assertThat(matched).containsExactlyInAnyOrder(0, 1, 3, 4, 5, 6, 7, 9, 10, 11, 14, 15, 16, 19);
+            assertThat(matched)
+                    .containsExactlyInAnyOrder(0, 1, 3, 4, 5, 6, 7, 9, 10, 11, 14, 15, 16, 19);
         }
 
         @Test
         @DisplayName("NOT_EQUALS EXPENSE — same as INCOME set")
         void notEqualsExpense() {
-            TransactionRule r = rule("NotExpense", 0,
-                    List.of(condition(RuleConditionField.TRANSACTION_TYPE, RuleConditionOperator.NOT_EQUALS,
-                            "EXPENSE")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Income")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "NotExpense",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.TRANSACTION_TYPE,
+                                            RuleConditionOperator.NOT_EQUALS,
+                                            "EXPENSE")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Income")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -517,10 +657,21 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("SET_CATEGORY — category field is populated")
         void setCategory() {
-            TransactionRule r = rule("SetCat", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "netflix")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Entertainment:Streaming")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "SetCat",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "netflix")),
+                            List.of(
+                                    action(
+                                            RuleActionType.SET_CATEGORY,
+                                            "Entertainment:Streaming")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -532,10 +683,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("SET_PAYEE — payee is overridden")
         void setPayee() {
-            TransactionRule r = rule("NormalisePayee", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "basic fit")),
-                    List.of(action(RuleActionType.SET_PAYEE, "Basic-Fit")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "NormalisePayee",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "basic fit")),
+                            List.of(action(RuleActionType.SET_PAYEE, "Basic-Fit")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -547,10 +706,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("ADD_TAG — tag appended to list")
         void addTag() {
-            TransactionRule r = rule("TagFuel", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "total station")),
-                    List.of(action(RuleActionType.ADD_TAG, "fuel")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "TagFuel",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "total station")),
+                            List.of(action(RuleActionType.ADD_TAG, "fuel")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -562,11 +729,19 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("ADD_TAG — multiple rules adding tags accumulate them")
         void addTag_multiple() {
-            TransactionRule r1 = rule("TagUber1", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "uber")),
-                    List.of(action(RuleActionType.ADD_TAG, "transport")));
+            TransactionRule r1 =
+                    rule(
+                            "TagUber1",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "uber")),
+                            List.of(action(RuleActionType.ADD_TAG, "transport")));
             // r1 fires first; stop-on-first-match means r2 never fires for the same tx
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r1));
 
             List<ImportedTransaction> txs = richDataset();
@@ -579,10 +754,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("SET_DESCRIPTION — memo is overridden")
         void setDescription() {
-            TransactionRule r = rule("CleanDesc", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "pharmacie")),
-                    List.of(action(RuleActionType.SET_DESCRIPTION, "Health & Pharmacy")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "CleanDesc",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "pharmacie")),
+                            List.of(action(RuleActionType.SET_DESCRIPTION, "Health & Pharmacy")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -594,10 +777,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("SET_AMOUNT — amount is replaced with rule value")
         void setAmount() {
-            TransactionRule r = rule("NormaliseRent", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "loyer")),
-                    List.of(action(RuleActionType.SET_AMOUNT, "-1000.00")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "NormaliseRent",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "loyer")),
+                            List.of(action(RuleActionType.SET_AMOUNT, "-1000.00")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -609,10 +800,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("SET_AMOUNT with invalid value — amount is unchanged")
         void setAmount_invalid() {
-            TransactionRule r = rule("BadAmount", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "loyer")),
-                    List.of(action(RuleActionType.SET_AMOUNT, "")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "BadAmount",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "loyer")),
+                            List.of(action(RuleActionType.SET_AMOUNT, "")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -625,11 +824,28 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("ADD_SPLIT — split entry added with category, amount, and memo")
         void addSplit() {
-            TransactionRule r = rule("SplitSalary", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "salaire")),
-                    List.of(action(RuleActionType.ADD_SPLIT, "Income:Salary", "2800.00", "net salary"),
-                            action(RuleActionType.ADD_SPLIT, "Income:Bonus", "700.00", "bonus")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "SplitSalary",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "salaire")),
+                            List.of(
+                                    action(
+                                            RuleActionType.ADD_SPLIT,
+                                            "Income:Salary",
+                                            "2800.00",
+                                            "net salary"),
+                                    action(
+                                            RuleActionType.ADD_SPLIT,
+                                            "Income:Bonus",
+                                            "700.00",
+                                            "bonus")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -638,7 +854,8 @@ class TransactionRuleServiceImplTest {
             ImportedTransaction salary = txs.get(2);
             assertThat(salary.getSplits()).hasSize(2);
             assertThat(salary.getSplits().get(0).getCategory()).isEqualTo("Income:Salary");
-            assertThat(salary.getSplits().get(0).getAmount()).isEqualByComparingTo(new BigDecimal("2800.00"));
+            assertThat(salary.getSplits().get(0).getAmount())
+                    .isEqualByComparingTo(new BigDecimal("2800.00"));
             assertThat(salary.getSplits().get(0).getMemo()).isEqualTo("net salary");
             assertThat(salary.getSplits().get(1).getCategory()).isEqualTo("Income:Bonus");
         }
@@ -646,11 +863,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("SKIP_TRANSACTION — adds blocking error to transaction")
         void skipTransaction() {
-            TransactionRule r = rule("SkipInternal", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS,
-                            "virement interne")),
-                    List.of(action(RuleActionType.SKIP_TRANSACTION, null)));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "SkipInternal",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "virement interne")),
+                            List.of(action(RuleActionType.SKIP_TRANSACTION, null)));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -658,21 +882,28 @@ class TransactionRuleServiceImplTest {
 
             // tx[8] payee="VIREMENT INTERNE"
             assertThat(txs.get(8).hasErrors()).isTrue();
-            assertThat(txs.get(8).getValidationErrors())
-                    .anyMatch(e -> e.contains("RULE_SKIP"));
+            assertThat(txs.get(8).getValidationErrors()).anyMatch(e -> e.contains("RULE_SKIP"));
         }
 
         @Test
         @DisplayName("Multiple actions on one rule — all applied in order")
         void multipleActionsApplied() {
-            TransactionRule r = rule("EnrichUber", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "uber")),
-                    List.of(
-                            action(RuleActionType.SET_CATEGORY, "Transport:Taxi"),
-                            action(RuleActionType.SET_PAYEE, "Uber"),
-                            action(RuleActionType.ADD_TAG, "rideshare"),
-                            action(RuleActionType.ADD_TAG, "transport")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "EnrichUber",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "uber")),
+                            List.of(
+                                    action(RuleActionType.SET_CATEGORY, "Transport:Taxi"),
+                                    action(RuleActionType.SET_PAYEE, "Uber"),
+                                    action(RuleActionType.ADD_TAG, "rideshare"),
+                                    action(RuleActionType.ADD_TAG, "transport")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -696,12 +927,22 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("AND — both conditions must match (INCOME + contains 'dividende')")
         void and_bothMustMatch() {
-            TransactionRule r = rule("Dividends", 0,
-                    List.of(
-                            condition(RuleConditionField.TRANSACTION_TYPE, RuleConditionOperator.EQUALS, "INCOME"),
-                            condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "dividende")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Income:Dividends")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "Dividends",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.TRANSACTION_TYPE,
+                                            RuleConditionOperator.EQUALS,
+                                            "INCOME"),
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "dividende")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Income:Dividends")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -715,12 +956,22 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("AND — first condition matches but second does not → no match")
         void and_firstMatchSecondMiss() {
-            TransactionRule r = rule("WrongCombo", 0,
-                    List.of(
-                            condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "amazon"),
-                            condition(RuleConditionField.TRANSACTION_TYPE, RuleConditionOperator.EQUALS, "INCOME")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "ShouldNotAppear")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "WrongCombo",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "amazon"),
+                                    condition(
+                                            RuleConditionField.TRANSACTION_TYPE,
+                                            RuleConditionOperator.EQUALS,
+                                            "INCOME")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "ShouldNotAppear")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             Set<Integer> matched = service.applyRules(richDataset(), USER_ID);
@@ -733,12 +984,22 @@ class TransactionRuleServiceImplTest {
         @DisplayName("AND — description + amount range narrows to single transaction")
         void and_descriptionPlusAmountRange() {
             // Rule: SNCF + amount >= 80
-            TransactionRule r = rule("SCNCExpensive", 0,
-                    List.of(
-                            condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "sncf"),
-                            condition(RuleConditionField.AMOUNT, RuleConditionOperator.GREATER_OR_EQUAL, "80")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Transport:Rail")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "SCNCExpensive",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "sncf"),
+                                    condition(
+                                            RuleConditionField.AMOUNT,
+                                            RuleConditionOperator.GREATER_OR_EQUAL,
+                                            "80")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Transport:Rail")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -750,10 +1011,14 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("Empty condition list — rule never fires")
         void emptyConditions_neverMatches() {
-            TransactionRule r = rule("EmptyConditions", 0,
-                    new ArrayList<>(),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Orphan")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "EmptyConditions",
+                            0,
+                            new ArrayList<>(),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Orphan")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             Set<Integer> matched = service.applyRules(richDataset(), USER_ID);
@@ -775,13 +1040,31 @@ class TransactionRuleServiceImplTest {
         void lowerPriorityFires() {
             // Both match tx[3] (Netflix), but priority 0 sets Streaming, priority 1 sets
             // Entertainment
-            TransactionRule r0 = rule("Netflix-primary", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "netflix")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Entertainment:Streaming")));
-            TransactionRule r1 = rule("Netflix-secondary", 1,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "netflix")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Entertainment:General")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r0 =
+                    rule(
+                            "Netflix-primary",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "netflix")),
+                            List.of(
+                                    action(
+                                            RuleActionType.SET_CATEGORY,
+                                            "Entertainment:Streaming")));
+            TransactionRule r1 =
+                    rule(
+                            "Netflix-secondary",
+                            1,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "netflix")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Entertainment:General")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r0, r1));
 
             List<ImportedTransaction> txs = richDataset();
@@ -794,14 +1077,29 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("Stop-on-first-match — second matching rule is not evaluated")
         void stopOnFirstMatch() {
-            TransactionRule r0 = rule("SalaryPrimary", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "salaire")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Income:Salary")));
+            TransactionRule r0 =
+                    rule(
+                            "SalaryPrimary",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "salaire")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Income:Salary")));
             // r1 would also match via INCOME type
-            TransactionRule r1 = rule("AnyIncome", 1,
-                    List.of(condition(RuleConditionField.TRANSACTION_TYPE, RuleConditionOperator.EQUALS, "INCOME")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Income:Generic")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r1 =
+                    rule(
+                            "AnyIncome",
+                            1,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.TRANSACTION_TYPE,
+                                            RuleConditionOperator.EQUALS,
+                                            "INCOME")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Income:Generic")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r0, r1));
 
             List<ImportedTransaction> txs = richDataset();
@@ -818,10 +1116,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("RULE_MATCH annotation is added to validationErrors on match")
         void ruleMatchAnnotation() {
-            TransactionRule r = rule("AmazonRule", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "amazon")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Shopping")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "AmazonRule",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "amazon")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Shopping")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -846,7 +1152,8 @@ class TransactionRuleServiceImplTest {
         @DisplayName("Disabled rule is never evaluated")
         void disabledRule_neverFires() {
             // The repository method only returns enabled rules — mock returns empty
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of());
 
             Set<Integer> matched = service.applyRules(richDataset(), USER_ID);
@@ -857,10 +1164,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("Empty transaction list returns empty matched set")
         void emptyTransactions_returnsEmpty() {
-            TransactionRule r = rule("Any", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "x")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "X")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "Any",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "x")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "X")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             Set<Integer> matched = service.applyRules(List.of(), USER_ID);
@@ -871,10 +1186,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("Null transaction list returns empty matched set")
         void nullTransactions_returnsEmpty() {
-            TransactionRule r = rule("Any", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "x")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "X")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "Any",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "x")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "X")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             Set<Integer> matched = service.applyRules(null, USER_ID);
@@ -885,7 +1208,8 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("No enabled rules returns empty matched set")
         void noEnabledRules_returnsEmpty() {
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of());
 
             Set<Integer> matched = service.applyRules(richDataset(), USER_ID);
@@ -896,10 +1220,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("Rule with null actions list — match recorded but no NPE")
         void nullActionsList_noException() {
-            TransactionRule r = rule("NoActions", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "netflix")),
-                    null);
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "NoActions",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "netflix")),
+                            null);
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -911,10 +1243,18 @@ class TransactionRuleServiceImplTest {
         @Test
         @DisplayName("DESCRIPTION match is case-insensitive in condition value too")
         void caseInsensitiveConditionValue() {
-            TransactionRule r = rule("Spotify-Upper", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "SPOTIFY AB")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Entertainment:Music")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r =
+                    rule(
+                            "Spotify-Upper",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "SPOTIFY AB")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Entertainment:Music")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r));
 
             List<ImportedTransaction> txs = richDataset();
@@ -927,16 +1267,38 @@ class TransactionRuleServiceImplTest {
         @DisplayName("Matched indices returned — set covers all matched positions")
         void returnedIndicesMatchTransactionPositions() {
             // Three separate rules targeting three non-overlapping tx
-            TransactionRule r0 = rule("Netflix-rule", 0,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "netflix")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Streaming")));
-            TransactionRule r1 = rule("Free-Mobile-rule", 1,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "free mobile")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Telecom")));
-            TransactionRule r2 = rule("Spotify-rule", 2,
-                    List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS, "spotify")),
-                    List.of(action(RuleActionType.SET_CATEGORY, "Music")));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            TransactionRule r0 =
+                    rule(
+                            "Netflix-rule",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "netflix")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Streaming")));
+            TransactionRule r1 =
+                    rule(
+                            "Free-Mobile-rule",
+                            1,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "free mobile")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Telecom")));
+            TransactionRule r2 =
+                    rule(
+                            "Spotify-rule",
+                            2,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "spotify")),
+                            List.of(action(RuleActionType.SET_CATEGORY, "Music")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(List.of(r0, r1, r2));
 
             Set<Integer> matched = service.applyRules(richDataset(), USER_ID);
@@ -955,44 +1317,88 @@ class TransactionRuleServiceImplTest {
 
         @BeforeEach
         void setUpRules() {
-            List<TransactionRule> rules = List.of(
-                    // Priority 0 — skip internal transfers (stop before anything else evaluates
-                    // them)
-                    rule("Skip-Internal-Transfer", 0,
-                            List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS,
-                                    "virement interne")),
-                            List.of(action(RuleActionType.SKIP_TRANSACTION, null))),
-                    // Priority 1 — classify salary income
-                    rule("Salary-Income", 1,
-                            List.of(
-                                    condition(RuleConditionField.TRANSACTION_TYPE, RuleConditionOperator.EQUALS,
-                                            "INCOME"),
-                                    condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS,
-                                            "salaire")),
-                            List.of(action(RuleActionType.SET_CATEGORY, "Income:Salary"),
-                                    action(RuleActionType.SET_PAYEE, "Employer"))),
-                    // Priority 2 — any large expense > 500 labelled "Major Expense" unless already
-                    // matched
-                    rule("Large-Expense", 2,
-                            List.of(condition(RuleConditionField.AMOUNT, RuleConditionOperator.GREATER_THAN, "500")),
-                            List.of(action(RuleActionType.SET_CATEGORY, "Major:Expense"))),
-                    // Priority 3 — streaming subscriptions
-                    rule("Streaming", 3,
-                            List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS,
-                                    "netflix"),
-                                    condition(RuleConditionField.AMOUNT, RuleConditionOperator.LESS_THAN, "20")),
-                            List.of(action(RuleActionType.SET_CATEGORY, "Entertainment:Streaming"),
-                                    action(RuleActionType.ADD_TAG, "subscription"))),
-                    // Priority 4 — fuel
-                    rule("Fuel", 4,
-                            List.of(condition(RuleConditionField.DESCRIPTION, RuleConditionOperator.CONTAINS,
-                                    "total station")),
-                            List.of(action(RuleActionType.SET_CATEGORY, "Transport:Fuel"))),
-                    // Priority 5 — tag all micro transactions < 5 EUR
-                    rule("Micro-Tx", 5,
-                            List.of(condition(RuleConditionField.AMOUNT, RuleConditionOperator.LESS_THAN, "5")),
-                            List.of(action(RuleActionType.ADD_TAG, "micro"))));
-            when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+            List<TransactionRule> rules =
+                    List.of(
+                            // Priority 0 — skip internal transfers (stop before anything else
+                            // evaluates
+                            // them)
+                            rule(
+                                    "Skip-Internal-Transfer",
+                                    0,
+                                    List.of(
+                                            condition(
+                                                    RuleConditionField.DESCRIPTION,
+                                                    RuleConditionOperator.CONTAINS,
+                                                    "virement interne")),
+                                    List.of(action(RuleActionType.SKIP_TRANSACTION, null))),
+                            // Priority 1 — classify salary income
+                            rule(
+                                    "Salary-Income",
+                                    1,
+                                    List.of(
+                                            condition(
+                                                    RuleConditionField.TRANSACTION_TYPE,
+                                                    RuleConditionOperator.EQUALS,
+                                                    "INCOME"),
+                                            condition(
+                                                    RuleConditionField.DESCRIPTION,
+                                                    RuleConditionOperator.CONTAINS,
+                                                    "salaire")),
+                                    List.of(
+                                            action(RuleActionType.SET_CATEGORY, "Income:Salary"),
+                                            action(RuleActionType.SET_PAYEE, "Employer"))),
+                            // Priority 2 — any large expense > 500 labelled "Major Expense" unless
+                            // already
+                            // matched
+                            rule(
+                                    "Large-Expense",
+                                    2,
+                                    List.of(
+                                            condition(
+                                                    RuleConditionField.AMOUNT,
+                                                    RuleConditionOperator.GREATER_THAN,
+                                                    "500")),
+                                    List.of(action(RuleActionType.SET_CATEGORY, "Major:Expense"))),
+                            // Priority 3 — streaming subscriptions
+                            rule(
+                                    "Streaming",
+                                    3,
+                                    List.of(
+                                            condition(
+                                                    RuleConditionField.DESCRIPTION,
+                                                    RuleConditionOperator.CONTAINS,
+                                                    "netflix"),
+                                            condition(
+                                                    RuleConditionField.AMOUNT,
+                                                    RuleConditionOperator.LESS_THAN,
+                                                    "20")),
+                                    List.of(
+                                            action(
+                                                    RuleActionType.SET_CATEGORY,
+                                                    "Entertainment:Streaming"),
+                                            action(RuleActionType.ADD_TAG, "subscription"))),
+                            // Priority 4 — fuel
+                            rule(
+                                    "Fuel",
+                                    4,
+                                    List.of(
+                                            condition(
+                                                    RuleConditionField.DESCRIPTION,
+                                                    RuleConditionOperator.CONTAINS,
+                                                    "total station")),
+                                    List.of(action(RuleActionType.SET_CATEGORY, "Transport:Fuel"))),
+                            // Priority 5 — tag all micro transactions < 5 EUR
+                            rule(
+                                    "Micro-Tx",
+                                    5,
+                                    List.of(
+                                            condition(
+                                                    RuleConditionField.AMOUNT,
+                                                    RuleConditionOperator.LESS_THAN,
+                                                    "5")),
+                                    List.of(action(RuleActionType.ADD_TAG, "micro"))));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
                     .thenReturn(rules);
         }
 
@@ -1019,8 +1425,7 @@ class TransactionRuleServiceImplTest {
             service.applyRules(txs, USER_ID);
 
             assertThat(txs.get(8).hasErrors()).isTrue();
-            assertThat(txs.get(8).getValidationErrors())
-                    .anyMatch(e -> e.contains("RULE_SKIP"));
+            assertThat(txs.get(8).getValidationErrors()).anyMatch(e -> e.contains("RULE_SKIP"));
         }
 
         @Test
@@ -1082,7 +1487,7 @@ class TransactionRuleServiceImplTest {
 
             // tx[5] BASIC FIT, tx[6] ATM, tx[7] PHARMACIE, tx[11] FREE MOBILE, tx[14] UBER,
             // tx[15] SNCF, tx[16] SPOTIFY, tx[18] REMBOURSEMENT
-            for (int idx : new int[] { 5, 6, 7, 11, 14, 15, 16, 18 }) {
+            for (int idx : new int[] {5, 6, 7, 11, 14, 15, 16, 18}) {
                 assertThat(txs.get(idx).getCategory())
                         .as("tx[%d] should not have a category set by rules", idx)
                         .isNull();

@@ -1,6 +1,15 @@
 package org.openfinance.controller;
 
+import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Base64;
+import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,68 +22,46 @@ import org.openfinance.entity.User;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.KeyManagementService;
+import org.openfinance.service.OperationHistoryService;
 import org.openfinance.service.UserService;
 import org.openfinance.util.DatabaseCleanupService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.openfinance.service.OperationHistoryService;
-
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-
-import javax.crypto.SecretKey;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Base64;
-
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 /**
- * Integration tests for LiabilityController.
- * Tests all 8 REST endpoints with authentication, authorization, and encryption.
+ * Integration tests for LiabilityController. Tests all 8 REST endpoints with authentication,
+ * authorization, and encryption.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestDatabaseConfig.class)
 @ActiveProfiles("test")
-
 @DisplayName("LiabilityController Integration Tests")
 class LiabilityControllerIntegrationTest {
 
-    @MockBean
-    private OperationHistoryService operationHistoryService;
+    @MockBean private OperationHistoryService operationHistoryService;
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private LiabilityRepository liabilityRepository;
+    @Autowired private LiabilityRepository liabilityRepository;
 
-    @Autowired
-    private KeyManagementService keyManagementService;
+    @Autowired private KeyManagementService keyManagementService;
 
-    @Autowired
-    private org.openfinance.security.EncryptionService encryptionService;
+    @Autowired private org.openfinance.security.EncryptionService encryptionService;
 
-    @Autowired
-    private DatabaseCleanupService databaseCleanupService;
+    @Autowired private DatabaseCleanupService databaseCleanupService;
 
     private String token;
     private String encKey;
@@ -86,35 +73,41 @@ class LiabilityControllerIntegrationTest {
         databaseCleanupService.execute();
 
         // Register user
-        UserRegistrationRequest reg = UserRegistrationRequest.builder()
-                .username("alice")
-                .email("alice@example.com")
-                .password("Password123!")
-                .masterPassword("Master123!")
-                .skipSeeding(true)
-                .build();
+        UserRegistrationRequest reg =
+                UserRegistrationRequest.builder()
+                        .username("alice")
+                        .email("alice@example.com")
+                        .password("Password123!")
+                        .masterPassword("Master123!")
+                        .skipSeeding(true)
+                        .build();
         userService.registerUser(reg);
 
         // Login to get JWT token
-        LoginRequest login = LoginRequest.builder()
-                .username("alice")
-                .password("Password123!")
-                .masterPassword("Master123!")
-                .build();
+        LoginRequest login =
+                LoginRequest.builder()
+                        .username("alice")
+                        .password("Password123!")
+                        .masterPassword("Master123!")
+                        .build();
 
-        String resp = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(login)))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String resp =
+                mockMvc.perform(
+                                post("/api/v1/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(login)))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
         token = objectMapper.readTree(resp).get("token").asText();
 
         // Derive encryption key
-        User user = userRepository.findByUsername("alice")
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user =
+                userRepository
+                        .findByUsername("alice")
+                        .orElseThrow(() -> new RuntimeException("User not found"));
         userId = user.getId();
         byte[] salt = Base64.getDecoder().decode(user.getMasterPasswordSalt());
         secretKey = keyManagementService.deriveKey("Master123!".toCharArray(), salt);
@@ -137,21 +130,36 @@ class LiabilityControllerIntegrationTest {
     }
 
     /**
-     * Helper method to create liability directly via repository (for tests that need existing data).
-     * Follows the pattern from DashboardControllerIntegrationTest.
+     * Helper method to create liability directly via repository (for tests that need existing
+     * data). Follows the pattern from DashboardControllerIntegrationTest.
      */
-    private org.openfinance.entity.Liability createLiabilityDirectly(String name, LiabilityType type, 
-            BigDecimal principal, BigDecimal currentBalance, BigDecimal interestRate,
-            LocalDate startDate, LocalDate endDate, BigDecimal minimumPayment, String currency, String notes) {
-        
+    private org.openfinance.entity.Liability createLiabilityDirectly(
+            String name,
+            LiabilityType type,
+            BigDecimal principal,
+            BigDecimal currentBalance,
+            BigDecimal interestRate,
+            LocalDate startDate,
+            LocalDate endDate,
+            BigDecimal minimumPayment,
+            String currency,
+            String notes) {
+
         // Encrypt sensitive fields
         String encryptedName = encryptionService.encrypt(name, secretKey);
         String encryptedPrincipal = encryptionService.encrypt(principal.toString(), secretKey);
-        String encryptedCurrentBalance = encryptionService.encrypt(currentBalance.toString(), secretKey);
-        String encryptedInterestRate = interestRate != null ? encryptionService.encrypt(interestRate.toString(), secretKey) : null;
-        String encryptedMinimumPayment = minimumPayment != null ? encryptionService.encrypt(minimumPayment.toString(), secretKey) : null;
+        String encryptedCurrentBalance =
+                encryptionService.encrypt(currentBalance.toString(), secretKey);
+        String encryptedInterestRate =
+                interestRate != null
+                        ? encryptionService.encrypt(interestRate.toString(), secretKey)
+                        : null;
+        String encryptedMinimumPayment =
+                minimumPayment != null
+                        ? encryptionService.encrypt(minimumPayment.toString(), secretKey)
+                        : null;
         String encryptedNotes = notes != null ? encryptionService.encrypt(notes, secretKey) : null;
-        
+
         org.openfinance.entity.Liability liability = new org.openfinance.entity.Liability();
         liability.setUserId(userId);
         liability.setName(encryptedName);
@@ -164,7 +172,7 @@ class LiabilityControllerIntegrationTest {
         liability.setMinimumPayment(encryptedMinimumPayment);
         liability.setCurrency(currency);
         liability.setNotes(encryptedNotes);
-        
+
         return liabilityRepository.save(liability);
     }
 
@@ -177,11 +185,12 @@ class LiabilityControllerIntegrationTest {
         LiabilityRequest request = createValidRequest();
 
         // When/Then
-        mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/liabilities")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").exists())
@@ -203,10 +212,11 @@ class LiabilityControllerIntegrationTest {
         LiabilityRequest request = createValidRequest();
 
         // When/Then
-        mockMvc.perform(post("/api/v1/liabilities")
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/liabilities")
+                                .header("X-Encryption-Key", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
     }
 
@@ -217,10 +227,11 @@ class LiabilityControllerIntegrationTest {
         LiabilityRequest request = createValidRequest();
 
         // When/Then
-        mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/liabilities")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Encryption key header is required"));
     }
@@ -234,11 +245,12 @@ class LiabilityControllerIntegrationTest {
         request.setCurrency("US"); // Invalid currency format
 
         // When/Then
-        mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/liabilities")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -256,11 +268,12 @@ class LiabilityControllerIntegrationTest {
         // No interestRate, endDate, minimumPayment, notes
 
         // When/Then
-        mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/liabilities")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Simple Loan"))
                 .andExpect(jsonPath("$.interestRate").doesNotExist())
@@ -281,24 +294,27 @@ class LiabilityControllerIntegrationTest {
         loan.setName("Car Loan");
         loan.setType(LiabilityType.LOAN);
 
-        mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(mortgage)))
+        mockMvc.perform(
+                        post("/api/v1/liabilities")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(mortgage)))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loan)))
+        mockMvc.perform(
+                        post("/api/v1/liabilities")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loan)))
                 .andExpect(status().isCreated());
 
         // When/Then - Get all liabilities
-        mockMvc.perform(get("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/liabilities")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -318,24 +334,27 @@ class LiabilityControllerIntegrationTest {
         loan.setName("Car Loan");
         loan.setType(LiabilityType.LOAN);
 
-        mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(mortgage)))
+        mockMvc.perform(
+                        post("/api/v1/liabilities")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(mortgage)))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loan)))
+        mockMvc.perform(
+                        post("/api/v1/liabilities")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loan)))
                 .andExpect(status().isCreated());
 
         // When/Then - Filter by MORTGAGE
-        mockMvc.perform(get("/api/v1/liabilities?type=MORTGAGE")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/liabilities?type=MORTGAGE")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(1))
@@ -347,9 +366,10 @@ class LiabilityControllerIntegrationTest {
     @DisplayName("GET /api/v1/liabilities - Should return empty list when no liabilities")
     void shouldReturnEmptyList_WhenNoLiabilities() throws Exception {
         // When/Then
-        mockMvc.perform(get("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/liabilities")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(0));
@@ -362,22 +382,25 @@ class LiabilityControllerIntegrationTest {
     void shouldGetLiabilityById() throws Exception {
         // Given - Create liability
         LiabilityRequest request = createValidRequest();
-        String createResp = mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String createResp =
+                mockMvc.perform(
+                                post("/api/v1/liabilities")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
         Long liabilityId = objectMapper.readTree(createResp).get("id").asLong();
 
         // When/Then
-        mockMvc.perform(get("/api/v1/liabilities/" + liabilityId)
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/liabilities/" + liabilityId)
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(liabilityId))
                 .andExpect(jsonPath("$.name").value("Home Mortgage"));
@@ -387,9 +410,10 @@ class LiabilityControllerIntegrationTest {
     @DisplayName("GET /api/v1/liabilities/{id} - Should return 404 when liability not found")
     void shouldReturn404_WhenLiabilityNotFound() throws Exception {
         // When/Then
-        mockMvc.perform(get("/api/v1/liabilities/999999")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/liabilities/999999")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andExpect(status().isNotFound());
     }
 
@@ -400,15 +424,17 @@ class LiabilityControllerIntegrationTest {
     void shouldUpdateLiability() throws Exception {
         // Given - Create liability
         LiabilityRequest request = createValidRequest();
-        String createResp = mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String createResp =
+                mockMvc.perform(
+                                post("/api/v1/liabilities")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
         Long liabilityId = objectMapper.readTree(createResp).get("id").asLong();
 
@@ -418,11 +444,12 @@ class LiabilityControllerIntegrationTest {
         updateRequest.setCurrentBalance(new BigDecimal("240000.00"));
 
         // When/Then
-        mockMvc.perform(put("/api/v1/liabilities/" + liabilityId)
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequest)))
+        mockMvc.perform(
+                        put("/api/v1/liabilities/" + liabilityId)
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(liabilityId))
                 .andExpect(jsonPath("$.name").value("Updated Mortgage"))
@@ -430,17 +457,19 @@ class LiabilityControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("PUT /api/v1/liabilities/{id} - Should return 404 when updating non-existent liability")
+    @DisplayName(
+            "PUT /api/v1/liabilities/{id} - Should return 404 when updating non-existent liability")
     void shouldReturn404_WhenUpdatingNonExistentLiability() throws Exception {
         // Given
         LiabilityRequest request = createValidRequest();
 
         // When/Then
-        mockMvc.perform(put("/api/v1/liabilities/999999")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        put("/api/v1/liabilities/999999")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
     }
 
@@ -451,38 +480,44 @@ class LiabilityControllerIntegrationTest {
     void shouldDeleteLiability() throws Exception {
         // Given - Create liability
         LiabilityRequest request = createValidRequest();
-        String createResp = mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String createResp =
+                mockMvc.perform(
+                                post("/api/v1/liabilities")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
         Long liabilityId = objectMapper.readTree(createResp).get("id").asLong();
 
         // When/Then - Delete
-        mockMvc.perform(delete("/api/v1/liabilities/" + liabilityId)
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        delete("/api/v1/liabilities/" + liabilityId)
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andExpect(status().isNoContent());
 
         // Verify it's deleted
-        mockMvc.perform(get("/api/v1/liabilities/" + liabilityId)
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/liabilities/" + liabilityId)
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("DELETE /api/v1/liabilities/{id} - Should return 404 when deleting non-existent liability")
+    @DisplayName(
+            "DELETE /api/v1/liabilities/{id} - Should return 404 when deleting non-existent liability")
     void shouldReturn404_WhenDeletingNonExistentLiability() throws Exception {
         // When/Then
-        mockMvc.perform(delete("/api/v1/liabilities/999999")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        delete("/api/v1/liabilities/999999")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andExpect(status().isNotFound());
     }
 
@@ -497,22 +532,25 @@ class LiabilityControllerIntegrationTest {
         request.setInterestRate(new BigDecimal("12.0"));
         request.setMinimumPayment(new BigDecimal("500.00"));
 
-        String createResp = mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String createResp =
+                mockMvc.perform(
+                                post("/api/v1/liabilities")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
         Long liabilityId = objectMapper.readTree(createResp).get("id").asLong();
 
         // When/Then
-        mockMvc.perform(get("/api/v1/liabilities/" + liabilityId + "/amortization")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/liabilities/" + liabilityId + "/amortization")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(greaterThan(0)))
@@ -534,22 +572,25 @@ class LiabilityControllerIntegrationTest {
         request.setInterestRate(new BigDecimal("12.0"));
         request.setMinimumPayment(new BigDecimal("500.00"));
 
-        String createResp = mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String createResp =
+                mockMvc.perform(
+                                post("/api/v1/liabilities")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
         Long liabilityId = objectMapper.readTree(createResp).get("id").asLong();
 
         // When/Then
-        mockMvc.perform(get("/api/v1/liabilities/" + liabilityId + "/total-interest")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/liabilities/" + liabilityId + "/total-interest")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalInterest").exists())
                 .andExpect(jsonPath("$.totalInterest").value(greaterThan(0.0)));
@@ -571,24 +612,27 @@ class LiabilityControllerIntegrationTest {
         eurRequest.setCurrentBalance(new BigDecimal("30000.00"));
         eurRequest.setCurrency("EUR");
 
-        mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(usdRequest)))
+        mockMvc.perform(
+                        post("/api/v1/liabilities")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(usdRequest)))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/api/v1/liabilities")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(eurRequest)))
+        mockMvc.perform(
+                        post("/api/v1/liabilities")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(eurRequest)))
                 .andExpect(status().isCreated());
 
         // When/Then
-        mockMvc.perform(get("/api/v1/liabilities/total")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/liabilities/total")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.USD").value(50000.00))
                 .andExpect(jsonPath("$.EUR").value(30000.00));
@@ -598,9 +642,10 @@ class LiabilityControllerIntegrationTest {
     @DisplayName("GET /api/v1/liabilities/total - Should return empty map when no liabilities")
     void shouldReturnEmptyMap_WhenNoLiabilitiesForTotal() throws Exception {
         // When/Then
-        mockMvc.perform(get("/api/v1/liabilities/total")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/liabilities/total")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
     }

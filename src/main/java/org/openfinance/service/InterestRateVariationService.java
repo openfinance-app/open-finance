@@ -2,18 +2,15 @@ package org.openfinance.service;
 
 import java.util.List;
 import java.util.stream.Collectors;
-
 import javax.crypto.SecretKey;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.InterestRateVariationRequest;
 import org.openfinance.dto.InterestRateVariationResponse;
 import org.openfinance.entity.InterestRateVariation;
 import org.openfinance.repository.InterestRateVariationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +21,8 @@ public class InterestRateVariationService {
     private final AccountService accountService;
 
     @Transactional(readOnly = true)
-    public List<InterestRateVariationResponse> getVariations(Long accountId, Long userId, SecretKey encryptionKey) {
+    public List<InterestRateVariationResponse> getVariations(
+            Long accountId, Long userId, SecretKey encryptionKey) {
         // Verify account ownership
         accountService.getAccountById(accountId, userId, encryptionKey);
 
@@ -34,29 +32,39 @@ public class InterestRateVariationService {
     }
 
     @Transactional
-    public InterestRateVariationResponse addVariation(Long accountId, Long userId, InterestRateVariationRequest request,
+    public InterestRateVariationResponse addVariation(
+            Long accountId,
+            Long userId,
+            InterestRateVariationRequest request,
             SecretKey encryptionKey) {
         // Verify account ownership
         accountService.getAccountById(accountId, userId, encryptionKey);
 
-        InterestRateVariation variation = InterestRateVariation.builder()
-                .accountId(accountId)
-                .rate(request.getRate())
-                .taxRate(request.getTaxRate() != null ? request.getTaxRate() : java.math.BigDecimal.ZERO)
-                .validFrom(request.getValidFrom())
-                .build();
+        InterestRateVariation variation =
+                InterestRateVariation.builder()
+                        .accountId(accountId)
+                        .rate(request.getRate())
+                        .taxRate(
+                                request.getTaxRate() != null
+                                        ? request.getTaxRate()
+                                        : java.math.BigDecimal.ZERO)
+                        .validFrom(request.getValidFrom())
+                        .build();
 
         variation = variationRepository.save(variation);
         return toResponse(variation);
     }
 
     @Transactional
-    public void deleteVariation(Long accountId, Long variationId, Long userId, SecretKey encryptionKey) {
+    public void deleteVariation(
+            Long accountId, Long variationId, Long userId, SecretKey encryptionKey) {
         // Verify account ownership
         accountService.getAccountById(accountId, userId, encryptionKey);
 
-        InterestRateVariation variation = variationRepository.findById(variationId)
-                .orElseThrow(() -> new IllegalArgumentException("Variation not found"));
+        InterestRateVariation variation =
+                variationRepository
+                        .findById(variationId)
+                        .orElseThrow(() -> new IllegalArgumentException("Variation not found"));
 
         if (!variation.getAccountId().equals(accountId)) {
             throw new IllegalArgumentException("Variation does not belong to this account");

@@ -3,10 +3,11 @@ package org.openfinance.testutil;
 import org.openfinance.dto.UserRegistrationRequest;
 
 /**
- * Test data builder for UserRegistrationRequest DTO.
- * Provides fluent API for creating test registration requests.
+ * Test data builder for UserRegistrationRequest DTO. Provides fluent API for creating test
+ * registration requests.
  *
  * <p>Example usage:
+ *
  * <pre>
  * UserRegistrationRequest request = RegistrationRequestTestBuilder.aRegistrationRequest()
  *     .withUsername("newuser")

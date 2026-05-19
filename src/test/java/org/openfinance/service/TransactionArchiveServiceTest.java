@@ -1,35 +1,28 @@
 package org.openfinance.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.openfinance.service.OperationHistoryService;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.LocalDate;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionArchiveServiceTest {
 
-    @Mock
-    private EntityManager entityManager;
+    @Mock private EntityManager entityManager;
 
-    @Mock
-    private Query query;
+    @Mock private Query query;
 
-    @Mock
-    private OperationHistoryService operationHistoryService;
+    @Mock private OperationHistoryService operationHistoryService;
 
-    @InjectMocks
-    private TransactionArchiveService transactionArchiveService;
+    @InjectMocks private TransactionArchiveService transactionArchiveService;
 
     @Test
     @DisplayName("should archive old transactions for user")

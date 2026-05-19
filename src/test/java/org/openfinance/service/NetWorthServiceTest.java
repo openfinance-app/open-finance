@@ -1,11 +1,19 @@
 package org.openfinance.service;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.openfinance.service.OperationHistoryService;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -16,48 +24,29 @@ import org.openfinance.entity.NetWorth;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.NetWorthRepository;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-
 /**
  * Unit tests for NetWorthService.
- * 
- * Tests cover:
- * - Net worth calculation (assets - liabilities)
- * - Snapshot creation and updates
- * - Historical data retrieval
- * - Monthly change calculation
- * - Edge cases (no data, negative balances, etc.)
+ *
+ * <p>Tests cover: - Net worth calculation (assets - liabilities) - Snapshot creation and updates -
+ * Historical data retrieval - Monthly change calculation - Edge cases (no data, negative balances,
+ * etc.)
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("NetWorthService Unit Tests")
 class NetWorthServiceTest {
 
-    @Mock
-    private NetWorthRepository netWorthRepository;
+    @Mock private NetWorthRepository netWorthRepository;
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
-    @Mock
-    private org.openfinance.repository.AssetRepository assetRepository;
+    @Mock private org.openfinance.repository.AssetRepository assetRepository;
 
-    @Mock
-    private org.openfinance.repository.LiabilityRepository liabilityRepository;
+    @Mock private org.openfinance.repository.LiabilityRepository liabilityRepository;
 
-    @Mock
-    private OperationHistoryService operationHistoryService;
+    @Mock private OperationHistoryService operationHistoryService;
 
-    @InjectMocks
-    private NetWorthService netWorthService;
+    @InjectMocks private NetWorthService netWorthService;
 
     private Long testUserId;
     private LocalDate testDate;
@@ -69,7 +58,8 @@ class NetWorthServiceTest {
 
         // Mock empty lists by default to prevent NullPointerException
         when(assetRepository.findByUserId(any())).thenReturn(java.util.Collections.emptyList());
-        when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(any())).thenReturn(java.util.Collections.emptyList());
+        when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(any()))
+                .thenReturn(java.util.Collections.emptyList());
     }
 
     // ==================== calculateNetWorth Tests ====================
@@ -78,10 +68,11 @@ class NetWorthServiceTest {
     @DisplayName("Should calculate net worth with positive account balances")
     void shouldCalculateNetWorthWithPositiveBalances() {
         // Arrange
-        List<Account> accounts = List.of(
-                createAccount(100L, AccountType.CHECKING, new BigDecimal("1000.00")),
-                createAccount(101L, AccountType.SAVINGS, new BigDecimal("5000.00")),
-                createAccount(102L, AccountType.INVESTMENT, new BigDecimal("10000.00")));
+        List<Account> accounts =
+                List.of(
+                        createAccount(100L, AccountType.CHECKING, new BigDecimal("1000.00")),
+                        createAccount(101L, AccountType.SAVINGS, new BigDecimal("5000.00")),
+                        createAccount(102L, AccountType.INVESTMENT, new BigDecimal("10000.00")));
 
         when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
 
@@ -97,12 +88,15 @@ class NetWorthServiceTest {
     @DisplayName("Should calculate net worth with mixed positive and negative balances")
     void shouldCalculateNetWorthWithMixedBalances() {
         // Arrange
-        List<Account> accounts = List.of(
-                createAccount(100L, AccountType.CHECKING, new BigDecimal("2000.00")),
-                createAccount(101L, AccountType.SAVINGS, new BigDecimal("8000.00")),
-                createAccount(102L, AccountType.CREDIT_CARD, new BigDecimal("-1500.00")), // Debt
-                createAccount(103L, AccountType.CREDIT_CARD, new BigDecimal("-500.00")) // Debt
-        );
+        List<Account> accounts =
+                List.of(
+                        createAccount(100L, AccountType.CHECKING, new BigDecimal("2000.00")),
+                        createAccount(101L, AccountType.SAVINGS, new BigDecimal("8000.00")),
+                        createAccount(
+                                102L, AccountType.CREDIT_CARD, new BigDecimal("-1500.00")), // Debt
+                        createAccount(
+                                103L, AccountType.CREDIT_CARD, new BigDecimal("-500.00")) // Debt
+                        );
 
         when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
 
@@ -130,9 +124,10 @@ class NetWorthServiceTest {
     @DisplayName("Should calculate negative net worth when liabilities exceed assets")
     void shouldCalculateNegativeNetWorth() {
         // Arrange
-        List<Account> accounts = List.of(
-                createAccount(100L, AccountType.CHECKING, new BigDecimal("500.00")),
-                createAccount(101L, AccountType.CREDIT_CARD, new BigDecimal("-3000.00")));
+        List<Account> accounts =
+                List.of(
+                        createAccount(100L, AccountType.CHECKING, new BigDecimal("500.00")),
+                        createAccount(101L, AccountType.CREDIT_CARD, new BigDecimal("-3000.00")));
 
         when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
 
@@ -167,11 +162,15 @@ class NetWorthServiceTest {
     @DisplayName("Should calculate total assets from positive balances only")
     void shouldCalculateTotalAssetsFromPositiveBalances() {
         // Arrange
-        List<Account> accounts = List.of(
-                createAccount(100L, AccountType.CHECKING, new BigDecimal("1500.00")),
-                createAccount(101L, AccountType.SAVINGS, new BigDecimal("3500.00")),
-                createAccount(102L, AccountType.CREDIT_CARD, new BigDecimal("-1000.00")) // Should be excluded
-        );
+        List<Account> accounts =
+                List.of(
+                        createAccount(100L, AccountType.CHECKING, new BigDecimal("1500.00")),
+                        createAccount(101L, AccountType.SAVINGS, new BigDecimal("3500.00")),
+                        createAccount(
+                                102L,
+                                AccountType.CREDIT_CARD,
+                                new BigDecimal("-1000.00")) // Should be excluded
+                        );
 
         when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
 
@@ -188,10 +187,14 @@ class NetWorthServiceTest {
     @DisplayName("Should calculate total liabilities from negative balances")
     void shouldCalculateTotalLiabilitiesFromNegativeBalances() {
         // Arrange
-        List<Account> accounts = List.of(
-                createAccount(100L, AccountType.CHECKING, new BigDecimal("2000.00")), // Should be excluded
-                createAccount(101L, AccountType.CREDIT_CARD, new BigDecimal("-1200.00")),
-                createAccount(102L, AccountType.CREDIT_CARD, new BigDecimal("-800.00")));
+        List<Account> accounts =
+                List.of(
+                        createAccount(
+                                100L,
+                                AccountType.CHECKING,
+                                new BigDecimal("2000.00")), // Should be excluded
+                        createAccount(101L, AccountType.CREDIT_CARD, new BigDecimal("-1200.00")),
+                        createAccount(102L, AccountType.CREDIT_CARD, new BigDecimal("-800.00")));
 
         when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
 
@@ -206,9 +209,10 @@ class NetWorthServiceTest {
     @DisplayName("Should calculate zero liabilities when no negative balances exist")
     void shouldCalculateZeroLiabilitiesWhenNoNegativeBalances() {
         // Arrange
-        List<Account> accounts = List.of(
-                createAccount(100L, AccountType.CHECKING, new BigDecimal("1000.00")),
-                createAccount(101L, AccountType.SAVINGS, new BigDecimal("5000.00")));
+        List<Account> accounts =
+                List.of(
+                        createAccount(100L, AccountType.CHECKING, new BigDecimal("1000.00")),
+                        createAccount(101L, AccountType.SAVINGS, new BigDecimal("5000.00")));
 
         when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
 
@@ -225,15 +229,21 @@ class NetWorthServiceTest {
     @DisplayName("Should create new snapshot when none exists for date")
     void shouldCreateNewSnapshotWhenNoneExists() {
         // Arrange
-        List<Account> accounts = List.of(
-                createAccount(100L, AccountType.CHECKING, new BigDecimal("5000.00")));
+        List<Account> accounts =
+                List.of(createAccount(100L, AccountType.CHECKING, new BigDecimal("5000.00")));
 
         when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
         when(netWorthRepository.findByUserIdAndSnapshotDate(testUserId, testDate))
                 .thenReturn(Optional.empty());
 
-        NetWorth savedSnapshot = createNetWorth(1L, testUserId, testDate,
-                new BigDecimal("5000.00"), BigDecimal.ZERO, new BigDecimal("5000.00"));
+        NetWorth savedSnapshot =
+                createNetWorth(
+                        1L,
+                        testUserId,
+                        testDate,
+                        new BigDecimal("5000.00"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("5000.00"));
 
         when(netWorthRepository.save(any(NetWorth.class))).thenReturn(savedSnapshot);
 
@@ -255,18 +265,30 @@ class NetWorthServiceTest {
     @DisplayName("Should update existing snapshot when one exists for date")
     void shouldUpdateExistingSnapshotWhenExists() {
         // Arrange
-        List<Account> accounts = List.of(
-                createAccount(100L, AccountType.CHECKING, new BigDecimal("7000.00")));
+        List<Account> accounts =
+                List.of(createAccount(100L, AccountType.CHECKING, new BigDecimal("7000.00")));
 
-        NetWorth existingSnapshot = createNetWorth(1L, testUserId, testDate,
-                new BigDecimal("5000.00"), BigDecimal.ZERO, new BigDecimal("5000.00"));
+        NetWorth existingSnapshot =
+                createNetWorth(
+                        1L,
+                        testUserId,
+                        testDate,
+                        new BigDecimal("5000.00"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("5000.00"));
 
         when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
         when(netWorthRepository.findByUserIdAndSnapshotDate(testUserId, testDate))
                 .thenReturn(Optional.of(existingSnapshot));
 
-        NetWorth updatedSnapshot = createNetWorth(1L, testUserId, testDate,
-                new BigDecimal("7000.00"), BigDecimal.ZERO, new BigDecimal("7000.00"));
+        NetWorth updatedSnapshot =
+                createNetWorth(
+                        1L,
+                        testUserId,
+                        testDate,
+                        new BigDecimal("7000.00"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("7000.00"));
 
         when(netWorthRepository.save(any(NetWorth.class))).thenReturn(updatedSnapshot);
 
@@ -286,15 +308,21 @@ class NetWorthServiceTest {
     void shouldSaveSnapshotForCurrentDate() {
         // Arrange
         LocalDate today = LocalDate.now();
-        List<Account> accounts = List.of(
-                createAccount(100L, AccountType.CHECKING, new BigDecimal("3000.00")));
+        List<Account> accounts =
+                List.of(createAccount(100L, AccountType.CHECKING, new BigDecimal("3000.00")));
 
         when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
         when(netWorthRepository.findByUserIdAndSnapshotDate(eq(testUserId), any(LocalDate.class)))
                 .thenReturn(Optional.empty());
 
-        NetWorth savedSnapshot = createNetWorth(1L, testUserId, today,
-                new BigDecimal("3000.00"), BigDecimal.ZERO, new BigDecimal("3000.00"));
+        NetWorth savedSnapshot =
+                createNetWorth(
+                        1L,
+                        testUserId,
+                        today,
+                        new BigDecimal("3000.00"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("3000.00"));
 
         when(netWorthRepository.save(any(NetWorth.class))).thenReturn(savedSnapshot);
 
@@ -316,13 +344,29 @@ class NetWorthServiceTest {
         LocalDate startDate = LocalDate.of(2026, 1, 1);
         LocalDate endDate = LocalDate.of(2026, 1, 31);
 
-        List<NetWorth> history = List.of(
-                createNetWorth(1L, testUserId, LocalDate.of(2026, 1, 1),
-                        new BigDecimal("5000.00"), BigDecimal.ZERO, new BigDecimal("5000.00")),
-                createNetWorth(2L, testUserId, LocalDate.of(2026, 1, 15),
-                        new BigDecimal("6000.00"), BigDecimal.ZERO, new BigDecimal("6000.00")),
-                createNetWorth(3L, testUserId, LocalDate.of(2026, 1, 31),
-                        new BigDecimal("7000.00"), BigDecimal.ZERO, new BigDecimal("7000.00")));
+        List<NetWorth> history =
+                List.of(
+                        createNetWorth(
+                                1L,
+                                testUserId,
+                                LocalDate.of(2026, 1, 1),
+                                new BigDecimal("5000.00"),
+                                BigDecimal.ZERO,
+                                new BigDecimal("5000.00")),
+                        createNetWorth(
+                                2L,
+                                testUserId,
+                                LocalDate.of(2026, 1, 15),
+                                new BigDecimal("6000.00"),
+                                BigDecimal.ZERO,
+                                new BigDecimal("6000.00")),
+                        createNetWorth(
+                                3L,
+                                testUserId,
+                                LocalDate.of(2026, 1, 31),
+                                new BigDecimal("7000.00"),
+                                BigDecimal.ZERO,
+                                new BigDecimal("7000.00")));
 
         when(netWorthRepository.findByUserIdAndDateRange(testUserId, startDate, endDate))
                 .thenReturn(history);
@@ -358,8 +402,14 @@ class NetWorthServiceTest {
     @DisplayName("Should retrieve latest net worth snapshot")
     void shouldRetrieveLatestNetWorth() {
         // Arrange
-        NetWorth latestSnapshot = createNetWorth(5L, testUserId, testDate,
-                new BigDecimal("10000.00"), new BigDecimal("2000.00"), new BigDecimal("8000.00"));
+        NetWorth latestSnapshot =
+                createNetWorth(
+                        5L,
+                        testUserId,
+                        testDate,
+                        new BigDecimal("10000.00"),
+                        new BigDecimal("2000.00"),
+                        new BigDecimal("8000.00"));
 
         when(netWorthRepository.findLatestByUserId(testUserId))
                 .thenReturn(Optional.of(latestSnapshot));
@@ -394,10 +444,22 @@ class NetWorthServiceTest {
     @DisplayName("Should calculate monthly change with positive growth")
     void shouldCalculateMonthlyChangeWithPositiveGrowth() {
         // Arrange
-        NetWorth currentSnapshot = createNetWorth(2L, testUserId, testDate,
-                new BigDecimal("12000.00"), BigDecimal.ZERO, new BigDecimal("12000.00"));
-        NetWorth previousSnapshot = createNetWorth(1L, testUserId, testDate.minusMonths(1),
-                new BigDecimal("10000.00"), BigDecimal.ZERO, new BigDecimal("10000.00"));
+        NetWorth currentSnapshot =
+                createNetWorth(
+                        2L,
+                        testUserId,
+                        testDate,
+                        new BigDecimal("12000.00"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("12000.00"));
+        NetWorth previousSnapshot =
+                createNetWorth(
+                        1L,
+                        testUserId,
+                        testDate.minusMonths(1),
+                        new BigDecimal("10000.00"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("10000.00"));
 
         when(netWorthRepository.findLatestByUserId(testUserId))
                 .thenReturn(Optional.of(currentSnapshot));
@@ -416,10 +478,22 @@ class NetWorthServiceTest {
     @DisplayName("Should calculate monthly change with negative growth")
     void shouldCalculateMonthlyChangeWithNegativeGrowth() {
         // Arrange
-        NetWorth currentSnapshot = createNetWorth(2L, testUserId, testDate,
-                new BigDecimal("8000.00"), BigDecimal.ZERO, new BigDecimal("8000.00"));
-        NetWorth previousSnapshot = createNetWorth(1L, testUserId, testDate.minusMonths(1),
-                new BigDecimal("10000.00"), BigDecimal.ZERO, new BigDecimal("10000.00"));
+        NetWorth currentSnapshot =
+                createNetWorth(
+                        2L,
+                        testUserId,
+                        testDate,
+                        new BigDecimal("8000.00"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("8000.00"));
+        NetWorth previousSnapshot =
+                createNetWorth(
+                        1L,
+                        testUserId,
+                        testDate.minusMonths(1),
+                        new BigDecimal("10000.00"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("10000.00"));
 
         when(netWorthRepository.findLatestByUserId(testUserId))
                 .thenReturn(Optional.of(currentSnapshot));
@@ -452,8 +526,14 @@ class NetWorthServiceTest {
     @DisplayName("Should return zero change when no previous snapshot exists")
     void shouldReturnZeroChangeWhenNoPreviousSnapshot() {
         // Arrange
-        NetWorth currentSnapshot = createNetWorth(1L, testUserId, testDate,
-                new BigDecimal("10000.00"), BigDecimal.ZERO, new BigDecimal("10000.00"));
+        NetWorth currentSnapshot =
+                createNetWorth(
+                        1L,
+                        testUserId,
+                        testDate,
+                        new BigDecimal("10000.00"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("10000.00"));
 
         when(netWorthRepository.findLatestByUserId(testUserId))
                 .thenReturn(Optional.of(currentSnapshot));
@@ -477,7 +557,8 @@ class NetWorthServiceTest {
     void shouldCleanupOldSnapshotsBeyondRetentionPeriod() {
         // Arrange
         int retentionDays = 730; // 2 years
-        when(netWorthRepository.deleteByUserIdAndSnapshotDateBefore(eq(testUserId), any(LocalDate.class)))
+        when(netWorthRepository.deleteByUserIdAndSnapshotDateBefore(
+                        eq(testUserId), any(LocalDate.class)))
                 .thenReturn(15);
 
         // Act
@@ -485,7 +566,8 @@ class NetWorthServiceTest {
 
         // Assert
         assertThat(deletedCount).isEqualTo(15);
-        verify(netWorthRepository).deleteByUserIdAndSnapshotDateBefore(eq(testUserId), any(LocalDate.class));
+        verify(netWorthRepository)
+                .deleteByUserIdAndSnapshotDateBefore(eq(testUserId), any(LocalDate.class));
     }
 
     @Test
@@ -511,8 +593,12 @@ class NetWorthServiceTest {
                 .build();
     }
 
-    private NetWorth createNetWorth(Long id, Long userId, LocalDate date,
-            BigDecimal totalAssets, BigDecimal totalLiabilities,
+    private NetWorth createNetWorth(
+            Long id,
+            Long userId,
+            LocalDate date,
+            BigDecimal totalAssets,
+            BigDecimal totalLiabilities,
             BigDecimal netWorth) {
         return NetWorth.builder()
                 .id(id)

@@ -2,19 +2,19 @@
 
 package org.openfinance.security;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Unit tests for PasswordService.
- * 
+ *
  * <p>Tests password hashing, validation, and rehashing functionality using BCrypt.
- * 
+ *
  * @author Open-Finance Development Team
  * @version 1.0
  * @since 2026-01-30
@@ -42,7 +42,8 @@ class PasswordServiceTest {
 
         // Then
         assertNotNull(hashedPassword, "Hashed password should not be null");
-        assertNotEquals(plainPassword, hashedPassword, "Hashed password should differ from plain password");
+        assertNotEquals(
+                plainPassword, hashedPassword, "Hashed password should differ from plain password");
         assertTrue(hashedPassword.startsWith("$2a$"), "BCrypt hash should start with $2a$");
         assertEquals(60, hashedPassword.length(), "BCrypt hash should be 60 characters");
     }
@@ -58,7 +59,8 @@ class PasswordServiceTest {
         String hash2 = passwordService.hashPassword(plainPassword);
 
         // Then
-        assertNotEquals(hash1, hash2, "Two hashes of same password should be different (unique salts)");
+        assertNotEquals(
+                hash1, hash2, "Two hashes of same password should be different (unique salts)");
     }
 
     @Test
@@ -94,27 +96,36 @@ class PasswordServiceTest {
     @DisplayName("Should throw exception when hashing null password")
     void shouldThrowExceptionWhenHashingNullPassword() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            passwordService.hashPassword(null);
-        }, "Hashing null password should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    passwordService.hashPassword(null);
+                },
+                "Hashing null password should throw IllegalArgumentException");
     }
 
     @Test
     @DisplayName("Should throw exception when hashing empty password")
     void shouldThrowExceptionWhenHashingEmptyPassword() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            passwordService.hashPassword("");
-        }, "Hashing empty password should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    passwordService.hashPassword("");
+                },
+                "Hashing empty password should throw IllegalArgumentException");
     }
 
     @Test
     @DisplayName("Should throw exception when hashing whitespace-only password")
     void shouldThrowExceptionWhenHashingWhitespacePassword() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            passwordService.hashPassword("   ");
-        }, "Hashing whitespace-only password should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    passwordService.hashPassword("   ");
+                },
+                "Hashing whitespace-only password should throw IllegalArgumentException");
     }
 
     @Test
@@ -124,18 +135,24 @@ class PasswordServiceTest {
         String hashedPassword = passwordService.hashPassword("SomePassword");
 
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            passwordService.validatePassword(null, hashedPassword);
-        }, "Validating with null plain password should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    passwordService.validatePassword(null, hashedPassword);
+                },
+                "Validating with null plain password should throw IllegalArgumentException");
     }
 
     @Test
     @DisplayName("Should throw exception when validating with null hashed password")
     void shouldThrowExceptionWhenValidatingWithNullHashedPassword() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            passwordService.validatePassword("SomePassword", null);
-        }, "Validating with null hashed password should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    passwordService.validatePassword("SomePassword", null);
+                },
+                "Validating with null hashed password should throw IllegalArgumentException");
     }
 
     @Test
@@ -236,9 +253,12 @@ class PasswordServiceTest {
     @DisplayName("Should throw exception when constructed with null encoder")
     void shouldThrowExceptionWhenConstructedWithNullEncoder() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            new PasswordService(null);
-        }, "Constructing with null encoder should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    new PasswordService(null);
+                },
+                "Constructing with null encoder should throw IllegalArgumentException");
     }
 
     @Test
@@ -262,6 +282,8 @@ class PasswordServiceTest {
 
         // Then - times should be similar (within 50% variance)
         double ratio = (double) Math.max(time1, time2) / Math.min(time1, time2);
-        assertTrue(ratio < 1.5, "Validation time should not vary significantly based on password content");
+        assertTrue(
+                ratio < 1.5,
+                "Validation time should not vary significantly based on password content");
     }
 }

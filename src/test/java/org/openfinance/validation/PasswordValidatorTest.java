@@ -1,5 +1,7 @@
 package org.openfinance.validation;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,14 +10,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class PasswordValidatorTest {
 
     private PasswordValidator validator;
 
-    @Mock
-    private ConstraintValidatorContext context;
+    @Mock private ConstraintValidatorContext context;
 
     @BeforeEach
     void setUp() {
@@ -87,11 +86,7 @@ class PasswordValidatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "LongPasswordWith1!",
-        "P@ssw0rd2026",
-        "OpenFinance#1"
-    })
+    @ValueSource(strings = {"LongPasswordWith1!", "P@ssw0rd2026", "OpenFinance#1"})
     void shouldReturnTrueForVariousValidPasswords(String password) {
         assertTrue(validator.isValid(password, context));
     }

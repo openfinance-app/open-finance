@@ -3,29 +3,22 @@ package org.openfinance.entity;
 /**
  * Enum representing the type/category of financial insight.
  *
- * <p>
- * Each type corresponds to a different aspect of financial analysis:
- * </p>
+ * <p>Each type corresponds to a different aspect of financial analysis:
+ *
  * <ul>
- * <li><strong>SPENDING_ANOMALY</strong>: Unusual spending patterns detected
- * (e.g., 50% increase in category)</li>
- * <li><strong>BUDGET_WARNING</strong>: Budget limits approaching or
- * exceeded</li>
- * <li><strong>BUDGET_RECOMMENDATION</strong>: Suggestions for budget
- * adjustments based on actual spending</li>
- * <li><strong>SAVINGS_OPPORTUNITY</strong>: Potential areas to reduce spending
- * or optimize subscriptions</li>
- * <li><strong>INVESTMENT_SUGGESTION</strong>: Portfolio rebalancing or
- * investment recommendations</li>
- * <li><strong>DEBT_ALERT</strong>: High-interest debt or payment
- * opportunities</li>
- * <li><strong>CASH_FLOW_WARNING</strong>: Potential cash flow issues or low
- * balance alerts</li>
- * <li><strong>TAX_OPTIMIZATION</strong>: Tax-advantaged savings or deduction
- * opportunities</li>
- * <li><strong>GOAL_PROGRESS</strong>: Progress updates toward financial
- * goals</li>
- * <li><strong>GENERAL_TIP</strong>: General financial advice or education</li>
+ *   <li><strong>SPENDING_ANOMALY</strong>: Unusual spending patterns detected (e.g., 50% increase
+ *       in category)
+ *   <li><strong>BUDGET_WARNING</strong>: Budget limits approaching or exceeded
+ *   <li><strong>BUDGET_RECOMMENDATION</strong>: Suggestions for budget adjustments based on actual
+ *       spending
+ *   <li><strong>SAVINGS_OPPORTUNITY</strong>: Potential areas to reduce spending or optimize
+ *       subscriptions
+ *   <li><strong>INVESTMENT_SUGGESTION</strong>: Portfolio rebalancing or investment recommendations
+ *   <li><strong>DEBT_ALERT</strong>: High-interest debt or payment opportunities
+ *   <li><strong>CASH_FLOW_WARNING</strong>: Potential cash flow issues or low balance alerts
+ *   <li><strong>TAX_OPTIMIZATION</strong>: Tax-advantaged savings or deduction opportunities
+ *   <li><strong>GOAL_PROGRESS</strong>: Progress updates toward financial goals
+ *   <li><strong>GENERAL_TIP</strong>: General financial advice or education
  * </ul>
  *
  * @since Sprint 11 - AI Assistant Integration (Task 11.4)
@@ -33,13 +26,10 @@ package org.openfinance.entity;
 public enum InsightType {
 
     /**
-     * Unusual spending pattern detected (e.g., 50% increase in restaurant
-     * spending).
+     * Unusual spending pattern detected (e.g., 50% increase in restaurant spending).
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "Your restaurant spending is 45% higher than last month ($520 vs $360)"
      * </pre>
@@ -49,10 +39,8 @@ public enum InsightType {
     /**
      * Budget limit approaching or exceeded.
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "You've spent 85% of your grocery budget for this month"
      * "You've exceeded your entertainment budget by $120"
@@ -63,10 +51,8 @@ public enum InsightType {
     /**
      * Suggestion to adjust budget based on actual spending patterns.
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "Your utilities spending averages $150/month. Consider increasing your $100 budget."
      * </pre>
@@ -76,10 +62,8 @@ public enum InsightType {
     /**
      * Opportunity to save money by reducing or optimizing spending.
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "You have 3 streaming services costing $45/month. Consider consolidating."
      * "Your gym membership hasn't been used in 3 months. Consider canceling."
@@ -90,10 +74,8 @@ public enum InsightType {
     /**
      * Investment or portfolio recommendation.
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "Your portfolio is 80% stocks. Consider rebalancing to reduce risk."
      * </pre>
@@ -103,10 +85,8 @@ public enum InsightType {
     /**
      * Alert about high-interest debt or payment opportunities.
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "Your credit card has a $2,500 balance at 19.9% APR. Consider paying down."
      * </pre>
@@ -116,10 +96,8 @@ public enum InsightType {
     /**
      * Warning about potential cash flow issues or low balances.
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "Your checking account balance is lower than usual. Upcoming bills may cause overdraft."
      * </pre>
@@ -129,10 +107,8 @@ public enum InsightType {
     /**
      * Tax-advantaged savings or deduction opportunity.
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "You're eligible for up to $3,000 more in IRA contributions this year."
      * </pre>
@@ -142,10 +118,8 @@ public enum InsightType {
     /**
      * Progress update toward a financial goal.
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "You're 75% toward your vacation fund goal of $3,000!"
      * </pre>
@@ -155,10 +129,8 @@ public enum InsightType {
     /**
      * General financial tip or educational content.
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "Did you know? The 50/30/20 rule suggests 50% needs, 30% wants, 20% savings."
      * </pre>
@@ -166,39 +138,32 @@ public enum InsightType {
     GENERAL_TIP("General Tip", "General financial advice"),
 
     /**
-     * An unusual or potentially fraudulent transaction detected by the daily
-     * anomaly-detection scheduler.
+     * An unusual or potentially fraudulent transaction detected by the daily anomaly-detection
+     * scheduler.
      *
-     * <p>
-     * <strong>Triggers:</strong>
-     * </p>
+     * <p><strong>Triggers:</strong>
+     *
      * <ul>
-     * <li>First-time payee — new merchant/payer never seen before for this
-     * user</li>
-     * <li>Unusually large amount — amount exceeds mean + 2.5 × std-dev for this
-     * payee</li>
-     * <li>Amount 3× the payee average — even without enough history to compute
-     * std-dev</li>
+     *   <li>First-time payee — new merchant/payer never seen before for this user
+     *   <li>Unusually large amount — amount exceeds mean + 2.5 × std-dev for this payee
+     *   <li>Amount 3× the payee average — even without enough history to compute std-dev
      * </ul>
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "A transaction of 850.00 EUR to 'ACME Corp' is the first time this payee appears."
      * "A transaction of 1,200.00 USD to 'Netflix' is 420% higher than your usual amount."
      * </pre>
      */
-    UNUSUAL_TRANSACTION("Unusual Transaction", "Potentially unusual or suspicious transaction detected"),
+    UNUSUAL_TRANSACTION(
+            "Unusual Transaction", "Potentially unusual or suspicious transaction detected"),
 
     /**
      * Comparison of user's income or net worth against regional/country averages.
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "Your monthly income of $5,200 is 15% above the national median for the United States ($4,500)."
      * "Your net worth of $120,000 is in the top 40% for your age group in France."
@@ -209,10 +174,8 @@ public enum InsightType {
     /**
      * Estimated annual tax liability with potential deductions and credits.
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "Based on your annual income of $62,400, your estimated tax liability is $9,800."
      * "You may be eligible for $1,200 in deductions from charitable donations."
@@ -223,16 +186,16 @@ public enum InsightType {
     /**
      * Analysis of recurring subscriptions and bills with competitor pricing suggestions.
      *
-     * <p>
-     * <strong>Example:</strong>
-     * </p>
-     * 
+     * <p><strong>Example:</strong>
+     *
      * <pre>
      * "You have 5 recurring subscriptions totaling $89/month. Your streaming services alone cost $45/month."
      * "Consider switching your internet plan — competitors offer similar speeds for $20/month less."
      * </pre>
      */
-    RECURRING_BILLING("Recurring Billing", "Recurring subscription and billing analysis with competitor pricing");
+    RECURRING_BILLING(
+            "Recurring Billing",
+            "Recurring subscription and billing analysis with competitor pricing");
 
     private final String displayName;
     private final String description;

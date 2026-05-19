@@ -1,5 +1,8 @@
 package org.openfinance.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -9,7 +12,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.entity.Category;
 import org.openfinance.entity.CategoryType;
@@ -22,21 +26,11 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * AI-powered transaction categorization using the configured LLM provider.
  *
- * <p>
- * Designed as a last-resort tier in the import categorization pipeline.
- * Sends uncategorized transactions in batches to the AI and maps responses
- * back to user categories.
- * </p>
+ * <p>Designed as a last-resort tier in the import categorization pipeline. Sends uncategorized
+ * transactions in batches to the AI and maps responses back to user categories.
  *
  * @since 1.0
  */
@@ -57,13 +51,12 @@ public class AICategorizationService {
     private final MessageSource messageSource;
 
     /**
-     * Asynchronously categorize uncategorized transactions for an import session.
-     * Loads the session, runs AI categorization, and persists results back.
-     * Called after reviewTransactions() returns to the frontend, so it doesn't
-     * block the HTTP response.
+     * Asynchronously categorize uncategorized transactions for an import session. Loads the
+     * session, runs AI categorization, and persists results back. Called after reviewTransactions()
+     * returns to the frontend, so it doesn't block the HTTP response.
      *
      * @param sessionId the import session ID
-     * @param userId    the user ID (for loading categories)
+     * @param userId the user ID (for loading categories)
      */
     @Async("taskExecutor")
     public void categorizeSessionAsync(Long sessionId, Long userId) {
@@ -85,11 +78,18 @@ public class AICategorizationService {
             categorizeWithAI(transactions, userCategories);
 
             // Check if any transactions were categorized
-            boolean anyCategorized = transactions.stream()
-                    .anyMatch(tx -> tx.getCategory() != null && !tx.getCategory().trim().isEmpty()
-                            && tx.getValidationErrors() != null
-                            && tx.getValidationErrors().stream()
-                                    .anyMatch(e -> e.startsWith("AI-CATEGORIZED:")));
+            boolean anyCategorized =
+                    transactions.stream()
+                            .anyMatch(
+                                    tx ->
+                                            tx.getCategory() != null
+                                                    && !tx.getCategory().trim().isEmpty()
+                                                    && tx.getValidationErrors() != null
+                                                    && tx.getValidationErrors().stream()
+                                                            .anyMatch(
+                                                                    e ->
+                                                                            e.startsWith(
+                                                                                    "AI-CATEGORIZED:")));
 
             if (anyCategorized) {
                 // Re-read session to get fresh state before updating
@@ -102,37 +102,43 @@ public class AICategorizationService {
                 BigDecimal ledgerBalance = BigDecimal.ZERO;
                 String fileCurrency = "USD";
                 try {
-                    Map<String, Object> metadataMap = objectMapper.readValue(
-                            session.getMetadata(), new TypeReference<Map<String, Object>>() {
-                            });
+                    Map<String, Object> metadataMap =
+                            objectMapper.readValue(
+                                    session.getMetadata(),
+                                    new TypeReference<Map<String, Object>>() {});
                     if (metadataMap.containsKey("ledgerBalance")) {
                         ledgerBalance = new BigDecimal(metadataMap.get("ledgerBalance").toString());
                     }
-                    if (metadataMap.containsKey("fileCurrency") && metadataMap.get("fileCurrency") != null) {
+                    if (metadataMap.containsKey("fileCurrency")
+                            && metadataMap.get("fileCurrency") != null) {
                         fileCurrency = metadataMap.get("fileCurrency").toString();
                     }
                 } catch (Exception e) {
-                    log.warn("Error extracting metadata during AI categorization: {}", e.getMessage());
+                    log.warn(
+                            "Error extracting metadata during AI categorization: {}",
+                            e.getMessage());
                 }
 
-                session.setMetadata(serializeTransactions(transactions, ledgerBalance, fileCurrency));
+                session.setMetadata(
+                        serializeTransactions(transactions, ledgerBalance, fileCurrency));
                 importSessionRepository.save(session);
                 log.info("AI categorization persisted for session: {}", sessionId);
             }
         } catch (Exception e) {
-            log.warn("Async AI categorization failed for session {}: {}", sessionId, e.getMessage());
+            log.warn(
+                    "Async AI categorization failed for session {}: {}", sessionId, e.getMessage());
         }
     }
 
     /**
-     * Categorize uncategorized transactions using AI.
-     * Only processes transactions that have no category assigned.
+     * Categorize uncategorized transactions using AI. Only processes transactions that have no
+     * category assigned.
      *
-     * @param transactions   the full list of imported transactions (modified in
-     *                       place)
+     * @param transactions the full list of imported transactions (modified in place)
      * @param userCategories the user's available categories
      */
-    public void categorizeWithAI(List<ImportedTransaction> transactions, List<Category> userCategories) {
+    public void categorizeWithAI(
+            List<ImportedTransaction> transactions, List<Category> userCategories) {
         // Check AI availability first
         Boolean available = aiProvider.isAvailable().block(Duration.ofSeconds(3));
         if (!Boolean.TRUE.equals(available)) {
@@ -154,8 +160,10 @@ public class AICategorizationService {
             return;
         }
 
-        log.info("AI categorization: processing {} uncategorized transactions with {} user categories",
-                uncategorizedIndices.size(), userCategories.size());
+        log.info(
+                "AI categorization: processing {} uncategorized transactions with {} user categories",
+                uncategorizedIndices.size(),
+                userCategories.size());
 
         if (userCategories.isEmpty()) {
             log.info("No user categories available — skipping AI categorization");
@@ -163,19 +171,25 @@ public class AICategorizationService {
         }
 
         // Separate categories by type for targeted prompts
-        List<Category> incomeCategories = userCategories.stream()
-                .filter(c -> c.getType() == CategoryType.INCOME)
-                .collect(Collectors.toList());
-        List<Category> expenseCategories = userCategories.stream()
-                .filter(c -> c.getType() == CategoryType.EXPENSE)
-                .collect(Collectors.toList());
+        List<Category> incomeCategories =
+                userCategories.stream()
+                        .filter(c -> c.getType() == CategoryType.INCOME)
+                        .collect(Collectors.toList());
+        List<Category> expenseCategories =
+                userCategories.stream()
+                        .filter(c -> c.getType() == CategoryType.EXPENSE)
+                        .collect(Collectors.toList());
 
         // Process in batches with a total time budget
         long startTime = System.currentTimeMillis();
         int categorized = 0;
-        for (int batchStart = 0; batchStart < uncategorizedIndices.size(); batchStart += BATCH_SIZE) {
+        for (int batchStart = 0;
+                batchStart < uncategorizedIndices.size();
+                batchStart += BATCH_SIZE) {
             if (System.currentTimeMillis() - startTime > TOTAL_BUDGET_MS) {
-                log.info("AI categorization time budget exhausted after {} items categorized", categorized);
+                log.info(
+                        "AI categorization time budget exhausted after {} items categorized",
+                        categorized);
                 break;
             }
 
@@ -183,18 +197,29 @@ public class AICategorizationService {
             List<Integer> batchIndices = uncategorizedIndices.subList(batchStart, batchEnd);
 
             try {
-                categorized += processBatch(transactions, batchIndices, incomeCategories, expenseCategories);
+                categorized +=
+                        processBatch(
+                                transactions, batchIndices, incomeCategories, expenseCategories);
             } catch (Exception e) {
-                log.warn("AI categorization batch failed (items {}-{}): {}",
-                        batchStart, batchEnd - 1, e.getMessage());
+                log.warn(
+                        "AI categorization batch failed (items {}-{}): {}",
+                        batchStart,
+                        batchEnd - 1,
+                        e.getMessage());
             }
         }
-        log.info("AI categorization completed: {}/{} transactions categorized in {} ms",
-                categorized, uncategorizedIndices.size(), System.currentTimeMillis() - startTime);
+        log.info(
+                "AI categorization completed: {}/{} transactions categorized in {} ms",
+                categorized,
+                uncategorizedIndices.size(),
+                System.currentTimeMillis() - startTime);
     }
 
-    private int processBatch(List<ImportedTransaction> transactions, List<Integer> indices,
-            List<Category> incomeCategories, List<Category> expenseCategories) {
+    private int processBatch(
+            List<ImportedTransaction> transactions,
+            List<Integer> indices,
+            List<Category> incomeCategories,
+            List<Category> expenseCategories) {
 
         int batchSize = indices.size();
         Locale locale = LocaleContextHolder.getLocale();
@@ -224,8 +249,9 @@ public class AICategorizationService {
         // Add parent categories that have no children as fallback
         for (Category parent : incomeCategories) {
             if (parent.getParentId() == null) {
-                boolean hasChildren = incomeCategories.stream()
-                        .anyMatch(child -> parent.getId().equals(child.getParentId()));
+                boolean hasChildren =
+                        incomeCategories.stream()
+                                .anyMatch(child -> parent.getId().equals(child.getParentId()));
                 if (!hasChildren) {
                     String displayName = resolveDisplayName(parent, locale);
                     incomeCategoryNames.add(displayName);
@@ -235,8 +261,9 @@ public class AICategorizationService {
         }
         for (Category parent : expenseCategories) {
             if (parent.getParentId() == null) {
-                boolean hasChildren = expenseCategories.stream()
-                        .anyMatch(child -> parent.getId().equals(child.getParentId()));
+                boolean hasChildren =
+                        expenseCategories.stream()
+                                .anyMatch(child -> parent.getId().equals(child.getParentId()));
                 if (!hasChildren) {
                     String displayName = resolveDisplayName(parent, locale);
                     expenseCategoryNames.add(displayName);
@@ -247,8 +274,10 @@ public class AICategorizationService {
 
         // Build prompt with category type sections and transaction amounts
         StringBuilder prompt = new StringBuilder();
-        prompt.append("Categorize each transaction using ONLY a category name from the lists below.\n");
-        prompt.append("If amount is positive, pick from [REVENUS]. If amount is negative, pick from [DEPENSES].\n");
+        prompt.append(
+                "Categorize each transaction using ONLY a category name from the lists below.\n");
+        prompt.append(
+                "If amount is positive, pick from [REVENUS]. If amount is negative, pick from [DEPENSES].\n");
         prompt.append("Reply with ONE JSON array containing ALL transactions:\n");
         prompt.append("[{\"index\":1,\"category\":\"")
                 .append(expenseCategoryNames.size() > 0 ? expenseCategoryNames.get(0) : "Groceries")
@@ -265,7 +294,8 @@ public class AICategorizationService {
             String payee = tx.getPayee() != null ? tx.getPayee() : "Unknown";
             String memo = tx.getMemo() != null ? tx.getMemo() : "";
             BigDecimal amount = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
-            prompt.append(String.format("%d. %s %s [%s]\n", i + 1, payee, memo, amount.toPlainString()));
+            prompt.append(
+                    String.format("%d. %s %s [%s]\n", i + 1, payee, memo, amount.toPlainString()));
         }
 
         prompt.append("\nJSON:");
@@ -285,21 +315,24 @@ public class AICategorizationService {
     }
 
     /**
-     * Resolve the display name for a category in the given locale.
-     * System categories use their nameKey for i18n; user categories use their
-     * stored name.
+     * Resolve the display name for a category in the given locale. System categories use their
+     * nameKey for i18n; user categories use their stored name.
      */
     private String resolveDisplayName(Category category, Locale locale) {
         if (Boolean.TRUE.equals(category.getIsSystem())
                 && category.getNameKey() != null
                 && !category.getNameKey().isBlank()) {
-            return messageSource.getMessage(category.getNameKey(), null, category.getName(), locale);
+            return messageSource.getMessage(
+                    category.getNameKey(), null, category.getName(), locale);
         }
         return category.getName();
     }
 
-    private int applyAIResults(List<ImportedTransaction> transactions, List<Integer> indices,
-            String response, Map<String, String> displayNameMap) {
+    private int applyAIResults(
+            List<ImportedTransaction> transactions,
+            List<Integer> indices,
+            String response,
+            Map<String, String> displayNameMap) {
 
         int count = 0;
         try {
@@ -320,12 +353,14 @@ public class AICategorizationService {
         return count;
     }
 
-    private int parseAsObjectArray(String json, List<ImportedTransaction> transactions,
-            List<Integer> indices, Map<String, String> displayNameMap) {
+    private int parseAsObjectArray(
+            String json,
+            List<ImportedTransaction> transactions,
+            List<Integer> indices,
+            Map<String, String> displayNameMap) {
         try {
-            List<Map<String, Object>> results = objectMapper.readValue(
-                    json, new TypeReference<List<Map<String, Object>>>() {
-                    });
+            List<Map<String, Object>> results =
+                    objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
 
             int count = 0;
             for (Map<String, Object> result : results) {
@@ -338,9 +373,10 @@ public class AICategorizationService {
 
                 int idx;
                 try {
-                    idx = (indexObj instanceof Number)
-                            ? ((Number) indexObj).intValue() - 1
-                            : Integer.parseInt(indexObj.toString().trim()) - 1;
+                    idx =
+                            (indexObj instanceof Number)
+                                    ? ((Number) indexObj).intValue() - 1
+                                    : Integer.parseInt(indexObj.toString().trim()) - 1;
                 } catch (NumberFormatException e) {
                     continue;
                 }
@@ -370,12 +406,14 @@ public class AICategorizationService {
         }
     }
 
-    private int parseAsStringArray(String json, List<ImportedTransaction> transactions,
-            List<Integer> indices, Map<String, String> displayNameMap) {
+    private int parseAsStringArray(
+            String json,
+            List<ImportedTransaction> transactions,
+            List<Integer> indices,
+            Map<String, String> displayNameMap) {
         try {
-            List<String> categoryNames = objectMapper.readValue(
-                    json, new TypeReference<List<String>>() {
-                    });
+            List<String> categoryNames =
+                    objectMapper.readValue(json, new TypeReference<List<String>>() {});
 
             int count = 0;
             for (int i = 0; i < categoryNames.size() && i < indices.size(); i++) {
@@ -393,8 +431,10 @@ public class AICategorizationService {
                     log.info("AI suggested '{}' — no match (position {})", categoryName, i + 1);
                 }
             }
-            log.info("Parsed AI response as positional string array: {}/{} matched",
-                    count, categoryNames.size());
+            log.info(
+                    "Parsed AI response as positional string array: {}/{} matched",
+                    count,
+                    categoryNames.size());
             return count;
         } catch (Exception e) {
             log.warn("Could not parse AI response as string array either: {}", e.getMessage());
@@ -403,12 +443,9 @@ public class AICategorizationService {
     }
 
     /**
-     * Extract JSON array from AI response, stripping markdown fencing if present.
-     * Handles multiple formats:
-     * - Single array: [{...}, {...}]
-     * - One array per line: [{...}]\n[{...}]\n...
-     * - Single object: {...}
-     * - Markdown-fenced code blocks
+     * Extract JSON array from AI response, stripping markdown fencing if present. Handles multiple
+     * formats: - Single array: [{...}, {...}] - One array per line: [{...}]\n[{...}]\n... - Single
+     * object: {...} - Markdown-fenced code blocks
      */
     private String extractJson(String response) {
         String trimmed = response.trim();
@@ -430,16 +467,14 @@ public class AICategorizationService {
             boolean first = true;
             for (String line : lines) {
                 line = line.trim();
-                if (line.isEmpty())
-                    continue;
+                if (line.isEmpty()) continue;
                 // Extract content between [ and ] for each line-array
                 int ls = line.indexOf('[');
                 int le = line.lastIndexOf(']');
                 if (ls >= 0 && le > ls) {
                     String inner = line.substring(ls + 1, le).trim();
                     if (!inner.isEmpty()) {
-                        if (!first)
-                            merged.append(",");
+                        if (!first) merged.append(",");
                         merged.append(inner);
                         first = false;
                     }
@@ -487,23 +522,22 @@ public class AICategorizationService {
             return new ArrayList<>();
         }
         try {
-            Map<String, Object> metadataMap = objectMapper.readValue(
-                    metadata, new TypeReference<Map<String, Object>>() {
-                    });
+            Map<String, Object> metadataMap =
+                    objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {});
             if (!metadataMap.containsKey("transactions")) {
                 return new ArrayList<>();
             }
             return objectMapper.convertValue(
-                    metadataMap.get("transactions"), new TypeReference<List<ImportedTransaction>>() {
-                    });
+                    metadataMap.get("transactions"),
+                    new TypeReference<List<ImportedTransaction>>() {});
         } catch (JsonProcessingException e) {
             log.error("Error deserializing transactions for AI categorization: {}", e.getMessage());
             return new ArrayList<>();
         }
     }
 
-    private String serializeTransactions(List<ImportedTransaction> transactions, BigDecimal ledgerBalance,
-            String fileCurrency) {
+    private String serializeTransactions(
+            List<ImportedTransaction> transactions, BigDecimal ledgerBalance, String fileCurrency) {
         try {
             Map<String, Object> metadata = new HashMap<>();
             metadata.put("transactions", transactions);

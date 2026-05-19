@@ -8,11 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.Base64;
-
 import javax.crypto.SecretKey;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,22 +21,18 @@ import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.UserRegistrationRequest;
 import org.openfinance.entity.User;
 import org.openfinance.repository.UserRepository;
-import org.openfinance.security.EncryptionService;
 import org.openfinance.security.KeyManagementService;
+import org.openfinance.service.OperationHistoryService;
 import org.openfinance.service.UserService;
 import org.openfinance.util.DatabaseCleanupService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.openfinance.service.OperationHistoryService;
-
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -46,337 +41,390 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @DisplayName("AccountController Integration Tests")
 class AccountControllerIntegrationTest {
 
-        @MockBean
-    private OperationHistoryService operationHistoryService;
+    @MockBean private OperationHistoryService operationHistoryService;
 
-    @Autowired
-        private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-        @Autowired
-        private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-        @Autowired
-        private UserService userService;
+    @Autowired private UserService userService;
 
-        @Autowired
-        private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-        @Autowired
-        private KeyManagementService keyManagementService;
+    @Autowired private KeyManagementService keyManagementService;
 
-        @Autowired
-        private DatabaseCleanupService databaseCleanupService;
+    @Autowired private DatabaseCleanupService databaseCleanupService;
 
-        private String token;
-        private String encKey;
+    private String token;
+    private String encKey;
 
-        @BeforeEach
-        void setUp() throws Exception {
-                databaseCleanupService.execute();
+    @BeforeEach
+    void setUp() throws Exception {
+        databaseCleanupService.execute();
 
-                UserRegistrationRequest reg = UserRegistrationRequest.builder()
-                                .username("alice")
-                                .email("alice@example.com")
-                                .password("Password123!")
-                                .masterPassword("Master123!")
-                                .skipSeeding(true)
-                                .build();
-                userService.registerUser(reg);
+        UserRegistrationRequest reg =
+                UserRegistrationRequest.builder()
+                        .username("alice")
+                        .email("alice@example.com")
+                        .password("Password123!")
+                        .masterPassword("Master123!")
+                        .skipSeeding(true)
+                        .build();
+        userService.registerUser(reg);
 
-                LoginRequest login = LoginRequest.builder()
-                                .username("alice")
-                                .password("Password123!")
-                                .masterPassword("Master123!")
-                                .build();
+        LoginRequest login =
+                LoginRequest.builder()
+                        .username("alice")
+                        .password("Password123!")
+                        .masterPassword("Master123!")
+                        .build();
 
-                String resp = mockMvc.perform(post("/api/v1/auth/login")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(login)))
-                                .andExpect(status().isOk())
-                                .andReturn()
-                                .getResponse()
-                                .getContentAsString();
+        String resp =
+                mockMvc.perform(
+                                post("/api/v1/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(login)))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
-                token = objectMapper.readTree(resp).get("token").asText();
+        token = objectMapper.readTree(resp).get("token").asText();
 
-                // Derive the encryption key from master password and user's salt
-                User user = userRepository.findByUsername("alice")
-                                .orElseThrow(() -> new RuntimeException("User not found"));
-                byte[] salt = Base64.getDecoder().decode(user.getMasterPasswordSalt());
-                SecretKey secretKey = keyManagementService.deriveKey("Master123!".toCharArray(), salt);
-                encKey = Base64.getEncoder().encodeToString(secretKey.getEncoded());
-        }
+        // Derive the encryption key from master password and user's salt
+        User user =
+                userRepository
+                        .findByUsername("alice")
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+        byte[] salt = Base64.getDecoder().decode(user.getMasterPasswordSalt());
+        SecretKey secretKey = keyManagementService.deriveKey("Master123!".toCharArray(), salt);
+        encKey = Base64.getEncoder().encodeToString(secretKey.getEncoded());
+    }
 
-        @Test
-        @DisplayName("POST /api/v1/accounts - create account successfully")
-        void shouldCreateAccount() throws Exception {
-                AccountRequest req = AccountRequest.builder()
-                                .name("Chase Checking")
-                                .type(org.openfinance.entity.AccountType.CHECKING)
-                                .currency("USD")
-                                .initialBalance(new BigDecimal("500.00"))
-                                .description("Primary")
-                                .build();
+    @Test
+    @DisplayName("POST /api/v1/accounts - create account successfully")
+    void shouldCreateAccount() throws Exception {
+        AccountRequest req =
+                AccountRequest.builder()
+                        .name("Chase Checking")
+                        .type(org.openfinance.entity.AccountType.CHECKING)
+                        .currency("USD")
+                        .initialBalance(new BigDecimal("500.00"))
+                        .description("Primary")
+                        .build();
 
-                mockMvc.perform(post("/api/v1/accounts")
+        mockMvc.perform(
+                        post("/api/v1/accounts")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Key", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                                .andDo(print())
-                                .andExpect(status().isCreated())
-                                .andExpect(jsonPath("$.id").isNumber())
-                                .andExpect(jsonPath("$.name").value("Chase Checking"));
-        }
+                .andDo(print())
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.name").value("Chase Checking"));
+    }
 
-        @Test
-        @DisplayName("POST /api/v1/accounts - validation errors")
-        void shouldReturn400OnValidationErrors() throws Exception {
-                AccountRequest req = AccountRequest.builder()
-                                .name("")
-                                .type(null)
-                                .currency("")
-                                .initialBalance(null)
-                                .build();
+    @Test
+    @DisplayName("POST /api/v1/accounts - validation errors")
+    void shouldReturn400OnValidationErrors() throws Exception {
+        AccountRequest req =
+                AccountRequest.builder()
+                        .name("")
+                        .type(null)
+                        .currency("")
+                        .initialBalance(null)
+                        .build();
 
-                mockMvc.perform(post("/api/v1/accounts")
+        mockMvc.perform(
+                        post("/api/v1/accounts")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Key", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                                .andDo(print())
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.validationErrors.name").exists())
-                                .andExpect(jsonPath("$.validationErrors.type").exists())
-                                .andExpect(jsonPath("$.validationErrors.currency").exists())
-                                .andExpect(jsonPath("$.validationErrors.initialBalance").exists());
-        }
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.validationErrors.name").exists())
+                .andExpect(jsonPath("$.validationErrors.type").exists())
+                .andExpect(jsonPath("$.validationErrors.currency").exists())
+                .andExpect(jsonPath("$.validationErrors.initialBalance").exists());
+    }
 
-        @Test
-        @DisplayName("POST /api/v1/accounts - missing encryption key header")
-        void shouldReturn400WhenMissingEncryptionKey() throws Exception {
-                AccountRequest req = AccountRequest.builder()
-                                .name("Name")
-                                .type(org.openfinance.entity.AccountType.CASH)
-                                .currency("USD")
-                                .initialBalance(new BigDecimal("1.00"))
-                                .build();
+    @Test
+    @DisplayName("POST /api/v1/accounts - missing encryption key header")
+    void shouldReturn400WhenMissingEncryptionKey() throws Exception {
+        AccountRequest req =
+                AccountRequest.builder()
+                        .name("Name")
+                        .type(org.openfinance.entity.AccountType.CASH)
+                        .currency("USD")
+                        .initialBalance(new BigDecimal("1.00"))
+                        .build();
 
-                mockMvc.perform(post("/api/v1/accounts")
+        mockMvc.perform(
+                        post("/api/v1/accounts")
                                 .header("Authorization", "Bearer " + token)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                                .andDo(print())
-                                .andExpect(status().isBadRequest());
-        }
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
 
-        @Test
-        @DisplayName("GET /api/v1/accounts - list all accounts")
-        void shouldListAccounts() throws Exception {
-                // create one account
-                AccountRequest req = AccountRequest.builder()
-                                .name("ListMe")
-                                .type(org.openfinance.entity.AccountType.CHECKING)
-                                .currency("USD")
-                                .initialBalance(new BigDecimal("10.00"))
-                                .build();
+    @Test
+    @DisplayName("GET /api/v1/accounts - list all accounts")
+    void shouldListAccounts() throws Exception {
+        // create one account
+        AccountRequest req =
+                AccountRequest.builder()
+                        .name("ListMe")
+                        .type(org.openfinance.entity.AccountType.CHECKING)
+                        .currency("USD")
+                        .initialBalance(new BigDecimal("10.00"))
+                        .build();
 
-                mockMvc.perform(post("/api/v1/accounts")
+        mockMvc.perform(
+                        post("/api/v1/accounts")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Key", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                                .andExpect(status().isCreated());
+                .andExpect(status().isCreated());
 
-                mockMvc.perform(get("/api/v1/accounts")
+        mockMvc.perform(
+                        get("/api/v1/accounts")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Key", encKey))
-                                .andDo(print())
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$").isArray())
-                                .andExpect(jsonPath("$[0].name").value("ListMe"));
-        }
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].name").value("ListMe"));
+    }
 
-        @Test
-        @DisplayName("GET /api/v1/accounts/{id} - get account by ID and 404 when not found")
-        void shouldGetAccountByIdAndHandleNotFound() throws Exception {
-                // create
-                AccountRequest req = AccountRequest.builder()
-                                .name("FindMe")
-                                .type(org.openfinance.entity.AccountType.CHECKING)
-                                .currency("USD")
-                                .initialBalance(new BigDecimal("20.00"))
-                                .build();
+    @Test
+    @DisplayName("GET /api/v1/accounts/{id} - get account by ID and 404 when not found")
+    void shouldGetAccountByIdAndHandleNotFound() throws Exception {
+        // create
+        AccountRequest req =
+                AccountRequest.builder()
+                        .name("FindMe")
+                        .type(org.openfinance.entity.AccountType.CHECKING)
+                        .currency("USD")
+                        .initialBalance(new BigDecimal("20.00"))
+                        .build();
 
-                String created = mockMvc.perform(post("/api/v1/accounts")
-                                .header("Authorization", "Bearer " + token)
-                                .header("X-Encryption-Key", encKey)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(req)))
-                                .andExpect(status().isCreated())
-                                .andReturn().getResponse().getContentAsString();
+        String created =
+                mockMvc.perform(
+                                post("/api/v1/accounts")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(req)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
-                Long id = objectMapper.readTree(created).get("id").asLong();
+        Long id = objectMapper.readTree(created).get("id").asLong();
 
-                mockMvc.perform(get("/api/v1/accounts/" + id)
+        mockMvc.perform(
+                        get("/api/v1/accounts/" + id)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Key", encKey))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.name").value("FindMe"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("FindMe"));
 
-                // non-existent
-                mockMvc.perform(get("/api/v1/accounts/99999")
+        // non-existent
+        mockMvc.perform(
+                        get("/api/v1/accounts/99999")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Key", encKey))
-                                .andExpect(status().isNotFound());
-        }
+                .andExpect(status().isNotFound());
+    }
 
-        @Test
-        @DisplayName("PUT /api/v1/accounts/{id} - update and partial update handling")
-        void shouldUpdateAccount() throws Exception {
-                AccountRequest create = AccountRequest.builder()
-                                .name("ToUpdate")
-                                .type(org.openfinance.entity.AccountType.CHECKING)
-                                .currency("USD")
-                                .initialBalance(new BigDecimal("30.00"))
-                                .build();
+    @Test
+    @DisplayName("PUT /api/v1/accounts/{id} - update and partial update handling")
+    void shouldUpdateAccount() throws Exception {
+        AccountRequest create =
+                AccountRequest.builder()
+                        .name("ToUpdate")
+                        .type(org.openfinance.entity.AccountType.CHECKING)
+                        .currency("USD")
+                        .initialBalance(new BigDecimal("30.00"))
+                        .build();
 
-                String created = mockMvc.perform(post("/api/v1/accounts")
-                                .header("Authorization", "Bearer " + token)
-                                .header("X-Encryption-Key", encKey)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(create)))
-                                .andExpect(status().isCreated())
-                                .andReturn().getResponse().getContentAsString();
+        String created =
+                mockMvc.perform(
+                                post("/api/v1/accounts")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(create)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
-                Long id = objectMapper.readTree(created).get("id").asLong();
+        Long id = objectMapper.readTree(created).get("id").asLong();
 
-                AccountRequest update = AccountRequest.builder()
-                                .name("UpdatedName")
-                                .type(org.openfinance.entity.AccountType.CHECKING)
-                                .currency("USD")
-                                .initialBalance(new BigDecimal("300.00"))
-                                .description(null) // explicit null should be ignored
-                                .build();
+        AccountRequest update =
+                AccountRequest.builder()
+                        .name("UpdatedName")
+                        .type(org.openfinance.entity.AccountType.CHECKING)
+                        .currency("USD")
+                        .initialBalance(new BigDecimal("300.00"))
+                        .description(null) // explicit null should be ignored
+                        .build();
 
-                mockMvc.perform(put("/api/v1/accounts/" + id)
+        mockMvc.perform(
+                        put("/api/v1/accounts/" + id)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Key", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(update)))
-                                .andDo(print())
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.name").value("UpdatedName"));
-        }
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("UpdatedName"));
+    }
 
-        @Test
-        @DisplayName("DELETE /api/v1/accounts/{id} - soft delete and handle not found")
-        void shouldSoftDeleteAndHandleNotFound() throws Exception {
-                AccountRequest req = AccountRequest.builder()
-                                .name("ToDelete")
-                                .type(org.openfinance.entity.AccountType.CASH)
-                                .currency("USD")
-                                .initialBalance(new BigDecimal("5.00"))
-                                .build();
+    @Test
+    @DisplayName("DELETE /api/v1/accounts/{id} - soft delete and handle not found")
+    void shouldSoftDeleteAndHandleNotFound() throws Exception {
+        AccountRequest req =
+                AccountRequest.builder()
+                        .name("ToDelete")
+                        .type(org.openfinance.entity.AccountType.CASH)
+                        .currency("USD")
+                        .initialBalance(new BigDecimal("5.00"))
+                        .build();
 
-                String created = mockMvc.perform(post("/api/v1/accounts")
-                                .header("Authorization", "Bearer " + token)
-                                .header("X-Encryption-Key", encKey)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(req)))
-                                .andExpect(status().isCreated())
-                                .andReturn().getResponse().getContentAsString();
+        String created =
+                mockMvc.perform(
+                                post("/api/v1/accounts")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(req)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
-                Long id = objectMapper.readTree(created).get("id").asLong();
+        Long id = objectMapper.readTree(created).get("id").asLong();
 
-                mockMvc.perform(delete("/api/v1/accounts/" + id)
+        mockMvc.perform(
+                        delete("/api/v1/accounts/" + id)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Key", encKey))
-                                .andExpect(status().isNoContent());
+                .andExpect(status().isNoContent());
 
-                mockMvc.perform(delete("/api/v1/accounts/99999")
+        mockMvc.perform(
+                        delete("/api/v1/accounts/99999")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Key", encKey))
-                                .andExpect(status().isNotFound());
-        }
+                .andExpect(status().isNotFound());
+    }
 
-        @Test
-        @DisplayName("GET /api/v1/accounts/{id}/balance - get balance")
-        void shouldGetBalance() throws Exception {
-                AccountRequest req = AccountRequest.builder()
-                                .name("BalAcc")
-                                .type(org.openfinance.entity.AccountType.CHECKING)
-                                .currency("USD")
-                                .initialBalance(new BigDecimal("77.77"))
-                                .build();
+    @Test
+    @DisplayName("GET /api/v1/accounts/{id}/balance - get balance")
+    void shouldGetBalance() throws Exception {
+        AccountRequest req =
+                AccountRequest.builder()
+                        .name("BalAcc")
+                        .type(org.openfinance.entity.AccountType.CHECKING)
+                        .currency("USD")
+                        .initialBalance(new BigDecimal("77.77"))
+                        .build();
 
-                String created = mockMvc.perform(post("/api/v1/accounts")
-                                .header("Authorization", "Bearer " + token)
-                                .header("X-Encryption-Key", encKey)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(req)))
-                                .andExpect(status().isCreated())
-                                .andReturn().getResponse().getContentAsString();
+        String created =
+                mockMvc.perform(
+                                post("/api/v1/accounts")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(req)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
-                Long id = objectMapper.readTree(created).get("id").asLong();
+        Long id = objectMapper.readTree(created).get("id").asLong();
 
-                mockMvc.perform(get("/api/v1/accounts/" + id + "/balance")
+        mockMvc.perform(
+                        get("/api/v1/accounts/" + id + "/balance")
                                 .header("Authorization", "Bearer " + token))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.balance").value(77.77));
-        }
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.balance").value(77.77));
+    }
 
-        @Test
-        @DisplayName("Authorization - users cannot access others' accounts")
-        void authorizationCheck() throws Exception {
-                // Create second user
-                UserRegistrationRequest reg = UserRegistrationRequest.builder()
-                                .username("bob")
-                                .email("bob@example.com")
-                                .password("Password123!")
-                                .masterPassword("Master123!")
-                                .build();
-                userService.registerUser(reg);
+    @Test
+    @DisplayName("Authorization - users cannot access others' accounts")
+    void authorizationCheck() throws Exception {
+        // Create second user
+        UserRegistrationRequest reg =
+                UserRegistrationRequest.builder()
+                        .username("bob")
+                        .email("bob@example.com")
+                        .password("Password123!")
+                        .masterPassword("Master123!")
+                        .build();
+        userService.registerUser(reg);
 
-                // Login bob
-                LoginRequest bobLogin = LoginRequest.builder()
-                                .username("bob").password("Password123!").masterPassword("Master123!").build();
-                String bobResp = mockMvc.perform(post("/api/v1/auth/login")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(bobLogin)))
-                                .andExpect(status().isOk())
-                                .andReturn().getResponse().getContentAsString();
-                String bobToken = objectMapper.readTree(bobResp).get("token").asText();
+        // Login bob
+        LoginRequest bobLogin =
+                LoginRequest.builder()
+                        .username("bob")
+                        .password("Password123!")
+                        .masterPassword("Master123!")
+                        .build();
+        String bobResp =
+                mockMvc.perform(
+                                post("/api/v1/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(bobLogin)))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        String bobToken = objectMapper.readTree(bobResp).get("token").asText();
 
-                // Derive Bob's encryption key from his master password and salt
-                User bob = userRepository.findByUsername("bob")
-                                .orElseThrow(() -> new RuntimeException("User not found"));
-                byte[] bobSalt = Base64.getDecoder().decode(bob.getMasterPasswordSalt());
-                SecretKey bobSecretKey = keyManagementService.deriveKey("Master123!".toCharArray(), bobSalt);
-                String bobEnc = Base64.getEncoder().encodeToString(bobSecretKey.getEncoded());
+        // Derive Bob's encryption key from his master password and salt
+        User bob =
+                userRepository
+                        .findByUsername("bob")
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+        byte[] bobSalt = Base64.getDecoder().decode(bob.getMasterPasswordSalt());
+        SecretKey bobSecretKey =
+                keyManagementService.deriveKey("Master123!".toCharArray(), bobSalt);
+        String bobEnc = Base64.getEncoder().encodeToString(bobSecretKey.getEncoded());
 
-                // Alice creates account
-                AccountRequest req = AccountRequest.builder()
-                                .name("AliceOnly")
-                                .type(org.openfinance.entity.AccountType.CHECKING)
-                                .currency("USD")
-                                .initialBalance(new BigDecimal("12.00"))
-                                .build();
+        // Alice creates account
+        AccountRequest req =
+                AccountRequest.builder()
+                        .name("AliceOnly")
+                        .type(org.openfinance.entity.AccountType.CHECKING)
+                        .currency("USD")
+                        .initialBalance(new BigDecimal("12.00"))
+                        .build();
 
-                String created = mockMvc.perform(post("/api/v1/accounts")
-                                .header("Authorization", "Bearer " + token)
-                                .header("X-Encryption-Key", encKey)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(req)))
-                                .andExpect(status().isCreated())
-                                .andReturn().getResponse().getContentAsString();
+        String created =
+                mockMvc.perform(
+                                post("/api/v1/accounts")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(req)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
-                Long id = objectMapper.readTree(created).get("id").asLong();
+        Long id = objectMapper.readTree(created).get("id").asLong();
 
-                // Bob tries to access Alice's account
-                mockMvc.perform(get("/api/v1/accounts/" + id)
+        // Bob tries to access Alice's account
+        mockMvc.perform(
+                        get("/api/v1/accounts/" + id)
                                 .header("Authorization", "Bearer " + bobToken)
                                 .header("X-Encryption-Key", bobEnc))
-                                .andExpect(status().isNotFound());
-        }
+                .andExpect(status().isNotFound());
+    }
 }

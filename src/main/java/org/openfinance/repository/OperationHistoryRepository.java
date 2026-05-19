@@ -23,6 +23,7 @@ public interface OperationHistoryRepository extends JpaRepository<OperationHisto
             Long userId, EntityType entityType, Pageable pageable);
 
     // entityType + since
-    Page<OperationHistory> findByUserIdAndEntityTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
-            Long userId, EntityType entityType, LocalDateTime since, Pageable pageable);
+    Page<OperationHistory>
+            findByUserIdAndEntityTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+                    Long userId, EntityType entityType, LocalDateTime since, Pageable pageable);
 }

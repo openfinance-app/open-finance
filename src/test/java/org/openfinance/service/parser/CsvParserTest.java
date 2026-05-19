@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,21 +17,14 @@ import org.openfinance.dto.ImportedTransaction;
 /**
  * Comprehensive test suite for CSV parser.
  *
- * Tests cover:
- * - Basic transaction parsing
- * - Flexible header name mapping (aliases and normalization)
- * - Multiple date formats
- * - Debit/credit split columns
- * - Amount parsing with currency symbols and thousands separators
- * - Validation and error reporting (missing date, missing amount, zero amount,
- * future date)
- * - Empty/malformed files
- * - Memo fallback to description
- * - Real-world CSV export scenario
+ * <p>Tests cover: - Basic transaction parsing - Flexible header name mapping (aliases and
+ * normalization) - Multiple date formats - Debit/credit split columns - Amount parsing with
+ * currency symbols and thousands separators - Validation and error reporting (missing date, missing
+ * amount, zero amount, future date) - Empty/malformed files - Memo fallback to description -
+ * Real-world CSV export scenario
  *
- * Requirements:
- * - REQ-2.5.1.1: File Format Support (CSV parsing)
- * - REQ-2.5.1.3: Import Validation
+ * <p>Requirements: - REQ-2.5.1.1: File Format Support (CSV parsing) - REQ-2.5.1.3: Import
+ * Validation
  */
 @DisplayName("CSV Parser Tests")
 class CsvParserTest {
@@ -47,12 +39,14 @@ class CsvParserTest {
     // ========== Helper ==========
 
     private List<ImportedTransaction> parseCsv(String content) throws IOException {
-        InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        InputStream inputStream =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
         return parser.parseFile(inputStream, "test.csv");
     }
 
     private String readFixture(String resourcePath) throws IOException {
-        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+        try (InputStream inputStream =
+                getClass().getClassLoader().getResourceAsStream(resourcePath)) {
             if (inputStream == null) {
                 throw new IOException("Fixture not found: " + resourcePath);
             }
@@ -65,7 +59,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse single transaction with all standard fields")
     void testParseSingleTransactionWithAllFields() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,memo,category,referencenumber,accountnumber
                 01/15/2024,-45.67,Starbucks,Coffee and snack,Food:Dining,1001,ACC123
                 """;
@@ -88,7 +83,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse multiple transactions")
     void testParseMultipleTransactions() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 01/15/2024,-45.67,Starbucks
                 01/16/2024,-100.00,Grocery Store
@@ -108,7 +104,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should map 'transactionamount' column to amount")
     void testHeaderAliasTransactionAmount() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,transactionamount,payee
                 2024-01-15,-99.99,Test Merchant
                 """;
@@ -122,7 +119,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should map 'name' column to payee")
     void testHeaderAliasName() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,name
                 2024-01-15,-10.00,My Payee
                 """;
@@ -136,7 +134,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should map 'merchant' column to payee")
     void testHeaderAliasMerchant() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,merchant
                 2024-01-15,-10.00,Best Buy
                 """;
@@ -150,7 +149,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should map 'notes' column to memo")
     void testHeaderAliasNotes() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,notes
                 2024-01-15,-10.00,Shop,Some note
                 """;
@@ -164,7 +164,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should map 'checknumber' column to reference number")
     void testHeaderAliasCheckNumber() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,checknumber
                 2024-01-15,-10.00,Shop,9876
                 """;
@@ -178,7 +179,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should map 'accountname' column to account name")
     void testHeaderAliasAccountName() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,accountname
                 2024-01-15,-10.00,Shop,Checking
                 """;
@@ -194,7 +196,8 @@ class CsvParserTest {
     void testHeaderNormalizationWithSpacesAndSpecialChars() throws IOException {
         // "Transaction Date" → "transactiondate", "Transaction Amount" →
         // "transactionamount"
-        String csv = """
+        String csv =
+                """
                 Transaction Date,Transaction Amount,Payee
                 2024-01-15,-50.00,Shop
                 """;
@@ -211,7 +214,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse MM/dd/yyyy date format")
     void testDateFormatMMddyyyy() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 12/31/2023,-50.00,Test
                 """;
@@ -225,7 +229,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse dd/MM/yyyy date format")
     void testDateFormatddMMyyyy() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 31/12/2023,-50.00,Test
                 """;
@@ -239,7 +244,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse yyyy-MM-dd (ISO) date format")
     void testDateFormatISO() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-03-15,-50.00,Test
                 """;
@@ -254,7 +260,8 @@ class CsvParserTest {
     @DisplayName("Should parse M/d/yyyy date format (no leading zeros)")
     void testDateFormatMdyyyy() throws IOException {
         // Use day > 12 in second position to unambiguously signal M/d/yyyy format
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 1/15/2024,-50.00,Test
                 """;
@@ -268,7 +275,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse d/M/yyyy date format (no leading zeros, day first)")
     void testDateFormatdMyyyy() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 5/1/2024,-50.00,Test
                 """;
@@ -284,7 +292,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse yyyy/MM/dd date format")
     void testDateFormatyyyy_MM_dd_slash() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024/07/04,-50.00,Test
                 """;
@@ -298,7 +307,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse dd-MM-yyyy date format")
     void testDateFormatddMMyyyyDash() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 25-12-2023,-50.00,Test
                 """;
@@ -312,7 +322,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should use 'transactiondate' column as date alias")
     void testDateAliasTransactionDate() throws IOException {
-        String csv = """
+        String csv =
+                """
                 transactiondate,amount,payee
                 2024-06-01,-10.00,Shop
                 """;
@@ -326,7 +337,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should use 'posteddate' column as date alias")
     void testDateAliasPostedDate() throws IOException {
-        String csv = """
+        String csv =
+                """
                 posteddate,amount,payee
                 2024-06-01,-10.00,Shop
                 """;
@@ -342,7 +354,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse negative amount")
     void testParseNegativeAmount() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,-123.45,Expense
                 """;
@@ -355,7 +368,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse positive amount")
     void testParsePositiveAmount() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,1500.00,Income
                 """;
@@ -368,7 +382,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should strip dollar sign from amount")
     void testAmountWithDollarSign() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,$50.00,Shop
                 """;
@@ -381,7 +396,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should strip euro sign from amount")
     void testAmountWithEuroSign() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,€75.50,Shop
                 """;
@@ -394,7 +410,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should strip pound sign from amount")
     void testAmountWithPoundSign() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,£30.00,Shop
                 """;
@@ -407,7 +424,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should strip thousands separator from amount")
     void testAmountWithThousandsSeparator() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,1500.00,Shop
                 """;
@@ -422,7 +440,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse debit-only column as negative amount")
     void testDebitColumnMakesNegativeAmount() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,debit,payee
                 2024-01-15,200.00,Expense
                 """;
@@ -436,7 +455,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse credit-only column as positive amount")
     void testCreditColumnMakesPositiveAmount() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,credit,payee
                 2024-01-15,500.00,Income
                 """;
@@ -450,7 +470,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should prefer debit over credit when both columns present and debit is non-empty")
     void testDebitTakesPriorityOverCredit() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,debit,credit,payee
                 2024-01-15,100.00,,Shop
                 """;
@@ -464,7 +485,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should fall back to credit column when debit column is empty")
     void testFallsBackToCreditWhenDebitEmpty() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,debit,credit,payee
                 2024-01-15,,300.00,Income
                 """;
@@ -478,7 +500,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should map 'withdrawal' as debit alias")
     void testWithdrawalColumnAlias() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,withdrawal,payee
                 2024-01-15,75.00,ATM
                 """;
@@ -492,7 +515,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should map 'deposit' as credit alias")
     void testDepositColumnAlias() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,deposit,payee
                 2024-01-15,400.00,Transfer In
                 """;
@@ -506,9 +530,11 @@ class CsvParserTest {
     // ========== Memo / Description Fallback Tests ==========
 
     @Test
-    @DisplayName("Should use description as memo when memo column absent and description differs from payee")
+    @DisplayName(
+            "Should use description as memo when memo column absent and description differs from payee")
     void testDescriptionUsedAsMemoWhenDifferentFromPayee() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,description
                 2024-01-15,-10.00,AMZN,Amazon purchase details
                 """;
@@ -522,7 +548,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should NOT use description as memo when it equals the payee")
     void testDescriptionNotUsedAsMemoWhenSameAsPayee() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,description
                 2024-01-15,-10.00,AMZN,AMZN
                 """;
@@ -537,7 +564,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should prefer explicit memo column over description fallback")
     void testExplicitMemoTakesPriorityOverDescription() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,memo,description
                 2024-01-15,-10.00,Shop,Explicit memo,Other description
                 """;
@@ -553,7 +581,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse category column")
     void testCategoryColumn() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,category
                 2024-01-15,-10.00,Shop,Groceries
                 """;
@@ -567,7 +596,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should map 'type' column as category alias")
     void testTypeMappedAsCategory() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,type
                 2024-01-15,-10.00,Shop,Expense
                 """;
@@ -583,7 +613,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should add validation error for missing date")
     void testValidationErrorMissingDate() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 ,-50.00,Test Payee
                 """;
@@ -599,7 +630,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should add validation error for missing amount")
     void testValidationErrorMissingAmount() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,,Test Payee
                 """;
@@ -615,7 +647,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should add validation error for zero amount")
     void testValidationErrorZeroAmount() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,0.00,Test Payee
                 """;
@@ -631,7 +664,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should add validation error for invalid date format")
     void testValidationErrorInvalidDate() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 not-a-date,-50.00,Test
                 """;
@@ -648,7 +682,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should add validation error for invalid amount format")
     void testValidationErrorInvalidAmount() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,abc,Test
                 """;
@@ -666,10 +701,13 @@ class CsvParserTest {
     @DisplayName("Should add validation error for future date")
     void testValidationErrorFutureDate() throws IOException {
         LocalDate futureDate = LocalDate.now().plusDays(30);
-        String csv = String.format("""
+        String csv =
+                String.format(
+                        """
                 date,amount,payee
                 %s,-50.00,Test
-                """, futureDate);
+                """,
+                        futureDate);
 
         List<ImportedTransaction> transactions = parseCsv(csv);
 
@@ -685,7 +723,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should include source file name in each transaction")
     void testIncludesSourceFileName() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,-50.00,Test
                 """;
@@ -700,7 +739,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should assign correct line numbers starting at 2 (header is line 1)")
     void testLineNumberAssignment() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,-50.00,First
                 2024-01-16,-60.00,Second
@@ -718,7 +758,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should include raw CSV row data in each transaction")
     void testIncludesRawData() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,-50.00,Test Payee
                 """;
@@ -754,7 +795,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should skip blank lines between data rows")
     void testSkipBlankLines() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,-50.00,First
 
@@ -771,7 +813,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should handle minimal transaction (date and amount only)")
     void testMinimalTransaction() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount
                 2024-01-15,-50.00
                 """;
@@ -789,7 +832,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should handle rows with extra whitespace in values")
     void testHandlesWhitespaceInValues() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15 , -50.00 , Trimmed Payee
                 """;
@@ -806,7 +850,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse a realistic bank CSV export")
     void testRealisticBankExport() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,memo,category,referencenumber,accountnumber
                 01/01/2024,-1200.00,Landlord Inc,January rent,Housing:Rent,1234,CHECKING-001
                 01/03/2024,-65.43,Electric Company,Monthly utility,Utilities:Electric,,CHECKING-001
@@ -856,7 +901,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse a realistic bank CSV export with debit/credit columns")
     void testRealisticBankExportDebitCreditColumns() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,payee,debit,credit,memo
                 01/01/2024,Landlord Inc,1200.00,,January rent
                 01/03/2024,Electric Company,65.43,,Monthly utility
@@ -867,7 +913,8 @@ class CsvParserTest {
 
         assertThat(transactions).hasSize(3);
 
-        assertThat(transactions.get(0).getAmount()).isEqualByComparingTo(new BigDecimal("-1200.00"));
+        assertThat(transactions.get(0).getAmount())
+                .isEqualByComparingTo(new BigDecimal("-1200.00"));
         assertThat(transactions.get(1).getAmount()).isEqualByComparingTo(new BigDecimal("-65.43"));
         assertThat(transactions.get(2).getAmount()).isEqualByComparingTo(new BigDecimal("3500.00"));
 
@@ -879,7 +926,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse tags column with single tag")
     void testTagsColumnSingleTag() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,tags
                 2024-01-15,-50.00,Shop,Vacation
                 """;
@@ -893,7 +941,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse tags column with multiple comma-separated tags")
     void testTagsColumnMultipleTags() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,tags
                 2024-01-15,-50.00,Shop,"Vacation,Business"
                 """;
@@ -907,7 +956,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should recognise 'tag' (singular) as alias for tags column")
     void testTagColumnAlias() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,tag
                 2024-01-15,-50.00,Shop,Personal
                 """;
@@ -921,7 +971,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should recognise 'labels' as alias for tags column")
     void testLabelsColumnAlias() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,labels
                 2024-01-15,-50.00,Shop,Reimbursable
                 """;
@@ -935,7 +986,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should return empty tags list when no tags column present")
     void testTagsEmptyWhenColumnAbsent() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,-50.00,Shop
                 """;
@@ -951,7 +1003,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should parse currency column")
     void testCurrencyColumn() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,currency
                 2024-01-15,-50.00,EuroShop,EUR
                 """;
@@ -965,7 +1018,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should recognise 'curr' as alias for currency column")
     void testCurrAliasForCurrency() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,curr
                 2024-01-15,-50.00,Shop,GBP
                 """;
@@ -979,7 +1033,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should recognise 'currencycode' as alias for currency column")
     void testCurrencyCodeAlias() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee,currencycode
                 2024-01-15,-50.00,Shop,CHF
                 """;
@@ -993,7 +1048,8 @@ class CsvParserTest {
     @Test
     @DisplayName("Should return null currency when currency column is absent")
     void testCurrencyNullWhenColumnAbsent() throws IOException {
-        String csv = """
+        String csv =
+                """
                 date,amount,payee
                 2024-01-15,-50.00,Shop
                 """;

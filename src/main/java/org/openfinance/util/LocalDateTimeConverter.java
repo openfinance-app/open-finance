@@ -1,15 +1,13 @@
 package org.openfinance.util;
 
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-import jakarta.persistence.AttributeConverter;
-import jakarta.persistence.Converter;
-
 /**
- * Converter for LocalDateTime to String for SQLite compatibility.
- * SQLite doesn't have a native DATETIME type, so we store it as ISO-8601
- * string.
+ * Converter for LocalDateTime to String for SQLite compatibility. SQLite doesn't have a native
+ * DATETIME type, so we store it as ISO-8601 string.
  */
 @Converter(autoApply = true)
 public class LocalDateTimeConverter implements AttributeConverter<LocalDateTime, String> {

@@ -1,6 +1,11 @@
 package org.openfinance.config;
 
 import jakarta.annotation.PostConstruct;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,12 +14,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 
 /**
  * Database initializer component that verifies database connectivity and schema on application
@@ -32,9 +31,9 @@ import java.sql.Statement;
  *   <li>Logs database metadata for troubleshooting
  *   <li>Ensures WAL mode is enabled for better concurrency
  * </ul>
- * 
- * <p>This component is active only for non-test profiles to avoid SQLite-specific
- * checks running against H2 test database.
+ *
+ * <p>This component is active only for non-test profiles to avoid SQLite-specific checks running
+ * against H2 test database.
  *
  * @author Open-Finance Team
  * @version 1.0
@@ -50,8 +49,8 @@ public class DatabaseInitializer {
     private final QueryPlanAnalyzer queryPlanAnalyzer;
 
     /**
-     * Initializes database connection and performs startup checks. This method runs after all
-     * beans are initialized but before the application is fully started.
+     * Initializes database connection and performs startup checks. This method runs after all beans
+     * are initialized but before the application is fully started.
      */
     @PostConstruct
     public void init() {
@@ -105,7 +104,9 @@ public class DatabaseInitializer {
      */
     private void logDatabaseMetadata(Connection connection) throws SQLException {
         DatabaseMetaData metaData = connection.getMetaData();
-        log.info("Database Product: {} {}", metaData.getDatabaseProductName(),
+        log.info(
+                "Database Product: {} {}",
+                metaData.getDatabaseProductName(),
                 metaData.getDatabaseProductVersion());
         log.info("JDBC Driver: {} {}", metaData.getDriverName(), metaData.getDriverVersion());
         log.info("Database URL: {}", metaData.getURL());
@@ -165,8 +166,8 @@ public class DatabaseInitializer {
             // Check if Flyway schema history table exists
             DatabaseMetaData metaData = connection.getMetaData();
             try (ResultSet rs =
-                    metaData.getTables(null, null, "flyway_schema_history", new String[]{"TABLE"})
-            ) {
+                    metaData.getTables(
+                            null, null, "flyway_schema_history", new String[] {"TABLE"})) {
                 if (rs.next()) {
                     log.info("Flyway schema history table exists - migrations are being tracked");
                 } else {
@@ -205,7 +206,7 @@ public class DatabaseInitializer {
         DatabaseMetaData metaData = connection.getMetaData();
 
         // Check schema_info table
-        try (ResultSet rs = metaData.getTables(null, null, "schema_info", new String[]{"TABLE"})) {
+        try (ResultSet rs = metaData.getTables(null, null, "schema_info", new String[] {"TABLE"})) {
             if (rs.next()) {
                 log.info("System table 'schema_info' exists");
             } else {
@@ -217,7 +218,7 @@ public class DatabaseInitializer {
 
         // Check system_settings table
         try (ResultSet rs =
-                metaData.getTables(null, null, "system_settings", new String[]{"TABLE"})) {
+                metaData.getTables(null, null, "system_settings", new String[] {"TABLE"})) {
             if (rs.next()) {
                 log.info("System table 'system_settings' exists");
             } else {

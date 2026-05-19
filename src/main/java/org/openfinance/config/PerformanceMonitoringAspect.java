@@ -10,20 +10,21 @@ import org.springframework.stereotype.Component;
 /**
  * AOP aspect that measures and logs execution time for service and controller methods.
  *
- * <p>All public methods in {@code org.openfinance.service} and
- * {@code org.openfinance.controller} packages are instrumented.  Calls that exceed
- * the configured threshold are logged at WARN level so they surface in the standard
- * application log and can be correlated with Hibernate's slow-query log.</p>
+ * <p>All public methods in {@code org.openfinance.service} and {@code org.openfinance.controller}
+ * packages are instrumented. Calls that exceed the configured threshold are logged at WARN level so
+ * they surface in the standard application log and can be correlated with Hibernate's slow-query
+ * log.
  *
- * <p>Thresholds:</p>
+ * <p>Thresholds:
+ *
  * <ul>
- *   <li>{@link #WARN_THRESHOLD_MS} — 500 ms: logged as WARN</li>
- *   <li>{@link #DEBUG_THRESHOLD_MS} — 100 ms: logged as DEBUG (useful during
- *       development; silent in production when DEBUG is off)</li>
+ *   <li>{@link #WARN_THRESHOLD_MS} — 500 ms: logged as WARN
+ *   <li>{@link #DEBUG_THRESHOLD_MS} — 100 ms: logged as DEBUG (useful during development; silent in
+ *       production when DEBUG is off)
  * </ul>
  *
- * <p>The aspect does <em>not</em> swallow exceptions — any exception propagated by
- * the target method is re-thrown after timing information is recorded.</p>
+ * <p>The aspect does <em>not</em> swallow exceptions — any exception propagated by the target
+ * method is re-thrown after timing information is recorded.
  *
  * @author Open Finance Team
  * @version 1.0
@@ -44,25 +45,20 @@ public class PerformanceMonitoringAspect {
     // Pointcuts
     // -------------------------------------------------------------------------
 
-    /**
-     * Matches all public methods in the service layer.
-     */
+    /** Matches all public methods in the service layer. */
     @Pointcut("execution(public * org.openfinance.service..*(..))")
-    public void serviceMethods() { }
+    public void serviceMethods() {}
 
-    /**
-     * Matches all public methods in the controller layer.
-     */
+    /** Matches all public methods in the controller layer. */
     @Pointcut("execution(public * org.openfinance.controller..*(..))")
-    public void controllerMethods() { }
+    public void controllerMethods() {}
 
     // -------------------------------------------------------------------------
     // Advice
     // -------------------------------------------------------------------------
 
     /**
-     * Measures the wall-clock time of each service method invocation and logs
-     * slow calls.
+     * Measures the wall-clock time of each service method invocation and logs slow calls.
      *
      * @param joinPoint the intercepted join point
      * @return the value returned by the target method
@@ -74,8 +70,7 @@ public class PerformanceMonitoringAspect {
     }
 
     /**
-     * Measures the wall-clock time of each controller method invocation and logs
-     * slow calls.
+     * Measures the wall-clock time of each controller method invocation and logs slow calls.
      *
      * @param joinPoint the intercepted join point
      * @return the value returned by the target method
@@ -94,7 +89,7 @@ public class PerformanceMonitoringAspect {
      * Core timing logic shared by all advice methods.
      *
      * @param joinPoint the intercepted join point
-     * @param layer     a short label used in log messages (e.g. "SERVICE")
+     * @param layer a short label used in log messages (e.g. "SERVICE")
      * @return the return value of the target method
      * @throws Throwable any exception raised by the target method
      */
@@ -111,7 +106,7 @@ public class PerformanceMonitoringAspect {
     /**
      * Emits a log entry at the appropriate level based on the elapsed duration.
      *
-     * @param layer     the architectural layer label
+     * @param layer the architectural layer label
      * @param joinPoint the join point whose signature is used in the log message
      * @param elapsedMs measured wall-clock duration in milliseconds
      */

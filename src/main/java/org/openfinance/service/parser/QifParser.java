@@ -11,56 +11,37 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
-
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
 import org.springframework.stereotype.Component;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Parser for Quicken Interchange Format (QIF) files.
  *
- * QIF is a text-based format used by Quicken and other financial software
- * for importing and exporting financial transactions.
+ * <p>QIF is a text-based format used by Quicken and other financial software for importing and
+ * exporting financial transactions.
  *
- * Format Specification:
- * - Each line starts with a single-character code
- * - Transactions are separated by '^' (end-of-entry marker)
- * - File sections start with !Type: header (e.g., !Type:Bank, !Type:CCard)
+ * <p>Format Specification: - Each line starts with a single-character code - Transactions are
+ * separated by '^' (end-of-entry marker) - File sections start with !Type: header (e.g.,
+ * !Type:Bank, !Type:CCard)
  *
- * Supported Field Codes:
- * - D = Date (formats: MM/DD/YYYY, DD/MM/YYYY, MM/DD/YY, DD/MM/YY, and variants
- * with - or . separators)
- * - T = Amount (negative for expenses, positive for income)
- * - U = Amount (duplicate of T, used in newer Quicken versions - fallback if T
- * absent)
- * - P = Payee/Description
- * - M = Memo/Notes
- * - L = Category (may contain class suffix after '/' and/or transfer syntax
- * [AccountName])
- * - N = Check/Reference number
- * - C = Cleared status (c/cleared, *=cleared, X=reconciled)
- * - A = Address (multiple lines, ignored)
- * - S = Split category
- * - E = Split memo
- * - $ = Split amount
- * - % = Split percentage (recorded but not validated)
- * - F = Reimbursable flag (ignored)
- * - ^ = End of entry
+ * <p>Supported Field Codes: - D = Date (formats: MM/DD/YYYY, DD/MM/YYYY, MM/DD/YY, DD/MM/YY, and
+ * variants with - or . separators) - T = Amount (negative for expenses, positive for income) - U =
+ * Amount (duplicate of T, used in newer Quicken versions - fallback if T absent) - P =
+ * Payee/Description - M = Memo/Notes - L = Category (may contain class suffix after '/' and/or
+ * transfer syntax [AccountName]) - N = Check/Reference number - C = Cleared status (c/cleared,
+ * *=cleared, X=reconciled) - A = Address (multiple lines, ignored) - S = Split category - E = Split
+ * memo - $ = Split amount - % = Split percentage (recorded but not validated) - F = Reimbursable
+ * flag (ignored) - ^ = End of entry
  *
- * !Type directives handled:
- * - Bank, CCard, Cash, Oth A, Oth L, Oth S - standard transaction parsing
- * - Invst - investment transactions (parsed with key fields: N/action,
- * Y/security, I/price, Q/quantity, T/amount)
- * - Memorized - skipped gracefully
- * - Prices - skipped gracefully
- * - Bill, Invoice, Tax - skipped gracefully
- * - !Account - multi-account context: captures account name for subsequent
- * transactions
- * - !Option:AllXfr - logged and ignored
+ * <p>!Type directives handled: - Bank, CCard, Cash, Oth A, Oth L, Oth S - standard transaction
+ * parsing - Invst - investment transactions (parsed with key fields: N/action, Y/security, I/price,
+ * Q/quantity, T/amount) - Memorized - skipped gracefully - Prices - skipped gracefully - Bill,
+ * Invoice, Tax - skipped gracefully - !Account - multi-account context: captures account name for
+ * subsequent transactions - !Option:AllXfr - logged and ignored
  *
- * Example QIF file:
- * 
+ * <p>Example QIF file:
+ *
  * <pre>
  * !Type:Bank
  * D01/15/2024
@@ -71,9 +52,8 @@ import lombok.extern.slf4j.Slf4j;
  * ^
  * </pre>
  *
- * Requirements:
- * - REQ-2.5.1.1: File Format Support (QIF parsing)
- * - REQ-2.5.1.3: Import Validation (line numbers, error reporting)
+ * Requirements: - REQ-2.5.1.1: File Format Support (QIF parsing) - REQ-2.5.1.3: Import Validation
+ * (line numbers, error reporting)
  *
  * @author Open Finance Team
  * @since Sprint 7 - Transaction Import
@@ -83,58 +63,58 @@ import lombok.extern.slf4j.Slf4j;
 public class QifParser {
 
     /**
-     * Date formats to try when parsing dates from QIF files.
-     * Includes variants with '/', '-', and '.' separators.
-     * Order matters — try most specific / common formats first.
+     * Date formats to try when parsing dates from QIF files. Includes variants with '/', '-', and
+     * '.' separators. Order matters — try most specific / common formats first.
      */
     private static final DateTimeFormatter[] DATE_FORMATS = {
-            DateTimeFormatter.ofPattern("MM/dd/yyyy"), // US with 4-digit year
-            DateTimeFormatter.ofPattern("dd/MM/yyyy"), // International with 4-digit year
-            DateTimeFormatter.ofPattern("yyyy-MM-dd"), // ISO format
-            DateTimeFormatter.ofPattern("MM/dd/yy"), // US with 2-digit year
-            DateTimeFormatter.ofPattern("dd/MM/yy"), // International with 2-digit year
-            DateTimeFormatter.ofPattern("M/d/yyyy"), // US no leading zeros
-            DateTimeFormatter.ofPattern("d/M/yyyy"), // International no leading zeros
-            DateTimeFormatter.ofPattern("M/d/yy"), // US 2-digit year no leading zeros
-            DateTimeFormatter.ofPattern("d/M/yy"), // International 2-digit year no leading zeros
-            // Dash-separated variants
-            DateTimeFormatter.ofPattern("MM-dd-yyyy"),
-            DateTimeFormatter.ofPattern("dd-MM-yyyy"),
-            DateTimeFormatter.ofPattern("MM-dd-yy"),
-            DateTimeFormatter.ofPattern("dd-MM-yy"),
-            DateTimeFormatter.ofPattern("M-d-yyyy"),
-            DateTimeFormatter.ofPattern("d-M-yyyy"),
-            // Dot-separated variants
-            DateTimeFormatter.ofPattern("MM.dd.yyyy"),
-            DateTimeFormatter.ofPattern("dd.MM.yyyy"),
-            DateTimeFormatter.ofPattern("MM.dd.yy"),
-            DateTimeFormatter.ofPattern("dd.MM.yy"),
-            DateTimeFormatter.ofPattern("M.d.yyyy"),
-            DateTimeFormatter.ofPattern("d.M.yyyy"),
+        DateTimeFormatter.ofPattern("MM/dd/yyyy"), // US with 4-digit year
+        DateTimeFormatter.ofPattern("dd/MM/yyyy"), // International with 4-digit year
+        DateTimeFormatter.ofPattern("yyyy-MM-dd"), // ISO format
+        DateTimeFormatter.ofPattern("MM/dd/yy"), // US with 2-digit year
+        DateTimeFormatter.ofPattern("dd/MM/yy"), // International with 2-digit year
+        DateTimeFormatter.ofPattern("M/d/yyyy"), // US no leading zeros
+        DateTimeFormatter.ofPattern("d/M/yyyy"), // International no leading zeros
+        DateTimeFormatter.ofPattern("M/d/yy"), // US 2-digit year no leading zeros
+        DateTimeFormatter.ofPattern("d/M/yy"), // International 2-digit year no leading zeros
+        // Dash-separated variants
+        DateTimeFormatter.ofPattern("MM-dd-yyyy"),
+        DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+        DateTimeFormatter.ofPattern("MM-dd-yy"),
+        DateTimeFormatter.ofPattern("dd-MM-yy"),
+        DateTimeFormatter.ofPattern("M-d-yyyy"),
+        DateTimeFormatter.ofPattern("d-M-yyyy"),
+        // Dot-separated variants
+        DateTimeFormatter.ofPattern("MM.dd.yyyy"),
+        DateTimeFormatter.ofPattern("dd.MM.yyyy"),
+        DateTimeFormatter.ofPattern("MM.dd.yy"),
+        DateTimeFormatter.ofPattern("dd.MM.yy"),
+        DateTimeFormatter.ofPattern("M.d.yyyy"),
+        DateTimeFormatter.ofPattern("d.M.yyyy"),
     };
 
     /**
-     * Set of !Type values that should be skipped entirely (no transaction
-     * records parsed from them).
+     * Set of !Type values that should be skipped entirely (no transaction records parsed from
+     * them).
      */
-    private static final List<String> SKIP_TYPES = List.of(
-            "memorized", "prices", "bill", "invoice", "tax");
+    private static final List<String> SKIP_TYPES =
+            List.of("memorized", "prices", "bill", "invoice", "tax");
 
     /**
      * Parse QIF file and extract transactions.
      *
      * @param inputStream Input stream of QIF file content
-     * @param fileName    Original file name for error reporting
+     * @param fileName Original file name for error reporting
      * @return List of imported transactions with validation errors
      * @throws IOException if file reading fails
      */
-    public List<ImportedTransaction> parseFile(InputStream inputStream, String fileName) throws IOException {
+    public List<ImportedTransaction> parseFile(InputStream inputStream, String fileName)
+            throws IOException {
         log.info("Starting QIF file parsing: {}", fileName);
 
         List<ImportedTransaction> transactions = new ArrayList<>();
 
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+        try (BufferedReader reader =
+                new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
 
             ImportedTransaction.ImportedTransactionBuilder currentTransaction = null;
             String currentAccountType = null;
@@ -215,7 +195,11 @@ public class QifParser {
                         case 'D':
                             if (currentTransaction != null) {
                                 finalizeSplits(currentTransaction, currentSplits);
-                                transactions.add(buildTransaction(currentTransaction, transactionStartLine, fileName));
+                                transactions.add(
+                                        buildTransaction(
+                                                currentTransaction,
+                                                transactionStartLine,
+                                                fileName));
                                 currentSplits.clear();
                                 uAmount = null;
                             }
@@ -236,7 +220,8 @@ public class QifParser {
                                 }
                                 transactionStartLine = lineNumber;
                             }
-                            currentTransaction.amount(parseAmount(value, lineNumber, currentTransaction));
+                            currentTransaction.amount(
+                                    parseAmount(value, lineNumber, currentTransaction));
                             uAmount = null; // T wins over U
                             break;
                         case 'U': // alternative amount — only set if T not present
@@ -267,7 +252,11 @@ public class QifParser {
                                 // Apply U amount if T was never set
                                 applyUAmountIfNeeded(currentTransaction, uAmount);
                                 finalizeSplits(currentTransaction, currentSplits);
-                                transactions.add(buildTransaction(currentTransaction, transactionStartLine, fileName));
+                                transactions.add(
+                                        buildTransaction(
+                                                currentTransaction,
+                                                transactionStartLine,
+                                                fileName));
                                 currentTransaction = null;
                                 currentSplits.clear();
                                 uAmount = null;
@@ -286,7 +275,9 @@ public class QifParser {
                         if (currentTransaction != null) {
                             applyUAmountIfNeeded(currentTransaction, uAmount);
                             finalizeSplits(currentTransaction, currentSplits);
-                            transactions.add(buildTransaction(currentTransaction, transactionStartLine, fileName));
+                            transactions.add(
+                                    buildTransaction(
+                                            currentTransaction, transactionStartLine, fileName));
                             currentSplits.clear();
                             uAmount = null;
                         }
@@ -325,7 +316,9 @@ public class QifParser {
                         if (currentTransaction != null) {
                             currentTransaction.payee(value);
                         } else {
-                            log.warn("Line {}: Payee 'P' found before transaction start 'D'", lineNumber);
+                            log.warn(
+                                    "Line {}: Payee 'P' found before transaction start 'D'",
+                                    lineNumber);
                         }
                         break;
 
@@ -333,7 +326,9 @@ public class QifParser {
                         if (currentTransaction != null) {
                             currentTransaction.memo(value);
                         } else {
-                            log.warn("Line {}: Memo 'M' found before transaction start 'D'", lineNumber);
+                            log.warn(
+                                    "Line {}: Memo 'M' found before transaction start 'D'",
+                                    lineNumber);
                         }
                         break;
 
@@ -341,7 +336,9 @@ public class QifParser {
                         if (currentTransaction != null) {
                             parseCategoryField(value, currentTransaction);
                         } else {
-                            log.warn("Line {}: Category 'L' found before transaction start 'D'", lineNumber);
+                            log.warn(
+                                    "Line {}: Category 'L' found before transaction start 'D'",
+                                    lineNumber);
                         }
                         break;
 
@@ -349,7 +346,9 @@ public class QifParser {
                         if (currentTransaction != null) {
                             currentTransaction.referenceNumber(value);
                         } else {
-                            log.warn("Line {}: Reference 'N' found before transaction start 'D'", lineNumber);
+                            log.warn(
+                                    "Line {}: Reference 'N' found before transaction start 'D'",
+                                    lineNumber);
                         }
                         break;
 
@@ -357,7 +356,9 @@ public class QifParser {
                         if (currentTransaction != null) {
                             currentTransaction.clearedStatus(mapClearedStatus(value));
                         } else {
-                            log.warn("Line {}: Cleared status 'C' found before transaction start 'D'", lineNumber);
+                            log.warn(
+                                    "Line {}: Cleared status 'C' found before transaction start 'D'",
+                                    lineNumber);
                         }
                         break;
 
@@ -370,7 +371,9 @@ public class QifParser {
                             // Strip class suffix from split category
                             currentSplit.category(stripClassSuffix(value));
                         } else {
-                            log.warn("Line {}: Split category 'S' found before transaction start 'D'", lineNumber);
+                            log.warn(
+                                    "Line {}: Split category 'S' found before transaction start 'D'",
+                                    lineNumber);
                         }
                         break;
 
@@ -378,7 +381,9 @@ public class QifParser {
                         if (currentSplit != null) {
                             currentSplit.memo(value);
                         } else {
-                            log.warn("Line {}: Split memo 'E' found before split category 'S'", lineNumber);
+                            log.warn(
+                                    "Line {}: Split memo 'E' found before split category 'S'",
+                                    lineNumber);
                         }
                         break;
 
@@ -387,12 +392,17 @@ public class QifParser {
                             BigDecimal splitAmount = parseAmount(value, lineNumber, null);
                             currentSplit.amount(splitAmount);
                         } else {
-                            log.warn("Line {}: Split amount '$' found before split category 'S'", lineNumber);
+                            log.warn(
+                                    "Line {}: Split amount '$' found before split category 'S'",
+                                    lineNumber);
                         }
                         break;
 
-                    case '%': // Split percentage — record in split memo for transparency, skip validation
-                        log.debug("Line {}: Split percentage '%' field (recorded, not validated)", lineNumber);
+                    case '%': // Split percentage — record in split memo for transparency, skip
+                        // validation
+                        log.debug(
+                                "Line {}: Split percentage '%' field (recorded, not validated)",
+                                lineNumber);
                         break;
 
                     case 'F': // Reimbursable business expense flag — informational only
@@ -407,7 +417,9 @@ public class QifParser {
                             }
                             applyUAmountIfNeeded(currentTransaction, uAmount);
                             finalizeSplits(currentTransaction, currentSplits);
-                            transactions.add(buildTransaction(currentTransaction, transactionStartLine, fileName));
+                            transactions.add(
+                                    buildTransaction(
+                                            currentTransaction, transactionStartLine, fileName));
                             currentTransaction = null;
                             currentSplits.clear();
                             uAmount = null;
@@ -427,18 +439,21 @@ public class QifParser {
             if (currentTransaction != null) {
                 applyUAmountIfNeeded(currentTransaction, uAmount);
                 finalizeSplits(currentTransaction, currentSplits);
-                transactions.add(buildTransaction(currentTransaction, transactionStartLine, fileName));
+                transactions.add(
+                        buildTransaction(currentTransaction, transactionStartLine, fileName));
             }
         }
 
-        log.info("QIF parsing complete: {} transactions parsed from {}", transactions.size(), fileName);
+        log.info(
+                "QIF parsing complete: {} transactions parsed from {}",
+                transactions.size(),
+                fileName);
         return transactions;
     }
 
-    /**
-     * Apply U-field amount to the builder when T was never provided.
-     */
-    private void applyUAmountIfNeeded(ImportedTransaction.ImportedTransactionBuilder builder, BigDecimal uAmount) {
+    /** Apply U-field amount to the builder when T was never provided. */
+    private void applyUAmountIfNeeded(
+            ImportedTransaction.ImportedTransactionBuilder builder, BigDecimal uAmount) {
         if (uAmount == null) {
             return;
         }
@@ -450,11 +465,11 @@ public class QifParser {
     }
 
     /**
-     * Parse the L (category) field, handling:
-     * - Transfer syntax: [AccountName]
-     * - Category class separator: Category/Class or Category:SubCat/Class
+     * Parse the L (category) field, handling: - Transfer syntax: [AccountName] - Category class
+     * separator: Category/Class or Category:SubCat/Class
      */
-    private void parseCategoryField(String value, ImportedTransaction.ImportedTransactionBuilder builder) {
+    private void parseCategoryField(
+            String value, ImportedTransaction.ImportedTransactionBuilder builder) {
         int slashPos = value.indexOf('/');
         String categoryValue = slashPos >= 0 ? value.substring(0, slashPos).trim() : value;
         String classValue = slashPos >= 0 ? value.substring(slashPos + 1).trim() : null;
@@ -487,28 +502,24 @@ public class QifParser {
         }
     }
 
-    /**
-     * Strip class suffix from a category string (text after '/').
-     */
+    /** Strip class suffix from a category string (text after '/'). */
     private String stripClassSuffix(String category) {
         int slashPos = category.indexOf('/');
         return slashPos >= 0 ? category.substring(0, slashPos).trim() : category;
     }
 
-    /**
-     * Finalize split transaction entries and add to transaction builder.
-     */
-    private void finalizeSplits(ImportedTransaction.ImportedTransactionBuilder transaction,
+    /** Finalize split transaction entries and add to transaction builder. */
+    private void finalizeSplits(
+            ImportedTransaction.ImportedTransactionBuilder transaction,
             List<ImportedTransaction.SplitEntry> splits) {
         if (!splits.isEmpty()) {
             transaction.splits(new ArrayList<>(splits));
         }
     }
 
-    /**
-     * Build final ImportedTransaction and perform validation.
-     */
-    private ImportedTransaction buildTransaction(ImportedTransaction.ImportedTransactionBuilder builder,
+    /** Build final ImportedTransaction and perform validation. */
+    private ImportedTransaction buildTransaction(
+            ImportedTransaction.ImportedTransactionBuilder builder,
             int lineNumber,
             String fileName) {
         builder.lineNumber(lineNumber);
@@ -520,9 +531,7 @@ public class QifParser {
         return transaction;
     }
 
-    /**
-     * Validate imported transaction and add errors.
-     */
+    /** Validate imported transaction and add errors. */
     private void validateTransaction(ImportedTransaction transaction) {
         if (transaction.getTransactionDate() == null) {
             transaction.addValidationError("Transaction date is required");
@@ -534,23 +543,25 @@ public class QifParser {
             transaction.addValidationError("Transaction amount cannot be zero");
         }
 
-        if (transaction.getTransactionDate() != null &&
-                transaction.getTransactionDate().isAfter(LocalDate.now())) {
+        if (transaction.getTransactionDate() != null
+                && transaction.getTransactionDate().isAfter(LocalDate.now())) {
             transaction.addValidationError("Transaction date cannot be in the future");
         }
 
         if (transaction.isSplitTransaction()) {
-            BigDecimal totalSplitAmount = transaction.getSplits().stream()
-                    .map(ImportedTransaction.SplitEntry::getAmount)
-                    .filter(amt -> amt != null)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal totalSplitAmount =
+                    transaction.getSplits().stream()
+                            .map(ImportedTransaction.SplitEntry::getAmount)
+                            .filter(amt -> amt != null)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             if (transaction.getAmount() != null) {
                 // QIF split amounts are stored as positive values regardless of the parent
                 // transaction sign — compare absolute values to handle expense splits correctly
                 if (totalSplitAmount.abs().compareTo(transaction.getAmount().abs()) != 0) {
                     transaction.addValidationError(
-                            String.format("Split amounts (%s) do not match transaction amount (%s)",
+                            String.format(
+                                    "Split amounts (%s) do not match transaction amount (%s)",
                                     totalSplitAmount, transaction.getAmount()));
                 }
             }
@@ -560,12 +571,9 @@ public class QifParser {
     /**
      * Parse date from QIF file, trying multiple date formats.
      *
-     * Handles:
-     * - Apostrophe-notation for post-2000 years (e.g., 01/15'00 → 01/1500 → parsed
-     * with 2-digit year)
-     * - Separator variants: '/', '-', '.'
-     * - European number format dates are disambiguated by trying all formats in
-     * order
+     * <p>Handles: - Apostrophe-notation for post-2000 years (e.g., 01/15'00 → 01/1500 → parsed with
+     * 2-digit year) - Separator variants: '/', '-', '.' - European number format dates are
+     * disambiguated by trying all formats in order
      */
     private LocalDate parseDate(String dateStr, int lineNumber) {
         if (dateStr == null || dateStr.isEmpty()) {
@@ -584,19 +592,22 @@ public class QifParser {
             }
         }
 
-        log.warn("Line {}: Unable to parse date '{}' - tried all known formats", lineNumber, dateStr);
+        log.warn(
+                "Line {}: Unable to parse date '{}' - tried all known formats",
+                lineNumber,
+                dateStr);
         return null;
     }
 
     /**
      * Parse amount from QIF file.
      *
-     * Handles:
-     * - Standard US format: 1,234.56
-     * - European format: 1.234,56 (detected when comma comes after dot)
-     * - Currency symbol stripping: $, €, £
+     * <p>Handles: - Standard US format: 1,234.56 - European format: 1.234,56 (detected when comma
+     * comes after dot) - Currency symbol stripping: $, €, £
      */
-    private BigDecimal parseAmount(String amountStr, int lineNumber,
+    private BigDecimal parseAmount(
+            String amountStr,
+            int lineNumber,
             ImportedTransaction.ImportedTransactionBuilder transaction) {
         if (amountStr == null || amountStr.isEmpty()) {
             log.warn("Line {}: Empty amount string", lineNumber);
@@ -605,11 +616,8 @@ public class QifParser {
 
         try {
             // Remove currency symbols and whitespace
-            String cleaned = amountStr
-                    .replace("$", "")
-                    .replace("€", "")
-                    .replace("£", "")
-                    .replace(" ", "");
+            String cleaned =
+                    amountStr.replace("$", "").replace("€", "").replace("£", "").replace(" ", "");
 
             // Detect European format: dot used as thousands separator, comma as decimal
             // e.g., "1.234,56" → "1234.56"
@@ -632,9 +640,7 @@ public class QifParser {
         }
     }
 
-    /**
-     * Map QIF cleared status codes to readable values.
-     */
+    /** Map QIF cleared status codes to readable values. */
     private String mapClearedStatus(String status) {
         if (status == null || status.isEmpty()) {
             return "uncleared";

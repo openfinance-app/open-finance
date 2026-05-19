@@ -1,6 +1,15 @@
 package org.openfinance.controller;
 
+import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Base64;
+import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,82 +19,54 @@ import org.openfinance.entity.*;
 import org.openfinance.repository.*;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.security.KeyManagementService;
+import org.openfinance.service.OperationHistoryService;
 import org.openfinance.service.UserService;
 import org.openfinance.util.DatabaseCleanupService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.openfinance.service.OperationHistoryService;
-
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-
-import javax.crypto.SecretKey;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Base64;
-
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 /**
  * Integration tests for DashboardController.
- * 
- * Tests cover:
- * - GET /api/v1/dashboard - Complete dashboard summary
- * - GET /api/v1/dashboard/accounts - Account summaries
- * - GET /api/v1/dashboard/cashflow - Cash flow analysis
- * - GET /api/v1/dashboard/spending - Spending by category
- * - Authentication and authorization
- * - Encryption key validation
- * - Error handling
+ *
+ * <p>Tests cover: - GET /api/v1/dashboard - Complete dashboard summary - GET
+ * /api/v1/dashboard/accounts - Account summaries - GET /api/v1/dashboard/cashflow - Cash flow
+ * analysis - GET /api/v1/dashboard/spending - Spending by category - Authentication and
+ * authorization - Encryption key validation - Error handling
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestDatabaseConfig.class)
-
 @ActiveProfiles("test")
 @DisplayName("DashboardController Integration Tests")
 class DashboardControllerIntegrationTest {
 
-    @MockBean
-    private OperationHistoryService operationHistoryService;
+    @MockBean private OperationHistoryService operationHistoryService;
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    @Autowired private CategoryRepository categoryRepository;
 
-    @Autowired
-    private KeyManagementService keyManagementService;
+    @Autowired private KeyManagementService keyManagementService;
 
-    @Autowired
-    private EncryptionService encryptionService;
+    @Autowired private EncryptionService encryptionService;
 
-    @Autowired
-    private DatabaseCleanupService databaseCleanupService;
+    @Autowired private DatabaseCleanupService databaseCleanupService;
 
     private String token;
     private String encKey;
@@ -98,35 +79,41 @@ class DashboardControllerIntegrationTest {
         databaseCleanupService.execute();
 
         // Register user
-        UserRegistrationRequest reg = UserRegistrationRequest.builder()
-                .username("alice")
-                .email("alice@example.com")
-                .password("Password123!")
-                .masterPassword("Master123!")
-                .skipSeeding(true)
-                .build();
+        UserRegistrationRequest reg =
+                UserRegistrationRequest.builder()
+                        .username("alice")
+                        .email("alice@example.com")
+                        .password("Password123!")
+                        .masterPassword("Master123!")
+                        .skipSeeding(true)
+                        .build();
         userService.registerUser(reg);
 
         // Login to get token
-        LoginRequest login = LoginRequest.builder()
-                .username("alice")
-                .password("Password123!")
-                .masterPassword("Master123!")
-                .build();
+        LoginRequest login =
+                LoginRequest.builder()
+                        .username("alice")
+                        .password("Password123!")
+                        .masterPassword("Master123!")
+                        .build();
 
-        String resp = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(login)))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String resp =
+                mockMvc.perform(
+                                post("/api/v1/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(login)))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
         token = objectMapper.readTree(resp).get("token").asText();
 
         // Derive the encryption key
-        testUser = userRepository.findByUsername("alice")
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        testUser =
+                userRepository
+                        .findByUsername("alice")
+                        .orElseThrow(() -> new RuntimeException("User not found"));
         byte[] salt = Base64.getDecoder().decode(testUser.getMasterPasswordSalt());
         secretKey = keyManagementService.deriveKey("Master123!".toCharArray(), salt);
         encKey = Base64.getEncoder().encodeToString(secretKey.getEncoded());
@@ -143,13 +130,22 @@ class DashboardControllerIntegrationTest {
 
         // Create test transactions
         Account checking = accountRepository.findByUserIdAndIsActive(testUser.getId(), true).get(0);
-        createTransaction(checking.getId(), TransactionType.INCOME, new BigDecimal("3000"), LocalDate.now().minusDays(5));
-        createTransaction(checking.getId(), TransactionType.EXPENSE, new BigDecimal("500"), LocalDate.now().minusDays(3));
+        createTransaction(
+                checking.getId(),
+                TransactionType.INCOME,
+                new BigDecimal("3000"),
+                LocalDate.now().minusDays(5));
+        createTransaction(
+                checking.getId(),
+                TransactionType.EXPENSE,
+                new BigDecimal("500"),
+                LocalDate.now().minusDays(3));
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/dashboard")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/dashboard")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.netWorth").exists())
@@ -161,23 +157,24 @@ class DashboardControllerIntegrationTest {
                 .andExpect(jsonPath("$.recentTransactions").isArray())
                 .andExpect(jsonPath("$.totalAccounts").value(2))
                 .andExpect(jsonPath("$.totalTransactions", greaterThanOrEqualTo(2)))
-                .andExpect(jsonPath("$.baseCurrency").value("USD")); // User.baseCurrency defaults to USD
+                .andExpect(
+                        jsonPath("$.baseCurrency")
+                                .value("USD")); // User.baseCurrency defaults to USD
     }
 
     @Test
     @DisplayName("GET /api/v1/dashboard - should return 403 when not authenticated")
     void shouldReturn403WhenNotAuthenticatedForDashboard() throws Exception {
-        mockMvc.perform(get("/api/v1/dashboard")
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(get("/api/v1/dashboard").header("X-Encryption-Key", encKey))
                 .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    @DisplayName("GET /api/v1/dashboard - should return 500 when encryption key is missing (Spring internal error)")
+    @DisplayName(
+            "GET /api/v1/dashboard - should return 500 when encryption key is missing (Spring internal error)")
     void shouldReturn500WhenEncryptionKeyMissingForDashboard() throws Exception {
-        mockMvc.perform(get("/api/v1/dashboard")
-                        .header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/v1/dashboard").header("Authorization", "Bearer " + token))
                 .andDo(print())
                 .andExpect(status().isInternalServerError());
     }
@@ -185,9 +182,10 @@ class DashboardControllerIntegrationTest {
     @Test
     @DisplayName("GET /api/v1/dashboard - should return 400 when encryption key is invalid")
     void shouldReturn400WhenEncryptionKeyInvalidForDashboard() throws Exception {
-        mockMvc.perform(get("/api/v1/dashboard")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", "invalid_key"))
+        mockMvc.perform(
+                        get("/api/v1/dashboard")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", "invalid_key"))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -204,14 +202,16 @@ class DashboardControllerIntegrationTest {
 
         // Act & Assert
         // Note: Accounts are sorted by balance descending, so Investment (50000) comes first
-        mockMvc.perform(get("/api/v1/dashboard/accounts")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/dashboard/accounts")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[0].name").value("Investment Account")) // Highest balance first
+                .andExpect(
+                        jsonPath("$[0].name").value("Investment Account")) // Highest balance first
                 .andExpect(jsonPath("$[0].balance").value(50000))
                 .andExpect(jsonPath("$[1].name").value("Savings Account"))
                 .andExpect(jsonPath("$[1].balance").value(15000))
@@ -225,9 +225,10 @@ class DashboardControllerIntegrationTest {
     @Test
     @DisplayName("GET /api/v1/dashboard/accounts - should return empty list when no accounts exist")
     void shouldReturnEmptyListWhenNoAccounts() throws Exception {
-        mockMvc.perform(get("/api/v1/dashboard/accounts")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey))
+        mockMvc.perform(
+                        get("/api/v1/dashboard/accounts")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Key", encKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -235,10 +236,12 @@ class DashboardControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/dashboard/accounts - should return 500 when encryption key is missing (Spring internal error)")
+    @DisplayName(
+            "GET /api/v1/dashboard/accounts - should return 500 when encryption key is missing (Spring internal error)")
     void shouldReturn500WhenEncryptionKeyMissingForAccounts() throws Exception {
-        mockMvc.perform(get("/api/v1/dashboard/accounts")
-                        .header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        get("/api/v1/dashboard/accounts")
+                                .header("Authorization", "Bearer " + token))
                 .andDo(print())
                 .andExpect(status().isInternalServerError());
     }
@@ -250,14 +253,31 @@ class DashboardControllerIntegrationTest {
     void shouldGetCashFlowWithDefaultPeriod() throws Exception {
         // Create test account and transactions
         Account account = createAccount("Checking", AccountType.CHECKING, new BigDecimal("5000"));
-        createTransaction(account.getId(), TransactionType.INCOME, new BigDecimal("4000"), LocalDate.now().minusDays(10));
-        createTransaction(account.getId(), TransactionType.INCOME, new BigDecimal("500"), LocalDate.now().minusDays(5));
-        createTransaction(account.getId(), TransactionType.EXPENSE, new BigDecimal("1200"), LocalDate.now().minusDays(8));
-        createTransaction(account.getId(), TransactionType.EXPENSE, new BigDecimal("300"), LocalDate.now().minusDays(2));
+        createTransaction(
+                account.getId(),
+                TransactionType.INCOME,
+                new BigDecimal("4000"),
+                LocalDate.now().minusDays(10));
+        createTransaction(
+                account.getId(),
+                TransactionType.INCOME,
+                new BigDecimal("500"),
+                LocalDate.now().minusDays(5));
+        createTransaction(
+                account.getId(),
+                TransactionType.EXPENSE,
+                new BigDecimal("1200"),
+                LocalDate.now().minusDays(8));
+        createTransaction(
+                account.getId(),
+                TransactionType.EXPENSE,
+                new BigDecimal("300"),
+                LocalDate.now().minusDays(2));
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/dashboard/cashflow")
-                        .header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        get("/api/v1/dashboard/cashflow")
+                                .header("Authorization", "Bearer " + token))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.income").isNumber())
@@ -270,13 +290,22 @@ class DashboardControllerIntegrationTest {
     void shouldGetCashFlowWithCustomPeriod() throws Exception {
         // Create test account and transactions
         Account account = createAccount("Checking", AccountType.CHECKING, new BigDecimal("5000"));
-        createTransaction(account.getId(), TransactionType.INCOME, new BigDecimal("2000"), LocalDate.now().minusDays(5));
-        createTransaction(account.getId(), TransactionType.EXPENSE, new BigDecimal("800"), LocalDate.now().minusDays(3));
+        createTransaction(
+                account.getId(),
+                TransactionType.INCOME,
+                new BigDecimal("2000"),
+                LocalDate.now().minusDays(5));
+        createTransaction(
+                account.getId(),
+                TransactionType.EXPENSE,
+                new BigDecimal("800"),
+                LocalDate.now().minusDays(3));
 
         // Act & Assert - query for last 7 days
-        mockMvc.perform(get("/api/v1/dashboard/cashflow")
-                        .param("period", "7")
-                        .header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        get("/api/v1/dashboard/cashflow")
+                                .param("period", "7")
+                                .header("Authorization", "Bearer " + token))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.income").isNumber())
@@ -287,9 +316,10 @@ class DashboardControllerIntegrationTest {
     @Test
     @DisplayName("GET /api/v1/dashboard/cashflow - should return 400 when period is zero")
     void shouldReturn400WhenPeriodIsZeroForCashFlow() throws Exception {
-        mockMvc.perform(get("/api/v1/dashboard/cashflow")
-                        .param("period", "0")
-                        .header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        get("/api/v1/dashboard/cashflow")
+                                .param("period", "0")
+                                .header("Authorization", "Bearer " + token))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -297,9 +327,10 @@ class DashboardControllerIntegrationTest {
     @Test
     @DisplayName("GET /api/v1/dashboard/cashflow - should return 400 when period is negative")
     void shouldReturn400WhenPeriodIsNegativeForCashFlow() throws Exception {
-        mockMvc.perform(get("/api/v1/dashboard/cashflow")
-                        .param("period", "-10")
-                        .header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        get("/api/v1/dashboard/cashflow")
+                                .param("period", "-10")
+                                .header("Authorization", "Bearer " + token))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -307,36 +338,59 @@ class DashboardControllerIntegrationTest {
     // ==================== GET /api/v1/dashboard/spending Tests ====================
 
     @Test
-    @DisplayName("GET /api/v1/dashboard/spending - should return spending by category with default period")
+    @DisplayName(
+            "GET /api/v1/dashboard/spending - should return spending by category with default period")
     void shouldGetSpendingByCategoryWithDefaultPeriod() throws Exception {
         // Create test account, categories, and transactions
         Account account = createAccount("Checking", AccountType.CHECKING, new BigDecimal("10000"));
         Category food = createCategory("Food", CategoryType.EXPENSE);
         Category transport = createCategory("Transport", CategoryType.EXPENSE);
 
-        createTransaction(account.getId(), TransactionType.EXPENSE, new BigDecimal("500"), LocalDate.now().minusDays(5), food.getId());
-        createTransaction(account.getId(), TransactionType.EXPENSE, new BigDecimal("200"), LocalDate.now().minusDays(3), transport.getId());
-        createTransaction(account.getId(), TransactionType.EXPENSE, new BigDecimal("300"), LocalDate.now().minusDays(1), food.getId());
+        createTransaction(
+                account.getId(),
+                TransactionType.EXPENSE,
+                new BigDecimal("500"),
+                LocalDate.now().minusDays(5),
+                food.getId());
+        createTransaction(
+                account.getId(),
+                TransactionType.EXPENSE,
+                new BigDecimal("200"),
+                LocalDate.now().minusDays(3),
+                transport.getId());
+        createTransaction(
+                account.getId(),
+                TransactionType.EXPENSE,
+                new BigDecimal("300"),
+                LocalDate.now().minusDays(1),
+                food.getId());
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/dashboard/spending")
-                        .header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        get("/api/v1/dashboard/spending")
+                                .header("Authorization", "Bearer " + token))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isMap());
     }
 
     @Test
-    @DisplayName("GET /api/v1/dashboard/spending - should return spending by category with custom period")
+    @DisplayName(
+            "GET /api/v1/dashboard/spending - should return spending by category with custom period")
     void shouldGetSpendingByCategoryWithCustomPeriod() throws Exception {
         // Create test account and transactions
         Account account = createAccount("Checking", AccountType.CHECKING, new BigDecimal("5000"));
-        createTransaction(account.getId(), TransactionType.EXPENSE, new BigDecimal("400"), LocalDate.now().minusDays(2));
+        createTransaction(
+                account.getId(),
+                TransactionType.EXPENSE,
+                new BigDecimal("400"),
+                LocalDate.now().minusDays(2));
 
         // Act & Assert - query for last 7 days
-        mockMvc.perform(get("/api/v1/dashboard/spending")
-                        .param("period", "7")
-                        .header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        get("/api/v1/dashboard/spending")
+                                .param("period", "7")
+                                .header("Authorization", "Bearer " + token))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isMap());
@@ -345,9 +399,10 @@ class DashboardControllerIntegrationTest {
     @Test
     @DisplayName("GET /api/v1/dashboard/spending - should return 400 when period is zero")
     void shouldReturn400WhenPeriodIsZeroForSpending() throws Exception {
-        mockMvc.perform(get("/api/v1/dashboard/spending")
-                        .param("period", "0")
-                        .header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        get("/api/v1/dashboard/spending")
+                                .param("period", "0")
+                                .header("Authorization", "Bearer " + token))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -355,8 +410,9 @@ class DashboardControllerIntegrationTest {
     @Test
     @DisplayName("GET /api/v1/dashboard/spending - should return empty map when no expenses exist")
     void shouldReturnEmptyMapWhenNoExpenses() throws Exception {
-        mockMvc.perform(get("/api/v1/dashboard/spending")
-                        .header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        get("/api/v1/dashboard/spending")
+                                .header("Authorization", "Bearer " + token))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isMap())
@@ -367,47 +423,57 @@ class DashboardControllerIntegrationTest {
 
     private Account createAccount(String name, AccountType type, BigDecimal balance) {
         String encryptedName = encryptionService.encrypt(name, secretKey);
-        Account account = Account.builder()
-                .userId(testUser.getId())
-                .name(encryptedName)
-                .type(type)
-                .balance(balance)
-                .currency("EUR")
-                .isActive(true)
-                .build();
+        Account account =
+                Account.builder()
+                        .userId(testUser.getId())
+                        .name(encryptedName)
+                        .type(type)
+                        .balance(balance)
+                        .currency("EUR")
+                        .isActive(true)
+                        .build();
         return accountRepository.save(account);
     }
 
     private Category createCategory(String name, CategoryType type) {
         String encryptedName = encryptionService.encrypt(name, secretKey);
-        Category category = Category.builder()
-                .userId(testUser.getId())
-                .name(encryptedName)
-                .type(type)
-                .icon("icon")
-                .color("#000000")
-                .isSystem(false)
-                .build();
+        Category category =
+                Category.builder()
+                        .userId(testUser.getId())
+                        .name(encryptedName)
+                        .type(type)
+                        .icon("icon")
+                        .color("#000000")
+                        .isSystem(false)
+                        .build();
         return categoryRepository.save(category);
     }
 
-    private Transaction createTransaction(Long accountId, TransactionType type, BigDecimal amount, LocalDate date) {
+    private Transaction createTransaction(
+            Long accountId, TransactionType type, BigDecimal amount, LocalDate date) {
         return createTransaction(accountId, type, amount, date, null);
     }
 
-    private Transaction createTransaction(Long accountId, TransactionType type, BigDecimal amount, LocalDate date, Long categoryId) {
-        String encryptedDescription = encryptionService.encrypt("Transaction description", secretKey);
-        Transaction transaction = Transaction.builder()
-                .userId(testUser.getId())
-                .accountId(accountId)
-                .type(type)
-                .amount(amount)
-                .date(date)
-                .description(encryptedDescription)
-                .categoryId(categoryId)
-                .currency("EUR")
-                .isDeleted(false)
-                .build();
+    private Transaction createTransaction(
+            Long accountId,
+            TransactionType type,
+            BigDecimal amount,
+            LocalDate date,
+            Long categoryId) {
+        String encryptedDescription =
+                encryptionService.encrypt("Transaction description", secretKey);
+        Transaction transaction =
+                Transaction.builder()
+                        .userId(testUser.getId())
+                        .accountId(accountId)
+                        .type(type)
+                        .amount(amount)
+                        .date(date)
+                        .description(encryptedDescription)
+                        .categoryId(categoryId)
+                        .currency("EUR")
+                        .isDeleted(false)
+                        .build();
         return transactionRepository.save(transaction);
     }
 }

@@ -1,11 +1,6 @@
 package org.openfinance.entity;
 
-import java.time.LocalDateTime;
-
-import org.hibernate.annotations.CreationTimestamp;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -21,6 +16,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,43 +25,33 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.annotations.CreationTimestamp;
 
 /**
- * Entity representing a file attachment associated with various financial
- * entities
- * (transactions, assets, real estate properties, or liabilities) in the
- * Open-Finance system.
- * 
- * <p>
- * Attachments allow users to store supporting documents such as receipts,
- * invoices,
- * contracts, images, or other relevant files alongside their financial data.
- * </p>
- * 
- * <p>
- * Requirement REQ-2.12: File Attachment System - Users can attach files to
- * transactions,
- * assets, real estate properties, and liabilities for record-keeping and
- * documentation purposes.
- * </p>
- * 
- * <p>
- * <strong>Security Note:</strong> Files are stored encrypted at rest on the
- * filesystem
- * using the AttachmentService. The {@code filePath} field contains the
- * encrypted file's
- * storage path, not the original file content.
- * </p>
- * 
+ * Entity representing a file attachment associated with various financial entities (transactions,
+ * assets, real estate properties, or liabilities) in the Open-Finance system.
+ *
+ * <p>Attachments allow users to store supporting documents such as receipts, invoices, contracts,
+ * images, or other relevant files alongside their financial data.
+ *
+ * <p>Requirement REQ-2.12: File Attachment System - Users can attach files to transactions, assets,
+ * real estate properties, and liabilities for record-keeping and documentation purposes.
+ *
+ * <p><strong>Security Note:</strong> Files are stored encrypted at rest on the filesystem using the
+ * AttachmentService. The {@code filePath} field contains the encrypted file's storage path, not the
+ * original file content.
+ *
  * @author Open-Finance Development Team
  * @since Sprint 12
  */
 @Entity
-@Table(name = "attachments", indexes = {
-        @Index(name = "idx_attachment_user_id", columnList = "user_id"),
-        @Index(name = "idx_attachment_entity", columnList = "entity_type, entity_id"),
-        @Index(name = "idx_attachment_uploaded_at", columnList = "uploaded_at")
-})
+@Table(
+        name = "attachments",
+        indexes = {
+            @Index(name = "idx_attachment_user_id", columnList = "user_id"),
+            @Index(name = "idx_attachment_entity", columnList = "entity_type, entity_id"),
+            @Index(name = "idx_attachment_uploaded_at", columnList = "uploaded_at")
+        })
 @Getter
 @Setter
 @Builder
@@ -75,9 +61,7 @@ import lombok.ToString;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Attachment {
 
-    /**
-     * Unique identifier for the attachment.
-     */
+    /** Unique identifier for the attachment. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @ToString.Include
@@ -85,27 +69,23 @@ public class Attachment {
     private Long id;
 
     /**
-     * The user who uploaded this attachment.
-     * Requirement REQ-2.12.1: Each attachment belongs to a single user for security
+     * The user who uploaded this attachment. Requirement REQ-2.12.1: Each attachment belongs to a
+     * single user for security
      */
     @NotNull(message = "User ID cannot be null")
     @Column(name = "user_id", nullable = false)
     @ToString.Include
     private Long userId;
 
-    /**
-     * Relationship to the User entity.
-     * Lazy-loaded to optimize performance.
-     */
+    /** Relationship to the User entity. Lazy-loaded to optimize performance. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
     @JsonIgnore
     private User user;
 
     /**
-     * Type of entity this attachment is associated with (TRANSACTION, ASSET,
-     * REAL_ESTATE, LIABILITY).
-     * Requirement REQ-2.12.2: Attachments can be linked to various entity types
+     * Type of entity this attachment is associated with (TRANSACTION, ASSET, REAL_ESTATE,
+     * LIABILITY). Requirement REQ-2.12.2: Attachments can be linked to various entity types
      */
     @NotNull(message = "Entity type cannot be null")
     @Enumerated(EnumType.STRING)
@@ -114,12 +94,11 @@ public class Attachment {
     private EntityType entityType;
 
     /**
-     * ID of the entity this attachment is associated with.
-     * This is a foreign key reference to the appropriate table based on
-     * {@link #entityType}.
-     * For example, if entityType is TRANSACTION, this refers to a transaction ID.
-     * 
-     * Requirement REQ-2.12.2: Attachments link to specific entities
+     * ID of the entity this attachment is associated with. This is a foreign key reference to the
+     * appropriate table based on {@link #entityType}. For example, if entityType is TRANSACTION,
+     * this refers to a transaction ID.
+     *
+     * <p>Requirement REQ-2.12.2: Attachments link to specific entities
      */
     @NotNull(message = "Entity ID cannot be null")
     @Positive(message = "Entity ID must be positive")
@@ -128,10 +107,10 @@ public class Attachment {
     private Long entityId;
 
     /**
-     * Original file name as uploaded by the user.
-     * Preserved for display purposes and user reference.
-     * 
-     * Requirement REQ-2.12.3: Original filename preserved for user convenience
+     * Original file name as uploaded by the user. Preserved for display purposes and user
+     * reference.
+     *
+     * <p>Requirement REQ-2.12.3: Original filename preserved for user convenience
      */
     @NotNull(message = "File name cannot be null")
     @Size(min = 1, max = 255, message = "File name must be between 1 and 255 characters")
@@ -140,10 +119,10 @@ public class Attachment {
     private String fileName;
 
     /**
-     * MIME type of the file (e.g., "application/pdf", "image/jpeg").
-     * Used for content-type header when serving the file for download.
-     * 
-     * Requirement REQ-2.12.4: Store file type for proper content handling
+     * MIME type of the file (e.g., "application/pdf", "image/jpeg"). Used for content-type header
+     * when serving the file for download.
+     *
+     * <p>Requirement REQ-2.12.4: Store file type for proper content handling
      */
     @NotNull(message = "File type cannot be null")
     @Size(min = 1, max = 100, message = "File type must be between 1 and 100 characters")
@@ -151,10 +130,9 @@ public class Attachment {
     private String fileType;
 
     /**
-     * Size of the file in bytes.
-     * Used for storage management and validation.
-     * 
-     * Requirement REQ-2.12.5: Track file size (max 10MB per file)
+     * Size of the file in bytes. Used for storage management and validation.
+     *
+     * <p>Requirement REQ-2.12.5: Track file size (max 10MB per file)
      */
     @NotNull(message = "File size cannot be null")
     @Positive(message = "File size must be positive")
@@ -162,19 +140,15 @@ public class Attachment {
     private Long fileSize;
 
     /**
-     * Path to the encrypted file in the filesystem.
-     * This path is relative to the configured attachment storage directory.
-     * Files are organized by user ID and entity type to improve security and
-     * organization.
-     * 
-     * Example format: "attachments/userId/entityType/generatedFileName.enc"
-     * 
-     * <p>
-     * <strong>Security Note:</strong> Files are encrypted at rest. This path points
-     * to the encrypted version of the file, not the original unencrypted file.
-     * </p>
-     * 
-     * Requirement REQ-2.12.6: Files stored encrypted at rest on filesystem
+     * Path to the encrypted file in the filesystem. This path is relative to the configured
+     * attachment storage directory. Files are organized by user ID and entity type to improve
+     * security and organization.
+     *
+     * <p>Example format: "attachments/userId/entityType/generatedFileName.enc"
+     *
+     * <p><strong>Security Note:</strong> Files are encrypted at rest. This path points to the
+     * encrypted version of the file, not the original unencrypted file. Requirement REQ-2.12.6:
+     * Files stored encrypted at rest on filesystem
      */
     @NotNull(message = "File path cannot be null")
     @Size(min = 1, max = 500, message = "File path must be between 1 and 500 characters")
@@ -182,18 +156,17 @@ public class Attachment {
     private String filePath;
 
     /**
-     * Timestamp when the file was uploaded.
-     * Automatically set by Hibernate on entity creation.
-     * 
-     * Requirement REQ-2.12.7: Track upload timestamp for audit trail
+     * Timestamp when the file was uploaded. Automatically set by Hibernate on entity creation.
+     *
+     * <p>Requirement REQ-2.12.7: Track upload timestamp for audit trail
      */
     @CreationTimestamp
     @Column(name = "uploaded_at", nullable = false, updatable = false)
     private LocalDateTime uploadedAt;
 
     /**
-     * Optional description or notes about this attachment.
-     * Allows users to add context about what the file contains.
+     * Optional description or notes about this attachment. Allows users to add context about what
+     * the file contains.
      */
     @Size(max = 500, message = "Description must not exceed 500 characters")
     @Column(name = "description", length = 500)
@@ -201,7 +174,7 @@ public class Attachment {
 
     /**
      * Helper method to get a human-readable file size string.
-     * 
+     *
      * @return Formatted file size (e.g., "1.5 MB", "234 KB", "12 bytes")
      */
     public String getFormattedFileSize() {
@@ -222,9 +195,8 @@ public class Attachment {
 
     /**
      * Helper method to determine if this is an image file.
-     * 
-     * @return true if the file is an image (jpg, jpeg, png, gif, webp), false
-     *         otherwise
+     *
+     * @return true if the file is an image (jpg, jpeg, png, gif, webp), false otherwise
      */
     public boolean isImage() {
         if (fileType == null) {
@@ -235,7 +207,7 @@ public class Attachment {
 
     /**
      * Helper method to determine if this is a PDF file.
-     * 
+     *
      * @return true if the file is a PDF, false otherwise
      */
     public boolean isPdf() {
@@ -243,27 +215,27 @@ public class Attachment {
     }
 
     /**
-     * Helper method to determine if this is a document file (PDF, DOC, DOCX, XLS,
-     * XLSX).
-     * 
+     * Helper method to determine if this is a document file (PDF, DOC, DOCX, XLS, XLSX).
+     *
      * @return true if the file is a document, false otherwise
      */
     public boolean isDocument() {
         if (fileType == null) {
             return false;
         }
-        return fileType.equals("application/pdf") ||
-                fileType.equals("application/msword") ||
-                fileType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document") ||
-                fileType.equals("application/vnd.ms-excel") ||
-                fileType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        return fileType.equals("application/pdf")
+                || fileType.equals("application/msword")
+                || fileType.equals(
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                || fileType.equals("application/vnd.ms-excel")
+                || fileType.equals(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
 
     /**
      * Helper method to get a file extension from the file name.
-     * 
-     * @return File extension (e.g., "pdf", "jpg") or empty string if no extension
-     *         found
+     *
+     * @return File extension (e.g., "pdf", "jpg") or empty string if no extension found
      */
     public String getFileExtension() {
         if (fileName == null || !fileName.contains(".")) {

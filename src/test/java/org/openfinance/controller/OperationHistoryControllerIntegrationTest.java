@@ -1,6 +1,5 @@
 package org.openfinance.controller;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -32,20 +31,15 @@ import org.springframework.test.web.servlet.MvcResult;
 @Import(TestDatabaseConfig.class)
 class OperationHistoryControllerIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private OperationHistoryService operationHistoryService;
+    @Autowired private OperationHistoryService operationHistoryService;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private DatabaseCleanupService databaseCleanupService;
+    @Autowired private DatabaseCleanupService databaseCleanupService;
 
     private String authToken;
     private Long userId;
@@ -62,9 +56,10 @@ class OperationHistoryControllerIntegrationTest {
         registerRequest.setMasterPassword("Password123!");
         registerRequest.setSkipSeeding(true);
 
-        mockMvc.perform(post("/api/v1/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(registerRequest)))
+        mockMvc.perform(
+                        post("/api/v1/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isCreated());
 
         // 2. Login
@@ -73,13 +68,19 @@ class OperationHistoryControllerIntegrationTest {
         authRequest.setPassword("Password123!");
         authRequest.setMasterPassword("Password123!");
 
-        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(authRequest)))
-                .andExpect(status().isOk())
-                .andReturn();
+        MvcResult loginResult =
+                mockMvc.perform(
+                                post("/api/v1/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(authRequest)))
+                        .andExpect(status().isOk())
+                        .andReturn();
 
-        authToken = objectMapper.readTree(loginResult.getResponse().getContentAsString()).get("token").asText();
+        authToken =
+                objectMapper
+                        .readTree(loginResult.getResponse().getContentAsString())
+                        .get("token")
+                        .asText();
 
         userId = userRepository.findByEmail("history-test@example.com").orElseThrow().getId();
     }
@@ -87,10 +88,16 @@ class OperationHistoryControllerIntegrationTest {
     @Test
     void getHistory_Success() throws Exception {
         // Record a mock event directly via service
-        operationHistoryService.record(userId, EntityType.ACCOUNT, 999L, "Test Account", OperationType.CREATE, (String) null, (String) null);
+        operationHistoryService.record(
+                userId,
+                EntityType.ACCOUNT,
+                999L,
+                "Test Account",
+                OperationType.CREATE,
+                (String) null,
+                (String) null);
 
-        mockMvc.perform(get("/api/v1/history")
-                .header("Authorization", "Bearer " + authToken))
+        mockMvc.perform(get("/api/v1/history").header("Authorization", "Bearer " + authToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content[0].entityType").value("ACCOUNT"))
@@ -101,25 +108,30 @@ class OperationHistoryControllerIntegrationTest {
     @Test
     void undo_Redo_MarkStatusOnlyForNonCreate() throws Exception {
         // Record a mock UPDATE event directly via service
-        operationHistoryService.record(userId, EntityType.ACCOUNT, 999L, "Test Account", OperationType.UPDATE, "{}", "{}");
+        operationHistoryService.record(
+                userId, EntityType.ACCOUNT, 999L, "Test Account", OperationType.UPDATE, "{}", "{}");
 
         // get the history entry id
-        MvcResult historyResult = mockMvc.perform(get("/api/v1/history")
-                .header("Authorization", "Bearer " + authToken))
-                .andReturn();
+        MvcResult historyResult =
+                mockMvc.perform(
+                                get("/api/v1/history")
+                                        .header("Authorization", "Bearer " + authToken))
+                        .andReturn();
         String content = historyResult.getResponse().getContentAsString();
         Integer historyId = com.jayway.jsonpath.JsonPath.read(content, "$.content[0].id");
 
         // Undo
-        mockMvc.perform(post("/api/v1/history/" + historyId + "/undo")
-                .header("Authorization", "Bearer " + authToken))
+        mockMvc.perform(
+                        post("/api/v1/history/" + historyId + "/undo")
+                                .header("Authorization", "Bearer " + authToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.undoneAt").isNotEmpty())
                 .andExpect(jsonPath("$.redoneAt").isEmpty());
 
         // Redo
-        mockMvc.perform(post("/api/v1/history/" + historyId + "/redo")
-                .header("Authorization", "Bearer " + authToken))
+        mockMvc.perform(
+                        post("/api/v1/history/" + historyId + "/redo")
+                                .header("Authorization", "Bearer " + authToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.undoneAt").isNotEmpty())
                 .andExpect(jsonPath("$.redoneAt").isNotEmpty());
@@ -128,26 +140,36 @@ class OperationHistoryControllerIntegrationTest {
     @Test
     void undo_CannotRedoIfNotUndone() throws Exception {
         // Record a mock UPDATE event directly via service
-        operationHistoryService.record(userId, EntityType.ACCOUNT, 999L, "Test Account", OperationType.UPDATE, "{}", "{}");
+        operationHistoryService.record(
+                userId, EntityType.ACCOUNT, 999L, "Test Account", OperationType.UPDATE, "{}", "{}");
 
         // get the history entry id
-        MvcResult historyResult = mockMvc.perform(get("/api/v1/history")
-                .header("Authorization", "Bearer " + authToken))
-                .andReturn();
+        MvcResult historyResult =
+                mockMvc.perform(
+                                get("/api/v1/history")
+                                        .header("Authorization", "Bearer " + authToken))
+                        .andReturn();
         String content = historyResult.getResponse().getContentAsString();
         Integer historyId = com.jayway.jsonpath.JsonPath.read(content, "$.content[0].id");
 
         // Attempt Redo before Undo
-        mockMvc.perform(post("/api/v1/history/" + historyId + "/redo")
-                .header("Authorization", "Bearer " + authToken))
+        mockMvc.perform(
+                        post("/api/v1/history/" + historyId + "/redo")
+                                .header("Authorization", "Bearer " + authToken))
                 .andExpect(status().is4xxClientError());
     }
 
     @Test
     void getHistory_WithSinceFilter_ReturnsOnlySessionEntries() throws Exception {
         // Record an entry BEFORE the session start
-        operationHistoryService.record(userId, EntityType.ACCOUNT, 1L, "Old Entry",
-                OperationType.CREATE, (String) null, (String) null);
+        operationHistoryService.record(
+                userId,
+                EntityType.ACCOUNT,
+                1L,
+                "Old Entry",
+                OperationType.CREATE,
+                (String) null,
+                (String) null);
 
         // Sleep briefly so the old entry's createdAt is strictly less than since.
         // Without this, both timestamps could share the same millisecond and the
@@ -158,27 +180,34 @@ class OperationHistoryControllerIntegrationTest {
         String since = java.time.Instant.now().toString();
 
         // Verify no entries returned when since is now (old entry predates it)
-        mockMvc.perform(get("/api/v1/history")
-                        .param("since", since)
-                        .header("Authorization", "Bearer " + authToken))
+        mockMvc.perform(
+                        get("/api/v1/history")
+                                .param("since", since)
+                                .header("Authorization", "Bearer " + authToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(0));
 
         // Record an entry AFTER the session start
-        operationHistoryService.record(userId, EntityType.ASSET, 2L, "New Entry",
-                OperationType.CREATE, (String) null, (String) null);
+        operationHistoryService.record(
+                userId,
+                EntityType.ASSET,
+                2L,
+                "New Entry",
+                OperationType.CREATE,
+                (String) null,
+                (String) null);
 
         // Now the session-scoped query should return only the new entry
-        mockMvc.perform(get("/api/v1/history")
-                        .param("since", since)
-                        .header("Authorization", "Bearer " + authToken))
+        mockMvc.perform(
+                        get("/api/v1/history")
+                                .param("since", since)
+                                .header("Authorization", "Bearer " + authToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].entityLabel").value("New Entry"));
 
         // Without since filter, both entries are returned
-        mockMvc.perform(get("/api/v1/history")
-                        .header("Authorization", "Bearer " + authToken))
+        mockMvc.perform(get("/api/v1/history").header("Authorization", "Bearer " + authToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(2));
     }

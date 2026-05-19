@@ -1,37 +1,35 @@
 package org.openfinance.service;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.calculator.CompoundInterestRequest;
 import org.openfinance.dto.calculator.CompoundInterestResult;
 import org.openfinance.dto.calculator.CompoundInterestYearlyBreakdown;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Service for compound interest calculations.
  *
- * <p>
- * Core formula (future value with regular contributions):
- * </p>
- * 
+ * <p>Core formula (future value with regular contributions):
+ *
  * <pre>
  *   FV = P × (1 + r/n)^(n×t)
  *      + PMT × [((1 + r/n)^(n×t) - 1) / (r/n)]  — end-of-period contributions
  *      + PMT × [((1 + r/n)^(n×t) - 1) / (r/n)] × (1 + r/n)  — beginning-of-period
  * </pre>
- * 
+ *
  * Where:
+ *
  * <ul>
- * <li>P = principal</li>
- * <li>r = annual rate (decimal)</li>
- * <li>n = compounding periods per year</li>
- * <li>t = years</li>
- * <li>PMT = regular contribution per period</li>
+ *   <li>P = principal
+ *   <li>r = annual rate (decimal)
+ *   <li>n = compounding periods per year
+ *   <li>t = years
+ *   <li>PMT = regular contribution per period
  * </ul>
  */
 @Service
@@ -49,28 +47,34 @@ public class CompoundInterestService {
      * @return full result including year-by-year breakdown
      */
     public CompoundInterestResult calculate(CompoundInterestRequest request) {
-        log.info("Calculating compound interest: principal={}, rate={}%, freq={}, years={}",
-                request.getPrincipal(), request.getAnnualRate(),
-                request.getCompoundingFrequency(), request.getYears());
+        log.info(
+                "Calculating compound interest: principal={}, rate={}%, freq={}, years={}",
+                request.getPrincipal(),
+                request.getAnnualRate(),
+                request.getCompoundingFrequency(),
+                request.getYears());
 
         BigDecimal principal = request.getPrincipal();
-        BigDecimal annualRate = request.getAnnualRate().divide(BigDecimal.valueOf(100), SCALE, ROUNDING);
+        BigDecimal annualRate =
+                request.getAnnualRate().divide(BigDecimal.valueOf(100), SCALE, ROUNDING);
         int n = request.getCompoundingFrequency();
         int years = request.getYears();
-        BigDecimal pmt = request.getRegularContribution() != null
-                ? request.getRegularContribution()
-                : BigDecimal.ZERO;
+        BigDecimal pmt =
+                request.getRegularContribution() != null
+                        ? request.getRegularContribution()
+                        : BigDecimal.ZERO;
 
         if (years == 0) {
-            CompoundInterestYearlyBreakdown yearZero = CompoundInterestYearlyBreakdown.builder()
-                    .year(0)
-                    .startingBalance(principal.setScale(2, ROUNDING))
-                    .contributions(BigDecimal.ZERO.setScale(2, ROUNDING))
-                    .interestEarned(BigDecimal.ZERO.setScale(2, ROUNDING))
-                    .endingBalance(principal.setScale(2, ROUNDING))
-                    .cumulativeInterest(BigDecimal.ZERO.setScale(2, ROUNDING))
-                    .cumulativePrincipal(principal.setScale(2, ROUNDING))
-                    .build();
+            CompoundInterestYearlyBreakdown yearZero =
+                    CompoundInterestYearlyBreakdown.builder()
+                            .year(0)
+                            .startingBalance(principal.setScale(2, ROUNDING))
+                            .contributions(BigDecimal.ZERO.setScale(2, ROUNDING))
+                            .interestEarned(BigDecimal.ZERO.setScale(2, ROUNDING))
+                            .endingBalance(principal.setScale(2, ROUNDING))
+                            .cumulativeInterest(BigDecimal.ZERO.setScale(2, ROUNDING))
+                            .cumulativePrincipal(principal.setScale(2, ROUNDING))
+                            .build();
             return CompoundInterestResult.builder()
                     .finalBalance(principal.setScale(2, ROUNDING))
                     .principal(principal.setScale(2, ROUNDING))
@@ -86,29 +90,33 @@ public class CompoundInterestService {
 
         BigDecimal rPerPeriod = annualRate.divide(BigDecimal.valueOf(n), SCALE, ROUNDING);
 
-        List<CompoundInterestYearlyBreakdown> breakdown = buildYearlyBreakdown(
-                principal, rPerPeriod, n, years, pmt, atBeginning);
+        List<CompoundInterestYearlyBreakdown> breakdown =
+                buildYearlyBreakdown(principal, rPerPeriod, n, years, pmt, atBeginning);
 
         BigDecimal finalBalance = breakdown.get(breakdown.size() - 1).getEndingBalance();
-        BigDecimal totalContributions = pmt.multiply(BigDecimal.valueOf((long) n * years)).setScale(2, ROUNDING);
+        BigDecimal totalContributions =
+                pmt.multiply(BigDecimal.valueOf((long) n * years)).setScale(2, ROUNDING);
         BigDecimal totalInvested = principal.add(totalContributions).setScale(2, ROUNDING);
         BigDecimal totalInterest = finalBalance.subtract(totalInvested).setScale(2, ROUNDING);
 
         // Effective Annual Rate = (1 + r/n)^n - 1
         BigDecimal effectiveAnnualRate = computeEffectiveAnnualRate(annualRate, n);
 
-        CompoundInterestResult result = CompoundInterestResult.builder()
-                .finalBalance(finalBalance.setScale(2, ROUNDING))
-                .principal(principal.setScale(2, ROUNDING))
-                .totalContributions(totalContributions)
-                .totalInterest(totalInterest)
-                .totalInvested(totalInvested)
-                .effectiveAnnualRate(effectiveAnnualRate)
-                .yearlyBreakdown(breakdown)
-                .build();
+        CompoundInterestResult result =
+                CompoundInterestResult.builder()
+                        .finalBalance(finalBalance.setScale(2, ROUNDING))
+                        .principal(principal.setScale(2, ROUNDING))
+                        .totalContributions(totalContributions)
+                        .totalInterest(totalInterest)
+                        .totalInvested(totalInvested)
+                        .effectiveAnnualRate(effectiveAnnualRate)
+                        .yearlyBreakdown(breakdown)
+                        .build();
 
-        log.info("Compound interest calculated: finalBalance={}, totalInterest={}",
-                result.getFinalBalance(), result.getTotalInterest());
+        log.info(
+                "Compound interest calculated: finalBalance={}, totalInterest={}",
+                result.getFinalBalance(),
+                result.getTotalInterest());
 
         return result;
     }
@@ -118,9 +126,8 @@ public class CompoundInterestService {
     // -----------------------------------------------------------------------
 
     /**
-     * Build year-by-year breakdown using iterative period-level simulation.
-     * This approach avoids precision issues of a single closed-form calculation
-     * and produces accurate per-year figures.
+     * Build year-by-year breakdown using iterative period-level simulation. This approach avoids
+     * precision issues of a single closed-form calculation and produces accurate per-year figures.
      */
     private List<CompoundInterestYearlyBreakdown> buildYearlyBreakdown(
             BigDecimal principal,
@@ -158,26 +165,26 @@ public class CompoundInterestService {
             }
 
             cumulativeInterest = cumulativeInterest.add(yearlyInterest);
-            cumulativePrincipalAndContributions = cumulativePrincipalAndContributions.add(yearlyContributions);
+            cumulativePrincipalAndContributions =
+                    cumulativePrincipalAndContributions.add(yearlyContributions);
 
-            breakdown.add(CompoundInterestYearlyBreakdown.builder()
-                    .year(year)
-                    .startingBalance(startingBalance.setScale(2, ROUNDING))
-                    .contributions(yearlyContributions.setScale(2, ROUNDING))
-                    .interestEarned(yearlyInterest.setScale(2, ROUNDING))
-                    .endingBalance(balance.setScale(2, ROUNDING))
-                    .cumulativeInterest(cumulativeInterest.setScale(2, ROUNDING))
-                    .cumulativePrincipal(cumulativePrincipalAndContributions.setScale(2, ROUNDING))
-                    .build());
+            breakdown.add(
+                    CompoundInterestYearlyBreakdown.builder()
+                            .year(year)
+                            .startingBalance(startingBalance.setScale(2, ROUNDING))
+                            .contributions(yearlyContributions.setScale(2, ROUNDING))
+                            .interestEarned(yearlyInterest.setScale(2, ROUNDING))
+                            .endingBalance(balance.setScale(2, ROUNDING))
+                            .cumulativeInterest(cumulativeInterest.setScale(2, ROUNDING))
+                            .cumulativePrincipal(
+                                    cumulativePrincipalAndContributions.setScale(2, ROUNDING))
+                            .build());
         }
 
         return breakdown;
     }
 
-    /**
-     * Compute EAR = (1 + r/n)^n - 1, returned as a percentage rounded to 4 decimal
-     * places.
-     */
+    /** Compute EAR = (1 + r/n)^n - 1, returned as a percentage rounded to 4 decimal places. */
     private BigDecimal computeEffectiveAnnualRate(BigDecimal annualRate, int n) {
         if (annualRate.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;

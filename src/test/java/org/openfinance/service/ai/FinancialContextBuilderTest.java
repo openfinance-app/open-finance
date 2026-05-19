@@ -1,5 +1,17 @@
 package org.openfinance.service.ai;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,61 +26,34 @@ import org.openfinance.security.EncryptionService;
 import org.openfinance.service.NetWorthService;
 import org.springframework.context.MessageSource;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 /**
- * Unit tests for FinancialContextBuilder
- * Task 11.1.7b: Write FinancialContextBuilder unit tests
- * 
- * Tests cover:
- * - buildContext with full financial data
- * - buildContext with empty data
- * - buildMinimalContext
- * - Decryption of encrypted fields
- * - Context formatting and sections
+ * Unit tests for FinancialContextBuilder Task 11.1.7b: Write FinancialContextBuilder unit tests
+ *
+ * <p>Tests cover: - buildContext with full financial data - buildContext with empty data -
+ * buildMinimalContext - Decryption of encrypted fields - Context formatting and sections
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FinancialContextBuilder Tests")
 class FinancialContextBuilderTest {
 
-    @Mock
-    private AccountRepository accountRepository;
-    
-    @Mock
-    private TransactionRepository transactionRepository;
-    
-    @Mock
-    private AssetRepository assetRepository;
-    
-    @Mock
-    private LiabilityRepository liabilityRepository;
-    
-    @Mock
-    private BudgetRepository budgetRepository;
-    
-    @Mock
-    private NetWorthService netWorthService;
-    
-    @Mock
-    private EncryptionService encryptionService;
-    
-    @Mock
-    private MessageSource messageSource;
-    
-    @InjectMocks
-    private FinancialContextBuilder contextBuilder;
-    
+    @Mock private AccountRepository accountRepository;
+
+    @Mock private TransactionRepository transactionRepository;
+
+    @Mock private AssetRepository assetRepository;
+
+    @Mock private LiabilityRepository liabilityRepository;
+
+    @Mock private BudgetRepository budgetRepository;
+
+    @Mock private NetWorthService netWorthService;
+
+    @Mock private EncryptionService encryptionService;
+
+    @Mock private MessageSource messageSource;
+
+    @InjectMocks private FinancialContextBuilder contextBuilder;
+
     private SecretKey testKey;
     private Long userId;
 
@@ -76,9 +61,10 @@ class FinancialContextBuilderTest {
     void setUp() {
         userId = 1L;
         testKey = new SecretKeySpec("test-key-16bytes!".getBytes(), "AES");
-        
-        lenient().when(messageSource.getMessage(anyString(), any(), anyString(), any()))
-            .thenAnswer(invocation -> invocation.getArgument(2));
+
+        lenient()
+                .when(messageSource.getMessage(anyString(), any(), anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(2));
     }
 
     @Nested
@@ -90,47 +76,46 @@ class FinancialContextBuilderTest {
         void shouldBuildContextWithAllData() {
             // Given
             when(netWorthService.calculateTotalAssets(eq(userId), any(SecretKey.class), eq("USD")))
-                .thenReturn(new BigDecimal("50000.00"));
-            when(netWorthService.calculateTotalLiabilities(eq(userId), any(SecretKey.class), eq("USD")))
-                .thenReturn(new BigDecimal("5000.00"));
+                    .thenReturn(new BigDecimal("50000.00"));
+            when(netWorthService.calculateTotalLiabilities(
+                            eq(userId), any(SecretKey.class), eq("USD")))
+                    .thenReturn(new BigDecimal("5000.00"));
 
-            List<Account> accounts = Arrays.asList(
-                createAccount(1L, "Checking", AccountType.CHECKING, "2500.00"),
-                createAccount(2L, "Savings", AccountType.SAVINGS, "15000.00")
-            );
+            List<Account> accounts =
+                    Arrays.asList(
+                            createAccount(1L, "Checking", AccountType.CHECKING, "2500.00"),
+                            createAccount(2L, "Savings", AccountType.SAVINGS, "15000.00"));
             when(accountRepository.findByUserIdAndIsActive(userId, true)).thenReturn(accounts);
 
-            List<Transaction> transactions = Arrays.asList(
-                createTransaction(1L, "Grocery Store", "150.00", TransactionType.EXPENSE),
-                createTransaction(2L, "Salary", "3000.00", TransactionType.INCOME)
-            );
+            List<Transaction> transactions =
+                    Arrays.asList(
+                            createTransaction(
+                                    1L, "Grocery Store", "150.00", TransactionType.EXPENSE),
+                            createTransaction(2L, "Salary", "3000.00", TransactionType.INCOME));
             when(transactionRepository.findByUserIdAndDateBetween(
-                eq(userId), 
-                any(LocalDate.class), 
-                any(LocalDate.class)))
-                .thenReturn(transactions);
+                            eq(userId), any(LocalDate.class), any(LocalDate.class)))
+                    .thenReturn(transactions);
 
-            List<Asset> assets = Arrays.asList(
-                createAsset(1L, "AAPL Stock", AssetType.STOCK, "10000.00")
-            );
+            List<Asset> assets =
+                    Arrays.asList(createAsset(1L, "AAPL Stock", AssetType.STOCK, "10000.00"));
             when(assetRepository.findByUserId(userId)).thenReturn(assets);
 
-            List<Liability> liabilities = Arrays.asList(
-                createLiability(1L, "Credit Card", "1500.00")
-            );
-            when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(liabilities);
+            List<Liability> liabilities =
+                    Arrays.asList(createLiability(1L, "Credit Card", "1500.00"));
+            when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId))
+                    .thenReturn(liabilities);
 
-            List<Budget> budgets = Arrays.asList(
-                createBudget(1L, "Groceries", "500.00", "300.00")
-            );
+            List<Budget> budgets = Arrays.asList(createBudget(1L, "Groceries", "500.00", "300.00"));
             when(budgetRepository.findByUserId(userId)).thenReturn(budgets);
 
             // Mock decryption - strip "encrypted-" prefix from all values
-            lenient().when(encryptionService.decrypt(anyString(), any(SecretKey.class)))
-                .thenAnswer(invocation -> {
-                    String encrypted = invocation.getArgument(0);
-                    return encrypted.replaceFirst("^encrypted-", "");
-                });
+            lenient()
+                    .when(encryptionService.decrypt(anyString(), any(SecretKey.class)))
+                    .thenAnswer(
+                            invocation -> {
+                                String encrypted = invocation.getArgument(0);
+                                return encrypted.replaceFirst("^encrypted-", "");
+                            });
 
             // When
             String context = contextBuilder.buildContext(userId, testKey);
@@ -146,12 +131,11 @@ class FinancialContextBuilderTest {
             assertThat(context).contains("=== ASSETS");
             assertThat(context).contains("=== LIABILITIES");
             assertThat(context).contains("=== BUDGET STATUS");
-            
+
             verify(accountRepository, times(1)).findByUserIdAndIsActive(userId, true);
-            verify(transactionRepository).findByUserIdAndDateBetween(
-                eq(userId), 
-                any(LocalDate.class), 
-                any(LocalDate.class));
+            verify(transactionRepository)
+                    .findByUserIdAndDateBetween(
+                            eq(userId), any(LocalDate.class), any(LocalDate.class));
             verify(assetRepository).findByUserId(userId);
             verify(liabilityRepository).findByUserIdOrderByCreatedAtDesc(userId);
             verify(budgetRepository).findByUserId(userId);
@@ -162,18 +146,18 @@ class FinancialContextBuilderTest {
         void shouldBuildContextWithNoData() {
             // Given
             when(netWorthService.calculateTotalAssets(eq(userId), any(SecretKey.class), eq("USD")))
-                .thenReturn(BigDecimal.ZERO);
-            when(netWorthService.calculateTotalLiabilities(eq(userId), any(SecretKey.class), eq("USD")))
-                .thenReturn(BigDecimal.ZERO);
-            when(accountRepository.findByUserIdAndIsActive(userId, true)).thenReturn(Collections.emptyList());
+                    .thenReturn(BigDecimal.ZERO);
+            when(netWorthService.calculateTotalLiabilities(
+                            eq(userId), any(SecretKey.class), eq("USD")))
+                    .thenReturn(BigDecimal.ZERO);
+            when(accountRepository.findByUserIdAndIsActive(userId, true))
+                    .thenReturn(Collections.emptyList());
             when(transactionRepository.findByUserIdAndDateBetween(
-                eq(userId), 
-                any(LocalDate.class), 
-                any(LocalDate.class)))
-                .thenReturn(Collections.emptyList());
+                            eq(userId), any(LocalDate.class), any(LocalDate.class)))
+                    .thenReturn(Collections.emptyList());
             when(assetRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
             when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId))
-                .thenReturn(Collections.emptyList());
+                    .thenReturn(Collections.emptyList());
             when(budgetRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
 
             // When
@@ -190,27 +174,25 @@ class FinancialContextBuilderTest {
         @DisplayName("should handle decryption failures gracefully")
         void shouldHandleDecryptionFailures() {
             // Given
-            List<Account> accounts = Arrays.asList(
-                createAccount(1L, "Checking", AccountType.CHECKING, "2500.00")
-            );
+            List<Account> accounts =
+                    Arrays.asList(createAccount(1L, "Checking", AccountType.CHECKING, "2500.00"));
             when(accountRepository.findByUserIdAndIsActive(userId, true)).thenReturn(accounts);
             when(netWorthService.calculateTotalAssets(eq(userId), any(SecretKey.class), eq("USD")))
-                .thenReturn(BigDecimal.ZERO);
-            when(netWorthService.calculateTotalLiabilities(eq(userId), any(SecretKey.class), eq("USD")))
-                .thenReturn(BigDecimal.ZERO);
+                    .thenReturn(BigDecimal.ZERO);
+            when(netWorthService.calculateTotalLiabilities(
+                            eq(userId), any(SecretKey.class), eq("USD")))
+                    .thenReturn(BigDecimal.ZERO);
             when(transactionRepository.findByUserIdAndDateBetween(
-                eq(userId), 
-                any(LocalDate.class), 
-                any(LocalDate.class)))
-                .thenReturn(Collections.emptyList());
+                            eq(userId), any(LocalDate.class), any(LocalDate.class)))
+                    .thenReturn(Collections.emptyList());
             when(assetRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
             when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId))
-                .thenReturn(Collections.emptyList());
+                    .thenReturn(Collections.emptyList());
             when(budgetRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
 
             // Mock decryption failure
             when(encryptionService.decrypt(anyString(), any(SecretKey.class)))
-                .thenThrow(new RuntimeException("Decryption failed"));
+                    .thenThrow(new RuntimeException("Decryption failed"));
 
             // When
             String context = contextBuilder.buildContext(userId, testKey);
@@ -230,22 +212,25 @@ class FinancialContextBuilderTest {
         void shouldBuildMinimalContext() {
             // Given
             when(netWorthService.calculateTotalAssets(eq(userId), any(SecretKey.class), eq("USD")))
-                .thenReturn(new BigDecimal("50000.00"));
-            when(netWorthService.calculateTotalLiabilities(eq(userId), any(SecretKey.class), eq("USD")))
-                .thenReturn(new BigDecimal("5000.00"));
-            
-            List<Account> accounts = Arrays.asList(
-                createAccount(1L, "Checking", AccountType.CHECKING, "2500.00"),
-                createAccount(2L, "Savings", AccountType.SAVINGS, "15000.00")
-            );
+                    .thenReturn(new BigDecimal("50000.00"));
+            when(netWorthService.calculateTotalLiabilities(
+                            eq(userId), any(SecretKey.class), eq("USD")))
+                    .thenReturn(new BigDecimal("5000.00"));
+
+            List<Account> accounts =
+                    Arrays.asList(
+                            createAccount(1L, "Checking", AccountType.CHECKING, "2500.00"),
+                            createAccount(2L, "Savings", AccountType.SAVINGS, "15000.00"));
             when(accountRepository.findByUserIdAndIsActive(userId, true)).thenReturn(accounts);
-            
+
             // Mock decryption - strip "encrypted-" prefix from all values
-            lenient().when(encryptionService.decrypt(anyString(), any(SecretKey.class)))
-                .thenAnswer(invocation -> {
-                    String encrypted = invocation.getArgument(0);
-                    return encrypted.replaceFirst("^encrypted-", "");
-                });
+            lenient()
+                    .when(encryptionService.decrypt(anyString(), any(SecretKey.class)))
+                    .thenAnswer(
+                            invocation -> {
+                                String encrypted = invocation.getArgument(0);
+                                return encrypted.replaceFirst("^encrypted-", "");
+                            });
 
             // When
             String context = contextBuilder.buildMinimalContext(userId, testKey);
@@ -260,15 +245,17 @@ class FinancialContextBuilderTest {
             assertThat(context).contains("=== ACCOUNTS ===");
             assertThat(context).contains("Checking");
             assertThat(context).contains("Savings");
-            
-            verify(netWorthService).calculateTotalAssets(eq(userId), any(SecretKey.class), eq("USD"));
-            verify(netWorthService).calculateTotalLiabilities(eq(userId), any(SecretKey.class), eq("USD"));
+
+            verify(netWorthService)
+                    .calculateTotalAssets(eq(userId), any(SecretKey.class), eq("USD"));
+            verify(netWorthService)
+                    .calculateTotalLiabilities(eq(userId), any(SecretKey.class), eq("USD"));
             verify(accountRepository, times(1)).findByUserIdAndIsActive(userId, true);
         }
     }
 
     // Helper methods to create test entities
-    
+
     private Account createAccount(Long id, String name, AccountType type, String balance) {
         return Account.builder()
                 .id(id)
@@ -284,7 +271,8 @@ class FinancialContextBuilderTest {
                 .build();
     }
 
-    private Transaction createTransaction(Long id, String description, String amount, TransactionType type) {
+    private Transaction createTransaction(
+            Long id, String description, String amount, TransactionType type) {
         return Transaction.builder()
                 .id(id)
                 .userId(userId)

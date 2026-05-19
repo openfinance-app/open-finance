@@ -2,12 +2,11 @@ package org.openfinance.validation;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-
 import java.util.Set;
 
 /**
- * Validator for {@link ValidAccountType} annotation.
- * Checks if the account type is one of the allowed values.
+ * Validator for {@link ValidAccountType} annotation. Checks if the account type is one of the
+ * allowed values.
  */
 public class AccountTypeValidator implements ConstraintValidator<ValidAccountType, String> {
 

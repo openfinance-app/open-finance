@@ -2,25 +2,23 @@
 
 package org.openfinance.security;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
+import javax.crypto.SecretKey;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for EncryptionService.
- * 
- * <p>Tests AES-256-GCM encryption/decryption, authentication, binary data handling,
- * and security properties.
- * 
+ *
+ * <p>Tests AES-256-GCM encryption/decryption, authentication, binary data handling, and security
+ * properties.
+ *
  * @author Open-Finance Development Team
  * @version 1.0
  * @since 2026-01-30
@@ -36,7 +34,7 @@ class EncryptionServiceTest {
     void setUp() {
         encryptionService = new EncryptionService("AES/GCM/NoPadding", 12, 128);
         keyManagementService = new KeyManagementServiceImpl(100000, 256);
-        
+
         // Generate test key
         char[] password = "TestMasterPassword123!".toCharArray();
         byte[] salt = keyManagementService.generateSalt();
@@ -135,7 +133,8 @@ class EncryptionServiceTest {
     @DisplayName("Should encrypt and decrypt multiline text")
     void shouldEncryptAndDecryptMultilineText() {
         // Given
-        String plaintext = "Line 1: Account details\nLine 2: Notes\nLine 3: Comments\r\nLine 4: Tabs\there";
+        String plaintext =
+                "Line 1: Account details\nLine 2: Notes\nLine 3: Comments\r\nLine 4: Tabs\there";
 
         // When
         String encrypted = encryptionService.encrypt(plaintext, testKey);
@@ -158,7 +157,9 @@ class EncryptionServiceTest {
         String encrypted2 = encryptionService.encrypt(plaintext, testKey);
 
         // Then
-        assertNotEquals(encrypted1, encrypted2,
+        assertNotEquals(
+                encrypted1,
+                encrypted2,
                 "Same plaintext should produce different ciphertext (unique IVs)");
     }
 
@@ -172,9 +173,11 @@ class EncryptionServiceTest {
         String encrypted = encryptionService.encrypt(plaintext, testKey);
 
         // Then
-        assertDoesNotThrow(() -> {
-            Base64.getDecoder().decode(encrypted);
-        }, "Encrypted data should be valid Base64");
+        assertDoesNotThrow(
+                () -> {
+                    Base64.getDecoder().decode(encrypted);
+                },
+                "Encrypted data should be valid Base64");
     }
 
     @Test
@@ -189,7 +192,8 @@ class EncryptionServiceTest {
 
         // Then
         // Minimum size: 12 bytes (IV) + at least 1 byte plaintext + 16 bytes (auth tag)
-        assertTrue(encryptedBytes.length >= 12 + 1 + 16,
+        assertTrue(
+                encryptedBytes.length >= 12 + 1 + 16,
                 "Ciphertext should include IV (12 bytes) + encrypted data + auth tag (16 bytes)");
     }
 
@@ -242,7 +246,10 @@ class EncryptionServiceTest {
     @DisplayName("Should return empty list when encryptBatch is called with null or empty list")
     void shouldReturnEmptyListWhenEncryptBatchWithNullOrEmpty() {
         assertTrue(encryptionService.encryptBatch(null, testKey).isEmpty());
-        assertTrue(encryptionService.encryptBatch(java.util.Collections.emptyList(), testKey).isEmpty());
+        assertTrue(
+                encryptionService
+                        .encryptBatch(java.util.Collections.emptyList(), testKey)
+                        .isEmpty());
     }
 
     @Test
@@ -274,7 +281,7 @@ class EncryptionServiceTest {
     @DisplayName("Should encrypt and decrypt binary data")
     void shouldEncryptAndDecryptBinaryData() {
         // Given
-        byte[] binaryData = new byte[]{0x00, 0x01, 0x02, (byte) 0xFF, (byte) 0xFE, 0x7F};
+        byte[] binaryData = new byte[] {0x00, 0x01, 0x02, (byte) 0xFF, (byte) 0xFE, 0x7F};
 
         // When
         byte[] encrypted = encryptionService.encryptBytes(binaryData, testKey);
@@ -321,16 +328,19 @@ class EncryptionServiceTest {
         // Given
         String plaintext = "Sensitive data";
         String encrypted = encryptionService.encrypt(plaintext, testKey);
-        
+
         // When - tamper with ciphertext
         byte[] encryptedBytes = Base64.getDecoder().decode(encrypted);
         encryptedBytes[20] ^= 0x01; // Flip a bit in the ciphertext
         String tamperedEncrypted = Base64.getEncoder().encodeToString(encryptedBytes);
 
         // Then
-        assertThrows(IllegalStateException.class, () -> {
-            encryptionService.decrypt(tamperedEncrypted, testKey);
-        }, "Decryption should fail for tampered ciphertext");
+        assertThrows(
+                IllegalStateException.class,
+                () -> {
+                    encryptionService.decrypt(tamperedEncrypted, testKey);
+                },
+                "Decryption should fail for tampered ciphertext");
     }
 
     @Test
@@ -339,16 +349,19 @@ class EncryptionServiceTest {
         // Given
         String plaintext = "Secret data";
         String encrypted = encryptionService.encrypt(plaintext, testKey);
-        
+
         // When - tamper with IV
         byte[] encryptedBytes = Base64.getDecoder().decode(encrypted);
         encryptedBytes[5] ^= 0x01; // Flip a bit in the IV
         String tamperedEncrypted = Base64.getEncoder().encodeToString(encryptedBytes);
 
         // Then
-        assertThrows(IllegalStateException.class, () -> {
-            encryptionService.decrypt(tamperedEncrypted, testKey);
-        }, "Decryption should fail when IV is modified");
+        assertThrows(
+                IllegalStateException.class,
+                () -> {
+                    encryptionService.decrypt(tamperedEncrypted, testKey);
+                },
+                "Decryption should fail when IV is modified");
     }
 
     @Test
@@ -357,16 +370,19 @@ class EncryptionServiceTest {
         // Given
         String plaintext = "Protected data";
         String encrypted = encryptionService.encrypt(plaintext, testKey);
-        
+
         // When - tamper with auth tag at the end
         byte[] encryptedBytes = Base64.getDecoder().decode(encrypted);
         encryptedBytes[encryptedBytes.length - 1] ^= 0x01; // Flip a bit in auth tag
         String tamperedEncrypted = Base64.getEncoder().encodeToString(encryptedBytes);
 
         // Then
-        assertThrows(IllegalStateException.class, () -> {
-            encryptionService.decrypt(tamperedEncrypted, testKey);
-        }, "Decryption should fail when authentication tag is corrupted");
+        assertThrows(
+                IllegalStateException.class,
+                () -> {
+                    encryptionService.decrypt(tamperedEncrypted, testKey);
+                },
+                "Decryption should fail when authentication tag is corrupted");
     }
 
     @Test
@@ -375,16 +391,19 @@ class EncryptionServiceTest {
         // Given
         String plaintext = "Secret message";
         String encrypted = encryptionService.encrypt(plaintext, testKey);
-        
+
         // Generate different key
         char[] wrongPassword = "WrongPassword456!".toCharArray();
         byte[] wrongSalt = keyManagementService.generateSalt();
         SecretKey wrongKey = keyManagementService.deriveKey(wrongPassword, wrongSalt);
 
         // Then
-        assertThrows(IllegalStateException.class, () -> {
-            encryptionService.decrypt(encrypted, wrongKey);
-        }, "Decryption should fail with wrong key");
+        assertThrows(
+                IllegalStateException.class,
+                () -> {
+                    encryptionService.decrypt(encrypted, wrongKey);
+                },
+                "Decryption should fail with wrong key");
     }
 
     // ========== Edge Cases and Validation Tests ==========
@@ -393,18 +412,24 @@ class EncryptionServiceTest {
     @DisplayName("Should throw exception when encrypting null plaintext")
     void shouldThrowExceptionWhenEncryptingNullPlaintext() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            encryptionService.encrypt(null, testKey);
-        }, "Encrypting null plaintext should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    encryptionService.encrypt(null, testKey);
+                },
+                "Encrypting null plaintext should throw IllegalArgumentException");
     }
 
     @Test
     @DisplayName("Should throw exception when decrypting null ciphertext")
     void shouldThrowExceptionWhenDecryptingNullCiphertext() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            encryptionService.decrypt(null, testKey);
-        }, "Decrypting null ciphertext should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    encryptionService.decrypt(null, testKey);
+                },
+                "Decrypting null ciphertext should throw IllegalArgumentException");
     }
 
     @Test
@@ -415,9 +440,12 @@ class EncryptionServiceTest {
         String tooShortBase64 = Base64.getEncoder().encodeToString(tooShort);
 
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            encryptionService.decrypt(tooShortBase64, testKey);
-        }, "Decrypting too short ciphertext should throw IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    encryptionService.decrypt(tooShortBase64, testKey);
+                },
+                "Decrypting too short ciphertext should throw IllegalArgumentException");
     }
 
     // ========== Constructor Validation Tests ==========
@@ -426,27 +454,36 @@ class EncryptionServiceTest {
     @DisplayName("Should throw exception when constructed with wrong algorithm")
     void shouldThrowExceptionWhenConstructedWithWrongAlgorithm() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            new EncryptionService("AES/CBC/PKCS5Padding", 12, 128);
-        }, "Constructor should reject non-GCM algorithm");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    new EncryptionService("AES/CBC/PKCS5Padding", 12, 128);
+                },
+                "Constructor should reject non-GCM algorithm");
     }
 
     @Test
     @DisplayName("Should throw exception when constructed with wrong IV size")
     void shouldThrowExceptionWhenConstructedWithWrongIvSize() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            new EncryptionService("AES/GCM/NoPadding", 16, 128);
-        }, "Constructor should reject IV size != 12");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    new EncryptionService("AES/GCM/NoPadding", 16, 128);
+                },
+                "Constructor should reject IV size != 12");
     }
 
     @Test
     @DisplayName("Should throw exception when constructed with invalid tag size")
     void shouldThrowExceptionWhenConstructedWithInvalidTagSize() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            new EncryptionService("AES/GCM/NoPadding", 12, 64);
-        }, "Constructor should reject invalid tag size");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    new EncryptionService("AES/GCM/NoPadding", 12, 64);
+                },
+                "Constructor should reject invalid tag size");
     }
 
     // ========== Performance and Large Data Tests ==========

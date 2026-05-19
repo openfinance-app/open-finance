@@ -3,10 +3,8 @@ package org.openfinance.service;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
 import java.util.Date;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
@@ -124,8 +122,7 @@ class JwtServiceTest {
         User user = createTestUser(1L, "john_doe");
         SecretKey wrongKey =
                 Keys.hmacShaKeyFor(
-                        "different-secret-key-for-jwt-must-be-at-least-256-bits-long"
-                                .getBytes());
+                        "different-secret-key-for-jwt-must-be-at-least-256-bits-long".getBytes());
 
         String invalidToken =
                 Jwts.builder()

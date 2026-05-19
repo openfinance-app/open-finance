@@ -7,12 +7,10 @@ import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.util.Arrays;
-
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,21 +18,18 @@ import org.springframework.stereotype.Service;
 
 /**
  * Implementation of KeyManagementService using PBKDF2-HMAC-SHA256.
- * 
- * <p>
- * This implementation provides secure key derivation for AES-256 encryption
- * of sensitive financial data. The service uses industry-standard PBKDF2 with
- * configurable iteration count to resist brute-force attacks.
- * 
- * <p>
- * <strong>Configuration:</strong>
+ *
+ * <p>This implementation provides secure key derivation for AES-256 encryption of sensitive
+ * financial data. The service uses industry-standard PBKDF2 with configurable iteration count to
+ * resist brute-force attacks.
+ *
+ * <p><strong>Configuration:</strong>
+ *
  * <ul>
- * <li><code>application.security.pbkdf2-iterations</code>: Iteration count
- * (default 100,000)</li>
- * <li><code>application.encryption.key-size</code>: Key size in bits (default
- * 256)</li>
+ *   <li><code>application.security.pbkdf2-iterations</code>: Iteration count (default 100,000)
+ *   <li><code>application.encryption.key-size</code>: Key size in bits (default 256)
  * </ul>
- * 
+ *
  * @see KeyManagementService
  * @author Open-Finance Development Team
  * @version 1.0
@@ -52,13 +47,10 @@ public class KeyManagementServiceImpl implements KeyManagementService {
     private final SecureRandom secureRandom;
 
     /**
-     * Constructs KeyManagementServiceImpl with configuration from
-     * application.properties.
-     * 
-     * @param iterationCount PBKDF2 iteration count from
-     *                       application.security.pbkdf2-iterations
-     * @param keySize        encryption key size in bits from
-     *                       application.encryption.key-size
+     * Constructs KeyManagementServiceImpl with configuration from application.properties.
+     *
+     * @param iterationCount PBKDF2 iteration count from application.security.pbkdf2-iterations
+     * @param keySize encryption key size in bits from application.encryption.key-size
      */
     public KeyManagementServiceImpl(
             @Value("${application.security.pbkdf2-iterations:100000}") int iterationCount,
@@ -66,7 +58,8 @@ public class KeyManagementServiceImpl implements KeyManagementService {
 
         if (iterationCount < 10000) {
             throw new IllegalArgumentException(
-                    "Iteration count must be at least 10,000 for security. Provided: " + iterationCount);
+                    "Iteration count must be at least 10,000 for security. Provided: "
+                            + iterationCount);
         }
         if (keySize != 128 && keySize != 192 && keySize != 256) {
             throw new IllegalArgumentException(
@@ -98,11 +91,7 @@ public class KeyManagementServiceImpl implements KeyManagementService {
         byte[] keyBytes = null;
         try {
             // Create PBKDF2 key spec with password, salt, iterations, and key size
-            spec = new PBEKeySpec(
-                    masterPassword,
-                    salt,
-                    iterationCount,
-                    keySize);
+            spec = new PBEKeySpec(masterPassword, salt, iterationCount, keySize);
 
             // Derive key using PBKDF2-HMAC-SHA256
             SecretKeyFactory factory = SecretKeyFactory.getInstance(ALGORITHM);
@@ -120,11 +109,9 @@ public class KeyManagementServiceImpl implements KeyManagementService {
             return secretKey;
 
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(
-                    "PBKDF2WithHmacSHA256 algorithm not available", e);
+            throw new IllegalStateException("PBKDF2WithHmacSHA256 algorithm not available", e);
         } catch (InvalidKeySpecException e) {
-            throw new IllegalStateException(
-                    "Failed to derive key from master password", e);
+            throw new IllegalStateException("Failed to derive key from master password", e);
         } finally {
             // Clear intermediate key bytes from memory (best-effort)
             if (keyBytes != null) {

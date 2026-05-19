@@ -1,13 +1,13 @@
 package org.openfinance.testutil;
 
-import org.springframework.test.web.servlet.ResultActions;
-
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.springframework.test.web.servlet.ResultActions;
+
 /**
- * Utility class for common test assertions.
- * Provides reusable assertion methods for controller tests.
+ * Utility class for common test assertions. Provides reusable assertion methods for controller
+ * tests.
  */
 public final class TestAssertions {
 
@@ -34,8 +34,7 @@ public final class TestAssertions {
      * @throws Exception if assertion fails
      */
     public static ResultActions assertCreatedResponse(ResultActions result) throws Exception {
-        return result.andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true));
+        return result.andExpect(status().isCreated()).andExpect(jsonPath("$.success").value(true));
     }
 
     /**

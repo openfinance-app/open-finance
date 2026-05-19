@@ -1,20 +1,19 @@
 package org.openfinance.dto;
 
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 /**
- * Response DTO for file upload operations.
- * Contains upload metadata and validation status.
+ * Response DTO for file upload operations. Contains upload metadata and validation status.
  *
- * <p>Requirement REQ-2.5.1.1: File Format Support</p>
+ * <p>Requirement REQ-2.5.1.1: File Format Support
  *
- * <p>Example response:</p>
+ * <p>Example response:
+ *
  * <pre>
  * {
  *   "uploadId": "550e8400-e29b-41d4-a716-446655440000",
@@ -39,46 +38,33 @@ import java.time.LocalDateTime;
 public class FileUploadResponse {
 
     /**
-     * Unique identifier for the upload session.
-     * Used to track the file through the import process.
+     * Unique identifier for the upload session. Used to track the file through the import process.
      */
     private String uploadId;
 
-    /**
-     * Original name of the uploaded file.
-     */
+    /** Original name of the uploaded file. */
     private String fileName;
 
-    /**
-     * Size of the uploaded file in bytes.
-     */
+    /** Size of the uploaded file in bytes. */
     private Long fileSize;
 
-    /**
-     * Detected file type/format (qif, ofx, qfx, csv).
-     */
+    /** Detected file type/format (qif, ofx, qfx, csv). */
     private String fileType;
 
-    /**
-     * Validation status of the upload.
-     * Possible values: VALIDATED, INVALID, ERROR
-     */
+    /** Validation status of the upload. Possible values: VALIDATED, INVALID, ERROR */
     private String status;
 
     /**
-     * Human-readable message about the upload result.
-     * Contains validation errors if status is not VALIDATED.
+     * Human-readable message about the upload result. Contains validation errors if status is not
+     * VALIDATED.
      */
     private String message;
 
-    /**
-     * Timestamp when the file was uploaded.
-     */
+    /** Timestamp when the file was uploaded. */
     private LocalDateTime uploadedAt;
 
     /**
-     * Number of records detected in the file (if applicable).
-     * Null if file hasn't been parsed yet.
+     * Number of records detected in the file (if applicable). Null if file hasn't been parsed yet.
      */
     private Integer recordCount;
 }

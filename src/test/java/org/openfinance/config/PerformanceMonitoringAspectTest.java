@@ -1,5 +1,8 @@
 package org.openfinance.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,20 +13,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class PerformanceMonitoringAspectTest {
 
-    @Mock
-    private ProceedingJoinPoint joinPoint;
+    @Mock private ProceedingJoinPoint joinPoint;
 
-    @Mock
-    private Signature signature;
+    @Mock private Signature signature;
 
-    @InjectMocks
-    private PerformanceMonitoringAspect aspect;
+    @InjectMocks private PerformanceMonitoringAspect aspect;
 
     @BeforeEach
     void setUp() {
@@ -48,10 +45,12 @@ class PerformanceMonitoringAspectTest {
     @DisplayName("should not throw exception when operation is slow")
     void shouldNotThrowWhenOperationIsSlow() throws Throwable {
         // Given
-        when(joinPoint.proceed()).thenAnswer(invocation -> {
-            Thread.sleep(600); // Exceed WARN_THRESHOLD_MS (500)
-            return "slow success";
-        });
+        when(joinPoint.proceed())
+                .thenAnswer(
+                        invocation -> {
+                            Thread.sleep(600); // Exceed WARN_THRESHOLD_MS (500)
+                            return "slow success";
+                        });
 
         // When
         Object result = aspect.monitorServiceMethod(joinPoint);

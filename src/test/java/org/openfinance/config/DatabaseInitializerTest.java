@@ -3,8 +3,6 @@ package org.openfinance.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -14,10 +12,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import javax.sql.DataSource;
-import org.openfinance.util.QueryPlanAnalyzer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.openfinance.util.QueryPlanAnalyzer;
 
 class DatabaseInitializerTest {
 
@@ -100,20 +98,26 @@ class DatabaseInitializerTest {
 
         // meta data and tables
         when(conn.getMetaData()).thenReturn(meta);
-        when(meta.getTables(null, null, "flyway_schema_history", new String[]{"TABLE"})).thenReturn(rsTables);
+        when(meta.getTables(null, null, "flyway_schema_history", new String[] {"TABLE"}))
+                .thenReturn(rsTables);
         when(rsTables.next()).thenReturn(true);
 
-        when(meta.getTables(null, null, "schema_info", new String[]{"TABLE"})).thenReturn(rsTables);
-        when(meta.getTables(null, null, "system_settings", new String[]{"TABLE"})).thenReturn(rsTables);
+        when(meta.getTables(null, null, "schema_info", new String[] {"TABLE"}))
+                .thenReturn(rsTables);
+        when(meta.getTables(null, null, "system_settings", new String[] {"TABLE"}))
+                .thenReturn(rsTables);
 
         DatabaseInitializer initializer = new DatabaseInitializer(ds, queryPlanAnalyzer);
 
         // Use reflection to call private method performDatabaseHealthCheck
-        assertDoesNotThrow(() -> {
-            var method = DatabaseInitializer.class.getDeclaredMethod("performDatabaseHealthCheck");
-            method.setAccessible(true);
-            method.invoke(initializer);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    var method =
+                            DatabaseInitializer.class.getDeclaredMethod(
+                                    "performDatabaseHealthCheck");
+                    method.setAccessible(true);
+                    method.invoke(initializer);
+                });
     }
 
     @Test

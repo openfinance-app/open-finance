@@ -3,7 +3,8 @@ package org.openfinance.service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.Category;
 import org.openfinance.entity.Payee;
 import org.openfinance.repository.CategoryRepository;
@@ -11,33 +12,21 @@ import org.openfinance.repository.PayeeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * Service for seeding default payees with their associated categories.
- * 
- * <p>
- * Creates a standard set of common merchants, service providers, and utilities
- * that users frequently encounter in their transactions. These system payees
- * help with transaction categorization and duplicate detection.
- * </p>
- * 
- * <p>
- * Each payee is associated with a default category from the CategorySeeder.
- * </p>
- * 
- * <p>
- * <strong>Integration:</strong> This service is NOT a CommandLineRunner to
- * avoid
- * seeding before users exist. It should be called after user registration and
- * category seeding via {@link #seedDefaultPayees(Long)}.
- * </p>
- * 
- * <p>
- * Requirements: Payee Management Feature
- * </p>
- * 
+ *
+ * <p>Creates a standard set of common merchants, service providers, and utilities that users
+ * frequently encounter in their transactions. These system payees help with transaction
+ * categorization and duplicate detection.
+ *
+ * <p>Each payee is associated with a default category from the CategorySeeder.
+ *
+ * <p><strong>Integration:</strong> This service is NOT a CommandLineRunner to avoid seeding before
+ * users exist. It should be called after user registration and category seeding via {@link
+ * #seedDefaultPayees(Long)}.
+ *
+ * <p>Requirements: Payee Management Feature
+ *
  * @see Payee
  * @see PayeeRepository
  * @see CategorySeeder
@@ -51,14 +40,12 @@ public class PayeeSeeder {
     private final CategoryRepository categoryRepository;
     private final CategorySeeder categorySeeder;
 
-    /**
-     * Default SVG icon as fallback logo.
-     */
-    private static final String DEFAULT_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzMzMzMzIiBzdHJva2Utd2lkdGg9IjIiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTAiIHI9IjEwIi8+PHBhdGggZD0iTTEwIDZIMThWOEgxMFY2eiIvPjxwYXRoIGQ9Ik04IDExSDE2djExSDhWMTF6Ii8+PHBhdGggZD0iTTEwIDExSDE0djExSDEweiIvPjwvc3ZnPg==";
+    /** Default SVG icon as fallback logo. */
+    private static final String DEFAULT_LOGO =
+            "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzMzMzMzIiBzdHJva2Utd2lkdGg9IjIiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTAiIHI9IjEwIi8+PHBhdGggZD0iTTEwIDZIMThWOEgxMFY2eiIvPjxwYXRoIGQ9Ik04IDExSDE2djExSDhWMTF6Ii8+PHBhdGggZD0iTTEwIDExSDE0djExSDEweiIvPjwvc3ZnPg==";
 
     /**
-     * Map of payee names to their local logo paths.
-     * Logos are stored in /logos/payees/ directory.
+     * Map of payee names to their local logo paths. Logos are stored in /logos/payees/ directory.
      */
     private static final Map<String, String> LOGO_PATHS = new HashMap<>();
 
@@ -169,9 +156,8 @@ public class PayeeSeeder {
     }
 
     /**
-     * Seeds default payees for a specific user.
-     * Idempotent operation - safe to call multiple times.
-     * 
+     * Seeds default payees for a specific user. Idempotent operation - safe to call multiple times.
+     *
      * @param userId the user ID to seed payees for
      */
     @Transactional
@@ -192,19 +178,19 @@ public class PayeeSeeder {
         List<Payee> payees = createDefaultPayees(userId);
 
         // Log any payees that couldn't find their category
-        long payeesWithCategory = payees.stream()
-                .filter(p -> p.getDefaultCategory() != null)
-                .count();
-        log.info("Created {} payees, {} have categories assigned", payees.size(), payeesWithCategory);
+        long payeesWithCategory =
+                payees.stream().filter(p -> p.getDefaultCategory() != null).count();
+        log.info(
+                "Created {} payees, {} have categories assigned",
+                payees.size(),
+                payeesWithCategory);
 
         payeeRepository.saveAll(payees);
 
         log.info("Successfully seeded {} default payees", payees.size());
     }
 
-    /**
-     * Creates list of default payees with their categories.
-     */
+    /** Creates list of default payees with their categories. */
     private List<Payee> createDefaultPayees(Long userId) {
         return List.of(
                 // Shopping
@@ -324,8 +310,8 @@ public class PayeeSeeder {
 
     /**
      * Creates a Payee entity with logo and category.
-     * 
-     * @param name         payee name
+     *
+     * @param name payee name
      * @param categoryName name of the category to associate
      * @return Payee entity
      */
@@ -351,7 +337,7 @@ public class PayeeSeeder {
 
     /**
      * Find a category by name (case-insensitive).
-     * 
+     *
      * @param categoryName the category name to find
      * @return the category or null if not found
      */

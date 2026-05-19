@@ -1,5 +1,7 @@
 package org.openfinance.service.parser;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -16,7 +18,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.SkroogeImportMetadata;
 import org.openfinance.dto.SkroogeImportParseResult;
@@ -24,30 +27,26 @@ import org.openfinance.entity.AccountType;
 import org.openfinance.entity.CategoryType;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class SkroogeJsonParser {
 
     private static final String SYNTHETIC_DATE = "0000-00-00";
-    private static final Set<String> GENERIC_PAYEES = Set.of(
-            "FACTURE CARTE",
-            "PRLV SEPA",
-            "VIR SEPA RECU",
-            "RETRAIT DAB",
-            "CR",
-            "DEBIT",
-            "CREDIT");
+    private static final Set<String> GENERIC_PAYEES =
+            Set.of(
+                    "FACTURE CARTE",
+                    "PRLV SEPA",
+                    "VIR SEPA RECU",
+                    "RETRAIT DAB",
+                    "CR",
+                    "DEBIT",
+                    "CREDIT");
 
     private final ObjectMapper objectMapper;
 
-    public SkroogeImportParseResult parseFile(InputStream inputStream, String fileName) throws IOException {
+    public SkroogeImportParseResult parseFile(InputStream inputStream, String fileName)
+            throws IOException {
         JsonNode root = objectMapper.readTree(inputStream);
 
         if (!root.has("account") || !root.has("operation") || !root.has("suboperation")) {
@@ -59,23 +58,38 @@ public class SkroogeJsonParser {
         Map<Long, JsonNode> categoriesById = indexById(root.path("category"));
         Map<Long, JsonNode> payeesById = indexById(root.path("payee"));
         Map<Long, JsonNode> unitsById = indexById(root.path("unit"));
-        Map<Long, List<JsonNode>> subOperationsByOperationId = groupByLong(root.path("suboperation"),
-                "rd_operation_id");
-        Map<Long, List<JsonNode>> operationsByGroupId = groupByPositiveLong(root.path("operation"), "i_group_id");
+        Map<Long, List<JsonNode>> subOperationsByOperationId =
+                groupByLong(root.path("suboperation"), "rd_operation_id");
+        Map<Long, List<JsonNode>> operationsByGroupId =
+                groupByPositiveLong(root.path("operation"), "i_group_id");
 
-        Set<Long> transferOperationIds = detectTransferOperationIds(operationsByGroupId, subOperationsByOperationId,
-                categoriesById);
-        Set<Long> referencedAccountIds = collectReferencedAccountIds(root.path("operation"), transferOperationIds,
-                subOperationsByOperationId);
-        Set<Long> referencedCategoryIds = collectReferencedCategoryIds(subOperationsByOperationId, transferOperationIds,
-                categoriesById);
+        Set<Long> transferOperationIds =
+                detectTransferOperationIds(
+                        operationsByGroupId, subOperationsByOperationId, categoriesById);
+        Set<Long> referencedAccountIds =
+                collectReferencedAccountIds(
+                        root.path("operation"), transferOperationIds, subOperationsByOperationId);
+        Set<Long> referencedCategoryIds =
+                collectReferencedCategoryIds(
+                        subOperationsByOperationId, transferOperationIds, categoriesById);
 
-        SkroogeImportMetadata metadata = SkroogeImportMetadata.builder()
-                .institutions(buildInstitutions(banksById, referencedAccountIds, accountsById))
-                .accounts(buildAccounts(accountsById, unitsById, root.path("operation"), subOperationsByOperationId,
-                        referencedAccountIds))
-                .categories(buildCategories(categoriesById, subOperationsByOperationId, referencedCategoryIds))
-                .build();
+        SkroogeImportMetadata metadata =
+                SkroogeImportMetadata.builder()
+                        .institutions(
+                                buildInstitutions(banksById, referencedAccountIds, accountsById))
+                        .accounts(
+                                buildAccounts(
+                                        accountsById,
+                                        unitsById,
+                                        root.path("operation"),
+                                        subOperationsByOperationId,
+                                        referencedAccountIds))
+                        .categories(
+                                buildCategories(
+                                        categoriesById,
+                                        subOperationsByOperationId,
+                                        referencedCategoryIds))
+                        .build();
 
         List<ImportedTransaction> transactions = new ArrayList<>();
         Set<Long> processedTransferGroups = new HashSet<>();
@@ -89,26 +103,41 @@ public class SkroogeJsonParser {
             Long groupId = positiveLongValue(operation, "i_group_id");
             if (groupId != null && transferOperationIds.contains(operationId)) {
                 if (processedTransferGroups.add(groupId)) {
-                    List<JsonNode> groupedOperations = operationsByGroupId.getOrDefault(groupId, List.of());
-                    transactions
-                            .addAll(buildTransferTransactions(groupId, groupedOperations, subOperationsByOperationId,
-                                    accountsById, categoriesById, payeesById, unitsById));
+                    List<JsonNode> groupedOperations =
+                            operationsByGroupId.getOrDefault(groupId, List.of());
+                    transactions.addAll(
+                            buildTransferTransactions(
+                                    groupId,
+                                    groupedOperations,
+                                    subOperationsByOperationId,
+                                    accountsById,
+                                    categoriesById,
+                                    payeesById,
+                                    unitsById));
                 }
                 continue;
             }
 
-            ImportedTransaction transaction = buildStandardTransaction(operation, subOperationsByOperationId,
-                    accountsById, categoriesById, payeesById, unitsById, fileName);
+            ImportedTransaction transaction =
+                    buildStandardTransaction(
+                            operation,
+                            subOperationsByOperationId,
+                            accountsById,
+                            categoriesById,
+                            payeesById,
+                            unitsById,
+                            fileName);
             if (transaction != null) {
                 transactions.add(transaction);
             }
         }
 
-        String defaultCurrency = metadata.getAccounts().stream()
-                .map(SkroogeImportMetadata.SkroogeAccount::getCurrency)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse("USD");
+        String defaultCurrency =
+                metadata.getAccounts().stream()
+                        .map(SkroogeImportMetadata.SkroogeAccount::getCurrency)
+                        .filter(Objects::nonNull)
+                        .findFirst()
+                        .orElse("USD");
 
         log.info("Parsed {} Skrooge JSON transactions from {}", transactions.size(), fileName);
         return SkroogeImportParseResult.builder()
@@ -151,7 +180,8 @@ public class SkroogeJsonParser {
         return results;
     }
 
-    private Set<Long> detectTransferOperationIds(Map<Long, List<JsonNode>> operationsByGroupId,
+    private Set<Long> detectTransferOperationIds(
+            Map<Long, List<JsonNode>> operationsByGroupId,
             Map<Long, List<JsonNode>> subOperationsByOperationId,
             Map<Long, JsonNode> categoriesById) {
         Set<Long> transferOperationIds = new HashSet<>();
@@ -168,7 +198,8 @@ public class SkroogeJsonParser {
         return transferOperationIds;
     }
 
-    private boolean isTransferGroup(List<JsonNode> operations,
+    private boolean isTransferGroup(
+            List<JsonNode> operations,
             Map<Long, List<JsonNode>> subOperationsByOperationId,
             Map<Long, JsonNode> categoriesById) {
         if (operations.size() != 2) {
@@ -178,9 +209,10 @@ public class SkroogeJsonParser {
         BigDecimal signedTotal = BigDecimal.ZERO;
         for (JsonNode operation : operations) {
             Long operationId = longValue(operation, "id");
-            List<JsonNode> subOperations = operationId != null
-                    ? subOperationsByOperationId.getOrDefault(operationId, List.of())
-                    : List.of();
+            List<JsonNode> subOperations =
+                    operationId != null
+                            ? subOperationsByOperationId.getOrDefault(operationId, List.of())
+                            : List.of();
             if (subOperations.size() != 1) {
                 return false;
             }
@@ -201,11 +233,14 @@ public class SkroogeJsonParser {
         }
         String fullName = textValue(categoryNode, "t_fullname").toLowerCase(Locale.ROOT);
         String name = textValue(categoryNode, "t_name").toLowerCase(Locale.ROOT);
-        return fullName.contains("transfert") || fullName.contains("transfer")
-                || name.contains("transfert") || name.contains("transfer");
+        return fullName.contains("transfert")
+                || fullName.contains("transfer")
+                || name.contains("transfert")
+                || name.contains("transfer");
     }
 
-    private Set<Long> collectReferencedAccountIds(JsonNode operationsNode,
+    private Set<Long> collectReferencedAccountIds(
+            JsonNode operationsNode,
             Set<Long> transferOperationIds,
             Map<Long, List<JsonNode>> subOperationsByOperationId) {
         Set<Long> referencedAccountIds = new HashSet<>();
@@ -214,8 +249,8 @@ public class SkroogeJsonParser {
             if (operationId == null) {
                 continue;
             }
-            if (isSyntheticBalanceOperation(operation,
-                    subOperationsByOperationId.getOrDefault(operationId, List.of()))) {
+            if (isSyntheticBalanceOperation(
+                    operation, subOperationsByOperationId.getOrDefault(operationId, List.of()))) {
                 continue;
             }
             if (!transferOperationIds.contains(operationId)
@@ -231,7 +266,8 @@ public class SkroogeJsonParser {
         return referencedAccountIds;
     }
 
-    private Set<Long> collectReferencedCategoryIds(Map<Long, List<JsonNode>> subOperationsByOperationId,
+    private Set<Long> collectReferencedCategoryIds(
+            Map<Long, List<JsonNode>> subOperationsByOperationId,
             Set<Long> transferOperationIds,
             Map<Long, JsonNode> categoriesById) {
         Set<Long> referencedCategoryIds = new HashSet<>();
@@ -242,7 +278,8 @@ public class SkroogeJsonParser {
                 if (categoryId == null || categoryId == 0L) {
                     continue;
                 }
-                if (transferOperationIds.contains(operationId) && isTransferCategory(categoriesById.get(categoryId))) {
+                if (transferOperationIds.contains(operationId)
+                        && isTransferCategory(categoriesById.get(categoryId))) {
                     continue;
                 }
                 addCategoryWithParents(referencedCategoryIds, categoryId, categoriesById);
@@ -251,7 +288,8 @@ public class SkroogeJsonParser {
         return referencedCategoryIds;
     }
 
-    private void addCategoryWithParents(Set<Long> categoryIds, Long categoryId, Map<Long, JsonNode> categoriesById) {
+    private void addCategoryWithParents(
+            Set<Long> categoryIds, Long categoryId, Map<Long, JsonNode> categoriesById) {
         Long currentId = categoryId;
         while (currentId != null && currentId != 0L && categoryIds.add(currentId)) {
             JsonNode current = categoriesById.get(currentId);
@@ -259,7 +297,8 @@ public class SkroogeJsonParser {
         }
     }
 
-    private List<SkroogeImportMetadata.SkroogeInstitution> buildInstitutions(Map<Long, JsonNode> banksById,
+    private List<SkroogeImportMetadata.SkroogeInstitution> buildInstitutions(
+            Map<Long, JsonNode> banksById,
             Set<Long> referencedAccountIds,
             Map<Long, JsonNode> accountsById) {
         Set<Long> referencedBankIds = new HashSet<>();
@@ -277,24 +316,29 @@ public class SkroogeJsonParser {
             if (bank == null) {
                 continue;
             }
-            institutions.add(SkroogeImportMetadata.SkroogeInstitution.builder()
-                    .sourceId(bankId)
-                    .name(textValue(bank, "t_name"))
-                    .logo(textValue(bank, "t_icon"))
-                    .country(null)
-                    .build());
+            institutions.add(
+                    SkroogeImportMetadata.SkroogeInstitution.builder()
+                            .sourceId(bankId)
+                            .name(textValue(bank, "t_name"))
+                            .logo(textValue(bank, "t_icon"))
+                            .country(null)
+                            .build());
         }
-        institutions.sort(Comparator.comparing(SkroogeImportMetadata.SkroogeInstitution::getName,
-                String.CASE_INSENSITIVE_ORDER));
+        institutions.sort(
+                Comparator.comparing(
+                        SkroogeImportMetadata.SkroogeInstitution::getName,
+                        String.CASE_INSENSITIVE_ORDER));
         return institutions;
     }
 
-    private List<SkroogeImportMetadata.SkroogeAccount> buildAccounts(Map<Long, JsonNode> accountsById,
+    private List<SkroogeImportMetadata.SkroogeAccount> buildAccounts(
+            Map<Long, JsonNode> accountsById,
             Map<Long, JsonNode> unitsById,
             JsonNode operationsNode,
             Map<Long, List<JsonNode>> subOperationsByOperationId,
             Set<Long> referencedAccountIds) {
-        Map<Long, List<JsonNode>> operationsByAccountId = groupByLong(operationsNode, "rd_account_id");
+        Map<Long, List<JsonNode>> operationsByAccountId =
+                groupByLong(operationsNode, "rd_account_id");
         List<SkroogeImportMetadata.SkroogeAccount> accounts = new ArrayList<>();
 
         for (Long accountId : referencedAccountIds) {
@@ -302,53 +346,72 @@ public class SkroogeJsonParser {
             if (account == null) {
                 continue;
             }
-            List<JsonNode> accountOperations = operationsByAccountId.getOrDefault(accountId, List.of());
-            BigDecimal openingBalance = deriveOpeningBalance(accountOperations, subOperationsByOperationId);
+            List<JsonNode> accountOperations =
+                    operationsByAccountId.getOrDefault(accountId, List.of());
+            BigDecimal openingBalance =
+                    deriveOpeningBalance(accountOperations, subOperationsByOperationId);
             LocalDate openingDate = deriveOpeningDate(accountOperations);
-            String currency = deriveAccountCurrency(accountOperations, unitsById, subOperationsByOperationId);
+            String currency =
+                    deriveAccountCurrency(accountOperations, unitsById, subOperationsByOperationId);
 
-            accounts.add(SkroogeImportMetadata.SkroogeAccount.builder()
-                    .sourceId(accountId)
-                    .sourceInstitutionId(longValue(account, "rd_bank_id"))
-                    .name(textValue(account, "t_name"))
-                    .accountNumber(resolveAccountNumber(account))
-                    .currency(currency)
-                    .accountType(mapAccountType(textValue(account, "t_type")))
-                    .description(textValue(account, "t_comment"))
-                    .openingBalance(openingBalance)
-                    .openingDate(openingDate)
-                    .active(!booleanValue(account, "t_close"))
-                    .build());
+            accounts.add(
+                    SkroogeImportMetadata.SkroogeAccount.builder()
+                            .sourceId(accountId)
+                            .sourceInstitutionId(longValue(account, "rd_bank_id"))
+                            .name(textValue(account, "t_name"))
+                            .accountNumber(resolveAccountNumber(account))
+                            .currency(currency)
+                            .accountType(mapAccountType(textValue(account, "t_type")))
+                            .description(textValue(account, "t_comment"))
+                            .openingBalance(openingBalance)
+                            .openingDate(openingDate)
+                            .active(!booleanValue(account, "t_close"))
+                            .build());
         }
 
-        accounts.sort(Comparator.comparing(SkroogeImportMetadata.SkroogeAccount::getName,
-                String.CASE_INSENSITIVE_ORDER));
+        accounts.sort(
+                Comparator.comparing(
+                        SkroogeImportMetadata.SkroogeAccount::getName,
+                        String.CASE_INSENSITIVE_ORDER));
         return accounts;
     }
 
-    private List<SkroogeImportMetadata.SkroogeCategory> buildCategories(Map<Long, JsonNode> categoriesById,
+    private List<SkroogeImportMetadata.SkroogeCategory> buildCategories(
+            Map<Long, JsonNode> categoriesById,
             Map<Long, List<JsonNode>> subOperationsByOperationId,
             Set<Long> referencedCategoryIds) {
-        Map<Long, CategoryType> inferredTypes = inferCategoryTypes(categoriesById, subOperationsByOperationId);
-        List<SkroogeImportMetadata.SkroogeCategory> categories = referencedCategoryIds.stream()
-                .map(categoriesById::get)
-                .filter(Objects::nonNull)
-                .map(category -> SkroogeImportMetadata.SkroogeCategory.builder()
-                        .sourceId(longValue(category, "id"))
-                        .parentSourceId(longValue(category, "rd_category_id"))
-                        .name(textValue(category, "t_name"))
-                        .fullName(textValue(category, "t_fullname"))
-                        .type(inferredTypes.getOrDefault(longValue(category, "id"), CategoryType.EXPENSE))
-                        .build())
-                .sorted(Comparator
-                        .comparing((SkroogeImportMetadata.SkroogeCategory category) -> depth(category, categoriesById))
-                        .thenComparing(SkroogeImportMetadata.SkroogeCategory::getFullName,
-                                String.CASE_INSENSITIVE_ORDER))
-                .collect(Collectors.toList());
+        Map<Long, CategoryType> inferredTypes =
+                inferCategoryTypes(categoriesById, subOperationsByOperationId);
+        List<SkroogeImportMetadata.SkroogeCategory> categories =
+                referencedCategoryIds.stream()
+                        .map(categoriesById::get)
+                        .filter(Objects::nonNull)
+                        .map(
+                                category ->
+                                        SkroogeImportMetadata.SkroogeCategory.builder()
+                                                .sourceId(longValue(category, "id"))
+                                                .parentSourceId(
+                                                        longValue(category, "rd_category_id"))
+                                                .name(textValue(category, "t_name"))
+                                                .fullName(textValue(category, "t_fullname"))
+                                                .type(
+                                                        inferredTypes.getOrDefault(
+                                                                longValue(category, "id"),
+                                                                CategoryType.EXPENSE))
+                                                .build())
+                        .sorted(
+                                Comparator.comparing(
+                                                (SkroogeImportMetadata.SkroogeCategory category) ->
+                                                        depth(category, categoriesById))
+                                        .thenComparing(
+                                                SkroogeImportMetadata.SkroogeCategory::getFullName,
+                                                String.CASE_INSENSITIVE_ORDER))
+                        .collect(Collectors.toList());
         return categories;
     }
 
-    private int depth(SkroogeImportMetadata.SkroogeCategory category, Map<Long, JsonNode> categoriesById) {
+    private int depth(
+            SkroogeImportMetadata.SkroogeCategory category, Map<Long, JsonNode> categoriesById) {
         int depth = 0;
         Long parentId = category.getParentSourceId();
         while (parentId != null && parentId != 0L) {
@@ -359,7 +422,8 @@ public class SkroogeJsonParser {
         return depth;
     }
 
-    private Map<Long, CategoryType> inferCategoryTypes(Map<Long, JsonNode> categoriesById,
+    private Map<Long, CategoryType> inferCategoryTypes(
+            Map<Long, JsonNode> categoriesById,
             Map<Long, List<JsonNode>> subOperationsByOperationId) {
         Map<Long, BigDecimal> totals = new HashMap<>();
         for (List<JsonNode> subOperations : subOperationsByOperationId.values()) {
@@ -386,8 +450,15 @@ public class SkroogeJsonParser {
             }
 
             String fullName = textValue(entry.getValue(), "t_fullname").toLowerCase(Locale.ROOT);
-            if (containsAny(fullName,
-                    List.of("revenu", "salaire", "intér", "cadeaux reçus", "revente", "plus-values"))) {
+            if (containsAny(
+                    fullName,
+                    List.of(
+                            "revenu",
+                            "salaire",
+                            "intér",
+                            "cadeaux reçus",
+                            "revente",
+                            "plus-values"))) {
                 types.put(categoryId, CategoryType.INCOME);
             } else {
                 types.put(categoryId, CategoryType.EXPENSE);
@@ -405,7 +476,8 @@ public class SkroogeJsonParser {
         return false;
     }
 
-    private List<ImportedTransaction> buildTransferTransactions(Long groupId,
+    private List<ImportedTransaction> buildTransferTransactions(
+            Long groupId,
             List<JsonNode> groupedOperations,
             Map<Long, List<JsonNode>> subOperationsByOperationId,
             Map<Long, JsonNode> accountsById,
@@ -418,22 +490,41 @@ public class SkroogeJsonParser {
 
         JsonNode firstOperation = groupedOperations.get(0);
         JsonNode secondOperation = groupedOperations.get(1);
-        JsonNode firstSubOperation = subOperationsByOperationId.getOrDefault(longValue(firstOperation, "id"), List.of())
-                .get(0);
-        JsonNode secondSubOperation = subOperationsByOperationId
-                .getOrDefault(longValue(secondOperation, "id"), List.of()).get(0);
+        JsonNode firstSubOperation =
+                subOperationsByOperationId
+                        .getOrDefault(longValue(firstOperation, "id"), List.of())
+                        .get(0);
+        JsonNode secondSubOperation =
+                subOperationsByOperationId
+                        .getOrDefault(longValue(secondOperation, "id"), List.of())
+                        .get(0);
 
-        ImportedTransaction firstTransaction = buildTransferTransaction(firstOperation, secondOperation,
-                firstSubOperation,
-                payeesById, unitsById, accountsById, categoriesById, groupId);
-        ImportedTransaction secondTransaction = buildTransferTransaction(secondOperation, firstOperation,
-                secondSubOperation,
-                payeesById, unitsById, accountsById, categoriesById, groupId);
+        ImportedTransaction firstTransaction =
+                buildTransferTransaction(
+                        firstOperation,
+                        secondOperation,
+                        firstSubOperation,
+                        payeesById,
+                        unitsById,
+                        accountsById,
+                        categoriesById,
+                        groupId);
+        ImportedTransaction secondTransaction =
+                buildTransferTransaction(
+                        secondOperation,
+                        firstOperation,
+                        secondSubOperation,
+                        payeesById,
+                        unitsById,
+                        accountsById,
+                        categoriesById,
+                        groupId);
 
         return List.of(firstTransaction, secondTransaction);
     }
 
-    private ImportedTransaction buildTransferTransaction(JsonNode operation,
+    private ImportedTransaction buildTransferTransaction(
+            JsonNode operation,
             JsonNode otherOperation,
             JsonNode subOperation,
             Map<Long, JsonNode> payeesById,
@@ -471,7 +562,8 @@ public class SkroogeJsonParser {
                 .build();
     }
 
-    private ImportedTransaction buildStandardTransaction(JsonNode operation,
+    private ImportedTransaction buildStandardTransaction(
+            JsonNode operation,
             Map<Long, List<JsonNode>> subOperationsByOperationId,
             Map<Long, JsonNode> accountsById,
             Map<Long, JsonNode> categoriesById,
@@ -479,9 +571,11 @@ public class SkroogeJsonParser {
             Map<Long, JsonNode> unitsById,
             String fileName) {
         Long operationId = longValue(operation, "id");
-        List<JsonNode> subOperations = subOperationsByOperationId.getOrDefault(operationId, List.of());
+        List<JsonNode> subOperations =
+                subOperationsByOperationId.getOrDefault(operationId, List.of());
 
-        if (!hasValidDate(operation) || subOperations.isEmpty()
+        if (!hasValidDate(operation)
+                || subOperations.isEmpty()
                 || isSyntheticBalanceOperation(operation, subOperations)) {
             return null;
         }
@@ -490,23 +584,27 @@ public class SkroogeJsonParser {
         JsonNode payee = payeesById.get(longValue(operation, "r_payee_id"));
         String comment = textValue(operation, "t_comment");
         String payeeName = resolvePayee(payee, comment, textValue(operation, "t_mode"));
-        BigDecimal signedAmount = subOperations.stream()
-                .map(node -> decimalValue(node, "f_value"))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal signedAmount =
+                subOperations.stream()
+                        .map(node -> decimalValue(node, "f_value"))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        ImportedTransaction.ImportedTransactionBuilder builder = ImportedTransaction.builder()
-                .transactionDate(parseDate(operation))
-                .payee(payeeName)
-                .originalPayee(payee != null ? textValue(payee, "t_name") : null)
-                .amount(signedAmount)
-                .memo(comment)
-                .referenceNumber(skroogeOperationReference(operation))
-                .accountName(account != null ? textValue(account, "t_name") : null)
-                .sourceAccountId(longValue(operation, "rd_account_id"))
-                .accountNumber(account != null ? resolveAccountNumber(account) : null)
-                .currency(resolveCurrencyCode(unitsById.get(longValue(operation, "rc_unit_id"))))
-                .clearedStatus(resolveClearedStatus(operation))
-                .sourceFileName(fileName);
+        ImportedTransaction.ImportedTransactionBuilder builder =
+                ImportedTransaction.builder()
+                        .transactionDate(parseDate(operation))
+                        .payee(payeeName)
+                        .originalPayee(payee != null ? textValue(payee, "t_name") : null)
+                        .amount(signedAmount)
+                        .memo(comment)
+                        .referenceNumber(skroogeOperationReference(operation))
+                        .accountName(account != null ? textValue(account, "t_name") : null)
+                        .sourceAccountId(longValue(operation, "rd_account_id"))
+                        .accountNumber(account != null ? resolveAccountNumber(account) : null)
+                        .currency(
+                                resolveCurrencyCode(
+                                        unitsById.get(longValue(operation, "rc_unit_id"))))
+                        .clearedStatus(resolveClearedStatus(operation))
+                        .sourceFileName(fileName);
 
         if (subOperations.size() == 1) {
             JsonNode subOperation = subOperations.get(0);
@@ -514,17 +612,25 @@ public class SkroogeJsonParser {
             builder.category(category != null ? textValue(category, "t_fullname") : null);
             builder.sourceCategoryId(longValue(subOperation, "r_category_id"));
         } else {
-            List<ImportedTransaction.SplitEntry> splits = subOperations.stream()
-                    .map(subOperation -> {
-                        JsonNode category = categoriesById.get(longValue(subOperation, "r_category_id"));
-                        return ImportedTransaction.SplitEntry.builder()
-                                .category(category != null ? textValue(category, "t_fullname") : null)
-                                .memo(textValue(subOperation, "t_comment"))
-                                .sourceCategoryId(longValue(subOperation, "r_category_id"))
-                                .amount(decimalValue(subOperation, "f_value").abs())
-                                .build();
-                    })
-                    .collect(Collectors.toList());
+            List<ImportedTransaction.SplitEntry> splits =
+                    subOperations.stream()
+                            .map(
+                                    subOperation -> {
+                                        JsonNode category =
+                                                categoriesById.get(
+                                                        longValue(subOperation, "r_category_id"));
+                                        return ImportedTransaction.SplitEntry.builder()
+                                                .category(
+                                                        category != null
+                                                                ? textValue(category, "t_fullname")
+                                                                : null)
+                                                .memo(textValue(subOperation, "t_comment"))
+                                                .sourceCategoryId(
+                                                        longValue(subOperation, "r_category_id"))
+                                                .amount(decimalValue(subOperation, "f_value").abs())
+                                                .build();
+                                    })
+                            .collect(Collectors.toList());
             builder.splits(splits);
         }
 
@@ -540,21 +646,22 @@ public class SkroogeJsonParser {
             Long categoryId = longValue(subOperation, "r_category_id");
             boolean noCategory = categoryId == null || categoryId == 0L;
             boolean noMode = textValue(operation, "t_mode").isBlank();
-            boolean noComment = textValue(operation, "t_comment").isBlank()
-                    && textValue(subOperation, "t_comment").isBlank();
+            boolean noComment =
+                    textValue(operation, "t_comment").isBlank()
+                            && textValue(subOperation, "t_comment").isBlank();
             return noCategory && noMode && noComment;
         }
         return false;
     }
 
-    private BigDecimal deriveOpeningBalance(List<JsonNode> operations,
-            Map<Long, List<JsonNode>> subOperationsByOperationId) {
+    private BigDecimal deriveOpeningBalance(
+            List<JsonNode> operations, Map<Long, List<JsonNode>> subOperationsByOperationId) {
         for (JsonNode operation : operations) {
             if (!SYNTHETIC_DATE.equals(textValue(operation, "d_date"))) {
                 continue;
             }
-            List<JsonNode> subOperations = subOperationsByOperationId.getOrDefault(longValue(operation, "id"),
-                    List.of());
+            List<JsonNode> subOperations =
+                    subOperationsByOperationId.getOrDefault(longValue(operation, "id"), List.of());
             if (!subOperations.isEmpty()) {
                 return decimalValue(subOperations.get(0), "f_value");
             }
@@ -570,12 +677,14 @@ public class SkroogeJsonParser {
                 .orElse(LocalDate.now());
     }
 
-    private String deriveAccountCurrency(List<JsonNode> operations,
+    private String deriveAccountCurrency(
+            List<JsonNode> operations,
             Map<Long, JsonNode> unitsById,
             Map<Long, List<JsonNode>> subOperationsByOperationId) {
         for (JsonNode operation : operations) {
             if (SYNTHETIC_DATE.equals(textValue(operation, "d_date"))) {
-                String syntheticCurrency = resolveCurrencyCode(unitsById.get(longValue(operation, "rc_unit_id")));
+                String syntheticCurrency =
+                        resolveCurrencyCode(unitsById.get(longValue(operation, "rc_unit_id")));
                 if (syntheticCurrency != null) {
                     return syntheticCurrency;
                 }
@@ -584,13 +693,18 @@ public class SkroogeJsonParser {
 
         Map<String, Integer> counts = new HashMap<>();
         for (JsonNode operation : operations) {
-            if (isSyntheticBalanceOperation(operation,
-                    subOperationsByOperationId.getOrDefault(longValue(operation, "id"), List.of()))) {
+            if (isSyntheticBalanceOperation(
+                    operation,
+                    subOperationsByOperationId.getOrDefault(
+                            longValue(operation, "id"), List.of()))) {
                 continue;
             }
-            String currency = resolveCurrencyCode(unitsById.get(longValue(operation, "rc_unit_id")));
+            String currency =
+                    resolveCurrencyCode(unitsById.get(longValue(operation, "rc_unit_id")));
             if (currency != null) {
-                counts.merge(currency, Integer.valueOf(1),
+                counts.merge(
+                        currency,
+                        Integer.valueOf(1),
                         (left, right) -> Integer.valueOf(left.intValue() + right.intValue()));
             }
         }
@@ -648,8 +762,11 @@ public class SkroogeJsonParser {
 
         String internetCode = textValue(unitNode, "t_internet_code");
         if (!internetCode.isBlank() && internetCode.contains("/")) {
-            String rightSideCode = internetCode.substring(internetCode.indexOf('/') + 1).trim()
-                    .toUpperCase(Locale.ROOT);
+            String rightSideCode =
+                    internetCode
+                            .substring(internetCode.indexOf('/') + 1)
+                            .trim()
+                            .toUpperCase(Locale.ROOT);
             if (isSupportedCurrency(rightSideCode)) {
                 return rightSideCode;
             }

@@ -1,9 +1,10 @@
 package org.openfinance.controller;
 
+import jakarta.validation.Valid;
 import java.util.List;
-
 import javax.crypto.SecretKey;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.AccountSearchCriteria;
@@ -31,48 +32,38 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * REST controller for account management endpoints.
- * 
- * <p>
- * Provides CRUD operations for financial accounts. All endpoints require
- * authentication
- * and use the user's encryption key to secure sensitive data.
- * 
- * <p>
- * <strong>Endpoints:</strong>
+ *
+ * <p>Provides CRUD operations for financial accounts. All endpoints require authentication and use
+ * the user's encryption key to secure sensitive data.
+ *
+ * <p><strong>Endpoints:</strong>
+ *
  * <ul>
- * <li>POST /api/v1/accounts - Create new account</li>
- * <li>GET /api/v1/accounts - List all user accounts</li>
- * <li>GET /api/v1/accounts/{id} - Get account by ID</li>
- * <li>PUT /api/v1/accounts/{id} - Update account</li>
- * <li>DELETE /api/v1/accounts/{id} - Soft-delete account</li>
- * <li>GET /api/v1/accounts/{id}/balance - Get account balance</li>
+ *   <li>POST /api/v1/accounts - Create new account
+ *   <li>GET /api/v1/accounts - List all user accounts
+ *   <li>GET /api/v1/accounts/{id} - Get account by ID
+ *   <li>PUT /api/v1/accounts/{id} - Update account
+ *   <li>DELETE /api/v1/accounts/{id} - Soft-delete account
+ *   <li>GET /api/v1/accounts/{id}/balance - Get account balance
  * </ul>
- * 
- * <p>
- * <strong>Security:</strong>
+ *
+ * <p><strong>Security:</strong>
+ *
  * <ul>
- * <li>All endpoints require JWT authentication</li>
- * <li>Encryption key must be provided via X-Encryption-Key header</li>
- * <li>Users can only access their own accounts</li>
- * <li>Account name and description are encrypted at rest</li>
+ *   <li>All endpoints require JWT authentication
+ *   <li>Encryption key must be provided via X-Encryption-Key header
+ *   <li>Users can only access their own accounts
+ *   <li>Account name and description are encrypted at rest
  * </ul>
- * 
- * <p>
- * Requirement REQ-2.2: Account Management - CRUD operations
- * </p>
- * <p>
- * Requirement REQ-2.18: Data encryption at rest
- * </p>
- * <p>
- * Requirement REQ-3.2: Authorization checks
- * </p>
- * 
+ *
+ * <p>Requirement REQ-2.2: Account Management - CRUD operations
+ *
+ * <p>Requirement REQ-2.18: Data encryption at rest
+ *
+ * <p>Requirement REQ-3.2: Authorization checks
+ *
  * @see AccountService
  * @see AccountRequest
  * @see AccountResponse
@@ -89,14 +80,16 @@ public class AccountController {
 
     /**
      * Creates a new financial account for the authenticated user.
-     * 
+     *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
+     *
      * <p><strong>Request Body:</strong>
+     *
      * <pre>{@code
      * {
      * "name": "Chase Checking",
@@ -106,8 +99,9 @@ public class AccountController {
      * "description": "Primary checking account"
      * }
      * }</pre>
-     * 
+     *
      * <p><strong>Success Response (HTTP 201 Created):</strong>
+     *
      * <pre>{@code
      * {
      * "id": 1,
@@ -121,9 +115,9 @@ public class AccountController {
      * "updatedAt": null
      * }
      * }</pre>
-     * 
-     * <p>Requirement REQ-2.2.1: Create account</p>
-     * 
+     *
+     * <p>Requirement REQ-2.2.1: Create account
+     *
      * @param request account creation request
      * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
@@ -144,7 +138,8 @@ public class AccountController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        AccountResponse response = accountService.createAccount(user.getId(), request, encryptionKey);
+        AccountResponse response =
+                accountService.createAccount(user.getId(), request, encryptionKey);
 
         log.info("Account created successfully: id={}", response.getId());
 
@@ -155,32 +150,40 @@ public class AccountController {
      * Retrieves all active accounts for the authenticated user.
      *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
      *
      * <p><strong>Query Parameters:</strong>
+     *
      * <ul>
-     * <li>filter (optional): "all", "active", or "closed" (default: "active")</li>
-     * <li>summary (optional): when {@code true}, returns a lightweight
-     * {@link AccountSummaryResponse} list instead of the full {@link AccountResponse}
-     * (default: false)</li>
+     *   <li>filter (optional): "all", "active", or "closed" (default: "active")
+     *   <li>summary (optional): when {@code true}, returns a lightweight {@link
+     *       AccountSummaryResponse} list instead of the full {@link AccountResponse} (default:
+     *       false)
      * </ul>
      *
-     * <p>Requirement REQ-2.2.1: List user accounts</p>
-     * <p>Requirement TASK-14.1.3: Sparse fieldsets via {@code ?summary=true}</p>
+     * <p>Requirement REQ-2.2.1: List user accounts
      *
-     * @param filter         optional filter: "all", "active" (default), or "closed"
-     * @param summary        when {@code true} returns lightweight AccountSummaryResponse list
-     * @param encodedKey     Base64-encoded encryption key from header
+     * <p>Requirement TASK-14.1.3: Sparse fieldsets via {@code ?summary=true}
+     *
+     * @param filter optional filter: "all", "active" (default), or "closed"
+     * @param summary when {@code true} returns lightweight AccountSummaryResponse list
+     * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
      * @return HTTP 200 OK with list of AccountResponse or AccountSummaryResponse (may be empty)
      */
     @GetMapping
     public ResponseEntity<?> getAllAccounts(
-            @org.springframework.web.bind.annotation.RequestParam(value = "filter", required = false, defaultValue = "active") String filter,
-            @RequestParam(value = "summary", required = false, defaultValue = "false") boolean summary,
+            @org.springframework.web.bind.annotation.RequestParam(
+                            value = "filter",
+                            required = false,
+                            defaultValue = "active")
+                    String filter,
+            @RequestParam(value = "summary", required = false, defaultValue = "false")
+                    boolean summary,
             @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
@@ -195,7 +198,8 @@ public class AccountController {
 
         if (summary) {
             // Return lightweight summary projection (TASK-14.1.3)
-            List<AccountSummaryResponse> summaries = accountService.getAccountsSummary(user.getId(), encryptionKey);
+            List<AccountSummaryResponse> summaries =
+                    accountService.getAccountsSummary(user.getId(), encryptionKey);
             log.info("Retrieved {} account summaries for user", summaries.size());
             return ResponseEntity.ok(summaries);
         }
@@ -215,8 +219,9 @@ public class AccountController {
                 break;
         }
 
-        List<AccountResponse> accounts = accountService.getAccountsByUserIdWithFilter(user.getId(), isActiveFilter,
-                encryptionKey);
+        List<AccountResponse> accounts =
+                accountService.getAccountsByUserIdWithFilter(
+                        user.getId(), isActiveFilter, encryptionKey);
 
         log.info("Retrieved {} accounts for user with filter: {}", accounts.size(), filter);
 
@@ -225,32 +230,33 @@ public class AccountController {
 
     /**
      * Searches accounts with filters and pagination.
-     * 
+     *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
+     *
      * <p><strong>Query Parameters:</strong>
+     *
      * <ul>
-     * <li>keyword (optional): Search in account name</li>
-     * <li>type (optional): Filter by account type (CHECKING, SAVINGS, CREDIT_CARD,
-     * INVESTMENT, CASH, OTHER)</li>
-     * <li>currency (optional): Filter by currency code (USD, EUR, etc.)</li>
-     * <li>isActive (optional): Filter by active status (true/false)</li>
-     * <li>balanceMin (optional): Minimum balance</li>
-     * <li>balanceMax (optional): Maximum balance</li>
-     * <li>institution (optional): Filter by institution name</li>
-     * <li>lowBalance (optional): When true, only accounts with balance below
-     * 1000</li>
-     * <li>page (optional): Page number (0-indexed, default: 0)</li>
-     * <li>size (optional): Page size (default: 20)</li>
-     * <li>sort (optional): Sort field and direction (e.g., "name,asc" or
-     * "balance,desc")</li>
+     *   <li>keyword (optional): Search in account name
+     *   <li>type (optional): Filter by account type (CHECKING, SAVINGS, CREDIT_CARD, INVESTMENT,
+     *       CASH, OTHER)
+     *   <li>currency (optional): Filter by currency code (USD, EUR, etc.)
+     *   <li>isActive (optional): Filter by active status (true/false)
+     *   <li>balanceMin (optional): Minimum balance
+     *   <li>balanceMax (optional): Maximum balance
+     *   <li>institution (optional): Filter by institution name
+     *   <li>lowBalance (optional): When true, only accounts with balance below 1000
+     *   <li>page (optional): Page number (0-indexed, default: 0)
+     *   <li>size (optional): Page size (default: 20)
+     *   <li>sort (optional): Sort field and direction (e.g., "name,asc" or "balance,desc")
      * </ul>
-     * 
+     *
      * <p><strong>Success Response (HTTP 200 OK):</strong>
+     *
      * <pre>{@code
      * {
      * "content": [
@@ -270,7 +276,7 @@ public class AccountController {
      * "size": 20
      * }
      * }</pre>
-     * 
+     *
      * @param keyword optional keyword to search in account name
      * @param type optional account type filter
      * @param currency optional currency filter
@@ -278,8 +284,7 @@ public class AccountController {
      * @param balanceMin optional minimum balance filter
      * @param balanceMax optional maximum balance filter
      * @param institution optional institution name filter
-     * @param lowBalance optional flag to return only accounts with balance below
-     * 1000
+     * @param lowBalance optional flag to return only accounts with balance below 1000
      * @param pageable pagination and sorting parameters
      * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
@@ -295,12 +300,19 @@ public class AccountController {
             @RequestParam(required = false) java.math.BigDecimal balanceMax,
             @RequestParam(required = false) String institution,
             @RequestParam(required = false) Boolean lowBalance,
-            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable,
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
+                    Pageable pageable,
             @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
-        log.info("Searching accounts for user: keyword={}, type={}, currency={}, isActive={}, page={}, size={}",
-                keyword, type, currency, isActive, pageable.getPageNumber(), pageable.getPageSize());
+        log.info(
+                "Searching accounts for user: keyword={}, type={}, currency={}, isActive={}, page={}, size={}",
+                keyword,
+                type,
+                currency,
+                isActive,
+                pageable.getPageNumber(),
+                pageable.getPageSize());
 
         if (encodedKey == null || encodedKey.trim().isEmpty()) {
             throw new IllegalArgumentException("Encryption key header is required");
@@ -310,22 +322,24 @@ public class AccountController {
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
         // Build search criteria
-        AccountSearchCriteria criteria = AccountSearchCriteria.builder()
-                .keyword(keyword)
-                .type(type)
-                .currency(currency)
-                .isActive(isActive)
-                .balanceMin(balanceMin)
-                .balanceMax(balanceMax)
-                .institution(institution)
-                .lowBalance(lowBalance)
-                .build();
+        AccountSearchCriteria criteria =
+                AccountSearchCriteria.builder()
+                        .keyword(keyword)
+                        .type(type)
+                        .currency(currency)
+                        .isActive(isActive)
+                        .balanceMin(balanceMin)
+                        .balanceMax(balanceMax)
+                        .institution(institution)
+                        .lowBalance(lowBalance)
+                        .build();
 
         // Execute search with pagination
-        Page<AccountResponse> results = accountService.searchAccounts(
-                user.getId(), criteria, pageable, encryptionKey);
+        Page<AccountResponse> results =
+                accountService.searchAccounts(user.getId(), criteria, pageable, encryptionKey);
 
-        log.info("Search returned {} accounts (page {}/{}, total: {})",
+        log.info(
+                "Search returned {} accounts (page {}/{}, total: {})",
                 results.getNumberOfElements(),
                 results.getNumber() + 1,
                 results.getTotalPages(),
@@ -336,29 +350,26 @@ public class AccountController {
 
     /**
      * Retrieves a specific account by ID.
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
-     * <p>
-     * <strong>Error Responses:</strong>
+     *
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>HTTP 404 Not Found - Account not found or doesn't belong to user</li>
+     *   <li>HTTP 404 Not Found - Account not found or doesn't belong to user
      * </ul>
-     * 
-     * <p>
-     * Requirement REQ-2.2.1: Get account by ID
-     * </p>
-     * <p>
-     * Requirement REQ-3.2: Authorization - verify ownership
-     * </p>
-     * 
-     * @param accountId      the account ID
-     * @param encodedKey     Base64-encoded encryption key from header
+     *
+     * <p>Requirement REQ-2.2.1: Get account by ID
+     *
+     * <p>Requirement REQ-3.2: Authorization - verify ownership
+     *
+     * @param accountId the account ID
+     * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
      * @return HTTP 200 OK with AccountResponse
      */
@@ -377,7 +388,8 @@ public class AccountController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        AccountResponse response = accountService.getAccountById(accountId, user.getId(), encryptionKey);
+        AccountResponse response =
+                accountService.getAccountById(accountId, user.getId(), encryptionKey);
 
         log.info("Account retrieved successfully: id={}", accountId);
 
@@ -386,34 +398,30 @@ public class AccountController {
 
     /**
      * Updates an existing account.
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
-     * <p>
-     * <strong>Request Body:</strong> Same as create account request
-     * 
-     * <p>
-     * <strong>Error Responses:</strong>
+     *
+     * <p><strong>Request Body:</strong> Same as create account request
+     *
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>HTTP 400 Bad Request - Validation errors</li>
-     * <li>HTTP 404 Not Found - Account not found or doesn't belong to user</li>
+     *   <li>HTTP 400 Bad Request - Validation errors
+     *   <li>HTTP 404 Not Found - Account not found or doesn't belong to user
      * </ul>
-     * 
-     * <p>
-     * Requirement REQ-2.2.3: Update account
-     * </p>
-     * <p>
-     * Requirement REQ-3.2: Authorization - verify ownership
-     * </p>
-     * 
-     * @param accountId      the account ID
-     * @param request        account update request
-     * @param encodedKey     Base64-encoded encryption key from header
+     *
+     * <p>Requirement REQ-2.2.3: Update account
+     *
+     * <p>Requirement REQ-3.2: Authorization - verify ownership
+     *
+     * @param accountId the account ID
+     * @param request account update request
+     * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
      * @return HTTP 200 OK with updated AccountResponse
      */
@@ -433,7 +441,8 @@ public class AccountController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        AccountResponse response = accountService.updateAccount(accountId, user.getId(), request, encryptionKey);
+        AccountResponse response =
+                accountService.updateAccount(accountId, user.getId(), request, encryptionKey);
 
         log.info("Account updated successfully: id={}", accountId);
 
@@ -442,41 +451,34 @@ public class AccountController {
 
     /**
      * Soft-deletes an account (sets isActive = false).
-     * 
-     * <p>
-     * Soft deletion preserves historical data while hiding the account from active
-     * views.
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p>Soft deletion preserves historical data while hiding the account from active views.
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
+     *   <li>Authorization: Bearer {jwt_token}
      * </ul>
-     * 
-     * <p>
-     * <strong>Error Responses:</strong>
+     *
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>HTTP 404 Not Found - Account not found or doesn't belong to user</li>
+     *   <li>HTTP 404 Not Found - Account not found or doesn't belong to user
      * </ul>
-     * 
-     * <p>
-     * Requirement REQ-2.2.4: Soft-delete account
-     * </p>
-     * <p>
-     * Requirement REQ-3.2: Authorization - verify ownership
-     * </p>
-     * <p>
-     * Requirement REQ-2.5: Data integrity - prevent deletion of accounts with
-     * active transactions
-     * </p>
-     * 
-     * @param accountId      the account ID
-     * @param encodedKey     the base64-encoded encryption key (for decrypting
-     *                       account name in error messages)
+     *
+     * <p>Requirement REQ-2.2.4: Soft-delete account
+     *
+     * <p>Requirement REQ-3.2: Authorization - verify ownership
+     *
+     * <p>Requirement REQ-2.5: Data integrity - prevent deletion of accounts with active
+     * transactions
+     *
+     * @param accountId the account ID
+     * @param encodedKey the base64-encoded encryption key (for decrypting account name in error
+     *     messages)
      * @param authentication Spring Security authentication object
      * @return HTTP 204 No Content on success
-     * @throws AccountHasTransactionsException if account has active transactions
-     *                                         (HTTP 400)
+     * @throws AccountHasTransactionsException if account has active transactions (HTTP 400)
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAccount(
@@ -502,37 +504,31 @@ public class AccountController {
 
     /**
      * Closes an account (sets isActive = false).
-     * 
-     * <p>
-     * Closing an account is a soft operation that preserves all historical data
-     * including transactions. The account will no longer appear in active views
-     * but can be reopened later.
-     * </p>
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p>Closing an account is a soft operation that preserves all historical data including
+     * transactions. The account will no longer appear in active views but can be reopened later.
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
+     *   <li>Authorization: Bearer {jwt_token}
      * </ul>
-     * 
-     * <p>
-     * <strong>Error Responses:</strong>
+     *
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>HTTP 404 Not Found - Account not found or doesn't belong to user</li>
+     *   <li>HTTP 404 Not Found - Account not found or doesn't belong to user
      * </ul>
-     * 
-     * <p>
-     * Requirement: Close account functionality - Toggle Active/Close state
-     * </p>
-     * 
-     * @param accountId      the account ID
+     *
+     * <p>Requirement: Close account functionality - Toggle Active/Close state
+     *
+     * @param accountId the account ID
      * @param authentication Spring Security authentication object
      * @return HTTP 204 No Content on success
      */
     @PostMapping("/{id}/close")
     public ResponseEntity<Void> closeAccount(
-            @PathVariable("id") Long accountId,
-            Authentication authentication) {
+            @PathVariable("id") Long accountId, Authentication authentication) {
 
         log.info("Closing account: id={}", accountId);
 
@@ -547,36 +543,31 @@ public class AccountController {
 
     /**
      * Reopens a closed account (sets isActive = true).
-     * 
-     * <p>
-     * Reopening an account makes it active again. All historical data including
-     * transactions is preserved and the account will appear in active views.
-     * </p>
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p>Reopening an account makes it active again. All historical data including transactions is
+     * preserved and the account will appear in active views.
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
+     *   <li>Authorization: Bearer {jwt_token}
      * </ul>
-     * 
-     * <p>
-     * <strong>Error Responses:</strong>
+     *
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>HTTP 404 Not Found - Account not found or doesn't belong to user</li>
+     *   <li>HTTP 404 Not Found - Account not found or doesn't belong to user
      * </ul>
-     * 
-     * <p>
-     * Requirement: Close account functionality - Toggle Active/Close state
-     * </p>
-     * 
-     * @param accountId      the account ID
+     *
+     * <p>Requirement: Close account functionality - Toggle Active/Close state
+     *
+     * @param accountId the account ID
      * @param authentication Spring Security authentication object
      * @return HTTP 204 No Content on success
      */
     @PostMapping("/{id}/reopen")
     public ResponseEntity<Void> reopenAccount(
-            @PathVariable("id") Long accountId,
-            Authentication authentication) {
+            @PathVariable("id") Long accountId, Authentication authentication) {
 
         log.info("Reopening account: id={}", accountId);
 
@@ -591,32 +582,26 @@ public class AccountController {
 
     /**
      * Permanently deletes an account along with all associated transactions.
-     * 
-     * <p>
-     * <strong>WARNING:</strong> This is a destructive operation that cannot be
-     * undone.
-     * All transactions associated with this account will be permanently deleted.
-     * </p>
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p><strong>WARNING:</strong> This is a destructive operation that cannot be undone. All
+     * transactions associated with this account will be permanently deleted.
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
+     *   <li>Authorization: Bearer {jwt_token}
      * </ul>
-     * 
-     * <p>
-     * <strong>Error Responses:</strong>
+     *
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>HTTP 404 Not Found - Account not found or doesn't belong to user</li>
+     *   <li>HTTP 404 Not Found - Account not found or doesn't belong to user
      * </ul>
-     * 
-     * <p>
-     * Requirement: Delete account functionality - Permanently delete accounts
-     * </p>
-     * 
-     * @param accountId      the account ID
-     * @param encodedKey     the base64-encoded encryption key (required for
-     *                       authorization)
+     *
+     * <p>Requirement: Delete account functionality - Permanently delete accounts
+     *
+     * @param accountId the account ID
+     * @param encodedKey the base64-encoded encryption key (required for authorization)
      * @param authentication Spring Security authentication object
      * @return HTTP 204 No Content on success
      */
@@ -644,29 +629,30 @@ public class AccountController {
 
     /**
      * Retrieves the current balance of an account.
-     * 
+     *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
+     *   <li>Authorization: Bearer {jwt_token}
      * </ul>
-     * 
+     *
      * <p><strong>Success Response (HTTP 200 OK):</strong>
+     *
      * <pre>{@code
      * {
      * "balance": 5000.00
      * }
      * }</pre>
-     * 
-     * <p>Requirement REQ-2.2.5: Get account balance</p>
-     * 
+     *
+     * <p>Requirement REQ-2.2.5: Get account balance
+     *
      * @param accountId the account ID
      * @param authentication Spring Security authentication object
      * @return HTTP 200 OK with balance
      */
     @GetMapping("/{id}/balance")
     public ResponseEntity<BalanceResponse> getAccountBalance(
-            @PathVariable("id") Long accountId,
-            Authentication authentication) {
+            @PathVariable("id") Long accountId, Authentication authentication) {
 
         log.info("Retrieving balance for account: id={}", accountId);
 
@@ -679,32 +665,28 @@ public class AccountController {
         return ResponseEntity.ok(new BalanceResponse(balance));
     }
 
-    /**
-     * DTO for balance response.
-     */
-    public static record BalanceResponse(java.math.BigDecimal balance) {
-    }
+    /** DTO for balance response. */
+    public static record BalanceResponse(java.math.BigDecimal balance) {}
 
     /**
      * Retrieves the balance history for an account over time.
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
-     * <p>
-     * <strong>Query Parameters:</strong>
+     *
+     * <p><strong>Query Parameters:</strong>
+     *
      * <ul>
-     * <li>period (optional): Time period - "1M" (1 month), "3M" (3 months), "6M" (6
-     * months), "1Y" (1 year), "ALL" (all time). Default: "3M"</li>
+     *   <li>period (optional): Time period - "1M" (1 month), "3M" (3 months), "6M" (6 months), "1Y"
+     *       (1 year), "ALL" (all time). Default: "3M"
      * </ul>
-     * 
-     * <p>
-     * <strong>Success Response (HTTP 200 OK):</strong>
-     * 
+     *
+     * <p><strong>Success Response (HTTP 200 OK):</strong>
+     *
      * <pre>{@code
      * [
      *   { "date": "2026-01-15", "balance": 5000.00 },
@@ -712,20 +694,23 @@ public class AccountController {
      *   { "date": "2026-01-17", "balance": 5100.00 }
      * ]
      * }</pre>
-     * 
-     * <p>
-     * Requirement REQ-2.6.1.2: Account Balance Tracking - Historical snapshots
-     * 
-     * @param accountId      the account ID
-     * @param period         the time period for history
-     * @param encodedKey     Base64-encoded encryption key from header
+     *
+     * <p>Requirement REQ-2.6.1.2: Account Balance Tracking - Historical snapshots
+     *
+     * @param accountId the account ID
+     * @param period the time period for history
+     * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
      * @return HTTP 200 OK with list of balance history points
      */
     @GetMapping("/{id}/balance-history")
     public ResponseEntity<List<BalanceHistoryPoint>> getAccountBalanceHistory(
             @PathVariable("id") Long accountId,
-            @org.springframework.web.bind.annotation.RequestParam(value = "period", required = false, defaultValue = "3M") String period,
+            @org.springframework.web.bind.annotation.RequestParam(
+                            value = "period",
+                            required = false,
+                            defaultValue = "3M")
+                    String period,
             @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
@@ -738,10 +723,14 @@ public class AccountController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        List<BalanceHistoryPoint> history = accountService.getAccountBalanceHistory(accountId, user.getId(), period,
-                encryptionKey);
+        List<BalanceHistoryPoint> history =
+                accountService.getAccountBalanceHistory(
+                        accountId, user.getId(), period, encryptionKey);
 
-        log.info("Balance history retrieved successfully: id={}, points={}", accountId, history.size());
+        log.info(
+                "Balance history retrieved successfully: id={}, points={}",
+                accountId,
+                history.size());
 
         return ResponseEntity.ok(history);
     }

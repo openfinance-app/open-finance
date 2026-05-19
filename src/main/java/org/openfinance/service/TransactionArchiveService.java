@@ -2,22 +2,20 @@ package org.openfinance.service;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-
 /**
  * Service for archiving old transaction data.
  *
- * <p>Moves transactions older than a configurable threshold from the active
- * {@code transactions} table to the {@code transactions_archive} table.
- * Archiving keeps the active dataset small, improving query performance.
+ * <p>Moves transactions older than a configurable threshold from the active {@code transactions}
+ * table to the {@code transactions_archive} table. Archiving keeps the active dataset small,
+ * improving query performance.
  *
- * <p>The archive table mirrors the schema of the active transactions table
- * (all columns as of V49) plus an {@code archived_at} timestamp column.
+ * <p>The archive table mirrors the schema of the active transactions table (all columns as of V49)
+ * plus an {@code archived_at} timestamp column.
  *
  * <p>Requirement REQ-3.1: Database performance — archive old data.
  *
@@ -28,8 +26,7 @@ import java.time.LocalDate;
 @Slf4j
 public class TransactionArchiveService {
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    @PersistenceContext private EntityManager entityManager;
 
     /** Default archive threshold: transactions older than this many years are archived. */
     private static final int ARCHIVE_THRESHOLD_YEARS = 3;
@@ -38,9 +35,10 @@ public class TransactionArchiveService {
      * Archives transactions older than {@value #ARCHIVE_THRESHOLD_YEARS} years for a specific user.
      *
      * <p>This operation:
+     *
      * <ol>
-     *   <li>Copies matching rows to {@code transactions_archive}</li>
-     *   <li>Deletes the copied rows from {@code transactions}</li>
+     *   <li>Copies matching rows to {@code transactions_archive}
+     *   <li>Deletes the copied rows from {@code transactions}
      * </ol>
      *
      * @param userId the ID of the user whose old transactions should be archived
@@ -52,7 +50,10 @@ public class TransactionArchiveService {
         log.info("Archiving transactions before {} for user {}", cutoffDate, userId);
 
         // Copy to archive (excludes rows already present in the archive)
-        int archived = entityManager.createNativeQuery("""
+        int archived =
+                entityManager
+                        .createNativeQuery(
+                                """
                 INSERT INTO transactions_archive
                     (id, user_id, account_id, to_account_id, transaction_type,
                      amount, currency, category_id, transaction_date,
@@ -71,22 +72,29 @@ public class TransactionArchiveService {
                   AND transaction_date < :cutoffDate
                   AND id NOT IN (SELECT id FROM transactions_archive WHERE user_id = :userId)
                 """)
-                .setParameter("userId", userId)
-                .setParameter("cutoffDate", cutoffDate.toString())
-                .executeUpdate();
+                        .setParameter("userId", userId)
+                        .setParameter("cutoffDate", cutoffDate.toString())
+                        .executeUpdate();
 
         // Delete archived rows from active table
-        int deleted = entityManager.createNativeQuery("""
+        int deleted =
+                entityManager
+                        .createNativeQuery(
+                                """
                 DELETE FROM transactions
                 WHERE user_id = :userId
                   AND transaction_date < :cutoffDate
                   AND id IN (SELECT id FROM transactions_archive WHERE user_id = :userId)
                 """)
-                .setParameter("userId", userId)
-                .setParameter("cutoffDate", cutoffDate.toString())
-                .executeUpdate();
+                        .setParameter("userId", userId)
+                        .setParameter("cutoffDate", cutoffDate.toString())
+                        .executeUpdate();
 
-        log.info("Archived {} transactions for user {} (deleted {} from active table)", archived, userId, deleted);
+        log.info(
+                "Archived {} transactions for user {} (deleted {} from active table)",
+                archived,
+                userId,
+                deleted);
         return archived;
     }
 
@@ -98,10 +106,12 @@ public class TransactionArchiveService {
      */
     @Transactional(readOnly = true)
     public long getArchivedTransactionCount(Long userId) {
-        Object result = entityManager.createNativeQuery(
-                "SELECT COUNT(*) FROM transactions_archive WHERE user_id = :userId")
-                .setParameter("userId", userId)
-                .getSingleResult();
+        Object result =
+                entityManager
+                        .createNativeQuery(
+                                "SELECT COUNT(*) FROM transactions_archive WHERE user_id = :userId")
+                        .setParameter("userId", userId)
+                        .getSingleResult();
         return result != null ? ((Number) result).longValue() : 0L;
     }
 }

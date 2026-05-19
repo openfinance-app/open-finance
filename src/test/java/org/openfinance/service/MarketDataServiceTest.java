@@ -1,10 +1,19 @@
 package org.openfinance.service;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.openfinance.service.OperationHistoryService;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.HistoricalPrice;
@@ -16,35 +25,20 @@ import org.openfinance.exception.MarketDataException;
 import org.openfinance.provider.MarketDataProvider;
 import org.openfinance.repository.AssetRepository;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 /**
- * Unit tests for MarketDataService.
- * Tests market data operations with mocked provider and repository.
+ * Unit tests for MarketDataService. Tests market data operations with mocked provider and
+ * repository.
  */
 @ExtendWith(MockitoExtension.class)
 class MarketDataServiceTest {
 
-    @Mock
-    private MarketDataProvider marketDataProvider;
+    @Mock private MarketDataProvider marketDataProvider;
 
-    @Mock
-    private AssetRepository assetRepository;
+    @Mock private AssetRepository assetRepository;
 
-    @Mock
-    private OperationHistoryService operationHistoryService;
+    @Mock private OperationHistoryService operationHistoryService;
 
-    @InjectMocks
-    private MarketDataService marketDataService;
+    @InjectMocks private MarketDataService marketDataService;
 
     @BeforeEach
     void setUp() {
@@ -54,12 +48,13 @@ class MarketDataServiceTest {
     @Test
     void shouldGetQuoteSuccessfully() {
         // Given: Mock quote from provider
-        MarketQuote expectedQuote = MarketQuote.builder()
-                .symbol("AAPL")
-                .name("Apple Inc.")
-                .price(new BigDecimal("175.50"))
-                .currency("USD")
-                .build();
+        MarketQuote expectedQuote =
+                MarketQuote.builder()
+                        .symbol("AAPL")
+                        .name("Apple Inc.")
+                        .price(new BigDecimal("175.50"))
+                        .currency("USD")
+                        .build();
 
         when(marketDataProvider.getQuote("AAPL")).thenReturn(expectedQuote);
 
@@ -76,16 +71,14 @@ class MarketDataServiceTest {
     @Test
     void shouldCacheGetQuote() {
         // Given: Mock quote
-        MarketQuote quote = MarketQuote.builder()
-                .symbol("AAPL")
-                .price(new BigDecimal("175.50"))
-                .build();
+        MarketQuote quote =
+                MarketQuote.builder().symbol("AAPL").price(new BigDecimal("175.50")).build();
 
         when(marketDataProvider.getQuote("AAPL")).thenReturn(quote);
 
         // When: Call getQuote twice
         marketDataService.getQuote("AAPL");
-        
+
         // Note: Cache behavior tested in integration test
         // Here we just verify the method works correctly
         verify(marketDataProvider, atLeast(1)).getQuote("AAPL");
@@ -94,10 +87,16 @@ class MarketDataServiceTest {
     @Test
     void shouldGetMultipleQuotes() {
         // Given: Mock multiple quotes
-        List<MarketQuote> expectedQuotes = List.of(
-                MarketQuote.builder().symbol("AAPL").price(new BigDecimal("175.50")).build(),
-                MarketQuote.builder().symbol("MSFT").price(new BigDecimal("380.00")).build()
-        );
+        List<MarketQuote> expectedQuotes =
+                List.of(
+                        MarketQuote.builder()
+                                .symbol("AAPL")
+                                .price(new BigDecimal("175.50"))
+                                .build(),
+                        MarketQuote.builder()
+                                .symbol("MSFT")
+                                .price(new BigDecimal("380.00"))
+                                .build());
 
         when(marketDataProvider.getQuotes(anyList())).thenReturn(expectedQuotes);
 
@@ -113,10 +112,8 @@ class MarketDataServiceTest {
     void shouldUpdateAssetPriceSuccessfully() {
         // Given: Mock asset and quote
         Asset asset = createMockAsset(1L, 1L, "AAPL", new BigDecimal("100.00"));
-        MarketQuote quote = MarketQuote.builder()
-                .symbol("AAPL")
-                .price(new BigDecimal("175.50"))
-                .build();
+        MarketQuote quote =
+                MarketQuote.builder().symbol("AAPL").price(new BigDecimal("175.50")).build();
 
         when(assetRepository.findById(1L)).thenReturn(Optional.of(asset));
         when(marketDataProvider.getQuote("AAPL")).thenReturn(quote);
@@ -201,14 +198,21 @@ class MarketDataServiceTest {
         assets.add(asset2);
         assets.add(asset3);
 
-        List<MarketQuote> quotes = List.of(
-                MarketQuote.builder().symbol("AAPL").price(new BigDecimal("175.50")).build(),
-                MarketQuote.builder().symbol("MSFT").price(new BigDecimal("380.00")).build()
-        );
+        List<MarketQuote> quotes =
+                List.of(
+                        MarketQuote.builder()
+                                .symbol("AAPL")
+                                .price(new BigDecimal("175.50"))
+                                .build(),
+                        MarketQuote.builder()
+                                .symbol("MSFT")
+                                .price(new BigDecimal("380.00"))
+                                .build());
 
         when(assetRepository.findByUserId(10L)).thenReturn(assets);
         when(marketDataProvider.getQuotes(List.of("AAPL", "MSFT"))).thenReturn(quotes);
-        when(assetRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(assetRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When: Update all user assets
         int updatedCount = marketDataService.updateAssetPrices(10L);
@@ -217,7 +221,8 @@ class MarketDataServiceTest {
         assertThat(updatedCount).isEqualTo(2);
         assertThat(asset1.getCurrentPrice()).isEqualByComparingTo(new BigDecimal("175.50"));
         assertThat(asset2.getCurrentPrice()).isEqualByComparingTo(new BigDecimal("380.00"));
-        assertThat(asset3.getCurrentPrice()).isEqualByComparingTo(new BigDecimal("50.00")); // Unchanged
+        assertThat(asset3.getCurrentPrice())
+                .isEqualByComparingTo(new BigDecimal("50.00")); // Unchanged
         verify(assetRepository).saveAll(anyList());
     }
 
@@ -254,9 +259,8 @@ class MarketDataServiceTest {
         // Given: Quote with null price
         Asset asset = createMockAsset(1L, 10L, "INVALID", new BigDecimal("100.00"));
 
-        List<MarketQuote> quotes = List.of(
-                MarketQuote.builder().symbol("INVALID").price(null).build()
-        );
+        List<MarketQuote> quotes =
+                List.of(MarketQuote.builder().symbol("INVALID").price(null).build());
 
         when(assetRepository.findByUserId(10L)).thenReturn(List.of(asset));
         when(marketDataProvider.getQuotes(List.of("INVALID"))).thenReturn(quotes);
@@ -266,7 +270,8 @@ class MarketDataServiceTest {
 
         // Then: Should skip asset with invalid price
         assertThat(updatedCount).isZero();
-        assertThat(asset.getCurrentPrice()).isEqualByComparingTo(new BigDecimal("100.00")); // Unchanged
+        assertThat(asset.getCurrentPrice())
+                .isEqualByComparingTo(new BigDecimal("100.00")); // Unchanged
     }
 
     @Test
@@ -274,19 +279,20 @@ class MarketDataServiceTest {
         // Given: Mock historical data
         LocalDate startDate = LocalDate.of(2024, 1, 1);
         LocalDate endDate = LocalDate.of(2024, 1, 31);
-        List<HistoricalPrice> expectedPrices = List.of(
-                HistoricalPrice.builder()
-                        .symbol("AAPL")
-                        .date(LocalDate.of(2024, 1, 2))
-                        .close(new BigDecimal("185.50"))
-                        .build()
-        );
+        List<HistoricalPrice> expectedPrices =
+                List.of(
+                        HistoricalPrice.builder()
+                                .symbol("AAPL")
+                                .date(LocalDate.of(2024, 1, 2))
+                                .close(new BigDecimal("185.50"))
+                                .build());
 
         when(marketDataProvider.getHistoricalPrices("AAPL", startDate, endDate))
                 .thenReturn(expectedPrices);
 
         // When: Get historical prices
-        List<HistoricalPrice> prices = marketDataService.getHistoricalPrices("AAPL", startDate, endDate);
+        List<HistoricalPrice> prices =
+                marketDataService.getHistoricalPrices("AAPL", startDate, endDate);
 
         // Then: Verify data returned
         assertThat(prices).hasSize(1);
@@ -297,13 +303,13 @@ class MarketDataServiceTest {
     @Test
     void shouldSearchSymbols() {
         // Given: Mock search results
-        List<SymbolSearchResult> expectedResults = List.of(
-                SymbolSearchResult.builder()
-                        .symbol("AAPL")
-                        .name("Apple Inc.")
-                        .type("EQUITY")
-                        .build()
-        );
+        List<SymbolSearchResult> expectedResults =
+                List.of(
+                        SymbolSearchResult.builder()
+                                .symbol("AAPL")
+                                .name("Apple Inc.")
+                                .type("EQUITY")
+                                .build());
 
         when(marketDataProvider.searchSymbol("apple")).thenReturn(expectedResults);
 
@@ -316,24 +322,23 @@ class MarketDataServiceTest {
         verify(marketDataProvider).searchSymbol("apple");
     }
 
-    /**
-     * Helper method to create mock Asset.
-     */
+    /** Helper method to create mock Asset. */
     private Asset createMockAsset(Long id, Long userId, String symbol, BigDecimal currentPrice) {
-        Asset asset = Asset.builder()
-                .id(id)
-                .userId(userId)
-                .accountId(1L)
-                .name("Test Asset")
-                .type(AssetType.STOCK)
-                .symbol(symbol)
-                .quantity(new BigDecimal("10"))
-                .purchasePrice(new BigDecimal("100.00"))
-                .currentPrice(currentPrice)
-                .currency("USD")
-                .purchaseDate(LocalDate.now().minusMonths(6))
-                .lastUpdated(LocalDateTime.now().minusDays(1))
-                .build();
+        Asset asset =
+                Asset.builder()
+                        .id(id)
+                        .userId(userId)
+                        .accountId(1L)
+                        .name("Test Asset")
+                        .type(AssetType.STOCK)
+                        .symbol(symbol)
+                        .quantity(new BigDecimal("10"))
+                        .purchasePrice(new BigDecimal("100.00"))
+                        .currentPrice(currentPrice)
+                        .currency("USD")
+                        .purchaseDate(LocalDate.now().minusMonths(6))
+                        .lastUpdated(LocalDateTime.now().minusDays(1))
+                        .build();
         return asset;
     }
 }

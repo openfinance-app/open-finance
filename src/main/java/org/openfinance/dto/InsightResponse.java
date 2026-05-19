@@ -3,18 +3,18 @@ package org.openfinance.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDateTime;
 import lombok.*;
 import org.openfinance.entity.InsightPriority;
 import org.openfinance.entity.InsightType;
 
-import java.time.LocalDateTime;
-
 /**
  * Data Transfer Object for {@link org.openfinance.entity.Insight}.
  *
- * <p>Contains all insight details for API responses.</p>
+ * <p>Contains all insight details for API responses.
  *
- * <p><strong>Example JSON:</strong></p>
+ * <p><strong>Example JSON:</strong>
+ *
  * <pre>{@code
  * {
  *   "id": 123,
@@ -35,57 +35,39 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class InsightResponse {
 
-    /**
-     * Unique identifier.
-     */
+    /** Unique identifier. */
     private Long id;
 
-    /**
-     * Type of insight (SPENDING_ANOMALY, BUDGET_WARNING, etc.).
-     */
+    /** Type of insight (SPENDING_ANOMALY, BUDGET_WARNING, etc.). */
     @NotNull(message = "{insight.type.required}")
     private InsightType type;
 
-    /**
-     * Brief summary title (max 200 characters).
-     */
+    /** Brief summary title (max 200 characters). */
     @NotBlank(message = "{insight.title.required}")
     @Size(max = 200, message = "{insight.title.max}")
     private String title;
 
-    /**
-     * Detailed description with context (max 2000 characters).
-     */
+    /** Detailed description with context (max 2000 characters). */
     @NotBlank(message = "{insight.description.required}")
     @Size(max = 2000, message = "{insight.description.max}")
     private String description;
 
-    /**
-     * Priority level (HIGH, MEDIUM, LOW).
-     */
+    /** Priority level (HIGH, MEDIUM, LOW). */
     @NotNull(message = "{insight.priority.required}")
     private InsightPriority priority;
 
-    /**
-     * Whether the user has dismissed this insight.
-     */
+    /** Whether the user has dismissed this insight. */
     private Boolean dismissed;
 
-    /**
-     * Timestamp when the insight was generated.
-     */
+    /** Timestamp when the insight was generated. */
     private LocalDateTime createdAt;
 
-    /**
-     * Display name for the insight type (e.g., "Spending Anomaly").
-     */
+    /** Display name for the insight type (e.g., "Spending Anomaly"). */
     public String getTypeDisplayName() {
         return type != null ? type.getDisplayName() : null;
     }
 
-    /**
-     * Display name for the priority level (e.g., "High Priority").
-     */
+    /** Display name for the priority level (e.g., "High Priority"). */
     public String getPriorityDisplayName() {
         return priority != null ? priority.getDisplayName() : null;
     }

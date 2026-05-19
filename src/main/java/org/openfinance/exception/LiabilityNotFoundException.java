@@ -6,15 +6,16 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * Exception thrown when a liability is not found in the database.
  *
- * <p>This exception is typically thrown when attempting to retrieve, update,
- * or delete a liability by ID that doesn't exist or doesn't belong to the user.</p>
+ * <p>This exception is typically thrown when attempting to retrieve, update, or delete a liability
+ * by ID that doesn't exist or doesn't belong to the user.
  *
- * <p>Requirement REQ-3.2: Authorization - Users can only access their own liabilities</p>
- * <p>Requirement REQ-6.1: Liability Management</p>
+ * <p>Requirement REQ-3.2: Authorization - Users can only access their own liabilities
+ *
+ * <p>Requirement REQ-6.1: Liability Management
  */
 @ResponseStatus(HttpStatus.NOT_FOUND)
 public class LiabilityNotFoundException extends RuntimeException {
-    
+
     /**
      * Constructs a new LiabilityNotFoundException with a detail message.
      *
@@ -23,7 +24,7 @@ public class LiabilityNotFoundException extends RuntimeException {
     public LiabilityNotFoundException(String message) {
         super(message);
     }
-    
+
     /**
      * Constructs a new LiabilityNotFoundException with a detail message and cause.
      *
@@ -33,7 +34,7 @@ public class LiabilityNotFoundException extends RuntimeException {
     public LiabilityNotFoundException(String message, Throwable cause) {
         super(message, cause);
     }
-    
+
     /**
      * Creates an exception for a liability not found by ID.
      *
@@ -43,7 +44,7 @@ public class LiabilityNotFoundException extends RuntimeException {
     public static LiabilityNotFoundException byId(Long liabilityId) {
         return new LiabilityNotFoundException("Liability not found with id: " + liabilityId);
     }
-    
+
     /**
      * Creates an exception for a liability not found for a specific user.
      *

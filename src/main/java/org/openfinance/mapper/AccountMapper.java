@@ -12,26 +12,19 @@ import org.openfinance.entity.Account;
 
 /**
  * MapStruct mapper for converting between Account entity and DTOs.
- * 
- * <p>
- * This mapper handles bidirectional mapping between:
+ *
+ * <p>This mapper handles bidirectional mapping between:
+ *
  * <ul>
- * <li>{@link AccountRequest} DTO → {@link Account} entity (for
- * create/update)</li>
- * <li>{@link Account} entity → {@link AccountResponse} DTO (for read)</li>
+ *   <li>{@link AccountRequest} DTO → {@link Account} entity (for create/update)
+ *   <li>{@link Account} entity → {@link AccountResponse} DTO (for read)
  * </ul>
- * 
- * <p>
- * <strong>Note:</strong> Encryption and decryption of sensitive fields (name,
- * description)
- * are handled in the {@link org.openfinance.service.AccountService}, not in
- * this mapper.
- * </p>
- * 
- * <p>
- * Requirement REQ-2.2: Account Management - DTO conversions for CRUD operations
- * </p>
- * 
+ *
+ * <p><strong>Note:</strong> Encryption and decryption of sensitive fields (name, description) are
+ * handled in the {@link org.openfinance.service.AccountService}, not in this mapper.
+ *
+ * <p>Requirement REQ-2.2: Account Management - DTO conversions for CRUD operations
+ *
  * @see org.openfinance.entity.Account
  * @see org.openfinance.dto.AccountRequest
  * @see org.openfinance.dto.AccountResponse
@@ -41,16 +34,12 @@ public interface AccountMapper {
 
     /**
      * Converts an AccountRequest DTO to an Account entity.
-     * 
-     * <p>
-     * Used when creating a new account. The userId must be set separately
-     * by the service layer after authentication.
-     * </p>
-     * 
-     * <p>
-     * The balance field is mapped from {@code initialBalance} in the request.
-     * </p>
-     * 
+     *
+     * <p>Used when creating a new account. The userId must be set separately by the service layer
+     * after authentication.
+     *
+     * <p>The balance field is mapped from {@code initialBalance} in the request.
+     *
      * @param request the account creation/update request
      * @return a new Account entity (without id, userId, timestamps)
      */
@@ -69,16 +58,12 @@ public interface AccountMapper {
 
     /**
      * Updates an existing Account entity from an AccountRequest DTO.
-     * 
-     * <p>
-     * This method updates only the fields that are present in the request,
-     * preserving the existing values of id, userId, timestamps, and isActive.
-     * </p>
-     * 
-     * <p>
-     * The balance field is updated from {@code initialBalance} in the request.
-     * </p>
-     * 
+     *
+     * <p>This method updates only the fields that are present in the request, preserving the
+     * existing values of id, userId, timestamps, and isActive.
+     *
+     * <p>The balance field is updated from {@code initialBalance} in the request.
+     *
      * @param request the account update request
      * @param account the existing account entity to update
      */
@@ -97,13 +82,10 @@ public interface AccountMapper {
 
     /**
      * Converts an Account entity to an AccountResponse DTO.
-     * 
-     * <p>
-     * Used when returning account information to clients. The name and description
-     * fields should already be decrypted by the service layer before calling this
-     * method.
-     * </p>
-     * 
+     *
+     * <p>Used when returning account information to clients. The name and description fields should
+     * already be decrypted by the service layer before calling this method.
+     *
      * @param account the account entity
      * @return the account response DTO
      */

@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
 import javax.crypto.SecretKey;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.Liability;
@@ -29,55 +29,39 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * Service for calculating and managing net worth snapshots.
- * 
- * <p>
- * This service handles:
+ *
+ * <p>This service handles:
+ *
  * <ul>
- * <li>Calculating total assets from account balances, Asset entities, and Real
- * Estate properties</li>
- * <li>Calculating total liabilities from debt accounts and Liability
- * entities</li>
- * <li>Creating daily net worth snapshots</li>
- * <li>Retrieving historical net worth data for trend analysis</li>
+ *   <li>Calculating total assets from account balances, Asset entities, and Real Estate properties
+ *   <li>Calculating total liabilities from debt accounts and Liability entities
+ *   <li>Creating daily net worth snapshots
+ *   <li>Retrieving historical net worth data for trend analysis
  * </ul>
- * 
- * <p>
- * <strong>Net Worth Calculation:</strong>
- * 
+ *
+ * <p><strong>Net Worth Calculation:</strong>
+ *
  * <pre>
  * Net Worth = Total Assets - Total Liabilities
- * 
+ *
  * Total Assets = Sum of positive account balances + Asset entity values + Real Estate property values
  * Total Liabilities = Absolute value of negative account balances + Liability entity balances
  * </pre>
- * 
- * <p>
- * <strong>Multi-Currency Handling:</strong> This service supports
- * multi-currency conversions
- * using exchange rates from {@link ExchangeRateService}. All amounts are
- * converted to a specified
- * base currency (default: USD) before aggregation. If conversion fails, the
- * original amount is used
+ *
+ * <p><strong>Multi-Currency Handling:</strong> This service supports multi-currency conversions
+ * using exchange rates from {@link ExchangeRateService}. All amounts are converted to a specified
+ * base currency (default: USD) before aggregation. If conversion fails, the original amount is used
  * with a warning logged.
- * 
- * <p>
- * <strong>Encryption Note:</strong> Liability balances and real estate property
- * values are encrypted.
- * During snapshot creation, the service requires an encryption key to decrypt
- * these values. Snapshots
- * store the calculated totals unencrypted for historical tracking.
- * 
- * <p>
- * Requirements: REQ-2.5.1 (Net Worth Calculation), REQ-2.5.2 (Historical
- * Tracking),
- * REQ-6.1.7 (Include Liabilities), REQ-2.16.3 (Include Real Estate in Net
- * Worth)
- * 
+ *
+ * <p><strong>Encryption Note:</strong> Liability balances and real estate property values are
+ * encrypted. During snapshot creation, the service requires an encryption key to decrypt these
+ * values. Snapshots store the calculated totals unencrypted for historical tracking.
+ *
+ * <p>Requirements: REQ-2.5.1 (Net Worth Calculation), REQ-2.5.2 (Historical Tracking), REQ-6.1.7
+ * (Include Liabilities), REQ-2.16.3 (Include Real Estate in Net Worth)
+ *
  * @author Open-Finance Development Team
  * @since 1.0
  */
@@ -98,28 +82,23 @@ public class NetWorthService {
     private final TransactionRepository transactionRepository;
 
     /**
-     * Calculates the current net worth for a user (backward compatibility -
-     * defaults to USD).
-     * 
-     * <p>
-     * Calculation:
+     * Calculates the current net worth for a user (backward compatibility - defaults to USD).
+     *
+     * <p>Calculation:
+     *
      * <ol>
-     * <li>Sum all active account balances (assets)</li>
-     * <li>Sum all liabilities (debt accounts only - Liability entities not
-     * included)</li>
-     * <li>Net Worth = Assets - Liabilities</li>
+     *   <li>Sum all active account balances (assets)
+     *   <li>Sum all liabilities (debt accounts only - Liability entities not included)
+     *   <li>Net Worth = Assets - Liabilities
      * </ol>
-     * 
-     * <p>
-     * <strong>Note:</strong> This method does NOT include Liability entities.
-     * Use {@link #calculateNetWorth(Long, LocalDate, SecretKey, String)} when
-     * encryption key is available.
-     * 
-     * <p>
-     * Requirement REQ-2.5.1: Calculate net worth from accounts and assets
-     * 
+     *
+     * <p><strong>Note:</strong> This method does NOT include Liability entities. Use {@link
+     * #calculateNetWorth(Long, LocalDate, SecretKey, String)} when encryption key is available.
+     *
+     * <p>Requirement REQ-2.5.1: Calculate net worth from accounts and assets
+     *
      * @param userId the user ID
-     * @param date   the date for the calculation (typically today)
+     * @param date the date for the calculation (typically today)
      * @return calculated net worth in USD
      */
     public BigDecimal calculateNetWorth(Long userId, LocalDate date) {
@@ -128,31 +107,25 @@ public class NetWorthService {
 
     /**
      * Calculates the current net worth for a user in a specified base currency.
-     * 
-     * <p>
-     * Calculation:
+     *
+     * <p>Calculation:
+     *
      * <ol>
-     * <li>Sum all active account balances (assets), converting to base
-     * currency</li>
-     * <li>Sum all liabilities (debt accounts only - Liability entities not
-     * included)</li>
-     * <li>Net Worth = Assets - Liabilities</li>
+     *   <li>Sum all active account balances (assets), converting to base currency
+     *   <li>Sum all liabilities (debt accounts only - Liability entities not included)
+     *   <li>Net Worth = Assets - Liabilities
      * </ol>
-     * 
-     * <p>
-     * <strong>Note:</strong> This method does NOT include Liability entities.
-     * Use {@link #calculateNetWorth(Long, LocalDate, SecretKey, String)} when
-     * encryption key is available.
-     * 
-     * <p>
-     * Requirement REQ-2.5.1: Calculate net worth from accounts and assets
-     * <p>
-     * Requirement REQ-6.2: Multi-currency support with exchange rate conversion
-     * 
-     * @param userId       the user ID
-     * @param date         the date for the calculation (typically today)
-     * @param baseCurrency the base currency for net worth calculation (e.g., "USD",
-     *                     "EUR")
+     *
+     * <p><strong>Note:</strong> This method does NOT include Liability entities. Use {@link
+     * #calculateNetWorth(Long, LocalDate, SecretKey, String)} when encryption key is available.
+     *
+     * <p>Requirement REQ-2.5.1: Calculate net worth from accounts and assets
+     *
+     * <p>Requirement REQ-6.2: Multi-currency support with exchange rate conversion
+     *
+     * @param userId the user ID
+     * @param date the date for the calculation (typically today)
+     * @param baseCurrency the base currency for net worth calculation (e.g., "USD", "EUR")
      * @return calculated net worth in the specified base currency
      */
     public BigDecimal calculateNetWorth(Long userId, LocalDate date, String baseCurrency) {
@@ -166,8 +139,11 @@ public class NetWorthService {
             throw new IllegalArgumentException("Base currency cannot be null or blank");
         }
 
-        log.debug("Calculating net worth for user {} on date {} in {} (without liabilities)",
-                userId, date, baseCurrency);
+        log.debug(
+                "Calculating net worth for user {} on date {} in {} (without liabilities)",
+                userId,
+                date,
+                baseCurrency);
 
         // Calculate total assets from account balances
         BigDecimal totalAssets = calculateTotalAssets(userId, baseCurrency);
@@ -178,34 +154,36 @@ public class NetWorthService {
         // Net worth = assets - liabilities
         BigDecimal netWorth = totalAssets.subtract(totalLiabilities);
 
-        log.debug("Net worth calculated: totalAssets={} {}, totalLiabilities={} {}, netWorth={} {}",
-                totalAssets, baseCurrency, totalLiabilities, baseCurrency, netWorth, baseCurrency);
+        log.debug(
+                "Net worth calculated: totalAssets={} {}, totalLiabilities={} {}, netWorth={} {}",
+                totalAssets,
+                baseCurrency,
+                totalLiabilities,
+                baseCurrency,
+                netWorth,
+                baseCurrency);
 
         return netWorth;
     }
 
     /**
-     * Calculates the current net worth for a user, including Liability entities
-     * (backward compatibility - defaults to USD).
-     * 
-     * <p>
-     * Calculation:
+     * Calculates the current net worth for a user, including Liability entities (backward
+     * compatibility - defaults to USD).
+     *
+     * <p>Calculation:
+     *
      * <ol>
-     * <li>Sum all active account balances (assets)</li>
-     * <li>Sum all liabilities (debt accounts + Liability entities with
-     * decryption)</li>
-     * <li>Net Worth = Assets - Liabilities</li>
+     *   <li>Sum all active account balances (assets)
+     *   <li>Sum all liabilities (debt accounts + Liability entities with decryption)
+     *   <li>Net Worth = Assets - Liabilities
      * </ol>
-     * 
-     * <p>
-     * Requirement REQ-2.5.1: Calculate net worth from accounts and assets
-     * </p>
-     * <p>
-     * Requirement REQ-6.1.7: Include liabilities in net worth calculation
-     * </p>
-     * 
-     * @param userId        the user ID
-     * @param date          the date for the calculation (typically today)
+     *
+     * <p>Requirement REQ-2.5.1: Calculate net worth from accounts and assets
+     *
+     * <p>Requirement REQ-6.1.7: Include liabilities in net worth calculation
+     *
+     * @param userId the user ID
+     * @param date the date for the calculation (typically today)
      * @param encryptionKey the encryption key for decrypting liability balances
      * @return calculated net worth in USD
      */
@@ -214,44 +192,35 @@ public class NetWorthService {
     }
 
     /**
-     * Calculates the current net worth for a user in a specified base currency,
-     * including Liability entities.
-     * 
-     * <p>
-     * Calculation:
+     * Calculates the current net worth for a user in a specified base currency, including Liability
+     * entities.
+     *
+     * <p>Calculation:
+     *
      * <ol>
-     * <li>Sum all active account balances (assets), converting to base
-     * currency</li>
-     * <li>Sum all active Real Estate property values (decrypted), converting to
-     * base currency</li>
-     * <li>Sum all liabilities (debt accounts + Liability entities with decryption),
-     * converting to base currency</li>
-     * <li>Net Worth = Assets - Liabilities</li>
+     *   <li>Sum all active account balances (assets), converting to base currency
+     *   <li>Sum all active Real Estate property values (decrypted), converting to base currency
+     *   <li>Sum all liabilities (debt accounts + Liability entities with decryption), converting to
+     *       base currency
+     *   <li>Net Worth = Assets - Liabilities
      * </ol>
-     * 
-     * <p>
-     * Requirement REQ-2.5.1: Calculate net worth from accounts and assets
-     * </p>
-     * <p>
-     * Requirement REQ-6.1.7: Include liabilities in net worth calculation
-     * </p>
-     * <p>
-     * Requirement REQ-2.16.3: Include real estate properties in net worth
-     * calculation
-     * </p>
-     * <p>
-     * Requirement REQ-6.2: Multi-currency support with exchange rate conversion
-     * </p>
-     * 
-     * @param userId        the user ID
-     * @param date          the date for the calculation (typically today)
-     * @param encryptionKey the encryption key for decrypting liability balances and
-     *                      property values
-     * @param baseCurrency  the base currency for net worth calculation (e.g.,
-     *                      "USD", "EUR")
+     *
+     * <p>Requirement REQ-2.5.1: Calculate net worth from accounts and assets
+     *
+     * <p>Requirement REQ-6.1.7: Include liabilities in net worth calculation
+     *
+     * <p>Requirement REQ-2.16.3: Include real estate properties in net worth calculation
+     *
+     * <p>Requirement REQ-6.2: Multi-currency support with exchange rate conversion
+     *
+     * @param userId the user ID
+     * @param date the date for the calculation (typically today)
+     * @param encryptionKey the encryption key for decrypting liability balances and property values
+     * @param baseCurrency the base currency for net worth calculation (e.g., "USD", "EUR")
      * @return calculated net worth in the specified base currency
      */
-    public BigDecimal calculateNetWorth(Long userId, LocalDate date, SecretKey encryptionKey, String baseCurrency) {
+    public BigDecimal calculateNetWorth(
+            Long userId, LocalDate date, SecretKey encryptionKey, String baseCurrency) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -265,39 +234,43 @@ public class NetWorthService {
             throw new IllegalArgumentException("Base currency cannot be null or blank");
         }
 
-        log.debug("Calculating net worth for user {} on date {} in {} (with liabilities and real estate)",
-                userId, date, baseCurrency);
+        log.debug(
+                "Calculating net worth for user {} on date {} in {} (with liabilities and real estate)",
+                userId,
+                date,
+                baseCurrency);
 
         // Calculate total assets from account balances + real estate properties
         BigDecimal totalAssets = calculateTotalAssets(userId, encryptionKey, baseCurrency);
 
         // Calculate total liabilities (debt accounts + liability entities)
-        BigDecimal totalLiabilities = calculateTotalLiabilities(userId, encryptionKey, baseCurrency);
+        BigDecimal totalLiabilities =
+                calculateTotalLiabilities(userId, encryptionKey, baseCurrency);
 
         // Net worth = assets - liabilities
         BigDecimal netWorth = totalAssets.subtract(totalLiabilities);
 
         log.debug(
                 "Net worth calculated (with liabilities and real estate): totalAssets={} {}, totalLiabilities={} {}, netWorth={} {}",
-                totalAssets, baseCurrency, totalLiabilities, baseCurrency, netWorth, baseCurrency);
+                totalAssets,
+                baseCurrency,
+                totalLiabilities,
+                baseCurrency,
+                netWorth,
+                baseCurrency);
 
         return netWorth;
     }
 
     /**
-     * Calculates total assets for a user (backward compatibility - defaults to
-     * USD).
-     * 
-     * <p>
-     * Sums all active account balances. Negative balances are treated as
-     * liabilities.
-     * 
-     * <p>
-     * <strong>Note:</strong> This method does NOT include Real Estate properties
-     * (requires encryption key).
-     * Use {@link #calculateTotalAssets(Long, SecretKey, String)} when encryption
+     * Calculates total assets for a user (backward compatibility - defaults to USD).
+     *
+     * <p>Sums all active account balances. Negative balances are treated as liabilities.
+     *
+     * <p><strong>Note:</strong> This method does NOT include Real Estate properties (requires
+     * encryption key). Use {@link #calculateTotalAssets(Long, SecretKey, String)} when encryption
      * key is available.
-     * 
+     *
      * @param userId the user ID
      * @return total assets in USD (accounts only)
      */
@@ -307,63 +280,78 @@ public class NetWorthService {
 
     /**
      * Calculates total assets for a user in a specified base currency.
-     * 
-     * <p>
-     * Sums all active account balances, converting each to the base currency.
-     * Negative balances are treated as liabilities.
-     * 
-     * <p>
-     * <strong>Note:</strong> This method does NOT include Real Estate properties
-     * (requires encryption key).
-     * Use {@link #calculateTotalAssets(Long, SecretKey, String)} when encryption
+     *
+     * <p>Sums all active account balances, converting each to the base currency. Negative balances
+     * are treated as liabilities.
+     *
+     * <p><strong>Note:</strong> This method does NOT include Real Estate properties (requires
+     * encryption key). Use {@link #calculateTotalAssets(Long, SecretKey, String)} when encryption
      * key is available.
-     * 
-     * <p>
-     * Requirement REQ-6.2: Multi-currency support with exchange rate conversion
-     * 
-     * @param userId       the user ID
+     *
+     * <p>Requirement REQ-6.2: Multi-currency support with exchange rate conversion
+     *
+     * @param userId the user ID
      * @param baseCurrency the base currency for calculation (e.g., "USD", "EUR")
-     * @return total assets in the specified base currency (accounts + investment
-     *         assets)
+     * @return total assets in the specified base currency (accounts + investment assets)
      */
     public BigDecimal calculateTotalAssets(Long userId, String baseCurrency) {
         List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
 
-        BigDecimal accountAssets = accounts.stream()
-                .filter(account -> account.getBalance().compareTo(BigDecimal.ZERO) > 0) // Only positive balances
-                .map(account -> convertToBaseCurrency(account.getBalance(), account.getCurrency(), baseCurrency))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal accountAssets =
+                accounts.stream()
+                        .filter(
+                                account ->
+                                        account.getBalance().compareTo(BigDecimal.ZERO)
+                                                > 0) // Only positive balances
+                        .map(
+                                account ->
+                                        convertToBaseCurrency(
+                                                account.getBalance(),
+                                                account.getCurrency(),
+                                                baseCurrency))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal investmentAssets = assetRepository.findByUserId(userId)
-                .stream()
-                .filter(asset -> asset.getType() != org.openfinance.entity.AssetType.REAL_ESTATE)
-                .map(asset -> convertToBaseCurrency(asset.getTotalValue(), asset.getCurrency(), baseCurrency))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal investmentAssets =
+                assetRepository.findByUserId(userId).stream()
+                        .filter(
+                                asset ->
+                                        asset.getType()
+                                                != org.openfinance.entity.AssetType.REAL_ESTATE)
+                        .map(
+                                asset ->
+                                        convertToBaseCurrency(
+                                                asset.getTotalValue(),
+                                                asset.getCurrency(),
+                                                baseCurrency))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        log.debug("Total assets for user {}: accountAssets={} {}, investmentAssets={} {}, total={} {}",
-                userId, accountAssets, baseCurrency, investmentAssets, baseCurrency,
-                accountAssets.add(investmentAssets), baseCurrency);
+        log.debug(
+                "Total assets for user {}: accountAssets={} {}, investmentAssets={} {}, total={} {}",
+                userId,
+                accountAssets,
+                baseCurrency,
+                investmentAssets,
+                baseCurrency,
+                accountAssets.add(investmentAssets),
+                baseCurrency);
 
         return accountAssets.add(investmentAssets);
     }
 
     /**
-     * Calculates total assets for a user, including Real Estate properties
-     * (backward compatibility - defaults to USD).
-     * 
-     * <p>
-     * Includes:
+     * Calculates total assets for a user, including Real Estate properties (backward compatibility
+     * - defaults to USD).
+     *
+     * <p>Includes:
+     *
      * <ol>
-     * <li>Active account balances (positive balances only)</li>
-     * <li>Active Real Estate property current values (decrypted using encryption
-     * key)</li>
+     *   <li>Active account balances (positive balances only)
+     *   <li>Active Real Estate property current values (decrypted using encryption key)
      * </ol>
-     * 
-     * <p>
-     * Requirement REQ-2.16.3: Include real estate properties in net worth
-     * calculation
-     * 
-     * @param userId        the user ID
+     *
+     * <p>Requirement REQ-2.16.3: Include real estate properties in net worth calculation
+     *
+     * @param userId the user ID
      * @param encryptionKey the encryption key for decrypting property values
      * @return total assets in USD
      */
@@ -372,90 +360,116 @@ public class NetWorthService {
     }
 
     /**
-     * Calculates total assets for a user in a specified base currency, including
-     * Real Estate properties.
-     * 
-     * <p>
-     * Includes:
+     * Calculates total assets for a user in a specified base currency, including Real Estate
+     * properties.
+     *
+     * <p>Includes:
+     *
      * <ol>
-     * <li>Active account balances (positive balances only), converted to base
-     * currency</li>
-     * <li>Active Real Estate property current values (decrypted using encryption
-     * key), converted to base currency</li>
+     *   <li>Active account balances (positive balances only), converted to base currency
+     *   <li>Active Real Estate property current values (decrypted using encryption key), converted
+     *       to base currency
      * </ol>
-     * 
-     * <p>
-     * Requirement REQ-2.16.3: Include real estate properties in net worth
-     * calculation
-     * <p>
-     * Requirement REQ-6.2: Multi-currency support with exchange rate conversion
-     * 
-     * @param userId        the user ID
+     *
+     * <p>Requirement REQ-2.16.3: Include real estate properties in net worth calculation
+     *
+     * <p>Requirement REQ-6.2: Multi-currency support with exchange rate conversion
+     *
+     * @param userId the user ID
      * @param encryptionKey the encryption key for decrypting property values
-     * @param baseCurrency  the base currency for calculation (e.g., "USD", "EUR")
+     * @param baseCurrency the base currency for calculation (e.g., "USD", "EUR")
      * @return total assets in the specified base currency
      */
-    public BigDecimal calculateTotalAssets(Long userId, SecretKey encryptionKey, String baseCurrency) {
+    public BigDecimal calculateTotalAssets(
+            Long userId, SecretKey encryptionKey, String baseCurrency) {
         // Calculate account balances (already converted to base currency)
         List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
 
-        BigDecimal accountAssets = accounts.stream()
-                .filter(account -> account.getBalance().compareTo(BigDecimal.ZERO) > 0)
-                .map(account -> convertToBaseCurrency(account.getBalance(), account.getCurrency(), baseCurrency))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal accountAssets =
+                accounts.stream()
+                        .filter(account -> account.getBalance().compareTo(BigDecimal.ZERO) > 0)
+                        .map(
+                                account ->
+                                        convertToBaseCurrency(
+                                                account.getBalance(),
+                                                account.getCurrency(),
+                                                baseCurrency))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal investmentAssets = assetRepository.findByUserId(userId)
-                .stream()
-                .filter(asset -> asset.getType() != org.openfinance.entity.AssetType.REAL_ESTATE)
-                .map(asset -> convertToBaseCurrency(asset.getTotalValue(), asset.getCurrency(), baseCurrency))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal investmentAssets =
+                assetRepository.findByUserId(userId).stream()
+                        .filter(
+                                asset ->
+                                        asset.getType()
+                                                != org.openfinance.entity.AssetType.REAL_ESTATE)
+                        .map(
+                                asset ->
+                                        convertToBaseCurrency(
+                                                asset.getTotalValue(),
+                                                asset.getCurrency(),
+                                                baseCurrency))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // Calculate real estate property values (requires decryption and currency
         // conversion)
-        BigDecimal realEstateAssets = realEstateRepository.findByUserIdAndIsActive(userId, true)
-                .stream()
-                .map(property -> {
-                    try {
-                        String encryptedValue = property.getCurrentValue();
-                        if (encryptedValue != null && !encryptedValue.isBlank()) {
-                            String decrypted = encryptionService.decrypt(encryptedValue, encryptionKey);
-                            BigDecimal currentValue = new BigDecimal(decrypted);
-                            return convertToBaseCurrency(currentValue, property.getCurrency(), baseCurrency);
-                        }
-                        return BigDecimal.ZERO;
-                    } catch (Exception e) {
-                        log.error(
-                                "Failed to decrypt real estate property value for property ID {} (user {}): {}. Skipping property in net worth calculation.",
-                                property.getId(), userId, e.getMessage());
-                        return BigDecimal.ZERO; // Skip corrupted property rather than failing entire calculation
-                    }
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal realEstateAssets =
+                realEstateRepository.findByUserIdAndIsActive(userId, true).stream()
+                        .map(
+                                property -> {
+                                    try {
+                                        String encryptedValue = property.getCurrentValue();
+                                        if (encryptedValue != null && !encryptedValue.isBlank()) {
+                                            String decrypted =
+                                                    encryptionService.decrypt(
+                                                            encryptedValue, encryptionKey);
+                                            BigDecimal currentValue = new BigDecimal(decrypted);
+                                            return convertToBaseCurrency(
+                                                    currentValue,
+                                                    property.getCurrency(),
+                                                    baseCurrency);
+                                        }
+                                        return BigDecimal.ZERO;
+                                    } catch (Exception e) {
+                                        log.error(
+                                                "Failed to decrypt real estate property value for property ID {} (user {}): {}. Skipping property in net worth calculation.",
+                                                property.getId(),
+                                                userId,
+                                                e.getMessage());
+                                        return BigDecimal
+                                                .ZERO; // Skip corrupted property rather than
+                                        // failing entire calculation
+                                    }
+                                })
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         log.debug(
                 "Total assets for user {}: accountAssets={} {}, investmentAssets={} {}, realEstateAssets={} {}, total={} {}",
-                userId, accountAssets, baseCurrency, investmentAssets, baseCurrency, realEstateAssets, baseCurrency,
-                accountAssets.add(investmentAssets).add(realEstateAssets), baseCurrency);
+                userId,
+                accountAssets,
+                baseCurrency,
+                investmentAssets,
+                baseCurrency,
+                realEstateAssets,
+                baseCurrency,
+                accountAssets.add(investmentAssets).add(realEstateAssets),
+                baseCurrency);
 
         return accountAssets.add(investmentAssets).add(realEstateAssets);
     }
 
     /**
-     * Calculates total liabilities for a user (backward compatibility - defaults to
-     * USD).
-     * 
-     * <p>
-     * Includes:
+     * Calculates total liabilities for a user (backward compatibility - defaults to USD).
+     *
+     * <p>Includes:
+     *
      * <ol>
-     * <li>Negative account balances (e.g., credit card debt)</li>
-     * <li>Liability entity balances (encrypted - requires encryption key)</li>
+     *   <li>Negative account balances (e.g., credit card debt)
+     *   <li>Liability entity balances (encrypted - requires encryption key)
      * </ol>
-     * 
-     * <p>
-     * <strong>Note:</strong> This method does NOT decrypt Liability entities.
-     * Use {@link #calculateTotalLiabilities(Long, SecretKey, String)} when
-     * encryption key is available.
-     * 
+     *
+     * <p><strong>Note:</strong> This method does NOT decrypt Liability entities. Use {@link
+     * #calculateTotalLiabilities(Long, SecretKey, String)} when encryption key is available.
+     *
      * @param userId the user ID
      * @return total liabilities (positive number) in USD from accounts only
      */
@@ -465,26 +479,22 @@ public class NetWorthService {
 
     /**
      * Calculates total liabilities for a user in a specified base currency.
-     * 
-     * <p>
-     * Includes:
+     *
+     * <p>Includes:
+     *
      * <ol>
-     * <li>Negative account balances (e.g., credit card debt)</li>
-     * <li>Liability entity balances (encrypted - requires encryption key)</li>
+     *   <li>Negative account balances (e.g., credit card debt)
+     *   <li>Liability entity balances (encrypted - requires encryption key)
      * </ol>
-     * 
-     * <p>
-     * <strong>Note:</strong> This method does NOT decrypt Liability entities.
-     * Use {@link #calculateTotalLiabilities(Long, SecretKey, String)} when
-     * encryption key is available.
-     * 
-     * <p>
-     * Requirement REQ-6.2: Multi-currency support with exchange rate conversion
-     * 
-     * @param userId       the user ID
+     *
+     * <p><strong>Note:</strong> This method does NOT decrypt Liability entities. Use {@link
+     * #calculateTotalLiabilities(Long, SecretKey, String)} when encryption key is available.
+     *
+     * <p>Requirement REQ-6.2: Multi-currency support with exchange rate conversion
+     *
+     * @param userId the user ID
      * @param baseCurrency the base currency for calculation (e.g., "USD", "EUR")
-     * @return total liabilities (positive number) in the specified base currency
-     *         from accounts only
+     * @return total liabilities (positive number) in the specified base currency from accounts only
      */
     public BigDecimal calculateTotalLiabilities(Long userId, String baseCurrency) {
         List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
@@ -492,25 +502,29 @@ public class NetWorthService {
         // Sum of negative balances, converted to positive and to base currency
         return accounts.stream()
                 .filter(account -> account.getBalance().compareTo(BigDecimal.ZERO) < 0)
-                .map(account -> convertToBaseCurrency(account.getBalance().abs(), account.getCurrency(), baseCurrency))
+                .map(
+                        account ->
+                                convertToBaseCurrency(
+                                        account.getBalance().abs(),
+                                        account.getCurrency(),
+                                        baseCurrency))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**
-     * Calculates total liabilities for a user, including Liability entities
-     * (backward compatibility - defaults to USD).
-     * 
-     * <p>
-     * Includes:
+     * Calculates total liabilities for a user, including Liability entities (backward compatibility
+     * - defaults to USD).
+     *
+     * <p>Includes:
+     *
      * <ol>
-     * <li>Negative account balances (e.g., credit card debt)</li>
-     * <li>Liability entity current balances (decrypted using encryption key)</li>
+     *   <li>Negative account balances (e.g., credit card debt)
+     *   <li>Liability entity current balances (decrypted using encryption key)
      * </ol>
-     * 
-     * <p>
-     * Requirement REQ-6.1.7: Include liabilities in net worth calculation
-     * 
-     * @param userId        the user ID
+     *
+     * <p>Requirement REQ-6.1.7: Include liabilities in net worth calculation
+     *
+     * @param userId the user ID
      * @param encryptionKey the encryption key for decrypting liability balances
      * @return total liabilities (positive number) in USD
      */
@@ -519,71 +533,77 @@ public class NetWorthService {
     }
 
     /**
-     * Calculates total liabilities for a user in a specified base currency,
-     * including Liability entities.
-     * 
-     * <p>
-     * Includes:
+     * Calculates total liabilities for a user in a specified base currency, including Liability
+     * entities.
+     *
+     * <p>Includes:
+     *
      * <ol>
-     * <li>Negative account balances (e.g., credit card debt), converted to base
-     * currency</li>
-     * <li>Liability entity current balances (decrypted using encryption key),
-     * converted to base currency</li>
+     *   <li>Negative account balances (e.g., credit card debt), converted to base currency
+     *   <li>Liability entity current balances (decrypted using encryption key), converted to base
+     *       currency
      * </ol>
-     * 
-     * <p>
-     * Requirement REQ-6.1.7: Include liabilities in net worth calculation
-     * <p>
-     * Requirement REQ-6.2: Multi-currency support with exchange rate conversion
-     * 
-     * @param userId        the user ID
+     *
+     * <p>Requirement REQ-6.1.7: Include liabilities in net worth calculation
+     *
+     * <p>Requirement REQ-6.2: Multi-currency support with exchange rate conversion
+     *
+     * @param userId the user ID
      * @param encryptionKey the encryption key for decrypting liability balances
-     * @param baseCurrency  the base currency for calculation (e.g., "USD", "EUR")
+     * @param baseCurrency the base currency for calculation (e.g., "USD", "EUR")
      * @return total liabilities (positive number) in the specified base currency
      */
-    public BigDecimal calculateTotalLiabilities(Long userId, SecretKey encryptionKey, String baseCurrency) {
+    public BigDecimal calculateTotalLiabilities(
+            Long userId, SecretKey encryptionKey, String baseCurrency) {
         // Calculate negative account balances (already converted to base currency)
         BigDecimal negativeBalances = calculateTotalLiabilities(userId, baseCurrency);
 
         // Calculate liability entity balances (requires decryption and currency
         // conversion)
-        BigDecimal liabilityDebts = liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                .stream()
-                .map(liability -> {
-                    String encryptedBalance = liability.getCurrentBalance();
-                    if (encryptedBalance != null && !encryptedBalance.isBlank()) {
-                        String decrypted = encryptionService.decrypt(encryptedBalance, encryptionKey);
-                        BigDecimal balance = new BigDecimal(decrypted);
-                        return convertToBaseCurrency(balance, liability.getCurrency(), baseCurrency);
-                    }
-                    return BigDecimal.ZERO;
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal liabilityDebts =
+                liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                        .map(
+                                liability -> {
+                                    String encryptedBalance = liability.getCurrentBalance();
+                                    if (encryptedBalance != null && !encryptedBalance.isBlank()) {
+                                        String decrypted =
+                                                encryptionService.decrypt(
+                                                        encryptedBalance, encryptionKey);
+                                        BigDecimal balance = new BigDecimal(decrypted);
+                                        return convertToBaseCurrency(
+                                                balance, liability.getCurrency(), baseCurrency);
+                                    }
+                                    return BigDecimal.ZERO;
+                                })
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        log.debug("Total liabilities: negativeBalances={} {}, liabilityDebts={} {}, total={} {}",
-                negativeBalances, baseCurrency, liabilityDebts, baseCurrency,
-                negativeBalances.add(liabilityDebts), baseCurrency);
+        log.debug(
+                "Total liabilities: negativeBalances={} {}, liabilityDebts={} {}, total={} {}",
+                negativeBalances,
+                baseCurrency,
+                liabilityDebts,
+                baseCurrency,
+                negativeBalances.add(liabilityDebts),
+                baseCurrency);
 
         return negativeBalances.add(liabilityDebts);
     }
 
     /**
      * Converts an amount from one currency to another using exchange rates.
-     * 
-     * <p>
-     * If the currencies are the same, returns the original amount.
-     * If conversion fails, logs a warning and returns the original amount as
-     * fallback.
-     * 
-     * <p>
-     * Requirement REQ-6.2: Multi-currency support with exchange rate conversion
-     * 
-     * @param amount       the amount to convert
+     *
+     * <p>If the currencies are the same, returns the original amount. If conversion fails, logs a
+     * warning and returns the original amount as fallback.
+     *
+     * <p>Requirement REQ-6.2: Multi-currency support with exchange rate conversion
+     *
+     * @param amount the amount to convert
      * @param fromCurrency the source currency code (e.g., "EUR")
      * @param baseCurrency the target currency code (e.g., "USD")
      * @return the converted amount in base currency
      */
-    private BigDecimal convertToBaseCurrency(BigDecimal amount, String fromCurrency, String baseCurrency) {
+    private BigDecimal convertToBaseCurrency(
+            BigDecimal amount, String fromCurrency, String baseCurrency) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;
         }
@@ -595,23 +615,24 @@ public class NetWorthService {
         try {
             return exchangeRateService.convert(amount, fromCurrency, baseCurrency);
         } catch (Exception e) {
-            log.warn("Failed to convert {} {} to {}: {}. Using original amount.",
-                    amount, fromCurrency, baseCurrency, e.getMessage());
+            log.warn(
+                    "Failed to convert {} {} to {}: {}. Using original amount.",
+                    amount,
+                    fromCurrency,
+                    baseCurrency,
+                    e.getMessage());
             return amount; // Fallback: use unconverted amount
         }
     }
 
     /**
-     * Saves a net worth snapshot for the current date (backward compatibility -
-     * defaults to USD).
-     * 
-     * <p>
-     * If a snapshot already exists for today, it will be updated.
-     * Otherwise, a new snapshot is created.
-     * 
-     * <p>
-     * Requirement REQ-2.5.1: Save current net worth snapshot
-     * 
+     * Saves a net worth snapshot for the current date (backward compatibility - defaults to USD).
+     *
+     * <p>If a snapshot already exists for today, it will be updated. Otherwise, a new snapshot is
+     * created.
+     *
+     * <p>Requirement REQ-2.5.1: Save current net worth snapshot
+     *
      * @param userId the user ID
      * @return the saved net worth snapshot
      */
@@ -620,15 +641,13 @@ public class NetWorthService {
     }
 
     /**
-     * Saves a net worth snapshot for a specific date (backward compatibility -
-     * defaults to USD).
-     * 
-     * <p>
-     * If a snapshot already exists for the date, it will be updated.
-     * Otherwise, a new snapshot is created.
-     * 
+     * Saves a net worth snapshot for a specific date (backward compatibility - defaults to USD).
+     *
+     * <p>If a snapshot already exists for the date, it will be updated. Otherwise, a new snapshot
+     * is created.
+     *
      * @param userId the user ID
-     * @param date   the snapshot date
+     * @param date the snapshot date
      * @return the saved net worth snapshot
      */
     public NetWorth saveNetWorthSnapshot(Long userId, LocalDate date) {
@@ -637,22 +656,22 @@ public class NetWorthService {
 
     /**
      * Saves a net worth snapshot for a specific date in a specified base currency.
-     * 
-     * <p>
-     * If a snapshot already exists for the date, it will be updated.
-     * Otherwise, a new snapshot is created.
-     * 
-     * <p>
-     * Requirement REQ-2.5.1: Save current net worth snapshot
-     * <p>
-     * Requirement REQ-6.2: Multi-currency support with exchange rate conversion
-     * 
-     * @param userId       the user ID
-     * @param date         the snapshot date
+     *
+     * <p>If a snapshot already exists for the date, it will be updated. Otherwise, a new snapshot
+     * is created.
+     *
+     * <p>Requirement REQ-2.5.1: Save current net worth snapshot
+     *
+     * <p>Requirement REQ-6.2: Multi-currency support with exchange rate conversion
+     *
+     * @param userId the user ID
+     * @param date the snapshot date
      * @param baseCurrency the base currency for the snapshot (e.g., "USD", "EUR")
      * @return the saved net worth snapshot
      */
-    @CacheEvict(value = { "dashboardSummary", "netWorthSummary" }, key = "#userId")
+    @CacheEvict(
+            value = {"dashboardSummary", "netWorthSummary"},
+            key = "#userId")
     public NetWorth saveNetWorthSnapshot(Long userId, LocalDate date, String baseCurrency) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -664,14 +683,19 @@ public class NetWorthService {
             throw new IllegalArgumentException("Base currency cannot be null or blank");
         }
 
-        log.debug("Saving net worth snapshot for user {} on date {} in {}", userId, date, baseCurrency);
+        log.debug(
+                "Saving net worth snapshot for user {} on date {} in {}",
+                userId,
+                date,
+                baseCurrency);
 
         BigDecimal totalAssets = calculateTotalAssets(userId, baseCurrency);
         BigDecimal totalLiabilities = calculateTotalLiabilities(userId, baseCurrency);
         BigDecimal netWorth = totalAssets.subtract(totalLiabilities);
 
         // Check if snapshot already exists for this date
-        Optional<NetWorth> existingSnapshot = netWorthRepository.findByUserIdAndSnapshotDate(userId, date);
+        Optional<NetWorth> existingSnapshot =
+                netWorthRepository.findByUserIdAndSnapshotDate(userId, date);
 
         NetWorth snapshot;
         if (existingSnapshot.isPresent()) {
@@ -684,36 +708,45 @@ public class NetWorthService {
             log.debug("Updating existing net worth snapshot: id={}", snapshot.getId());
         } else {
             // Create new snapshot
-            snapshot = NetWorth.builder()
-                    .userId(userId)
-                    .snapshotDate(date)
-                    .totalAssets(totalAssets)
-                    .totalLiabilities(totalLiabilities)
-                    .netWorth(netWorth)
-                    .currency(baseCurrency) // Use base currency instead of hardcoded "EUR"
-                    .build();
+            snapshot =
+                    NetWorth.builder()
+                            .userId(userId)
+                            .snapshotDate(date)
+                            .totalAssets(totalAssets)
+                            .totalLiabilities(totalLiabilities)
+                            .netWorth(netWorth)
+                            .currency(baseCurrency) // Use base currency instead of hardcoded "EUR"
+                            .build();
             log.debug("Creating new net worth snapshot");
         }
 
         NetWorth saved = netWorthRepository.save(snapshot);
-        log.info("Net worth snapshot saved: id={}, userId={}, date={}, netWorth={} {}",
-                saved.getId(), userId, date, saved.getNetWorth(), baseCurrency);
+        log.info(
+                "Net worth snapshot saved: id={}, userId={}, date={}, netWorth={} {}",
+                saved.getId(),
+                userId,
+                date,
+                saved.getNetWorth(),
+                baseCurrency);
 
         return saved;
     }
 
     /**
-     * Saves a net worth snapshot for a specific date in a specified base currency,
-     * including encrypted Liability and Real Estate records.
-     * 
-     * @param userId        the user ID
-     * @param date          the snapshot date
+     * Saves a net worth snapshot for a specific date in a specified base currency, including
+     * encrypted Liability and Real Estate records.
+     *
+     * @param userId the user ID
+     * @param date the snapshot date
      * @param encryptionKey the user's encryption key
-     * @param baseCurrency  the base currency for the snapshot
+     * @param baseCurrency the base currency for the snapshot
      * @return the saved net worth snapshot
      */
-    @CacheEvict(value = { "dashboardSummary", "netWorthSummary" }, key = "#userId")
-    public NetWorth saveNetWorthSnapshot(Long userId, LocalDate date, SecretKey encryptionKey, String baseCurrency) {
+    @CacheEvict(
+            value = {"dashboardSummary", "netWorthSummary"},
+            key = "#userId")
+    public NetWorth saveNetWorthSnapshot(
+            Long userId, LocalDate date, SecretKey encryptionKey, String baseCurrency) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -727,15 +760,20 @@ public class NetWorthService {
             throw new IllegalArgumentException("Base currency cannot be null or blank");
         }
 
-        log.debug("Saving net worth snapshot for user {} on date {} in {} with encryption key", userId, date,
+        log.debug(
+                "Saving net worth snapshot for user {} on date {} in {} with encryption key",
+                userId,
+                date,
                 baseCurrency);
 
         BigDecimal totalAssets = calculateTotalAssets(userId, encryptionKey, baseCurrency);
-        BigDecimal totalLiabilities = calculateTotalLiabilities(userId, encryptionKey, baseCurrency);
+        BigDecimal totalLiabilities =
+                calculateTotalLiabilities(userId, encryptionKey, baseCurrency);
         BigDecimal netWorth = totalAssets.subtract(totalLiabilities);
 
         // Check if snapshot already exists for this date
-        Optional<NetWorth> existingSnapshot = netWorthRepository.findByUserIdAndSnapshotDate(userId, date);
+        Optional<NetWorth> existingSnapshot =
+                netWorthRepository.findByUserIdAndSnapshotDate(userId, date);
 
         NetWorth snapshot;
         if (existingSnapshot.isPresent()) {
@@ -748,37 +786,40 @@ public class NetWorthService {
             log.debug("Updating existing net worth snapshot: id={}", snapshot.getId());
         } else {
             // Create new snapshot
-            snapshot = NetWorth.builder()
-                    .userId(userId)
-                    .snapshotDate(date)
-                    .totalAssets(totalAssets)
-                    .totalLiabilities(totalLiabilities)
-                    .netWorth(netWorth)
-                    .currency(baseCurrency) // Use base currency instead of hardcoded "EUR"
-                    .build();
+            snapshot =
+                    NetWorth.builder()
+                            .userId(userId)
+                            .snapshotDate(date)
+                            .totalAssets(totalAssets)
+                            .totalLiabilities(totalLiabilities)
+                            .netWorth(netWorth)
+                            .currency(baseCurrency) // Use base currency instead of hardcoded "EUR"
+                            .build();
             log.debug("Creating new net worth snapshot");
         }
 
         NetWorth saved = netWorthRepository.save(snapshot);
-        log.info("Net worth snapshot saved: id={}, userId={}, date={}, netWorth={} {}",
-                saved.getId(), userId, date, saved.getNetWorth(), baseCurrency);
+        log.info(
+                "Net worth snapshot saved: id={}, userId={}, date={}, netWorth={} {}",
+                saved.getId(),
+                userId,
+                date,
+                saved.getNetWorth(),
+                baseCurrency);
 
         return saved;
     }
 
     /**
      * Retrieves net worth history for a user within a date range.
-     * 
-     * <p>
-     * Returns snapshots ordered by date ascending (oldest first) for time-series
-     * analysis.
-     * 
-     * <p>
-     * Requirement REQ-2.5.2: Get historical net worth data
-     * 
-     * @param userId    the user ID
+     *
+     * <p>Returns snapshots ordered by date ascending (oldest first) for time-series analysis.
+     *
+     * <p>Requirement REQ-2.5.2: Get historical net worth data
+     *
+     * @param userId the user ID
      * @param startDate the start date (inclusive)
-     * @param endDate   the end date (inclusive)
+     * @param endDate the end date (inclusive)
      * @return list of net worth snapshots
      */
     @Transactional(readOnly = true)
@@ -796,13 +837,17 @@ public class NetWorthService {
             throw new IllegalArgumentException("Start date must be before or equal to end date");
         }
 
-        log.debug("Retrieving net worth history for user {} from {} to {}", userId, startDate, endDate);
+        log.debug(
+                "Retrieving net worth history for user {} from {} to {}",
+                userId,
+                startDate,
+                endDate);
         return netWorthRepository.findByUserIdAndDateRange(userId, startDate, endDate);
     }
 
     /**
      * Retrieves the most recent net worth snapshot for a user.
-     * 
+     *
      * @param userId the user ID
      * @return optional containing the latest snapshot, or empty if none exist
      */
@@ -817,12 +862,11 @@ public class NetWorthService {
     }
 
     /**
-     * Retrieves the net worth snapshot from approximately one month ago.
-     * Used to calculate monthly change in net worth for the dashboard.
-     * 
+     * Retrieves the net worth snapshot from approximately one month ago. Used to calculate monthly
+     * change in net worth for the dashboard.
+     *
      * @param userId the user ID
-     * @return optional containing the snapshot from ~1 month ago, or empty if not
-     *         found
+     * @return optional containing the snapshot from ~1 month ago, or empty if not found
      */
     @Transactional(readOnly = true)
     public Optional<NetWorth> getNetWorthOneMonthAgo(Long userId) {
@@ -837,10 +881,10 @@ public class NetWorthService {
 
     /**
      * Calculates the change in net worth from the previous month.
-     * 
+     *
      * @param userId the user ID
-     * @return a NetWorthChange object with amount and percentage, or zero values if
-     *         no previous data
+     * @return a NetWorthChange object with amount and percentage, or zero values if no previous
+     *     data
      */
     @Transactional(readOnly = true)
     public NetWorthChange calculateMonthlyChange(Long userId) {
@@ -857,7 +901,9 @@ public class NetWorthService {
         }
 
         if (previous.isEmpty()) {
-            log.debug("No previous month net worth data for user {}, returning no-comparison indicator", userId);
+            log.debug(
+                    "No previous month net worth data for user {}, returning no-comparison indicator",
+                    userId);
             // Return the full net worth as the amount, but flag that there is no prior
             // period to compare against
             return new NetWorthChange(current.get().getNetWorth(), null, false);
@@ -866,19 +912,19 @@ public class NetWorthService {
         BigDecimal change = current.get().calculateChangeFrom(previous.get());
         BigDecimal percentageChange = current.get().calculatePercentageChangeFrom(previous.get());
 
-        log.debug("Monthly change calculated for user {}: amount={}, percentage={}%",
+        log.debug(
+                "Monthly change calculated for user {}: amount={}, percentage={}%",
                 userId, change, percentageChange);
 
         return new NetWorthChange(change, percentageChange, true);
     }
 
     /**
-     * Deletes old net worth snapshots beyond the retention period.
-     * Useful for data retention policies (e.g., keep only last 2 years).
-     * 
-     * @param userId        the user ID
-     * @param retentionDays number of days to retain (older snapshots will be
-     *                      deleted)
+     * Deletes old net worth snapshots beyond the retention period. Useful for data retention
+     * policies (e.g., keep only last 2 years).
+     *
+     * @param userId the user ID
+     * @param retentionDays number of days to retain (older snapshots will be deleted)
      * @return number of deleted snapshots
      */
     public int cleanupOldSnapshots(Long userId, int retentionDays) {
@@ -892,22 +938,20 @@ public class NetWorthService {
         LocalDate cutoffDate = LocalDate.now().minusDays(retentionDays);
         log.info("Cleaning up net worth snapshots for user {} older than {}", userId, cutoffDate);
 
-        int deletedCount = netWorthRepository.deleteByUserIdAndSnapshotDateBefore(userId, cutoffDate);
+        int deletedCount =
+                netWorthRepository.deleteByUserIdAndSnapshotDateBefore(userId, cutoffDate);
         log.info("Deleted {} old net worth snapshots for user {}", deletedCount, userId);
 
         return deletedCount;
     }
 
-    /**
-     * Value object representing change in net worth.
-     */
-    public record NetWorthChange(BigDecimal amount, BigDecimal percentage, boolean hasComparison) {
-    }
+    /** Value object representing change in net worth. */
+    public record NetWorthChange(BigDecimal amount, BigDecimal percentage, boolean hasComparison) {}
 
     /**
      * Calculates the change in net worth from the beginning of the given period.
      *
-     * @param userId     the user ID
+     * @param userId the user ID
      * @param periodDays the number of days to look back
      * @return a NetWorthChange object
      */
@@ -931,73 +975,85 @@ public class NetWorthService {
     }
 
     /**
-     * Backfills missing monthly net worth snapshots between startDate and endDate
-     * by computing historical account balances from transaction data.
+     * Backfills missing monthly net worth snapshots between startDate and endDate by computing
+     * historical account balances from transaction data.
      *
-     * @param userId       the user ID
-     * @param startDate    the start of the range to backfill
-     * @param endDate      the end of the range (capped at today)
+     * @param userId the user ID
+     * @param startDate the start of the range to backfill
+     * @param endDate the end of the range (capped at today)
      * @param baseCurrency the user's base currency
      * @return the number of new snapshots created
      */
     @Transactional
-    public int backfillNetWorthHistory(Long userId, LocalDate startDate, LocalDate endDate, String baseCurrency) {
+    public int backfillNetWorthHistory(
+            Long userId, LocalDate startDate, LocalDate endDate, String baseCurrency) {
         return backfillNetWorthHistory(userId, startDate, endDate, baseCurrency, null, false);
     }
 
     /**
-     * Backfills missing monthly net worth snapshots between startDate and endDate
-     * by computing historical account balances from transaction data.
-     * When an encryption key is provided, real estate and liability entities are
-     * also included (matching the full formula used for today’s net worth).
+     * Backfills missing monthly net worth snapshots between startDate and endDate by computing
+     * historical account balances from transaction data. When an encryption key is provided, real
+     * estate and liability entities are also included (matching the full formula used for today’s
+     * net worth).
      *
-     * @param userId        the user ID
-     * @param startDate     the start of the range to backfill
-     * @param endDate       the end of the range (capped at today)
-     * @param baseCurrency  the user’s base currency
-     * @param encryptionKey optional; required to include real estate and
-     *                      liabilities
+     * @param userId the user ID
+     * @param startDate the start of the range to backfill
+     * @param endDate the end of the range (capped at today)
+     * @param baseCurrency the user’s base currency
+     * @param encryptionKey optional; required to include real estate and liabilities
      * @return the number of new snapshots created
      */
     @Transactional
-    public int backfillNetWorthHistory(Long userId, LocalDate startDate, LocalDate endDate, String baseCurrency,
+    public int backfillNetWorthHistory(
+            Long userId,
+            LocalDate startDate,
+            LocalDate endDate,
+            String baseCurrency,
             SecretKey encryptionKey) {
-        return backfillNetWorthHistory(userId, startDate, endDate, baseCurrency, encryptionKey, false);
+        return backfillNetWorthHistory(
+                userId, startDate, endDate, baseCurrency, encryptionKey, false);
     }
 
     /**
      * Backfills monthly net worth snapshots between startDate and endDate.
      *
-     * <p>
-     * When {@code force=true} all existing snapshots in the range are deleted
-     * first so every snapshot is freshly computed — useful after the user edits
-     * historical transaction amounts or property values.
+     * <p>When {@code force=true} all existing snapshots in the range are deleted first so every
+     * snapshot is freshly computed — useful after the user edits historical transaction amounts or
+     * property values.
      *
-     * <p>
-     * When an encryption key is provided, real estate properties (using their
-     * value at each target date from {@code real_estate_value_history}) and
-     * liabilities (balance reconstructed by reversing repayment transactions that
-     * occurred after each target date) are included alongside accounts and assets.
+     * <p>When an encryption key is provided, real estate properties (using their value at each
+     * target date from {@code real_estate_value_history}) and liabilities (balance reconstructed by
+     * reversing repayment transactions that occurred after each target date) are included alongside
+     * accounts and assets.
      *
-     * @param userId        the user ID
-     * @param startDate     the start of the range to backfill
-     * @param endDate       the end of the range (capped at today)
-     * @param baseCurrency  the user’s base currency
-     * @param encryptionKey optional; required to include real estate and
-     *                      liabilities
-     * @param force         when true, delete and recompute existing snapshots
+     * @param userId the user ID
+     * @param startDate the start of the range to backfill
+     * @param endDate the end of the range (capped at today)
+     * @param baseCurrency the user’s base currency
+     * @param encryptionKey optional; required to include real estate and liabilities
+     * @param force when true, delete and recompute existing snapshots
      * @return the number of snapshots created
      */
     @Transactional
-    public int backfillNetWorthHistory(Long userId, LocalDate startDate, LocalDate endDate, String baseCurrency,
-            SecretKey encryptionKey, boolean force) {
+    public int backfillNetWorthHistory(
+            Long userId,
+            LocalDate startDate,
+            LocalDate endDate,
+            String baseCurrency,
+            SecretKey encryptionKey,
+            boolean force) {
         LocalDate effectiveEnd = endDate.isAfter(LocalDate.now()) ? LocalDate.now() : endDate;
 
         if (force) {
-            int deleted = netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
-                    userId, startDate.withDayOfMonth(1), effectiveEnd);
-            log.info("Force-recalculate: deleted {} existing net worth snapshots for user {} in range {} to {}",
-                    deleted, userId, startDate, effectiveEnd);
+            int deleted =
+                    netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
+                            userId, startDate.withDayOfMonth(1), effectiveEnd);
+            log.info(
+                    "Force-recalculate: deleted {} existing net worth snapshots for user {} in range {} to {}",
+                    deleted,
+                    userId,
+                    startDate,
+                    effectiveEnd);
         }
 
         List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
@@ -1005,24 +1061,27 @@ public class NetWorthService {
         List<Transaction> allTransactions = transactionRepository.findByUserId(userId);
 
         // Group transactions by source account and destination account
-        Map<Long, List<Transaction>> txBySourceAccount = allTransactions.stream()
-                .collect(Collectors.groupingBy(Transaction::getAccountId));
-        Map<Long, List<Transaction>> txByDestAccount = allTransactions.stream()
-                .filter(t -> t.getToAccountId() != null)
-                .collect(Collectors.groupingBy(Transaction::getToAccountId));
+        Map<Long, List<Transaction>> txBySourceAccount =
+                allTransactions.stream().collect(Collectors.groupingBy(Transaction::getAccountId));
+        Map<Long, List<Transaction>> txByDestAccount =
+                allTransactions.stream()
+                        .filter(t -> t.getToAccountId() != null)
+                        .collect(Collectors.groupingBy(Transaction::getToAccountId));
 
         // Build per-account earliest activity date (min of opening_date and earliest
         // transaction)
         Map<Long, LocalDate> accountEarliestDate = new java.util.HashMap<>();
         for (Account account : accounts) {
             LocalDate earliest = account.getOpeningDate();
-            List<Transaction> acctTx = txBySourceAccount.getOrDefault(account.getId(), new ArrayList<>());
+            List<Transaction> acctTx =
+                    txBySourceAccount.getOrDefault(account.getId(), new ArrayList<>());
             for (Transaction t : acctTx) {
                 if (t.getDate() != null && (earliest == null || t.getDate().isBefore(earliest))) {
                     earliest = t.getDate();
                 }
             }
-            List<Transaction> acctDestTx = txByDestAccount.getOrDefault(account.getId(), new ArrayList<>());
+            List<Transaction> acctDestTx =
+                    txByDestAccount.getOrDefault(account.getId(), new ArrayList<>());
             for (Transaction t : acctDestTx) {
                 if (t.getDate() != null && (earliest == null || t.getDate().isBefore(earliest))) {
                     earliest = t.getDate();
@@ -1032,28 +1091,34 @@ public class NetWorthService {
         }
 
         // Pre-load data needed for encrypted entities (only when key is available)
-        List<RealEstateProperty> realEstateProps = (encryptionKey != null)
-                ? realEstateRepository.findByUserIdAndIsActive(userId, true)
-                : List.of();
-        List<Liability> liabilities = (encryptionKey != null)
-                ? liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                : List.of();
+        List<RealEstateProperty> realEstateProps =
+                (encryptionKey != null)
+                        ? realEstateRepository.findByUserIdAndIsActive(userId, true)
+                        : List.of();
+        List<Liability> liabilities =
+                (encryptionKey != null)
+                        ? liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                        : List.of();
 
         // Pre-load real estate value history, grouped by property ID
-        Map<Long, List<RealEstateValueHistory>> valueHistoryByProperty = (encryptionKey != null)
-                ? realEstateValueHistoryRepository.findByUserId(userId).stream()
-                        .collect(Collectors.groupingBy(RealEstateValueHistory::getPropertyId))
-                : Map.of();
+        Map<Long, List<RealEstateValueHistory>> valueHistoryByProperty =
+                (encryptionKey != null)
+                        ? realEstateValueHistoryRepository.findByUserId(userId).stream()
+                                .collect(
+                                        Collectors.groupingBy(
+                                                RealEstateValueHistory::getPropertyId))
+                        : Map.of();
 
         // Pre-group liability-linked payment transactions by liability ID
         // Payments are EXPENSE transactions with a non-null liabilityId.
         // Their amounts are always positive; each payment reduces the outstanding
         // balance.
-        Map<Long, List<Transaction>> paymentsByLiability = (encryptionKey != null)
-                ? allTransactions.stream()
-                        .filter(t -> t.getLiabilityId() != null)
-                        .collect(Collectors.groupingBy(Transaction::getLiabilityId))
-                : Map.of();
+        Map<Long, List<Transaction>> paymentsByLiability =
+                (encryptionKey != null)
+                        ? allTransactions.stream()
+                                .filter(t -> t.getLiabilityId() != null)
+                                .collect(Collectors.groupingBy(Transaction::getLiabilityId))
+                        : Map.of();
 
         int savedCount = 0;
         LocalDate current = startDate.withDayOfMonth(1);
@@ -1070,15 +1135,22 @@ public class NetWorthService {
                     if (earliest != null && earliest.isAfter(targetDate)) {
                         continue;
                     }
-                    BigDecimal historicalBalance = computeHistoricalBalance(account, targetDate,
-                            txBySourceAccount, txByDestAccount);
+                    BigDecimal historicalBalance =
+                            computeHistoricalBalance(
+                                    account, targetDate, txBySourceAccount, txByDestAccount);
                     BigDecimal convertedBalance;
                     try {
-                        convertedBalance = account.getCurrency() != null && !account.getCurrency().equals(baseCurrency)
-                                ? exchangeRateService.convert(historicalBalance, account.getCurrency(), baseCurrency)
-                                : historicalBalance;
+                        convertedBalance =
+                                account.getCurrency() != null
+                                                && !account.getCurrency().equals(baseCurrency)
+                                        ? exchangeRateService.convert(
+                                                historicalBalance,
+                                                account.getCurrency(),
+                                                baseCurrency)
+                                        : historicalBalance;
                     } catch (Exception e) {
-                        log.warn("Currency conversion failed for backfill (account {}), using raw amount",
+                        log.warn(
+                                "Currency conversion failed for backfill (account {}), using raw amount",
                                 account.getId());
                         convertedBalance = historicalBalance;
                     }
@@ -1093,7 +1165,8 @@ public class NetWorthService {
                 // Include investment assets using cost basis (purchasePrice × quantity),
                 // gated by purchaseDate.
                 for (Asset asset : assets) {
-                    if (asset.getPurchaseDate() != null && asset.getPurchaseDate().isAfter(targetDate)) {
+                    if (asset.getPurchaseDate() != null
+                            && asset.getPurchaseDate().isAfter(targetDate)) {
                         continue;
                     }
                     if (asset.getPurchasePrice() == null || asset.getQuantity() == null) {
@@ -1102,11 +1175,15 @@ public class NetWorthService {
                     BigDecimal costBasis = asset.getPurchasePrice().multiply(asset.getQuantity());
                     BigDecimal convertedCostBasis;
                     try {
-                        convertedCostBasis = asset.getCurrency() != null && !asset.getCurrency().equals(baseCurrency)
-                                ? exchangeRateService.convert(costBasis, asset.getCurrency(), baseCurrency)
-                                : costBasis;
+                        convertedCostBasis =
+                                asset.getCurrency() != null
+                                                && !asset.getCurrency().equals(baseCurrency)
+                                        ? exchangeRateService.convert(
+                                                costBasis, asset.getCurrency(), baseCurrency)
+                                        : costBasis;
                     } catch (Exception e) {
-                        log.warn("Currency conversion failed for asset {} in backfill, using raw amount",
+                        log.warn(
+                                "Currency conversion failed for asset {} in backfill, using raw amount",
                                 asset.getId());
                         convertedCostBasis = costBasis;
                     }
@@ -1121,32 +1198,47 @@ public class NetWorthService {
                     // (latest history entry whose effectiveDate <= targetDate),
                     // falling back to purchasePrice if no history entry exists yet.
                     for (RealEstateProperty property : realEstateProps) {
-                        if (property.getPurchaseDate() != null && property.getPurchaseDate().isAfter(targetDate)) {
+                        if (property.getPurchaseDate() != null
+                                && property.getPurchaseDate().isAfter(targetDate)) {
                             continue; // not yet owned at this point in history
                         }
                         try {
-                            List<RealEstateValueHistory> history = valueHistoryByProperty.getOrDefault(property.getId(),
-                                    List.of());
+                            List<RealEstateValueHistory> history =
+                                    valueHistoryByProperty.getOrDefault(
+                                            property.getId(), List.of());
                             // Find the most recent entry on or before targetDate
-                            Optional<RealEstateValueHistory> historyEntry = history.stream()
-                                    .filter(h -> !h.getEffectiveDate().isAfter(targetDate))
-                                    .max(Comparator.comparing(RealEstateValueHistory::getEffectiveDate));
+                            Optional<RealEstateValueHistory> historyEntry =
+                                    history.stream()
+                                            .filter(h -> !h.getEffectiveDate().isAfter(targetDate))
+                                            .max(
+                                                    Comparator.comparing(
+                                                            RealEstateValueHistory
+                                                                    ::getEffectiveDate));
 
                             BigDecimal value;
                             if (historyEntry.isPresent()) {
-                                value = new BigDecimal(
-                                        encryptionService.decrypt(historyEntry.get().getRecordedValue(), encryptionKey));
+                                value =
+                                        new BigDecimal(
+                                                encryptionService.decrypt(
+                                                        historyEntry.get().getRecordedValue(),
+                                                        encryptionKey));
                             } else {
                                 // No history yet — use purchasePrice as best proxy for early dates
-                                if (property.getPurchasePrice() != null && !property.getPurchasePrice().isBlank()) {
-                                    value = new BigDecimal(
-                                            encryptionService.decrypt(property.getPurchasePrice(), encryptionKey));
+                                if (property.getPurchasePrice() != null
+                                        && !property.getPurchasePrice().isBlank()) {
+                                    value =
+                                            new BigDecimal(
+                                                    encryptionService.decrypt(
+                                                            property.getPurchasePrice(),
+                                                            encryptionKey));
                                 } else {
                                     continue;
                                 }
                             }
 
-                            BigDecimal converted = convertToBaseCurrency(value, property.getCurrency(), baseCurrency);
+                            BigDecimal converted =
+                                    convertToBaseCurrency(
+                                            value, property.getCurrency(), baseCurrency);
                             if (converted.compareTo(BigDecimal.ZERO) > 0) {
                                 totalAssets = totalAssets.add(converted);
                             }
@@ -1161,45 +1253,65 @@ public class NetWorthService {
                     // repayment payments that occurred AFTER targetDate (since those payments
                     // reduced the balance after our target point in time).
                     for (Liability liability : liabilities) {
-                        if (liability.getStartDate() != null && liability.getStartDate().isAfter(targetDate)) {
+                        if (liability.getStartDate() != null
+                                && liability.getStartDate().isAfter(targetDate)) {
                             continue; // liability didn't exist yet
                         }
                         try {
-                            BigDecimal historicalBalance = computeHistoricalLiabilityBalance(
-                                    liability, targetDate, paymentsByLiability, encryptionKey);
-                            BigDecimal converted = convertToBaseCurrency(
-                                    historicalBalance, liability.getCurrency(), baseCurrency);
+                            BigDecimal historicalBalance =
+                                    computeHistoricalLiabilityBalance(
+                                            liability,
+                                            targetDate,
+                                            paymentsByLiability,
+                                            encryptionKey);
+                            BigDecimal converted =
+                                    convertToBaseCurrency(
+                                            historicalBalance,
+                                            liability.getCurrency(),
+                                            baseCurrency);
                             if (converted.compareTo(BigDecimal.ZERO) > 0) {
                                 totalLiabilities = totalLiabilities.add(converted);
                             }
                         } catch (Exception e) {
-                            log.warn("Could not compute historical balance for liability {} in backfill, skipping",
+                            log.warn(
+                                    "Could not compute historical balance for liability {} in backfill, skipping",
                                     liability.getId());
                         }
                     }
                 }
 
-                if (totalAssets.compareTo(BigDecimal.ZERO) > 0 || totalLiabilities.compareTo(BigDecimal.ZERO) > 0) {
+                if (totalAssets.compareTo(BigDecimal.ZERO) > 0
+                        || totalLiabilities.compareTo(BigDecimal.ZERO) > 0) {
                     BigDecimal netWorthAtDate = totalAssets.subtract(totalLiabilities);
-                    NetWorth snapshot = NetWorth.builder()
-                            .userId(userId)
-                            .snapshotDate(targetDate)
-                            .totalAssets(totalAssets)
-                            .totalLiabilities(totalLiabilities)
-                            .netWorth(netWorthAtDate)
-                            .currency(baseCurrency)
-                            .build();
+                    NetWorth snapshot =
+                            NetWorth.builder()
+                                    .userId(userId)
+                                    .snapshotDate(targetDate)
+                                    .totalAssets(totalAssets)
+                                    .totalLiabilities(totalLiabilities)
+                                    .netWorth(netWorthAtDate)
+                                    .currency(baseCurrency)
+                                    .build();
                     netWorthRepository.save(snapshot);
                     savedCount++;
-                    log.debug("Backfilled net worth snapshot for user {} on {}: assets={}, liabilities={}, net={}",
-                            userId, targetDate, totalAssets, totalLiabilities, netWorthAtDate);
+                    log.debug(
+                            "Backfilled net worth snapshot for user {} on {}: assets={}, liabilities={}, net={}",
+                            userId,
+                            targetDate,
+                            totalAssets,
+                            totalLiabilities,
+                            netWorthAtDate);
                 }
             }
 
             current = current.plusMonths(1);
         }
 
-        log.info("Backfilled {} net worth snapshots for user {} from {} to {}", savedCount, userId, startDate,
+        log.info(
+                "Backfilled {} net worth snapshots for user {} from {} to {}",
+                savedCount,
+                userId,
+                startDate,
                 effectiveEnd);
         return savedCount;
     }
@@ -1207,50 +1319,47 @@ public class NetWorthService {
     /**
      * Computes the outstanding liability balance at a given historical date.
      *
-     * <p>
-     * Starts from the current (latest) balance and adds back all repayment payments
-     * that were made AFTER the target date (because those payments reduced the
-     * balance
-     * after our point in time, so reversing them gives us the earlier outstanding
-     * balance).
+     * <p>Starts from the current (latest) balance and adds back all repayment payments that were
+     * made AFTER the target date (because those payments reduced the balance after our point in
+     * time, so reversing them gives us the earlier outstanding balance).
      *
-     * @param liability           the liability entity (must have currentBalance
-     *                            decryptable)
-     * @param targetDate          the historical date to reconstruct the balance for
-     * @param paymentsByLiability map of liabilityId → list of linked payment
-     *                            transactions
-     * @param encryptionKey       key for decrypting the encrypted currentBalance
-     *                            field
+     * @param liability the liability entity (must have currentBalance decryptable)
+     * @param targetDate the historical date to reconstruct the balance for
+     * @param paymentsByLiability map of liabilityId → list of linked payment transactions
+     * @param encryptionKey key for decrypting the encrypted currentBalance field
      * @return the reconstructed outstanding balance at targetDate
      */
     private BigDecimal computeHistoricalLiabilityBalance(
-            Liability liability, LocalDate targetDate,
+            Liability liability,
+            LocalDate targetDate,
             Map<Long, List<Transaction>> paymentsByLiability,
             SecretKey encryptionKey) {
         String encryptedBalance = liability.getCurrentBalance();
         if (encryptedBalance == null || encryptedBalance.isBlank()) {
             return BigDecimal.ZERO;
         }
-        BigDecimal currentBalance = new BigDecimal(encryptionService.decrypt(encryptedBalance, encryptionKey));
+        BigDecimal currentBalance =
+                new BigDecimal(encryptionService.decrypt(encryptedBalance, encryptionKey));
 
         // Payments after targetDate reduced the balance — add them back to restore
         // earlier balance
-        List<Transaction> paymentsAfter = paymentsByLiability
-                .getOrDefault(liability.getId(), List.of())
-                .stream()
-                .filter(t -> t.getDate() != null && t.getDate().isAfter(targetDate))
-                .collect(Collectors.toList());
+        List<Transaction> paymentsAfter =
+                paymentsByLiability.getOrDefault(liability.getId(), List.of()).stream()
+                        .filter(t -> t.getDate() != null && t.getDate().isAfter(targetDate))
+                        .collect(Collectors.toList());
 
-        BigDecimal reversed = paymentsAfter.stream()
-                .map(Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal reversed =
+                paymentsAfter.stream()
+                        .map(Transaction::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal historical = currentBalance.add(reversed);
         // Balance cannot exceed original principal (guard against data anomalies)
         if (liability.getPrincipal() != null && !liability.getPrincipal().isBlank()) {
             try {
-                BigDecimal principal = new BigDecimal(
-                        encryptionService.decrypt(liability.getPrincipal(), encryptionKey));
+                BigDecimal principal =
+                        new BigDecimal(
+                                encryptionService.decrypt(liability.getPrincipal(), encryptionKey));
                 if (historical.compareTo(principal) > 0) {
                     historical = principal;
                 }
@@ -1262,36 +1371,39 @@ public class NetWorthService {
     }
 
     /**
-     * Computes the historical balance of an account at a given date by reversing
-     * transactions that occurred after that date.
+     * Computes the historical balance of an account at a given date by reversing transactions that
+     * occurred after that date.
      */
-    private BigDecimal computeHistoricalBalance(Account account, LocalDate targetDate,
+    private BigDecimal computeHistoricalBalance(
+            Account account,
+            LocalDate targetDate,
             Map<Long, List<Transaction>> txBySourceAccount,
             Map<Long, List<Transaction>> txByDestAccount) {
         BigDecimal currentBalance = account.getBalance();
         BigDecimal delta = BigDecimal.ZERO;
 
         // Reverse source-account transactions after targetDate
-        List<Transaction> sourceTxAfter = txBySourceAccount.getOrDefault(account.getId(), new ArrayList<>())
-                .stream()
-                .filter(t -> t.getDate() != null && t.getDate().isAfter(targetDate))
-                .collect(Collectors.toList());
+        List<Transaction> sourceTxAfter =
+                txBySourceAccount.getOrDefault(account.getId(), new ArrayList<>()).stream()
+                        .filter(t -> t.getDate() != null && t.getDate().isAfter(targetDate))
+                        .collect(Collectors.toList());
 
         for (Transaction t : sourceTxAfter) {
             if (t.getType() == TransactionType.INCOME) {
                 // Was added after targetDate → reverse: subtract
                 delta = delta.subtract(t.getAmount());
-            } else if (t.getType() == TransactionType.EXPENSE || t.getType() == TransactionType.TRANSFER) {
+            } else if (t.getType() == TransactionType.EXPENSE
+                    || t.getType() == TransactionType.TRANSFER) {
                 // Was deducted after targetDate → reverse: add
                 delta = delta.add(t.getAmount());
             }
         }
 
         // Reverse destination-account TRANSFER transactions after targetDate
-        List<Transaction> destTxAfter = txByDestAccount.getOrDefault(account.getId(), new ArrayList<>())
-                .stream()
-                .filter(t -> t.getDate() != null && t.getDate().isAfter(targetDate))
-                .collect(Collectors.toList());
+        List<Transaction> destTxAfter =
+                txByDestAccount.getOrDefault(account.getId(), new ArrayList<>()).stream()
+                        .filter(t -> t.getDate() != null && t.getDate().isAfter(targetDate))
+                        .collect(Collectors.toList());
 
         for (Transaction t : destTxAfter) {
             // This transfer credited the account after targetDate → reverse: subtract

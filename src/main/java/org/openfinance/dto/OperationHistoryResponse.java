@@ -27,8 +27,8 @@ public class OperationHistoryResponse {
     private OperationType operationType;
 
     /**
-     * Raw JSON string of the form {@code {"field":{"before":"v1","after":"v2"}, ...}}.
-     * May be {@code null} for CREATE operations.
+     * Raw JSON string of the form {@code {"field":{"before":"v1","after":"v2"}, ...}}. May be
+     * {@code null} for CREATE operations.
      */
     private String changedFieldsJson;
 

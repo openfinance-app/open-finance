@@ -1,5 +1,11 @@
 package org.openfinance.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.MarketQuote;
@@ -14,58 +20,41 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 /**
- * Service for managing currency exchange rates and performing currency
- * conversions.
+ * Service for managing currency exchange rates and performing currency conversions.
  *
- * <p>
- * This service integrates with Yahoo Finance to fetch real-time exchange rates
- * for both fiat currencies (USD, EUR, GBP) and cryptocurrencies (BTC, ETH).
- * </p>
+ * <p>This service integrates with Yahoo Finance to fetch real-time exchange rates for both fiat
+ * currencies (USD, EUR, GBP) and cryptocurrencies (BTC, ETH).
  *
- * <p>
- * <strong>Key Features:</strong>
- * </p>
+ * <p><strong>Key Features:</strong>
+ *
  * <ul>
- * <li>Fetch and store exchange rates from Yahoo Finance</li>
- * <li>Convert amounts between any supported currencies</li>
- * <li>Support historical exchange rates for date-specific conversions</li>
- * <li>Automatic inverse rate calculation (EUR/USD from USD/EUR)</li>
- * <li>Caching for frequently accessed rates (15 minutes TTL)</li>
+ *   <li>Fetch and store exchange rates from Yahoo Finance
+ *   <li>Convert amounts between any supported currencies
+ *   <li>Support historical exchange rates for date-specific conversions
+ *   <li>Automatic inverse rate calculation (EUR/USD from USD/EUR)
+ *   <li>Caching for frequently accessed rates (15 minutes TTL)
  * </ul>
  *
- * <p>
- * <strong>Yahoo Finance Currency Symbols:</strong>
- * </p>
+ * <p><strong>Yahoo Finance Currency Symbols:</strong>
+ *
  * <ul>
- * <li>Fiat pairs: EURUSD=X, GBPUSD=X, USDJPY=X</li>
- * <li>Crypto pairs: BTC-USD, ETH-USD, ADA-USD</li>
+ *   <li>Fiat pairs: EURUSD=X, GBPUSD=X, USDJPY=X
+ *   <li>Crypto pairs: BTC-USD, ETH-USD, ADA-USD
  * </ul>
  *
- * <p>
- * <strong>Caching:</strong> Exchange rates are cached for 15 minutes to reduce
- * API calls.
- * See {@link org.openfinance.config.CacheConfig} for configuration.
- * </p>
+ * <p><strong>Caching:</strong> Exchange rates are cached for 15 minutes to reduce API calls. See
+ * {@link org.openfinance.config.CacheConfig} for configuration.
  *
- * <p>
- * <strong>Example Usage:</strong>
- * </p>
- * 
+ * <p><strong>Example Usage:</strong>
+ *
  * <pre>
  * // Convert $100 to EUR
  * BigDecimal euros = exchangeRateService.convert(new BigDecimal("100"), "USD", "EUR");
- * 
+ *
  * // Get current exchange rate
  * BigDecimal rate = exchangeRateService.getExchangeRate("USD", "EUR", null);
- * 
+ *
  * // Update all rates from Yahoo Finance
  * exchangeRateService.updateExchangeRates();
  * </pre>
@@ -86,31 +75,28 @@ public class ExchangeRateService {
     /**
      * Retrieves the exchange rate between two currencies for a specific date.
      *
-     * <p>
-     * If date is null, returns the latest available rate. If no exact match for the
-     * date
-     * is found, returns the most recent rate before that date.
-     * </p>
+     * <p>If date is null, returns the latest available rate. If no exact match for the date is
+     * found, returns the most recent rate before that date.
      *
-     * <p>
-     * <strong>Lookup Strategy:</strong>
-     * </p>
+     * <p><strong>Lookup Strategy:</strong>
+     *
      * <ol>
-     * <li>Check if source and target are the same (return 1.0)</li>
-     * <li>Query database for direct rate (base → target)</li>
-     * <li>Query database for inverse rate (target → base) and calculate
-     * inverse</li>
-     * <li>Throw exception if no rate found</li>
+     *   <li>Check if source and target are the same (return 1.0)
+     *   <li>Query database for direct rate (base → target)
+     *   <li>Query database for inverse rate (target → base) and calculate inverse
+     *   <li>Throw exception if no rate found
      * </ol>
      *
      * @param fromCurrency the source currency code (e.g., "USD")
-     * @param toCurrency   the target currency code (e.g., "EUR")
-     * @param date         the date for the rate (null for latest)
+     * @param toCurrency the target currency code (e.g., "EUR")
+     * @param date the date for the rate (null for latest)
      * @return the exchange rate (1 fromCurrency = X toCurrency)
      * @throws IllegalArgumentException if currencies are invalid or not found
-     * @throws IllegalStateException    if no exchange rate is available
+     * @throws IllegalStateException if no exchange rate is available
      */
-    @Cacheable(value = "exchangeRates", key = "#fromCurrency + '-' + #toCurrency + '-' + (#date != null ? #date : 'latest')")
+    @Cacheable(
+            value = "exchangeRates",
+            key = "#fromCurrency + '-' + #toCurrency + '-' + (#date != null ? #date : 'latest')")
     public BigDecimal getExchangeRate(String fromCurrency, String toCurrency, LocalDate date) {
         log.debug("Getting exchange rate: {} → {} for date: {}", fromCurrency, toCurrency, date);
 
@@ -136,8 +122,11 @@ public class ExchangeRateService {
         Optional<ExchangeRate> inverseRate = findRate(toCurrency, fromCurrency, date);
         if (inverseRate.isPresent()) {
             BigDecimal rate = inverseRate.get().getInverseRate();
-            log.debug("Found inverse rate: {} → {} = {} (calculated from inverse)",
-                    fromCurrency, toCurrency, rate);
+            log.debug(
+                    "Found inverse rate: {} → {} = {} (calculated from inverse)",
+                    fromCurrency,
+                    toCurrency,
+                    rate);
             return rate;
         }
 
@@ -147,21 +136,31 @@ public class ExchangeRateService {
         // lookups).
         boolean isLatestRequest = date == null || !date.isBefore(LocalDate.now());
         if (isLatestRequest) {
-            log.info("No rate found for {} → {}, attempting on-demand fetch from Yahoo Finance",
-                    fromCurrency, toCurrency);
+            log.info(
+                    "No rate found for {} → {}, attempting on-demand fetch from Yahoo Finance",
+                    fromCurrency,
+                    toCurrency);
             boolean fetched = fetchAndStorePairRate(fromCurrency, toCurrency);
             if (fetched) {
                 // Retry using null (latest) since the fetch stored today's rate
                 Optional<ExchangeRate> refetchedDirect = findRate(fromCurrency, toCurrency, null);
                 if (refetchedDirect.isPresent()) {
                     BigDecimal rate = refetchedDirect.get().getRate();
-                    log.info("On-demand fetch succeeded for {} → {} = {}", fromCurrency, toCurrency, rate);
+                    log.info(
+                            "On-demand fetch succeeded for {} → {} = {}",
+                            fromCurrency,
+                            toCurrency,
+                            rate);
                     return rate;
                 }
                 Optional<ExchangeRate> refetchedInverse = findRate(toCurrency, fromCurrency, null);
                 if (refetchedInverse.isPresent()) {
                     BigDecimal rate = refetchedInverse.get().getInverseRate();
-                    log.info("On-demand fetch succeeded (inverse) for {} → {} = {}", fromCurrency, toCurrency, rate);
+                    log.info(
+                            "On-demand fetch succeeded (inverse) for {} → {} = {}",
+                            fromCurrency,
+                            toCurrency,
+                            rate);
                     return rate;
                 }
                 // Cross-pair via USD: fetchAndStorePairRate stores FROM→USD and TO→USD.
@@ -172,8 +171,13 @@ public class ExchangeRateService {
                     BigDecimal toUsd = getRateViaUsd(toCurrency); // 1 TO = X USD
                     if (fromUsd != null && toUsd != null && toUsd.compareTo(BigDecimal.ZERO) != 0) {
                         BigDecimal crossRate = fromUsd.divide(toUsd, 8, RoundingMode.HALF_UP);
-                        log.info("On-demand cross-rate via USD for {} → {} = {} (fromUsd={}, toUsd={})",
-                                fromCurrency, toCurrency, crossRate, fromUsd, toUsd);
+                        log.info(
+                                "On-demand cross-rate via USD for {} → {} = {} (fromUsd={}, toUsd={})",
+                                fromCurrency,
+                                toCurrency,
+                                crossRate,
+                                fromUsd,
+                                toUsd);
                         return crossRate;
                     }
                 }
@@ -183,45 +187,40 @@ public class ExchangeRateService {
         // No rate found
         String dateStr = date != null ? date.toString() : "latest";
         log.error("No exchange rate found for {} → {} on {}", fromCurrency, toCurrency, dateStr);
-        throw new IllegalStateException(String.format(
-                "No exchange rate available for %s → %s on %s",
-                fromCurrency, toCurrency, dateStr));
+        throw new IllegalStateException(
+                String.format(
+                        "No exchange rate available for %s → %s on %s",
+                        fromCurrency, toCurrency, dateStr));
     }
 
     /**
-     * Converts an amount from one currency to another using the latest exchange
-     * rate.
+     * Converts an amount from one currency to another using the latest exchange rate.
      *
-     * @param amount       the amount to convert
+     * @param amount the amount to convert
      * @param fromCurrency the source currency code (e.g., "USD")
-     * @param toCurrency   the target currency code (e.g., "EUR")
+     * @param toCurrency the target currency code (e.g., "EUR")
      * @return the converted amount
-     * @throws IllegalArgumentException if amount is negative or currencies are
-     *                                  invalid
+     * @throws IllegalArgumentException if amount is negative or currencies are invalid
      */
     public BigDecimal convert(BigDecimal amount, String fromCurrency, String toCurrency) {
         return convert(amount, fromCurrency, toCurrency, null);
     }
 
     /**
-     * Converts an amount from one currency to another using a historical exchange
-     * rate.
+     * Converts an amount from one currency to another using a historical exchange rate.
      *
-     * <p>
-     * The result is rounded to 8 decimal places using HALF_UP rounding mode,
-     * which is sufficient for both fiat currencies (2-4 decimals) and
-     * cryptocurrencies.
-     * </p>
+     * <p>The result is rounded to 8 decimal places using HALF_UP rounding mode, which is sufficient
+     * for both fiat currencies (2-4 decimals) and cryptocurrencies.
      *
-     * @param amount       the amount to convert
+     * @param amount the amount to convert
      * @param fromCurrency the source currency code (e.g., "USD")
-     * @param toCurrency   the target currency code (e.g., "EUR")
-     * @param date         the date for the exchange rate (null for latest)
+     * @param toCurrency the target currency code (e.g., "EUR")
+     * @param date the date for the exchange rate (null for latest)
      * @return the converted amount rounded to 8 decimal places
-     * @throws IllegalArgumentException if amount is negative or currencies are
-     *                                  invalid
+     * @throws IllegalArgumentException if amount is negative or currencies are invalid
      */
-    public BigDecimal convert(BigDecimal amount, String fromCurrency, String toCurrency, LocalDate date) {
+    public BigDecimal convert(
+            BigDecimal amount, String fromCurrency, String toCurrency, LocalDate date) {
         if (amount == null) {
             throw new IllegalArgumentException("Amount cannot be null");
         }
@@ -231,35 +230,34 @@ public class ExchangeRateService {
         BigDecimal rate = getExchangeRate(fromCurrency, toCurrency, date);
         BigDecimal converted = amount.multiply(rate).setScale(8, RoundingMode.HALF_UP);
 
-        log.debug("Converted {} {} = {} {} (rate: {})",
-                amount, fromCurrency, converted, toCurrency, rate);
+        log.debug(
+                "Converted {} {} = {} {} (rate: {})",
+                amount,
+                fromCurrency,
+                converted,
+                toCurrency,
+                rate);
         return converted;
     }
 
     /**
      * Fetches and stores the latest exchange rates from Yahoo Finance.
      *
-     * <p>
-     * This method fetches rates for all active currencies in the database relative
-     * to USD.
-     * It also fetches cross-rates for major currencies (EUR, GBP, JPY).
-     * </p>
+     * <p>This method fetches rates for all active currencies in the database relative to USD. It
+     * also fetches cross-rates for major currencies (EUR, GBP, JPY).
      *
-     * <p>
-     * <strong>Process:</strong>
-     * </p>
+     * <p><strong>Process:</strong>
+     *
      * <ol>
-     * <li>Query all active currencies from database</li>
-     * <li>Build Yahoo Finance symbols (e.g., EURUSD=X, BTC-USD)</li>
-     * <li>Fetch quotes from Yahoo Finance API</li>
-     * <li>Store rates in database with today's date</li>
-     * <li>Clear exchange rate cache</li>
+     *   <li>Query all active currencies from database
+     *   <li>Build Yahoo Finance symbols (e.g., EURUSD=X, BTC-USD)
+     *   <li>Fetch quotes from Yahoo Finance API
+     *   <li>Store rates in database with today's date
+     *   <li>Clear exchange rate cache
      * </ol>
      *
-     * <p>
-     * <strong>Rate Limits:</strong> Yahoo Finance has no official rate limits,
-     * but this method should be called at most once per day via scheduled job.
-     * </p>
+     * <p><strong>Rate Limits:</strong> Yahoo Finance has no official rate limits, but this method
+     * should be called at most once per day via scheduled job.
      *
      * @return the number of exchange rates successfully updated
      * @throws MarketDataException if the Yahoo Finance API is unavailable
@@ -299,22 +297,35 @@ public class ExchangeRateService {
             }
 
             // Also persist inverse rates so any A→B lookup also has B→A
-            List<ExchangeRate> inverseRates = newRates.stream()
-                    .filter(r -> r.getRate() != null && r.getRate().compareTo(BigDecimal.ZERO) > 0)
-                    .map(r -> ExchangeRate.builder()
-                            .baseCurrency(r.getTargetCurrency())
-                            .targetCurrency(r.getBaseCurrency())
-                            .rate(BigDecimal.ONE.divide(r.getRate(), 8, java.math.RoundingMode.HALF_UP))
-                            .rateDate(r.getRateDate())
-                            .build())
-                    .collect(java.util.stream.Collectors.toList());
+            List<ExchangeRate> inverseRates =
+                    newRates.stream()
+                            .filter(
+                                    r ->
+                                            r.getRate() != null
+                                                    && r.getRate().compareTo(BigDecimal.ZERO) > 0)
+                            .map(
+                                    r ->
+                                            ExchangeRate.builder()
+                                                    .baseCurrency(r.getTargetCurrency())
+                                                    .targetCurrency(r.getBaseCurrency())
+                                                    .rate(
+                                                            BigDecimal.ONE.divide(
+                                                                    r.getRate(),
+                                                                    8,
+                                                                    java.math.RoundingMode.HALF_UP))
+                                                    .rateDate(r.getRateDate())
+                                                    .build())
+                            .collect(java.util.stream.Collectors.toList());
             newRates.addAll(inverseRates);
 
             // Save all rates to database
             if (!newRates.isEmpty()) {
                 exchangeRateRepository.saveAll(newRates);
-                log.info("Successfully updated {} exchange rates for {} (including {} inverse rates)", newRates.size(),
-                        today, inverseRates.size());
+                log.info(
+                        "Successfully updated {} exchange rates for {} (including {} inverse rates)",
+                        newRates.size(),
+                        today,
+                        inverseRates.size());
             } else {
                 log.warn("No exchange rates were parsed from {} quotes", quotes.size());
             }
@@ -330,11 +341,8 @@ public class ExchangeRateService {
     /**
      * Fetches and stores exchange rates for a specific historical date.
      *
-     * <p>
-     * This method is useful for backfilling historical exchange rates.
-     * Note: Yahoo Finance may not support historical exchange rates for all
-     * currency pairs.
-     * </p>
+     * <p>This method is useful for backfilling historical exchange rates. Note: Yahoo Finance may
+     * not support historical exchange rates for all currency pairs.
      *
      * @param date the date to fetch rates for
      * @return the number of exchange rates successfully stored
@@ -343,7 +351,8 @@ public class ExchangeRateService {
     @Transactional
     public int updateExchangeRatesForDate(LocalDate date) {
         if (date.isAfter(LocalDate.now())) {
-            throw new IllegalArgumentException("Cannot fetch exchange rates for future date: " + date);
+            throw new IllegalArgumentException(
+                    "Cannot fetch exchange rates for future date: " + date);
         }
 
         log.info("Updating exchange rates for historical date: {}", date);
@@ -359,9 +368,7 @@ public class ExchangeRateService {
     /**
      * Clears all cached exchange rates.
      *
-     * <p>
-     * Useful for testing or when manual rate updates are performed.
-     * </p>
+     * <p>Useful for testing or when manual rate updates are performed.
      */
     @CacheEvict(value = "exchangeRates", allEntries = true)
     public void clearCache() {
@@ -371,20 +378,16 @@ public class ExchangeRateService {
     // ==================== Private Helper Methods ====================
 
     /**
-     * Attempts to fetch and store the exchange rate for a specific currency pair
-     * on-demand.
+     * Attempts to fetch and store the exchange rate for a specific currency pair on-demand.
      *
-     * <p>
-     * Builds the appropriate Yahoo Finance symbol for the given pair and calls the
-     * market data provider. If the pair involves USD, a single symbol is fetched.
-     * For cross pairs (e.g., XOF → EUR), both legs against USD are fetched so the
-     * inverse-rate lookup in {@link #getExchangeRate} can resolve the cross rate.
-     * </p>
+     * <p>Builds the appropriate Yahoo Finance symbol for the given pair and calls the market data
+     * provider. If the pair involves USD, a single symbol is fetched. For cross pairs (e.g., XOF →
+     * EUR), both legs against USD are fetched so the inverse-rate lookup in {@link
+     * #getExchangeRate} can resolve the cross rate.
      *
      * @param fromCurrency the source currency code
-     * @param toCurrency   the target currency code
-     * @return {@code true} if at least one rate was successfully stored;
-     *         {@code false} otherwise
+     * @param toCurrency the target currency code
+     * @return {@code true} if at least one rate was successfully stored; {@code false} otherwise
      */
     @Transactional
     @CacheEvict(value = "exchangeRates", allEntries = true)
@@ -412,8 +415,8 @@ public class ExchangeRateService {
 
         for (String symbol : symbols) {
             try {
-                List<org.openfinance.dto.HistoricalPrice> prices = marketDataProvider.getHistoricalPrices(symbol, from,
-                        today);
+                List<org.openfinance.dto.HistoricalPrice> prices =
+                        marketDataProvider.getHistoricalPrices(symbol, from, today);
                 if (prices.isEmpty()) {
                     log.warn("On-demand chart fetch returned no data for symbol {}", symbol);
                     continue;
@@ -426,10 +429,8 @@ public class ExchangeRateService {
                     continue;
                 }
                 // Reuse parseQuoteToExchangeRate by synthesising a MarketQuote
-                MarketQuote syntheticQuote = MarketQuote.builder()
-                        .symbol(symbol)
-                        .price(price)
-                        .build();
+                MarketQuote syntheticQuote =
+                        MarketQuote.builder().symbol(symbol).price(price).build();
                 ExchangeRate rate = parseQuoteToExchangeRate(syntheticQuote, today);
                 if (rate != null) {
                     newRates.add(rate);
@@ -446,44 +447,57 @@ public class ExchangeRateService {
                 // constraint violations.
                 // This can happen when two concurrent requests both trigger on-demand fetch for
                 // the same pair.
-                List<ExchangeRate> ratesToSave = newRates.stream()
-                        .filter(r -> exchangeRateRepository
-                                .findByBaseCurrencyAndTargetCurrencyAndRateDate(
-                                        r.getBaseCurrency(), r.getTargetCurrency(), r.getRateDate())
-                                .isEmpty())
-                        .collect(java.util.stream.Collectors.toList());
+                List<ExchangeRate> ratesToSave =
+                        newRates.stream()
+                                .filter(
+                                        r ->
+                                                exchangeRateRepository
+                                                        .findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                                                                r.getBaseCurrency(),
+                                                                r.getTargetCurrency(),
+                                                                r.getRateDate())
+                                                        .isEmpty())
+                                .collect(java.util.stream.Collectors.toList());
 
                 if (ratesToSave.isEmpty()) {
-                    log.info("On-demand fetch: rates for pair {} → {} already exist for {}, skipping save",
-                            fromCurrency, toCurrency, today);
+                    log.info(
+                            "On-demand fetch: rates for pair {} → {} already exist for {}, skipping save",
+                            fromCurrency,
+                            toCurrency,
+                            today);
                     return true; // rates are already present — lookup will succeed
                 }
 
                 exchangeRateRepository.saveAll(ratesToSave);
-                log.info("On-demand fetch stored {} rate(s) for pair {} → {}", ratesToSave.size(), fromCurrency,
+                log.info(
+                        "On-demand fetch stored {} rate(s) for pair {} → {}",
+                        ratesToSave.size(),
+                        fromCurrency,
                         toCurrency);
                 return true;
             } catch (Exception e) {
-                log.warn("Failed to save on-demand rates for pair {} → {}: {}", fromCurrency, toCurrency,
+                log.warn(
+                        "Failed to save on-demand rates for pair {} → {}: {}",
+                        fromCurrency,
+                        toCurrency,
                         e.getMessage());
                 return false;
             }
         }
 
-        log.warn("On-demand fetch returned no parseable rates for pair {} → {}", fromCurrency, toCurrency);
+        log.warn(
+                "On-demand fetch returned no parseable rates for pair {} → {}",
+                fromCurrency,
+                toCurrency);
         return false;
     }
 
     /**
-     * Returns the latest rate for {@code currencyCode} → USD (i.e. 1 unit of the
-     * currency in USD).
+     * Returns the latest rate for {@code currencyCode} → USD (i.e. 1 unit of the currency in USD).
      *
-     * <p>
-     * Checks both the direct row ({@code currencyCode}→USD) and the inverse of
-     * USD→{@code currencyCode}.
-     * Used to compute cross-rates when neither a direct nor inverse pair is stored
+     * <p>Checks both the direct row ({@code currencyCode}→USD) and the inverse of USD→{@code
+     * currencyCode}. Used to compute cross-rates when neither a direct nor inverse pair is stored
      * in the DB.
-     * </p>
      *
      * @param currencyCode the non-USD currency
      * @return rate in USD, or {@code null} if not available
@@ -501,11 +515,10 @@ public class ExchangeRateService {
     }
 
     /**
-     * Adds a Yahoo Finance symbol to the list for the given currency (relative to
-     * USD).
-     * Does nothing if the currency is USD itself.
+     * Adds a Yahoo Finance symbol to the list for the given currency (relative to USD). Does
+     * nothing if the currency is USD itself.
      *
-     * @param symbols      the list to add the symbol to
+     * @param symbols the list to add the symbol to
      * @param currencyCode the currency code
      */
     private void addSymbolForCurrency(List<String> symbols, String currencyCode) {
@@ -538,49 +551,52 @@ public class ExchangeRateService {
     /**
      * Finds an exchange rate in the database for a specific currency pair and date.
      *
-     * <p>
-     * If date is null, returns the latest rate. If no exact date match, returns
-     * the most recent rate on or before the specified date.
-     * </p>
+     * <p>If date is null, returns the latest rate. If no exact date match, returns the most recent
+     * rate on or before the specified date.
      *
-     * @param baseCurrency   the base currency code
+     * @param baseCurrency the base currency code
      * @param targetCurrency the target currency code
-     * @param date           the date (null for latest)
+     * @param date the date (null for latest)
      * @return Optional containing the exchange rate if found
      */
-    private Optional<ExchangeRate> findRate(String baseCurrency, String targetCurrency, LocalDate date) {
+    private Optional<ExchangeRate> findRate(
+            String baseCurrency, String targetCurrency, LocalDate date) {
 
         if (date == null) {
             // Get latest rate
-            List<ExchangeRate> rates = exchangeRateRepository
-                    .findLatestByBaseCurrencyAndTargetCurrency(baseCurrency, targetCurrency);
+            List<ExchangeRate> rates =
+                    exchangeRateRepository.findLatestByBaseCurrencyAndTargetCurrency(
+                            baseCurrency, targetCurrency);
             return rates.isEmpty() ? Optional.empty() : Optional.of(rates.get(0));
         } else {
             // Try exact date match first
-            Optional<ExchangeRate> exactMatch = exchangeRateRepository
-                    .findByBaseCurrencyAndTargetCurrencyAndRateDate(baseCurrency, targetCurrency, date);
+            Optional<ExchangeRate> exactMatch =
+                    exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                            baseCurrency, targetCurrency, date);
 
             if (exactMatch.isPresent()) {
                 return exactMatch;
             }
 
             // Fall back to most recent rate on or before date
-            List<ExchangeRate> historicalRates = exchangeRateRepository
-                    .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                            baseCurrency, targetCurrency, date);
-            return historicalRates.isEmpty() ? Optional.empty() : Optional.of(historicalRates.get(0));
+            List<ExchangeRate> historicalRates =
+                    exchangeRateRepository
+                            .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
+                                    baseCurrency, targetCurrency, date);
+            return historicalRates.isEmpty()
+                    ? Optional.empty()
+                    : Optional.of(historicalRates.get(0));
         }
     }
 
     /**
      * Builds Yahoo Finance symbols for fetching exchange rates.
      *
-     * <p>
-     * <strong>Yahoo Finance Symbol Format:</strong>
-     * </p>
+     * <p><strong>Yahoo Finance Symbol Format:</strong>
+     *
      * <ul>
-     * <li>Fiat pairs: EURUSD=X (EUR to USD)</li>
-     * <li>Crypto pairs: BTC-USD (Bitcoin to USD)</li>
+     *   <li>Fiat pairs: EURUSD=X (EUR to USD)
+     *   <li>Crypto pairs: BTC-USD (Bitcoin to USD)
      * </ul>
      *
      * @param currencies list of currencies to build symbols for
@@ -619,22 +635,21 @@ public class ExchangeRateService {
      */
     private boolean isCryptocurrency(String currencyCode) {
         // Common cryptocurrency codes
-        List<String> cryptoCodes = List.of("BTC", "ETH", "BNB", "XRP", "ADA", "SOL",
-                "DOT", "DOGE", "USDT", "USDC", "MATIC", "AVAX", "LINK", "UNI");
+        List<String> cryptoCodes =
+                List.of(
+                        "BTC", "ETH", "BNB", "XRP", "ADA", "SOL", "DOT", "DOGE", "USDT", "USDC",
+                        "MATIC", "AVAX", "LINK", "UNI");
         return cryptoCodes.contains(currencyCode.toUpperCase());
     }
 
     /**
      * Parses a Yahoo Finance quote into an ExchangeRate entity.
      *
-     * <p>
-     * Extracts base and target currencies from the symbol format:
-     * - EURUSD=X → base: EUR, target: USD
-     * - BTC-USD → base: BTC, target: USD
-     * </p>
+     * <p>Extracts base and target currencies from the symbol format: - EURUSD=X → base: EUR,
+     * target: USD - BTC-USD → base: BTC, target: USD
      *
      * @param quote the market quote from Yahoo Finance
-     * @param date  the date to assign to the exchange rate
+     * @param date the date to assign to the exchange rate
      * @return the ExchangeRate entity, or null if parsing fails
      */
     private ExchangeRate parseQuoteToExchangeRate(MarketQuote quote, LocalDate date) {

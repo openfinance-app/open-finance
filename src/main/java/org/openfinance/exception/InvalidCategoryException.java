@@ -7,18 +7,19 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Exception thrown when category validation fails.
  *
  * <p>This exception is thrown for various category-related business rule violations:
+ *
  * <ul>
- *   <li>Attempting to update/delete system categories</li>
- *   <li>Invalid parent-child relationships (type mismatch, circular reference)</li>
- *   <li>Deleting categories with subcategories</li>
- *   <li>Category type mismatch with transaction type</li>
+ *   <li>Attempting to update/delete system categories
+ *   <li>Invalid parent-child relationships (type mismatch, circular reference)
+ *   <li>Deleting categories with subcategories
+ *   <li>Category type mismatch with transaction type
  * </ul>
  *
- * <p>Requirement REQ-2.4: Category Management - Business rule enforcement</p>
+ * <p>Requirement REQ-2.4: Category Management - Business rule enforcement
  */
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class InvalidCategoryException extends RuntimeException {
-    
+
     /**
      * Constructs a new InvalidCategoryException with a detail message.
      *
@@ -27,7 +28,7 @@ public class InvalidCategoryException extends RuntimeException {
     public InvalidCategoryException(String message) {
         super(message);
     }
-    
+
     /**
      * Constructs a new InvalidCategoryException with a detail message and cause.
      *

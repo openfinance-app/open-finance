@@ -10,6 +10,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -18,9 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.crypto.SecretKey;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,57 +51,33 @@ import org.openfinance.service.parser.QifParser;
 import org.openfinance.service.parser.SkroogeJsonParser;
 import org.springframework.context.MessageSource;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ImportService Multi-Account Tests")
 class ImportServiceMultiAccountTest {
 
     private static final Long USER_ID = 123L;
 
-    @Mock
-    private ImportSessionRepository importSessionRepository;
-    @Mock
-    private TransactionRepository transactionRepository;
-    @Mock
-    private AccountRepository accountRepository;
-    @Mock
-    private CategoryRepository categoryRepository;
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private FileStorageService fileStorageService;
-    @Mock
-    private QifParser qifParser;
-    @Mock
-    private OfxParser ofxParser;
-    @Mock
-    private CsvParser csvParser;
-    @Mock
-    private SkroogeJsonParser skroogeJsonParser;
-    @Mock
-    private AutoCategorizationService autoCategorizationService;
-    @Mock
-    private AccountService accountService;
-    @Mock
-    private TransactionRuleService transactionRuleService;
-    @Mock
-    private TransactionService transactionService;
-    @Mock
-    private TransactionSplitService transactionSplitService;
-    @Mock
-    private NetWorthRepository netWorthRepository;
-    @Mock
-    private AICategorizationService aiCategorizationService;
-    @Mock
-    private MessageSource messageSource;
-    @Mock
-    private EncryptionService encryptionService;
-    @Mock
-    private InstitutionRepository institutionRepository;
-    @Mock
-    private SecretKey encryptionKey;
+    @Mock private ImportSessionRepository importSessionRepository;
+    @Mock private TransactionRepository transactionRepository;
+    @Mock private AccountRepository accountRepository;
+    @Mock private CategoryRepository categoryRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private FileStorageService fileStorageService;
+    @Mock private QifParser qifParser;
+    @Mock private OfxParser ofxParser;
+    @Mock private CsvParser csvParser;
+    @Mock private SkroogeJsonParser skroogeJsonParser;
+    @Mock private AutoCategorizationService autoCategorizationService;
+    @Mock private AccountService accountService;
+    @Mock private TransactionRuleService transactionRuleService;
+    @Mock private TransactionService transactionService;
+    @Mock private TransactionSplitService transactionSplitService;
+    @Mock private NetWorthRepository netWorthRepository;
+    @Mock private AICategorizationService aiCategorizationService;
+    @Mock private MessageSource messageSource;
+    @Mock private EncryptionService encryptionService;
+    @Mock private InstitutionRepository institutionRepository;
+    @Mock private SecretKey encryptionKey;
 
     private ImportService importService;
     private ObjectMapper objectMapper;
@@ -111,57 +87,76 @@ class ImportServiceMultiAccountTest {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
-        importService = new ImportService(
-                importSessionRepository,
-                transactionRepository,
-                accountRepository,
-                categoryRepository,
-                userRepository,
-                fileStorageService,
-                qifParser,
-                ofxParser,
-                csvParser,
-                skroogeJsonParser,
-                objectMapper,
-                autoCategorizationService,
-                accountService,
-                transactionRuleService,
-                transactionService,
-                transactionSplitService,
-                netWorthRepository,
-                aiCategorizationService,
-                messageSource,
-                encryptionService,
-                institutionRepository);
+        importService =
+                new ImportService(
+                        importSessionRepository,
+                        transactionRepository,
+                        accountRepository,
+                        categoryRepository,
+                        userRepository,
+                        fileStorageService,
+                        qifParser,
+                        ofxParser,
+                        csvParser,
+                        skroogeJsonParser,
+                        objectMapper,
+                        autoCategorizationService,
+                        accountService,
+                        transactionRuleService,
+                        transactionService,
+                        transactionSplitService,
+                        netWorthRepository,
+                        aiCategorizationService,
+                        messageSource,
+                        encryptionService,
+                        institutionRepository);
     }
 
     @Test
-    @DisplayName("Should import CSV transactions into multiple accounts using parsed account metadata")
+    @DisplayName(
+            "Should import CSV transactions into multiple accounts using parsed account metadata")
     void shouldImportCsvTransactionsIntoMultipleAccounts() throws Exception {
-        ImportedTransaction checkingTransaction = ImportedTransaction.builder()
-                .transactionDate(LocalDate.of(2024, 1, 10))
-                .payee("Employer")
-                .amount(new BigDecimal("2500.00"))
-                .accountName("Checking")
-                .accountNumber("CHK-001")
-                .currency("USD")
-                .validationErrors(new ArrayList<>())
-                .build();
-        ImportedTransaction savingsTransaction = ImportedTransaction.builder()
-                .transactionDate(LocalDate.of(2024, 1, 11))
-                .payee("Interest")
-                .amount(new BigDecimal("5.25"))
-                .accountName("Savings")
-                .accountNumber("SAV-002")
-                .currency("USD")
-                .validationErrors(new ArrayList<>())
-                .build();
+        ImportedTransaction checkingTransaction =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 10))
+                        .payee("Employer")
+                        .amount(new BigDecimal("2500.00"))
+                        .accountName("Checking")
+                        .accountNumber("CHK-001")
+                        .currency("USD")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+        ImportedTransaction savingsTransaction =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 11))
+                        .payee("Interest")
+                        .amount(new BigDecimal("5.25"))
+                        .accountName("Savings")
+                        .accountNumber("SAV-002")
+                        .currency("USD")
+                        .validationErrors(new ArrayList<>())
+                        .build();
 
-        ImportSession session = buildSession(1L, "CSV", List.of(checkingTransaction, savingsTransaction));
-        Account checkingAccount = Account.builder().id(201L).userId(USER_ID).name("enc-checking")
-                .type(AccountType.CHECKING).currency("USD").isActive(true).build();
-        Account savingsAccount = Account.builder().id(202L).userId(USER_ID).name("enc-savings")
-                .type(AccountType.SAVINGS).currency("USD").isActive(true).build();
+        ImportSession session =
+                buildSession(1L, "CSV", List.of(checkingTransaction, savingsTransaction));
+        Account checkingAccount =
+                Account.builder()
+                        .id(201L)
+                        .userId(USER_ID)
+                        .name("enc-checking")
+                        .type(AccountType.CHECKING)
+                        .currency("USD")
+                        .isActive(true)
+                        .build();
+        Account savingsAccount =
+                Account.builder()
+                        .id(202L)
+                        .userId(USER_ID)
+                        .name("enc-savings")
+                        .type(AccountType.SAVINGS)
+                        .currency("USD")
+                        .isActive(true)
+                        .build();
         List<Account> existingAccounts = new ArrayList<>();
         AtomicLong savedTransactionIds = new AtomicLong(500L);
 
@@ -169,33 +164,55 @@ class ImportServiceMultiAccountTest {
         when(importSessionRepository.save(any(ImportSession.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
         when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
-        when(accountService.createAccount(eq(USER_ID), any(AccountRequest.class), eq(encryptionKey)))
-                .thenReturn(AccountResponse.builder().id(201L).build(), AccountResponse.builder().id(202L).build());
+        when(accountService.createAccount(
+                        eq(USER_ID), any(AccountRequest.class), eq(encryptionKey)))
+                .thenReturn(
+                        AccountResponse.builder().id(201L).build(),
+                        AccountResponse.builder().id(202L).build());
         when(accountRepository.findById(201L)).thenReturn(Optional.of(checkingAccount));
         when(accountRepository.findById(202L)).thenReturn(Optional.of(savingsAccount));
-        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
-            Transaction transaction = invocation.getArgument(0, Transaction.class);
-            transaction.setId(savedTransactionIds.incrementAndGet());
-            return transaction;
-        });
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Transaction transaction = invocation.getArgument(0, Transaction.class);
+                            transaction.setId(savedTransactionIds.incrementAndGet());
+                            return transaction;
+                        });
 
-        ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true, encryptionKey);
+        ImportSession result =
+                importService.confirmImport(1L, USER_ID, null, Map.of(), true, encryptionKey);
 
-        ArgumentCaptor<AccountRequest> accountRequests = ArgumentCaptor.forClass(AccountRequest.class);
-        verify(accountService, times(2)).createAccount(eq(USER_ID), accountRequests.capture(), eq(encryptionKey));
+        ArgumentCaptor<AccountRequest> accountRequests =
+                ArgumentCaptor.forClass(AccountRequest.class);
+        verify(accountService, times(2))
+                .createAccount(eq(USER_ID), accountRequests.capture(), eq(encryptionKey));
         assertThat(accountRequests.getAllValues())
                 .extracting(AccountRequest::getName)
                 .containsExactly("Checking", "Savings");
         assertThat(accountRequests.getAllValues())
                 .extracting(AccountRequest::getAccountNumber)
                 .containsExactly("CHK-001", "SAV-002");
-        verify(transactionRepository).save(argThat((Transaction transaction) -> transaction.getAccountId().equals(201L)
-                && transaction.getDescription().equals("Employer")));
-        verify(transactionRepository).save(argThat((Transaction transaction) -> transaction.getAccountId().equals(202L)
-                && transaction.getDescription().equals("Interest")));
-        verify(transactionService, times(2)).syncTransactionFts(any(Transaction.class), any(), any());
+        verify(transactionRepository)
+                .save(
+                        argThat(
+                                (Transaction transaction) ->
+                                        transaction.getAccountId().equals(201L)
+                                                && transaction
+                                                        .getDescription()
+                                                        .equals("Employer")));
+        verify(transactionRepository)
+                .save(
+                        argThat(
+                                (Transaction transaction) ->
+                                        transaction.getAccountId().equals(202L)
+                                                && transaction
+                                                        .getDescription()
+                                                        .equals("Interest")));
+        verify(transactionService, times(2))
+                .syncTransactionFts(any(Transaction.class), any(), any());
         verify(accountService, times(2)).recalculateBalance(anyLong(), eq(USER_ID));
-        verify(netWorthRepository).deleteByUserIdAndSnapshotDateBefore(eq(USER_ID), eq(LocalDate.of(2024, 1, 11)));
+        verify(netWorthRepository)
+                .deleteByUserIdAndSnapshotDateBefore(eq(USER_ID), eq(LocalDate.of(2024, 1, 11)));
         assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
         assertThat(result.getImportedCount()).isEqualTo(2);
     }
@@ -203,39 +220,61 @@ class ImportServiceMultiAccountTest {
     @Test
     @DisplayName("Should import QIF transfers across parsed source and destination accounts")
     void shouldImportQifTransfersAcrossMultipleAccounts() throws Exception {
-        ImportedTransaction transferTransaction = ImportedTransaction.builder()
-                .transactionDate(LocalDate.of(2024, 1, 15))
-                .payee("Transfer to savings")
-                .memo("Automatic transfer")
-                .amount(new BigDecimal("-500.00"))
-                .accountName("Checking")
-                .toAccountName("Savings")
-                .transfer(true)
-                .category("Transfer")
-                .currency("USD")
-                .validationErrors(new ArrayList<>())
-                .build();
+        ImportedTransaction transferTransaction =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 15))
+                        .payee("Transfer to savings")
+                        .memo("Automatic transfer")
+                        .amount(new BigDecimal("-500.00"))
+                        .accountName("Checking")
+                        .toAccountName("Savings")
+                        .transfer(true)
+                        .category("Transfer")
+                        .currency("USD")
+                        .validationErrors(new ArrayList<>())
+                        .build();
 
         ImportSession session = buildSession(2L, "QIF", List.of(transferTransaction));
-        Account checkingAccount = Account.builder().id(301L).userId(USER_ID).name("enc-checking")
-                .type(AccountType.CHECKING).currency("USD").isActive(true).build();
-        Account savingsAccount = Account.builder().id(302L).userId(USER_ID).name("enc-savings")
-                .type(AccountType.SAVINGS).currency("USD").isActive(true).build();
+        Account checkingAccount =
+                Account.builder()
+                        .id(301L)
+                        .userId(USER_ID)
+                        .name("enc-checking")
+                        .type(AccountType.CHECKING)
+                        .currency("USD")
+                        .isActive(true)
+                        .build();
+        Account savingsAccount =
+                Account.builder()
+                        .id(302L)
+                        .userId(USER_ID)
+                        .name("enc-savings")
+                        .type(AccountType.SAVINGS)
+                        .currency("USD")
+                        .isActive(true)
+                        .build();
         List<Account> existingAccounts = new ArrayList<>();
 
         when(importSessionRepository.findById(2L)).thenReturn(Optional.of(session));
         when(importSessionRepository.save(any(ImportSession.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
         when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
-        when(accountService.createAccount(eq(USER_ID), any(AccountRequest.class), eq(encryptionKey)))
-                .thenReturn(AccountResponse.builder().id(301L).build(), AccountResponse.builder().id(302L).build());
+        when(accountService.createAccount(
+                        eq(USER_ID), any(AccountRequest.class), eq(encryptionKey)))
+                .thenReturn(
+                        AccountResponse.builder().id(301L).build(),
+                        AccountResponse.builder().id(302L).build());
         when(accountRepository.findById(301L)).thenReturn(Optional.of(checkingAccount));
         when(accountRepository.findById(302L)).thenReturn(Optional.of(savingsAccount));
 
-        ImportSession result = importService.confirmImport(2L, USER_ID, null, Map.of(), true, encryptionKey);
+        ImportSession result =
+                importService.confirmImport(2L, USER_ID, null, Map.of(), true, encryptionKey);
 
-        verify(transactionService).createTransfer(eq(USER_ID), argThat(request -> matchesTransfer(request, 301L, 302L)),
-                eq(encryptionKey));
+        verify(transactionService)
+                .createTransfer(
+                        eq(USER_ID),
+                        argThat(request -> matchesTransfer(request, 301L, 302L)),
+                        eq(encryptionKey));
         verify(transactionRepository, never()).save(any(Transaction.class));
         verify(accountService, times(2)).recalculateBalance(anyLong(), eq(USER_ID));
         assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
@@ -245,60 +284,84 @@ class ImportServiceMultiAccountTest {
     @Test
     @DisplayName("Should deduplicate paired QIF transfer entries into one transfer")
     void shouldDeduplicatePairedQifTransferEntriesIntoOneTransfer() throws Exception {
-        ImportedTransaction outgoingTransfer = ImportedTransaction.builder()
-                .transactionDate(LocalDate.of(2024, 1, 8))
-                .payee("Transfer to Savings")
-                .memo("Automatic transfer")
-                .amount(new BigDecimal("-500.00"))
-                .accountName("Checking Account")
-                .toAccountName("Savings Account")
-                .transfer(true)
-                .category("Transfer")
-                .referenceNumber("CHK-QIF-002")
-                .currency("USD")
-                .validationErrors(new ArrayList<>())
-                .build();
-        ImportedTransaction incomingTransfer = ImportedTransaction.builder()
-                .transactionDate(LocalDate.of(2024, 1, 8))
-                .payee("Transfer from Checking")
-                .memo("Automatic transfer")
-                .amount(new BigDecimal("500.00"))
-                .accountName("Savings Account")
-                .toAccountName("Checking Account")
-                .transfer(true)
-                .category("Transfer")
-                .referenceNumber("SAV-QIF-001")
-                .currency("USD")
-                .validationErrors(new ArrayList<>())
-                .build();
+        ImportedTransaction outgoingTransfer =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 8))
+                        .payee("Transfer to Savings")
+                        .memo("Automatic transfer")
+                        .amount(new BigDecimal("-500.00"))
+                        .accountName("Checking Account")
+                        .toAccountName("Savings Account")
+                        .transfer(true)
+                        .category("Transfer")
+                        .referenceNumber("CHK-QIF-002")
+                        .currency("USD")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+        ImportedTransaction incomingTransfer =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 8))
+                        .payee("Transfer from Checking")
+                        .memo("Automatic transfer")
+                        .amount(new BigDecimal("500.00"))
+                        .accountName("Savings Account")
+                        .toAccountName("Checking Account")
+                        .transfer(true)
+                        .category("Transfer")
+                        .referenceNumber("SAV-QIF-001")
+                        .currency("USD")
+                        .validationErrors(new ArrayList<>())
+                        .build();
 
-        ImportSession session = buildSession(3L, "QIF", List.of(outgoingTransfer, incomingTransfer));
-        Account checkingAccount = Account.builder().id(401L).userId(USER_ID).name("enc-checking")
-                .type(AccountType.CHECKING).currency("USD").isActive(true).build();
-        Account savingsAccount = Account.builder().id(402L).userId(USER_ID).name("enc-savings")
-                .type(AccountType.SAVINGS).currency("USD").isActive(true).build();
+        ImportSession session =
+                buildSession(3L, "QIF", List.of(outgoingTransfer, incomingTransfer));
+        Account checkingAccount =
+                Account.builder()
+                        .id(401L)
+                        .userId(USER_ID)
+                        .name("enc-checking")
+                        .type(AccountType.CHECKING)
+                        .currency("USD")
+                        .isActive(true)
+                        .build();
+        Account savingsAccount =
+                Account.builder()
+                        .id(402L)
+                        .userId(USER_ID)
+                        .name("enc-savings")
+                        .type(AccountType.SAVINGS)
+                        .currency("USD")
+                        .isActive(true)
+                        .build();
         List<Account> existingAccounts = new ArrayList<>();
 
         when(importSessionRepository.findById(3L)).thenReturn(Optional.of(session));
         when(importSessionRepository.save(any(ImportSession.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
         when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
-        when(accountService.createAccount(eq(USER_ID), any(AccountRequest.class), eq(encryptionKey)))
-                .thenReturn(AccountResponse.builder().id(401L).build(), AccountResponse.builder().id(402L).build());
+        when(accountService.createAccount(
+                        eq(USER_ID), any(AccountRequest.class), eq(encryptionKey)))
+                .thenReturn(
+                        AccountResponse.builder().id(401L).build(),
+                        AccountResponse.builder().id(402L).build());
         when(accountRepository.findById(401L)).thenReturn(Optional.of(checkingAccount));
         when(accountRepository.findById(402L)).thenReturn(Optional.of(savingsAccount));
 
-        ImportSession result = importService.confirmImport(3L, USER_ID, null, Map.of(), true, encryptionKey);
+        ImportSession result =
+                importService.confirmImport(3L, USER_ID, null, Map.of(), true, encryptionKey);
 
         verify(transactionService, times(1))
-                .createTransfer(eq(USER_ID), argThat(request -> matchesTransfer(request, 401L, 402L)),
+                .createTransfer(
+                        eq(USER_ID),
+                        argThat(request -> matchesTransfer(request, 401L, 402L)),
                         eq(encryptionKey));
         verify(transactionRepository, never()).save(any(Transaction.class));
         assertThat(result.getImportedCount()).isEqualTo(1);
         assertThat(result.getSkippedCount()).isZero();
     }
 
-    private ImportSession buildSession(Long sessionId, String fileFormat, List<ImportedTransaction> transactions)
+    private ImportSession buildSession(
+            Long sessionId, String fileFormat, List<ImportedTransaction> transactions)
             throws Exception {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("transactions", transactions);
@@ -317,7 +380,8 @@ class ImportServiceMultiAccountTest {
                 .build();
     }
 
-    private boolean matchesTransfer(TransactionRequest request, Long fromAccountId, Long toAccountId) {
+    private boolean matchesTransfer(
+            TransactionRequest request, Long fromAccountId, Long toAccountId) {
         return request.getAccountId().equals(fromAccountId)
                 && request.getToAccountId().equals(toAccountId)
                 && request.getAmount().compareTo(new BigDecimal("500.0000")) == 0;

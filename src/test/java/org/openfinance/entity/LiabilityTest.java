@@ -1,25 +1,24 @@
 package org.openfinance.entity;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
- * Unit tests for Liability entity validation.
- * Tests Jakarta validation constraints, timestamps, and field constraints.
- * 
- * Note: Encrypted fields (principal, currentBalance, interestRate, minimumPayment, notes)
- * are stored as Strings in the entity. The service layer handles encryption/decryption
- * and business validation.
+ * Unit tests for Liability entity validation. Tests Jakarta validation constraints, timestamps, and
+ * field constraints.
+ *
+ * <p>Note: Encrypted fields (principal, currentBalance, interestRate, minimumPayment, notes) are
+ * stored as Strings in the entity. The service layer handles encryption/decryption and business
+ * validation.
  */
 class LiabilityTest {
 
@@ -32,8 +31,8 @@ class LiabilityTest {
     }
 
     /**
-     * Creates a valid Liability for testing.
-     * Encrypted fields are represented as Strings (encrypted values in real use).
+     * Creates a valid Liability for testing. Encrypted fields are represented as Strings (encrypted
+     * values in real use).
      */
     private Liability createValidLiability() {
         Liability liability = new Liability();
@@ -89,8 +88,7 @@ class LiabilityTest {
 
         // Then
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getPropertyPath().toString())
-                .isEqualTo("name");
+        assertThat(violations.iterator().next().getPropertyPath().toString()).isEqualTo("name");
     }
 
     @Test
@@ -104,8 +102,7 @@ class LiabilityTest {
 
         // Then
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getPropertyPath().toString())
-                .isEqualTo("type");
+        assertThat(violations.iterator().next().getPropertyPath().toString()).isEqualTo("type");
     }
 
     @Test
@@ -298,8 +295,7 @@ class LiabilityTest {
         // Then
         // Blank currency triggers both @NotBlank and @Pattern validation
         assertThat(violations).hasSizeGreaterThanOrEqualTo(1);
-        assertThat(violations).anyMatch(v -> 
-            v.getPropertyPath().toString().equals("currency"));
+        assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().equals("currency"));
     }
 
     @Test
@@ -313,8 +309,7 @@ class LiabilityTest {
 
         // Then
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getPropertyPath().toString())
-                .isEqualTo("currency");
+        assertThat(violations.iterator().next().getPropertyPath().toString()).isEqualTo("currency");
     }
 
     @Test
@@ -401,7 +396,7 @@ class LiabilityTest {
         // Given - simulate 512-char encrypted values (max column length)
         Liability liability = createValidLiability();
         String longEncrypted = "a".repeat(512);
-        
+
         liability.setName(longEncrypted);
         liability.setPrincipal(longEncrypted);
         liability.setCurrentBalance(longEncrypted);
@@ -437,10 +432,10 @@ class LiabilityTest {
         // Given
         Liability liability1 = createValidLiability();
         liability1.setId(123L);
-        
+
         Liability liability2 = createValidLiability();
         liability2.setId(123L);
-        
+
         Liability liability3 = createValidLiability();
         liability3.setId(456L);
 

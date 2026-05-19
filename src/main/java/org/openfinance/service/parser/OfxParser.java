@@ -13,10 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportParseResult;
 import org.openfinance.dto.ImportedTransaction;
 import org.springframework.stereotype.Component;
@@ -26,52 +25,34 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
- * Parser for Open Financial Exchange (OFX) and Quicken Financial Exchange (QFX)
- * files.
+ * Parser for Open Financial Exchange (OFX) and Quicken Financial Exchange (QFX) files.
  *
- * OFX is a standard format for exchanging financial data between institutions
- * and customers.
- * QFX is Quicken's proprietary variant, which is essentially OFX with minor
- * differences.
+ * <p>OFX is a standard format for exchanging financial data between institutions and customers. QFX
+ * is Quicken's proprietary variant, which is essentially OFX with minor differences.
  *
- * Format Variants:
- * - OFX 1.x (SGML): Text-based format with SGML-like tags (no closing tags)
- * - OFX 2.x (XML): Standard XML format with proper closing tags
- * - QFX: Quicken variant, similar to OFX 1.x
+ * <p>Format Variants: - OFX 1.x (SGML): Text-based format with SGML-like tags (no closing tags) -
+ * OFX 2.x (XML): Standard XML format with proper closing tags - QFX: Quicken variant, similar to
+ * OFX 1.x
  *
- * Transaction Fields parsed from STMTTRN / CCSTMTTRN:
- * - TRNTYPE : Transaction type (DEBIT, CREDIT, INT, DIV, FEE, …) — appended to
- * memo
- * - DTPOSTED : Date posted (YYYYMMDDHHMMSS)
- * - DTUSER : User-initiated date — used as fallback when DTPOSTED is absent
- * - TRNAMT : Transaction amount (negative for debits)
- * - FITID : Financial Institution Transaction ID
- * - CHECKNUM : Check number (preferred over FITID when present)
- * - REFNUM : Reference number (used when CHECKNUM absent and preferred over
- * FITID)
- * - NAME : Payee/description
- * - MEMO : Additional memo/notes
- * - CURRENCY / CURSYM : Currency code
+ * <p>Transaction Fields parsed from STMTTRN / CCSTMTTRN: - TRNTYPE : Transaction type (DEBIT,
+ * CREDIT, INT, DIV, FEE, …) — appended to memo - DTPOSTED : Date posted (YYYYMMDDHHMMSS) - DTUSER :
+ * User-initiated date — used as fallback when DTPOSTED is absent - TRNAMT : Transaction amount
+ * (negative for debits) - FITID : Financial Institution Transaction ID - CHECKNUM : Check number
+ * (preferred over FITID when present) - REFNUM : Reference number (used when CHECKNUM absent and
+ * preferred over FITID) - NAME : Payee/description - MEMO : Additional memo/notes - CURRENCY /
+ * CURSYM : Currency code
  *
- * Investment transactions (INVBUY, INVSELL, REINVEST, INCOME, INVEXPENSE, etc.)
- * are parsed
- * from INVSTMTTRNRS / INVTRANLIST using minimal field extraction:
- * - DTSETTLE or DTTRADE as date
- * - TOTAL as amount (falls back to UNITS × UNITPRICE)
- * - SECID/UNIQUEID as reference
- * - security name from MEMO or INVTRAN/MEMO
+ * <p>Investment transactions (INVBUY, INVSELL, REINVEST, INCOME, INVEXPENSE, etc.) are parsed from
+ * INVSTMTTRNRS / INVTRANLIST using minimal field extraction: - DTSETTLE or DTTRADE as date - TOTAL
+ * as amount (falls back to UNITS × UNITPRICE) - SECID/UNIQUEID as reference - security name from
+ * MEMO or INVTRAN/MEMO
  *
- * Charset handling:
- * OFX 1.x files may declare CHARSET:1252 or similar in their headers. When
- * detected, the file
- * is re-read using the appropriate charset. UTF-8 is used as the default.
+ * <p>Charset handling: OFX 1.x files may declare CHARSET:1252 or similar in their headers. When
+ * detected, the file is re-read using the appropriate charset. UTF-8 is used as the default.
  *
- * Requirements:
- * - REQ-2.5.1.1: File Format Support (OFX/QFX parsing)
- * - REQ-2.5.1.3: Import Validation (error reporting)
+ * <p>Requirements: - REQ-2.5.1.1: File Format Support (OFX/QFX parsing) - REQ-2.5.1.3: Import
+ * Validation (error reporting)
  *
  * @author Open Finance Team
  * @since Sprint 7 - Transaction Import
@@ -80,23 +61,21 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class OfxParser {
 
-    /**
-     * Date/time formats used in OFX files.
-     */
+    /** Date/time formats used in OFX files. */
     private static final DateTimeFormatter[] DATE_FORMATS = {
-            DateTimeFormatter.ofPattern("yyyyMMddHHmmss"), // 20240115120000
-            DateTimeFormatter.ofPattern("yyyyMMdd"), // 20240115
-            DateTimeFormatter.ofPattern("yyyyMMddHHmmss.SSS"), // with milliseconds
-            DateTimeFormatter.ofPattern("yyyy-MM-dd") // ISO (XML variant)
+        DateTimeFormatter.ofPattern("yyyyMMddHHmmss"), // 20240115120000
+        DateTimeFormatter.ofPattern("yyyyMMdd"), // 20240115
+        DateTimeFormatter.ofPattern("yyyyMMddHHmmss.SSS"), // with milliseconds
+        DateTimeFormatter.ofPattern("yyyy-MM-dd") // ISO (XML variant)
     };
 
     /** Detects OFX SGML 1.x header. */
-    private static final Pattern SGML_HEADER_PATTERN = Pattern.compile(
-            "OFXHEADER:\\s*\\d+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SGML_HEADER_PATTERN =
+            Pattern.compile("OFXHEADER:\\s*\\d+", Pattern.CASE_INSENSITIVE);
 
     /** Extracts charset declaration from OFX headers (e.g., CHARSET:1252). */
-    private static final Pattern CHARSET_PATTERN = Pattern.compile(
-            "CHARSET:\\s*(\\S+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CHARSET_PATTERN =
+            Pattern.compile("CHARSET:\\s*(\\S+)", Pattern.CASE_INSENSITIVE);
 
     // -------------------------------------------------------------------------
     // Public API
@@ -106,11 +85,12 @@ public class OfxParser {
      * Parse OFX/QFX file and extract transactions.
      *
      * @param inputStream Input stream of OFX/QFX file content
-     * @param fileName    Original file name for error reporting
+     * @param fileName Original file name for error reporting
      * @return List of imported transactions with validation errors
      * @throws IOException if file reading fails
      */
-    public ImportParseResult parseFileToResult(InputStream inputStream, String fileName) throws IOException {
+    public ImportParseResult parseFileToResult(InputStream inputStream, String fileName)
+            throws IOException {
         log.info("Starting OFX/QFX file parsing: {}", fileName);
 
         // Read with UTF-8 first so we can inspect headers for charset
@@ -119,7 +99,8 @@ public class OfxParser {
 
         // Detect and re-decode using declared charset if necessary
         Charset charset = detectCharset(probe);
-        String fileContent = charset.equals(StandardCharsets.UTF_8) ? probe : new String(rawBytes, charset);
+        String fileContent =
+                charset.equals(StandardCharsets.UTF_8) ? probe : new String(rawBytes, charset);
 
         boolean isSGML = detectSGMLFormat(fileContent);
 
@@ -141,8 +122,8 @@ public class OfxParser {
     }
 
     /**
-     * Detect charset from OFX SGML header block (lines before &lt;OFX&gt;).
-     * Falls back to UTF-8 if nothing is declared or charset is unrecognised.
+     * Detect charset from OFX SGML header block (lines before &lt;OFX&gt;). Falls back to UTF-8 if
+     * nothing is declared or charset is unrecognised.
      */
     private Charset detectCharset(String probe) {
         Matcher m = CHARSET_PATTERN.matcher(probe);
@@ -194,25 +175,20 @@ public class OfxParser {
     /**
      * Convert OFX SGML (1.x) to well-formed XML by adding missing closing tags.
      *
-     * OFX SGML uses two kinds of elements:
+     * <p>OFX SGML uses two kinds of elements:
+     *
      * <ul>
-     * <li><b>Leaf elements</b>: {@code <TAG>value} — the value follows immediately
-     * on
-     * the same line, no closing tag is present. These must become
-     * {@code <TAG>value</TAG>}.</li>
-     * <li><b>Container/aggregate elements</b>: {@code <TAG>} on a line by
-     * themselves,
-     * followed by nested content and a corresponding {@code </TAG>} closing tag.
-     * These already have closing tags and must be left as-is.</li>
+     *   <li><b>Leaf elements</b>: {@code <TAG>value} — the value follows immediately on the same
+     *       line, no closing tag is present. These must become {@code <TAG>value</TAG>}.
+     *   <li><b>Container/aggregate elements</b>: {@code <TAG>} on a line by themselves, followed by
+     *       nested content and a corresponding {@code </TAG>} closing tag. These already have
+     *       closing tags and must be left as-is.
      * </ul>
      *
-     * Strategy: tokenise the input line-by-line, tracking which open tags are
-     * aggregates
-     * (have explicit closing tags in the source). For every {@code <TAG>value} line
-     * that
-     * does NOT already have a matching close tag anywhere in the remaining source,
-     * append
-     * a closing tag immediately after the value.
+     * Strategy: tokenise the input line-by-line, tracking which open tags are aggregates (have
+     * explicit closing tags in the source). For every {@code <TAG>value} line that does NOT already
+     * have a matching close tag anywhere in the remaining source, append a closing tag immediately
+     * after the value.
      */
     private String convertSGMLToXML(String sgml) {
         // Pre-compute the set of tag names that have explicit closing tags in the
@@ -220,7 +196,8 @@ public class OfxParser {
         // These are aggregate/container tags — we must NOT add extra closing tags for
         // them.
         java.util.Set<String> aggregateTags = new java.util.HashSet<>();
-        java.util.regex.Pattern closeTagPattern = java.util.regex.Pattern.compile("</([A-Za-z0-9_.:-]+)>");
+        java.util.regex.Pattern closeTagPattern =
+                java.util.regex.Pattern.compile("</([A-Za-z0-9_.:-]+)>");
         java.util.regex.Matcher closeMatcher = closeTagPattern.matcher(sgml);
         while (closeMatcher.find()) {
             aggregateTags.add(closeMatcher.group(1).toUpperCase());
@@ -235,30 +212,36 @@ public class OfxParser {
         // Added \\s* to handle tags with extra spaces like <TAG >.
         // Regex to match <TAG>VALUE. Note that [^<\r\n]* stops at the next tag or
         // newline.
-        java.util.regex.Pattern tokenPattern = java.util.regex.Pattern.compile(
-                "<([A-Za-z0-9_.:-]+)\\s*>([^<\r\n]*)");
+        java.util.regex.Pattern tokenPattern =
+                java.util.regex.Pattern.compile("<([A-Za-z0-9_.:-]+)\\s*>([^<\r\n]*)");
         java.util.regex.Matcher tokenMatcher = tokenPattern.matcher(sgml);
         StringBuffer sb = new StringBuffer();
 
         while (tokenMatcher.find()) {
             String tag = tokenMatcher.group(1);
-            String value = tokenMatcher.group(2); // Don't trim yet to preserve potential inter-tag spacing
+            String value =
+                    tokenMatcher.group(2); // Don't trim yet to preserve potential inter-tag spacing
             String tagUpper = tag.toUpperCase();
 
             if (aggregateTags.contains(tagUpper)) {
                 // Aggregate tag — already has a closing tag in the source; leave untouched.
-                tokenMatcher.appendReplacement(sb,
-                        java.util.regex.Matcher.quoteReplacement(tokenMatcher.group(0)));
+                tokenMatcher.appendReplacement(
+                        sb, java.util.regex.Matcher.quoteReplacement(tokenMatcher.group(0)));
             } else {
                 // Leaf tag — add closing tag immediately after the value.
                 // Trim the value here for the XML content but keep the match structure.
                 String trimmedValue = value.trim();
                 // Escape bare ampersands that are not already valid XML entities
                 trimmedValue = trimmedValue.replaceAll("&(?!amp;|lt;|gt;|quot;|apos;|#)", "&amp;");
-                tokenMatcher.appendReplacement(sb,
-                        "<" + tag + ">"
+                tokenMatcher.appendReplacement(
+                        sb,
+                        "<"
+                                + tag
+                                + ">"
                                 + java.util.regex.Matcher.quoteReplacement(trimmedValue)
-                                + "</" + tag + ">");
+                                + "</"
+                                + tag
+                                + ">");
             }
         }
         tokenMatcher.appendTail(sb);
@@ -285,7 +268,8 @@ public class OfxParser {
         return parseXMLContent(content, fileName);
     }
 
-    private ImportParseResult parseXMLContent(String xmlContent, String fileName) throws IOException {
+    private ImportParseResult parseXMLContent(String xmlContent, String fileName)
+            throws IOException {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
@@ -317,13 +301,16 @@ public class OfxParser {
                 Element stmtRs = (Element) stmtRsList.item(i);
                 String accountId = extractAccountId(stmtRs, "BANKACCTFROM");
                 String statementCurrency = extractStatementCurrency(stmtRs);
-                if (fileCurrency == null && statementCurrency != null && !statementCurrency.isEmpty()) {
+                if (fileCurrency == null
+                        && statementCurrency != null
+                        && !statementCurrency.isEmpty()) {
                     fileCurrency = statementCurrency;
                 }
                 NodeList stmtTrnList = stmtRs.getElementsByTagName("STMTTRN");
                 for (int j = 0; j < stmtTrnList.getLength(); j++) {
                     Element el = (Element) stmtTrnList.item(j);
-                    ImportedTransaction txn = parseTransaction(el, fileName, ++index, accountId, statementCurrency);
+                    ImportedTransaction txn =
+                            parseTransaction(el, fileName, ++index, accountId, statementCurrency);
                     if (txn != null) {
                         transactions.add(txn);
                     }
@@ -335,13 +322,16 @@ public class OfxParser {
                 Element stmtRs = (Element) ccStmtRsList.item(i);
                 String accountId = extractAccountId(stmtRs, "CCACCTFROM");
                 String statementCurrency = extractStatementCurrency(stmtRs);
-                if (fileCurrency == null && statementCurrency != null && !statementCurrency.isEmpty()) {
+                if (fileCurrency == null
+                        && statementCurrency != null
+                        && !statementCurrency.isEmpty()) {
                     fileCurrency = statementCurrency;
                 }
                 NodeList stmtTrnList = stmtRs.getElementsByTagName("CCSTMTTRN");
                 for (int j = 0; j < stmtTrnList.getLength(); j++) {
                     Element el = (Element) stmtTrnList.item(j);
-                    ImportedTransaction txn = parseTransaction(el, fileName, ++index, accountId, statementCurrency);
+                    ImportedTransaction txn =
+                            parseTransaction(el, fileName, ++index, accountId, statementCurrency);
                     if (txn != null) {
                         transactions.add(txn);
                     }
@@ -352,17 +342,25 @@ public class OfxParser {
             for (int i = 0; i < invStmtRsList.getLength(); i++) {
                 Element invStmtRs = (Element) invStmtRsList.item(i);
                 String accountId = extractAccountId(invStmtRs, "INVACCTFROM");
-                if ((accountId == null || accountId.isEmpty()) && getElementText(invStmtRs, "BROKERID") != null) {
+                if ((accountId == null || accountId.isEmpty())
+                        && getElementText(invStmtRs, "BROKERID") != null) {
                     accountId = getElementText(invStmtRs, "BROKERID");
                 }
                 String statementCurrency = extractStatementCurrency(invStmtRs);
-                if (fileCurrency == null && statementCurrency != null && !statementCurrency.isEmpty()) {
+                if (fileCurrency == null
+                        && statementCurrency != null
+                        && !statementCurrency.isEmpty()) {
                     fileCurrency = statementCurrency;
                 }
-                index = parseInvestmentTransactions(invStmtRs, fileName, accountId, transactions, index);
+                index =
+                        parseInvestmentTransactions(
+                                invStmtRs, fileName, accountId, transactions, index);
             }
 
-            log.info("OFX parsing complete: {} transactions parsed from {}", transactions.size(), fileName);
+            log.info(
+                    "OFX parsing complete: {} transactions parsed from {}",
+                    transactions.size(),
+                    fileName);
             return org.openfinance.dto.ImportParseResult.builder()
                     .transactions(transactions)
                     .ledgerBalance(ledgerBalance != null ? ledgerBalance : BigDecimal.ZERO)
@@ -379,8 +377,12 @@ public class OfxParser {
     // Standard transaction parsing
     // -------------------------------------------------------------------------
 
-    private ImportedTransaction parseTransaction(Element stmtTrn, String fileName,
-            int lineNumber, String globalAccountId, String globalCurrency) {
+    private ImportedTransaction parseTransaction(
+            Element stmtTrn,
+            String fileName,
+            int lineNumber,
+            String globalAccountId,
+            String globalCurrency) {
         ImportedTransaction.ImportedTransactionBuilder builder = ImportedTransaction.builder();
 
         builder.sourceFileName(fileName);
@@ -471,31 +473,33 @@ public class OfxParser {
     /**
      * Parse investment transactions from INVTRANLIST.
      *
-     * Supported aggregate elements: BUYMF, BUYSTOCK, BUYDEBT, BUYOPT, BUYOTHER,
-     * SELLMF, SELLSTOCK, SELLDEBT, SELLOPT, SELLOTHER, REINVEST, INCOME,
-     * INVEXPENSE, JRNLFUND, JRNLSEC, MARGININTEREST, TRANSFER, CLOSUREOPT.
+     * <p>Supported aggregate elements: BUYMF, BUYSTOCK, BUYDEBT, BUYOPT, BUYOTHER, SELLMF,
+     * SELLSTOCK, SELLDEBT, SELLOPT, SELLOTHER, REINVEST, INCOME, INVEXPENSE, JRNLFUND, JRNLSEC,
+     * MARGININTEREST, TRANSFER, CLOSUREOPT.
      *
-     * The INVTRAN child provides DTSETTLE (or DTTRADE) and FITID.
-     * TOTAL is used for the amount when present.
-     * Security name comes from MEMO or SECID/UNIQUEID.
+     * <p>The INVTRAN child provides DTSETTLE (or DTTRADE) and FITID. TOTAL is used for the amount
+     * when present. Security name comes from MEMO or SECID/UNIQUEID.
      */
-    private int parseInvestmentTransactions(Element invStmtRs, String fileName,
+    private int parseInvestmentTransactions(
+            Element invStmtRs,
+            String fileName,
             String accountId,
             List<ImportedTransaction> transactions,
             int index) {
         // All investment aggregate types that may contain an INVTRAN sub-element
         String[] invTranTypes = {
-                "BUYMF", "BUYSTOCK", "BUYDEBT", "BUYOPT", "BUYOTHER",
-                "SELLMF", "SELLSTOCK", "SELLDEBT", "SELLOPT", "SELLOTHER",
-                "REINVEST", "INCOME", "INVEXPENSE", "JRNLFUND", "JRNLSEC",
-                "MARGININTEREST", "TRANSFER", "CLOSUREOPT"
+            "BUYMF", "BUYSTOCK", "BUYDEBT", "BUYOPT", "BUYOTHER",
+            "SELLMF", "SELLSTOCK", "SELLDEBT", "SELLOPT", "SELLOTHER",
+            "REINVEST", "INCOME", "INVEXPENSE", "JRNLFUND", "JRNLSEC",
+            "MARGININTEREST", "TRANSFER", "CLOSUREOPT"
         };
 
         for (String typeName : invTranTypes) {
             NodeList nodes = invStmtRs.getElementsByTagName(typeName);
             for (int i = 0; i < nodes.getLength(); i++) {
                 Element el = (Element) nodes.item(i);
-                ImportedTransaction txn = parseInvestmentTransaction(el, typeName, fileName, ++index, accountId);
+                ImportedTransaction txn =
+                        parseInvestmentTransaction(el, typeName, fileName, ++index, accountId);
                 if (txn != null) {
                     transactions.add(txn);
                 }
@@ -504,8 +508,11 @@ public class OfxParser {
         return index;
     }
 
-    private ImportedTransaction parseInvestmentTransaction(Element invEl, String typeName,
-            String fileName, int lineNumber,
+    private ImportedTransaction parseInvestmentTransaction(
+            Element invEl,
+            String typeName,
+            String fileName,
+            int lineNumber,
             String globalAccountId) {
         ImportedTransaction.ImportedTransactionBuilder builder = ImportedTransaction.builder();
         builder.sourceFileName(fileName);
@@ -670,11 +677,12 @@ public class OfxParser {
         } else if (transaction.getAmount().compareTo(BigDecimal.ZERO) == 0) {
             transaction.addValidationError("Transaction amount cannot be zero");
         }
-        if (transaction.getTransactionDate() != null &&
-                transaction.getTransactionDate().isAfter(LocalDate.now())) {
+        if (transaction.getTransactionDate() != null
+                && transaction.getTransactionDate().isAfter(LocalDate.now())) {
             transaction.addValidationError("Transaction date cannot be in the future");
         }
-        if (transaction.getReferenceNumber() == null || transaction.getReferenceNumber().isEmpty()) {
+        if (transaction.getReferenceNumber() == null
+                || transaction.getReferenceNumber().isEmpty()) {
             log.debug("Transaction missing reference number (FITID)");
         }
     }

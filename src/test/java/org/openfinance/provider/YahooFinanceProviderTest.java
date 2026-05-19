@@ -1,6 +1,10 @@
 package org.openfinance.provider;
 
+import static org.assertj.core.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -9,16 +13,11 @@ import org.openfinance.dto.MarketQuote;
 import org.openfinance.dto.SymbolSearchResult;
 import org.openfinance.exception.MarketDataException;
 
-import java.time.LocalDate;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.*;
-
 /**
  * Unit tests for YahooFinanceProvider.
- * 
+ *
  * <p>Note: Most tests are disabled by default as they require network access to Yahoo Finance API.
- * Enable them manually for integration testing or set up WireMock for proper unit tests.</p>
+ * Enable them manually for integration testing or set up WireMock for proper unit tests.
  */
 class YahooFinanceProviderTest {
 
@@ -111,8 +110,7 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access.
-     * Enable manually to test real Yahoo Finance API.
+     * Integration test - requires network access. Enable manually to test real Yahoo Finance API.
      */
     @Test
     @Disabled("Requires network access - enable manually for integration testing")
@@ -131,8 +129,7 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access.
-     * Enable manually to test real Yahoo Finance API.
+     * Integration test - requires network access. Enable manually to test real Yahoo Finance API.
      */
     @Test
     @Disabled("Requires network access - enable manually for integration testing")
@@ -142,13 +139,13 @@ class YahooFinanceProviderTest {
 
         // Then: Verify all quotes returned
         assertThat(quotes).hasSize(3);
-        assertThat(quotes).extracting(MarketQuote::getSymbol)
+        assertThat(quotes)
+                .extracting(MarketQuote::getSymbol)
                 .containsExactlyInAnyOrder("AAPL", "MSFT", "GOOGL");
     }
 
     /**
-     * Integration test - requires network access.
-     * Enable manually to test real Yahoo Finance API.
+     * Integration test - requires network access. Enable manually to test real Yahoo Finance API.
      */
     @Test
     @Disabled("Requires network access - enable manually for integration testing")
@@ -163,8 +160,7 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access.
-     * Enable manually to test real Yahoo Finance API.
+     * Integration test - requires network access. Enable manually to test real Yahoo Finance API.
      */
     @Test
     @Disabled("Requires network access - enable manually for integration testing")
@@ -185,8 +181,7 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access.
-     * Enable manually to test real Yahoo Finance API.
+     * Integration test - requires network access. Enable manually to test real Yahoo Finance API.
      */
     @Test
     @Disabled("Requires network access - enable manually for integration testing")

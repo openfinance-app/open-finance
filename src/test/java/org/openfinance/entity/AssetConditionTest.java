@@ -1,18 +1,18 @@
 package org.openfinance.entity;
 
+import static org.assertj.core.api.Assertions.*;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.*;
-
 /**
  * Unit tests for AssetCondition enum.
- * 
- * <p>Tests enum values, display names, value retention factors, descriptions,
- * and business logic for physical asset condition assessment.</p>
- * 
- * <p>Requirements: Physical Asset Tracking - Asset condition affects depreciation
- * and current market value estimation.</p>
+ *
+ * <p>Tests enum values, display names, value retention factors, descriptions, and business logic
+ * for physical asset condition assessment.
+ *
+ * <p>Requirements: Physical Asset Tracking - Asset condition affects depreciation and current
+ * market value estimation.
  */
 @DisplayName("AssetCondition Enum Tests")
 class AssetConditionTest {
@@ -23,15 +23,15 @@ class AssetConditionTest {
     @DisplayName("Should have all 5 required condition types")
     void shouldHaveAllRequiredConditionTypes() {
         AssetCondition[] conditions = AssetCondition.values();
-        
+
         assertThat(conditions).hasSize(5);
-        assertThat(conditions).contains(
-            AssetCondition.NEW,
-            AssetCondition.EXCELLENT,
-            AssetCondition.GOOD,
-            AssetCondition.FAIR,
-            AssetCondition.POOR
-        );
+        assertThat(conditions)
+                .contains(
+                        AssetCondition.NEW,
+                        AssetCondition.EXCELLENT,
+                        AssetCondition.GOOD,
+                        AssetCondition.FAIR,
+                        AssetCondition.POOR);
     }
 
     @Test
@@ -58,14 +58,14 @@ class AssetConditionTest {
     @DisplayName("Should throw exception for invalid enum value")
     void shouldThrowExceptionForInvalidValue() {
         assertThatThrownBy(() -> AssetCondition.valueOf("INVALID"))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     @DisplayName("Should throw exception for null enum value")
     void shouldThrowExceptionForNullValue() {
         assertThatThrownBy(() -> AssetCondition.valueOf(null))
-            .isInstanceOf(NullPointerException.class);
+                .isInstanceOf(NullPointerException.class);
     }
 
     // ========== DISPLAY NAME TESTS ==========
@@ -104,9 +104,7 @@ class AssetConditionTest {
     @DisplayName("Should return non-null display names for all conditions")
     void shouldReturnNonNullDisplayNames() {
         for (AssetCondition condition : AssetCondition.values()) {
-            assertThat(condition.getDisplayName())
-                .isNotNull()
-                .isNotEmpty();
+            assertThat(condition.getDisplayName()).isNotNull().isNotEmpty();
         }
     }
 
@@ -150,7 +148,7 @@ class AssetConditionTest {
         double goodFactor = AssetCondition.GOOD.getValueRetentionFactor();
         double fairFactor = AssetCondition.FAIR.getValueRetentionFactor();
         double poorFactor = AssetCondition.POOR.getValueRetentionFactor();
-        
+
         assertThat(newFactor).isGreaterThan(excellentFactor);
         assertThat(excellentFactor).isGreaterThan(goodFactor);
         assertThat(goodFactor).isGreaterThan(fairFactor);
@@ -162,9 +160,7 @@ class AssetConditionTest {
     void shouldReturnRetentionFactorsBetweenZeroAndOne() {
         for (AssetCondition condition : AssetCondition.values()) {
             double factor = condition.getValueRetentionFactor();
-            assertThat(factor)
-                .isGreaterThanOrEqualTo(0.0)
-                .isLessThanOrEqualTo(1.0);
+            assertThat(factor).isGreaterThanOrEqualTo(0.0).isLessThanOrEqualTo(1.0);
         }
     }
 
@@ -174,45 +170,45 @@ class AssetConditionTest {
     @DisplayName("Should return non-null description for NEW condition")
     void shouldReturnDescriptionForNew() {
         assertThat(AssetCondition.NEW.getDescription())
-            .isNotNull()
-            .isNotEmpty()
-            .contains("Brand new");
+                .isNotNull()
+                .isNotEmpty()
+                .contains("Brand new");
     }
 
     @Test
     @DisplayName("Should return non-null description for EXCELLENT condition")
     void shouldReturnDescriptionForExcellent() {
         assertThat(AssetCondition.EXCELLENT.getDescription())
-            .isNotNull()
-            .isNotEmpty()
-            .contains("Like new");
+                .isNotNull()
+                .isNotEmpty()
+                .contains("Like new");
     }
 
     @Test
     @DisplayName("Should return non-null description for GOOD condition")
     void shouldReturnDescriptionForGood() {
         assertThat(AssetCondition.GOOD.getDescription())
-            .isNotNull()
-            .isNotEmpty()
-            .contains("Normal wear");
+                .isNotNull()
+                .isNotEmpty()
+                .contains("Normal wear");
     }
 
     @Test
     @DisplayName("Should return non-null description for FAIR condition")
     void shouldReturnDescriptionForFair() {
         assertThat(AssetCondition.FAIR.getDescription())
-            .isNotNull()
-            .isNotEmpty()
-            .contains("Noticeable wear");
+                .isNotNull()
+                .isNotEmpty()
+                .contains("Noticeable wear");
     }
 
     @Test
     @DisplayName("Should return non-null description for POOR condition")
     void shouldReturnDescriptionForPoor() {
         assertThat(AssetCondition.POOR.getDescription())
-            .isNotNull()
-            .isNotEmpty()
-            .contains("Heavy wear");
+                .isNotNull()
+                .isNotEmpty()
+                .contains("Heavy wear");
     }
 
     @Test
@@ -220,9 +216,9 @@ class AssetConditionTest {
     void shouldReturnNonNullDescriptionsForAllConditions() {
         for (AssetCondition condition : AssetCondition.values()) {
             assertThat(condition.getDescription())
-                .isNotNull()
-                .isNotEmpty()
-                .hasSizeGreaterThan(10); // Ensure meaningful description
+                    .isNotNull()
+                    .isNotEmpty()
+                    .hasSizeGreaterThan(10); // Ensure meaningful description
         }
     }
 
@@ -234,7 +230,7 @@ class AssetConditionTest {
         String goodDesc = AssetCondition.GOOD.getDescription();
         String fairDesc = AssetCondition.FAIR.getDescription();
         String poorDesc = AssetCondition.POOR.getDescription();
-        
+
         // All descriptions should be different
         assertThat(newDesc).isNotEqualTo(excellentDesc);
         assertThat(newDesc).isNotEqualTo(goodDesc);

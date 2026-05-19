@@ -1,78 +1,59 @@
 package org.openfinance.service;
 
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.openfinance.service.OperationHistoryService;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.mockito.Spy;
 import org.openfinance.entity.*;
 import org.openfinance.repository.*;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.ai.AIProvider;
 import org.springframework.context.MessageSource;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import reactor.core.publisher.Mono;
 
-import javax.crypto.SecretKey;
-import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 /**
- * Unit tests for InsightService.
- * Focuses on ensuring that net worth calculations include Real Estate and Assets.
+ * Unit tests for InsightService. Focuses on ensuring that net worth calculations include Real
+ * Estate and Assets.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("InsightService Unit Tests")
 class InsightServiceTest {
 
-    @Mock
-    private InsightRepository insightRepository;
-    @Mock
-    private TransactionRepository transactionRepository;
-    @Mock
-    private BudgetRepository budgetRepository;
-    @Mock
-    private AccountRepository accountRepository;
-    @Mock
-    private CategoryRepository categoryRepository;
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private UserSettingsRepository userSettingsRepository;
-    @Mock
-    private RecurringTransactionRepository recurringTransactionRepository;
-    @Mock
-    private RealEstateRepository realEstateRepository;
-    @Mock
-    private AssetRepository assetRepository;
-    @Mock
-    private LiabilityRepository liabilityRepository;
-    @Mock
-    private EncryptionService encryptionService;
-    @Mock
-    private MessageSource messageSource;
-    @Mock
-    private AIProvider aiProvider;
-    @Spy
-    private ObjectMapper objectMapper = new ObjectMapper();
+    @Mock private InsightRepository insightRepository;
+    @Mock private TransactionRepository transactionRepository;
+    @Mock private BudgetRepository budgetRepository;
+    @Mock private AccountRepository accountRepository;
+    @Mock private CategoryRepository categoryRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private UserSettingsRepository userSettingsRepository;
+    @Mock private RecurringTransactionRepository recurringTransactionRepository;
+    @Mock private RealEstateRepository realEstateRepository;
+    @Mock private AssetRepository assetRepository;
+    @Mock private LiabilityRepository liabilityRepository;
+    @Mock private EncryptionService encryptionService;
+    @Mock private MessageSource messageSource;
+    @Mock private AIProvider aiProvider;
+    @Spy private ObjectMapper objectMapper = new ObjectMapper();
 
-    @Mock
-    private OperationHistoryService operationHistoryService;
+    @Mock private OperationHistoryService operationHistoryService;
 
-    @InjectMocks
-    private InsightService insightService;
+    @InjectMocks private InsightService insightService;
 
     private Long testUserId = 1L;
     private SecretKey mockKey;
@@ -80,15 +61,19 @@ class InsightServiceTest {
     @BeforeEach
     void setUp() {
         mockKey = mock(SecretKey.class);
-        
+
         // Default mocks to prevent NPEs
         when(userSettingsRepository.findByUserId(testUserId)).thenReturn(Optional.empty());
-        when(userRepository.findById(testUserId)).thenReturn(Optional.of(User.builder().id(testUserId).build()));
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(Collections.emptyList());
-        when(realEstateRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(Collections.emptyList());
+        when(userRepository.findById(testUserId))
+                .thenReturn(Optional.of(User.builder().id(testUserId).build()));
+        when(accountRepository.findByUserIdAndIsActive(testUserId, true))
+                .thenReturn(Collections.emptyList());
+        when(realEstateRepository.findByUserIdAndIsActive(testUserId, true))
+                .thenReturn(Collections.emptyList());
         when(assetRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
         when(liabilityRepository.findById(anyLong())).thenReturn(Optional.empty());
-        when(transactionRepository.findByUserIdAndType(anyLong(), any())).thenReturn(Collections.emptyList());
+        when(transactionRepository.findByUserIdAndType(anyLong(), any()))
+                .thenReturn(Collections.emptyList());
         when(aiProvider.sendPrompt(anyString(), anyString())).thenReturn(Mono.just("{}"));
     }
 
@@ -98,31 +83,32 @@ class InsightServiceTest {
         // Arrange
         // 1. User Settings (Country: US)
         User user = User.builder().id(testUserId).build();
-        UserSettings userSettings = UserSettings.builder()
-                .user(user)
-                .country("US")
-                .language("en")
-                .build();
+        UserSettings userSettings =
+                UserSettings.builder().user(user).country("US").language("en").build();
         when(userSettingsRepository.findByUserId(testUserId)).thenReturn(Optional.of(userSettings));
 
         // 2. Account Balances: $10,000
-        Account account = Account.builder()
-                .balance(new BigDecimal("10000.00"))
-                .currency("USD")
-                .isActive(true)
-                .build();
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(List.of(account));
+        Account account =
+                Account.builder()
+                        .balance(new BigDecimal("10000.00"))
+                        .currency("USD")
+                        .isActive(true)
+                        .build();
+        when(accountRepository.findByUserIdAndIsActive(testUserId, true))
+                .thenReturn(List.of(account));
 
         // 3. Real Estate: Value $300,000, Mortgage $200,000 -> Equity $100,000
-        RealEstateProperty property = RealEstateProperty.builder()
-                .id(1L)
-                .userId(testUserId)
-                .currentValue("encrypted_300000")
-                .currency("USD")
-                .isActive(true)
-                .mortgageId(10L)
-                .build();
-        when(realEstateRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(List.of(property));
+        RealEstateProperty property =
+                RealEstateProperty.builder()
+                        .id(1L)
+                        .userId(testUserId)
+                        .currentValue("encrypted_300000")
+                        .currency("USD")
+                        .isActive(true)
+                        .mortgageId(10L)
+                        .build();
+        when(realEstateRepository.findByUserIdAndIsActive(testUserId, true))
+                .thenReturn(List.of(property));
 
         Liability mortgage = new Liability();
         mortgage.setId(10L);
@@ -135,12 +121,13 @@ class InsightServiceTest {
         when(encryptionService.decrypt(eq("encrypted_200000"), any())).thenReturn("200000.00");
 
         // 4. Other Assets: Value $5,000
-        Asset asset = Asset.builder()
-                .userId(testUserId)
-                .quantity(new BigDecimal("1"))
-                .currentPrice(new BigDecimal("5000.00"))
-                .currency("USD")
-                .build();
+        Asset asset =
+                Asset.builder()
+                        .userId(testUserId)
+                        .quantity(new BigDecimal("1"))
+                        .currentPrice(new BigDecimal("5000.00"))
+                        .currency("USD")
+                        .build();
         when(assetRepository.findByUserId(testUserId)).thenReturn(List.of(asset));
 
         // Mock message source to avoid breakage

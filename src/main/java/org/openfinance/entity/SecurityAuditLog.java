@@ -18,8 +18,8 @@ import org.hibernate.annotations.CreationTimestamp;
 /**
  * Entity representing a security audit log entry for authentication and access events.
  *
- * <p>Each entry captures who did what, from where, and when. Events are immutable once created —
- * no update operations should be performed on this table.
+ * <p>Each entry captures who did what, from where, and when. Events are immutable once created — no
+ * update operations should be performed on this table.
  *
  * <p>Requirement TASK-15.1.7: Security logging — authentication attempts and authorization
  * failures.
@@ -48,8 +48,8 @@ public class SecurityAuditLog {
     private Long userId;
 
     /**
-     * The username supplied during the event. Stored directly (not as FK) so we can log events
-     * for non-existent usernames too.
+     * The username supplied during the event. Stored directly (not as FK) so we can log events for
+     * non-existent usernames too.
      */
     @Column(name = "username", nullable = false, length = 100)
     private String username;

@@ -1,12 +1,20 @@
 package org.openfinance.service;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
-import org.openfinance.service.OperationHistoryService;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -21,39 +29,21 @@ import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.security.EncryptionService;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit tests for TransactionSplitService covering validation, persistence, and retrieval.
- */
+/** Unit tests for TransactionSplitService covering validation, persistence, and retrieval. */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("TransactionSplitService Unit Tests")
 class TransactionSplitServiceTest {
 
-    @Mock
-    private TransactionSplitRepository splitRepository;
+    @Mock private TransactionSplitRepository splitRepository;
 
-    @Mock
-    private CategoryRepository categoryRepository;
+    @Mock private CategoryRepository categoryRepository;
 
-    @Mock
-    private EncryptionService encryptionService;
+    @Mock private EncryptionService encryptionService;
 
-    @Mock
-    private OperationHistoryService operationHistoryService;
+    @Mock private OperationHistoryService operationHistoryService;
 
-    @InjectMocks
-    private TransactionSplitService transactionSplitService;
+    @InjectMocks private TransactionSplitService transactionSplitService;
 
     private SecretKey testKey;
 
@@ -65,7 +55,8 @@ class TransactionSplitServiceTest {
     }
 
     // ---------- Helpers ----------
-    private TransactionSplitRequest createSplitRequest(Long categoryId, BigDecimal amount, String description) {
+    private TransactionSplitRequest createSplitRequest(
+            Long categoryId, BigDecimal amount, String description) {
         return TransactionSplitRequest.builder()
                 .categoryId(categoryId)
                 .amount(amount)
@@ -73,7 +64,8 @@ class TransactionSplitServiceTest {
                 .build();
     }
 
-    private TransactionSplit createSplitEntity(Long id, Long transactionId, Long categoryId, BigDecimal amount, String description) {
+    private TransactionSplit createSplitEntity(
+            Long id, Long transactionId, Long categoryId, BigDecimal amount, String description) {
         TransactionSplit split = new TransactionSplit();
         split.setId(id);
         split.setTransactionId(transactionId);
@@ -84,12 +76,7 @@ class TransactionSplitServiceTest {
     }
 
     private Category createCategory(Long id, String name, String icon, String color) {
-        return Category.builder()
-                .id(id)
-                .name(name)
-                .icon(icon)
-                .color(color)
-                .build();
+        return Category.builder().id(id).name(name).icon(icon).color(color).build();
     }
 
     // ---------- validateSplits tests ----------
@@ -101,23 +88,35 @@ class TransactionSplitServiceTest {
         BigDecimal totalAmount = new BigDecimal("100.00");
 
         // Act & Assert
-        assertThatCode(() -> transactionSplitService.validateSplits(totalAmount, TransactionType.INCOME, null))
+        assertThatCode(
+                        () ->
+                                transactionSplitService.validateSplits(
+                                        totalAmount, TransactionType.INCOME, null))
                 .doesNotThrowAnyException();
-        assertThatCode(() -> transactionSplitService.validateSplits(totalAmount, TransactionType.EXPENSE, List.of()))
+        assertThatCode(
+                        () ->
+                                transactionSplitService.validateSplits(
+                                        totalAmount, TransactionType.EXPENSE, List.of()))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("Should throw InvalidTransactionException when splits are provided for TRANSFER type")
+    @DisplayName(
+            "Should throw InvalidTransactionException when splits are provided for TRANSFER type")
     void shouldThrowWhenSplitsForTransferType() {
         // Arrange
         BigDecimal totalAmount = new BigDecimal("100.00");
-        List<TransactionSplitRequest> splits = List.of(createSplitRequest(1L, new BigDecimal("50.00"), "desc"));
+        List<TransactionSplitRequest> splits =
+                List.of(createSplitRequest(1L, new BigDecimal("50.00"), "desc"));
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionSplitService.validateSplits(totalAmount, TransactionType.TRANSFER, splits))
+        assertThatThrownBy(
+                        () ->
+                                transactionSplitService.validateSplits(
+                                        totalAmount, TransactionType.TRANSFER, splits))
                 .isInstanceOf(InvalidTransactionException.class)
-                .hasMessageContaining("Split transactions are not supported for TRANSFER type transactions");
+                .hasMessageContaining(
+                        "Split transactions are not supported for TRANSFER type transactions");
     }
 
     @Test
@@ -125,10 +124,14 @@ class TransactionSplitServiceTest {
     void shouldThrowWhenOnlyOneSplit() {
         // Arrange
         BigDecimal totalAmount = new BigDecimal("100.00");
-        List<TransactionSplitRequest> splits = List.of(createSplitRequest(1L, new BigDecimal("100.00"), "desc"));
+        List<TransactionSplitRequest> splits =
+                List.of(createSplitRequest(1L, new BigDecimal("100.00"), "desc"));
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionSplitService.validateSplits(totalAmount, TransactionType.INCOME, splits))
+        assertThatThrownBy(
+                        () ->
+                                transactionSplitService.validateSplits(
+                                        totalAmount, TransactionType.INCOME, splits))
                 .isInstanceOf(InvalidTransactionException.class)
                 .hasMessageContaining("A split transaction must have at least 2 split entries");
     }
@@ -138,13 +141,16 @@ class TransactionSplitServiceTest {
     void shouldPassValidationWhenSumsMatchExactly() {
         // Arrange
         BigDecimal totalAmount = new BigDecimal("100.00");
-        List<TransactionSplitRequest> splits = List.of(
-                createSplitRequest(1L, new BigDecimal("40.00"), "desc1"),
-                createSplitRequest(2L, new BigDecimal("60.00"), "desc2")
-        );
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("40.00"), "desc1"),
+                        createSplitRequest(2L, new BigDecimal("60.00"), "desc2"));
 
         // Act & Assert
-        assertThatCode(() -> transactionSplitService.validateSplits(totalAmount, TransactionType.EXPENSE, splits))
+        assertThatCode(
+                        () ->
+                                transactionSplitService.validateSplits(
+                                        totalAmount, TransactionType.EXPENSE, splits))
                 .doesNotThrowAnyException();
     }
 
@@ -153,13 +159,16 @@ class TransactionSplitServiceTest {
     void shouldPassValidationWhenSumsWithinTolerance() {
         // Arrange
         BigDecimal totalAmount = new BigDecimal("100.00");
-        List<TransactionSplitRequest> splits = List.of(
-                createSplitRequest(1L, new BigDecimal("40.005"), "desc1"),
-                createSplitRequest(2L, new BigDecimal("59.995"), "desc2")
-        );
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("40.005"), "desc1"),
+                        createSplitRequest(2L, new BigDecimal("59.995"), "desc2"));
 
         // Act & Assert
-        assertThatCode(() -> transactionSplitService.validateSplits(totalAmount, TransactionType.INCOME, splits))
+        assertThatCode(
+                        () ->
+                                transactionSplitService.validateSplits(
+                                        totalAmount, TransactionType.INCOME, splits))
                 .doesNotThrowAnyException();
     }
 
@@ -168,15 +177,19 @@ class TransactionSplitServiceTest {
     void shouldThrowWhenSumExceedsToleranceAbove() {
         // Arrange
         BigDecimal totalAmount = new BigDecimal("100.00");
-        List<TransactionSplitRequest> splits = List.of(
-                createSplitRequest(1L, new BigDecimal("50.02"), "desc1"),
-                createSplitRequest(2L, new BigDecimal("50.00"), "desc2")
-        );
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("50.02"), "desc1"),
+                        createSplitRequest(2L, new BigDecimal("50.00"), "desc2"));
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionSplitService.validateSplits(totalAmount, TransactionType.EXPENSE, splits))
+        assertThatThrownBy(
+                        () ->
+                                transactionSplitService.validateSplits(
+                                        totalAmount, TransactionType.EXPENSE, splits))
                 .isInstanceOf(InvalidTransactionException.class)
-                .hasMessageContaining("Split amounts sum to 100.02 but parent transaction amount is 100.0000")
+                .hasMessageContaining(
+                        "Split amounts sum to 100.02 but parent transaction amount is 100.0000")
                 .hasMessageContaining("difference 0.0200 exceeds allowed tolerance of 0.01");
     }
 
@@ -185,15 +198,19 @@ class TransactionSplitServiceTest {
     void shouldThrowWhenSumExceedsToleranceBelow() {
         // Arrange
         BigDecimal totalAmount = new BigDecimal("100.00");
-        List<TransactionSplitRequest> splits = List.of(
-                createSplitRequest(1L, new BigDecimal("49.98"), "desc1"),
-                createSplitRequest(2L, new BigDecimal("50.00"), "desc2")
-        );
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("49.98"), "desc1"),
+                        createSplitRequest(2L, new BigDecimal("50.00"), "desc2"));
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionSplitService.validateSplits(totalAmount, TransactionType.INCOME, splits))
+        assertThatThrownBy(
+                        () ->
+                                transactionSplitService.validateSplits(
+                                        totalAmount, TransactionType.INCOME, splits))
                 .isInstanceOf(InvalidTransactionException.class)
-                .hasMessageContaining("Split amounts sum to 99.98 but parent transaction amount is 100.0000")
+                .hasMessageContaining(
+                        "Split amounts sum to 99.98 but parent transaction amount is 100.0000")
                 .hasMessageContaining("difference 0.0200 exceeds allowed tolerance of 0.01");
     }
 
@@ -204,10 +221,10 @@ class TransactionSplitServiceTest {
     void shouldSaveSplitsSuccessfully() {
         // Arrange
         Long transactionId = 100L;
-        List<TransactionSplitRequest> splits = List.of(
-                createSplitRequest(1L, new BigDecimal("40.00"), "desc1"),
-                createSplitRequest(2L, new BigDecimal("60.00"), "desc2")
-        );
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("40.00"), "desc1"),
+                        createSplitRequest(2L, new BigDecimal("60.00"), "desc2"));
 
         when(encryptionService.encrypt("desc1", testKey)).thenReturn("enc-desc1");
         when(encryptionService.encrypt("desc2", testKey)).thenReturn("enc-desc2");
@@ -243,10 +260,10 @@ class TransactionSplitServiceTest {
     void shouldHandleNullDescriptionInSplits() {
         // Arrange
         Long transactionId = 101L;
-        List<TransactionSplitRequest> splits = List.of(
-                createSplitRequest(1L, new BigDecimal("50.00"), null),
-                createSplitRequest(2L, new BigDecimal("50.00"), "")
-        );
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("50.00"), null),
+                        createSplitRequest(2L, new BigDecimal("50.00"), ""));
 
         ArgumentCaptor<List<TransactionSplit>> captor = ArgumentCaptor.forClass(List.class);
 
@@ -304,10 +321,12 @@ class TransactionSplitServiceTest {
     void shouldReturnDecryptedSplitsWithCategoryDenormalization() {
         // Arrange
         Long transactionId = 200L;
-        List<TransactionSplit> splits = List.of(
-                createSplitEntity(1L, transactionId, 1L, new BigDecimal("40.00"), "enc-desc1"),
-                createSplitEntity(2L, transactionId, 2L, new BigDecimal("60.00"), "enc-desc2")
-        );
+        List<TransactionSplit> splits =
+                List.of(
+                        createSplitEntity(
+                                1L, transactionId, 1L, new BigDecimal("40.00"), "enc-desc1"),
+                        createSplitEntity(
+                                2L, transactionId, 2L, new BigDecimal("60.00"), "enc-desc2"));
 
         Category cat1 = createCategory(1L, "Food", "ic-food", "#ff0000");
         Category cat2 = createCategory(2L, "Transport", "ic-car", "#00ff00");
@@ -321,7 +340,8 @@ class TransactionSplitServiceTest {
         splits.get(1).setCategory(cat2);
 
         // Act
-        List<TransactionSplitResponse> responses = transactionSplitService.getSplitsForTransaction(transactionId, testKey);
+        List<TransactionSplitResponse> responses =
+                transactionSplitService.getSplitsForTransaction(transactionId, testKey);
 
         // Assert
         assertThat(responses).hasSize(2);
@@ -355,7 +375,8 @@ class TransactionSplitServiceTest {
         when(splitRepository.findByTransactionIdOrderById(transactionId)).thenReturn(List.of());
 
         // Act
-        List<TransactionSplitResponse> responses = transactionSplitService.getSplitsForTransaction(transactionId, testKey);
+        List<TransactionSplitResponse> responses =
+                transactionSplitService.getSplitsForTransaction(transactionId, testKey);
 
         // Assert
         assertThat(responses).isEmpty();
@@ -367,9 +388,8 @@ class TransactionSplitServiceTest {
     void shouldHandleNullDescriptionInSplitsRetrieval() {
         // Arrange
         Long transactionId = 202L;
-        List<TransactionSplit> splits = List.of(
-                createSplitEntity(1L, transactionId, 1L, new BigDecimal("100.00"), null)
-        );
+        List<TransactionSplit> splits =
+                List.of(createSplitEntity(1L, transactionId, 1L, new BigDecimal("100.00"), null));
 
         Category cat = createCategory(1L, "Misc", "ic-misc", "#000000");
         splits.get(0).setCategory(cat);
@@ -377,7 +397,8 @@ class TransactionSplitServiceTest {
         when(splitRepository.findByTransactionIdOrderById(transactionId)).thenReturn(splits);
 
         // Act
-        List<TransactionSplitResponse> responses = transactionSplitService.getSplitsForTransaction(transactionId, testKey);
+        List<TransactionSplitResponse> responses =
+                transactionSplitService.getSplitsForTransaction(transactionId, testKey);
 
         // Assert
         assertThat(responses).hasSize(1);
@@ -390,18 +411,21 @@ class TransactionSplitServiceTest {
     void shouldHandleDecryptionFailureGracefully() {
         // Arrange
         Long transactionId = 203L;
-        List<TransactionSplit> splits = List.of(
-                createSplitEntity(1L, transactionId, 1L, new BigDecimal("100.00"), "enc-desc")
-        );
+        List<TransactionSplit> splits =
+                List.of(
+                        createSplitEntity(
+                                1L, transactionId, 1L, new BigDecimal("100.00"), "enc-desc"));
 
         Category cat = createCategory(1L, "Misc", "ic-misc", "#000000");
         splits.get(0).setCategory(cat);
 
         when(splitRepository.findByTransactionIdOrderById(transactionId)).thenReturn(splits);
-        when(encryptionService.decrypt("enc-desc", testKey)).thenThrow(new RuntimeException("Decryption failed"));
+        when(encryptionService.decrypt("enc-desc", testKey))
+                .thenThrow(new RuntimeException("Decryption failed"));
 
         // Act
-        List<TransactionSplitResponse> responses = transactionSplitService.getSplitsForTransaction(transactionId, testKey);
+        List<TransactionSplitResponse> responses =
+                transactionSplitService.getSplitsForTransaction(transactionId, testKey);
 
         // Assert
         assertThat(responses).hasSize(1);
@@ -413,9 +437,8 @@ class TransactionSplitServiceTest {
     void shouldFallbackToRepositoryWhenCategoryNotLoaded() {
         // Arrange
         Long transactionId = 204L;
-        List<TransactionSplit> splits = List.of(
-                createSplitEntity(1L, transactionId, 1L, new BigDecimal("100.00"), null)
-        );
+        List<TransactionSplit> splits =
+                List.of(createSplitEntity(1L, transactionId, 1L, new BigDecimal("100.00"), null));
 
         // Category not set on entity, so fallback to repository
         Category cat = createCategory(1L, "Fallback", "ic-fallback", "#ffffff");
@@ -424,7 +447,8 @@ class TransactionSplitServiceTest {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(cat));
 
         // Act
-        List<TransactionSplitResponse> responses = transactionSplitService.getSplitsForTransaction(transactionId, testKey);
+        List<TransactionSplitResponse> responses =
+                transactionSplitService.getSplitsForTransaction(transactionId, testKey);
 
         // Assert
         assertThat(responses).hasSize(1);
@@ -438,14 +462,14 @@ class TransactionSplitServiceTest {
     void shouldHandleSplitsWithoutCategory() {
         // Arrange
         Long transactionId = 205L;
-        List<TransactionSplit> splits = List.of(
-                createSplitEntity(1L, transactionId, null, new BigDecimal("100.00"), null)
-        );
+        List<TransactionSplit> splits =
+                List.of(createSplitEntity(1L, transactionId, null, new BigDecimal("100.00"), null));
 
         when(splitRepository.findByTransactionIdOrderById(transactionId)).thenReturn(splits);
 
         // Act
-        List<TransactionSplitResponse> responses = transactionSplitService.getSplitsForTransaction(transactionId, testKey);
+        List<TransactionSplitResponse> responses =
+                transactionSplitService.getSplitsForTransaction(transactionId, testKey);
 
         // Assert
         assertThat(responses).hasSize(1);

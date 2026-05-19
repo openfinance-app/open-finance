@@ -7,16 +7,16 @@ import lombok.NoArgsConstructor;
 
 /**
  * Response DTO for system notifications.
- * 
- * <p>
- * Represents various types of notifications that require user attention:
+ *
+ * <p>Represents various types of notifications that require user attention:
+ *
  * <ul>
- * <li>STALE_QUOTES - Asset quotes not updated recently</li>
- * <li>STALE_EXCHANGE_RATES - Exchange rates not updated for more than 2 days</li>
- * <li>UNCATEGORIZED_TRANSACTIONS - Transactions without categories</li>
- * <li>UNLINKED_PAYEE - Transactions without payees</li>
- * <li>LOW_BALANCE - Accounts with very low balance</li>
- * <li>BUDGET_ALERT - Budget threshold alerts</li>
+ *   <li>STALE_QUOTES - Asset quotes not updated recently
+ *   <li>STALE_EXCHANGE_RATES - Exchange rates not updated for more than 2 days
+ *   <li>UNCATEGORIZED_TRANSACTIONS - Transactions without categories
+ *   <li>UNLINKED_PAYEE - Transactions without payees
+ *   <li>LOW_BALANCE - Accounts with very low balance
+ *   <li>BUDGET_ALERT - Budget threshold alerts
  * </ul>
  */
 @Data
@@ -25,44 +25,28 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class NotificationResponse {
 
-    /**
-     * Notification type
-     */
+    /** Notification type */
     private NotificationType type;
 
-    /**
-     * Notification title
-     */
+    /** Notification title */
     private String title;
 
-    /**
-     * Notification message
-     */
+    /** Notification message */
     private String message;
 
-    /**
-     * Count of items (e.g., number of uncategorized transactions)
-     */
+    /** Count of items (e.g., number of uncategorized transactions) */
     private Integer count;
 
-    /**
-     * Action URL or identifier for handling the notification
-     */
+    /** Action URL or identifier for handling the notification */
     private String actionUrl;
 
-    /**
-     * Action label (e.g., "Update Prices", "Categorize")
-     */
+    /** Action label (e.g., "Update Prices", "Categorize") */
     private String actionLabel;
 
-    /**
-     * Severity level
-     */
+    /** Severity level */
     private NotificationSeverity severity;
 
-    /**
-     * Additional context data (JSON string)
-     */
+    /** Additional context data (JSON string) */
     private String metadata;
 
     public enum NotificationType {

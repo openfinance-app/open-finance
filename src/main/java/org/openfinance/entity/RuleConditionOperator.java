@@ -3,11 +3,13 @@ package org.openfinance.entity;
 /**
  * Enum representing the comparison operator for a rule condition.
  *
- * <p>String operators apply to {@link RuleConditionField#DESCRIPTION}.</p>
- * <p>Numeric operators apply to {@link RuleConditionField#AMOUNT}.</p>
- * <p>Both EQUALS and NOT_EQUALS apply to all field types.</p>
+ * <p>String operators apply to {@link RuleConditionField#DESCRIPTION}.
  *
- * <p>Requirement: REQ-TR-2.2</p>
+ * <p>Numeric operators apply to {@link RuleConditionField#AMOUNT}.
+ *
+ * <p>Both EQUALS and NOT_EQUALS apply to all field types.
+ *
+ * <p>Requirement: REQ-TR-2.2
  */
 public enum RuleConditionOperator {
 
@@ -21,7 +23,10 @@ public enum RuleConditionOperator {
 
     // ---- Universal operators ----
 
-    /** Exact match (case-insensitive for strings, exact BigDecimal for amounts). Requirement: REQ-TR-2.2 */
+    /**
+     * Exact match (case-insensitive for strings, exact BigDecimal for amounts). Requirement:
+     * REQ-TR-2.2
+     */
     EQUALS,
 
     /** Not an exact match. Requirement: REQ-TR-2.2 */

@@ -6,23 +6,24 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * Exception thrown when file storage operations fail.
  *
- * <p>This exception is thrown when there are issues with reading, writing,
- * encrypting, or decrypting files on the filesystem.</p>
+ * <p>This exception is thrown when there are issues with reading, writing, encrypting, or
+ * decrypting files on the filesystem.
  *
- * <p>Common scenarios:</p>
+ * <p>Common scenarios:
+ *
  * <ul>
- *   <li>Failed to write file to disk</li>
- *   <li>Failed to read file from disk</li>
- *   <li>Failed to encrypt/decrypt file contents</li>
- *   <li>Failed to delete file from disk</li>
- *   <li>Storage directory not accessible</li>
+ *   <li>Failed to write file to disk
+ *   <li>Failed to read file from disk
+ *   <li>Failed to encrypt/decrypt file contents
+ *   <li>Failed to delete file from disk
+ *   <li>Storage directory not accessible
  * </ul>
  *
- * <p>Requirement REQ-2.12: File Attachment System - File storage operations</p>
+ * <p>Requirement REQ-2.12: File Attachment System - File storage operations
  */
 @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 public class FileStorageException extends RuntimeException {
-    
+
     /**
      * Constructs a new FileStorageException with a detail message.
      *
@@ -31,7 +32,7 @@ public class FileStorageException extends RuntimeException {
     public FileStorageException(String message) {
         super(message);
     }
-    
+
     /**
      * Constructs a new FileStorageException with a detail message and cause.
      *
@@ -41,7 +42,7 @@ public class FileStorageException extends RuntimeException {
     public FileStorageException(String message, Throwable cause) {
         super(message, cause);
     }
-    
+
     /**
      * Creates an exception for failed file write operation.
      *
@@ -52,7 +53,7 @@ public class FileStorageException extends RuntimeException {
     public static FileStorageException writeFailure(String fileName, Throwable cause) {
         return new FileStorageException("Failed to write file: " + fileName, cause);
     }
-    
+
     /**
      * Creates an exception for failed file read operation.
      *
@@ -63,7 +64,7 @@ public class FileStorageException extends RuntimeException {
     public static FileStorageException readFailure(String fileName, Throwable cause) {
         return new FileStorageException("Failed to read file: " + fileName, cause);
     }
-    
+
     /**
      * Creates an exception for failed encryption operation.
      *
@@ -73,7 +74,7 @@ public class FileStorageException extends RuntimeException {
     public static FileStorageException encryptionFailure(Throwable cause) {
         return new FileStorageException("Failed to encrypt file", cause);
     }
-    
+
     /**
      * Creates an exception for failed decryption operation.
      *

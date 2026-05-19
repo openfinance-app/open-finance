@@ -1,7 +1,9 @@
 package org.openfinance.controller;
 
+import jakarta.validation.Valid;
 import java.util.List;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.PayeeRequest;
 import org.openfinance.dto.PayeeResponse;
 import org.openfinance.entity.User;
@@ -20,21 +22,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * REST controller for managing payees.
- * 
- * <p>
- * Provides CRUD operations for payees and search functionality.
- * System payees (default merchants) cannot be modified, only hidden.
- * </p>
- * 
- * <p>
- * Requirements: Payee Management Feature
- * </p>
+ *
+ * <p>Provides CRUD operations for payees and search functionality. System payees (default
+ * merchants) cannot be modified, only hidden.
+ *
+ * <p>Requirements: Payee Management Feature
  */
 @RestController
 @RequestMapping("/api/v1/payees")
@@ -46,37 +40,35 @@ public class PayeeController {
 
     /**
      * Get all payees.
-     * 
+     *
      * @return list of all payees
      */
     @GetMapping
     public ResponseEntity<List<PayeeResponse>> getAllPayees(Authentication authentication) {
         log.debug("GET /api/v1/payees");
-        Long userId = null;
-        if (authentication != null && authentication.getPrincipal() instanceof User user) {
-            userId = user.getId();
-        }
+        User user = (User) authentication.getPrincipal();
+        Long userId = user.getId();
 
-        List<PayeeResponse> payees = userId != null ? payeeService.getAllPayeesWithStats(userId)
-                : payeeService.getAllPayees();
+        List<PayeeResponse> payees = payeeService.getAllPayeesWithStats(userId);
         return ResponseEntity.ok(payees);
     }
 
     /**
      * Get all active payees (for transaction form dropdown).
-     * 
+     *
      * @return list of active payees
      */
     @GetMapping("/active")
-    public ResponseEntity<List<PayeeResponse>> getActivePayees() {
+    public ResponseEntity<List<PayeeResponse>> getActivePayees(Authentication authentication) {
         log.debug("GET /api/v1/payees/active");
-        List<PayeeResponse> payees = payeeService.getActivePayees();
+        User user = (User) authentication.getPrincipal();
+        List<PayeeResponse> payees = payeeService.getActivePayees(user.getId());
         return ResponseEntity.ok(payees);
     }
 
     /**
      * Get payee by ID.
-     * 
+     *
      * @param id the payee ID
      * @return the payee
      */
@@ -89,7 +81,7 @@ public class PayeeController {
 
     /**
      * Get system payees (default merchants/providers).
-     * 
+     *
      * @return list of system payees
      */
     @GetMapping("/system")
@@ -101,32 +93,35 @@ public class PayeeController {
 
     /**
      * Get custom (user-created) payees.
-     * 
+     *
      * @return list of custom payees
      */
     @GetMapping("/custom")
-    public ResponseEntity<List<PayeeResponse>> getCustomPayees() {
+    public ResponseEntity<List<PayeeResponse>> getCustomPayees(Authentication authentication) {
         log.debug("GET /api/v1/payees/custom");
-        List<PayeeResponse> payees = payeeService.getCustomPayees();
+        User user = (User) authentication.getPrincipal();
+        List<PayeeResponse> payees = payeeService.getCustomPayees(user.getId());
         return ResponseEntity.ok(payees);
     }
 
     /**
      * Search payees by name.
-     * 
+     *
      * @param query the search query
      * @return list of matching payees
      */
     @GetMapping("/search")
-    public ResponseEntity<List<PayeeResponse>> searchPayees(@RequestParam String query) {
+    public ResponseEntity<List<PayeeResponse>> searchPayees(
+            @RequestParam String query, Authentication authentication) {
         log.debug("GET /api/v1/payees/search?q={}", query);
-        List<PayeeResponse> payees = payeeService.searchPayees(query);
+        User user = (User) authentication.getPrincipal();
+        List<PayeeResponse> payees = payeeService.searchPayees(query, user.getId());
         return ResponseEntity.ok(payees);
     }
 
     /**
      * Get distinct category names.
-     * 
+     *
      * @return list of category names
      */
     @GetMapping("/categories")
@@ -138,32 +133,34 @@ public class PayeeController {
 
     /**
      * Get payees by category ID.
-     * 
+     *
      * @param categoryId the category ID
      * @return list of payees in the category
      */
     @GetMapping("/category/{categoryId}")
-    public ResponseEntity<List<PayeeResponse>> getPayeesByCategory(@PathVariable Long categoryId) {
+    public ResponseEntity<List<PayeeResponse>> getPayeesByCategory(
+            @PathVariable Long categoryId, Authentication authentication) {
         log.debug("GET /api/v1/payees/category/{}", categoryId);
-        List<PayeeResponse> payees = payeeService.getPayeesByCategoryId(categoryId);
+        User user = (User) authentication.getPrincipal();
+        List<PayeeResponse> payees = payeeService.getPayeesByCategoryId(categoryId, user.getId());
         return ResponseEntity.ok(payees);
     }
 
     /**
      * Find or create a payee by name.
-     * 
-     * <p>
-     * Used when entering transactions. If payee exists, returns it.
-     * If not, creates a new custom payee automatically.
-     * </p>
-     * 
+     *
+     * <p>Used when entering transactions. If payee exists, returns it. If not, creates a new custom
+     * payee automatically.
+     *
      * @param name the payee name
      * @return the existing or newly created payee
      */
     @PostMapping("/find-or-create")
-    public ResponseEntity<PayeeResponse> findOrCreatePayee(@RequestParam String name) {
+    public ResponseEntity<PayeeResponse> findOrCreatePayee(
+            @RequestParam String name, Authentication authentication) {
         log.debug("POST /api/v1/payees/find-or-create?name={}", name);
-        PayeeResponse payee = payeeService.findOrCreatePayee(name);
+        User user = (User) authentication.getPrincipal();
+        PayeeResponse payee = payeeService.findOrCreatePayee(name, user.getId());
         if (payee == null) {
             return ResponseEntity.noContent().build();
         }
@@ -172,44 +169,44 @@ public class PayeeController {
 
     /**
      * Create a new custom payee.
-     * 
+     *
      * @param request the payee request
      * @return the created payee
      */
     @PostMapping
-    public ResponseEntity<PayeeResponse> createPayee(@Valid @RequestBody PayeeRequest request) {
+    public ResponseEntity<PayeeResponse> createPayee(
+            @Valid @RequestBody PayeeRequest request, Authentication authentication) {
         log.debug("POST /api/v1/payees");
-        PayeeResponse created = payeeService.createPayee(request);
+        User user = (User) authentication.getPrincipal();
+        PayeeResponse created = payeeService.createPayee(request, user.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     /**
      * Update a payee.
-     * 
-     * <p>
-     * Only custom payees can be updated. System payees return 403.
-     * </p>
-     * 
-     * @param id      the payee ID
+     *
+     * <p>Only custom payees owned by the user can be updated.
+     *
+     * @param id the payee ID
      * @param request the update request
      * @return the updated payee
      */
     @PutMapping("/{id}")
     public ResponseEntity<PayeeResponse> updatePayee(
             @PathVariable Long id,
-            @Valid @RequestBody PayeeRequest request) {
+            @Valid @RequestBody PayeeRequest request,
+            Authentication authentication) {
         log.debug("PUT /api/v1/payees/{}", id);
-        PayeeResponse updated = payeeService.updatePayee(id, request);
+        User user = (User) authentication.getPrincipal();
+        PayeeResponse updated = payeeService.updatePayee(id, request, user.getId());
         return ResponseEntity.ok(updated);
     }
 
     /**
      * Toggle payee active status.
-     * 
-     * <p>
-     * Used to hide/show system payees without deleting them.
-     * </p>
-     * 
+     *
+     * <p>Used to hide/show system payees without deleting them.
+     *
      * @param id the payee ID
      * @return the updated payee
      */
@@ -222,18 +219,17 @@ public class PayeeController {
 
     /**
      * Delete a payee.
-     * 
-     * <p>
-     * Only custom payees can be deleted. System payees return 403.
-     * </p>
-     * 
+     *
+     * <p>Only custom payees owned by the user can be deleted.
+     *
      * @param id the payee ID
      * @return no content
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePayee(@PathVariable Long id) {
+    public ResponseEntity<Void> deletePayee(@PathVariable Long id, Authentication authentication) {
         log.debug("DELETE /api/v1/payees/{}", id);
-        payeeService.deletePayee(id);
+        User user = (User) authentication.getPrincipal();
+        payeeService.deletePayee(id, user.getId());
         return ResponseEntity.noContent().build();
     }
 }

@@ -7,16 +7,15 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 /**
- * Utility class for date and time operations.
- * Provides parsing, formatting, and manipulation of dates and times.
+ * Utility class for date and time operations. Provides parsing, formatting, and manipulation of
+ * dates and times.
  *
  * <p>All methods use ISO-8601 format by default and handle timezone conversions.
  */
 public final class DateTimeUtil {
 
     // Standard formatters
-    public static final DateTimeFormatter ISO_DATE_FORMATTER =
-            DateTimeFormatter.ISO_LOCAL_DATE;
+    public static final DateTimeFormatter ISO_DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
     public static final DateTimeFormatter ISO_DATE_TIME_FORMATTER =
             DateTimeFormatter.ISO_LOCAL_DATE_TIME;
     public static final DateTimeFormatter DISPLAY_DATE_FORMATTER =

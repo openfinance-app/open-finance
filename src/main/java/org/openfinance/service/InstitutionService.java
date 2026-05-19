@@ -40,16 +40,16 @@ public class InstitutionService {
     private final LogoFetchService logoFetchService;
 
     /**
-     * Get all institutions.
+     * Get all institutions visible to a specific user. Returns system institutions plus the user's
+     * own custom institutions.
      *
-     * @return list of all institutions ordered by country and name
+     * @param userId the authenticated user's ID
+     * @return list of institutions ordered by country and name
      */
     @Transactional(readOnly = true)
-    public List<InstitutionResponse> getAllInstitutions() {
-        log.debug("Fetching all institutions");
-        return institutionRepository.findAllByOrderByCountryAscNameAsc().stream()
-                .map(this::toResponse)
-                .toList();
+    public List<InstitutionResponse> getAllInstitutions(Long userId) {
+        log.debug("Fetching all institutions for user: {}", userId);
+        return institutionRepository.findAllByUser(userId).stream().map(this::toResponse).toList();
     }
 
     /**
@@ -70,15 +70,16 @@ public class InstitutionService {
     }
 
     /**
-     * Get institutions by country.
+     * Get institutions by country visible to a specific user.
      *
      * @param country the country code (ISO 3166-1 alpha-2)
+     * @param userId the authenticated user's ID
      * @return list of institutions in the specified country
      */
     @Transactional(readOnly = true)
-    public List<InstitutionResponse> getInstitutionsByCountry(String country) {
-        log.debug("Fetching institutions by country: {}", country);
-        return institutionRepository.findByCountryOrderByNameAsc(country).stream()
+    public List<InstitutionResponse> getInstitutionsByCountry(String country, Long userId) {
+        log.debug("Fetching institutions by country: {} for user: {}", country, userId);
+        return institutionRepository.findByCountryAndUser(country, userId).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -97,51 +98,57 @@ public class InstitutionService {
     }
 
     /**
-     * Get custom (user-created) institutions.
+     * Get custom (user-created) institutions for a specific user.
      *
-     * @return list of custom institutions
+     * @param userId the authenticated user's ID
+     * @return list of custom institutions belonging to the user
      */
     @Transactional(readOnly = true)
-    public List<InstitutionResponse> getCustomInstitutions() {
-        log.debug("Fetching custom institutions");
-        return institutionRepository.findByIsSystemFalseOrderByNameAsc().stream()
+    public List<InstitutionResponse> getCustomInstitutions(Long userId) {
+        log.debug("Fetching custom institutions for user: {}", userId);
+        return institutionRepository.findByIsSystemFalseAndUserIdOrderByNameAsc(userId).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     /**
-     * Search institutions by name.
+     * Search institutions by name visible to a specific user.
      *
      * @param query the search query
+     * @param userId the authenticated user's ID
      * @return list of matching institutions
      */
     @Transactional(readOnly = true)
-    public List<InstitutionResponse> searchInstitutions(String query) {
-        log.debug("Searching institutions by name: {}", query);
-        return institutionRepository.searchByName(query).stream().map(this::toResponse).toList();
+    public List<InstitutionResponse> searchInstitutions(String query, Long userId) {
+        log.debug("Searching institutions by name: {} for user: {}", query, userId);
+        return institutionRepository.searchByNameAndUser(query, userId).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     /**
-     * Get distinct country codes from institutions.
+     * Get distinct country codes from institutions visible to a specific user.
      *
+     * @param userId the authenticated user's ID
      * @return list of country codes
      */
     @Transactional(readOnly = true)
-    public List<String> getCountries() {
-        log.debug("Fetching distinct countries");
-        return institutionRepository.findDistinctCountries();
+    public List<String> getCountries(Long userId) {
+        log.debug("Fetching distinct countries for user: {}", userId);
+        return institutionRepository.findDistinctCountriesByUser(userId);
     }
 
     /**
-     * Create a new custom institution.
+     * Create a new custom institution for a specific user.
      *
-     * <p>User-created institutions are marked as non-system.
+     * <p>User-created institutions are marked as non-system and scoped to the creating user.
      *
      * @param request the institution request
+     * @param userId the authenticated user's ID
      * @return the created institution
      */
-    public InstitutionResponse createInstitution(InstitutionRequest request) {
-        log.debug("Creating institution: {}", request.getName());
+    public InstitutionResponse createInstitution(InstitutionRequest request, Long userId) {
+        log.debug("Creating institution: {} for user: {}", request.getName(), userId);
 
         String logo = request.getLogo();
         if (logo == null || logo.isBlank()) {
@@ -155,6 +162,7 @@ public class InstitutionService {
                         .country(request.getCountry())
                         .logo(logo)
                         .isSystem(false)
+                        .userId(userId)
                         .build();
 
         Institution saved = institutionRepository.save(institution);
@@ -165,16 +173,17 @@ public class InstitutionService {
     /**
      * Update an existing institution.
      *
-     * <p>Only custom (non-system) institutions can be updated.
+     * <p>Only custom (non-system) institutions owned by the user can be updated.
      *
      * @param id the institution ID
      * @param request the update request
+     * @param userId the authenticated user's ID
      * @return the updated institution
      * @throws InstitutionNotFoundException if not found
-     * @throws IllegalStateException if trying to update a system institution
+     * @throws IllegalStateException if trying to update a system institution or another user's
      */
-    public InstitutionResponse updateInstitution(Long id, InstitutionRequest request) {
-        log.debug("Updating institution id: {}", id);
+    public InstitutionResponse updateInstitution(Long id, InstitutionRequest request, Long userId) {
+        log.debug("Updating institution id: {} for user: {}", id, userId);
 
         Institution institution =
                 institutionRepository
@@ -184,6 +193,11 @@ public class InstitutionService {
         // Prevent updating system institutions
         if (Boolean.TRUE.equals(institution.getIsSystem())) {
             throw new IllegalStateException("Cannot update system institutions");
+        }
+
+        // Prevent updating another user's institution
+        if (!userId.equals(institution.getUserId())) {
+            throw new IllegalStateException("Cannot update another user's institution");
         }
 
         institution.setName(request.getName());
@@ -199,15 +213,16 @@ public class InstitutionService {
     /**
      * Delete an institution.
      *
-     * <p>Only custom (non-system) institutions can be deleted. Also checks if institution is in use
-     * by any accounts.
+     * <p>Only custom (non-system) institutions owned by the user can be deleted. Also checks if
+     * institution is in use by any accounts.
      *
      * @param id the institution ID
+     * @param userId the authenticated user's ID
      * @throws InstitutionNotFoundException if not found
-     * @throws IllegalStateException if trying to delete a system institution
+     * @throws IllegalStateException if trying to delete a system institution or another user's
      */
-    public void deleteInstitution(Long id) {
-        log.debug("Deleting institution id: {}", id);
+    public void deleteInstitution(Long id, Long userId) {
+        log.debug("Deleting institution id: {} for user: {}", id, userId);
 
         Institution institution =
                 institutionRepository
@@ -217,6 +232,11 @@ public class InstitutionService {
         // Prevent deleting system institutions
         if (Boolean.TRUE.equals(institution.getIsSystem())) {
             throw new IllegalStateException("Cannot delete system institutions");
+        }
+
+        // Prevent deleting another user's institution
+        if (!userId.equals(institution.getUserId())) {
+            throw new IllegalStateException("Cannot delete another user's institution");
         }
 
         // Check if institution is in use

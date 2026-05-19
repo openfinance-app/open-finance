@@ -1,6 +1,15 @@
 package org.openfinance.controller;
 
+import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Base64;
+import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,91 +23,68 @@ import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.repository.UserRepository;
-import org.openfinance.security.KeyManagementService;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.security.KeyManagementService;
+import org.openfinance.service.OperationHistoryService;
 import org.openfinance.service.UserService;
 import org.openfinance.util.DatabaseCleanupService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.openfinance.service.OperationHistoryService;
-
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-
-import javax.crypto.SecretKey;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Base64;
-
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 /**
  * Integration tests for RecurringTransactionController.
- * 
+ *
  * <p>Tests cover:
+ *
  * <ul>
- *   <li>Create recurring transaction (POST /api/v1/recurring-transactions)</li>
- *   <li>List all recurring transactions (GET /api/v1/recurring-transactions)</li>
- *   <li>List active recurring transactions (GET /api/v1/recurring-transactions/active)</li>
- *   <li>List due recurring transactions (GET /api/v1/recurring-transactions/due)</li>
- *   <li>Get recurring transaction by ID (GET /api/v1/recurring-transactions/{id})</li>
- *   <li>Update recurring transaction (PUT /api/v1/recurring-transactions/{id})</li>
- *   <li>Delete recurring transaction (DELETE /api/v1/recurring-transactions/{id})</li>
- *   <li>Pause recurring transaction (POST /api/v1/recurring-transactions/{id}/pause)</li>
- *   <li>Resume recurring transaction (POST /api/v1/recurring-transactions/{id}/resume)</li>
- *   <li>Manual processing trigger (POST /api/v1/recurring-transactions/process)</li>
- *   <li>Authentication and authorization</li>
- *   <li>Validation and error handling</li>
+ *   <li>Create recurring transaction (POST /api/v1/recurring-transactions)
+ *   <li>List all recurring transactions (GET /api/v1/recurring-transactions)
+ *   <li>List active recurring transactions (GET /api/v1/recurring-transactions/active)
+ *   <li>List due recurring transactions (GET /api/v1/recurring-transactions/due)
+ *   <li>Get recurring transaction by ID (GET /api/v1/recurring-transactions/{id})
+ *   <li>Update recurring transaction (PUT /api/v1/recurring-transactions/{id})
+ *   <li>Delete recurring transaction (DELETE /api/v1/recurring-transactions/{id})
+ *   <li>Pause recurring transaction (POST /api/v1/recurring-transactions/{id}/pause)
+ *   <li>Resume recurring transaction (POST /api/v1/recurring-transactions/{id}/resume)
+ *   <li>Manual processing trigger (POST /api/v1/recurring-transactions/process)
+ *   <li>Authentication and authorization
+ *   <li>Validation and error handling
  * </ul>
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestDatabaseConfig.class)
-
 @ActiveProfiles("test")
 @DisplayName("RecurringTransactionController Integration Tests")
 class RecurringTransactionControllerIntegrationTest {
 
-    @MockBean
-    private OperationHistoryService operationHistoryService;
+    @MockBean private OperationHistoryService operationHistoryService;
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    @Autowired private CategoryRepository categoryRepository;
 
-    @Autowired
-    private RecurringTransactionRepository recurringTransactionRepository;
+    @Autowired private RecurringTransactionRepository recurringTransactionRepository;
 
-    @Autowired
-    private KeyManagementService keyManagementService;
+    @Autowired private KeyManagementService keyManagementService;
 
-    @Autowired
-    private DatabaseCleanupService databaseCleanupService;
-    
-    @Autowired
-    private EncryptionService encryptionService;
+    @Autowired private DatabaseCleanupService databaseCleanupService;
+
+    @Autowired private EncryptionService encryptionService;
 
     private String token;
     private String encKey;
@@ -115,42 +101,49 @@ class RecurringTransactionControllerIntegrationTest {
         databaseCleanupService.execute();
 
         // Register user
-        UserRegistrationRequest reg = UserRegistrationRequest.builder()
-                .username("alice")
-                .email("alice@example.com")
-                .password("Password123!")
-                .masterPassword("Master123!")
-                .skipSeeding(true)
-                .build();
+        UserRegistrationRequest reg =
+                UserRegistrationRequest.builder()
+                        .username("alice")
+                        .email("alice@example.com")
+                        .password("Password123!")
+                        .masterPassword("Master123!")
+                        .skipSeeding(true)
+                        .build();
         userService.registerUser(reg);
 
         // Login and get token
-        LoginRequest login = LoginRequest.builder()
-                .username("alice")
-                .password("Password123!")
-                .masterPassword("Master123!")
-                .build();
+        LoginRequest login =
+                LoginRequest.builder()
+                        .username("alice")
+                        .password("Password123!")
+                        .masterPassword("Master123!")
+                        .build();
 
-        String resp = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(login)))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String resp =
+                mockMvc.perform(
+                                post("/api/v1/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(login)))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
         token = objectMapper.readTree(resp).get("token").asText();
 
         // Derive encryption key manually (same as AttachmentControllerIntegrationTest)
-        User user = userRepository.findByUsername("alice")
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user =
+                userRepository
+                        .findByUsername("alice")
+                        .orElseThrow(() -> new RuntimeException("User not found"));
         userId = user.getId();
         byte[] salt = Base64.getDecoder().decode(user.getMasterPasswordSalt());
         secretKey = keyManagementService.deriveKey("Master123!".toCharArray(), salt);
         encKey = Base64.getEncoder().encodeToString(secretKey.getEncoded());
 
         // Create test accounts through API (so they get properly encrypted)
-        String checkingAccountJson = """
+        String checkingAccountJson =
+                """
                 {
                     "name": "Checking Account",
                     "type": "CHECKING",
@@ -158,19 +151,22 @@ class RecurringTransactionControllerIntegrationTest {
                     "currency": "USD"
                 }
                 """;
-        String checkingResp = mockMvc.perform(post("/api/v1/accounts")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(checkingAccountJson))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String checkingResp =
+                mockMvc.perform(
+                                post("/api/v1/accounts")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(checkingAccountJson))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
         Long checkingAccountId = objectMapper.readTree(checkingResp).get("id").asLong();
         checkingAccount = accountRepository.findById(checkingAccountId).orElseThrow();
 
-        String savingsAccountJson = """
+        String savingsAccountJson =
+                """
                 {
                     "name": "Savings Account",
                     "type": "SAVINGS",
@@ -178,20 +174,23 @@ class RecurringTransactionControllerIntegrationTest {
                     "currency": "USD"
                 }
                 """;
-        String savingsResp = mockMvc.perform(post("/api/v1/accounts")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(savingsAccountJson))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String savingsResp =
+                mockMvc.perform(
+                                post("/api/v1/accounts")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(savingsAccountJson))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
         Long savingsAccountId = objectMapper.readTree(savingsResp).get("id").asLong();
         savingsAccount = accountRepository.findById(savingsAccountId).orElseThrow();
 
         // Create test categories through API (so they get properly encrypted)
-        String rentCategoryJson = """
+        String rentCategoryJson =
+                """
                 {
                     "name": "Housing",
                     "type": "EXPENSE",
@@ -199,19 +198,22 @@ class RecurringTransactionControllerIntegrationTest {
                     "color": "#FF6B6B"
                 }
                 """;
-        String rentResp = mockMvc.perform(post("/api/v1/categories")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(rentCategoryJson))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String rentResp =
+                mockMvc.perform(
+                                post("/api/v1/categories")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(rentCategoryJson))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
         Long rentCategoryId = objectMapper.readTree(rentResp).get("id").asLong();
         rentCategory = categoryRepository.findById(rentCategoryId).orElseThrow();
 
-        String salaryCategoryJson = """
+        String salaryCategoryJson =
+                """
                 {
                     "name": "Salary",
                     "type": "INCOME",
@@ -219,15 +221,17 @@ class RecurringTransactionControllerIntegrationTest {
                     "color": "#4ECDC4"
                 }
                 """;
-        String salaryResp = mockMvc.perform(post("/api/v1/categories")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Key", encKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(salaryCategoryJson))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String salaryResp =
+                mockMvc.perform(
+                                post("/api/v1/categories")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Key", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(salaryCategoryJson))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
         Long salaryCategoryId = objectMapper.readTree(salaryResp).get("id").asLong();
         salaryCategory = categoryRepository.findById(salaryCategoryId).orElseThrow();
     }
@@ -242,24 +246,26 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should create recurring transaction successfully")
         void shouldCreateRecurringTransaction() throws Exception {
             // Given
-            RecurringTransactionRequest request = RecurringTransactionRequest.builder()
-                    .accountId(checkingAccount.getId())
-                    .type(TransactionType.EXPENSE)
-                    .amount(new BigDecimal("1200.00"))
-                    .currency("USD")
-                    .categoryId(rentCategory.getId())
-                    .description("Monthly rent payment")
-                    .notes("Due on the 1st of each month")
-                    .frequency(RecurringFrequency.MONTHLY)
-                    .nextOccurrence(LocalDate.now().plusDays(1))
-                    .build();
+            RecurringTransactionRequest request =
+                    RecurringTransactionRequest.builder()
+                            .accountId(checkingAccount.getId())
+                            .type(TransactionType.EXPENSE)
+                            .amount(new BigDecimal("1200.00"))
+                            .currency("USD")
+                            .categoryId(rentCategory.getId())
+                            .description("Monthly rent payment")
+                            .notes("Due on the 1st of each month")
+                            .frequency(RecurringFrequency.MONTHLY)
+                            .nextOccurrence(LocalDate.now().plusDays(1))
+                            .build();
 
             // When/Then
-            mockMvc.perform(post("/api/v1/recurring-transactions")
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+            mockMvc.perform(
+                            post("/api/v1/recurring-transactions")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request)))
                     .andDo(print())
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").isNumber())
@@ -285,23 +291,25 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should create TRANSFER recurring transaction successfully")
         void shouldCreateTransferRecurringTransaction() throws Exception {
             // Given - Transfer from checking to savings
-            RecurringTransactionRequest request = RecurringTransactionRequest.builder()
-                    .accountId(checkingAccount.getId())
-                    .toAccountId(savingsAccount.getId())
-                    .type(TransactionType.TRANSFER)
-                    .amount(new BigDecimal("500.00"))
-                    .currency("USD")
-                    .description("Monthly savings transfer")
-                    .frequency(RecurringFrequency.MONTHLY)
-                    .nextOccurrence(LocalDate.now().plusDays(15))
-                    .build();
+            RecurringTransactionRequest request =
+                    RecurringTransactionRequest.builder()
+                            .accountId(checkingAccount.getId())
+                            .toAccountId(savingsAccount.getId())
+                            .type(TransactionType.TRANSFER)
+                            .amount(new BigDecimal("500.00"))
+                            .currency("USD")
+                            .description("Monthly savings transfer")
+                            .frequency(RecurringFrequency.MONTHLY)
+                            .nextOccurrence(LocalDate.now().plusDays(15))
+                            .build();
 
             // When/Then
-            mockMvc.perform(post("/api/v1/recurring-transactions")
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+            mockMvc.perform(
+                            post("/api/v1/recurring-transactions")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request)))
                     .andDo(print())
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.type").value("TRANSFER"))
@@ -315,21 +323,23 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should return 400 when missing encryption key")
         void shouldReturn400WhenMissingEncryptionKey() throws Exception {
             // Given
-            RecurringTransactionRequest request = RecurringTransactionRequest.builder()
-                    .accountId(checkingAccount.getId())
-                    .type(TransactionType.EXPENSE)
-                    .amount(new BigDecimal("100.00"))
-                    .currency("USD")
-                    .categoryId(rentCategory.getId())
-                    .frequency(RecurringFrequency.MONTHLY)
-                    .nextOccurrence(LocalDate.now().plusDays(1))
-                    .build();
+            RecurringTransactionRequest request =
+                    RecurringTransactionRequest.builder()
+                            .accountId(checkingAccount.getId())
+                            .type(TransactionType.EXPENSE)
+                            .amount(new BigDecimal("100.00"))
+                            .currency("USD")
+                            .categoryId(rentCategory.getId())
+                            .frequency(RecurringFrequency.MONTHLY)
+                            .nextOccurrence(LocalDate.now().plusDays(1))
+                            .build();
 
             // When/Then
-            mockMvc.perform(post("/api/v1/recurring-transactions")
-                            .header("Authorization", "Bearer " + token)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+            mockMvc.perform(
+                            post("/api/v1/recurring-transactions")
+                                    .header("Authorization", "Bearer " + token)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request)))
                     .andDo(print())
                     .andExpect(status().isBadRequest());
         }
@@ -341,11 +351,12 @@ class RecurringTransactionControllerIntegrationTest {
             String invalidRequest = "{\"type\":\"EXPENSE\",\"frequency\":\"MONTHLY\"}";
 
             // When/Then
-            mockMvc.perform(post("/api/v1/recurring-transactions")
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(invalidRequest))
+            mockMvc.perform(
+                            post("/api/v1/recurring-transactions")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(invalidRequest))
                     .andDo(print())
                     .andExpect(status().isBadRequest());
         }
@@ -354,21 +365,23 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should return 403 when missing JWT token")
         void shouldReturn403WhenMissingToken() throws Exception {
             // Given
-            RecurringTransactionRequest request = RecurringTransactionRequest.builder()
-                    .accountId(checkingAccount.getId())
-                    .type(TransactionType.EXPENSE)
-                    .amount(new BigDecimal("100.00"))
-                    .currency("USD")
-                    .categoryId(rentCategory.getId())
-                    .frequency(RecurringFrequency.MONTHLY)
-                    .nextOccurrence(LocalDate.now().plusDays(1))
-                    .build();
+            RecurringTransactionRequest request =
+                    RecurringTransactionRequest.builder()
+                            .accountId(checkingAccount.getId())
+                            .type(TransactionType.EXPENSE)
+                            .amount(new BigDecimal("100.00"))
+                            .currency("USD")
+                            .categoryId(rentCategory.getId())
+                            .frequency(RecurringFrequency.MONTHLY)
+                            .nextOccurrence(LocalDate.now().plusDays(1))
+                            .build();
 
             // When/Then - Spring Security returns 403 for missing JWT
-            mockMvc.perform(post("/api/v1/recurring-transactions")
-                            .header("X-Encryption-Key", encKey)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+            mockMvc.perform(
+                            post("/api/v1/recurring-transactions")
+                                    .header("X-Encryption-Key", encKey)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request)))
                     .andDo(print())
                     .andExpect(status().isForbidden());
         }
@@ -384,13 +397,22 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should list all recurring transactions")
         void shouldListAllRecurringTransactions() throws Exception {
             // Given - create 2 recurring transactions
-            createRecurringTransaction(TransactionType.EXPENSE, rentCategory.getId(), RecurringFrequency.MONTHLY, true);
-            createRecurringTransaction(TransactionType.INCOME, salaryCategory.getId(), RecurringFrequency.BIWEEKLY, true);
+            createRecurringTransaction(
+                    TransactionType.EXPENSE,
+                    rentCategory.getId(),
+                    RecurringFrequency.MONTHLY,
+                    true);
+            createRecurringTransaction(
+                    TransactionType.INCOME,
+                    salaryCategory.getId(),
+                    RecurringFrequency.BIWEEKLY,
+                    true);
 
             // When/Then
-            mockMvc.perform(get("/api/v1/recurring-transactions")
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            get("/api/v1/recurring-transactions")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(2)))
@@ -402,15 +424,28 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should filter recurring transactions by frequency")
         void shouldFilterByFrequency() throws Exception {
             // Given - create 3 recurring transactions with different frequencies
-            createRecurringTransaction(TransactionType.EXPENSE, rentCategory.getId(), RecurringFrequency.MONTHLY, true);
-            createRecurringTransaction(TransactionType.EXPENSE, rentCategory.getId(), RecurringFrequency.MONTHLY, true);
-            createRecurringTransaction(TransactionType.INCOME, salaryCategory.getId(), RecurringFrequency.WEEKLY, true);
+            createRecurringTransaction(
+                    TransactionType.EXPENSE,
+                    rentCategory.getId(),
+                    RecurringFrequency.MONTHLY,
+                    true);
+            createRecurringTransaction(
+                    TransactionType.EXPENSE,
+                    rentCategory.getId(),
+                    RecurringFrequency.MONTHLY,
+                    true);
+            createRecurringTransaction(
+                    TransactionType.INCOME,
+                    salaryCategory.getId(),
+                    RecurringFrequency.WEEKLY,
+                    true);
 
             // When/Then - filter for MONTHLY only
-            mockMvc.perform(get("/api/v1/recurring-transactions")
-                            .param("frequency", "MONTHLY")
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            get("/api/v1/recurring-transactions")
+                                    .param("frequency", "MONTHLY")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(2)))
@@ -424,9 +459,10 @@ class RecurringTransactionControllerIntegrationTest {
             // Given - no recurring transactions
 
             // When/Then
-            mockMvc.perform(get("/api/v1/recurring-transactions")
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            get("/api/v1/recurring-transactions")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(0)));
@@ -443,13 +479,22 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should list only active recurring transactions")
         void shouldListOnlyActiveRecurringTransactions() throws Exception {
             // Given - create 1 active and 1 paused recurring transaction
-            createRecurringTransaction(TransactionType.EXPENSE, rentCategory.getId(), RecurringFrequency.MONTHLY, true);
-            createRecurringTransaction(TransactionType.EXPENSE, rentCategory.getId(), RecurringFrequency.WEEKLY, false);
+            createRecurringTransaction(
+                    TransactionType.EXPENSE,
+                    rentCategory.getId(),
+                    RecurringFrequency.MONTHLY,
+                    true);
+            createRecurringTransaction(
+                    TransactionType.EXPENSE,
+                    rentCategory.getId(),
+                    RecurringFrequency.WEEKLY,
+                    false);
 
             // When/Then
-            mockMvc.perform(get("/api/v1/recurring-transactions/active")
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            get("/api/v1/recurring-transactions/active")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)))
@@ -460,12 +505,17 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should return empty list when no active recurring transactions")
         void shouldReturnEmptyListWhenNoActiveRecurringTransactions() throws Exception {
             // Given - create only paused recurring transactions
-            createRecurringTransaction(TransactionType.EXPENSE, rentCategory.getId(), RecurringFrequency.MONTHLY, false);
+            createRecurringTransaction(
+                    TransactionType.EXPENSE,
+                    rentCategory.getId(),
+                    RecurringFrequency.MONTHLY,
+                    false);
 
             // When/Then
-            mockMvc.perform(get("/api/v1/recurring-transactions/active")
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            get("/api/v1/recurring-transactions/active")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(0)));
@@ -482,38 +532,41 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should list due recurring transactions")
         void shouldListDueRecurringTransactions() throws Exception {
             // Given - create 1 due (nextOccurrence = today) and 1 future recurring transaction
-            RecurringTransaction dueTransaction = RecurringTransaction.builder()
-                    .userId(userId)
-                    .accountId(checkingAccount.getId())
-                    .type(TransactionType.EXPENSE)
-                    .amount(new BigDecimal("100.00"))
-                    .currency("USD")
-                    .categoryId(rentCategory.getId())
-                    .description(encryptionService.encrypt("Due transaction", secretKey))
-                    .frequency(RecurringFrequency.MONTHLY)
-                    .nextOccurrence(LocalDate.now())
-                    .isActive(true)
-                    .build();
+            RecurringTransaction dueTransaction =
+                    RecurringTransaction.builder()
+                            .userId(userId)
+                            .accountId(checkingAccount.getId())
+                            .type(TransactionType.EXPENSE)
+                            .amount(new BigDecimal("100.00"))
+                            .currency("USD")
+                            .categoryId(rentCategory.getId())
+                            .description(encryptionService.encrypt("Due transaction", secretKey))
+                            .frequency(RecurringFrequency.MONTHLY)
+                            .nextOccurrence(LocalDate.now())
+                            .isActive(true)
+                            .build();
             recurringTransactionRepository.save(dueTransaction);
 
-            RecurringTransaction futureTransaction = RecurringTransaction.builder()
-                    .userId(userId)
-                    .accountId(checkingAccount.getId())
-                    .type(TransactionType.EXPENSE)
-                    .amount(new BigDecimal("50.00"))
-                    .currency("USD")
-                    .categoryId(rentCategory.getId())
-                    .description(encryptionService.encrypt("Future transaction", secretKey))
-                    .frequency(RecurringFrequency.MONTHLY)
-                    .nextOccurrence(LocalDate.now().plusDays(10))
-                    .isActive(true)
-                    .build();
+            RecurringTransaction futureTransaction =
+                    RecurringTransaction.builder()
+                            .userId(userId)
+                            .accountId(checkingAccount.getId())
+                            .type(TransactionType.EXPENSE)
+                            .amount(new BigDecimal("50.00"))
+                            .currency("USD")
+                            .categoryId(rentCategory.getId())
+                            .description(encryptionService.encrypt("Future transaction", secretKey))
+                            .frequency(RecurringFrequency.MONTHLY)
+                            .nextOccurrence(LocalDate.now().plusDays(10))
+                            .isActive(true)
+                            .build();
             recurringTransactionRepository.save(futureTransaction);
 
             // When/Then - should return only the due transaction
-            mockMvc.perform(get("/api/v1/recurring-transactions/due")
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            get("/api/v1/recurring-transactions/due")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)))
@@ -524,12 +577,17 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should return empty list when no due recurring transactions")
         void shouldReturnEmptyListWhenNoDueRecurringTransactions() throws Exception {
             // Given - create only future recurring transactions
-            createRecurringTransaction(TransactionType.EXPENSE, rentCategory.getId(), RecurringFrequency.MONTHLY, true);
+            createRecurringTransaction(
+                    TransactionType.EXPENSE,
+                    rentCategory.getId(),
+                    RecurringFrequency.MONTHLY,
+                    true);
 
             // When/Then
-            mockMvc.perform(get("/api/v1/recurring-transactions/due")
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            get("/api/v1/recurring-transactions/due")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(0)));
@@ -546,13 +604,18 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should get recurring transaction by ID")
         void shouldGetRecurringTransactionById() throws Exception {
             // Given
-            RecurringTransaction saved = createRecurringTransaction(
-                    TransactionType.EXPENSE, rentCategory.getId(), RecurringFrequency.MONTHLY, true);
+            RecurringTransaction saved =
+                    createRecurringTransaction(
+                            TransactionType.EXPENSE,
+                            rentCategory.getId(),
+                            RecurringFrequency.MONTHLY,
+                            true);
 
             // When/Then
-            mockMvc.perform(get("/api/v1/recurring-transactions/{id}", saved.getId())
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            get("/api/v1/recurring-transactions/{id}", saved.getId())
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(saved.getId()))
@@ -568,9 +631,10 @@ class RecurringTransactionControllerIntegrationTest {
             Long nonExistentId = 99999L;
 
             // When/Then
-            mockMvc.perform(get("/api/v1/recurring-transactions/{id}", nonExistentId)
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            get("/api/v1/recurring-transactions/{id}", nonExistentId)
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isNotFound());
         }
@@ -579,56 +643,63 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should return 404 when accessing another user's recurring transaction")
         void shouldReturn404WhenUnauthorized() throws Exception {
             // Given - create another user and their recurring transaction
-            UserRegistrationRequest reg2 = UserRegistrationRequest.builder()
-                    .username("bob")
-                    .email("bob@example.com")
-                    .password("password456")
-                    .masterPassword("master456")
-                    .build();
+            UserRegistrationRequest reg2 =
+                    UserRegistrationRequest.builder()
+                            .username("bob")
+                            .email("bob@example.com")
+                            .password("password456")
+                            .masterPassword("master456")
+                            .build();
             userService.registerUser(reg2);
 
-            User user2 = userRepository.findByUsername("bob")
-                    .orElseThrow(() -> new RuntimeException("User2 not found"));
+            User user2 =
+                    userRepository
+                            .findByUsername("bob")
+                            .orElseThrow(() -> new RuntimeException("User2 not found"));
 
-            Account user2Account = Account.builder()
-                    .userId(user2.getId())
-                    .name("Bob's Account")
-                    .type(AccountType.CHECKING)
-                    .balance(BigDecimal.ZERO)
-                    .currency("USD")
-                    .isActive(true)
-                    .build();
+            Account user2Account =
+                    Account.builder()
+                            .userId(user2.getId())
+                            .name("Bob's Account")
+                            .type(AccountType.CHECKING)
+                            .balance(BigDecimal.ZERO)
+                            .currency("USD")
+                            .isActive(true)
+                            .build();
             user2Account = accountRepository.save(user2Account);
 
-            Category user2Category = Category.builder()
-                    .userId(user2.getId())
-                    .name("Bob's Category")
-                    .type(CategoryType.EXPENSE)
-                    .icon("tag")
-                    .color("#000000")
-                    .build();
+            Category user2Category =
+                    Category.builder()
+                            .userId(user2.getId())
+                            .name("Bob's Category")
+                            .type(CategoryType.EXPENSE)
+                            .icon("tag")
+                            .color("#000000")
+                            .build();
             user2Category = categoryRepository.save(user2Category);
 
-            RecurringTransaction user2Transaction = RecurringTransaction.builder()
-                    .userId(user2.getId())
-                    .accountId(user2Account.getId())
-                    .type(TransactionType.EXPENSE)
-                    .amount(new BigDecimal("200.00"))
-                    .currency("USD")
-                    .categoryId(user2Category.getId())
-                    .description("encrypted-user2-transaction")
-                    .frequency(RecurringFrequency.MONTHLY)
-                    .nextOccurrence(LocalDate.now().plusDays(5))
-                    .isActive(true)
-                    .build();
+            RecurringTransaction user2Transaction =
+                    RecurringTransaction.builder()
+                            .userId(user2.getId())
+                            .accountId(user2Account.getId())
+                            .type(TransactionType.EXPENSE)
+                            .amount(new BigDecimal("200.00"))
+                            .currency("USD")
+                            .categoryId(user2Category.getId())
+                            .description("encrypted-user2-transaction")
+                            .frequency(RecurringFrequency.MONTHLY)
+                            .nextOccurrence(LocalDate.now().plusDays(5))
+                            .isActive(true)
+                            .build();
             user2Transaction = recurringTransactionRepository.save(user2Transaction);
 
             // When/Then - User1 (alice) tries to access User2 (bob)'s recurring transaction
-            mockMvc.perform(get("/api/v1/recurring-transactions/{id}", user2Transaction.getId())
-                            .header("Authorization", "Bearer " + token)  // alice's token
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            get("/api/v1/recurring-transactions/{id}", user2Transaction.getId())
+                                    .header("Authorization", "Bearer " + token) // alice's token
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
-                    .andExpect(status().isNotFound());  // 404 not 403
+                    .andExpect(status().isNotFound()); // 404 not 403
         }
     }
 
@@ -642,26 +713,32 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should update recurring transaction successfully")
         void shouldUpdateRecurringTransaction() throws Exception {
             // Given
-            RecurringTransaction saved = createRecurringTransaction(
-                    TransactionType.EXPENSE, rentCategory.getId(), RecurringFrequency.MONTHLY, true);
+            RecurringTransaction saved =
+                    createRecurringTransaction(
+                            TransactionType.EXPENSE,
+                            rentCategory.getId(),
+                            RecurringFrequency.MONTHLY,
+                            true);
 
-            RecurringTransactionRequest updateRequest = RecurringTransactionRequest.builder()
-                    .accountId(checkingAccount.getId())
-                    .type(TransactionType.EXPENSE)
-                    .amount(new BigDecimal("1300.00"))  // Updated amount
-                    .currency("USD")
-                    .categoryId(rentCategory.getId())
-                    .description("Updated monthly rent")  // Updated description
-                    .frequency(RecurringFrequency.MONTHLY)
-                    .nextOccurrence(LocalDate.now().plusDays(2))
-                    .build();
+            RecurringTransactionRequest updateRequest =
+                    RecurringTransactionRequest.builder()
+                            .accountId(checkingAccount.getId())
+                            .type(TransactionType.EXPENSE)
+                            .amount(new BigDecimal("1300.00")) // Updated amount
+                            .currency("USD")
+                            .categoryId(rentCategory.getId())
+                            .description("Updated monthly rent") // Updated description
+                            .frequency(RecurringFrequency.MONTHLY)
+                            .nextOccurrence(LocalDate.now().plusDays(2))
+                            .build();
 
             // When/Then
-            mockMvc.perform(put("/api/v1/recurring-transactions/{id}", saved.getId())
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(updateRequest)))
+            mockMvc.perform(
+                            put("/api/v1/recurring-transactions/{id}", saved.getId())
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(updateRequest)))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(saved.getId()))
@@ -674,23 +751,25 @@ class RecurringTransactionControllerIntegrationTest {
         void shouldReturn404WhenUpdatingNonExistent() throws Exception {
             // Given
             Long nonExistentId = 99999L;
-            RecurringTransactionRequest updateRequest = RecurringTransactionRequest.builder()
-                    .accountId(checkingAccount.getId())
-                    .type(TransactionType.EXPENSE)
-                    .amount(new BigDecimal("100.00"))
-                    .currency("USD")
-                    .categoryId(rentCategory.getId())
-                    .description("Updated description")
-                    .frequency(RecurringFrequency.MONTHLY)
-                    .nextOccurrence(LocalDate.now().plusDays(1))
-                    .build();
+            RecurringTransactionRequest updateRequest =
+                    RecurringTransactionRequest.builder()
+                            .accountId(checkingAccount.getId())
+                            .type(TransactionType.EXPENSE)
+                            .amount(new BigDecimal("100.00"))
+                            .currency("USD")
+                            .categoryId(rentCategory.getId())
+                            .description("Updated description")
+                            .frequency(RecurringFrequency.MONTHLY)
+                            .nextOccurrence(LocalDate.now().plusDays(1))
+                            .build();
 
             // When/Then
-            mockMvc.perform(put("/api/v1/recurring-transactions/{id}", nonExistentId)
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(updateRequest)))
+            mockMvc.perform(
+                            put("/api/v1/recurring-transactions/{id}", nonExistentId)
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(updateRequest)))
                     .andDo(print())
                     .andExpect(status().isNotFound());
         }
@@ -706,20 +785,26 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should delete recurring transaction successfully")
         void shouldDeleteRecurringTransaction() throws Exception {
             // Given
-            RecurringTransaction saved = createRecurringTransaction(
-                    TransactionType.EXPENSE, rentCategory.getId(), RecurringFrequency.MONTHLY, true);
+            RecurringTransaction saved =
+                    createRecurringTransaction(
+                            TransactionType.EXPENSE,
+                            rentCategory.getId(),
+                            RecurringFrequency.MONTHLY,
+                            true);
 
             // When/Then
-            mockMvc.perform(delete("/api/v1/recurring-transactions/{id}", saved.getId())
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            delete("/api/v1/recurring-transactions/{id}", saved.getId())
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isNoContent());
 
             // Verify deletion
-            mockMvc.perform(get("/api/v1/recurring-transactions/{id}", saved.getId())
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            get("/api/v1/recurring-transactions/{id}", saved.getId())
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andExpect(status().isNotFound());
         }
 
@@ -730,9 +815,10 @@ class RecurringTransactionControllerIntegrationTest {
             Long nonExistentId = 99999L;
 
             // When/Then
-            mockMvc.perform(delete("/api/v1/recurring-transactions/{id}", nonExistentId)
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            delete("/api/v1/recurring-transactions/{id}", nonExistentId)
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isNotFound());
         }
@@ -748,13 +834,18 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should pause recurring transaction successfully")
         void shouldPauseRecurringTransaction() throws Exception {
             // Given - active recurring transaction
-            RecurringTransaction saved = createRecurringTransaction(
-                    TransactionType.EXPENSE, rentCategory.getId(), RecurringFrequency.MONTHLY, true);
+            RecurringTransaction saved =
+                    createRecurringTransaction(
+                            TransactionType.EXPENSE,
+                            rentCategory.getId(),
+                            RecurringFrequency.MONTHLY,
+                            true);
 
             // When/Then
-            mockMvc.perform(post("/api/v1/recurring-transactions/{id}/pause", saved.getId())
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            post("/api/v1/recurring-transactions/{id}/pause", saved.getId())
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(saved.getId()))
@@ -768,9 +859,10 @@ class RecurringTransactionControllerIntegrationTest {
             Long nonExistentId = 99999L;
 
             // When/Then
-            mockMvc.perform(post("/api/v1/recurring-transactions/{id}/pause", nonExistentId)
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            post("/api/v1/recurring-transactions/{id}/pause", nonExistentId)
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isNotFound());
         }
@@ -786,13 +878,18 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should resume recurring transaction successfully")
         void shouldResumeRecurringTransaction() throws Exception {
             // Given - paused recurring transaction
-            RecurringTransaction saved = createRecurringTransaction(
-                    TransactionType.EXPENSE, rentCategory.getId(), RecurringFrequency.MONTHLY, false);
+            RecurringTransaction saved =
+                    createRecurringTransaction(
+                            TransactionType.EXPENSE,
+                            rentCategory.getId(),
+                            RecurringFrequency.MONTHLY,
+                            false);
 
             // When/Then
-            mockMvc.perform(post("/api/v1/recurring-transactions/{id}/resume", saved.getId())
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            post("/api/v1/recurring-transactions/{id}/resume", saved.getId())
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(saved.getId()))
@@ -806,9 +903,10 @@ class RecurringTransactionControllerIntegrationTest {
             Long nonExistentId = 99999L;
 
             // When/Then
-            mockMvc.perform(post("/api/v1/recurring-transactions/{id}/resume", nonExistentId)
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            post("/api/v1/recurring-transactions/{id}/resume", nonExistentId)
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isNotFound());
         }
@@ -824,24 +922,26 @@ class RecurringTransactionControllerIntegrationTest {
         @DisplayName("Should process due recurring transactions manually")
         void shouldProcessDueRecurringTransactionsManually() throws Exception {
             // Given - create 1 due recurring transaction
-            RecurringTransaction dueTransaction = RecurringTransaction.builder()
-                    .userId(userId)
-                    .accountId(checkingAccount.getId())
-                    .type(TransactionType.EXPENSE)
-                    .amount(new BigDecimal("100.00"))
-                    .currency("USD")
-                    .categoryId(rentCategory.getId())
-                    .description("encrypted-due-transaction")
-                    .frequency(RecurringFrequency.MONTHLY)
-                    .nextOccurrence(LocalDate.now())
-                    .isActive(true)
-                    .build();
+            RecurringTransaction dueTransaction =
+                    RecurringTransaction.builder()
+                            .userId(userId)
+                            .accountId(checkingAccount.getId())
+                            .type(TransactionType.EXPENSE)
+                            .amount(new BigDecimal("100.00"))
+                            .currency("USD")
+                            .categoryId(rentCategory.getId())
+                            .description("encrypted-due-transaction")
+                            .frequency(RecurringFrequency.MONTHLY)
+                            .nextOccurrence(LocalDate.now())
+                            .isActive(true)
+                            .build();
             recurringTransactionRepository.save(dueTransaction);
 
             // When/Then
-            mockMvc.perform(post("/api/v1/recurring-transactions/process")
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            post("/api/v1/recurring-transactions/process")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.processedCount").isNumber())
@@ -855,9 +955,10 @@ class RecurringTransactionControllerIntegrationTest {
             // Given - no due recurring transactions
 
             // When/Then
-            mockMvc.perform(post("/api/v1/recurring-transactions/process")
-                            .header("Authorization", "Bearer " + token)
-                            .header("X-Encryption-Key", encKey))
+            mockMvc.perform(
+                            post("/api/v1/recurring-transactions/process")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Key", encKey))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.processedCount").value(0))
@@ -880,18 +981,20 @@ class RecurringTransactionControllerIntegrationTest {
     private RecurringTransaction createRecurringTransaction(
             TransactionType type, Long categoryId, RecurringFrequency frequency, boolean isActive) {
 
-        RecurringTransaction recurringTransaction = RecurringTransaction.builder()
-                .userId(userId)
-                .accountId(checkingAccount.getId())
-                .type(type)
-                .amount(new BigDecimal("100.00"))
-                .currency("USD")
-                .categoryId(categoryId)
-                .description(encryptionService.encrypt("Test recurring transaction", secretKey))
-                .frequency(frequency)
-                .nextOccurrence(LocalDate.now().plusDays(30))
-                .isActive(isActive)
-                .build();
+        RecurringTransaction recurringTransaction =
+                RecurringTransaction.builder()
+                        .userId(userId)
+                        .accountId(checkingAccount.getId())
+                        .type(type)
+                        .amount(new BigDecimal("100.00"))
+                        .currency("USD")
+                        .categoryId(categoryId)
+                        .description(
+                                encryptionService.encrypt("Test recurring transaction", secretKey))
+                        .frequency(frequency)
+                        .nextOccurrence(LocalDate.now().plusDays(30))
+                        .isActive(isActive)
+                        .build();
 
         return recurringTransactionRepository.save(recurringTransaction);
     }

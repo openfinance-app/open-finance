@@ -10,30 +10,25 @@ import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
- * Service for handling temporary file storage operations.
- * Manages file uploads, storage, retrieval, and cleanup.
+ * Service for handling temporary file storage operations. Manages file uploads, storage, retrieval,
+ * and cleanup.
  *
- * <p>
- * Requirement REQ-2.5.1.1: File Format Support - Temporary file storage
- * </p>
+ * <p>Requirement REQ-2.5.1.1: File Format Support - Temporary file storage
  *
- * <p>
- * Features:
- * </p>
+ * <p>Features:
+ *
  * <ul>
- * <li>Stores uploaded files temporarily with unique identifiers</li>
- * <li>Creates upload directory if it doesn't exist</li>
- * <li>Provides file retrieval by upload ID</li>
- * <li>Automatic cleanup of old files</li>
- * <li>Thread-safe file operations</li>
+ *   <li>Stores uploaded files temporarily with unique identifiers
+ *   <li>Creates upload directory if it doesn't exist
+ *   <li>Provides file retrieval by upload ID
+ *   <li>Automatic cleanup of old files
+ *   <li>Thread-safe file operations
  * </ul>
  *
  * @author Open-Finance Development Team
@@ -61,9 +56,7 @@ public class FileStorageService {
         initializeDirectory();
     }
 
-    /**
-     * Creates the temporary directory if it doesn't exist.
-     */
+    /** Creates the temporary directory if it doesn't exist. */
     private void initializeDirectory() {
         try {
             if (!Files.exists(tempDirectory)) {
@@ -77,8 +70,8 @@ public class FileStorageService {
     }
 
     /**
-     * Stores an uploaded file temporarily.
-     * Generates a unique ID and saves the file with a safe name.
+     * Stores an uploaded file temporarily. Generates a unique ID and saves the file with a safe
+     * name.
      *
      * @param file The uploaded file
      * @return Unique upload ID for later retrieval
@@ -91,7 +84,9 @@ public class FileStorageService {
         String originalFilename = file.getOriginalFilename();
 
         // Sanitize filename to prevent directory traversal attacks
-        if (originalFilename == null || originalFilename.isBlank() || originalFilename.contains("..")) {
+        if (originalFilename == null
+                || originalFilename.isBlank()
+                || originalFilename.contains("..")) {
             throw new IllegalArgumentException("Invalid file name");
         }
 
@@ -124,10 +119,10 @@ public class FileStorageService {
 
         // Find file with matching upload ID (any extension)
         try (Stream<Path> paths = Files.list(tempDirectory)) {
-            return paths
-                    .filter(path -> path.getFileName().toString().startsWith(uploadId))
+            return paths.filter(path -> path.getFileName().toString().startsWith(uploadId))
                     .findFirst()
-                    .orElseThrow(() -> new IOException("File not found for upload ID: " + uploadId));
+                    .orElseThrow(
+                            () -> new IOException("File not found for upload ID: " + uploadId));
         }
     }
 
@@ -144,8 +139,8 @@ public class FileStorageService {
     }
 
     /**
-     * Cleans up old files that exceed the configured retention period.
-     * This method should be called periodically by a scheduled task.
+     * Cleans up old files that exceed the configured retention period. This method should be called
+     * periodically by a scheduled task.
      *
      * @return Number of files deleted
      */
@@ -158,9 +153,10 @@ public class FileStorageService {
         try (Stream<Path> paths = Files.list(tempDirectory)) {
             for (Path path : paths.toList()) {
                 try {
-                    LocalDateTime lastModified = LocalDateTime.ofInstant(
-                            Files.getLastModifiedTime(path).toInstant(),
-                            java.time.ZoneId.systemDefault());
+                    LocalDateTime lastModified =
+                            LocalDateTime.ofInstant(
+                                    Files.getLastModifiedTime(path).toInstant(),
+                                    java.time.ZoneId.systemDefault());
 
                     if (lastModified.isBefore(cutoffTime)) {
                         Files.deleteIfExists(path);
@@ -190,7 +186,7 @@ public class FileStorageService {
 
     /**
      * Check if a file exists for the given upload ID.
-     * 
+     *
      * @param uploadId the upload ID (UUID)
      * @return true if file exists, false otherwise
      */
@@ -207,11 +203,10 @@ public class FileStorageService {
     /**
      * Get the stored filename (including extension) for the given upload ID.
      *
-     * <p>Files are saved on disk as {@code <uploadId><.ext>} (e.g.
-     * {@code e7e2656a-ba09-4bb3-b5d8-6dcc1c0e3bb2.qif}).  Returning only the
-     * bare UUID — which has no dot-separated extension — would cause
-     * {@link ImportService#detectFileFormat} to treat the UUID itself as the
-     * extension and throw an {@link IllegalArgumentException}.</p>
+     * <p>Files are saved on disk as {@code <uploadId><.ext>} (e.g. {@code
+     * e7e2656a-ba09-4bb3-b5d8-6dcc1c0e3bb2.qif}). Returning only the bare UUID — which has no
+     * dot-separated extension — would cause {@link ImportService#detectFileFormat} to treat the
+     * UUID itself as the extension and throw an {@link IllegalArgumentException}.
      *
      * @param uploadId the upload ID (UUID)
      * @return the stored filename including its extension (e.g. {@code abc123.qif})
@@ -220,12 +215,13 @@ public class FileStorageService {
     public String getOriginalFileName(String uploadId) {
         Objects.requireNonNull(uploadId, "Upload ID cannot be null");
         try (Stream<Path> paths = Files.list(tempDirectory)) {
-            return paths
-                    .filter(path -> path.getFileName().toString().startsWith(uploadId))
+            return paths.filter(path -> path.getFileName().toString().startsWith(uploadId))
                     .findFirst()
                     .map(path -> path.getFileName().toString())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "No stored file found for upload ID: " + uploadId));
+                    .orElseThrow(
+                            () ->
+                                    new IllegalArgumentException(
+                                            "No stored file found for upload ID: " + uploadId));
         } catch (IOException e) {
             log.error("Error retrieving filename for upload ID: {}", uploadId, e);
             throw new IllegalStateException("Could not read upload directory", e);
@@ -234,7 +230,7 @@ public class FileStorageService {
 
     /**
      * Get file content as InputStream.
-     * 
+     *
      * @param uploadId the upload ID (UUID)
      * @return InputStream of the file content
      * @throws IOException if file cannot be read

@@ -1,5 +1,7 @@
 package org.openfinance.dto;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,20 +10,13 @@ import org.openfinance.entity.RuleActionType;
 import org.openfinance.entity.RuleConditionField;
 import org.openfinance.entity.RuleConditionOperator;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 /**
  * Response DTO returned by the transaction-rules REST API.
  *
- * <p>
- * Used by all read operations: {@code GET /api/v1/transaction-rules} and
- * {@code GET /api/v1/transaction-rules/{id}}.
- * </p>
+ * <p>Used by all read operations: {@code GET /api/v1/transaction-rules} and {@code GET
+ * /api/v1/transaction-rules/{id}}.
  *
- * <p>
- * <strong>Requirement:</strong> REQ-TR-5.1
- * </p>
+ * <p><strong>Requirement:</strong> REQ-TR-5.1
  */
 @Data
 @Builder
@@ -29,55 +24,33 @@ import java.util.List;
 @AllArgsConstructor
 public class TransactionRuleResponse {
 
-    /**
-     * Unique identifier of the rule.
-     */
+    /** Unique identifier of the rule. */
     private Long id;
 
-    /**
-     * Human-readable name of the rule.
-     * Requirement: REQ-TR-1.1
-     */
+    /** Human-readable name of the rule. Requirement: REQ-TR-1.1 */
     private String name;
 
-    /**
-     * Priority — lower number means evaluated first.
-     * Requirement: REQ-TR-1.1, REQ-TR-4.5
-     */
+    /** Priority — lower number means evaluated first. Requirement: REQ-TR-1.1, REQ-TR-4.5 */
     private Integer priority;
 
-    /**
-     * Whether the rule is currently active.
-     * Requirement: REQ-TR-1.1, REQ-TR-4.4
-     */
+    /** Whether the rule is currently active. Requirement: REQ-TR-1.1, REQ-TR-4.4 */
     private Boolean isEnabled;
 
     /**
-     * Condition match logic: "AND" (all must match) or "OR" (any matches).
-     * Requirement: REQ-TR-2.4
+     * Condition match logic: "AND" (all must match) or "OR" (any matches). Requirement: REQ-TR-2.4
      */
     private String conditionMatch;
 
-    /**
-     * Ordered list of conditions that must all match.
-     * Requirement: REQ-TR-2
-     */
+    /** Ordered list of conditions that must all match. Requirement: REQ-TR-2 */
     private List<ConditionResponse> conditions;
 
-    /**
-     * Ordered list of actions applied when all conditions match.
-     * Requirement: REQ-TR-3
-     */
+    /** Ordered list of actions applied when all conditions match. Requirement: REQ-TR-3 */
     private List<ActionResponse> actions;
 
-    /**
-     * Timestamp when the rule was created.
-     */
+    /** Timestamp when the rule was created. */
     private LocalDateTime createdAt;
 
-    /**
-     * Timestamp of the most recent update.
-     */
+    /** Timestamp of the most recent update. */
     private LocalDateTime updatedAt;
 
     // -----------------------------------------------------------------------
@@ -85,8 +58,7 @@ public class TransactionRuleResponse {
     // -----------------------------------------------------------------------
 
     /**
-     * Response payload for a single rule condition.
-     * Requirement: REQ-TR-2.1, REQ-TR-2.2, REQ-TR-2.3
+     * Response payload for a single rule condition. Requirement: REQ-TR-2.1, REQ-TR-2.2, REQ-TR-2.3
      */
     @Data
     @Builder
@@ -110,10 +82,7 @@ public class TransactionRuleResponse {
         private Integer sortOrder;
     }
 
-    /**
-     * Response payload for a single rule action.
-     * Requirement: REQ-TR-3.2
-     */
+    /** Response payload for a single rule action. Requirement: REQ-TR-3.2 */
     @Data
     @Builder
     @NoArgsConstructor

@@ -6,16 +6,13 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
-/**
- * Request DTO for compound interest calculation.
- */
+/** Request DTO for compound interest calculation. */
 @Data
 @Builder
 @NoArgsConstructor
@@ -54,10 +51,8 @@ public class CompoundInterestRequest {
     private BigDecimal regularContribution = BigDecimal.ZERO;
 
     /**
-     * Whether contributions are made at the beginning (true) or end (false) of each
-     * period.
+     * Whether contributions are made at the beginning (true) or end (false) of each period.
      * Defaults to false (end of period / ordinary annuity).
      */
-    @Builder.Default
-    private boolean contributionAtBeginning = false;
+    @Builder.Default private boolean contributionAtBeginning = false;
 }

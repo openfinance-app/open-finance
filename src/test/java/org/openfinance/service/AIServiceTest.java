@@ -1,6 +1,18 @@
 package org.openfinance.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -8,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
-import org.openfinance.service.OperationHistoryService;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.AIDto;
@@ -26,63 +37,35 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 /**
- * Unit tests for AIService
- * Task 11.1.7c: Write AIService unit tests
- * 
- * Tests cover:
- * - askQuestion with new and existing conversations
- * - streamQuestion with real-time response
- * - listConversations
- * - getConversation
- * - deleteConversation
- * - isAvailable health check
- * - Error handling and edge cases
+ * Unit tests for AIService Task 11.1.7c: Write AIService unit tests
+ *
+ * <p>Tests cover: - askQuestion with new and existing conversations - streamQuestion with real-time
+ * response - listConversations - getConversation - deleteConversation - isAvailable health check -
+ * Error handling and edge cases
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AIService Tests")
 class AIServiceTest {
 
-    @Mock
-    private AIProvider aiProvider;
-    
-    @Mock
-    private FinancialContextBuilder contextBuilder;
-    
-    @Mock
-    private AIConversationRepository conversationRepository;
-    
-    @Mock
-    private UserRepository userRepository;
-    
-    @Mock
-    private UserSettingsRepository userSettingsRepository;
-    
-    @Mock
-    private MessageSource messageSource;
-    
-    @Mock
-    private ObjectMapper objectMapper;
-    
-    @Mock
-    private OperationHistoryService operationHistoryService;
+    @Mock private AIProvider aiProvider;
 
-    @InjectMocks
-    private AIService aiService;
-    
+    @Mock private FinancialContextBuilder contextBuilder;
+
+    @Mock private AIConversationRepository conversationRepository;
+
+    @Mock private UserRepository userRepository;
+
+    @Mock private UserSettingsRepository userSettingsRepository;
+
+    @Mock private MessageSource messageSource;
+
+    @Mock private ObjectMapper objectMapper;
+
+    @Mock private OperationHistoryService operationHistoryService;
+
+    @InjectMocks private AIService aiService;
+
     private SecretKey testKey;
     private Long userId;
     private User testUser;
@@ -91,13 +74,9 @@ class AIServiceTest {
     void setUp() {
         userId = 1L;
         testKey = new SecretKeySpec("test-key-16bytes!".getBytes(), "AES");
-        
-        testUser = User.builder()
-                .id(userId)
-                .email("test@example.com")
-                .username("testuser")
-                .build();
-        
+
+        testUser = User.builder().id(userId).email("test@example.com").username("testuser").build();
+
         // Mock userRepository to return test user (needed for new conversation creation)
         // Use lenient() because not all tests create new conversations
         lenient().when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
@@ -111,24 +90,27 @@ class AIServiceTest {
         @DisplayName("should ask question with new conversation")
         void shouldAskQuestionWithNewConversation() {
             // Given
-            AIDto.ChatRequest request = AIDto.ChatRequest.builder()
-                    .question("What is my net worth?")
-                    .includeFullContext(true)
-                    .conversationId(null)
-                    .build();
-            
+            AIDto.ChatRequest request =
+                    AIDto.ChatRequest.builder()
+                            .question("What is my net worth?")
+                            .includeFullContext(true)
+                            .conversationId(null)
+                            .build();
+
             String context = "=== FINANCIAL SUMMARY ===\nNet Worth: $45,000.00";
             String aiResponse = "Your net worth is $45,000.";
-            
-            when(contextBuilder.buildContext(eq(userId), eq(testKey), any(Locale.class))).thenReturn(context);
+
+            when(contextBuilder.buildContext(eq(userId), eq(testKey), any(Locale.class)))
+                    .thenReturn(context);
             when(aiProvider.sendPrompt("What is my net worth?", context))
-                .thenReturn(Mono.just(aiResponse));
+                    .thenReturn(Mono.just(aiResponse));
             when(conversationRepository.save(any(AIConversation.class)))
-                .thenAnswer(invocation -> {
-                    AIConversation conv = invocation.getArgument(0);
-                    conv.setId(1L);
-                    return conv;
-                });
+                    .thenAnswer(
+                            invocation -> {
+                                AIConversation conv = invocation.getArgument(0);
+                                conv.setId(1L);
+                                return conv;
+                            });
 
             // When
             AIDto.ChatResponse response = aiService.askQuestion(userId, request, testKey);
@@ -137,7 +119,7 @@ class AIServiceTest {
             assertThat(response).isNotNull();
             assertThat(response.getResponse()).isEqualTo(aiResponse);
             assertThat(response.getConversationId()).isNotNull();
-            
+
             verify(contextBuilder).buildContext(eq(userId), eq(testKey), any(Locale.class));
             verify(aiProvider).sendPrompt("What is my net worth?", context);
             verify(conversationRepository, atLeastOnce()).save(any(AIConversation.class));
@@ -148,21 +130,24 @@ class AIServiceTest {
         void shouldAskQuestionWithExistingConversation() {
             // Given
             Long conversationId = 1L;
-            AIDto.ChatRequest request = AIDto.ChatRequest.builder()
-                    .question("Show me my expenses")
-                    .includeFullContext(false)
-                    .conversationId(conversationId)
-                    .build();
-            
-            AIConversation existingConversation = createConversation(conversationId, userId, "My Finances");
+            AIDto.ChatRequest request =
+                    AIDto.ChatRequest.builder()
+                            .question("Show me my expenses")
+                            .includeFullContext(false)
+                            .conversationId(conversationId)
+                            .build();
+
+            AIConversation existingConversation =
+                    createConversation(conversationId, userId, "My Finances");
             String context = "=== QUICK SUMMARY ===\nNet Worth: $45,000";
             String aiResponse = "Here are your expenses...";
-            
+
             when(conversationRepository.findByIdAndUser_Id(conversationId, userId))
-                .thenReturn(Optional.of(existingConversation));
-            when(contextBuilder.buildMinimalContext(eq(userId), eq(testKey), any(Locale.class))).thenReturn(context);
+                    .thenReturn(Optional.of(existingConversation));
+            when(contextBuilder.buildMinimalContext(eq(userId), eq(testKey), any(Locale.class)))
+                    .thenReturn(context);
             when(aiProvider.sendPrompt("Show me my expenses", context))
-                .thenReturn(Mono.just(aiResponse));
+                    .thenReturn(Mono.just(aiResponse));
 
             // When
             AIDto.ChatResponse response = aiService.askQuestion(userId, request, testKey);
@@ -171,7 +156,7 @@ class AIServiceTest {
             assertThat(response).isNotNull();
             assertThat(response.getResponse()).isEqualTo(aiResponse);
             assertThat(response.getConversationId()).isEqualTo(conversationId);
-            
+
             verify(contextBuilder).buildMinimalContext(eq(userId), eq(testKey), any(Locale.class));
             verify(aiProvider).sendPrompt("Show me my expenses", context);
         }
@@ -180,40 +165,45 @@ class AIServiceTest {
         @DisplayName("should handle Ollama error gracefully")
         void shouldHandleOllamaError() {
             // Given
-            AIDto.ChatRequest request = AIDto.ChatRequest.builder()
-                    .question("Test question")
-                    .includeFullContext(true)
-                    .build();
-            
-            when(contextBuilder.buildContext(eq(userId), eq(testKey), any(Locale.class))).thenReturn("context");
+            AIDto.ChatRequest request =
+                    AIDto.ChatRequest.builder()
+                            .question("Test question")
+                            .includeFullContext(true)
+                            .build();
+
+            when(contextBuilder.buildContext(eq(userId), eq(testKey), any(Locale.class)))
+                    .thenReturn("context");
             when(aiProvider.sendPrompt(anyString(), anyString()))
-                .thenReturn(Mono.error(new RuntimeException("Ollama service unavailable")));
+                    .thenReturn(Mono.error(new RuntimeException("Ollama service unavailable")));
 
             // When / Then
             assertThatThrownBy(() -> aiService.askQuestion(userId, request, testKey))
-                .isInstanceOf(RuntimeException.class);
+                    .isInstanceOf(RuntimeException.class);
         }
 
         @Test
         @DisplayName("should generate conversation title for first message")
         void shouldGenerateConversationTitleForFirstMessage() {
             // Given
-            AIDto.ChatRequest request = AIDto.ChatRequest.builder()
-                    .question("What are my investment options for retirement planning?")
-                    .includeFullContext(true)
-                    .build();
-            
-            when(contextBuilder.buildContext(eq(userId), eq(testKey), any(Locale.class))).thenReturn("context");
-            when(aiProvider.sendPrompt(anyString(), anyString()))
-                .thenReturn(Mono.just("Response"));
-            
-            ArgumentCaptor<AIConversation> conversationCaptor = ArgumentCaptor.forClass(AIConversation.class);
+            AIDto.ChatRequest request =
+                    AIDto.ChatRequest.builder()
+                            .question("What are my investment options for retirement planning?")
+                            .includeFullContext(true)
+                            .build();
+
+            when(contextBuilder.buildContext(eq(userId), eq(testKey), any(Locale.class)))
+                    .thenReturn("context");
+            when(aiProvider.sendPrompt(anyString(), anyString())).thenReturn(Mono.just("Response"));
+
+            ArgumentCaptor<AIConversation> conversationCaptor =
+                    ArgumentCaptor.forClass(AIConversation.class);
             when(conversationRepository.save(conversationCaptor.capture()))
-                .thenAnswer(invocation -> {
-                    AIConversation conv = invocation.getArgument(0);
-                    conv.setId(1L);
-                    return conv;
-                });
+                    .thenAnswer(
+                            invocation -> {
+                                AIConversation conv = invocation.getArgument(0);
+                                conv.setId(1L);
+                                return conv;
+                            });
 
             // When
             AIDto.ChatResponse response = aiService.askQuestion(userId, request, testKey);
@@ -223,13 +213,14 @@ class AIServiceTest {
 
             List<AIConversation> savedConversations = conversationCaptor.getAllValues();
             assertThat(savedConversations).isNotEmpty();
-            
+
             // Find the conversation with a title (final save after title generation)
-            AIConversation conversationWithTitle = savedConversations.stream()
-                .filter(c -> c.getTitle() != null)
-                .findFirst()
-                .orElse(null);
-            
+            AIConversation conversationWithTitle =
+                    savedConversations.stream()
+                            .filter(c -> c.getTitle() != null)
+                            .findFirst()
+                            .orElse(null);
+
             assertThat(conversationWithTitle).isNotNull();
             assertThat(conversationWithTitle.getTitle()).isNotEmpty();
             assertThat(conversationWithTitle.getTitle().length()).isLessThanOrEqualTo(100);
@@ -244,28 +235,30 @@ class AIServiceTest {
         @DisplayName("should stream response chunks")
         void shouldStreamResponseChunks() {
             // Given
-            AIDto.ChatRequest request = AIDto.ChatRequest.builder()
-                    .question("Explain my budget")
-                    .includeFullContext(true)
-                    .build();
-            
-            when(contextBuilder.buildContext(eq(userId), eq(testKey), any(Locale.class))).thenReturn("context");
+            AIDto.ChatRequest request =
+                    AIDto.ChatRequest.builder()
+                            .question("Explain my budget")
+                            .includeFullContext(true)
+                            .build();
+
+            when(contextBuilder.buildContext(eq(userId), eq(testKey), any(Locale.class)))
+                    .thenReturn("context");
             when(aiProvider.streamResponse(eq("Explain my budget"), anyString()))
-                .thenReturn(Flux.just("Your ", "budget ", "is ", "balanced."));
+                    .thenReturn(Flux.just("Your ", "budget ", "is ", "balanced."));
             when(conversationRepository.save(any(AIConversation.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                    .thenAnswer(invocation -> invocation.getArgument(0));
 
             // When
             Flux<String> responseFlux = aiService.streamQuestion(userId, request, testKey);
 
             // Then
             StepVerifier.create(responseFlux)
-                .expectNext("Your ")
-                .expectNext("budget ")
-                .expectNext("is ")
-                .expectNext("balanced.")
-                .verifyComplete();
-            
+                    .expectNext("Your ")
+                    .expectNext("budget ")
+                    .expectNext("is ")
+                    .expectNext("balanced.")
+                    .verifyComplete();
+
             verify(contextBuilder).buildContext(eq(userId), eq(testKey), any(Locale.class));
             verify(aiProvider).streamResponse(eq("Explain my budget"), anyString());
         }
@@ -274,23 +267,23 @@ class AIServiceTest {
         @DisplayName("should save complete response after streaming")
         void shouldSaveCompleteResponseAfterStreaming() {
             // Given
-            AIDto.ChatRequest request = AIDto.ChatRequest.builder()
-                    .question("Test")
-                    .includeFullContext(false)
-                    .build();
-            
-            when(contextBuilder.buildMinimalContext(eq(userId), eq(testKey), any(Locale.class))).thenReturn("context");
+            AIDto.ChatRequest request =
+                    AIDto.ChatRequest.builder().question("Test").includeFullContext(false).build();
+
+            when(contextBuilder.buildMinimalContext(eq(userId), eq(testKey), any(Locale.class)))
+                    .thenReturn("context");
             when(aiProvider.streamResponse(eq("Test"), anyString()))
-                .thenReturn(Flux.just("Part ", "1, ", "Part ", "2"));
-            
-            ArgumentCaptor<AIConversation> conversationCaptor = ArgumentCaptor.forClass(AIConversation.class);
+                    .thenReturn(Flux.just("Part ", "1, ", "Part ", "2"));
+
+            ArgumentCaptor<AIConversation> conversationCaptor =
+                    ArgumentCaptor.forClass(AIConversation.class);
             when(conversationRepository.save(conversationCaptor.capture()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                    .thenAnswer(invocation -> invocation.getArgument(0));
 
             // When
             StepVerifier.create(aiService.streamQuestion(userId, request, testKey))
-                .expectNext("Part ", "1, ", "Part ", "2")
-                .verifyComplete();
+                    .expectNext("Part ", "1, ", "Part ", "2")
+                    .verifyComplete();
 
             // Then
             // Verify that conversation was saved with complete response
@@ -306,14 +299,14 @@ class AIServiceTest {
         @DisplayName("should list all user conversations")
         void shouldListAllUserConversations() {
             // Given
-            List<AIConversation> conversations = Arrays.asList(
-                createConversation(1L, userId, "Net Worth Discussion"),
-                createConversation(2L, userId, "Budget Planning"),
-                createConversation(3L, userId, "Investment Advice")
-            );
-            
+            List<AIConversation> conversations =
+                    Arrays.asList(
+                            createConversation(1L, userId, "Net Worth Discussion"),
+                            createConversation(2L, userId, "Budget Planning"),
+                            createConversation(3L, userId, "Investment Advice"));
+
             when(conversationRepository.findByUser_IdOrderByCreatedAtDesc(userId))
-                .thenReturn(conversations);
+                    .thenReturn(conversations);
 
             // When
             List<AIDto.ConversationSummary> result = aiService.listConversations(userId);
@@ -323,7 +316,7 @@ class AIServiceTest {
             assertThat(result.get(0).getTitle()).isEqualTo("Net Worth Discussion");
             assertThat(result.get(1).getTitle()).isEqualTo("Budget Planning");
             assertThat(result.get(2).getTitle()).isEqualTo("Investment Advice");
-            
+
             verify(conversationRepository).findByUser_IdOrderByCreatedAtDesc(userId);
         }
 
@@ -332,7 +325,7 @@ class AIServiceTest {
         void shouldReturnEmptyListWhenNoConversations() {
             // Given
             when(conversationRepository.findByUser_IdOrderByCreatedAtDesc(userId))
-                .thenReturn(List.of());
+                    .thenReturn(List.of());
 
             // When
             List<AIDto.ConversationSummary> result = aiService.listConversations(userId);
@@ -352,11 +345,13 @@ class AIServiceTest {
         void shouldGetConversationWithMessages() {
             // Given
             Long conversationId = 1L;
-            AIConversation conversation = createConversation(conversationId, userId, "My Conversation");
-            conversation.setMessages("[{\"role\":\"user\",\"content\":\"Hello\"},{\"role\":\"assistant\",\"content\":\"Hi!\"}]");
-            
+            AIConversation conversation =
+                    createConversation(conversationId, userId, "My Conversation");
+            conversation.setMessages(
+                    "[{\"role\":\"user\",\"content\":\"Hello\"},{\"role\":\"assistant\",\"content\":\"Hi!\"}]");
+
             when(conversationRepository.findByIdAndUser_Id(conversationId, userId))
-                .thenReturn(Optional.of(conversation));
+                    .thenReturn(Optional.of(conversation));
 
             // When
             AIDto.ConversationDetail result = aiService.getConversation(userId, conversationId);
@@ -365,7 +360,7 @@ class AIServiceTest {
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(conversationId);
             assertThat(result.getTitle()).isEqualTo("My Conversation");
-            
+
             verify(conversationRepository).findByIdAndUser_Id(conversationId, userId);
         }
 
@@ -375,13 +370,13 @@ class AIServiceTest {
             // Given
             Long conversationId = 999L;
             when(conversationRepository.findByIdAndUser_Id(conversationId, userId))
-                .thenReturn(Optional.empty());
+                    .thenReturn(Optional.empty());
 
             // When / Then
             assertThatThrownBy(() -> aiService.getConversation(userId, conversationId))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Conversation not found");
-            
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Conversation not found");
+
             verify(conversationRepository).findByIdAndUser_Id(conversationId, userId);
         }
 
@@ -391,13 +386,13 @@ class AIServiceTest {
             // Given
             Long conversationId = 1L;
             Long otherUserId = 999L;
-            
+
             when(conversationRepository.findByIdAndUser_Id(conversationId, otherUserId))
-                .thenReturn(Optional.empty());
+                    .thenReturn(Optional.empty());
 
             // When / Then
             assertThatThrownBy(() -> aiService.getConversation(otherUserId, conversationId))
-                .isInstanceOf(ResourceNotFoundException.class);
+                    .isInstanceOf(ResourceNotFoundException.class);
         }
     }
 
@@ -411,9 +406,9 @@ class AIServiceTest {
             // Given
             Long conversationId = 1L;
             AIConversation conversation = createConversation(conversationId, userId, "To Delete");
-            
+
             when(conversationRepository.findByIdAndUser_Id(conversationId, userId))
-                .thenReturn(Optional.of(conversation));
+                    .thenReturn(Optional.of(conversation));
 
             // When
             aiService.deleteConversation(userId, conversationId);
@@ -429,13 +424,13 @@ class AIServiceTest {
             // Given
             Long conversationId = 999L;
             when(conversationRepository.findByIdAndUser_Id(conversationId, userId))
-                .thenReturn(Optional.empty());
+                    .thenReturn(Optional.empty());
 
             // When / Then
             assertThatThrownBy(() -> aiService.deleteConversation(userId, conversationId))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Conversation not found");
-            
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Conversation not found");
+
             verify(conversationRepository).findByIdAndUser_Id(conversationId, userId);
             verify(conversationRepository, never()).delete(any());
         }
@@ -446,14 +441,14 @@ class AIServiceTest {
             // Given
             Long conversationId = 1L;
             Long otherUserId = 999L;
-            
+
             when(conversationRepository.findByIdAndUser_Id(conversationId, otherUserId))
-                .thenReturn(Optional.empty());
+                    .thenReturn(Optional.empty());
 
             // When / Then
             assertThatThrownBy(() -> aiService.deleteConversation(otherUserId, conversationId))
-                .isInstanceOf(ResourceNotFoundException.class);
-            
+                    .isInstanceOf(ResourceNotFoundException.class);
+
             verify(conversationRepository, never()).delete(any());
         }
     }
@@ -494,10 +489,8 @@ class AIServiceTest {
     // Helper methods
 
     private AIConversation createConversation(Long id, Long userId, String title) {
-        User user = User.builder()
-                .id(userId)
-                .build();
-        
+        User user = User.builder().id(userId).build();
+
         return AIConversation.builder()
                 .id(id)
                 .user(user)
@@ -516,112 +509,126 @@ class AIServiceTest {
         @DisplayName("should resolve English locale from UserSettings")
         void shouldResolveEnglishLocaleFromUserSettings() {
             // Given
-            AIDto.ChatRequest request = AIDto.ChatRequest.builder()
-                    .question("What is my net worth?")
-                    .includeFullContext(false)
-                    .build();
-            
+            AIDto.ChatRequest request =
+                    AIDto.ChatRequest.builder()
+                            .question("What is my net worth?")
+                            .includeFullContext(false)
+                            .build();
+
             UserSettings settings = new UserSettings();
             settings.setUser(testUser);
             settings.setLanguage("en");
-            
+
             when(userSettingsRepository.findByUserId(userId)).thenReturn(Optional.of(settings));
             when(contextBuilder.buildMinimalContext(eq(userId), eq(testKey), eq(Locale.ENGLISH)))
                     .thenReturn("Minimal context in English");
             when(aiProvider.sendPrompt(anyString(), anyString()))
                     .thenReturn(Mono.just("Your net worth is $1000"));
             when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-            
+
             AIConversation newConversation = createConversation(null, userId, null);
             newConversation.setMessages("[]");
-            when(conversationRepository.save(any(AIConversation.class))).thenAnswer(inv -> {
-                AIConversation saved = inv.getArgument(0);
-                saved.setId(1L);
-                return saved;
-            });
+            when(conversationRepository.save(any(AIConversation.class)))
+                    .thenAnswer(
+                            inv -> {
+                                AIConversation saved = inv.getArgument(0);
+                                saved.setId(1L);
+                                return saved;
+                            });
 
             // When
             AIDto.ChatResponse response = aiService.askQuestion(userId, request, testKey);
 
             // Then
             assertThat(response.getResponse()).isEqualTo("Your net worth is $1000");
-            
+
             verify(userSettingsRepository).findByUserId(userId);
             verify(contextBuilder).buildMinimalContext(eq(userId), eq(testKey), eq(Locale.ENGLISH));
-            verify(messageSource, never()).getMessage(anyString(), any(), anyString(), any(Locale.class));
+            verify(messageSource, never())
+                    .getMessage(anyString(), any(), anyString(), any(Locale.class));
         }
 
         @Test
         @DisplayName("should resolve French locale from UserSettings")
         void shouldResolveFrenchLocaleFromUserSettings() {
             // Given
-            AIDto.ChatRequest request = AIDto.ChatRequest.builder()
-                    .question("Quel est mon patrimoine net?")
-                    .includeFullContext(false)
-                    .build();
-            
+            AIDto.ChatRequest request =
+                    AIDto.ChatRequest.builder()
+                            .question("Quel est mon patrimoine net?")
+                            .includeFullContext(false)
+                            .build();
+
             UserSettings settings = new UserSettings();
             settings.setUser(testUser);
             settings.setLanguage("fr");
-            
+
             when(userSettingsRepository.findByUserId(userId)).thenReturn(Optional.of(settings));
             when(contextBuilder.buildMinimalContext(eq(userId), eq(testKey), eq(Locale.FRENCH)))
                     .thenReturn("Contexte minimal en français");
-            when(messageSource.getMessage(eq("ai.language.instruction"), any(), anyString(), eq(Locale.FRENCH)))
+            when(messageSource.getMessage(
+                            eq("ai.language.instruction"), any(), anyString(), eq(Locale.FRENCH)))
                     .thenReturn("Important : Veuillez répondre en français");
-            when(aiProvider.sendPrompt(anyString(), contains("Important : Veuillez répondre en français")))
+            when(aiProvider.sendPrompt(
+                            anyString(), contains("Important : Veuillez répondre en français")))
                     .thenReturn(Mono.just("Votre patrimoine net est de 1000 $"));
             when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-            
+
             AIConversation newConversation = createConversation(null, userId, null);
             newConversation.setMessages("[]");
-            when(conversationRepository.save(any(AIConversation.class))).thenAnswer(inv -> {
-                AIConversation saved = inv.getArgument(0);
-                saved.setId(1L);
-                return saved;
-            });
+            when(conversationRepository.save(any(AIConversation.class)))
+                    .thenAnswer(
+                            inv -> {
+                                AIConversation saved = inv.getArgument(0);
+                                saved.setId(1L);
+                                return saved;
+                            });
 
             // When
             AIDto.ChatResponse response = aiService.askQuestion(userId, request, testKey);
 
             // Then
             assertThat(response.getResponse()).isEqualTo("Votre patrimoine net est de 1000 $");
-            
+
             verify(userSettingsRepository).findByUserId(userId);
             verify(contextBuilder).buildMinimalContext(eq(userId), eq(testKey), eq(Locale.FRENCH));
-            verify(messageSource).getMessage(eq("ai.language.instruction"), any(), anyString(), eq(Locale.FRENCH));
+            verify(messageSource)
+                    .getMessage(
+                            eq("ai.language.instruction"), any(), anyString(), eq(Locale.FRENCH));
         }
 
         @Test
         @DisplayName("should fallback to English when UserSettings not found")
         void shouldFallbackToEnglishWhenUserSettingsNotFound() {
             // Given
-            AIDto.ChatRequest request = AIDto.ChatRequest.builder()
-                    .question("What is my balance?")
-                    .includeFullContext(false)
-                    .build();
-            
+            AIDto.ChatRequest request =
+                    AIDto.ChatRequest.builder()
+                            .question("What is my balance?")
+                            .includeFullContext(false)
+                            .build();
+
             when(userSettingsRepository.findByUserId(userId)).thenReturn(Optional.empty());
             when(contextBuilder.buildMinimalContext(eq(userId), eq(testKey), eq(Locale.ENGLISH)))
                     .thenReturn("Minimal context");
             when(aiProvider.sendPrompt(anyString(), anyString()))
                     .thenReturn(Mono.just("Your balance is $500"));
             when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-            
+
             AIConversation newConversation = createConversation(null, userId, null);
             newConversation.setMessages("[]");
-            when(conversationRepository.save(any(AIConversation.class))).thenAnswer(inv -> {
-                AIConversation saved = inv.getArgument(0);
-                saved.setId(1L);
-                return saved;
-            });
+            when(conversationRepository.save(any(AIConversation.class)))
+                    .thenAnswer(
+                            inv -> {
+                                AIConversation saved = inv.getArgument(0);
+                                saved.setId(1L);
+                                return saved;
+                            });
 
             // When
             AIDto.ChatResponse response = aiService.askQuestion(userId, request, testKey);
 
             // Then
             assertThat(response.getResponse()).isEqualTo("Your balance is $500");
-            
+
             verify(userSettingsRepository).findByUserId(userId);
             verify(contextBuilder).buildMinimalContext(eq(userId), eq(testKey), eq(Locale.ENGLISH));
         }
@@ -630,45 +637,49 @@ class AIServiceTest {
         @DisplayName("should not add language instruction for English locale")
         void shouldNotAddLanguageInstructionForEnglish() {
             // Given
-            AIDto.ChatRequest request = AIDto.ChatRequest.builder()
-                    .question("Show my budget")
-                    .includeFullContext(true)
-                    .build();
-            
+            AIDto.ChatRequest request =
+                    AIDto.ChatRequest.builder()
+                            .question("Show my budget")
+                            .includeFullContext(true)
+                            .build();
+
             UserSettings settings = new UserSettings();
             settings.setUser(testUser);
             settings.setLanguage("en");
-            
+
             ArgumentCaptor<String> contextCaptor = ArgumentCaptor.forClass(String.class);
-            
+
             when(userSettingsRepository.findByUserId(userId)).thenReturn(Optional.of(settings));
             when(contextBuilder.buildContext(eq(userId), eq(testKey), eq(Locale.ENGLISH)))
                     .thenReturn("Full financial context");
             when(aiProvider.sendPrompt(anyString(), contextCaptor.capture()))
                     .thenReturn(Mono.just("Here is your budget"));
             when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-            
+
             AIConversation newConversation = createConversation(null, userId, null);
             newConversation.setMessages("[]");
-            when(conversationRepository.save(any(AIConversation.class))).thenAnswer(inv -> {
-                AIConversation saved = inv.getArgument(0);
-                saved.setId(1L);
-                return saved;
-            });
+            when(conversationRepository.save(any(AIConversation.class)))
+                    .thenAnswer(
+                            inv -> {
+                                AIConversation saved = inv.getArgument(0);
+                                saved.setId(1L);
+                                return saved;
+                            });
 
             // When
             AIDto.ChatResponse result = aiService.askQuestion(userId, request, testKey);
 
             // Then
             assertThat(result).isNotNull();
-            
+
             // Verify context does NOT contain language instruction
             String capturedContext = contextCaptor.getValue();
             assertThat(capturedContext).isEqualTo("Full financial context");
             assertThat(capturedContext).doesNotContain("Important:");
             assertThat(capturedContext).doesNotContain("respond in");
-            
-            verify(messageSource, never()).getMessage(anyString(), any(), anyString(), any(Locale.class));
+
+            verify(messageSource, never())
+                    .getMessage(anyString(), any(), anyString(), any(Locale.class));
         }
     }
 }

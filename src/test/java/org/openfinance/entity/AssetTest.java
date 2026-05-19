@@ -1,28 +1,22 @@
 package org.openfinance.entity;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-
-import static org.assertj.core.api.Assertions.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for Asset entity.
- * 
- * <p>
- * Tests physical asset-specific methods including depreciation calculation,
- * condition adjustment, warranty validation, and physical asset identification.
- * </p>
- * 
- * <p>
- * Requirements: Physical Asset Tracking - Asset depreciation, condition
- * assessment,
- * and warranty tracking for physical assets.
- * </p>
+ *
+ * <p>Tests physical asset-specific methods including depreciation calculation, condition
+ * adjustment, warranty validation, and physical asset identification.
+ *
+ * <p>Requirements: Physical Asset Tracking - Asset depreciation, condition assessment, and warranty
+ * tracking for physical assets.
  */
 @DisplayName("Asset Entity Tests - Physical Asset Methods")
 class AssetTest {
@@ -38,14 +32,15 @@ class AssetTest {
         void shouldCalculateDepreciatedValueCorrectly() {
             // Arrange - Vehicle purchased 2 years ago for $30,000 with 10 year useful life
             LocalDate purchaseDate = LocalDate.now().minusYears(2);
-            Asset asset = Asset.builder()
-                    .type(AssetType.VEHICLE)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("30000.00"))
-                    .currentPrice(new BigDecimal("25000.00"))
-                    .purchaseDate(purchaseDate)
-                    .usefulLifeYears(10)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.VEHICLE)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("30000.00"))
+                            .currentPrice(new BigDecimal("25000.00"))
+                            .purchaseDate(purchaseDate)
+                            .usefulLifeYears(10)
+                            .build();
 
             // Act
             BigDecimal depreciatedValue = asset.getDepreciatedValue();
@@ -64,14 +59,15 @@ class AssetTest {
         void shouldReturnSalvageValueWhenFullyDepreciated() {
             // Arrange - Electronics purchased 10 years ago with 5 year useful life
             LocalDate purchaseDate = LocalDate.now().minusYears(10);
-            Asset asset = Asset.builder()
-                    .type(AssetType.ELECTRONICS)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("1000.00"))
-                    .currentPrice(new BigDecimal("100.00"))
-                    .purchaseDate(purchaseDate)
-                    .usefulLifeYears(5)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.ELECTRONICS)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("1000.00"))
+                            .currentPrice(new BigDecimal("100.00"))
+                            .purchaseDate(purchaseDate)
+                            .usefulLifeYears(5)
+                            .build();
 
             // Act
             BigDecimal depreciatedValue = asset.getDepreciatedValue();
@@ -87,14 +83,15 @@ class AssetTest {
         void shouldNeverGoBelowSalvageValue() {
             // Arrange - Furniture purchased 20 years ago with 7 year useful life
             LocalDate purchaseDate = LocalDate.now().minusYears(20);
-            Asset asset = Asset.builder()
-                    .type(AssetType.FURNITURE)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("5000.00"))
-                    .currentPrice(new BigDecimal("500.00"))
-                    .purchaseDate(purchaseDate)
-                    .usefulLifeYears(7)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.FURNITURE)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("5000.00"))
+                            .currentPrice(new BigDecimal("500.00"))
+                            .purchaseDate(purchaseDate)
+                            .usefulLifeYears(7)
+                            .build();
 
             // Act
             BigDecimal depreciatedValue = asset.getDepreciatedValue();
@@ -109,14 +106,15 @@ class AssetTest {
         @DisplayName("Should return null for non-physical assets")
         void shouldReturnCurrentPriceForFinancialAssets() {
             // Arrange - Stock (non-physical asset)
-            Asset asset = Asset.builder()
-                    .type(AssetType.STOCK)
-                    .quantity(new BigDecimal("10.0"))
-                    .purchasePrice(new BigDecimal("100.00"))
-                    .currentPrice(new BigDecimal("150.00"))
-                    .purchaseDate(LocalDate.now().minusYears(1))
-                    .usefulLifeYears(null)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.STOCK)
+                            .quantity(new BigDecimal("10.0"))
+                            .purchasePrice(new BigDecimal("100.00"))
+                            .currentPrice(new BigDecimal("150.00"))
+                            .purchaseDate(LocalDate.now().minusYears(1))
+                            .usefulLifeYears(null)
+                            .build();
 
             // Act
             BigDecimal depreciatedValue = asset.getDepreciatedValue();
@@ -129,14 +127,15 @@ class AssetTest {
         @DisplayName("Should return null when usefulLifeYears is null")
         void shouldReturnCurrentPriceWhenUsefulLifeYearsIsNull() {
             // Arrange
-            Asset asset = Asset.builder()
-                    .type(AssetType.VEHICLE)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("25000.00"))
-                    .currentPrice(new BigDecimal("20000.00"))
-                    .purchaseDate(LocalDate.now().minusYears(1))
-                    .usefulLifeYears(null)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.VEHICLE)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("25000.00"))
+                            .currentPrice(new BigDecimal("20000.00"))
+                            .purchaseDate(LocalDate.now().minusYears(1))
+                            .usefulLifeYears(null)
+                            .build();
 
             // Act
             BigDecimal depreciatedValue = asset.getDepreciatedValue();
@@ -149,14 +148,15 @@ class AssetTest {
         @DisplayName("Should return null when usefulLifeYears is zero")
         void shouldReturnCurrentPriceWhenUsefulLifeYearsIsZero() {
             // Arrange
-            Asset asset = Asset.builder()
-                    .type(AssetType.ELECTRONICS)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("1500.00"))
-                    .currentPrice(new BigDecimal("1200.00"))
-                    .purchaseDate(LocalDate.now().minusMonths(6))
-                    .usefulLifeYears(0)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.ELECTRONICS)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("1500.00"))
+                            .currentPrice(new BigDecimal("1200.00"))
+                            .purchaseDate(LocalDate.now().minusMonths(6))
+                            .usefulLifeYears(0)
+                            .build();
 
             // Act
             BigDecimal depreciatedValue = asset.getDepreciatedValue();
@@ -169,14 +169,15 @@ class AssetTest {
         @DisplayName("Should return null when usefulLifeYears is negative")
         void shouldReturnCurrentPriceWhenUsefulLifeYearsIsNegative() {
             // Arrange
-            Asset asset = Asset.builder()
-                    .type(AssetType.FURNITURE)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("3000.00"))
-                    .currentPrice(new BigDecimal("2500.00"))
-                    .purchaseDate(LocalDate.now().minusMonths(3))
-                    .usefulLifeYears(-5)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.FURNITURE)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("3000.00"))
+                            .currentPrice(new BigDecimal("2500.00"))
+                            .purchaseDate(LocalDate.now().minusMonths(3))
+                            .usefulLifeYears(-5)
+                            .build();
 
             // Act
             BigDecimal depreciatedValue = asset.getDepreciatedValue();
@@ -190,14 +191,16 @@ class AssetTest {
         void shouldHandleFractionalYearsCorrectly() {
             // Arrange - Asset purchased 6 months ago with 10 year useful life
             LocalDate purchaseDate = LocalDate.now().minusMonths(6);
-            Asset asset = Asset.builder()
-                    .type(AssetType.VEHICLE)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("36500.00")) // 365 * 100 for easy calculation
-                    .currentPrice(new BigDecimal("35000.00"))
-                    .purchaseDate(purchaseDate)
-                    .usefulLifeYears(10)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.VEHICLE)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(
+                                    new BigDecimal("36500.00")) // 365 * 100 for easy calculation
+                            .currentPrice(new BigDecimal("35000.00"))
+                            .purchaseDate(purchaseDate)
+                            .usefulLifeYears(10)
+                            .build();
 
             // Act
             BigDecimal depreciatedValue = asset.getDepreciatedValue();
@@ -215,14 +218,15 @@ class AssetTest {
         @DisplayName("Should handle assets purchased today")
         void shouldHandleAssetsPurchasedToday() {
             // Arrange
-            Asset asset = Asset.builder()
-                    .type(AssetType.ELECTRONICS)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("2000.00"))
-                    .currentPrice(new BigDecimal("2000.00"))
-                    .purchaseDate(LocalDate.now())
-                    .usefulLifeYears(5)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.ELECTRONICS)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("2000.00"))
+                            .currentPrice(new BigDecimal("2000.00"))
+                            .purchaseDate(LocalDate.now())
+                            .usefulLifeYears(5)
+                            .build();
 
             // Act
             BigDecimal depreciatedValue = asset.getDepreciatedValue();
@@ -238,14 +242,15 @@ class AssetTest {
         void shouldCalculateDepreciationForMultipleQuantityAssets() {
             // Arrange - 5 units purchased 1 year ago with 10 year useful life
             LocalDate purchaseDate = LocalDate.now().minusYears(1);
-            Asset asset = Asset.builder()
-                    .type(AssetType.ELECTRONICS)
-                    .quantity(new BigDecimal("5.0")) // 5 units
-                    .purchasePrice(new BigDecimal("1000.00")) // per unit
-                    .currentPrice(new BigDecimal("900.00"))
-                    .purchaseDate(purchaseDate)
-                    .usefulLifeYears(10)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.ELECTRONICS)
+                            .quantity(new BigDecimal("5.0")) // 5 units
+                            .purchasePrice(new BigDecimal("1000.00")) // per unit
+                            .currentPrice(new BigDecimal("900.00"))
+                            .purchaseDate(purchaseDate)
+                            .usefulLifeYears(10)
+                            .build();
 
             // Act
             BigDecimal depreciatedValue = asset.getDepreciatedValue();
@@ -272,15 +277,16 @@ class AssetTest {
         void shouldApplyNewConditionFactor() {
             // Arrange
             LocalDate purchaseDate = LocalDate.now().minusYears(1);
-            Asset asset = Asset.builder()
-                    .type(AssetType.VEHICLE)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("30000.00"))
-                    .currentPrice(new BigDecimal("28000.00"))
-                    .purchaseDate(purchaseDate)
-                    .usefulLifeYears(10)
-                    .condition(AssetCondition.NEW)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.VEHICLE)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("30000.00"))
+                            .currentPrice(new BigDecimal("28000.00"))
+                            .purchaseDate(purchaseDate)
+                            .usefulLifeYears(10)
+                            .condition(AssetCondition.NEW)
+                            .build();
 
             // Act
             BigDecimal conditionAdjustedValue = asset.getConditionAdjustedValue();
@@ -298,15 +304,16 @@ class AssetTest {
         void shouldApplyExcellentConditionFactor() {
             // Arrange
             LocalDate purchaseDate = LocalDate.now().minusYears(2);
-            Asset asset = Asset.builder()
-                    .type(AssetType.ELECTRONICS)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("1000.00"))
-                    .currentPrice(new BigDecimal("800.00"))
-                    .purchaseDate(purchaseDate)
-                    .usefulLifeYears(5)
-                    .condition(AssetCondition.EXCELLENT)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.ELECTRONICS)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("1000.00"))
+                            .currentPrice(new BigDecimal("800.00"))
+                            .purchaseDate(purchaseDate)
+                            .usefulLifeYears(5)
+                            .condition(AssetCondition.EXCELLENT)
+                            .build();
 
             // Act
             BigDecimal conditionAdjustedValue = asset.getConditionAdjustedValue();
@@ -324,15 +331,16 @@ class AssetTest {
         void shouldApplyGoodConditionFactor() {
             // Arrange
             LocalDate purchaseDate = LocalDate.now().minusYears(3);
-            Asset asset = Asset.builder()
-                    .type(AssetType.FURNITURE)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("2000.00"))
-                    .currentPrice(new BigDecimal("1500.00"))
-                    .purchaseDate(purchaseDate)
-                    .usefulLifeYears(10)
-                    .condition(AssetCondition.GOOD)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.FURNITURE)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("2000.00"))
+                            .currentPrice(new BigDecimal("1500.00"))
+                            .purchaseDate(purchaseDate)
+                            .usefulLifeYears(10)
+                            .condition(AssetCondition.GOOD)
+                            .build();
 
             // Act
             BigDecimal conditionAdjustedValue = asset.getConditionAdjustedValue();
@@ -350,15 +358,16 @@ class AssetTest {
         void shouldApplyFairConditionFactor() {
             // Arrange
             LocalDate purchaseDate = LocalDate.now().minusYears(1);
-            Asset asset = Asset.builder()
-                    .type(AssetType.VEHICLE)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("20000.00"))
-                    .currentPrice(new BigDecimal("18000.00"))
-                    .purchaseDate(purchaseDate)
-                    .usefulLifeYears(15)
-                    .condition(AssetCondition.FAIR)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.VEHICLE)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("20000.00"))
+                            .currentPrice(new BigDecimal("18000.00"))
+                            .purchaseDate(purchaseDate)
+                            .usefulLifeYears(15)
+                            .condition(AssetCondition.FAIR)
+                            .build();
 
             // Act
             BigDecimal conditionAdjustedValue = asset.getConditionAdjustedValue();
@@ -376,15 +385,16 @@ class AssetTest {
         void shouldApplyPoorConditionFactor() {
             // Arrange
             LocalDate purchaseDate = LocalDate.now().minusYears(5);
-            Asset asset = Asset.builder()
-                    .type(AssetType.ELECTRONICS)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("1500.00"))
-                    .currentPrice(new BigDecimal("500.00"))
-                    .purchaseDate(purchaseDate)
-                    .usefulLifeYears(5)
-                    .condition(AssetCondition.POOR)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.ELECTRONICS)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("1500.00"))
+                            .currentPrice(new BigDecimal("500.00"))
+                            .purchaseDate(purchaseDate)
+                            .usefulLifeYears(5)
+                            .condition(AssetCondition.POOR)
+                            .build();
 
             // Act
             BigDecimal conditionAdjustedValue = asset.getConditionAdjustedValue();
@@ -402,15 +412,16 @@ class AssetTest {
         void shouldReturnDepreciatedValueWhenConditionIsNull() {
             // Arrange
             LocalDate purchaseDate = LocalDate.now().minusYears(1);
-            Asset asset = Asset.builder()
-                    .type(AssetType.VEHICLE)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("25000.00"))
-                    .currentPrice(new BigDecimal("23000.00"))
-                    .purchaseDate(purchaseDate)
-                    .usefulLifeYears(10)
-                    .condition(null) // No condition set
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.VEHICLE)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("25000.00"))
+                            .currentPrice(new BigDecimal("23000.00"))
+                            .purchaseDate(purchaseDate)
+                            .usefulLifeYears(10)
+                            .condition(null) // No condition set
+                            .build();
 
             // Act
             BigDecimal conditionAdjustedValue = asset.getConditionAdjustedValue();
@@ -508,10 +519,11 @@ class AssetTest {
         @DisplayName("Should return true when warranty expiration is in the future")
         void shouldReturnTrueWhenWarrantyExpirationIsFuture() {
             LocalDate futureDate = LocalDate.now().plusYears(1);
-            Asset asset = Asset.builder()
-                    .type(AssetType.ELECTRONICS)
-                    .warrantyExpiration(futureDate)
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.ELECTRONICS)
+                            .warrantyExpiration(futureDate)
+                            .build();
 
             assertThat(asset.isWarrantyValid()).isTrue();
         }
@@ -520,10 +532,8 @@ class AssetTest {
         @DisplayName("Should return false when warranty expiration is in the past")
         void shouldReturnFalseWhenWarrantyExpirationIsPast() {
             LocalDate pastDate = LocalDate.now().minusYears(1);
-            Asset asset = Asset.builder()
-                    .type(AssetType.VEHICLE)
-                    .warrantyExpiration(pastDate)
-                    .build();
+            Asset asset =
+                    Asset.builder().type(AssetType.VEHICLE).warrantyExpiration(pastDate).build();
 
             assertThat(asset.isWarrantyValid()).isFalse();
         }
@@ -532,10 +542,8 @@ class AssetTest {
         @DisplayName("Should return false when warranty expiration is today")
         void shouldReturnFalseWhenWarrantyExpirationIsToday() {
             LocalDate today = LocalDate.now();
-            Asset asset = Asset.builder()
-                    .type(AssetType.FURNITURE)
-                    .warrantyExpiration(today)
-                    .build();
+            Asset asset =
+                    Asset.builder().type(AssetType.FURNITURE).warrantyExpiration(today).build();
 
             // Warranty expired as of today (not after today)
             assertThat(asset.isWarrantyValid()).isFalse();
@@ -544,10 +552,8 @@ class AssetTest {
         @Test
         @DisplayName("Should return false when warranty expiration is null")
         void shouldReturnFalseWhenWarrantyExpirationIsNull() {
-            Asset asset = Asset.builder()
-                    .type(AssetType.ELECTRONICS)
-                    .warrantyExpiration(null)
-                    .build();
+            Asset asset =
+                    Asset.builder().type(AssetType.ELECTRONICS).warrantyExpiration(null).build();
 
             assertThat(asset.isWarrantyValid()).isFalse();
         }
@@ -556,10 +562,8 @@ class AssetTest {
         @DisplayName("Should return true when warranty expires tomorrow")
         void shouldReturnTrueWhenWarrantyExpiresTomorrow() {
             LocalDate tomorrow = LocalDate.now().plusDays(1);
-            Asset asset = Asset.builder()
-                    .type(AssetType.VEHICLE)
-                    .warrantyExpiration(tomorrow)
-                    .build();
+            Asset asset =
+                    Asset.builder().type(AssetType.VEHICLE).warrantyExpiration(tomorrow).build();
 
             assertThat(asset.isWarrantyValid()).isTrue();
         }
@@ -575,24 +579,25 @@ class AssetTest {
         @DisplayName("Should build asset with all physical fields")
         void shouldBuildAssetWithAllPhysicalFields() {
             // Arrange & Act
-            Asset asset = Asset.builder()
-                    .id(1L)
-                    .userId(100L)
-                    .name("Tesla Model 3")
-                    .type(AssetType.VEHICLE)
-                    .quantity(BigDecimal.ONE)
-                    .purchasePrice(new BigDecimal("45000.00"))
-                    .currentPrice(new BigDecimal("40000.00"))
-                    .currency("USD")
-                    .purchaseDate(LocalDate.now().minusYears(1))
-                    .serialNumber("5YJ3E1EA4JF000001")
-                    .brand("Tesla")
-                    .model("Model 3")
-                    .condition(AssetCondition.EXCELLENT)
-                    .warrantyExpiration(LocalDate.now().plusYears(2))
-                    .usefulLifeYears(15)
-                    .photoPath("assets/photos/tesla_model3.jpg")
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .id(1L)
+                            .userId(100L)
+                            .name("Tesla Model 3")
+                            .type(AssetType.VEHICLE)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("45000.00"))
+                            .currentPrice(new BigDecimal("40000.00"))
+                            .currency("USD")
+                            .purchaseDate(LocalDate.now().minusYears(1))
+                            .serialNumber("5YJ3E1EA4JF000001")
+                            .brand("Tesla")
+                            .model("Model 3")
+                            .condition(AssetCondition.EXCELLENT)
+                            .warrantyExpiration(LocalDate.now().plusYears(2))
+                            .usefulLifeYears(15)
+                            .photoPath("assets/photos/tesla_model3.jpg")
+                            .build();
 
             // Assert
             assertThat(asset.getId()).isEqualTo(1L);
@@ -612,18 +617,19 @@ class AssetTest {
         @DisplayName("Should build financial asset without physical fields")
         void shouldBuildFinancialAssetWithoutPhysicalFields() {
             // Arrange & Act
-            Asset asset = Asset.builder()
-                    .id(2L)
-                    .userId(100L)
-                    .name("Apple Inc.")
-                    .type(AssetType.STOCK)
-                    .symbol("AAPL")
-                    .quantity(new BigDecimal("10.0"))
-                    .purchasePrice(new BigDecimal("150.00"))
-                    .currentPrice(new BigDecimal("175.00"))
-                    .currency("USD")
-                    .purchaseDate(LocalDate.now().minusMonths(6))
-                    .build();
+            Asset asset =
+                    Asset.builder()
+                            .id(2L)
+                            .userId(100L)
+                            .name("Apple Inc.")
+                            .type(AssetType.STOCK)
+                            .symbol("AAPL")
+                            .quantity(new BigDecimal("10.0"))
+                            .purchasePrice(new BigDecimal("150.00"))
+                            .currentPrice(new BigDecimal("175.00"))
+                            .currency("USD")
+                            .purchaseDate(LocalDate.now().minusMonths(6))
+                            .build();
 
             // Assert
             assertThat(asset.getId()).isEqualTo(2L);

@@ -15,11 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * REST controller for compound interest calculations.
  *
- * <p>
- * API Endpoint:
- * </p>
+ * <p>API Endpoint:
+ *
  * <ul>
- * <li>POST /api/v1/calculator/compound-interest/calculate</li>
+ *   <li>POST /api/v1/calculator/compound-interest/calculate
  * </ul>
  */
 @RestController
@@ -40,9 +39,12 @@ public class CompoundInterestController {
     public ResponseEntity<CompoundInterestResult> calculate(
             @Valid @RequestBody CompoundInterestRequest request) {
 
-        log.info("Received compound interest calculation request: principal={}, rate={}%, freq={}, years={}",
-                request.getPrincipal(), request.getAnnualRate(),
-                request.getCompoundingFrequency(), request.getYears());
+        log.info(
+                "Received compound interest calculation request: principal={}, rate={}%, freq={}, years={}",
+                request.getPrincipal(),
+                request.getAnnualRate(),
+                request.getCompoundingFrequency(),
+                request.getYears());
 
         CompoundInterestResult result = compoundInterestService.calculate(request);
 

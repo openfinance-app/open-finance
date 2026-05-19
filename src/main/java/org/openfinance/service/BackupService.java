@@ -1,5 +1,13 @@
 package org.openfinance.service;
 
+import java.io.*;
+import java.nio.file.*;
+import java.security.MessageDigest;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.Backup;
@@ -11,30 +19,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.*;
-import java.nio.file.*;
-import java.security.MessageDigest;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
-
 /**
- * Service for managing database backups.
- * Handles backup creation, restoration, validation, and automatic scheduling.
- * 
+ * Service for managing database backups. Handles backup creation, restoration, validation, and
+ * automatic scheduling.
+ *
  * <p><b>Requirements:</b> REQ-2.14.2.1, REQ-2.14.2.2, REQ-2.14.2.3
- * 
+ *
  * <p><b>Features:</b>
+ *
  * <ul>
- *   <li>Create compressed backups of SQLite database</li>
- *   <li>Restore backups with validation</li>
- *   <li>Automatic scheduled backups (weekly by default)</li>
- *   <li>Backup rotation (retain last N backups)</li>
- *   <li>SHA-256 checksum verification</li>
+ *   <li>Create compressed backups of SQLite database
+ *   <li>Restore backups with validation
+ *   <li>Automatic scheduled backups (weekly by default)
+ *   <li>Backup rotation (retain last N backups)
+ *   <li>SHA-256 checksum verification
  * </ul>
- * 
+ *
  * @author Open-Finance Development Team
  * @version 1.0
  * @since 2026-02-04
@@ -46,48 +46,41 @@ public class BackupService {
 
     private final BackupRepository backupRepository;
 
-    /**
-     * Path to the SQLite database file (from application.properties).
-     * Example: openfinance.db
-     */
+    /** Path to the SQLite database file (from application.properties). Example: openfinance.db */
     @Value("${spring.datasource.url:jdbc:sqlite:openfinance.db}")
     private String databaseUrl;
 
-    /**
-     * Directory where backups are stored.
-     */
+    /** Directory where backups are stored. */
     @Value("${app.backup.directory:./backups}")
     private String backupDirectory;
 
-    /**
-     * Maximum number of automatic backups to retain per user.
-     */
+    /** Maximum number of automatic backups to retain per user. */
     @Value("${app.backup.retention.count:7}")
     private int retentionCount;
 
-    /**
-     * Automatic backup schedule enabled flag.
-     */
+    /** Automatic backup schedule enabled flag. */
     @Value("${app.backup.schedule.enabled:true}")
     private boolean scheduleEnabled;
 
     private static final String BACKUP_FILE_EXTENSION = ".ofbak";
-    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final DateTimeFormatter TIMESTAMP_FORMAT =
+            DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
     /**
      * Creates a manual backup for a specific user.
-     * 
+     *
      * <p><b>Process:</b>
+     *
      * <ol>
-     *   <li>Generate unique backup filename with timestamp</li>
-     *   <li>Copy SQLite database file</li>
-     *   <li>Compress with gzip</li>
-     *   <li>Calculate SHA-256 checksum</li>
-     *   <li>Save backup metadata to database</li>
+     *   <li>Generate unique backup filename with timestamp
+     *   <li>Copy SQLite database file
+     *   <li>Compress with gzip
+     *   <li>Calculate SHA-256 checksum
+     *   <li>Save backup metadata to database
      * </ol>
-     * 
+     *
      * <p><b>Requirement:</b> REQ-2.14.2.1
-     * 
+     *
      * @param userId the ID of the user requesting the backup
      * @param description optional description for the backup
      * @return Backup entity with metadata
@@ -100,24 +93,26 @@ public class BackupService {
         try {
             // Generate backup filename
             String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
-            String filename = String.format("openfinance-backup-%s%s", timestamp, BACKUP_FILE_EXTENSION);
+            String filename =
+                    String.format("openfinance-backup-%s%s", timestamp, BACKUP_FILE_EXTENSION);
             String filePath = Paths.get(backupDirectory, filename).toString();
 
             // Create backup directory if it doesn't exist
             Files.createDirectories(Paths.get(backupDirectory));
 
             // Create backup record in PENDING status
-            Backup backup = Backup.builder()
-                    .userId(userId)
-                    .filename(filename)
-                    .filePath(filePath)
-                    .fileSize(0L)
-                    .checksum("")
-                    .status("IN_PROGRESS")
-                    .backupType("MANUAL")
-                    .description(description)
-                    .createdAt(LocalDateTime.now())
-                    .build();
+            Backup backup =
+                    Backup.builder()
+                            .userId(userId)
+                            .filename(filename)
+                            .filePath(filePath)
+                            .fileSize(0L)
+                            .checksum("")
+                            .status("IN_PROGRESS")
+                            .backupType("MANUAL")
+                            .description(description)
+                            .createdAt(LocalDateTime.now())
+                            .build();
             backup = backupRepository.save(backup);
 
             // Perform the backup
@@ -133,11 +128,10 @@ public class BackupService {
     }
 
     /**
-     * Creates an automatic backup for a user.
-     * Used by the scheduler.
-     * 
+     * Creates an automatic backup for a user. Used by the scheduler.
+     *
      * <p><b>Requirement:</b> REQ-2.14.2.2
-     * 
+     *
      * @param userId the user ID
      * @return Backup entity
      * @throws BackupException if backup fails
@@ -148,22 +142,24 @@ public class BackupService {
 
         try {
             String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
-            String filename = String.format("openfinance-backup-auto-%s%s", timestamp, BACKUP_FILE_EXTENSION);
+            String filename =
+                    String.format("openfinance-backup-auto-%s%s", timestamp, BACKUP_FILE_EXTENSION);
             String filePath = Paths.get(backupDirectory, filename).toString();
 
             Files.createDirectories(Paths.get(backupDirectory));
 
-            Backup backup = Backup.builder()
-                    .userId(userId)
-                    .filename(filename)
-                    .filePath(filePath)
-                    .fileSize(0L)
-                    .checksum("")
-                    .status("IN_PROGRESS")
-                    .backupType("AUTOMATIC")
-                    .description("Automatic weekly backup")
-                    .createdAt(LocalDateTime.now())
-                    .build();
+            Backup backup =
+                    Backup.builder()
+                            .userId(userId)
+                            .filename(filename)
+                            .filePath(filePath)
+                            .fileSize(0L)
+                            .checksum("")
+                            .status("IN_PROGRESS")
+                            .backupType("AUTOMATIC")
+                            .description("Automatic weekly backup")
+                            .createdAt(LocalDateTime.now())
+                            .build();
             backup = backupRepository.save(backup);
 
             performBackup(backup);
@@ -182,7 +178,7 @@ public class BackupService {
 
     /**
      * Performs the actual backup process: copy, compress, checksum.
-     * 
+     *
      * @param backup the backup entity to update
      * @throws IOException if I/O error occurs
      */
@@ -202,8 +198,8 @@ public class BackupService {
 
         // Copy and compress database file
         try (InputStream in = Files.newInputStream(sourcePath);
-             OutputStream out = Files.newOutputStream(targetPath);
-             GZIPOutputStream gzipOut = new GZIPOutputStream(out)) {
+                OutputStream out = Files.newOutputStream(targetPath);
+                GZIPOutputStream gzipOut = new GZIPOutputStream(out)) {
 
             byte[] buffer = new byte[8192];
             int bytesRead;
@@ -223,25 +219,29 @@ public class BackupService {
         backup.setUpdatedAt(LocalDateTime.now());
         backupRepository.save(backup);
 
-        log.info("Backup completed: {} (Size: {}, Checksum: {})", 
-                 backup.getFilename(), backup.getFormattedFileSize(), checksum);
+        log.info(
+                "Backup completed: {} (Size: {}, Checksum: {})",
+                backup.getFilename(),
+                backup.getFormattedFileSize(),
+                checksum);
     }
 
     /**
      * Restores a backup from file.
-     * 
+     *
      * <p><b>Process:</b>
+     *
      * <ol>
-     *   <li>Validate backup file integrity (checksum)</li>
-     *   <li>Verify user ownership</li>
-     *   <li>Create current database backup before restore</li>
-     *   <li>Decompress backup file</li>
-     *   <li>Replace current database with backup</li>
-     *   <li>Verify restoration success</li>
+     *   <li>Validate backup file integrity (checksum)
+     *   <li>Verify user ownership
+     *   <li>Create current database backup before restore
+     *   <li>Decompress backup file
+     *   <li>Replace current database with backup
+     *   <li>Verify restoration success
      * </ol>
-     * 
+     *
      * <p><b>Requirement:</b> REQ-2.14.2.3
-     * 
+     *
      * @param userId the user ID requesting restore
      * @param backupId the ID of the backup to restore
      * @throws BackupException if restoration fails
@@ -250,8 +250,11 @@ public class BackupService {
     public void restoreBackup(Long userId, Long backupId) {
         log.info("Restoring backup ID: {} for user ID: {}", backupId, userId);
 
-        Backup backup = backupRepository.findByIdAndUserId(backupId, userId)
-                .orElseThrow(() -> new BackupException("Backup not found or access denied"));
+        Backup backup =
+                backupRepository
+                        .findByIdAndUserId(backupId, userId)
+                        .orElseThrow(
+                                () -> new BackupException("Backup not found or access denied"));
 
         if (!"COMPLETED".equals(backup.getStatus())) {
             throw new BackupException("Cannot restore incomplete backup");
@@ -278,8 +281,10 @@ public class BackupService {
 
             // Decompress and restore
             try (InputStream in = Files.newInputStream(backupPath);
-                 GZIPInputStream gzipIn = new GZIPInputStream(in);
-                 OutputStream out = Files.newOutputStream(targetPath, StandardOpenOption.TRUNCATE_EXISTING)) {
+                    GZIPInputStream gzipIn = new GZIPInputStream(in);
+                    OutputStream out =
+                            Files.newOutputStream(
+                                    targetPath, StandardOpenOption.TRUNCATE_EXISTING)) {
 
                 byte[] buffer = new byte[8192];
                 int bytesRead;
@@ -298,7 +303,7 @@ public class BackupService {
 
     /**
      * Restores a backup from uploaded file.
-     * 
+     *
      * @param userId the user ID
      * @param file the uploaded backup file
      * @throws BackupException if restoration fails
@@ -329,8 +334,10 @@ public class BackupService {
 
             // Decompress and restore
             try (InputStream in = Files.newInputStream(tempPath);
-                 GZIPInputStream gzipIn = new GZIPInputStream(in);
-                 OutputStream out = Files.newOutputStream(targetPath, StandardOpenOption.TRUNCATE_EXISTING)) {
+                    GZIPInputStream gzipIn = new GZIPInputStream(in);
+                    OutputStream out =
+                            Files.newOutputStream(
+                                    targetPath, StandardOpenOption.TRUNCATE_EXISTING)) {
 
                 byte[] buffer = new byte[8192];
                 int bytesRead;
@@ -352,7 +359,7 @@ public class BackupService {
 
     /**
      * Lists all backups for a user.
-     * 
+     *
      * @param userId the user ID
      * @return list of backups, ordered by creation date (newest first)
      */
@@ -364,7 +371,7 @@ public class BackupService {
 
     /**
      * Gets a specific backup by ID (with ownership verification).
-     * 
+     *
      * @param userId the user ID
      * @param backupId the backup ID
      * @return Backup entity
@@ -372,13 +379,14 @@ public class BackupService {
      */
     @Transactional(readOnly = true)
     public Backup getBackup(Long userId, Long backupId) {
-        return backupRepository.findByIdAndUserId(backupId, userId)
+        return backupRepository
+                .findByIdAndUserId(backupId, userId)
                 .orElseThrow(() -> new BackupException("Backup not found or access denied"));
     }
 
     /**
      * Downloads a backup file.
-     * 
+     *
      * @param userId the user ID
      * @param backupId the backup ID
      * @return InputStream of the backup file
@@ -402,7 +410,7 @@ public class BackupService {
 
     /**
      * Deletes a backup.
-     * 
+     *
      * @param userId the user ID
      * @param backupId the backup ID
      * @throws BackupException if deletion fails
@@ -428,20 +436,21 @@ public class BackupService {
 
     /**
      * Rotates automatic backups, keeping only the last N backups.
-     * 
+     *
      * <p><b>Requirement:</b> REQ-2.14.2.2
-     * 
+     *
      * @param userId the user ID
      */
     private void rotateAutomaticBackups(Long userId) {
         log.debug("Rotating automatic backups for user ID: {}", userId);
 
-        List<Backup> automaticBackups = backupRepository
-                .findByUserIdAndBackupTypeOrderByCreatedAtDesc(userId, "AUTOMATIC");
+        List<Backup> automaticBackups =
+                backupRepository.findByUserIdAndBackupTypeOrderByCreatedAtDesc(userId, "AUTOMATIC");
 
         if (automaticBackups.size() > retentionCount) {
-            List<Backup> backupsToDelete = automaticBackups.subList(retentionCount, automaticBackups.size());
-            
+            List<Backup> backupsToDelete =
+                    automaticBackups.subList(retentionCount, automaticBackups.size());
+
             for (Backup backup : backupsToDelete) {
                 try {
                     deleteBackup(userId, backup.getId());
@@ -450,14 +459,16 @@ public class BackupService {
                 }
             }
 
-            log.info("Rotated {} old automatic backups for user ID: {}", backupsToDelete.size(), userId);
+            log.info(
+                    "Rotated {} old automatic backups for user ID: {}",
+                    backupsToDelete.size(),
+                    userId);
         }
     }
 
     /**
-     * Scheduled automatic backup job.
-     * Runs every Sunday at 2:00 AM by default.
-     * 
+     * Scheduled automatic backup job. Runs every Sunday at 2:00 AM by default.
+     *
      * <p><b>Requirement:</b> REQ-2.14.2.2
      */
     @Scheduled(cron = "${app.backup.schedule.cron:0 0 2 * * SUN}")
@@ -471,19 +482,19 @@ public class BackupService {
 
         // In a real implementation, you would iterate over all users
         // For now, this is a placeholder that can be called manually
-        log.warn("Scheduled backup: User iteration not implemented. Backups must be triggered per-user.");
+        log.warn(
+                "Scheduled backup: User iteration not implemented. Backups must be triggered per-user.");
     }
 
     /**
-     * Extracts the database file path from a JDBC URL.
-     * Supports SQLite and H2 file-based databases.
-     * 
+     * Extracts the database file path from a JDBC URL. Supports SQLite and H2 file-based databases.
+     *
      * @param jdbcUrl the JDBC connection URL
      * @return file path (e.g., openfinance.db or ./target/test-db/backup-test.mv.db)
      */
     private String extractDatabasePath(String jdbcUrl) {
         String path;
-        
+
         // Handle SQLite URLs: jdbc:sqlite:path/to/database.db
         if (jdbcUrl.startsWith("jdbc:sqlite:")) {
             path = jdbcUrl.replaceFirst("^jdbc:sqlite:", "");
@@ -495,32 +506,31 @@ public class BackupService {
         // Handle H2 mem URLs (in-memory databases don't have files)
         else if (jdbcUrl.startsWith("jdbc:h2:mem:")) {
             return jdbcUrl; // Return URL as-is to trigger "not found" error with clear message
-        }
-        else {
+        } else {
             // Unsupported database type
             return jdbcUrl; // Return URL as-is to trigger "not found" error
         }
-        
+
         // Remove query parameters (everything after ? or ;) BEFORE adding extension
-        int queryIndex = Math.min(
-            path.indexOf('?') >= 0 ? path.indexOf('?') : Integer.MAX_VALUE,
-            path.indexOf(';') >= 0 ? path.indexOf(';') : Integer.MAX_VALUE
-        );
+        int queryIndex =
+                Math.min(
+                        path.indexOf('?') >= 0 ? path.indexOf('?') : Integer.MAX_VALUE,
+                        path.indexOf(';') >= 0 ? path.indexOf(';') : Integer.MAX_VALUE);
         if (queryIndex < Integer.MAX_VALUE) {
             path = path.substring(0, queryIndex);
         }
-        
+
         // Add .mv.db extension for H2 files AFTER removing query parameters
         if (jdbcUrl.startsWith("jdbc:h2:file:") && !path.endsWith(".mv.db")) {
             path = path + ".mv.db";
         }
-        
+
         return path;
     }
 
     /**
      * Calculates SHA-256 checksum of a file.
-     * 
+     *
      * @param filePath the file path
      * @return hex-encoded checksum
      * @throws IOException if I/O error occurs
@@ -535,7 +545,7 @@ public class BackupService {
                     digest.update(buffer, 0, bytesRead);
                 }
             }
-            
+
             byte[] hashBytes = digest.digest();
             StringBuilder sb = new StringBuilder();
             for (byte b : hashBytes) {

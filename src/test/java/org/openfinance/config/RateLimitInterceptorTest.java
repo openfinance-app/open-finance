@@ -1,5 +1,9 @@
 package org.openfinance.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,36 +20,24 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class RateLimitInterceptorTest {
 
-    @Mock
-    private RateLimitConfig rateLimitConfig;
+    @Mock private RateLimitConfig rateLimitConfig;
 
-    @Mock
-    private HttpServletRequest request;
+    @Mock private HttpServletRequest request;
 
-    @Mock
-    private HttpServletResponse response;
+    @Mock private HttpServletResponse response;
 
-    @Mock
-    private Bucket bucket;
+    @Mock private Bucket bucket;
 
-    @Mock
-    private ConsumptionProbe probe;
+    @Mock private ConsumptionProbe probe;
 
-    @Mock
-    private SecurityContext securityContext;
+    @Mock private SecurityContext securityContext;
 
-    @Mock
-    private Authentication authentication;
+    @Mock private Authentication authentication;
 
-    @InjectMocks
-    private RateLimitInterceptor rateLimitInterceptor;
+    @InjectMocks private RateLimitInterceptor rateLimitInterceptor;
 
     @BeforeEach
     void setUp() {
@@ -61,7 +53,7 @@ class RateLimitInterceptorTest {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getPrincipal()).thenReturn("user");
         when(authentication.getName()).thenReturn("testuser");
-        
+
         when(rateLimitConfig.resolveBucket("user:testuser")).thenReturn(bucket);
         when(bucket.tryConsumeAndReturnRemaining(1)).thenReturn(probe);
         when(probe.isConsumed()).thenReturn(true);
@@ -72,7 +64,12 @@ class RateLimitInterceptorTest {
 
         // Then
         assertThat(result).isTrue();
-        verify(response).addHeader("X-Rate-Limit-Limit", String.valueOf(RateLimitConfig.REQUESTS_PER_MINUTE + RateLimitConfig.BURST_CAPACITY));
+        verify(response)
+                .addHeader(
+                        "X-Rate-Limit-Limit",
+                        String.valueOf(
+                                RateLimitConfig.REQUESTS_PER_MINUTE
+                                        + RateLimitConfig.BURST_CAPACITY));
         verify(response).addHeader("X-Rate-Limit-Remaining", "10");
         verify(response, never()).sendError(anyInt(), anyString());
     }
@@ -84,7 +81,7 @@ class RateLimitInterceptorTest {
         when(request.getRequestURI()).thenReturn("/api/v1/assets");
         when(securityContext.getAuthentication()).thenReturn(null);
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
-        
+
         when(rateLimitConfig.resolveBucket("ip:127.0.0.1")).thenReturn(bucket);
         when(bucket.tryConsumeAndReturnRemaining(1)).thenReturn(probe);
         when(probe.isConsumed()).thenReturn(false);
@@ -107,7 +104,7 @@ class RateLimitInterceptorTest {
         // Given
         when(request.getRequestURI()).thenReturn("/api/v1/auth/login");
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
-        
+
         when(rateLimitConfig.resolveSensitiveBucket("ip:127.0.0.1")).thenReturn(bucket);
         when(bucket.tryConsumeAndReturnRemaining(1)).thenReturn(probe);
         when(probe.isConsumed()).thenReturn(true);
@@ -119,7 +116,10 @@ class RateLimitInterceptorTest {
         // Then
         assertThat(result).isTrue();
         verify(rateLimitConfig).resolveSensitiveBucket("ip:127.0.0.1");
-        verify(response).addHeader("X-Rate-Limit-Limit", String.valueOf(RateLimitConfig.SENSITIVE_REQUESTS_PER_MINUTE));
+        verify(response)
+                .addHeader(
+                        "X-Rate-Limit-Limit",
+                        String.valueOf(RateLimitConfig.SENSITIVE_REQUESTS_PER_MINUTE));
     }
 
     @Test
@@ -128,7 +128,7 @@ class RateLimitInterceptorTest {
         // Given
         when(request.getRequestURI()).thenReturn("/api/v1/files/upload");
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
-        
+
         when(rateLimitConfig.resolveSensitiveBucket("ip:127.0.0.1")).thenReturn(bucket);
         when(bucket.tryConsumeAndReturnRemaining(1)).thenReturn(probe);
         when(probe.isConsumed()).thenReturn(true);
@@ -147,7 +147,7 @@ class RateLimitInterceptorTest {
         when(request.getRequestURI()).thenReturn("/api/v1/assets");
         when(securityContext.getAuthentication()).thenReturn(null);
         when(request.getHeader("X-Forwarded-For")).thenReturn("10.0.0.1, 192.168.1.1");
-        
+
         when(rateLimitConfig.resolveBucket("ip:10.0.0.1")).thenReturn(bucket);
         when(bucket.tryConsumeAndReturnRemaining(1)).thenReturn(probe);
         when(probe.isConsumed()).thenReturn(true);

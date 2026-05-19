@@ -6,18 +6,17 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation to enable explicit logging of method execution.
- * Methods annotated with @Logged will have their entry, exit, and exceptions logged automatically.
+ * Annotation to enable explicit logging of method execution. Methods annotated with @Logged will
+ * have their entry, exit, and exceptions logged automatically.
  *
  * <p>Example:
- * <pre>
- * {@code
+ *
+ * <pre>{@code
  * @Logged
  * public void importantMethod() {
  *     // method implementation
  * }
- * }
- * </pre>
+ * }</pre>
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

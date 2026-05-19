@@ -1,5 +1,9 @@
 package org.openfinance.service.parser;
 
+import com.opencsv.CSVParserBuilder;
+import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
+import com.opencsv.exceptions.CsvValidationException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,24 +20,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
 import org.springframework.stereotype.Component;
-
-import com.opencsv.CSVParserBuilder;
-import com.opencsv.CSVReader;
-import com.opencsv.CSVReaderBuilder;
-import com.opencsv.exceptions.CsvValidationException;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Parser for Comma Separated Values (CSV) files.
  *
- * Requirements:
- * - REQ-2.5.1.1: File Format Support (CSV parsing)
- * - REQ-2.5.1.3: Import Validation (line numbers, error reporting)
- * Header format:
+ * <p>Requirements: - REQ-2.5.1.1: File Format Support (CSV parsing) - REQ-2.5.1.3: Import
+ * Validation (line numbers, error reporting) Header format:
  * date,amount,transactionamount,debit,credit,payee,memo,description,category,referencenumber,accountnumber
  */
 @Slf4j
@@ -41,82 +36,122 @@ import lombok.extern.slf4j.Slf4j;
 public class CsvParser {
 
     private static final DateTimeFormatter[] DATE_FORMATS = {
-            DateTimeFormatter.ofPattern("MM/dd/yyyy"),
-            DateTimeFormatter.ofPattern("dd/MM/yyyy"),
-            DateTimeFormatter.ofPattern("yyyy-MM-dd"),
-            DateTimeFormatter.ofPattern("M/d/yyyy"),
-            DateTimeFormatter.ofPattern("d/M/yyyy"),
-            DateTimeFormatter.ofPattern("yyyy/MM/dd"),
-            DateTimeFormatter.ofPattern("dd-MM-yyyy"),
-            DateTimeFormatter.ofPattern("MM-dd-yyyy"),
-            DateTimeFormatter.ofPattern("M-d-yyyy"),
-            DateTimeFormatter.ofPattern("d-M-yyyy"),
-            DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("MMMM dd, yyyy", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("MM/dd/yyyy"),
+        DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+        DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+        DateTimeFormatter.ofPattern("M/d/yyyy"),
+        DateTimeFormatter.ofPattern("d/M/yyyy"),
+        DateTimeFormatter.ofPattern("yyyy/MM/dd"),
+        DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+        DateTimeFormatter.ofPattern("MM-dd-yyyy"),
+        DateTimeFormatter.ofPattern("M-d-yyyy"),
+        DateTimeFormatter.ofPattern("d-M-yyyy"),
+        DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("MMMM dd, yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.ENGLISH),
     };
 
     private static final Pattern SEMICOLON_PATTERN = Pattern.compile(";");
 
     /**
-     * Pattern matching numeric dates like dd/MM/yyyy or MM-dd-yyyy (1-2 digit parts
-     * separated by / or -)
+     * Pattern matching numeric dates like dd/MM/yyyy or MM-dd-yyyy (1-2 digit parts separated by /
+     * or -)
      */
-    private static final Pattern NUMERIC_DATE_PATTERN = Pattern.compile("^(\\d{1,2})[/\\-](\\d{1,2})[/\\-](\\d{2,4})$");
+    private static final Pattern NUMERIC_DATE_PATTERN =
+            Pattern.compile("^(\\d{1,2})[/\\-](\\d{1,2})[/\\-](\\d{2,4})$");
 
     /** Date formats with day-first variants prioritised (dd/MM before MM/dd). */
     private static final DateTimeFormatter[] DATE_FORMATS_DAY_FIRST = {
-            DateTimeFormatter.ofPattern("dd/MM/yyyy"),
-            DateTimeFormatter.ofPattern("d/M/yyyy"),
-            DateTimeFormatter.ofPattern("dd-MM-yyyy"),
-            DateTimeFormatter.ofPattern("d-M-yyyy"),
-            DateTimeFormatter.ofPattern("yyyy-MM-dd"),
-            DateTimeFormatter.ofPattern("yyyy/MM/dd"),
-            DateTimeFormatter.ofPattern("MM/dd/yyyy"),
-            DateTimeFormatter.ofPattern("M/d/yyyy"),
-            DateTimeFormatter.ofPattern("MM-dd-yyyy"),
-            DateTimeFormatter.ofPattern("M-d-yyyy"),
-            DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("MMMM dd, yyyy", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+        DateTimeFormatter.ofPattern("d/M/yyyy"),
+        DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+        DateTimeFormatter.ofPattern("d-M-yyyy"),
+        DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+        DateTimeFormatter.ofPattern("yyyy/MM/dd"),
+        DateTimeFormatter.ofPattern("MM/dd/yyyy"),
+        DateTimeFormatter.ofPattern("M/d/yyyy"),
+        DateTimeFormatter.ofPattern("MM-dd-yyyy"),
+        DateTimeFormatter.ofPattern("M-d-yyyy"),
+        DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("MMMM dd, yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.ENGLISH),
     };
 
-    /**
-     * Known header names (normalised) that help distinguish a header row from data
-     */
-    private static final List<String> KNOWN_HEADERS = List.of(
-            "date", "amount", "transactionamount", "debit", "credit",
-            "payee", "memo", "description", "category", "referencenumber",
-            "accountnumber", "transactiondate", "posteddate", "dateposted",
-            "withdrawal", "deposit", "merchant", "name", "notes", "type",
-            "checknumber", "checknum", "fitid", "transactionid", "currency",
-            "account", "accountname", "tags", "tag", "labels", "label",
-            "out", "in", "paidout", "paidin", "title",
-            // French synonyms
-            "montant", "beneficiaire", "libelle", "categorie", "note",
-            "solde", "tiers", "operation", "intitule", "datevaleur",
-            "datecomptable", "sens", "devise");
+    /** Known header names (normalised) that help distinguish a header row from data */
+    private static final List<String> KNOWN_HEADERS =
+            List.of(
+                    "date",
+                    "amount",
+                    "transactionamount",
+                    "debit",
+                    "credit",
+                    "payee",
+                    "memo",
+                    "description",
+                    "category",
+                    "referencenumber",
+                    "accountnumber",
+                    "transactiondate",
+                    "posteddate",
+                    "dateposted",
+                    "withdrawal",
+                    "deposit",
+                    "merchant",
+                    "name",
+                    "notes",
+                    "type",
+                    "checknumber",
+                    "checknum",
+                    "fitid",
+                    "transactionid",
+                    "currency",
+                    "account",
+                    "accountname",
+                    "tags",
+                    "tag",
+                    "labels",
+                    "label",
+                    "out",
+                    "in",
+                    "paidout",
+                    "paidin",
+                    "title",
+                    // French synonyms
+                    "montant",
+                    "beneficiaire",
+                    "libelle",
+                    "categorie",
+                    "note",
+                    "solde",
+                    "tiers",
+                    "operation",
+                    "intitule",
+                    "datevaleur",
+                    "datecomptable",
+                    "sens",
+                    "devise");
 
     /**
      * Parse CSV file and extract transactions.
      *
      * @param inputStream Input stream of CSV file content
-     * @param fileName    Original file name for error reporting
+     * @param fileName Original file name for error reporting
      * @return List of imported transactions with validation errors
      * @throws IOException if file reading fails
      */
-    public List<ImportedTransaction> parseFile(InputStream inputStream, String fileName) throws IOException {
+    public List<ImportedTransaction> parseFile(InputStream inputStream, String fileName)
+            throws IOException {
         log.info("Starting CSV file parsing: {}", fileName);
         List<ImportedTransaction> transactions = new ArrayList<>();
 
-        BufferedReader bufferedReader = new BufferedReader(
-                new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+        BufferedReader bufferedReader =
+                new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
 
         // Peek at the first line to detect the separator (comma vs semicolon)
         bufferedReader.mark(8192);
@@ -133,9 +168,10 @@ public class CsvParser {
 
         // Read ALL rows first so we can infer the date format from the full data set
         List<String[]> allRows = new ArrayList<>();
-        try (CSVReader reader = new CSVReaderBuilder(bufferedReader)
-                .withCSVParser(new CSVParserBuilder().withSeparator(separator).build())
-                .build()) {
+        try (CSVReader reader =
+                new CSVReaderBuilder(bufferedReader)
+                        .withCSVParser(new CSVParserBuilder().withSeparator(separator).build())
+                        .build()) {
             String[] row;
             while ((row = reader.readNext()) != null) {
                 allRows.add(row);
@@ -169,34 +205,33 @@ public class CsvParser {
         List<String> dateStrings = new ArrayList<>();
         for (int i = dataStartIndex; i < allRows.size(); i++) {
             String[] row = allRows.get(i);
-            if (row.length == 0 || (row.length == 1 && row[0].trim().isEmpty()))
-                continue;
-            String dateStr = getValue(row, headerMap, "date", "transactiondate", "posteddate", "dateposted");
-            if (dateStr != null)
-                dateStrings.add(dateStr);
+            if (row.length == 0 || (row.length == 1 && row[0].trim().isEmpty())) continue;
+            String dateStr =
+                    getValue(row, headerMap, "date", "transactiondate", "posteddate", "dateposted");
+            if (dateStr != null) dateStrings.add(dateStr);
         }
         DateTimeFormatter[] dateFormats = inferDateFormats(dateStrings);
 
         // Parse all data rows
         for (int i = dataStartIndex; i < allRows.size(); i++) {
             String[] row = allRows.get(i);
-            if (row.length == 0 || (row.length == 1 && row[0].trim().isEmpty()))
-                continue;
+            if (row.length == 0 || (row.length == 1 && row[0].trim().isEmpty())) continue;
             int lineNumber = i + 1;
-            ImportedTransaction transaction = parseTransaction(row, headerMap, lineNumber, fileName, dateFormats);
+            ImportedTransaction transaction =
+                    parseTransaction(row, headerMap, lineNumber, fileName, dateFormats);
             if (transaction != null) {
                 transactions.add(transaction);
             }
         }
 
-        log.info("CSV parsing complete: {} transactions parsed from {}", transactions.size(), fileName);
+        log.info(
+                "CSV parsing complete: {} transactions parsed from {}",
+                transactions.size(),
+                fileName);
         return transactions;
     }
 
-    /**
-     * Detect the field separator by counting commas vs semicolons in the first
-     * line.
-     */
+    /** Detect the field separator by counting commas vs semicolons in the first line. */
     private char detectSeparator(String line) {
         long commaCount = line.chars().filter(c -> c == ',').count();
         long semicolonCount = line.chars().filter(c -> c == ';').count();
@@ -204,15 +239,13 @@ public class CsvParser {
     }
 
     /**
-     * Check whether a row looks like a header row by matching normalised cell
-     * values
-     * against known header names.
+     * Check whether a row looks like a header row by matching normalised cell values against known
+     * header names.
      */
     private boolean isHeaderRow(String[] row) {
         int matchCount = 0;
         for (String cell : row) {
-            if (cell == null)
-                continue;
+            if (cell == null) continue;
             String normalised = cell.toLowerCase().replaceAll("[^a-z0-9]", "");
             if (KNOWN_HEADERS.contains(normalised)) {
                 matchCount++;
@@ -220,16 +253,16 @@ public class CsvParser {
         }
         // If at least 2 cells (or >40% of cells) match known headers, treat as header
         // row
-        return matchCount >= 2 || (row.length > 0 && matchCount > 0 && (double) matchCount / row.length > 0.4);
+        return matchCount >= 2
+                || (row.length > 0 && matchCount > 0 && (double) matchCount / row.length > 0.4);
     }
 
     /**
-     * Generate positional column headers when the file has no header row.
-     * Uses a heuristic mapping: col0=date, col1=amount, col2=payee, col3=memo,
-     * col4=category.
+     * Generate positional column headers when the file has no header row. Uses a heuristic mapping:
+     * col0=date, col1=amount, col2=payee, col3=memo, col4=category.
      */
     private String[] generatePositionalHeaders(int columnCount) {
-        String[] defaultNames = { "date", "amount", "payee", "memo", "category", "referencenumber" };
+        String[] defaultNames = {"date", "amount", "payee", "memo", "category", "referencenumber"};
         String[] headers = new String[columnCount];
         for (int i = 0; i < columnCount; i++) {
             headers[i] = i < defaultNames.length ? defaultNames[i] : "col" + i;
@@ -237,9 +270,7 @@ public class CsvParser {
         return headers;
     }
 
-    /**
-     * Map normalized header names to their column indices.
-     */
+    /** Map normalized header names to their column indices. */
     private Map<String, Integer> mapHeaders(String[] headers) {
         Map<String, Integer> map = new HashMap<>();
         for (int i = 0; i < headers.length; i++) {
@@ -251,19 +282,30 @@ public class CsvParser {
         return map;
     }
 
-    /**
-     * Parse a single row into an ImportedTransaction.
-     */
-    private ImportedTransaction parseTransaction(String[] row, Map<String, Integer> headerMap, int lineNumber,
-            String fileName, DateTimeFormatter[] dateFormats) {
-        ImportedTransaction.ImportedTransactionBuilder builder = ImportedTransaction.builder()
-                .lineNumber(lineNumber)
-                .sourceFileName(fileName)
-                .rawData(String.join(",", row));
+    /** Parse a single row into an ImportedTransaction. */
+    private ImportedTransaction parseTransaction(
+            String[] row,
+            Map<String, Integer> headerMap,
+            int lineNumber,
+            String fileName,
+            DateTimeFormatter[] dateFormats) {
+        ImportedTransaction.ImportedTransactionBuilder builder =
+                ImportedTransaction.builder()
+                        .lineNumber(lineNumber)
+                        .sourceFileName(fileName)
+                        .rawData(String.join(",", row));
 
         // Date
-        String dateStr = getValue(row, headerMap, "date", "transactiondate", "posteddate", "dateposted",
-                "datevaleur", "datecomptable");
+        String dateStr =
+                getValue(
+                        row,
+                        headerMap,
+                        "date",
+                        "transactiondate",
+                        "posteddate",
+                        "dateposted",
+                        "datevaleur",
+                        "datecomptable");
         builder.transactionDate(parseDate(dateStr, lineNumber, dateFormats));
 
         // Amount
@@ -293,13 +335,31 @@ public class CsvParser {
         }
 
         // Payee / Name / Description
-        String payee = getValue(row, headerMap, "payee", "name", "description", "merchant", "title",
-                "beneficiaire", "tiers", "libelle");
+        String payee =
+                getValue(
+                        row,
+                        headerMap,
+                        "payee",
+                        "name",
+                        "description",
+                        "merchant",
+                        "title",
+                        "beneficiaire",
+                        "tiers",
+                        "libelle");
         builder.payee(payee);
 
         // Memo / Notes
-        String memo = getValue(row, headerMap, "memo", "notes", "referencememo", "details",
-                "note", "intitule");
+        String memo =
+                getValue(
+                        row,
+                        headerMap,
+                        "memo",
+                        "notes",
+                        "referencememo",
+                        "details",
+                        "note",
+                        "intitule");
         // If no separate memo, but we have both Payee and Description, use Description
         // as Memo
         if (memo == null || memo.isEmpty()) {
@@ -315,14 +375,24 @@ public class CsvParser {
         builder.category(category);
 
         // Reference Number
-        String refNum = getValue(row, headerMap, "referencenumber", "checknumber", "checknum", "fitid", "id",
-                "transactionid");
+        String refNum =
+                getValue(
+                        row,
+                        headerMap,
+                        "referencenumber",
+                        "checknumber",
+                        "checknum",
+                        "fitid",
+                        "id",
+                        "transactionid");
         builder.referenceNumber(refNum);
 
         // Account Name / Number
         String accountName = getValue(row, headerMap, "account", "accountname");
         String accountNumber = getValue(row, headerMap, "accountnumber", "acctid");
-        if ((accountName == null || accountName.isEmpty()) && accountNumber != null && !accountNumber.isEmpty()) {
+        if ((accountName == null || accountName.isEmpty())
+                && accountNumber != null
+                && !accountNumber.isEmpty()) {
             accountName = accountNumber;
         }
         builder.accountName(accountName);
@@ -353,9 +423,7 @@ public class CsvParser {
         return transaction;
     }
 
-    /**
-     * Get value from row by checking multiple possible header names.
-     */
+    /** Get value from row by checking multiple possible header names. */
     private String getValue(String[] row, Map<String, Integer> headerMap, String... possibleNames) {
         for (String name : possibleNames) {
             Integer index = headerMap.get(name);
@@ -367,9 +435,7 @@ public class CsvParser {
         return null; // Not found
     }
 
-    /**
-     * Parse date from CSV file.
-     */
+    /** Parse date from CSV file. */
     private LocalDate parseDate(String dateStr, int lineNumber, DateTimeFormatter[] dateFormats) {
         if (dateStr == null || dateStr.isEmpty()) {
             return null;
@@ -386,32 +452,29 @@ public class CsvParser {
     }
 
     /**
-     * Infer date format order by examining all date strings from the file.
-     * If any date has its first numeric part > 12, it must be the day (dd/MM).
-     * If any date has its second numeric part > 12, it must be the day (MM/dd).
-     * When ambiguous, defaults to day-first (European) since the app supports
-     * French.
+     * Infer date format order by examining all date strings from the file. If any date has its
+     * first numeric part > 12, it must be the day (dd/MM). If any date has its second numeric part
+     * > 12, it must be the day (MM/dd). When ambiguous, defaults to day-first (European) since the
+     * app supports French.
      */
     private DateTimeFormatter[] inferDateFormats(List<String> dateStrings) {
         boolean firstPartExceeds12 = false;
         boolean secondPartExceeds12 = false;
 
         for (String ds : dateStrings) {
-            if (ds == null)
-                continue;
+            if (ds == null) continue;
             Matcher m = NUMERIC_DATE_PATTERN.matcher(ds.trim());
             if (m.matches()) {
                 int first = Integer.parseInt(m.group(1));
                 int second = Integer.parseInt(m.group(2));
-                if (first > 12)
-                    firstPartExceeds12 = true;
-                if (second > 12)
-                    secondPartExceeds12 = true;
+                if (first > 12) firstPartExceeds12 = true;
+                if (second > 12) secondPartExceeds12 = true;
             }
         }
 
         if (secondPartExceeds12 && !firstPartExceeds12) {
-            log.debug("Inferred date format: month-first (MM/dd) — values > 12 found in second position");
+            log.debug(
+                    "Inferred date format: month-first (MM/dd) — values > 12 found in second position");
             return DATE_FORMATS;
         }
         // day-first when first > 12, or when fully ambiguous (European default)
@@ -419,20 +482,15 @@ public class CsvParser {
         return DATE_FORMATS_DAY_FIRST;
     }
 
-    /**
-     * Parse amount from CSV file.
-     */
+    /** Parse amount from CSV file. */
     private BigDecimal parseAmount(String amountStr, int lineNumber) {
         if (amountStr == null || amountStr.isEmpty()) {
             return null;
         }
         try {
             // Remove currency symbols and whitespace
-            String cleaned = amountStr
-                    .replace("$", "")
-                    .replace("€", "")
-                    .replace("£", "")
-                    .replace(" ", "");
+            String cleaned =
+                    amountStr.replace("$", "").replace("€", "").replace("£", "").replace(" ", "");
 
             // Detect European format: dot as thousands separator, comma as decimal
             // e.g., "1.200,50" → "1200.50"
@@ -468,9 +526,7 @@ public class CsvParser {
         }
     }
 
-    /**
-     * Validate imported transaction.
-     */
+    /** Validate imported transaction. */
     private void validateTransaction(ImportedTransaction transaction) {
         if (transaction.getTransactionDate() == null) {
             transaction.addValidationError("Transaction date is required");
@@ -482,8 +538,8 @@ public class CsvParser {
             // Often dummy transactions or verifications are $0.
             transaction.addValidationError("Transaction amount cannot be zero");
         }
-        if (transaction.getTransactionDate() != null &&
-                transaction.getTransactionDate().isAfter(LocalDate.now())) {
+        if (transaction.getTransactionDate() != null
+                && transaction.getTransactionDate().isAfter(LocalDate.now())) {
             transaction.addValidationError("Transaction date cannot be in the future");
         }
     }

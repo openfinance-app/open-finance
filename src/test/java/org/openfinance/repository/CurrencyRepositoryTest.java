@@ -1,5 +1,9 @@
 package org.openfinance.repository;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,23 +13,19 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 /**
  * Integration tests for the CurrencyRepository.
- * 
+ *
  * <p>Tests custom query methods and JPA repository functionality:
+ *
  * <ul>
- *   <li>findByCode() - find currency by ISO code</li>
- *   <li>findByIsActiveTrueOrderByCodeAsc() - find active currencies sorted</li>
- *   <li>findAllByOrderByCodeAsc() - find all currencies sorted</li>
- *   <li>existsByCode() - check currency existence</li>
- *   <li>Basic CRUD operations inherited from JpaRepository</li>
+ *   <li>findByCode() - find currency by ISO code
+ *   <li>findByIsActiveTrueOrderByCodeAsc() - find active currencies sorted
+ *   <li>findAllByOrderByCodeAsc() - find all currencies sorted
+ *   <li>existsByCode() - check currency existence
+ *   <li>Basic CRUD operations inherited from JpaRepository
  * </ul>
- * 
+ *
  * @author Open-Finance Development Team
  * @since 1.0
  */
@@ -35,8 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Currency Repository Tests")
 class CurrencyRepositoryTest {
 
-    @Autowired
-    private CurrencyRepository currencyRepository;
+    @Autowired private CurrencyRepository currencyRepository;
 
     @BeforeEach
     void setUp() {
@@ -108,8 +107,7 @@ class CurrencyRepositoryTest {
         assertThat(activeCurrencies)
                 .extracting(Currency::getCode)
                 .containsExactly("EUR", "JPY", "USD"); // sorted alphabetically
-        assertThat(activeCurrencies)
-                .allMatch(Currency::getIsActive);
+        assertThat(activeCurrencies).allMatch(Currency::getIsActive);
     }
 
     @Test
@@ -276,11 +274,6 @@ class CurrencyRepositoryTest {
     // ==================== Helper Methods ====================
 
     private Currency createCurrency(String code, String name, String symbol, boolean isActive) {
-        return Currency.builder()
-                .code(code)
-                .name(name)
-                .symbol(symbol)
-                .isActive(isActive)
-                .build();
+        return Currency.builder().code(code).name(name).symbol(symbol).isActive(isActive).build();
     }
 }

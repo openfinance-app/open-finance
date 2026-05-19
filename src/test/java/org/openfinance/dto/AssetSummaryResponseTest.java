@@ -1,11 +1,10 @@
 package org.openfinance.dto;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 class AssetSummaryResponseTest {
 
@@ -23,16 +22,17 @@ class AssetSummaryResponseTest {
         BigDecimal totalValue = new BigDecimal("1500.0");
 
         // When
-        AssetSummaryResponse response = AssetSummaryResponse.builder()
-                .id(id)
-                .name(name)
-                .symbol(symbol)
-                .type(type)
-                .currency(currency)
-                .quantity(quantity)
-                .currentPrice(currentPrice)
-                .totalValue(totalValue)
-                .build();
+        AssetSummaryResponse response =
+                AssetSummaryResponse.builder()
+                        .id(id)
+                        .name(name)
+                        .symbol(symbol)
+                        .type(type)
+                        .currency(currency)
+                        .quantity(quantity)
+                        .currentPrice(currentPrice)
+                        .totalValue(totalValue)
+                        .build();
 
         // Then
         assertThat(response.getId()).isEqualTo(id);

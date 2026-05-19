@@ -2,9 +2,9 @@ package org.openfinance.config;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import java.util.Objects;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
-import java.util.Objects;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,8 +14,8 @@ import org.springframework.context.annotation.Profile;
 /**
  * Database configuration class for SQLite with HikariCP connection pooling.
  *
- * <p>Requirements: REQ-1.3: Database Configuration and Connection Pooling REQ-2.18: Data
- * Migration Management
+ * <p>Requirements: REQ-1.3: Database Configuration and Connection Pooling REQ-2.18: Data Migration
+ * Management
  *
  * <p>This configuration sets up:
  *
@@ -25,9 +25,9 @@ import org.springframework.context.annotation.Profile;
  *   <li>Connection timeout and pool sizing
  *   <li>Statement caching for performance
  * </ul>
- * 
- * <p>This configuration is active only for non-test profiles to avoid conflicts with
- * test-specific H2 database configuration.
+ *
+ * <p>This configuration is active only for non-test profiles to avoid conflicts with test-specific
+ * H2 database configuration.
  *
  * @author Open-Finance Team
  * @version 1.0
@@ -46,7 +46,9 @@ public class DatabaseConfig {
             @Value("${spring.datasource.url}") String databaseUrl,
             @Value("${spring.datasource.driver-class-name}") String driverClassName) {
         this.databaseUrl = Objects.requireNonNull(databaseUrl, "spring.datasource.url must be set");
-        this.driverClassName = Objects.requireNonNull(driverClassName, "spring.datasource.driver-class-name must be set");
+        this.driverClassName =
+                Objects.requireNonNull(
+                        driverClassName, "spring.datasource.driver-class-name must be set");
     }
 
     /**

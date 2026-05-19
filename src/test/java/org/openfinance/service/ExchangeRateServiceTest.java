@@ -1,11 +1,19 @@
 package org.openfinance.service;
 
-import org.junit.jupiter.api.BeforeEach;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.openfinance.service.OperationHistoryService;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.MarketQuote;
@@ -16,36 +24,21 @@ import org.openfinance.provider.MarketDataProvider;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.ExchangeRateRepository;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-
-import java.util.ArrayList;
-
 /**
  * Unit tests for the ExchangeRateService.
- * 
+ *
  * <p>Tests business logic for exchange rate management:
+ *
  * <ul>
- *   <li>getExchangeRate() - retrieve rates with fallback to inverse</li>
- *   <li>convert() - currency conversion with validation</li>
- *   <li>updateExchangeRates() - fetch rates from Yahoo Finance</li>
- *   <li>clearCache() - cache management</li>
- *   <li>validateCurrency() - currency validation logic</li>
- *   <li>findRate() - database lookup with date handling</li>
- *   <li>parseQuoteToExchangeRate() - Yahoo Finance quote parsing</li>
+ *   <li>getExchangeRate() - retrieve rates with fallback to inverse
+ *   <li>convert() - currency conversion with validation
+ *   <li>updateExchangeRates() - fetch rates from Yahoo Finance
+ *   <li>clearCache() - cache management
+ *   <li>validateCurrency() - currency validation logic
+ *   <li>findRate() - database lookup with date handling
+ *   <li>parseQuoteToExchangeRate() - Yahoo Finance quote parsing
  * </ul>
- * 
+ *
  * @author Open-Finance Development Team
  * @since 1.0
  */
@@ -53,20 +46,15 @@ import java.util.ArrayList;
 @DisplayName("ExchangeRate Service Tests")
 class ExchangeRateServiceTest {
 
-    @Mock
-    private ExchangeRateRepository exchangeRateRepository;
+    @Mock private ExchangeRateRepository exchangeRateRepository;
 
-    @Mock
-    private CurrencyRepository currencyRepository;
+    @Mock private CurrencyRepository currencyRepository;
 
-    @Mock
-    private MarketDataProvider marketDataProvider;
+    @Mock private MarketDataProvider marketDataProvider;
 
-    @Mock
-    private OperationHistoryService operationHistoryService;
+    @Mock private OperationHistoryService operationHistoryService;
 
-    @InjectMocks
-    private ExchangeRateService exchangeRateService;
+    @InjectMocks private ExchangeRateService exchangeRateService;
 
     // ==================== getExchangeRate() Tests ====================
 
@@ -81,7 +69,8 @@ class ExchangeRateServiceTest {
 
         // Assert
         assertThat(rate).isEqualByComparingTo(BigDecimal.ONE);
-        verify(exchangeRateRepository, never()).findLatestByBaseCurrencyAndTargetCurrency(anyString(), anyString());
+        verify(exchangeRateRepository, never())
+                .findLatestByBaseCurrencyAndTargetCurrency(anyString(), anyString());
     }
 
     @Test
@@ -110,7 +99,8 @@ class ExchangeRateServiceTest {
         when(currencyRepository.existsByCode("USD")).thenReturn(true);
         when(currencyRepository.existsByCode("EUR")).thenReturn(true);
 
-        ExchangeRate inverseRate = createRate("EUR", "USD", new BigDecimal("1.17647059"), LocalDate.now());
+        ExchangeRate inverseRate =
+                createRate("EUR", "USD", new BigDecimal("1.17647059"), LocalDate.now());
         when(exchangeRateRepository.findLatestByBaseCurrencyAndTargetCurrency("USD", "EUR"))
                 .thenReturn(List.of());
         when(exchangeRateRepository.findLatestByBaseCurrencyAndTargetCurrency("EUR", "USD"))
@@ -121,7 +111,10 @@ class ExchangeRateServiceTest {
 
         // Assert
         // Inverse of 1.17647059 ≈ 0.85
-        assertThat(result).isEqualByComparingTo(BigDecimal.ONE.divide(new BigDecimal("1.17647059"), 8, RoundingMode.HALF_UP));
+        assertThat(result)
+                .isEqualByComparingTo(
+                        BigDecimal.ONE.divide(
+                                new BigDecimal("1.17647059"), 8, RoundingMode.HALF_UP));
     }
 
     @Test
@@ -131,7 +124,8 @@ class ExchangeRateServiceTest {
         when(currencyRepository.existsByCode("USD")).thenReturn(true);
         when(currencyRepository.existsByCode("XXX")).thenReturn(true);
 
-        when(exchangeRateRepository.findLatestByBaseCurrencyAndTargetCurrency(anyString(), anyString()))
+        when(exchangeRateRepository.findLatestByBaseCurrencyAndTargetCurrency(
+                        anyString(), anyString()))
                 .thenReturn(List.of());
 
         // Act & Assert
@@ -162,7 +156,8 @@ class ExchangeRateServiceTest {
         when(currencyRepository.existsByCode("GBP")).thenReturn(true);
 
         ExchangeRate rate = createRate("USD", "GBP", new BigDecimal("0.79"), date);
-        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate("USD", "GBP", date))
+        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        "USD", "GBP", date))
                 .thenReturn(Optional.of(rate));
 
         // Act
@@ -178,15 +173,17 @@ class ExchangeRateServiceTest {
         // Arrange
         LocalDate requestDate = LocalDate.of(2024, 3, 15);
         LocalDate availableDate = LocalDate.of(2024, 3, 10);
-        
+
         when(currencyRepository.existsByCode("USD")).thenReturn(true);
         when(currencyRepository.existsByCode("JPY")).thenReturn(true);
 
         ExchangeRate rate = createRate("USD", "JPY", new BigDecimal("150.50"), availableDate);
-        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate("USD", "JPY", requestDate))
+        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        "USD", "JPY", requestDate))
                 .thenReturn(Optional.empty());
-        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                "USD", "JPY", requestDate))
+        when(exchangeRateRepository
+                        .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
+                                "USD", "JPY", requestDate))
                 .thenReturn(List.of(rate));
 
         // Act
@@ -225,7 +222,8 @@ class ExchangeRateServiceTest {
         when(currencyRepository.existsByCode("GBP")).thenReturn(true);
 
         ExchangeRate rate = createRate("USD", "GBP", new BigDecimal("0.80"), date);
-        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate("USD", "GBP", date))
+        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        "USD", "GBP", date))
                 .thenReturn(Optional.of(rate));
 
         // Act
@@ -286,11 +284,11 @@ class ExchangeRateServiceTest {
     @DisplayName("Should fetch and store exchange rates from Yahoo Finance")
     void shouldFetchAndStoreExchangeRatesFromYahooFinance() {
         // Arrange
-        List<Currency> currencies = List.of(
-                createCurrency("USD", "US Dollar", true),
-                createCurrency("EUR", "Euro", true),
-                createCurrency("BTC", "Bitcoin", true)
-        );
+        List<Currency> currencies =
+                List.of(
+                        createCurrency("USD", "US Dollar", true),
+                        createCurrency("EUR", "Euro", true),
+                        createCurrency("BTC", "Bitcoin", true));
         when(currencyRepository.findByIsActiveTrueOrderByCodeAsc()).thenReturn(currencies);
 
         MarketQuote eurQuote = createMarketQuote("EURUSD=X", 1.08);
@@ -327,7 +325,8 @@ class ExchangeRateServiceTest {
         // Arrange
         List<Currency> currencies = List.of(createCurrency("EUR", "Euro", true));
         when(currencyRepository.findByIsActiveTrueOrderByCodeAsc()).thenReturn(currencies);
-        when(marketDataProvider.getQuotes(anyList())).thenThrow(new MarketDataException("API unavailable"));
+        when(marketDataProvider.getQuotes(anyList()))
+                .thenThrow(new MarketDataException("API unavailable"));
 
         // Act & Assert
         assertThatThrownBy(() -> exchangeRateService.updateExchangeRates())
@@ -339,10 +338,10 @@ class ExchangeRateServiceTest {
     @DisplayName("Should parse fiat currency quote correctly")
     void shouldParseFiatCurrencyQuoteCorrectly() {
         // Arrange
-        List<Currency> currencies = List.of(
-                createCurrency("USD", "US Dollar", true),
-                createCurrency("EUR", "Euro", true)
-        );
+        List<Currency> currencies =
+                List.of(
+                        createCurrency("USD", "US Dollar", true),
+                        createCurrency("EUR", "Euro", true));
         when(currencyRepository.findByIsActiveTrueOrderByCodeAsc()).thenReturn(currencies);
 
         MarketQuote quote = createMarketQuote("EURUSD=X", 1.08);
@@ -359,10 +358,10 @@ class ExchangeRateServiceTest {
     @DisplayName("Should parse crypto currency quote correctly with inverse")
     void shouldParseCryptoCurrencyQuoteCorrectlyWithInverse() {
         // Arrange
-        List<Currency> currencies = List.of(
-                createCurrency("USD", "US Dollar", true),
-                createCurrency("BTC", "Bitcoin", true)
-        );
+        List<Currency> currencies =
+                List.of(
+                        createCurrency("USD", "US Dollar", true),
+                        createCurrency("BTC", "Bitcoin", true));
         when(currencyRepository.findByIsActiveTrueOrderByCodeAsc()).thenReturn(currencies);
 
         MarketQuote quote = createMarketQuote("BTC-USD", 95000.00);
@@ -379,11 +378,11 @@ class ExchangeRateServiceTest {
     @DisplayName("Should skip invalid quotes with zero or negative prices")
     void shouldSkipInvalidQuotesWithZeroOrNegativePrices() {
         // Arrange
-        List<Currency> currencies = List.of(
-                createCurrency("USD", "US Dollar", true),
-                createCurrency("EUR", "Euro", true),
-                createCurrency("GBP", "British Pound", true)
-        );
+        List<Currency> currencies =
+                List.of(
+                        createCurrency("USD", "US Dollar", true),
+                        createCurrency("EUR", "Euro", true),
+                        createCurrency("GBP", "British Pound", true));
         when(currencyRepository.findByIsActiveTrueOrderByCodeAsc()).thenReturn(currencies);
 
         MarketQuote validQuote = createMarketQuote("EURUSD=X", 1.08);
@@ -404,13 +403,13 @@ class ExchangeRateServiceTest {
     @DisplayName("Should build correct Yahoo Finance symbols")
     void shouldBuildCorrectYahooFinanceSymbols() {
         // Arrange
-        List<Currency> currencies = List.of(
-                createCurrency("USD", "US Dollar", true),
-                createCurrency("EUR", "Euro", true),
-                createCurrency("GBP", "British Pound", true),
-                createCurrency("BTC", "Bitcoin", true),
-                createCurrency("ETH", "Ethereum", true)
-        );
+        List<Currency> currencies =
+                List.of(
+                        createCurrency("USD", "US Dollar", true),
+                        createCurrency("EUR", "Euro", true),
+                        createCurrency("GBP", "British Pound", true),
+                        createCurrency("BTC", "Bitcoin", true),
+                        createCurrency("ETH", "Ethereum", true));
         when(currencyRepository.findByIsActiveTrueOrderByCodeAsc()).thenReturn(currencies);
         when(marketDataProvider.getQuotes(anyList())).thenReturn(List.of());
 
@@ -418,13 +417,16 @@ class ExchangeRateServiceTest {
         exchangeRateService.updateExchangeRates();
 
         // Assert
-        verify(marketDataProvider).getQuotes(argThat(symbols -> 
-                symbols.size() == 4 && // USD excluded
-                symbols.contains("EURUSD=X") &&
-                symbols.contains("GBPUSD=X") &&
-                symbols.contains("BTC-USD") &&
-                symbols.contains("ETH-USD")
-        ));
+        verify(marketDataProvider)
+                .getQuotes(
+                        argThat(
+                                symbols ->
+                                        symbols.size() == 4
+                                                && // USD excluded
+                                                symbols.contains("EURUSD=X")
+                                                && symbols.contains("GBPUSD=X")
+                                                && symbols.contains("BTC-USD")
+                                                && symbols.contains("ETH-USD")));
     }
 
     // ==================== updateExchangeRatesForDate() Tests ====================
@@ -449,7 +451,7 @@ class ExchangeRateServiceTest {
 
         // Act & Assert - should not throw
         int result = exchangeRateService.updateExchangeRatesForDate(pastDate);
-        
+
         // Currently returns 0 as historical fetching is not implemented
         assertThat(result).isZero();
     }
@@ -461,7 +463,7 @@ class ExchangeRateServiceTest {
     void shouldClearExchangeRateCache() {
         // Act & Assert - should not throw
         exchangeRateService.clearCache();
-        
+
         // Cache eviction is handled by Spring @CacheEvict annotation
         // This test verifies the method can be called without errors
     }
@@ -479,12 +481,7 @@ class ExchangeRateServiceTest {
     }
 
     private Currency createCurrency(String code, String name, boolean isActive) {
-        return Currency.builder()
-                .code(code)
-                .name(name)
-                .symbol(code)
-                .isActive(isActive)
-                .build();
+        return Currency.builder().code(code).name(name).symbol(code).isActive(isActive).build();
     }
 
     private MarketQuote createMarketQuote(String symbol, double price) {

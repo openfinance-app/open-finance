@@ -1,17 +1,17 @@
 package org.openfinance.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 /**
- * Generic API response wrapper for consistent response format across all endpoints.
- * Provides standardized structure for success and error responses.
+ * Generic API response wrapper for consistent response format across all endpoints. Provides
+ * standardized structure for success and error responses.
  *
  * <p>Example success response:
+ *
  * <pre>
  * {
  *   "success": true,
@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
  * </pre>
  *
  * <p>Example error response:
+ *
  * <pre>
  * {
  *   "success": false,

@@ -4,14 +4,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.openfinance.entity.AccountType;
-import org.openfinance.entity.CategoryType;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.openfinance.entity.AccountType;
+import org.openfinance.entity.CategoryType;
 
 @Data
 @Builder
@@ -19,14 +17,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SkroogeImportMetadata {
 
-    @Builder.Default
-    private List<SkroogeInstitution> institutions = new ArrayList<>();
+    @Builder.Default private List<SkroogeInstitution> institutions = new ArrayList<>();
 
-    @Builder.Default
-    private List<SkroogeAccount> accounts = new ArrayList<>();
+    @Builder.Default private List<SkroogeAccount> accounts = new ArrayList<>();
 
-    @Builder.Default
-    private List<SkroogeCategory> categories = new ArrayList<>();
+    @Builder.Default private List<SkroogeCategory> categories = new ArrayList<>();
 
     @Data
     @Builder

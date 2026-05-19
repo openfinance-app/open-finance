@@ -1,10 +1,11 @@
 package org.openfinance.controller;
 
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
-
 import javax.crypto.SecretKey;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.InterestRateVariationRequest;
 import org.openfinance.dto.InterestRateVariationResponse;
 import org.openfinance.entity.User;
@@ -23,10 +24,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/v1/accounts/{accountId}")
@@ -52,8 +49,8 @@ public class InterestRateVariationController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        List<InterestRateVariationResponse> responses = variationService.getVariations(accountId, user.getId(),
-                encryptionKey);
+        List<InterestRateVariationResponse> responses =
+                variationService.getVariations(accountId, user.getId(), encryptionKey);
         return ResponseEntity.ok(responses);
     }
 
@@ -71,8 +68,8 @@ public class InterestRateVariationController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        InterestRateVariationResponse response = variationService.addVariation(accountId, user.getId(), request,
-                encryptionKey);
+        InterestRateVariationResponse response =
+                variationService.addVariation(accountId, user.getId(), request, encryptionKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -108,14 +105,16 @@ public class InterestRateVariationController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        BigDecimal projected = calculatorService.calculateInterestEstimate(accountId, user.getId(), period,
-                encryptionKey);
-        BigDecimal historical = calculatorService.calculateHistoricalAccumulated(accountId, user.getId(), period,
-                encryptionKey);
+        BigDecimal projected =
+                calculatorService.calculateInterestEstimate(
+                        accountId, user.getId(), period, encryptionKey);
+        BigDecimal historical =
+                calculatorService.calculateHistoricalAccumulated(
+                        accountId, user.getId(), period, encryptionKey);
         return ResponseEntity.ok(new InterestEstimateResponse(projected, historical));
     }
 
     /** DTO returned by the interest-estimate endpoint. */
-    public static record InterestEstimateResponse(BigDecimal estimate, BigDecimal historicalAccumulated) {
-    }
+    public static record InterestEstimateResponse(
+            BigDecimal estimate, BigDecimal historicalAccumulated) {}
 }

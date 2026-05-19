@@ -9,12 +9,13 @@ import java.util.regex.Pattern;
  *
  * <p>Requirement TASK-15.1.9: Enforces password complexity to protect user accounts against
  * brute-force and dictionary attacks. The password must satisfy all of the following rules:
+ *
  * <ol>
- *   <li>Minimum length: 8 characters</li>
- *   <li>At least one uppercase letter (A–Z)</li>
- *   <li>At least one lowercase letter (a–z)</li>
- *   <li>At least one digit (0–9)</li>
- *   <li>At least one special character from the set: {@code !@#$%^&*()_+-=[]{}|;':",.<>?/\}</li>
+ *   <li>Minimum length: 8 characters
+ *   <li>At least one uppercase letter (A–Z)
+ *   <li>At least one lowercase letter (a–z)
+ *   <li>At least one digit (0–9)
+ *   <li>At least one special character from the set: {@code !@#$%^&*()_+-=[]{}|;':",.<>?/\}
  * </ol>
  *
  * <p>Null values pass validation — pair with {@code @NotBlank} when presence is required.
@@ -39,8 +40,8 @@ public class PasswordValidator implements ConstraintValidator<ValidPassword, Str
     private static final Pattern DIGIT_PATTERN = Pattern.compile(".*[0-9].*");
 
     /**
-     * Regex that requires at least one special character.
-     * Character class covers common keyboard special characters.
+     * Regex that requires at least one special character. Character class covers common keyboard
+     * special characters.
      */
     private static final Pattern SPECIAL_CHAR_PATTERN =
             Pattern.compile(".*[!@#$%^&*()_+\\-=\\[\\]{}|;':\",./<>?\\\\].*");
@@ -48,11 +49,11 @@ public class PasswordValidator implements ConstraintValidator<ValidPassword, Str
     /**
      * {@inheritDoc}
      *
-     * <p>Validates the password against all complexity rules. Null values are accepted;
-     * empty strings fail.
+     * <p>Validates the password against all complexity rules. Null values are accepted; empty
+     * strings fail.
      *
      * @param password the candidate password
-     * @param context  the constraint validator context (unused)
+     * @param context the constraint validator context (unused)
      * @return {@code true} if the password is null or meets all complexity requirements
      */
     @Override

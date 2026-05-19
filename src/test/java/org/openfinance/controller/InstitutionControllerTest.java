@@ -18,9 +18,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.List;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openfinance.dto.InstitutionRequest;
@@ -35,394 +35,407 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 /**
  * Integration tests for InstitutionController.
  *
- * <p>
- * Tests REST API endpoints for institution management including
- * CRUD operations, validation, and error handling.
- * </p>
+ * <p>Tests REST API endpoints for institution management including CRUD operations, validation, and
+ * error handling.
  */
 @WebMvcTest(InstitutionController.class)
 @org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(addFilters = false)
-@org.springframework.context.annotation.Import({org.openfinance.config.LocalizationConfig.class, org.openfinance.config.RateLimitConfig.class, org.openfinance.config.RateLimitInterceptor.class})
+@org.springframework.context.annotation.Import({
+    org.openfinance.config.LocalizationConfig.class,
+    org.openfinance.config.RateLimitConfig.class,
+    org.openfinance.config.RateLimitInterceptor.class
+})
 @ActiveProfiles("test")
 class InstitutionControllerTest {
 
-        @Autowired
-        private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-        @Autowired
-        private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-        @MockBean
-        private InstitutionService institutionService;
+    @MockBean private InstitutionService institutionService;
 
-        @MockBean
-        private JwtService jwtService;
+    @MockBean private JwtService jwtService;
 
-        @MockBean
-        private org.openfinance.repository.UserRepository userRepository;
-        private InstitutionResponse systemInstitutionResponse;
-        private InstitutionResponse customInstitutionResponse;
-        private InstitutionRequest validRequest;
+    @MockBean private org.openfinance.repository.UserRepository userRepository;
+    private InstitutionResponse systemInstitutionResponse;
+    private InstitutionResponse customInstitutionResponse;
+    private InstitutionRequest validRequest;
 
-        @BeforeEach
-        void setUp() {
-                systemInstitutionResponse = InstitutionResponse.builder()
-                                .id(1L)
-                                .name("BNP Paribas")
-                                .bic("BNPAFRPP")
-                                .country("FR")
-                                .logo("base64logo")
-                                .isSystem(true)
-                                .createdAt(LocalDateTime.now().minusDays(1))
-                                .updatedAt(LocalDateTime.now().minusDays(1))
-                                .build();
+    @BeforeEach
+    void setUp() {
+        systemInstitutionResponse =
+                InstitutionResponse.builder()
+                        .id(1L)
+                        .name("BNP Paribas")
+                        .bic("BNPAFRPP")
+                        .country("FR")
+                        .logo("base64logo")
+                        .isSystem(true)
+                        .createdAt(LocalDateTime.now().minusDays(1))
+                        .updatedAt(LocalDateTime.now().minusDays(1))
+                        .build();
 
-                customInstitutionResponse = InstitutionResponse.builder()
-                                .id(2L)
-                                .name("My Custom Bank")
-                                .bic("CUSTFRPP")
-                                .country("FR")
-                                .logo("customlogo")
-                                .isSystem(false)
-                                .createdAt(LocalDateTime.now().minusHours(1))
-                                .updatedAt(LocalDateTime.now().minusHours(1))
-                                .build();
+        customInstitutionResponse =
+                InstitutionResponse.builder()
+                        .id(2L)
+                        .name("My Custom Bank")
+                        .bic("CUSTFRPP")
+                        .country("FR")
+                        .logo("customlogo")
+                        .isSystem(false)
+                        .createdAt(LocalDateTime.now().minusHours(1))
+                        .updatedAt(LocalDateTime.now().minusHours(1))
+                        .build();
 
-                validRequest = InstitutionRequest.builder()
-                                .name("New Bank")
-                                .bic("NEWBFRPP")
-                                .country("FR")
-                                .logo("newlogo")
-                                .build();
-        }
+        validRequest =
+                InstitutionRequest.builder()
+                        .name("New Bank")
+                        .bic("NEWBFRPP")
+                        .country("FR")
+                        .logo("newlogo")
+                        .build();
+    }
 
-        @Test
-        void shouldGetAllInstitutions() throws Exception {
-                // Arrange
-                List<InstitutionResponse> institutions = List.of(systemInstitutionResponse, customInstitutionResponse);
-                when(institutionService.getAllInstitutions()).thenReturn(institutions);
+    @Test
+    void shouldGetAllInstitutions() throws Exception {
+        // Arrange
+        List<InstitutionResponse> institutions =
+                List.of(systemInstitutionResponse, customInstitutionResponse);
+        when(institutionService.getAllInstitutions()).thenReturn(institutions);
 
-                // Act & Assert
-                mockMvc.perform(get("/api/v1/institutions"))
-                                .andDo(print())
-                                .andExpect(status().isOk())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$", hasSize(2)))
-                                .andExpect(jsonPath("$[0].id").value(1))
-                                .andExpect(jsonPath("$[0].name").value("BNP Paribas"))
-                                .andExpect(jsonPath("$[0].isSystem").value(true))
-                                .andExpect(jsonPath("$[1].id").value(2))
-                                .andExpect(jsonPath("$[1].name").value("My Custom Bank"))
-                                .andExpect(jsonPath("$[1].isSystem").value(false));
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/institutions"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].name").value("BNP Paribas"))
+                .andExpect(jsonPath("$[0].isSystem").value(true))
+                .andExpect(jsonPath("$[1].id").value(2))
+                .andExpect(jsonPath("$[1].name").value("My Custom Bank"))
+                .andExpect(jsonPath("$[1].isSystem").value(false));
 
-                verify(institutionService).getAllInstitutions();
-        }
+        verify(institutionService).getAllInstitutions();
+    }
 
-        @Test
-        void shouldGetInstitutionById() throws Exception {
-                // Arrange
-                when(institutionService.getInstitutionById(1L)).thenReturn(systemInstitutionResponse);
+    @Test
+    void shouldGetInstitutionById() throws Exception {
+        // Arrange
+        when(institutionService.getInstitutionById(1L)).thenReturn(systemInstitutionResponse);
 
-                // Act & Assert
-                mockMvc.perform(get("/api/v1/institutions/{id}", 1L))
-                                .andDo(print())
-                                .andExpect(status().isOk())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$.id").value(1))
-                                .andExpect(jsonPath("$.name").value("BNP Paribas"))
-                                .andExpect(jsonPath("$.bic").value("BNPAFRPP"))
-                                .andExpect(jsonPath("$.country").value("FR"))
-                                .andExpect(jsonPath("$.isSystem").value(true));
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/institutions/{id}", 1L))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("BNP Paribas"))
+                .andExpect(jsonPath("$.bic").value("BNPAFRPP"))
+                .andExpect(jsonPath("$.country").value("FR"))
+                .andExpect(jsonPath("$.isSystem").value(true));
 
-                verify(institutionService).getInstitutionById(1L);
-        }
+        verify(institutionService).getInstitutionById(1L);
+    }
 
-        @Test
-        void shouldReturn404WhenInstitutionNotFound() throws Exception {
-                // Arrange
-                when(institutionService.getInstitutionById(999L))
-                                .thenThrow(new InstitutionNotFoundException(999L));
+    @Test
+    void shouldReturn404WhenInstitutionNotFound() throws Exception {
+        // Arrange
+        when(institutionService.getInstitutionById(999L))
+                .thenThrow(new InstitutionNotFoundException(999L));
 
-                // Act & Assert
-                mockMvc.perform(get("/api/v1/institutions/{id}", 999L)
-                                .header("Accept-Language", "en"))
-                                .andDo(print())
-                                .andExpect(status().isNotFound())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$.message").value("Institution not found with id: 999"));
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/institutions/{id}", 999L).header("Accept-Language", "en"))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").value("Institution not found with id: 999"));
 
-                verify(institutionService).getInstitutionById(999L);
-        }
+        verify(institutionService).getInstitutionById(999L);
+    }
 
-        @Test
-        void shouldGetInstitutionsByCountry() throws Exception {
-                // Arrange
-                List<InstitutionResponse> frenchInstitutions = List.of(systemInstitutionResponse,
-                                customInstitutionResponse);
-                when(institutionService.getInstitutionsByCountry("FR")).thenReturn(frenchInstitutions);
+    @Test
+    void shouldGetInstitutionsByCountry() throws Exception {
+        // Arrange
+        List<InstitutionResponse> frenchInstitutions =
+                List.of(systemInstitutionResponse, customInstitutionResponse);
+        when(institutionService.getInstitutionsByCountry("FR")).thenReturn(frenchInstitutions);
 
-                // Act & Assert
-                mockMvc.perform(get("/api/v1/institutions/country/{country}", "FR"))
-                                .andDo(print())
-                                .andExpect(status().isOk())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$", hasSize(2)))
-                                .andExpect(jsonPath("$[0].country").value("FR"))
-                                .andExpect(jsonPath("$[1].country").value("FR"));
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/institutions/country/{country}", "FR"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].country").value("FR"))
+                .andExpect(jsonPath("$[1].country").value("FR"));
 
-                verify(institutionService).getInstitutionsByCountry("FR");
-        }
+        verify(institutionService).getInstitutionsByCountry("FR");
+    }
 
-        @Test
-        void shouldGetSystemInstitutions() throws Exception {
-                // Arrange
-                List<InstitutionResponse> systemInstitutions = List.of(systemInstitutionResponse);
-                when(institutionService.getSystemInstitutions()).thenReturn(systemInstitutions);
+    @Test
+    void shouldGetSystemInstitutions() throws Exception {
+        // Arrange
+        List<InstitutionResponse> systemInstitutions = List.of(systemInstitutionResponse);
+        when(institutionService.getSystemInstitutions()).thenReturn(systemInstitutions);
 
-                // Act & Assert
-                mockMvc.perform(get("/api/v1/institutions/system"))
-                                .andDo(print())
-                                .andExpect(status().isOk())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$", hasSize(1)))
-                                .andExpect(jsonPath("$[0].isSystem").value(true));
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/institutions/system"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].isSystem").value(true));
 
-                verify(institutionService).getSystemInstitutions();
-        }
+        verify(institutionService).getSystemInstitutions();
+    }
 
-        @Test
-        void shouldGetCustomInstitutions() throws Exception {
-                // Arrange
-                List<InstitutionResponse> customInstitutions = List.of(customInstitutionResponse);
-                when(institutionService.getCustomInstitutions()).thenReturn(customInstitutions);
+    @Test
+    void shouldGetCustomInstitutions() throws Exception {
+        // Arrange
+        List<InstitutionResponse> customInstitutions = List.of(customInstitutionResponse);
+        when(institutionService.getCustomInstitutions()).thenReturn(customInstitutions);
 
-                // Act & Assert
-                mockMvc.perform(get("/api/v1/institutions/custom"))
-                                .andDo(print())
-                                .andExpect(status().isOk())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$", hasSize(1)))
-                                .andExpect(jsonPath("$[0].isSystem").value(false));
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/institutions/custom"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].isSystem").value(false));
 
-                verify(institutionService).getCustomInstitutions();
-        }
+        verify(institutionService).getCustomInstitutions();
+    }
 
-        @Test
-        void shouldSearchInstitutions() throws Exception {
-                // Arrange
-                List<InstitutionResponse> searchResults = List.of(systemInstitutionResponse);
-                when(institutionService.searchInstitutions("BNP")).thenReturn(searchResults);
+    @Test
+    void shouldSearchInstitutions() throws Exception {
+        // Arrange
+        List<InstitutionResponse> searchResults = List.of(systemInstitutionResponse);
+        when(institutionService.searchInstitutions("BNP")).thenReturn(searchResults);
 
-                // Act & Assert
-                mockMvc.perform(get("/api/v1/institutions/search")
-                                .param("query", "BNP"))
-                                .andDo(print())
-                                .andExpect(status().isOk())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$", hasSize(1)))
-                                .andExpect(jsonPath("$[0].name").value("BNP Paribas"));
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/institutions/search").param("query", "BNP"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].name").value("BNP Paribas"));
 
-                verify(institutionService).searchInstitutions("BNP");
-        }
+        verify(institutionService).searchInstitutions("BNP");
+    }
 
-        @Test
-        void shouldGetCountries() throws Exception {
-                // Arrange
-                List<String> countries = List.of("FR", "DE", "IT");
-                when(institutionService.getCountries()).thenReturn(countries);
+    @Test
+    void shouldGetCountries() throws Exception {
+        // Arrange
+        List<String> countries = List.of("FR", "DE", "IT");
+        when(institutionService.getCountries()).thenReturn(countries);
 
-                // Act & Assert
-                mockMvc.perform(get("/api/v1/institutions/countries"))
-                                .andDo(print())
-                                .andExpect(status().isOk())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$", containsInAnyOrder("FR", "DE", "IT")));
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/institutions/countries"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", containsInAnyOrder("FR", "DE", "IT")));
 
-                verify(institutionService).getCountries();
-        }
+        verify(institutionService).getCountries();
+    }
 
-        @Test
-        void shouldCreateInstitutionSuccessfully() throws Exception {
-                // Arrange
-                InstitutionResponse createdResponse = InstitutionResponse.builder()
-                                .id(3L)
-                                .name("New Bank")
-                                .bic("NEWBFRPP")
-                                .country("FR")
-                                .logo("newlogo")
-                                .isSystem(false)
-                                .createdAt(LocalDateTime.now())
-                                .updatedAt(LocalDateTime.now())
-                                .build();
+    @Test
+    void shouldCreateInstitutionSuccessfully() throws Exception {
+        // Arrange
+        InstitutionResponse createdResponse =
+                InstitutionResponse.builder()
+                        .id(3L)
+                        .name("New Bank")
+                        .bic("NEWBFRPP")
+                        .country("FR")
+                        .logo("newlogo")
+                        .isSystem(false)
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
 
-                when(institutionService.createInstitution(any(InstitutionRequest.class))).thenReturn(createdResponse);
+        when(institutionService.createInstitution(any(InstitutionRequest.class)))
+                .thenReturn(createdResponse);
 
-                // Act & Assert
-                mockMvc.perform(post("/api/v1/institutions")
+        // Act & Assert
+        mockMvc.perform(
+                        post("/api/v1/institutions")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validRequest)))
-                                .andDo(print())
-                                .andExpect(status().isCreated())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$.id").value(3))
-                                .andExpect(jsonPath("$.name").value("New Bank"))
-                                .andExpect(jsonPath("$.isSystem").value(false));
+                .andDo(print())
+                .andExpect(status().isCreated())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(3))
+                .andExpect(jsonPath("$.name").value("New Bank"))
+                .andExpect(jsonPath("$.isSystem").value(false));
 
-                verify(institutionService).createInstitution(any(InstitutionRequest.class));
-        }
+        verify(institutionService).createInstitution(any(InstitutionRequest.class));
+    }
 
-        @Test
-        void shouldReturn400ForInvalidRequest() throws Exception {
-                // Arrange
-                InstitutionRequest invalidRequest = InstitutionRequest.builder()
-                                .name("") // Invalid: blank name
-                                .bic("INVALID") // Invalid: BIC too short
-                                .country("FRA") // Invalid: country too long
-                                .build();
+    @Test
+    void shouldReturn400ForInvalidRequest() throws Exception {
+        // Arrange
+        InstitutionRequest invalidRequest =
+                InstitutionRequest.builder()
+                        .name("") // Invalid: blank name
+                        .bic("INVALID") // Invalid: BIC too short
+                        .country("FRA") // Invalid: country too long
+                        .build();
 
-                // Act & Assert
-                mockMvc.perform(post("/api/v1/institutions")
+        // Act & Assert
+        mockMvc.perform(
+                        post("/api/v1/institutions")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(invalidRequest)))
-                                .andDo(print())
-                                .andExpect(status().isBadRequest())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$.message").exists());
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").exists());
 
-                verify(institutionService, never()).createInstitution(any(InstitutionRequest.class));
-        }
+        verify(institutionService, never()).createInstitution(any(InstitutionRequest.class));
+    }
 
-        @Test
-        void shouldUpdateInstitutionSuccessfully() throws Exception {
-                // Arrange
-                InstitutionResponse updatedResponse = InstitutionResponse.builder()
-                                .id(2L)
-                                .name("Updated Bank")
-                                .bic("UPDTFRPP")
-                                .country("FR")
-                                .logo("updatedlogo")
-                                .isSystem(false)
-                                .createdAt(customInstitutionResponse.getCreatedAt())
-                                .updatedAt(LocalDateTime.now())
-                                .build();
+    @Test
+    void shouldUpdateInstitutionSuccessfully() throws Exception {
+        // Arrange
+        InstitutionResponse updatedResponse =
+                InstitutionResponse.builder()
+                        .id(2L)
+                        .name("Updated Bank")
+                        .bic("UPDTFRPP")
+                        .country("FR")
+                        .logo("updatedlogo")
+                        .isSystem(false)
+                        .createdAt(customInstitutionResponse.getCreatedAt())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
 
-                when(institutionService.updateInstitution(eq(2L), any(InstitutionRequest.class)))
-                                .thenReturn(updatedResponse);
+        when(institutionService.updateInstitution(eq(2L), any(InstitutionRequest.class)))
+                .thenReturn(updatedResponse);
 
-                // Act & Assert
-                mockMvc.perform(put("/api/v1/institutions/{id}", 2L)
+        // Act & Assert
+        mockMvc.perform(
+                        put("/api/v1/institutions/{id}", 2L)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validRequest)))
-                                .andDo(print())
-                                .andExpect(status().isOk())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$.id").value(2))
-                                .andExpect(jsonPath("$.name").value("Updated Bank"));
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(2))
+                .andExpect(jsonPath("$.name").value("Updated Bank"));
 
-                verify(institutionService).updateInstitution(eq(2L), any(InstitutionRequest.class));
-        }
+        verify(institutionService).updateInstitution(eq(2L), any(InstitutionRequest.class));
+    }
 
-        @Test
-        void shouldReturn404WhenUpdatingNonExistentInstitution() throws Exception {
-                // Arrange
-                when(institutionService.updateInstitution(eq(999L), any(InstitutionRequest.class)))
-                                .thenThrow(new InstitutionNotFoundException(999L));
+    @Test
+    void shouldReturn404WhenUpdatingNonExistentInstitution() throws Exception {
+        // Arrange
+        when(institutionService.updateInstitution(eq(999L), any(InstitutionRequest.class)))
+                .thenThrow(new InstitutionNotFoundException(999L));
 
-                // Act & Assert
-                mockMvc.perform(put("/api/v1/institutions/{id}", 999L)
+        // Act & Assert
+        mockMvc.perform(
+                        put("/api/v1/institutions/{id}", 999L)
                                 .header("Accept-Language", "en")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validRequest)))
-                                .andDo(print())
-                                .andExpect(status().isNotFound())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$.message").value("Institution not found with id: 999"));
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").value("Institution not found with id: 999"));
 
-                verify(institutionService).updateInstitution(eq(999L), any(InstitutionRequest.class));
-        }
+        verify(institutionService).updateInstitution(eq(999L), any(InstitutionRequest.class));
+    }
 
-        @Test
-        void shouldReturn400WhenUpdatingSystemInstitution() throws Exception {
-                // Arrange
-                when(institutionService.updateInstitution(eq(1L), any(InstitutionRequest.class)))
-                                .thenThrow(new IllegalStateException("Cannot update system institutions"));
+    @Test
+    void shouldReturn400WhenUpdatingSystemInstitution() throws Exception {
+        // Arrange
+        when(institutionService.updateInstitution(eq(1L), any(InstitutionRequest.class)))
+                .thenThrow(new IllegalStateException("Cannot update system institutions"));
 
-                // Act & Assert
-                mockMvc.perform(put("/api/v1/institutions/{id}", 1L)
+        // Act & Assert
+        mockMvc.perform(
+                        put("/api/v1/institutions/{id}", 1L)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validRequest)))
-                                .andDo(print())
-                                .andExpect(status().isBadRequest())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$.message").value("Cannot update system institutions"));
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").value("Cannot update system institutions"));
 
-                verify(institutionService).updateInstitution(eq(1L), any(InstitutionRequest.class));
-        }
+        verify(institutionService).updateInstitution(eq(1L), any(InstitutionRequest.class));
+    }
 
-        @Test
-        void shouldDeleteInstitutionSuccessfully() throws Exception {
-                // Arrange
-                doNothing().when(institutionService).deleteInstitution(2L);
+    @Test
+    void shouldDeleteInstitutionSuccessfully() throws Exception {
+        // Arrange
+        doNothing().when(institutionService).deleteInstitution(2L);
 
-                // Act & Assert
-                mockMvc.perform(delete("/api/v1/institutions/{id}", 2L))
-                                .andDo(print())
-                                .andExpect(status().isNoContent());
+        // Act & Assert
+        mockMvc.perform(delete("/api/v1/institutions/{id}", 2L))
+                .andDo(print())
+                .andExpect(status().isNoContent());
 
-                verify(institutionService).deleteInstitution(2L);
-        }
+        verify(institutionService).deleteInstitution(2L);
+    }
 
-        @Test
-        void shouldReturn404WhenDeletingNonExistentInstitution() throws Exception {
-                // Arrange
-                doThrow(new InstitutionNotFoundException(999L)).when(institutionService).deleteInstitution(999L);
+    @Test
+    void shouldReturn404WhenDeletingNonExistentInstitution() throws Exception {
+        // Arrange
+        doThrow(new InstitutionNotFoundException(999L))
+                .when(institutionService)
+                .deleteInstitution(999L);
 
-                // Act & Assert
-                mockMvc.perform(delete("/api/v1/institutions/{id}", 999L)
-                                .header("Accept-Language", "en"))
-                                .andDo(print())
-                                .andExpect(status().isNotFound())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$.message").value("Institution not found with id: 999"));
+        // Act & Assert
+        mockMvc.perform(delete("/api/v1/institutions/{id}", 999L).header("Accept-Language", "en"))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").value("Institution not found with id: 999"));
 
-                verify(institutionService).deleteInstitution(999L);
-        }
+        verify(institutionService).deleteInstitution(999L);
+    }
 
-        @Test
-        void shouldReturn400WhenDeletingSystemInstitution() throws Exception {
-                // Arrange
-                doThrow(new IllegalStateException("Cannot delete system institutions"))
-                                .when(institutionService).deleteInstitution(1L);
+    @Test
+    void shouldReturn400WhenDeletingSystemInstitution() throws Exception {
+        // Arrange
+        doThrow(new IllegalStateException("Cannot delete system institutions"))
+                .when(institutionService)
+                .deleteInstitution(1L);
 
-                // Act & Assert
-                mockMvc.perform(delete("/api/v1/institutions/{id}", 1L))
-                                .andDo(print())
-                                .andExpect(status().isBadRequest())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$.message").value("Cannot delete system institutions"));
+        // Act & Assert
+        mockMvc.perform(delete("/api/v1/institutions/{id}", 1L))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").value("Cannot delete system institutions"));
 
-                verify(institutionService).deleteInstitution(1L);
-        }
+        verify(institutionService).deleteInstitution(1L);
+    }
 
-        @Test
-        void shouldReturn400WhenDeletingInstitutionInUse() throws Exception {
-                // Arrange
-                doThrow(new IllegalStateException("Cannot delete institution that is associated with accounts"))
-                                .when(institutionService).deleteInstitution(2L);
+    @Test
+    void shouldReturn400WhenDeletingInstitutionInUse() throws Exception {
+        // Arrange
+        doThrow(
+                        new IllegalStateException(
+                                "Cannot delete institution that is associated with accounts"))
+                .when(institutionService)
+                .deleteInstitution(2L);
 
-                // Act & Assert
-                mockMvc.perform(delete("/api/v1/institutions/{id}", 2L))
-                                .andDo(print())
-                                .andExpect(status().isBadRequest())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$.message")
-                                                .value("Cannot delete institution that is associated with accounts"));
+        // Act & Assert
+        mockMvc.perform(delete("/api/v1/institutions/{id}", 2L))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "Cannot delete institution that is associated with accounts"));
 
-                verify(institutionService).deleteInstitution(2L);
-        }
+        verify(institutionService).deleteInstitution(2L);
+    }
 }

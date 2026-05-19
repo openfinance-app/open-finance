@@ -1,5 +1,11 @@
 package org.openfinance.repository;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,26 +15,21 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 /**
  * Integration tests for the ExchangeRateRepository.
- * 
+ *
  * <p>Tests custom query methods and JPA repository functionality:
+ *
  * <ul>
- *   <li>findLatestByBaseCurrencyAndTargetCurrency() - latest rate for currency pair</li>
- *   <li>findByBaseCurrencyAndTargetCurrencyAndRateDate() - exact date rate</li>
- *   <li>findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc() - historical rates</li>
- *   <li>findByRateDate() - all rates for specific date</li>
- *   <li>deleteByRateDateBefore() - cleanup old rates</li>
- *   <li>Basic CRUD operations inherited from JpaRepository</li>
+ *   <li>findLatestByBaseCurrencyAndTargetCurrency() - latest rate for currency pair
+ *   <li>findByBaseCurrencyAndTargetCurrencyAndRateDate() - exact date rate
+ *   <li>findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc() -
+ *       historical rates
+ *   <li>findByRateDate() - all rates for specific date
+ *   <li>deleteByRateDateBefore() - cleanup old rates
+ *   <li>Basic CRUD operations inherited from JpaRepository
  * </ul>
- * 
+ *
  * @author Open-Finance Development Team
  * @since 1.0
  */
@@ -38,8 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("ExchangeRate Repository Tests")
 class ExchangeRateRepositoryTest {
 
-    @Autowired
-    private ExchangeRateRepository exchangeRateRepository;
+    @Autowired private ExchangeRateRepository exchangeRateRepository;
 
     @BeforeEach
     void setUp() {
@@ -64,8 +64,8 @@ class ExchangeRateRepositoryTest {
         exchangeRateRepository.saveAll(List.of(rate1, rate2, rate3));
 
         // Act
-        List<ExchangeRate> latest = exchangeRateRepository
-                .findLatestByBaseCurrencyAndTargetCurrency("USD", "EUR");
+        List<ExchangeRate> latest =
+                exchangeRateRepository.findLatestByBaseCurrencyAndTargetCurrency("USD", "EUR");
 
         // Assert
         assertThat(latest).isNotEmpty();
@@ -88,8 +88,8 @@ class ExchangeRateRepositoryTest {
         exchangeRateRepository.saveAll(List.of(rate1, rate3, rate2)); // Save out of order
 
         // Act
-        List<ExchangeRate> rates = exchangeRateRepository
-                .findLatestByBaseCurrencyAndTargetCurrency("USD", "GBP");
+        List<ExchangeRate> rates =
+                exchangeRateRepository.findLatestByBaseCurrencyAndTargetCurrency("USD", "GBP");
 
         // Assert
         assertThat(rates).hasSize(3);
@@ -102,8 +102,8 @@ class ExchangeRateRepositoryTest {
     @DisplayName("Should return empty list when no rates found for currency pair")
     void shouldReturnEmptyListWhenNoRatesFound() {
         // Act
-        List<ExchangeRate> rates = exchangeRateRepository
-                .findLatestByBaseCurrencyAndTargetCurrency("USD", "XXX");
+        List<ExchangeRate> rates =
+                exchangeRateRepository.findLatestByBaseCurrencyAndTargetCurrency("USD", "XXX");
 
         // Assert
         assertThat(rates).isEmpty();
@@ -117,14 +117,15 @@ class ExchangeRateRepositoryTest {
         exchangeRateRepository.save(rate);
 
         // Act
-        List<ExchangeRate> rates = exchangeRateRepository
-                .findLatestByBaseCurrencyAndTargetCurrency("usd", "eur");
+        List<ExchangeRate> rates =
+                exchangeRateRepository.findLatestByBaseCurrencyAndTargetCurrency("usd", "eur");
 
         // Assert
         assertThat(rates).isEmpty();
     }
 
-    // ==================== findByBaseCurrencyAndTargetCurrencyAndRateDate() Tests ====================
+    // ==================== findByBaseCurrencyAndTargetCurrencyAndRateDate() Tests
+    // ====================
 
     @Test
     @DisplayName("Should find exchange rate for specific date")
@@ -135,8 +136,9 @@ class ExchangeRateRepositoryTest {
         exchangeRateRepository.save(rate);
 
         // Act
-        Optional<ExchangeRate> found = exchangeRateRepository
-                .findByBaseCurrencyAndTargetCurrencyAndRateDate("USD", "JPY", date);
+        Optional<ExchangeRate> found =
+                exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        "USD", "JPY", date);
 
         // Assert
         assertThat(found).isPresent();
@@ -154,14 +156,17 @@ class ExchangeRateRepositoryTest {
         exchangeRateRepository.save(rate);
 
         // Act
-        Optional<ExchangeRate> found = exchangeRateRepository
-                .findByBaseCurrencyAndTargetCurrencyAndRateDate("USD", "CHF", date2);
+        Optional<ExchangeRate> found =
+                exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        "USD", "CHF", date2);
 
         // Assert
         assertThat(found).isEmpty();
     }
 
-    // ==================== findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc() Tests ====================
+    // ====================
+    // findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc() Tests
+    // ====================
 
     @Test
     @DisplayName("Should find most recent rate on or before date")
@@ -177,9 +182,10 @@ class ExchangeRateRepositoryTest {
         exchangeRateRepository.saveAll(List.of(rate1, rate2));
 
         // Act - query for March 15 (between the two dates)
-        List<ExchangeRate> rates = exchangeRateRepository
-                .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                        "BTC", "USD", march15);
+        List<ExchangeRate> rates =
+                exchangeRateRepository
+                        .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
+                                "BTC", "USD", march15);
 
         // Assert
         assertThat(rates).hasSize(1);
@@ -196,9 +202,10 @@ class ExchangeRateRepositoryTest {
         exchangeRateRepository.save(rate);
 
         // Act
-        List<ExchangeRate> rates = exchangeRateRepository
-                .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                        "EUR", "USD", targetDate);
+        List<ExchangeRate> rates =
+                exchangeRateRepository
+                        .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
+                                "EUR", "USD", targetDate);
 
         // Assert
         assertThat(rates).hasSize(1);
@@ -216,9 +223,10 @@ class ExchangeRateRepositoryTest {
         LocalDate pastDate = LocalDate.of(2024, 1, 1);
 
         // Act
-        List<ExchangeRate> rates = exchangeRateRepository
-                .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                        "GBP", "EUR", pastDate);
+        List<ExchangeRate> rates =
+                exchangeRateRepository
+                        .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
+                                "GBP", "EUR", pastDate);
 
         // Assert
         assertThat(rates).isEmpty();
@@ -240,15 +248,14 @@ class ExchangeRateRepositoryTest {
         exchangeRateRepository.saveAll(List.of(rate1, rate2, rate3));
 
         // Act - query up to March (should get 3 rates)
-        List<ExchangeRate> rates = exchangeRateRepository
-                .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                        "ETH", "USD", mar);
+        List<ExchangeRate> rates =
+                exchangeRateRepository
+                        .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
+                                "ETH", "USD", mar);
 
         // Assert
         assertThat(rates).hasSize(3);
-        assertThat(rates)
-                .extracting(ExchangeRate::getRateDate)
-                .containsExactly(mar, feb, jan);
+        assertThat(rates).extracting(ExchangeRate::getRateDate).containsExactly(mar, feb, jan);
     }
 
     // ==================== findByRateDate() Tests ====================
@@ -262,7 +269,8 @@ class ExchangeRateRepositoryTest {
         ExchangeRate rate1 = createRate("USD", "EUR", new BigDecimal("0.85"), date);
         ExchangeRate rate2 = createRate("USD", "GBP", new BigDecimal("0.79"), date);
         ExchangeRate rate3 = createRate("BTC", "USD", new BigDecimal("60000"), date);
-        ExchangeRate rate4 = createRate("USD", "JPY", new BigDecimal("150"), LocalDate.of(2024, 5, 2));
+        ExchangeRate rate4 =
+                createRate("USD", "JPY", new BigDecimal("150"), LocalDate.of(2024, 5, 2));
 
         exchangeRateRepository.saveAll(List.of(rate1, rate2, rate3, rate4));
 
@@ -278,8 +286,7 @@ class ExchangeRateRepositoryTest {
     @DisplayName("Should return empty list when no rates for date")
     void shouldReturnEmptyListWhenNoRatesForDate() {
         // Act
-        List<ExchangeRate> rates = exchangeRateRepository
-                .findByRateDate(LocalDate.of(2020, 1, 1));
+        List<ExchangeRate> rates = exchangeRateRepository.findByRateDate(LocalDate.of(2020, 1, 1));
 
         // Assert
         assertThat(rates).isEmpty();
@@ -429,8 +436,8 @@ class ExchangeRateRepositoryTest {
         exchangeRateRepository.save(rate2);
         exchangeRateRepository.flush();
 
-        List<ExchangeRate> rates = exchangeRateRepository
-                .findLatestByBaseCurrencyAndTargetCurrency("USD", "SEK");
+        List<ExchangeRate> rates =
+                exchangeRateRepository.findLatestByBaseCurrencyAndTargetCurrency("USD", "SEK");
         assertThat(rates).hasSize(2);
     }
 

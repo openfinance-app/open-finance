@@ -1,11 +1,12 @@
 package org.openfinance.controller;
 
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-
 import javax.crypto.SecretKey;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AssetRequest;
 import org.openfinance.dto.AssetResponse;
 import org.openfinance.dto.AssetSearchCriteria;
@@ -33,51 +34,39 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * REST controller for asset management endpoints.
- * 
- * <p>
- * Provides CRUD operations for investment assets (stocks, ETFs, crypto, bonds,
- * etc.).
- * All endpoints require authentication and use the user's encryption key to
- * secure sensitive data.
- * 
- * <p>
- * <strong>Endpoints:</strong>
+ *
+ * <p>Provides CRUD operations for investment assets (stocks, ETFs, crypto, bonds, etc.). All
+ * endpoints require authentication and use the user's encryption key to secure sensitive data.
+ *
+ * <p><strong>Endpoints:</strong>
+ *
  * <ul>
- * <li>POST /api/v1/assets - Create new asset</li>
- * <li>GET /api/v1/assets - List all user assets (with optional filters)</li>
- * <li>GET /api/v1/assets/{id} - Get asset by ID</li>
- * <li>PUT /api/v1/assets/{id} - Update asset</li>
- * <li>DELETE /api/v1/assets/{id} - Delete asset</li>
+ *   <li>POST /api/v1/assets - Create new asset
+ *   <li>GET /api/v1/assets - List all user assets (with optional filters)
+ *   <li>GET /api/v1/assets/{id} - Get asset by ID
+ *   <li>PUT /api/v1/assets/{id} - Update asset
+ *   <li>DELETE /api/v1/assets/{id} - Delete asset
  * </ul>
- * 
- * <p>
- * <strong>Security:</strong>
+ *
+ * <p><strong>Security:</strong>
+ *
  * <ul>
- * <li>All endpoints require JWT authentication</li>
- * <li>Encryption key must be provided via X-Encryption-Key header</li>
- * <li>Users can only access their own assets</li>
- * <li>Asset name and notes are encrypted at rest</li>
+ *   <li>All endpoints require JWT authentication
+ *   <li>Encryption key must be provided via X-Encryption-Key header
+ *   <li>Users can only access their own assets
+ *   <li>Asset name and notes are encrypted at rest
  * </ul>
- * 
- * <p>
- * Requirement REQ-2.6: Asset Management - CRUD operations
- * </p>
- * <p>
- * Requirement REQ-2.6.3: Display portfolio values and gains/losses
- * </p>
- * <p>
- * Requirement REQ-2.18: Data encryption at rest
- * </p>
- * <p>
- * Requirement REQ-3.2: Authorization checks
- * </p>
- * 
+ *
+ * <p>Requirement REQ-2.6: Asset Management - CRUD operations
+ *
+ * <p>Requirement REQ-2.6.3: Display portfolio values and gains/losses
+ *
+ * <p>Requirement REQ-2.18: Data encryption at rest
+ *
+ * <p>Requirement REQ-3.2: Authorization checks
+ *
  * @see AssetService
  * @see AssetRequest
  * @see AssetResponse
@@ -94,14 +83,16 @@ public class AssetController {
 
     /**
      * Creates a new investment asset for the authenticated user.
-     * 
+     *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
+     *
      * <p><strong>Request Body:</strong>
+     *
      * <pre>{@code
      * {
      * "accountId": 1,
@@ -116,8 +107,9 @@ public class AssetController {
      * "notes": "Tech portfolio allocation"
      * }
      * }</pre>
-     * 
+     *
      * <p><strong>Success Response (HTTP 201 Created):</strong>
+     *
      * <pre>{@code
      * {
      * "id": 1,
@@ -143,10 +135,11 @@ public class AssetController {
      * "holdingDays": 17
      * }
      * }</pre>
-     * 
-     * <p>Requirement REQ-2.6.1: Create asset</p>
-     * <p>Requirement REQ-2.6.3: Display calculated fields (value, gains)</p>
-     * 
+     *
+     * <p>Requirement REQ-2.6.1: Create asset
+     *
+     * <p>Requirement REQ-2.6.3: Display calculated fields (value, gains)
+     *
      * @param request asset creation request
      * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
@@ -158,7 +151,10 @@ public class AssetController {
             @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
-        log.info("Creating asset for user: type={}, symbol={}", request.getType(), request.getSymbol());
+        log.info(
+                "Creating asset for user: type={}, symbol={}",
+                request.getType(),
+                request.getSymbol());
 
         if (encodedKey == null || encodedKey.trim().isEmpty()) {
             throw new IllegalArgumentException("Encryption key header is required");
@@ -168,7 +164,10 @@ public class AssetController {
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
         AssetResponse response = assetService.createAsset(user.getId(), request, encryptionKey);
-        log.info("Asset created successfully: id={}, symbol={}", response.getId(), response.getSymbol());
+        log.info(
+                "Asset created successfully: id={}, symbol={}",
+                response.getId(),
+                response.getSymbol());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -176,26 +175,29 @@ public class AssetController {
      * Retrieves all assets for the authenticated user with optional filters.
      *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
      *
      * <p><strong>Query Parameters (all optional):</strong>
+     *
      * <ul>
-     * <li>accountId - Filter by account ID</li>
-     * <li>type - Filter by asset type (STOCK, ETF, CRYPTO, etc.)</li>
-     * <li>summary - when {@code true}, returns a lightweight {@link AssetSummaryResponse}
-     * list instead of the full {@link AssetResponse} (default: false)</li>
+     *   <li>accountId - Filter by account ID
+     *   <li>type - Filter by asset type (STOCK, ETF, CRYPTO, etc.)
+     *   <li>summary - when {@code true}, returns a lightweight {@link AssetSummaryResponse} list
+     *       instead of the full {@link AssetResponse} (default: false)
      * </ul>
      *
-     * <p>Requirement REQ-2.6.1: List user assets</p>
-     * <p>Requirement TASK-14.1.3: Sparse fieldsets via {@code ?summary=true}</p>
+     * <p>Requirement REQ-2.6.1: List user assets
      *
-     * @param accountId      optional account ID filter
-     * @param type           optional asset type filter
-     * @param summary        when {@code true} returns lightweight AssetSummaryResponse list
-     * @param encodedKey     Base64-encoded encryption key from header
+     * <p>Requirement TASK-14.1.3: Sparse fieldsets via {@code ?summary=true}
+     *
+     * @param accountId optional account ID filter
+     * @param type optional asset type filter
+     * @param summary when {@code true} returns lightweight AssetSummaryResponse list
+     * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
      * @return HTTP 200 OK with list of AssetResponse or AssetSummaryResponse (may be empty)
      */
@@ -203,11 +205,16 @@ public class AssetController {
     public ResponseEntity<?> getAllAssets(
             @RequestParam(value = "accountId", required = false) Long accountId,
             @RequestParam(value = "type", required = false) AssetType type,
-            @RequestParam(value = "summary", required = false, defaultValue = "false") boolean summary,
+            @RequestParam(value = "summary", required = false, defaultValue = "false")
+                    boolean summary,
             @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
-        log.info("Retrieving assets for user: accountId={}, type={}, summary={}", accountId, type, summary);
+        log.info(
+                "Retrieving assets for user: accountId={}, type={}, summary={}",
+                accountId,
+                type,
+                summary);
 
         if (encodedKey == null || encodedKey.trim().isEmpty()) {
             throw new IllegalArgumentException("Encryption key header is required");
@@ -218,7 +225,8 @@ public class AssetController {
 
         if (summary) {
             // Return lightweight summary projection (TASK-14.1.3)
-            List<AssetSummaryResponse> summaries = assetService.getAssetsSummary(user.getId(), encryptionKey);
+            List<AssetSummaryResponse> summaries =
+                    assetService.getAssetsSummary(user.getId(), encryptionKey);
             log.info("Retrieved {} asset summaries for user", summaries.size());
             return ResponseEntity.ok(summaries);
         }
@@ -228,7 +236,10 @@ public class AssetController {
         if (accountId != null) {
             // Filter by account
             assets = assetService.getAssetsByAccountId(accountId, user.getId(), encryptionKey);
-            log.info("Retrieved {} assets for user (filtered by account={})", assets.size(), accountId);
+            log.info(
+                    "Retrieved {} assets for user (filtered by account={})",
+                    assets.size(),
+                    accountId);
         } else if (type != null) {
             // Filter by type
             assets = assetService.getAssetsByType(user.getId(), type, encryptionKey);
@@ -244,31 +255,33 @@ public class AssetController {
 
     /**
      * Searches assets with filters and pagination.
-     * 
+     *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
+     *
      * <p><strong>Query Parameters:</strong>
+     *
      * <ul>
-     * <li>keyword (optional): Search in asset name</li>
-     * <li>type (optional): Filter by asset type (STOCK, ETF, CRYPTO, etc.)</li>
-     * <li>accountId (optional): Filter by account ID</li>
-     * <li>currency (optional): Filter by currency code (USD, EUR, etc.)</li>
-     * <li>symbol (optional): Filter by ticker symbol</li>
-     * <li>purchaseDateFrom (optional): Filter by purchase date >= this date</li>
-     * <li>purchaseDateTo (optional): Filter by purchase date <= this date</li>
-     * <li>valueMin (optional): Minimum total value</li>
-     * <li>valueMax (optional): Maximum total value</li>
-     * <li>page (optional): Page number (0-indexed, default: 0)</li>
-     * <li>size (optional): Page size (default: 20)</li>
-     * <li>sort (optional): Sort field and direction (e.g., "name,asc" or
-     * "currentPrice,desc")</li>
+     *   <li>keyword (optional): Search in asset name
+     *   <li>type (optional): Filter by asset type (STOCK, ETF, CRYPTO, etc.)
+     *   <li>accountId (optional): Filter by account ID
+     *   <li>currency (optional): Filter by currency code (USD, EUR, etc.)
+     *   <li>symbol (optional): Filter by ticker symbol
+     *   <li>purchaseDateFrom (optional): Filter by purchase date >= this date
+     *   <li>purchaseDateTo (optional): Filter by purchase date <= this date
+     *   <li>valueMin (optional): Minimum total value
+     *   <li>valueMax (optional): Maximum total value
+     *   <li>page (optional): Page number (0-indexed, default: 0)
+     *   <li>size (optional): Page size (default: 20)
+     *   <li>sort (optional): Sort field and direction (e.g., "name,asc" or "currentPrice,desc")
      * </ul>
-     * 
+     *
      * <p><strong>Success Response (HTTP 200 OK):</strong>
+     *
      * <pre>{@code
      * {
      * "content": [
@@ -289,7 +302,7 @@ public class AssetController {
      * "size": 20
      * }
      * }</pre>
-     * 
+     *
      * @param keyword optional keyword to search in asset name
      * @param type optional asset type filter
      * @param accountId optional account ID filter
@@ -311,16 +324,24 @@ public class AssetController {
             @RequestParam(required = false) Long accountId,
             @RequestParam(required = false) String currency,
             @RequestParam(required = false) String symbol,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate purchaseDateFrom,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate purchaseDateTo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                    LocalDate purchaseDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                    LocalDate purchaseDateTo,
             @RequestParam(required = false) BigDecimal valueMin,
             @RequestParam(required = false) BigDecimal valueMax,
-            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable,
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
+                    Pageable pageable,
             @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
-        log.info("Searching assets for user: keyword={}, type={}, accountId={}, page={}, size={}",
-                keyword, type, accountId, pageable.getPageNumber(), pageable.getPageSize());
+        log.info(
+                "Searching assets for user: keyword={}, type={}, accountId={}, page={}, size={}",
+                keyword,
+                type,
+                accountId,
+                pageable.getPageNumber(),
+                pageable.getPageSize());
 
         if (encodedKey == null || encodedKey.trim().isEmpty()) {
             throw new IllegalArgumentException("Encryption key header is required");
@@ -330,23 +351,25 @@ public class AssetController {
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
         // Build search criteria
-        AssetSearchCriteria criteria = AssetSearchCriteria.builder()
-                .keyword(keyword)
-                .type(type)
-                .accountId(accountId)
-                .currency(currency)
-                .symbol(symbol)
-                .purchaseDateFrom(purchaseDateFrom)
-                .purchaseDateTo(purchaseDateTo)
-                .valueMin(valueMin)
-                .valueMax(valueMax)
-                .build();
+        AssetSearchCriteria criteria =
+                AssetSearchCriteria.builder()
+                        .keyword(keyword)
+                        .type(type)
+                        .accountId(accountId)
+                        .currency(currency)
+                        .symbol(symbol)
+                        .purchaseDateFrom(purchaseDateFrom)
+                        .purchaseDateTo(purchaseDateTo)
+                        .valueMin(valueMin)
+                        .valueMax(valueMax)
+                        .build();
 
         // Execute search with pagination
-        Page<AssetResponse> results = assetService.searchAssets(
-                user.getId(), criteria, pageable, encryptionKey);
+        Page<AssetResponse> results =
+                assetService.searchAssets(user.getId(), criteria, pageable, encryptionKey);
 
-        log.info("Search returned {} assets (page {}/{}, total: {})",
+        log.info(
+                "Search returned {} assets (page {}/{}, total: {})",
                 results.getNumberOfElements(),
                 results.getNumber() + 1,
                 results.getTotalPages(),
@@ -357,32 +380,28 @@ public class AssetController {
 
     /**
      * Retrieves a specific asset by ID.
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
-     * <p>
-     * <strong>Success Response:</strong> Same as create asset response
-     * 
-     * <p>
-     * <strong>Error Responses:</strong>
+     *
+     * <p><strong>Success Response:</strong> Same as create asset response
+     *
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>HTTP 404 Not Found - Asset not found or doesn't belong to user</li>
+     *   <li>HTTP 404 Not Found - Asset not found or doesn't belong to user
      * </ul>
-     * 
-     * <p>
-     * Requirement REQ-2.6.1: Get asset by ID
-     * </p>
-     * <p>
-     * Requirement REQ-3.2: Authorization - verify ownership
-     * </p>
-     * 
-     * @param assetId        the asset ID
-     * @param encodedKey     Base64-encoded encryption key from header
+     *
+     * <p>Requirement REQ-2.6.1: Get asset by ID
+     *
+     * <p>Requirement REQ-3.2: Authorization - verify ownership
+     *
+     * @param assetId the asset ID
+     * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
      * @return HTTP 200 OK with AssetResponse
      */
@@ -410,46 +429,37 @@ public class AssetController {
 
     /**
      * Updates an existing asset.
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
-     * <p>
-     * <strong>Request Body:</strong> Same as create asset request
-     * 
-     * <p>
-     * <strong>Success Response:</strong> Same as create asset response with updated
-     * values
-     * 
-     * <p>
-     * <strong>Error Responses:</strong>
+     *
+     * <p><strong>Request Body:</strong> Same as create asset request
+     *
+     * <p><strong>Success Response:</strong> Same as create asset response with updated values
+     *
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>HTTP 400 Bad Request - Validation errors</li>
-     * <li>HTTP 404 Not Found - Asset not found or doesn't belong to user</li>
+     *   <li>HTTP 400 Bad Request - Validation errors
+     *   <li>HTTP 404 Not Found - Asset not found or doesn't belong to user
      * </ul>
-     * 
-     * <p>
-     * <strong>Note:</strong> If currentPrice is updated, the lastUpdated timestamp
-     * is automatically set to the current time.
-     * </p>
-     * 
-     * <p>
-     * Requirement REQ-2.6.2: Update asset
-     * </p>
-     * <p>
-     * Requirement REQ-2.6.4: Update current price with timestamp
-     * </p>
-     * <p>
-     * Requirement REQ-3.2: Authorization - verify ownership
-     * </p>
-     * 
-     * @param assetId        the asset ID
-     * @param request        asset update request
-     * @param encodedKey     Base64-encoded encryption key from header
+     *
+     * <p><strong>Note:</strong> If currentPrice is updated, the lastUpdated timestamp is
+     * automatically set to the current time.
+     *
+     * <p>Requirement REQ-2.6.2: Update asset
+     *
+     * <p>Requirement REQ-2.6.4: Update current price with timestamp
+     *
+     * <p>Requirement REQ-3.2: Authorization - verify ownership
+     *
+     * @param assetId the asset ID
+     * @param request asset update request
+     * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
      * @return HTTP 200 OK with updated AssetResponse
      */
@@ -469,7 +479,8 @@ public class AssetController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        AssetResponse response = assetService.updateAsset(assetId, user.getId(), request, encryptionKey);
+        AssetResponse response =
+                assetService.updateAsset(assetId, user.getId(), request, encryptionKey);
 
         log.info("Asset updated successfully: id={}, symbol={}", assetId, response.getSymbol());
 
@@ -478,31 +489,26 @@ public class AssetController {
 
     /**
      * Deletes an asset (hard delete).
-     * 
-     * <p>
-     * Permanently removes the asset from the database. This operation cannot be
-     * undone.
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p>Permanently removes the asset from the database. This operation cannot be undone.
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
+     *   <li>Authorization: Bearer {jwt_token}
      * </ul>
-     * 
-     * <p>
-     * <strong>Error Responses:</strong>
+     *
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>HTTP 404 Not Found - Asset not found or doesn't belong to user</li>
+     *   <li>HTTP 404 Not Found - Asset not found or doesn't belong to user
      * </ul>
-     * 
-     * <p>
-     * Requirement REQ-2.6.2: Delete asset
-     * </p>
-     * <p>
-     * Requirement REQ-3.2: Authorization - verify ownership
-     * </p>
-     * 
-     * @param assetId        the asset ID
+     *
+     * <p>Requirement REQ-2.6.2: Delete asset
+     *
+     * <p>Requirement REQ-3.2: Authorization - verify ownership
+     *
+     * @param assetId the asset ID
      * @param authentication Spring Security authentication object
      * @return HTTP 204 No Content on success
      */

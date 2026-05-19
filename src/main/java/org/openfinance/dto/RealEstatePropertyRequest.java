@@ -1,6 +1,8 @@
 package org.openfinance.dto;
 
 import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,19 +10,18 @@ import lombok.NoArgsConstructor;
 import org.openfinance.entity.PropertyType;
 import org.openfinance.validation.ValidCurrency;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-
 /**
  * Data Transfer Object for creating or updating a real estate property.
- * 
- * <p>This DTO is used for both POST (create) and PUT (update) operations.
- * Validation annotations ensure data integrity before processing.</p>
- * 
- * <p>Requirement REQ-2.16: Real Estate & Physical Assets - Property management</p>
- * <p>Requirement REQ-2.16.1: Track property details (name, type, address, values)</p>
- * <p>Requirement REQ-2.16.2: Calculate property equity and ROI</p>
- * 
+ *
+ * <p>This DTO is used for both POST (create) and PUT (update) operations. Validation annotations
+ * ensure data integrity before processing.
+ *
+ * <p>Requirement REQ-2.16: Real Estate & Physical Assets - Property management
+ *
+ * <p>Requirement REQ-2.16.1: Track property details (name, type, address, values)
+ *
+ * <p>Requirement REQ-2.16.2: Calculate property equity and ROI
+ *
  * @see org.openfinance.entity.RealEstateProperty
  */
 @Data
@@ -28,153 +29,153 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RealEstatePropertyRequest {
-    
+
     /**
      * Name or description of the property (e.g., "Main Residence", "Beach House", "Rental Condo").
-     * 
-     * <p>This field will be encrypted before storing in the database.</p>
-     * 
-     * <p>Requirement REQ-2.16.1: Property must have a descriptive name</p>
+     *
+     * <p>This field will be encrypted before storing in the database.
+     *
+     * <p>Requirement REQ-2.16.1: Property must have a descriptive name
      */
     @NotBlank(message = "{realestate.name.required}")
     @Size(min = 1, max = 255, message = "{realestate.name.between}")
     private String name;
-    
+
     /**
      * Type of property (RESIDENTIAL, COMMERCIAL, LAND, MIXED_USE, INDUSTRIAL, OTHER).
-     * 
-     * <p>Requirement REQ-2.16.1: Property type categorization</p>
+     *
+     * <p>Requirement REQ-2.16.1: Property type categorization
      */
     @NotNull(message = "{realestate.type.required}")
     private PropertyType propertyType;
-    
+
     /**
      * Physical address of the property.
-     * 
-     * <p>This field will be encrypted before storing in the database.</p>
-     * 
-     * <p>Requirement REQ-2.16.1: Track property address</p>
+     *
+     * <p>This field will be encrypted before storing in the database.
+     *
+     * <p>Requirement REQ-2.16.1: Track property address
      */
     @NotBlank(message = "{realestate.address.required}")
     @Size(min = 1, max = 500, message = "{realestate.address.between}")
     private String address;
-    
+
     /**
      * Original purchase price of the property.
-     * 
-     * <p>This field will be encrypted before storing in the database.</p>
-     * 
-     * <p>Requirement REQ-2.16.2: Track purchase price for ROI calculation</p>
+     *
+     * <p>This field will be encrypted before storing in the database.
+     *
+     * <p>Requirement REQ-2.16.2: Track purchase price for ROI calculation
      */
     @NotNull(message = "{realestate.purchase.price.required}")
     @DecimalMin(value = "0.01", message = "{realestate.purchase.price.min}")
     @Digits(integer = 15, fraction = 2, message = "{realestate.purchase.price.digits}")
     private BigDecimal purchasePrice;
-    
+
     /**
      * Current estimated market value of the property.
-     * 
-     * <p>This field will be encrypted before storing in the database.</p>
-     * 
-     * <p>Requirement REQ-2.16.1: Track current value for net worth calculation</p>
+     *
+     * <p>This field will be encrypted before storing in the database.
+     *
+     * <p>Requirement REQ-2.16.1: Track current value for net worth calculation
      */
     @NotNull(message = "{realestate.current.value.required}")
     @DecimalMin(value = "0.01", message = "{realestate.current.value.min}")
     @Digits(integer = 15, fraction = 2, message = "{realestate.current.value.digits}")
     private BigDecimal currentValue;
-    
+
     /**
      * Date when the property was purchased.
-     * 
-     * <p>Used for calculating holding period and property age.</p>
-     * 
-     * <p>Requirement REQ-2.16.1: Track purchase date</p>
+     *
+     * <p>Used for calculating holding period and property age.
+     *
+     * <p>Requirement REQ-2.16.1: Track purchase date
      */
     @NotNull(message = "{realestate.purchase.date.required}")
     @PastOrPresent(message = "{realestate.purchase.date.future}")
     private LocalDate purchaseDate;
-    
+
     /**
      * Currency code in ISO 4217 format (e.g., "USD", "EUR", "GBP").
-     * 
-     * <p>Requirement REQ-2.16.3: Multi-currency support for international properties</p>
+     *
+     * <p>Requirement REQ-2.16.3: Multi-currency support for international properties
      */
     @NotBlank(message = "{account.currency.required}")
     @ValidCurrency
     private String currency;
-    
+
     /**
      * Optional ID of the mortgage liability associated with this property.
-     * 
-     * <p>If provided, links this property to an existing liability (mortgage) for equity calculation.</p>
-     * 
-     * <p>Requirement REQ-2.16.2: Link property to mortgage for equity tracking</p>
+     *
+     * <p>If provided, links this property to an existing liability (mortgage) for equity
+     * calculation.
+     *
+     * <p>Requirement REQ-2.16.2: Link property to mortgage for equity tracking
      */
     private Long mortgageId;
-    
+
     /**
      * Monthly rental income generated by this property (if applicable).
-     * 
-     * <p>This field will be encrypted before storing in the database.</p>
-     * 
-     * <p>Optional field. Null for non-rental properties.</p>
-     * 
-     * <p>Requirement REQ-2.16.2: Track rental income for ROI calculation</p>
+     *
+     * <p>This field will be encrypted before storing in the database.
+     *
+     * <p>Optional field. Null for non-rental properties.
+     *
+     * <p>Requirement REQ-2.16.2: Track rental income for ROI calculation
      */
     @DecimalMin(value = "0.00", message = "{realestate.rental.income.min}")
     @Digits(integer = 15, fraction = 2, message = "{realestate.rental.income.digits}")
     private BigDecimal rentalIncome;
-    
+
     /**
      * Latitude coordinate for mapping and location-based features.
-     * 
-     * <p>Optional field. Range: -90.0 to +90.0</p>
-     * 
-     * <p>Requirement REQ-2.16.4: Geographic coordinates for property mapping</p>
+     *
+     * <p>Optional field. Range: -90.0 to +90.0
+     *
+     * <p>Requirement REQ-2.16.4: Geographic coordinates for property mapping
      */
     @DecimalMin(value = "-90.0", message = "{realestate.lat.min}")
     @DecimalMax(value = "90.0", message = "{realestate.lat.max}")
     @Digits(integer = 2, fraction = 8, message = "{realestate.lat.digits}")
     private BigDecimal latitude;
-    
+
     /**
      * Longitude coordinate for mapping and location-based features.
-     * 
-     * <p>Optional field. Range: -180.0 to +180.0</p>
-     * 
-     * <p>Requirement REQ-2.16.4: Geographic coordinates for property mapping</p>
+     *
+     * <p>Optional field. Range: -180.0 to +180.0
+     *
+     * <p>Requirement REQ-2.16.4: Geographic coordinates for property mapping
      */
     @DecimalMin(value = "-180.0", message = "{realestate.lon.min}")
     @DecimalMax(value = "180.0", message = "{realestate.lon.max}")
     @Digits(integer = 3, fraction = 8, message = "{realestate.lon.digits}")
     private BigDecimal longitude;
-    
+
     /**
      * Whether the property is currently active/owned or sold/inactive.
-     * 
-     * <p>Default: true (active)</p>
-     * 
-     * <p>Requirement REQ-2.16.1: Soft delete support for historical tracking</p>
+     *
+     * <p>Default: true (active)
+     *
+     * <p>Requirement REQ-2.16.1: Soft delete support for historical tracking
      */
-    @Builder.Default
-    private boolean isActive = true;
-    
+    @Builder.Default private boolean isActive = true;
+
     /**
      * Optional notes about the property (e.g., renovation plans, property features, tenant info).
-     * 
-     * <p>This field will be encrypted before storing in the database.</p>
+     *
+     * <p>This field will be encrypted before storing in the database.
      */
     @Size(max = 2000, message = "{realestate.notes.max}")
     private String notes;
-    
+
     /**
      * Optional JSON array of document references (e.g., deed, inspection reports, photos).
-     * 
-     * <p>This field will be encrypted before storing in the database.</p>
-     * 
-     * <p>Format: JSON array of objects with keys like "name", "url", "type"</p>
-     * 
-     * <p>Requirement REQ-2.16.5: Store document references for property records</p>
+     *
+     * <p>This field will be encrypted before storing in the database.
+     *
+     * <p>Format: JSON array of objects with keys like "name", "url", "type"
+     *
+     * <p>Requirement REQ-2.16.5: Store document references for property records
      */
     @Size(max = 5000, message = "{realestate.documents.max}")
     private String documents;

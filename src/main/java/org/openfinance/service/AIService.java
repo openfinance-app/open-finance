@@ -3,12 +3,17 @@ package org.openfinance.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AIDto;
 import org.openfinance.entity.AIConversation;
 import org.openfinance.entity.User;
-import org.openfinance.entity.UserSettings;
 import org.openfinance.exception.ResourceNotFoundException;
 import org.openfinance.repository.AIConversationRepository;
 import org.openfinance.repository.UserRepository;
@@ -21,26 +26,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
-import javax.crypto.SecretKey;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 /**
  * Service for managing AI assistant interactions and conversations.
- * 
- * <p>Orchestrates the AI assistant workflow:</p>
+ *
+ * <p>Orchestrates the AI assistant workflow:
+ *
  * <ol>
- *   <li>Load or create conversation</li>
- *   <li>Build financial context from user data</li>
- *   <li>Call Ollama with context + question + history</li>
- *   <li>Save conversation messages</li>
- *   <li>Return formatted response</li>
+ *   <li>Load or create conversation
+ *   <li>Build financial context from user data
+ *   <li>Call Ollama with context + question + history
+ *   <li>Save conversation messages
+ *   <li>Return formatted response
  * </ol>
- * 
+ *
  * @since Sprint 11 - AI Assistant Integration
  */
 @Service
@@ -62,15 +60,16 @@ public class AIService {
 
     /**
      * Sends a question to the AI assistant and returns a response.
-     * 
-     * <p><strong>Workflow:</strong></p>
+     *
+     * <p><strong>Workflow:</strong>
+     *
      * <ol>
-     *   <li>Load conversation (or create new)</li>
-     *   <li>Build financial context</li>
-     *   <li>Load conversation history (last N messages)</li>
-     *   <li>Call Ollama with context + history + question</li>
-     *   <li>Save user message and AI response</li>
-     *   <li>Return formatted response DTO</li>
+     *   <li>Load conversation (or create new)
+     *   <li>Build financial context
+     *   <li>Load conversation history (last N messages)
+     *   <li>Call Ollama with context + history + question
+     *   <li>Save user message and AI response
+     *   <li>Return formatted response DTO
      * </ol>
      *
      * @param userId User ID making the request
@@ -79,39 +78,43 @@ public class AIService {
      * @return Mono emitting ChatResponse with AI's answer
      * @throws ResourceNotFoundException if conversation not found or not owned by user
      */
-    public AIDto.ChatResponse askQuestion(Long userId, AIDto.ChatRequest request, SecretKey encryptionKey) {
-        log.info("Processing AI question for user {}: {} (conversation: {})", 
-                userId, 
+    public AIDto.ChatResponse askQuestion(
+            Long userId, AIDto.ChatRequest request, SecretKey encryptionKey) {
+        log.info(
+                "Processing AI question for user {}: {} (conversation: {})",
+                userId,
                 request.getQuestion().substring(0, Math.min(50, request.getQuestion().length())),
                 request.getConversationId());
 
         // 0. Resolve user locale
         Locale locale = resolveUserLocale(userId);
-        
+
         // 1. Load or create conversation
         AIConversation conversation = loadOrCreateConversation(userId, request.getConversationId());
-        
+
         // 2. Build financial context with locale
-        String context = request.getIncludeFullContext()
-                ? contextBuilder.buildContext(userId, encryptionKey, locale)
-                : contextBuilder.buildMinimalContext(userId, encryptionKey, locale);
-        
+        String context =
+                request.getIncludeFullContext()
+                        ? contextBuilder.buildContext(userId, encryptionKey, locale)
+                        : contextBuilder.buildMinimalContext(userId, encryptionKey, locale);
+
         // 2a. Add language instruction for non-English locales
         String languageInstruction = buildLanguageInstruction(locale);
-        String fullContext = languageInstruction.isEmpty() ? context : languageInstruction + "\n\n" + context;
-        
+        String fullContext =
+                languageInstruction.isEmpty() ? context : languageInstruction + "\n\n" + context;
+
         // 3. Call AI provider (block on the reactive call to stay on the servlet thread)
         String aiResponse = aiProvider.sendPrompt(request.getQuestion(), fullContext).block();
-        
+
         // 4. Save conversation messages
         saveConversationMessages(conversation, request.getQuestion(), aiResponse, encryptionKey);
-        
+
         // 5. Generate title if first message
         if (conversation.getTitle() == null) {
             conversation.setTitle(generateConversationTitle(request.getQuestion()));
             conversationRepository.save(conversation);
         }
-        
+
         // 6. Return formatted response
         return AIDto.ChatResponse.builder()
                 .conversationId(conversation.getId())
@@ -122,47 +125,59 @@ public class AIService {
 
     /**
      * Streams AI response in real-time as it's generated.
-     * 
-     * <p>Use this for better UX - displays response as it's being generated
-     * instead of waiting for complete response.</p>
+     *
+     * <p>Use this for better UX - displays response as it's being generated instead of waiting for
+     * complete response.
      *
      * @param userId User ID
      * @param request Chat request
      * @param encryptionKey Encryption key
      * @return Flux emitting response chunks
      */
-    public Flux<String> streamQuestion(Long userId, AIDto.ChatRequest request, SecretKey encryptionKey) {
-        log.info("Streaming AI question for user {}: {}", userId, 
+    public Flux<String> streamQuestion(
+            Long userId, AIDto.ChatRequest request, SecretKey encryptionKey) {
+        log.info(
+                "Streaming AI question for user {}: {}",
+                userId,
                 request.getQuestion().substring(0, Math.min(50, request.getQuestion().length())));
 
         // Resolve user locale
         Locale locale = resolveUserLocale(userId);
-        
+
         AIConversation conversation = loadOrCreateConversation(userId, request.getConversationId());
-        
+
         // Build context with locale
-        String context = request.getIncludeFullContext()
-                ? contextBuilder.buildContext(userId, encryptionKey, locale)
-                : contextBuilder.buildMinimalContext(userId, encryptionKey, locale);
-        
+        String context =
+                request.getIncludeFullContext()
+                        ? contextBuilder.buildContext(userId, encryptionKey, locale)
+                        : contextBuilder.buildMinimalContext(userId, encryptionKey, locale);
+
         // Add language instruction for non-English locales
         String languageInstruction = buildLanguageInstruction(locale);
-        String fullContext = languageInstruction.isEmpty() ? context : languageInstruction + "\n\n" + context;
-        
+        String fullContext =
+                languageInstruction.isEmpty() ? context : languageInstruction + "\n\n" + context;
+
         // Collect response chunks to save complete response
         List<String> chunks = new ArrayList<>();
-        
-        return aiProvider.streamResponse(request.getQuestion(), fullContext)
+
+        return aiProvider
+                .streamResponse(request.getQuestion(), fullContext)
                 .doOnNext(chunks::add)
-                .doOnComplete(() -> {
-                    String fullResponse = String.join("", chunks);
-                    saveConversationMessages(conversation, request.getQuestion(), fullResponse, encryptionKey);
-                    
-                    if (conversation.getTitle() == null) {
-                        conversation.setTitle(generateConversationTitle(request.getQuestion()));
-                        conversationRepository.save(conversation);
-                    }
-                });
+                .doOnComplete(
+                        () -> {
+                            String fullResponse = String.join("", chunks);
+                            saveConversationMessages(
+                                    conversation,
+                                    request.getQuestion(),
+                                    fullResponse,
+                                    encryptionKey);
+
+                            if (conversation.getTitle() == null) {
+                                conversation.setTitle(
+                                        generateConversationTitle(request.getQuestion()));
+                                conversationRepository.save(conversation);
+                            }
+                        });
     }
 
     /**
@@ -174,12 +189,11 @@ public class AIService {
     @Transactional(readOnly = true)
     public List<AIDto.ConversationSummary> listConversations(Long userId) {
         log.debug("Listing conversations for user {}", userId);
-        
-        List<AIConversation> conversations = conversationRepository.findByUser_IdOrderByCreatedAtDesc(userId);
-        
-        return conversations.stream()
-                .map(this::toConversationSummary)
-                .collect(Collectors.toList());
+
+        List<AIConversation> conversations =
+                conversationRepository.findByUser_IdOrderByCreatedAtDesc(userId);
+
+        return conversations.stream().map(this::toConversationSummary).collect(Collectors.toList());
     }
 
     /**
@@ -193,10 +207,15 @@ public class AIService {
     @Transactional(readOnly = true)
     public AIDto.ConversationDetail getConversation(Long userId, Long conversationId) {
         log.debug("Fetching conversation {} for user {}", conversationId, userId);
-        
-        AIConversation conversation = conversationRepository.findByIdAndUser_Id(conversationId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Conversation not found: " + conversationId));
-        
+
+        AIConversation conversation =
+                conversationRepository
+                        .findByIdAndUser_Id(conversationId, userId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Conversation not found: " + conversationId));
+
         return toConversationDetail(conversation);
     }
 
@@ -209,10 +228,15 @@ public class AIService {
      */
     public void deleteConversation(Long userId, Long conversationId) {
         log.info("Deleting conversation {} for user {}", conversationId, userId);
-        
-        AIConversation conversation = conversationRepository.findByIdAndUser_Id(conversationId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Conversation not found: " + conversationId));
-        
+
+        AIConversation conversation =
+                conversationRepository
+                        .findByIdAndUser_Id(conversationId, userId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Conversation not found: " + conversationId));
+
         conversationRepository.delete(conversation);
     }
 
@@ -232,51 +256,66 @@ public class AIService {
 
     private AIConversation loadOrCreateConversation(Long userId, Long conversationId) {
         if (conversationId != null) {
-            return conversationRepository.findByIdAndUser_Id(conversationId, userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Conversation not found: " + conversationId));
+            return conversationRepository
+                    .findByIdAndUser_Id(conversationId, userId)
+                    .orElseThrow(
+                            () ->
+                                    new ResourceNotFoundException(
+                                            "Conversation not found: " + conversationId));
         } else {
             // Create new conversation
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
-            
-            AIConversation conversation = AIConversation.builder()
-                    .user(user)
-                    .messages("[]")
-                    .build();
-            
+            User user =
+                    userRepository
+                            .findById(userId)
+                            .orElseThrow(
+                                    () ->
+                                            new ResourceNotFoundException(
+                                                    "User not found: " + userId));
+
+            AIConversation conversation =
+                    AIConversation.builder().user(user).messages("[]").build();
+
             return conversationRepository.save(conversation);
         }
     }
 
-    private void saveConversationMessages(AIConversation conversation, String question, 
-                                          String response, SecretKey encryptionKey) {
+    private void saveConversationMessages(
+            AIConversation conversation,
+            String question,
+            String response,
+            SecretKey encryptionKey) {
         try {
             // Parse existing messages
             List<AIDto.Message> messages = parseMessages(conversation.getMessages());
-            
+
             // Add user message
-            messages.add(AIDto.Message.builder()
-                    .role("user")
-                    .content(question)
-                    .timestamp(LocalDateTime.now())
-                    .build());
-            
+            messages.add(
+                    AIDto.Message.builder()
+                            .role("user")
+                            .content(question)
+                            .timestamp(LocalDateTime.now())
+                            .build());
+
             // Add assistant message
-            messages.add(AIDto.Message.builder()
-                    .role("assistant")
-                    .content(response)
-                    .timestamp(LocalDateTime.now())
-                    .build());
-            
+            messages.add(
+                    AIDto.Message.builder()
+                            .role("assistant")
+                            .content(response)
+                            .timestamp(LocalDateTime.now())
+                            .build());
+
             // Limit to last N messages to avoid token limits
-            if (messages.size() > maxHistoryMessages * 2) { // *2 because each exchange is 2 messages
-                messages = messages.subList(messages.size() - (maxHistoryMessages * 2), messages.size());
+            if (messages.size()
+                    > maxHistoryMessages * 2) { // *2 because each exchange is 2 messages
+                messages =
+                        messages.subList(
+                                messages.size() - (maxHistoryMessages * 2), messages.size());
             }
-            
+
             // Save back to conversation
             conversation.setMessages(objectMapper.writeValueAsString(messages));
             conversationRepository.save(conversation);
-            
+
         } catch (JsonProcessingException e) {
             log.error("Failed to save conversation messages: {}", e.getMessage());
             throw new RuntimeException("Failed to save conversation", e);
@@ -285,10 +324,13 @@ public class AIService {
 
     private List<AIDto.Message> parseMessages(String messagesJson) {
         try {
-            if (messagesJson == null || messagesJson.trim().isEmpty() || messagesJson.equals("[]")) {
+            if (messagesJson == null
+                    || messagesJson.trim().isEmpty()
+                    || messagesJson.equals("[]")) {
                 return new ArrayList<>();
             }
-            return objectMapper.readValue(messagesJson, new TypeReference<List<AIDto.Message>>() {});
+            return objectMapper.readValue(
+                    messagesJson, new TypeReference<List<AIDto.Message>>() {});
         } catch (JsonProcessingException e) {
             log.error("Failed to parse messages JSON: {}", e.getMessage());
             return new ArrayList<>();
@@ -315,7 +357,7 @@ public class AIService {
 
     private AIDto.ConversationSummary toConversationSummary(AIConversation conversation) {
         List<AIDto.Message> messages = parseMessages(conversation.getMessages());
-        
+
         return AIDto.ConversationSummary.builder()
                 .id(conversation.getId())
                 .title(conversation.getTitle())
@@ -327,7 +369,7 @@ public class AIService {
 
     private AIDto.ConversationDetail toConversationDetail(AIConversation conversation) {
         List<AIDto.Message> messages = parseMessages(conversation.getMessages());
-        
+
         return AIDto.ConversationDetail.builder()
                 .id(conversation.getId())
                 .title(conversation.getTitle())
@@ -341,26 +383,26 @@ public class AIService {
         // Rough estimation: ~4 characters per token
         return text.length() / 4;
     }
-    
+
     /**
-     * Resolves user's preferred locale from UserSettings.
-     * Falls back to English if not found.
+     * Resolves user's preferred locale from UserSettings. Falls back to English if not found.
      *
      * @param userId User ID
      * @return User's locale or English as fallback
      */
     private Locale resolveUserLocale(Long userId) {
-        return userSettingsRepository.findByUserId(userId)
-                .map(settings -> {
-                    String lang = settings.getLanguage();
-                    return new Locale(lang != null ? lang : "en");
-                })
+        return userSettingsRepository
+                .findByUserId(userId)
+                .map(
+                        settings -> {
+                            String lang = settings.getLanguage();
+                            return new Locale(lang != null ? lang : "en");
+                        })
                 .orElse(Locale.ENGLISH);
     }
-    
+
     /**
-     * Builds language instruction for non-English locales.
-     * Returns empty string for English.
+     * Builds language instruction for non-English locales. Returns empty string for English.
      *
      * @param locale Target locale
      * @return Language instruction or empty string for English
@@ -370,9 +412,10 @@ public class AIService {
             return "";
         }
         String languageName = locale.getDisplayLanguage(locale);
-        return messageSource.getMessage("ai.language.instruction", 
-                new Object[]{languageName}, 
-                "Important: Please respond in " + languageName, 
+        return messageSource.getMessage(
+                "ai.language.instruction",
+                new Object[] {languageName},
+                "Important: Please respond in " + languageName,
                 locale);
     }
 }

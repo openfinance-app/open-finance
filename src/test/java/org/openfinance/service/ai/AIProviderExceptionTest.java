@@ -1,13 +1,11 @@
 package org.openfinance.service.ai;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-/**
- * Unit tests for {@link AIProviderException}.
- */
+/** Unit tests for {@link AIProviderException}. */
 @DisplayName("AIProviderException Tests")
 class AIProviderExceptionTest {
 

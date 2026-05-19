@@ -42,13 +42,14 @@ public interface SecurityAuditLogRepository extends JpaRepository<SecurityAuditL
      * @param pageable pagination parameters
      * @return page of audit log entries
      */
-    Page<SecurityAuditLog> findByEventTypeOrderByCreatedAtDesc(EventType eventType, Pageable pageable);
+    Page<SecurityAuditLog> findByEventTypeOrderByCreatedAtDesc(
+            EventType eventType, Pageable pageable);
 
     /**
      * Counts failed login attempts for a given username since the specified timestamp.
      *
-     * <p>Used by the account lockout logic to determine whether the threshold has been
-     * exceeded. Requirement TASK-15.1.8: Account lockout — failed attempt counting.
+     * <p>Used by the account lockout logic to determine whether the threshold has been exceeded.
+     * Requirement TASK-15.1.8: Account lockout — failed attempt counting.
      *
      * @param username the username to check
      * @param since the start of the time window

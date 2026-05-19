@@ -6,8 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Data Transfer Object representing a search result for financial instrument symbols.
- * Used when users search for stocks, ETFs, cryptocurrencies to add to their portfolio.
+ * Data Transfer Object representing a search result for financial instrument symbols. Used when
+ * users search for stocks, ETFs, cryptocurrencies to add to their portfolio.
  *
  * @author Open Finance Team
  * @version 1.0
@@ -19,38 +19,24 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SymbolSearchResult {
 
-    /**
-     * Trading symbol (e.g., "AAPL", "MSFT", "BTC-USD").
-     */
+    /** Trading symbol (e.g., "AAPL", "MSFT", "BTC-USD"). */
     private String symbol;
 
-    /**
-     * Full name of the instrument (e.g., "Apple Inc.").
-     */
+    /** Full name of the instrument (e.g., "Apple Inc."). */
     private String name;
 
-    /**
-     * Type of instrument (e.g., "EQUITY", "ETF", "CRYPTOCURRENCY", "MUTUALFUND").
-     */
+    /** Type of instrument (e.g., "EQUITY", "ETF", "CRYPTOCURRENCY", "MUTUALFUND"). */
     private String type;
 
-    /**
-     * Stock exchange where the instrument is traded (e.g., "NASDAQ", "NYSE").
-     */
+    /** Stock exchange where the instrument is traded (e.g., "NASDAQ", "NYSE"). */
     private String exchange;
 
-    /**
-     * Exchange display name (e.g., "NASDAQ Stock Market").
-     */
+    /** Exchange display name (e.g., "NASDAQ Stock Market"). */
     private String exchangeDisplay;
 
-    /**
-     * Industry sector (e.g., "Technology", "Healthcare").
-     */
+    /** Industry sector (e.g., "Technology", "Healthcare"). */
     private String sector;
 
-    /**
-     * Industry category (e.g., "Consumer Electronics", "Biotechnology").
-     */
+    /** Industry category (e.g., "Consumer Electronics", "Biotechnology"). */
     private String industry;
 }

@@ -3,7 +3,6 @@ package org.openfinance.repository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
-
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.AssetType;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -15,42 +14,33 @@ import org.springframework.stereotype.Repository;
 
 /**
  * Repository interface for Asset entity operations.
- * 
- * <p>
- * Provides database access methods for asset management including
- * filtering by user, account, asset type, and symbol.
- * </p>
- * 
- * <p>
- * Requirement REQ-2.6: Asset Management - CRUD operations for financial assets
- * </p>
+ *
+ * <p>Provides database access methods for asset management including filtering by user, account,
+ * asset type, and symbol.
+ *
+ * <p>Requirement REQ-2.6: Asset Management - CRUD operations for financial assets
  */
 @Repository
-public interface AssetRepository extends JpaRepository<Asset, Long>, JpaSpecificationExecutor<Asset> {
+public interface AssetRepository
+        extends JpaRepository<Asset, Long>, JpaSpecificationExecutor<Asset> {
 
     /**
      * Finds all assets belonging to a specific user.
-     * 
-     * <p>
-     * Requirement REQ-2.6.1: Users can view all their assets
-     * </p>
+     *
+     * <p>Requirement REQ-2.6.1: Users can view all their assets
      *
      * @param userId ID of the user
      * @return List of assets owned by the user (may be empty)
      */
-    @EntityGraph(attributePaths = { "account" })
+    @EntityGraph(attributePaths = {"account"})
     List<Asset> findByUserId(Long userId);
 
     /**
      * Finds all assets in a specific account.
-     * 
-     * <p>
-     * Useful for displaying assets grouped by brokerage account or portfolio.
-     * </p>
-     * 
-     * <p>
-     * Requirement REQ-2.6.2: Assets can be linked to accounts
-     * </p>
+     *
+     * <p>Useful for displaying assets grouped by brokerage account or portfolio.
+     *
+     * <p>Requirement REQ-2.6.2: Assets can be linked to accounts
      *
      * @param accountId ID of the account
      * @return List of assets in the account (may be empty)
@@ -59,32 +49,24 @@ public interface AssetRepository extends JpaRepository<Asset, Long>, JpaSpecific
 
     /**
      * Finds all assets of a specific type for a user.
-     * 
-     * <p>
-     * Useful for filtering portfolio by asset class (e.g., show only STOCK assets).
-     * </p>
-     * 
-     * <p>
-     * Requirement REQ-2.6: Asset type categorization and filtering
-     * </p>
+     *
+     * <p>Useful for filtering portfolio by asset class (e.g., show only STOCK assets).
+     *
+     * <p>Requirement REQ-2.6: Asset type categorization and filtering
      *
      * @param userId ID of the user
-     * @param type   Asset type to filter by
+     * @param type Asset type to filter by
      * @return List of assets matching the type (may be empty)
      */
-    @EntityGraph(attributePaths = { "account" })
+    @EntityGraph(attributePaths = {"account"})
     List<Asset> findByUserIdAndType(Long userId, AssetType type);
 
     /**
      * Finds all assets with a specific symbol for a user.
-     * 
-     * <p>
-     * Used to check for duplicate holdings or aggregate positions across accounts.
-     * </p>
-     * 
-     * <p>
-     * Requirement REQ-2.6.4: Symbol-based asset tracking
-     * </p>
+     *
+     * <p>Used to check for duplicate holdings or aggregate positions across accounts.
+     *
+     * <p>Requirement REQ-2.6.4: Symbol-based asset tracking
      *
      * @param userId ID of the user
      * @param symbol Ticker symbol (e.g., "AAPL", "BTC-USD")
@@ -94,44 +76,35 @@ public interface AssetRepository extends JpaRepository<Asset, Long>, JpaSpecific
 
     /**
      * Finds an asset by ID, ensuring it belongs to the specified user.
-     * 
-     * <p>
-     * This method provides authorization check at the repository level,
-     * preventing users from accessing assets they don't own.
-     * </p>
-     * 
-     * <p>
-     * Requirement REQ-3.2: Authorization - Users can only access their own data
-     * </p>
      *
-     * @param id     Asset ID
+     * <p>This method provides authorization check at the repository level, preventing users from
+     * accessing assets they don't own.
+     *
+     * <p>Requirement REQ-3.2: Authorization - Users can only access their own data
+     *
+     * @param id Asset ID
      * @param userId User ID (for ownership verification)
-     * @return Optional containing the asset if found and owned by user, empty
-     *         otherwise
+     * @return Optional containing the asset if found and owned by user, empty otherwise
      */
-    @EntityGraph(attributePaths = { "account" })
+    @EntityGraph(attributePaths = {"account"})
     Optional<Asset> findByIdAndUserId(Long id, Long userId);
 
     /**
      * Finds all assets in a specific account belonging to a user.
-     * 
-     * <p>
-     * Combines account and user filtering for secure asset retrieval.
-     * </p>
      *
-     * @param userId    ID of the user
+     * <p>Combines account and user filtering for secure asset retrieval.
+     *
+     * @param userId ID of the user
      * @param accountId ID of the account
      * @return List of assets in the user's account (may be empty)
      */
-    @EntityGraph(attributePaths = { "account" })
+    @EntityGraph(attributePaths = {"account"})
     List<Asset> findByUserIdAndAccountId(Long userId, Long accountId);
 
     /**
      * Counts the total number of assets for a user.
-     * 
-     * <p>
-     * Useful for displaying summary statistics or enforcing asset limits.
-     * </p>
+     *
+     * <p>Useful for displaying summary statistics or enforcing asset limits.
      *
      * @param userId User ID
      * @return Count of assets owned by the user
@@ -140,110 +113,95 @@ public interface AssetRepository extends JpaRepository<Asset, Long>, JpaSpecific
 
     /**
      * Counts assets of a specific type for a user.
-     * 
-     * <p>
-     * Used for portfolio composition analysis.
-     * </p>
+     *
+     * <p>Used for portfolio composition analysis.
      *
      * @param userId User ID
-     * @param type   Asset type
+     * @param type Asset type
      * @return Count of assets of the specified type
      */
     long countByUserIdAndType(Long userId, AssetType type);
 
     /**
      * Calculates the total value of all assets for a user in a specific currency.
-     * 
-     * <p>
-     * Sums the total value (quantity * currentPrice) for all assets in the
-     * currency.
-     * For multi-currency portfolios, conversion should be done in the service
-     * layer.
-     * </p>
-     * 
-     * <p>
-     * Requirement REQ-2.6.3: Calculate total portfolio value
-     * </p>
      *
-     * @param userId   User ID
+     * <p>Sums the total value (quantity * currentPrice) for all assets in the currency. For
+     * multi-currency portfolios, conversion should be done in the service layer.
+     *
+     * <p>Requirement REQ-2.6.3: Calculate total portfolio value
+     *
+     * @param userId User ID
      * @param currency Currency code (e.g., "USD")
      * @return Total asset value in the specified currency, or 0 if no assets exist
      */
-    @Query("SELECT COALESCE(SUM(a.quantity * a.currentPrice), 0) FROM Asset a WHERE a.userId = :userId AND a.currency = :currency")
-    BigDecimal getTotalValueByCurrency(@Param("userId") Long userId, @Param("currency") String currency);
+    @Query(
+            "SELECT COALESCE(SUM(a.quantity * a.currentPrice), 0) FROM Asset a WHERE a.userId = :userId AND a.currency = :currency")
+    BigDecimal getTotalValueByCurrency(
+            @Param("userId") Long userId, @Param("currency") String currency);
 
     /**
-     * Calculates the total cost basis of all assets for a user in a specific
-     * currency.
-     * 
-     * <p>
-     * Sums the total cost (quantity * purchasePrice) for all assets in the
-     * currency.
-     * Used for gain/loss calculations.
-     * </p>
+     * Calculates the total cost basis of all assets for a user in a specific currency.
      *
-     * @param userId   User ID
+     * <p>Sums the total cost (quantity * purchasePrice) for all assets in the currency. Used for
+     * gain/loss calculations.
+     *
+     * @param userId User ID
      * @param currency Currency code (e.g., "USD")
      * @return Total cost basis in the specified currency, or 0 if no assets exist
      */
-    @Query("SELECT COALESCE(SUM(a.quantity * a.purchasePrice), 0) FROM Asset a WHERE a.userId = :userId AND a.currency = :currency")
-    BigDecimal getTotalCostByCurrency(@Param("userId") Long userId, @Param("currency") String currency);
+    @Query(
+            "SELECT COALESCE(SUM(a.quantity * a.purchasePrice), 0) FROM Asset a WHERE a.userId = :userId AND a.currency = :currency")
+    BigDecimal getTotalCostByCurrency(
+            @Param("userId") Long userId, @Param("currency") String currency);
 
     /**
      * Finds assets with symbols that need price updates.
-     * 
-     * <p>
-     * Returns assets that have symbols and support real-time data.
-     * Used by market data update services.
-     * </p>
-     * 
-     * <p>
-     * Requirement REQ-2.6.4: Market data integration for price updates
-     * </p>
+     *
+     * <p>Returns assets that have symbols and support real-time data. Used by market data update
+     * services.
+     *
+     * <p>Requirement REQ-2.6.4: Market data integration for price updates
      *
      * @param userId User ID
      * @return List of assets with symbols (may be empty)
      */
-    @Query("SELECT a FROM Asset a WHERE a.userId = :userId AND a.symbol IS NOT NULL AND a.symbol != ''")
+    @Query(
+            "SELECT a FROM Asset a WHERE a.userId = :userId AND a.symbol IS NOT NULL AND a.symbol != ''")
     List<Asset> findAssetsWithSymbols(@Param("userId") Long userId);
 
     /**
      * Finds all assets for a user ordered by total value descending.
-     * 
-     * <p>
-     * Useful for displaying portfolio sorted by largest holdings first.
-     * </p>
+     *
+     * <p>Useful for displaying portfolio sorted by largest holdings first.
      *
      * @param userId User ID
      * @return List of assets ordered by value (quantity * currentPrice) descending
      */
-    @Query("SELECT a FROM Asset a WHERE a.userId = :userId ORDER BY (a.quantity * a.currentPrice) DESC")
+    @Query(
+            "SELECT a FROM Asset a WHERE a.userId = :userId ORDER BY (a.quantity * a.currentPrice) DESC")
     List<Asset> findByUserIdOrderByValueDesc(@Param("userId") Long userId);
 
     /**
      * Finds all assets for a user ordered by unrealized gain descending.
-     * 
-     * <p>
-     * Useful for identifying best and worst performing assets.
-     * </p>
+     *
+     * <p>Useful for identifying best and worst performing assets.
      *
      * @param userId User ID
      * @return List of assets ordered by gain/loss descending
      */
-    @Query("SELECT a FROM Asset a WHERE a.userId = :userId ORDER BY ((a.currentPrice - a.purchasePrice) * a.quantity) DESC")
+    @Query(
+            "SELECT a FROM Asset a WHERE a.userId = :userId ORDER BY ((a.currentPrice - a.purchasePrice) * a.quantity) DESC")
     List<Asset> findByUserIdOrderByGainDesc(@Param("userId") Long userId);
 
     /**
      * Finds assets with last price update before a specific date/time.
-     * 
-     * <p>
-     * Used for stale quote notifications.
-     * </p>
      *
-     * @param userId    User ID
+     * <p>Used for stale quote notifications.
+     *
+     * @param userId User ID
      * @param threshold DateTime threshold
      * @return List of assets with stale quotes
      */
-    @EntityGraph(attributePaths = { "account" })
+    @EntityGraph(attributePaths = {"account"})
     List<Asset> findByUserIdAndLastUpdatedBefore(Long userId, java.time.LocalDateTime threshold);
 }

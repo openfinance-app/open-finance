@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * Exception thrown when a user attempts to access a resource they are not authorized to access.
  *
- * <p>This exception is typically thrown when a user tries to perform an operation
- * on a resource (such as a simulation or property) that belongs to another user.</p>
+ * <p>This exception is typically thrown when a user tries to perform an operation on a resource
+ * (such as a simulation or property) that belongs to another user.
  */
 @ResponseStatus(HttpStatus.FORBIDDEN)
 public class UnauthorizedException extends RuntimeException {
@@ -38,9 +38,11 @@ public class UnauthorizedException extends RuntimeException {
      * @param userId the user ID attempting access
      * @return a new UnauthorizedException
      */
-    public static UnauthorizedException accessingAnotherUsersSimulation(Long simulationId, Long userId) {
+    public static UnauthorizedException accessingAnotherUsersSimulation(
+            Long simulationId, Long userId) {
         return new UnauthorizedException(
-                String.format("User %d is not authorized to access simulation %d", userId, simulationId));
+                String.format(
+                        "User %d is not authorized to access simulation %d", userId, simulationId));
     }
 
     /**

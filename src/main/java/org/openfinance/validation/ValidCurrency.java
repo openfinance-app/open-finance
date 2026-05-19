@@ -2,14 +2,14 @@ package org.openfinance.validation;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
-
 import java.lang.annotation.*;
 
 /**
- * Validation annotation for ISO 4217 currency codes.
- * Validates that a string is a valid 3-letter currency code (e.g., USD, EUR, GBP).
+ * Validation annotation for ISO 4217 currency codes. Validates that a string is a valid 3-letter
+ * currency code (e.g., USD, EUR, GBP).
  *
  * <p>Example usage:
+ *
  * <pre>
  * public class TransactionRequest {
  *     {@code @ValidCurrency}

@@ -1,7 +1,10 @@
 package org.openfinance.controller;
 
 import jakarta.validation.Valid;
+import java.util.List;
+import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.BudgetBulkCreateRequest;
 import org.openfinance.dto.BudgetBulkCreateResponse;
 import org.openfinance.dto.BudgetHistoryResponse;
@@ -15,58 +18,49 @@ import org.openfinance.entity.BudgetPeriod;
 import org.openfinance.entity.User;
 import org.openfinance.service.BudgetService;
 import org.openfinance.util.EncryptionUtil;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import javax.crypto.SecretKey;
-import java.util.List;
-
 /**
  * REST controller for budget management endpoints.
- * 
- * <p>
- * Provides CRUD operations for budgets and budget tracking. All endpoints
- * require authentication
+ *
+ * <p>Provides CRUD operations for budgets and budget tracking. All endpoints require authentication
  * and use the user's encryption key to secure sensitive data.
- * 
- * <p>
- * <strong>Endpoints:</strong>
+ *
+ * <p><strong>Endpoints:</strong>
+ *
  * <ul>
- * <li>POST /api/v1/budgets - Create new budget</li>
- * <li>GET /api/v1/budgets - List all user budgets (optional period filter)</li>
- * <li>GET /api/v1/budgets/{id} - Get budget by ID</li>
- * <li>PUT /api/v1/budgets/{id} - Update budget</li>
- * <li>DELETE /api/v1/budgets/{id} - Delete budget</li>
- * <li>GET /api/v1/budgets/{id}/progress - Get budget progress tracking</li>
- * <li>GET /api/v1/budgets/{id}/history - Get budget spending history by
- * sub-period</li>
- * <li>GET /api/v1/budgets/summary - Get budget summary by period</li>
+ *   <li>POST /api/v1/budgets - Create new budget
+ *   <li>GET /api/v1/budgets - List all user budgets (optional period filter)
+ *   <li>GET /api/v1/budgets/{id} - Get budget by ID
+ *   <li>PUT /api/v1/budgets/{id} - Update budget
+ *   <li>DELETE /api/v1/budgets/{id} - Delete budget
+ *   <li>GET /api/v1/budgets/{id}/progress - Get budget progress tracking
+ *   <li>GET /api/v1/budgets/{id}/history - Get budget spending history by sub-period
+ *   <li>GET /api/v1/budgets/summary - Get budget summary by period
  * </ul>
- * 
- * <p>
- * <strong>Security:</strong>
+ *
+ * <p><strong>Security:</strong>
+ *
  * <ul>
- * <li>All endpoints require JWT authentication</li>
- * <li>Encryption key must be provided via X-Encryption-Key header for amount
- * access</li>
- * <li>Users can only access their own budgets</li>
- * <li>Budget amounts are encrypted at rest</li>
+ *   <li>All endpoints require JWT authentication
+ *   <li>Encryption key must be provided via X-Encryption-Key header for amount access
+ *   <li>Users can only access their own budgets
+ *   <li>Budget amounts are encrypted at rest
  * </ul>
- * 
- * <p>
- * <strong>Requirements:</strong>
- * </p>
+ *
+ * <p><strong>Requirements:</strong>
+ *
  * <ul>
- * <li>REQ-2.9.1.1: Budget creation and management</li>
- * <li>REQ-2.9.1.2: Budget tracking and progress calculation</li>
- * <li>REQ-2.9.1.3: Budget reports and summaries</li>
- * <li>REQ-2.18: Data encryption at rest</li>
- * <li>REQ-3.2: Authorization checks</li>
+ *   <li>REQ-2.9.1.1: Budget creation and management
+ *   <li>REQ-2.9.1.2: Budget tracking and progress calculation
+ *   <li>REQ-2.9.1.3: Budget reports and summaries
+ *   <li>REQ-2.18: Data encryption at rest
+ *   <li>REQ-3.2: Authorization checks
  * </ul>
- * 
+ *
  * @see BudgetService
  * @see BudgetRequest
  * @see BudgetResponse
@@ -86,14 +80,16 @@ public class BudgetController {
 
     /**
      * Creates a new budget for the authenticated user.
-     * 
+     *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
+     *
      * <p><strong>Request Body:</strong>
+     *
      * <pre>{@code
      * {
      * "categoryId": 1,
@@ -106,8 +102,9 @@ public class BudgetController {
      * "notes": "Monthly grocery budget"
      * }
      * }</pre>
-     * 
+     *
      * <p><strong>Success Response (HTTP 201 Created):</strong>
+     *
      * <pre>{@code
      * {
      * "id": 1,
@@ -125,9 +122,9 @@ public class BudgetController {
      * "updatedAt": "2026-02-02T10:00:00"
      * }
      * }</pre>
-     * 
-     * <p>Requirement REQ-2.9.1.1: Create budget</p>
-     * 
+     *
+     * <p>Requirement REQ-2.9.1.1: Create budget
+     *
      * @param request budget creation request
      * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
@@ -151,30 +148,35 @@ public class BudgetController {
 
         BudgetResponse response = budgetService.createBudget(request, user.getId(), encryptionKey);
 
-        log.info("Budget created successfully: id={}, category={}, period={}",
-                response.getId(), response.getCategoryName(), response.getPeriod());
+        log.info(
+                "Budget created successfully: id={}, category={}, period={}",
+                response.getId(),
+                response.getCategoryName(),
+                response.getPeriod());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
      * Retrieves all budgets for the authenticated user.
-     * 
+     *
      * <p>Optionally filter by budget period type using the period query parameter.
-     * 
+     *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
+     *
      * <p><strong>Query Parameters:</strong>
+     *
      * <ul>
-     * <li>period (optional): Filter by period type (WEEKLY, MONTHLY, QUARTERLY,
-     * YEARLY)</li>
+     *   <li>period (optional): Filter by period type (WEEKLY, MONTHLY, QUARTERLY, YEARLY)
      * </ul>
-     * 
+     *
      * <p><strong>Success Response (HTTP 200 OK):</strong>
+     *
      * <pre>{@code
      * [
      * {
@@ -194,9 +196,9 @@ public class BudgetController {
      * }
      * ]
      * }</pre>
-     * 
-     * <p>Requirement REQ-2.9.1.1: List budgets with optional filtering</p>
-     * 
+     *
+     * <p>Requirement REQ-2.9.1.1: List budgets with optional filtering
+     *
      * @param period optional period filter
      * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
@@ -231,33 +233,28 @@ public class BudgetController {
 
     /**
      * Retrieves a specific budget by ID.
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
-     * <p>
-     * <strong>Success Response (HTTP 200 OK):</strong>
-     * Returns a single BudgetResponse object.
-     * 
-     * <p>
-     * <strong>Error Responses:</strong>
+     *
+     * <p><strong>Success Response (HTTP 200 OK):</strong> Returns a single BudgetResponse object.
+     *
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>HTTP 404 Not Found - Budget not found or doesn't belong to user</li>
+     *   <li>HTTP 404 Not Found - Budget not found or doesn't belong to user
      * </ul>
-     * 
-     * <p>
-     * Requirement REQ-2.9.1.1: Retrieve budget details
-     * </p>
-     * <p>
-     * Requirement REQ-3.2: Authorization - verify ownership
-     * </p>
-     * 
-     * @param budgetId       the budget ID
-     * @param encodedKey     Base64-encoded encryption key from header
+     *
+     * <p>Requirement REQ-2.9.1.1: Retrieve budget details
+     *
+     * <p>Requirement REQ-3.2: Authorization - verify ownership
+     *
+     * @param budgetId the budget ID
+     * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
      * @return HTTP 200 OK with BudgetResponse
      */
@@ -276,7 +273,8 @@ public class BudgetController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        BudgetResponse response = budgetService.getBudgetById(budgetId, user.getId(), encryptionKey);
+        BudgetResponse response =
+                budgetService.getBudgetById(budgetId, user.getId(), encryptionKey);
 
         log.info("Budget retrieved successfully: id={}", budgetId);
 
@@ -285,40 +283,33 @@ public class BudgetController {
 
     /**
      * Updates an existing budget.
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
-     * <p>
-     * <strong>Request Body:</strong>
-     * Same format as create budget. All fields are optional; only provided fields
-     * are updated.
-     * 
-     * <p>
-     * <strong>Success Response (HTTP 200 OK):</strong>
-     * Returns updated BudgetResponse object.
-     * 
-     * <p>
-     * <strong>Error Responses:</strong>
+     *
+     * <p><strong>Request Body:</strong> Same format as create budget. All fields are optional; only
+     * provided fields are updated.
+     *
+     * <p><strong>Success Response (HTTP 200 OK):</strong> Returns updated BudgetResponse object.
+     *
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>HTTP 404 Not Found - Budget not found or doesn't belong to user</li>
-     * <li>HTTP 400 Bad Request - Validation errors or duplicate budget</li>
+     *   <li>HTTP 404 Not Found - Budget not found or doesn't belong to user
+     *   <li>HTTP 400 Bad Request - Validation errors or duplicate budget
      * </ul>
-     * 
-     * <p>
-     * Requirement REQ-2.9.1.1: Update budget
-     * </p>
-     * <p>
-     * Requirement REQ-3.2: Authorization - verify ownership
-     * </p>
-     * 
-     * @param budgetId       the budget ID
-     * @param request        budget update request
-     * @param encodedKey     Base64-encoded encryption key from header
+     *
+     * <p>Requirement REQ-2.9.1.1: Update budget
+     *
+     * <p>Requirement REQ-3.2: Authorization - verify ownership
+     *
+     * @param budgetId the budget ID
+     * @param request budget update request
+     * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
      * @return HTTP 200 OK with BudgetResponse
      */
@@ -338,7 +329,8 @@ public class BudgetController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        BudgetResponse response = budgetService.updateBudget(budgetId, request, user.getId(), encryptionKey);
+        BudgetResponse response =
+                budgetService.updateBudget(budgetId, request, user.getId(), encryptionKey);
 
         log.info("Budget updated successfully: id={}", budgetId);
 
@@ -347,30 +339,26 @@ public class BudgetController {
 
     /**
      * Deletes a budget (hard delete).
-     * 
-     * <p>
-     * The budget is permanently removed from the database.
-     * 
-     * <p>
-     * <strong>Request Headers:</strong>
+     *
+     * <p>The budget is permanently removed from the database.
+     *
+     * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
+     *   <li>Authorization: Bearer {jwt_token}
      * </ul>
-     * 
-     * <p>
-     * <strong>Error Responses:</strong>
+     *
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>HTTP 404 Not Found - Budget not found or doesn't belong to user</li>
+     *   <li>HTTP 404 Not Found - Budget not found or doesn't belong to user
      * </ul>
-     * 
-     * <p>
-     * Requirement REQ-2.9.1.1: Delete budget
-     * </p>
-     * <p>
-     * Requirement REQ-3.2: Authorization - verify ownership
-     * </p>
-     * 
-     * @param budgetId       the budget ID
+     *
+     * <p>Requirement REQ-2.9.1.1: Delete budget
+     *
+     * <p>Requirement REQ-3.2: Authorization - verify ownership
+     *
+     * @param budgetId the budget ID
      * @param authentication Spring Security authentication object
      * @return HTTP 204 No Content on success
      */
@@ -383,9 +371,10 @@ public class BudgetController {
         log.info("Deleting budget: id={}", budgetId);
 
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey = encodedKey != null && !encodedKey.trim().isEmpty()
-                ? EncryptionUtil.decodeEncryptionKey(encodedKey)
-                : null;
+        SecretKey encryptionKey =
+                encodedKey != null && !encodedKey.trim().isEmpty()
+                        ? EncryptionUtil.decodeEncryptionKey(encodedKey)
+                        : null;
 
         budgetService.deleteBudget(budgetId, user.getId(), encryptionKey);
 
@@ -396,24 +385,27 @@ public class BudgetController {
 
     /**
      * Retrieves budget progress tracking information.
-     * 
+     *
      * <p>Calculates spending progress including:
+     *
      * <ul>
-     * <li>Budgeted amount</li>
-     * <li>Amount spent so far</li>
-     * <li>Remaining amount</li>
-     * <li>Percentage spent</li>
-     * <li>Days remaining in period</li>
-     * <li>Status indicator (ON_TRACK, WARNING, EXCEEDED)</li>
+     *   <li>Budgeted amount
+     *   <li>Amount spent so far
+     *   <li>Remaining amount
+     *   <li>Percentage spent
+     *   <li>Days remaining in period
+     *   <li>Status indicator (ON_TRACK, WARNING, EXCEEDED)
      * </ul>
-     * 
+     *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
+     *
      * <p><strong>Success Response (HTTP 200 OK):</strong>
+     *
      * <pre>{@code
      * {
      * "budgetId": 1,
@@ -430,10 +422,9 @@ public class BudgetController {
      * "status": "ON_TRACK"
      * }
      * }</pre>
-     * 
-     * <p>Requirement REQ-2.9.1.2: Budget tracking with spent/remaining
-     * calculations</p>
-     * 
+     *
+     * <p>Requirement REQ-2.9.1.2: Budget tracking with spent/remaining calculations
+     *
      * @param budgetId the budget ID
      * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
@@ -454,10 +445,11 @@ public class BudgetController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        BudgetProgressResponse progress = budgetService.calculateBudgetProgress(
-                budgetId, user.getId(), encryptionKey);
+        BudgetProgressResponse progress =
+                budgetService.calculateBudgetProgress(budgetId, user.getId(), encryptionKey);
 
-        log.info("Budget progress retrieved: id={}, status={}, percentageSpent={}%",
+        log.info(
+                "Budget progress retrieved: id={}, status={}, percentageSpent={}%",
                 budgetId, progress.getStatus(), progress.getPercentageSpent());
 
         return ResponseEntity.ok(progress);
@@ -466,19 +458,19 @@ public class BudgetController {
     /**
      * Retrieves the per-sub-period spending history for a budget.
      *
-     * <p>For example, a yearly "Food" budget spanning Jan–Dec 2024 with MONTHLY
-     * period
-     * returns 12 rows — one per calendar month — each showing budgeted, spent,
-     * remaining,
-     * percentage spent, and a status indicator.
+     * <p>For example, a yearly "Food" budget spanning Jan–Dec 2024 with MONTHLY period returns 12
+     * rows — one per calendar month — each showing budgeted, spent, remaining, percentage spent,
+     * and a status indicator.
      *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
      *
      * <p><strong>Success Response (HTTP 200 OK):</strong>
+     *
      * <pre>{@code
      * {
      * "budgetId": 1,
@@ -506,7 +498,7 @@ public class BudgetController {
      * }
      * }</pre>
      *
-     * <p>Requirement REQ-2.9.1.4: Budget history per sub-period breakdown</p>
+     * <p>Requirement REQ-2.9.1.4: Budget history per sub-period breakdown
      *
      * @param budgetId the budget ID
      * @param encodedKey Base64-encoded encryption key from header
@@ -528,41 +520,47 @@ public class BudgetController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        BudgetHistoryResponse history = budgetService.getBudgetHistory(
-                budgetId, user.getId(), encryptionKey);
+        BudgetHistoryResponse history =
+                budgetService.getBudgetHistory(budgetId, user.getId(), encryptionKey);
 
-        log.info("Budget history retrieved: id={}, subPeriods={}", budgetId, history.getHistory().size());
+        log.info(
+                "Budget history retrieved: id={}, subPeriods={}",
+                budgetId,
+                history.getHistory().size());
 
         return ResponseEntity.ok(history);
     }
 
     /**
      * Retrieves aggregate budget summary for a period.
-     * 
+     *
      * <p>Provides summary statistics across all budgets of a specific period type:
+     *
      * <ul>
-     * <li>Total number of budgets</li>
-     * <li>Number of active budgets</li>
-     * <li>Total budgeted amount</li>
-     * <li>Total spent amount</li>
-     * <li>Total remaining amount</li>
-     * <li>Average percentage spent</li>
-     * <li>Individual budget progress details</li>
+     *   <li>Total number of budgets
+     *   <li>Number of active budgets
+     *   <li>Total budgeted amount
+     *   <li>Total spent amount
+     *   <li>Total remaining amount
+     *   <li>Average percentage spent
+     *   <li>Individual budget progress details
      * </ul>
-     * 
+     *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
-     * 
+     *
      * <p><strong>Query Parameters:</strong>
+     *
      * <ul>
-     * <li>period (required): Budget period type (WEEKLY, MONTHLY, QUARTERLY,
-     * YEARLY)</li>
+     *   <li>period (required): Budget period type (WEEKLY, MONTHLY, QUARTERLY, YEARLY)
      * </ul>
-     * 
+     *
      * <p><strong>Success Response (HTTP 200 OK):</strong>
+     *
      * <pre>{@code
      * {
      * "period": "MONTHLY",
@@ -576,9 +574,9 @@ public class BudgetController {
      * "budgets": [ ... ]
      * }
      * }</pre>
-     * 
-     * <p>Requirement REQ-2.9.1.3: Budget reports with aggregate statistics</p>
-     * 
+     *
+     * <p>Requirement REQ-2.9.1.3: Budget reports with aggregate statistics
+     *
      * @param period budget period type (required)
      * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
@@ -599,12 +597,16 @@ public class BudgetController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        BudgetSummaryResponse summary = period != null
-                ? budgetService.getBudgetSummary(user.getId(), period, encryptionKey)
-                : budgetService.getAllBudgetsSummary(user.getId(), encryptionKey);
+        BudgetSummaryResponse summary =
+                period != null
+                        ? budgetService.getBudgetSummary(user.getId(), period, encryptionKey)
+                        : budgetService.getAllBudgetsSummary(user.getId(), encryptionKey);
 
-        log.info("Budget summary retrieved: period={}, totalBudgets={}, totalSpent={}",
-                period, summary.getTotalBudgets(), summary.getTotalSpent());
+        log.info(
+                "Budget summary retrieved: period={}, totalBudgets={}, totalSpent={}",
+                period,
+                summary.getTotalBudgets(),
+                summary.getTotalSpent());
 
         return ResponseEntity.ok(summary);
     }
@@ -612,19 +614,19 @@ public class BudgetController {
     /**
      * Analyses past EXPENSE transactions and returns automatic budget suggestions.
      *
-     * <p>The service scans the user's transaction history over the specified
-     * lookback
-     * window, groups EXPENSE transactions by category, computes per-period
-     * averages,
-     * and flags categories that already have a budget for the requested period.
+     * <p>The service scans the user's transaction history over the specified lookback window,
+     * groups EXPENSE transactions by category, computes per-period averages, and flags categories
+     * that already have a budget for the requested period.
      *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
      *
      * <p><strong>Request Body:</strong>
+     *
      * <pre>{@code
      * {
      * "period": "MONTHLY",
@@ -634,11 +636,10 @@ public class BudgetController {
      * }
      * }</pre>
      *
-     * <p><strong>Success Response (HTTP 200 OK):</strong>
-     * Returns a list of {@link BudgetSuggestion} objects.
+     * <p><strong>Success Response (HTTP 200 OK):</strong> Returns a list of {@link
+     * BudgetSuggestion} objects.
      *
-     * <p>Requirement REQ-2.9.1.5: Automatic budget creation from transaction
-     * history analysis
+     * <p>Requirement REQ-2.9.1.5: Automatic budget creation from transaction history analysis
      *
      * @param request the suggestion analysis request
      * @param encodedKey Base64-encoded encryption key from header
@@ -651,8 +652,10 @@ public class BudgetController {
             @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
-        log.info("Analysing spending for suggestions: period={}, lookbackMonths={}",
-                request.getPeriod(), request.getLookbackMonths());
+        log.info(
+                "Analysing spending for suggestions: period={}, lookbackMonths={}",
+                request.getPeriod(),
+                request.getLookbackMonths());
 
         if (encodedKey == null || encodedKey.trim().isEmpty()) {
             throw new IllegalArgumentException("Encryption key header is required");
@@ -661,21 +664,26 @@ public class BudgetController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        List<BudgetSuggestion> suggestions = budgetService.analyzeCategorySpending(
-                user.getId(),
-                request.getPeriod(),
-                request.getLookbackMonths(),
-                request.getCategoryIds(),
-                encryptionKey);
+        List<BudgetSuggestion> suggestions =
+                budgetService.analyzeCategorySpending(
+                        user.getId(),
+                        request.getPeriod(),
+                        request.getLookbackMonths(),
+                        request.getCategoryIds(),
+                        encryptionKey);
 
         // Override currency if specified in the request
         if (request.getCurrency() != null && !request.getCurrency().isBlank()) {
-            suggestions = suggestions.stream()
-                    .peek(s -> s.setCurrency(request.getCurrency()))
-                    .collect(java.util.stream.Collectors.toList());
+            suggestions =
+                    suggestions.stream()
+                            .peek(s -> s.setCurrency(request.getCurrency()))
+                            .collect(java.util.stream.Collectors.toList());
         }
 
-        log.info("Suggestion analysis complete: userId={}, suggestions={}", user.getId(), suggestions.size());
+        log.info(
+                "Suggestion analysis complete: userId={}, suggestions={}",
+                user.getId(),
+                suggestions.size());
 
         return ResponseEntity.ok(suggestions);
     }
@@ -683,18 +691,19 @@ public class BudgetController {
     /**
      * Bulk-creates multiple budgets from user-confirmed suggestions.
      *
-     * <p>Each {@link BudgetRequest} in the list is processed independently.
-     * Duplicate category+period combinations are silently skipped and counted in
-     * {@code skippedCount}. Other failures are collected in the {@code errors}
-     * list.
+     * <p>Each {@link BudgetRequest} in the list is processed independently. Duplicate
+     * category+period combinations are silently skipped and counted in {@code skippedCount}. Other
+     * failures are collected in the {@code errors} list.
      *
      * <p><strong>Request Headers:</strong>
+     *
      * <ul>
-     * <li>Authorization: Bearer {jwt_token}</li>
-     * <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>Authorization: Bearer {jwt_token}
+     *   <li>X-Encryption-Key: {base64_encoded_key}
      * </ul>
      *
      * <p><strong>Request Body:</strong>
+     *
      * <pre>{@code
      * {
      * "budgets": [
@@ -705,12 +714,10 @@ public class BudgetController {
      * }
      * }</pre>
      *
-     * <p><strong>Success Response (HTTP 201 Created):</strong>
-     * Returns a {@link BudgetBulkCreateResponse} with created list, counts and
-     * errors.
+     * <p><strong>Success Response (HTTP 201 Created):</strong> Returns a {@link
+     * BudgetBulkCreateResponse} with created list, counts and errors.
      *
-     * <p>Requirement REQ-2.9.1.5: Bulk budget creation from user-confirmed
-     * suggestions
+     * <p>Requirement REQ-2.9.1.5: Bulk budget creation from user-confirmed suggestions
      *
      * @param request the bulk creation request
      * @param encodedKey Base64-encoded encryption key from header
@@ -732,11 +739,14 @@ public class BudgetController {
         User user = (User) authentication.getPrincipal();
         SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        BudgetBulkCreateResponse response = budgetService.bulkCreateBudgets(
-                user.getId(), request.getBudgets(), encryptionKey);
+        BudgetBulkCreateResponse response =
+                budgetService.bulkCreateBudgets(user.getId(), request.getBudgets(), encryptionKey);
 
-        log.info("Bulk create complete: created={}, skipped={}, errors={}",
-                response.getSuccessCount(), response.getSkippedCount(), response.getErrors().size());
+        log.info(
+                "Bulk create complete: created={}, skipped={}, errors={}",
+                response.getSuccessCount(),
+                response.getSkippedCount(),
+                response.getErrors().size());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

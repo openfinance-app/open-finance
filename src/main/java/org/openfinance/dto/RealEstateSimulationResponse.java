@@ -1,15 +1,14 @@
 package org.openfinance.dto;
 
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 /**
  * Response DTO for a real estate simulation.
- * 
+ *
  * @author Open-Finance Development Team
  * @version 1.0
  * @since 1.0
@@ -19,7 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RealEstateSimulationResponse {
-    
+
     private Long id;
     private String name;
     private String simulationType;

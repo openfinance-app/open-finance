@@ -12,20 +12,20 @@ class DatabaseConfigTest {
     @Test
     void shouldThrowWhenDatabaseUrlIsNull() {
         // Given / When / Then
-        NullPointerException ex = assertThrows(
-                NullPointerException.class,
-                () -> new DatabaseConfig(null, "org.sqlite.JDBC")
-        );
+        NullPointerException ex =
+                assertThrows(
+                        NullPointerException.class,
+                        () -> new DatabaseConfig(null, "org.sqlite.JDBC"));
         assertThat(ex).hasMessageContaining("spring.datasource.url must be set");
     }
 
     @Test
     void shouldThrowWhenDriverClassNameIsNull() {
         // Given / When / Then
-        NullPointerException ex = assertThrows(
-                NullPointerException.class,
-                () -> new DatabaseConfig("jdbc:sqlite::memory:", null)
-        );
+        NullPointerException ex =
+                assertThrows(
+                        NullPointerException.class,
+                        () -> new DatabaseConfig("jdbc:sqlite::memory:", null));
         assertThat(ex).hasMessageContaining("spring.datasource.driver-class-name must be set");
     }
 

@@ -16,20 +16,20 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *
  * <ul>
  *   <li><strong>Content-Security-Policy</strong> — restricts resource loading to same origin and
- *       trusted CDNs, mitigating XSS and data-injection attacks.</li>
+ *       trusted CDNs, mitigating XSS and data-injection attacks.
  *   <li><strong>X-Frame-Options</strong> — prevents the application from being embedded in an
- *       iframe, mitigating clickjacking.</li>
- *   <li><strong>X-Content-Type-Options</strong> — instructs browsers not to MIME-sniff
- *       responses, preventing content-type confusion attacks.</li>
+ *       iframe, mitigating clickjacking.
+ *   <li><strong>X-Content-Type-Options</strong> — instructs browsers not to MIME-sniff responses,
+ *       preventing content-type confusion attacks.
  *   <li><strong>Strict-Transport-Security (HSTS)</strong> — enforces HTTPS connections and
- *       pre-loads the domain into browser HSTS lists (only sent over HTTPS).</li>
+ *       pre-loads the domain into browser HSTS lists (only sent over HTTPS).
  *   <li><strong>Referrer-Policy</strong> — limits the information included in the {@code Referer}
- *       header for privacy and security.</li>
- *   <li><strong>Permissions-Policy</strong> — disables browser features that are not needed by
- *       the application (geolocation, microphone, camera, etc.).</li>
- *   <li><strong>X-XSS-Protection</strong> — enables legacy XSS filter in older browsers.</li>
+ *       header for privacy and security.
+ *   <li><strong>Permissions-Policy</strong> — disables browser features that are not needed by the
+ *       application (geolocation, microphone, camera, etc.).
+ *   <li><strong>X-XSS-Protection</strong> — enables legacy XSS filter in older browsers.
  *   <li><strong>Cache-Control</strong> — prevents caching of API responses which may contain
- *       sensitive financial data.</li>
+ *       sensitive financial data.
  * </ul>
  *
  * <p>Requirement REQ-3.2: Security headers for OWASP compliance (TASK-15.1.2)
@@ -45,8 +45,7 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
     private static final long HSTS_MAX_AGE_SECONDS = 31_536_000L;
 
     /**
-     * Whether to include {@code includeSubDomains} in the HSTS directive. Defaults to {@code
-     * true}.
+     * Whether to include {@code includeSubDomains} in the HSTS directive. Defaults to {@code true}.
      */
     @Value("${application.security.hsts.include-sub-domains:true}")
     private boolean hstsIncludeSubDomains;
@@ -98,8 +97,7 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
         // Requirement TASK-15.1.2: Strict-Transport-Security (HSTS) – enforce HTTPS
         // Only send over HTTPS to avoid HSTS over HTTP (which has no effect and wastes bandwidth).
         if (request.isSecure()) {
-            StringBuilder hsts =
-                    new StringBuilder("max-age=").append(HSTS_MAX_AGE_SECONDS);
+            StringBuilder hsts = new StringBuilder("max-age=").append(HSTS_MAX_AGE_SECONDS);
             if (hstsIncludeSubDomains) {
                 hsts.append("; includeSubDomains");
             }

@@ -1,6 +1,8 @@
 package org.openfinance.controller;
 
 import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDate;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.HistoricalPrice;
@@ -15,30 +17,21 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.util.List;
-
 /**
- * REST controller for market data operations.
- * Provides endpoints for fetching real-time quotes, historical prices, and
- * searching symbols.
+ * REST controller for market data operations. Provides endpoints for fetching real-time quotes,
+ * historical prices, and searching symbols.
  *
- * <p>
- * <strong>Base URL:</strong> /api/v1/market
- * </p>
+ * <p><strong>Base URL:</strong> /api/v1/market
  *
- * <p>
- * <strong>Authentication:</strong> All endpoints require JWT authentication.
- * </p>
+ * <p><strong>Authentication:</strong> All endpoints require JWT authentication.
  *
- * <p>
- * <strong>Common Error Responses:</strong>
- * </p>
+ * <p><strong>Common Error Responses:</strong>
+ *
  * <ul>
- * <li>400 Bad Request - Invalid parameters</li>
- * <li>401 Unauthorized - Missing or invalid JWT token</li>
- * <li>404 Not Found - Symbol not found</li>
- * <li>503 Service Unavailable - Market data provider is down</li>
+ *   <li>400 Bad Request - Invalid parameters
+ *   <li>401 Unauthorized - Missing or invalid JWT token
+ *   <li>404 Not Found - Symbol not found
+ *   <li>503 Service Unavailable - Market data provider is down
  * </ul>
  *
  * @author Open Finance Team
@@ -57,23 +50,17 @@ public class MarketDataController {
     /**
      * Get a real-time quote for a financial instrument.
      *
-     * <p>
-     * <strong>Endpoint:</strong> GET /api/v1/market/quote?symbol=AAPL
-     * </p>
+     * <p><strong>Endpoint:</strong> GET /api/v1/market/quote?symbol=AAPL
      *
-     * <p>
-     * <strong>Request:</strong>
-     * </p>
-     * 
+     * <p><strong>Request:</strong>
+     *
      * <pre>
      * GET /api/v1/market/quote?symbol=AAPL
      * Authorization: Bearer {jwt_token}
      * </pre>
      *
-     * <p>
-     * <strong>Response (200 OK):</strong>
-     * </p>
-     * 
+     * <p><strong>Response (200 OK):</strong>
+     *
      * <pre>
      * {
      *   "symbol": "AAPL",
@@ -95,38 +82,35 @@ public class MarketDataController {
      * }
      * </pre>
      *
-     * <p>
-     * <strong>Error Responses:</strong>
-     * </p>
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>400 - Symbol parameter is missing or empty</li>
-     * <li>404 - Symbol not found in market data</li>
-     * <li>503 - Market data provider is unavailable</li>
+     *   <li>400 - Symbol parameter is missing or empty
+     *   <li>404 - Symbol not found in market data
+     *   <li>503 - Market data provider is unavailable
      * </ul>
      *
-     * <p>
-     * <strong>Supported Symbols:</strong>
-     * </p>
+     * <p><strong>Supported Symbols:</strong>
+     *
      * <ul>
-     * <li>Stocks: AAPL, MSFT, GOOGL, TSLA, etc.</li>
-     * <li>ETFs: SPY, QQQ, VOO, etc.</li>
-     * <li>Crypto: BTC-USD, ETH-USD, etc.</li>
-     * <li>Indices: ^GSPC (S&P 500), ^DJI (Dow Jones), etc.</li>
+     *   <li>Stocks: AAPL, MSFT, GOOGL, TSLA, etc.
+     *   <li>ETFs: SPY, QQQ, VOO, etc.
+     *   <li>Crypto: BTC-USD, ETH-USD, etc.
+     *   <li>Indices: ^GSPC (S&P 500), ^DJI (Dow Jones), etc.
      * </ul>
      *
-     * @param symbol         the trading symbol (required, not blank)
+     * @param symbol the trading symbol (required, not blank)
      * @param authentication the authenticated user
      * @return the market quote
      * @throws IllegalArgumentException if symbol is null or empty
-     * @throws MarketDataException      if the symbol is not found or API fails
+     * @throws MarketDataException if the symbol is not found or API fails
      */
     @GetMapping("/quote")
     public ResponseEntity<MarketQuote> getQuote(
             @RequestParam @NotBlank(message = "Symbol is required") String symbol,
             Authentication authentication) {
 
-        log.info("User {} fetching quote for symbol: {}",
-                authentication.getName(), symbol);
+        log.info("User {} fetching quote for symbol: {}", authentication.getName(), symbol);
 
         try {
             MarketQuote quote = marketDataService.getQuote(symbol.toUpperCase());
@@ -142,23 +126,17 @@ public class MarketDataController {
     /**
      * Search for financial instruments matching a query.
      *
-     * <p>
-     * <strong>Endpoint:</strong> GET /api/v1/market/search?q=apple
-     * </p>
+     * <p><strong>Endpoint:</strong> GET /api/v1/market/search?q=apple
      *
-     * <p>
-     * <strong>Request:</strong>
-     * </p>
-     * 
+     * <p><strong>Request:</strong>
+     *
      * <pre>
      * GET /api/v1/market/search?q=apple
      * Authorization: Bearer {jwt_token}
      * </pre>
      *
-     * <p>
-     * <strong>Response (200 OK):</strong>
-     * </p>
-     * 
+     * <p><strong>Response (200 OK):</strong>
+     *
      * <pre>
      * [
      *   {
@@ -182,28 +160,26 @@ public class MarketDataController {
      * ]
      * </pre>
      *
-     * <p>
-     * <strong>Use Cases:</strong>
-     * </p>
+     * <p><strong>Use Cases:</strong>
+     *
      * <ul>
-     * <li>Autocomplete when adding assets</li>
-     * <li>Symbol discovery</li>
-     * <li>Validating user input</li>
+     *   <li>Autocomplete when adding assets
+     *   <li>Symbol discovery
+     *   <li>Validating user input
      * </ul>
      *
-     * @param query          the search term (required, not blank)
+     * @param query the search term (required, not blank)
      * @param authentication the authenticated user
      * @return list of matching symbols
      * @throws IllegalArgumentException if query is null or empty
-     * @throws MarketDataException      if the API request fails
+     * @throws MarketDataException if the API request fails
      */
     @GetMapping("/search")
     public ResponseEntity<List<SymbolSearchResult>> searchSymbol(
             @RequestParam("q") @NotBlank(message = "Query is required") String query,
             Authentication authentication) {
 
-        log.info("User {} searching symbols for query: {}",
-                authentication.getName(), query);
+        log.info("User {} searching symbols for query: {}", authentication.getName(), query);
 
         try {
             List<SymbolSearchResult> results = marketDataService.searchSymbol(query);
@@ -219,24 +195,18 @@ public class MarketDataController {
     /**
      * Get historical prices for a symbol within a date range.
      *
-     * <p>
-     * <strong>Endpoint:</strong> GET
+     * <p><strong>Endpoint:</strong> GET
      * /api/v1/market/history?symbol=AAPL&startDate=2024-01-01&endDate=2024-01-31
-     * </p>
      *
-     * <p>
-     * <strong>Request:</strong>
-     * </p>
-     * 
+     * <p><strong>Request:</strong>
+     *
      * <pre>
      * GET /api/v1/market/history?symbol=AAPL&startDate=2024-01-01&endDate=2024-01-31
      * Authorization: Bearer {jwt_token}
      * </pre>
      *
-     * <p>
-     * <strong>Response (200 OK):</strong>
-     * </p>
-     * 
+     * <p><strong>Response (200 OK):</strong>
+     *
      * <pre>
      * [
      *   {
@@ -262,28 +232,24 @@ public class MarketDataController {
      * ]
      * </pre>
      *
-     * <p>
-     * <strong>Date Format:</strong> yyyy-MM-dd (ISO 8601)
-     * </p>
+     * <p><strong>Date Format:</strong> yyyy-MM-dd (ISO 8601)
      *
-     * <p>
-     * <strong>Notes:</strong>
-     * </p>
+     * <p><strong>Notes:</strong>
+     *
      * <ul>
-     * <li>Data is returned in ascending date order (oldest first)</li>
-     * <li>Weekends and market holidays have no data</li>
-     * <li>Maximum date range: 5 years</li>
-     * <li>Adjusted close accounts for splits and dividends</li>
+     *   <li>Data is returned in ascending date order (oldest first)
+     *   <li>Weekends and market holidays have no data
+     *   <li>Maximum date range: 5 years
+     *   <li>Adjusted close accounts for splits and dividends
      * </ul>
      *
-     * @param symbol         the trading symbol (required, not blank)
-     * @param startDate      the start date (required, ISO format: yyyy-MM-dd)
-     * @param endDate        the end date (required, ISO format: yyyy-MM-dd)
+     * @param symbol the trading symbol (required, not blank)
+     * @param startDate the start date (required, ISO format: yyyy-MM-dd)
+     * @param endDate the end date (required, ISO format: yyyy-MM-dd)
      * @param authentication the authenticated user
      * @return list of historical prices ordered by date
-     * @throws IllegalArgumentException if parameters are invalid or endDate <
-     *                                  startDate
-     * @throws MarketDataException      if the symbol is not found or API fails
+     * @throws IllegalArgumentException if parameters are invalid or endDate < startDate
+     * @throws MarketDataException if the symbol is not found or API fails
      */
     @GetMapping("/history")
     public ResponseEntity<List<HistoricalPrice>> getHistoricalPrices(
@@ -292,8 +258,12 @@ public class MarketDataController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             Authentication authentication) {
 
-        log.info("User {} fetching historical prices for {} from {} to {}",
-                authentication.getName(), symbol, startDate, endDate);
+        log.info(
+                "User {} fetching historical prices for {} from {} to {}",
+                authentication.getName(),
+                symbol,
+                startDate,
+                endDate);
 
         if (endDate.isBefore(startDate)) {
             log.error("Invalid date range: startDate={}, endDate={}", startDate, endDate);
@@ -301,8 +271,8 @@ public class MarketDataController {
         }
 
         try {
-            List<HistoricalPrice> prices = marketDataService.getHistoricalPrices(
-                    symbol.toUpperCase(), startDate, endDate);
+            List<HistoricalPrice> prices =
+                    marketDataService.getHistoricalPrices(symbol.toUpperCase(), startDate, endDate);
             log.debug("Successfully fetched {} historical prices for {}", prices.size(), symbol);
             return ResponseEntity.ok(prices);
 
@@ -315,23 +285,17 @@ public class MarketDataController {
     /**
      * Manually update the price of an asset from market data.
      *
-     * <p>
-     * <strong>Endpoint:</strong> POST /api/v1/market/assets/{assetId}/update-price
-     * </p>
+     * <p><strong>Endpoint:</strong> POST /api/v1/market/assets/{assetId}/update-price
      *
-     * <p>
-     * <strong>Request:</strong>
-     * </p>
-     * 
+     * <p><strong>Request:</strong>
+     *
      * <pre>
      * POST /api/v1/market/assets/123/update-price
      * Authorization: Bearer {jwt_token}
      * </pre>
      *
-     * <p>
-     * <strong>Response (200 OK):</strong>
-     * </p>
-     * 
+     * <p><strong>Response (200 OK):</strong>
+     *
      * <pre>
      * {
      *   "message": "Asset price updated successfully",
@@ -340,50 +304,49 @@ public class MarketDataController {
      * }
      * </pre>
      *
-     * <p>
-     * <strong>Error Responses:</strong>
-     * </p>
+     * <p><strong>Error Responses:</strong>
+     *
      * <ul>
-     * <li>400 - Asset has no symbol defined</li>
-     * <li>404 - Asset not found</li>
-     * <li>503 - Market data provider is unavailable</li>
+     *   <li>400 - Asset has no symbol defined
+     *   <li>404 - Asset not found
+     *   <li>503 - Market data provider is unavailable
      * </ul>
      *
-     * <p>
-     * <strong>Notes:</strong>
-     * </p>
+     * <p><strong>Notes:</strong>
+     *
      * <ul>
-     * <li>Updates currentPrice and lastUpdated fields</li>
-     * <li>Requires asset to have a symbol</li>
-     * <li>Invalidates cached quote</li>
-     * <li>Automatic updates run hourly during market hours</li>
+     *   <li>Updates currentPrice and lastUpdated fields
+     *   <li>Requires asset to have a symbol
+     *   <li>Invalidates cached quote
+     *   <li>Automatic updates run hourly during market hours
      * </ul>
      *
-     * @param assetId        the ID of the asset to update
+     * @param assetId the ID of the asset to update
      * @param authentication the authenticated user
      * @return response indicating success
      * @throws IllegalArgumentException if asset not found or has no symbol
-     * @throws MarketDataException      if the market data fetch fails
+     * @throws MarketDataException if the market data fetch fails
      */
     @PostMapping("/assets/{assetId}/update-price")
     public ResponseEntity<UpdatePriceResponse> updateAssetPrice(
-            @PathVariable Long assetId,
-            Authentication authentication) {
+            @PathVariable Long assetId, Authentication authentication) {
 
-        log.info("User {} manually updating price for asset: {}",
-                authentication.getName(), assetId);
+        log.info(
+                "User {} manually updating price for asset: {}", authentication.getName(), assetId);
 
         try {
             boolean updated = marketDataService.updateAssetPrice(assetId);
 
             if (updated) {
                 log.info("Successfully updated price for asset: {}", assetId);
-                return ResponseEntity.ok(new UpdatePriceResponse(
-                        "Asset price updated successfully", assetId, true));
+                return ResponseEntity.ok(
+                        new UpdatePriceResponse("Asset price updated successfully", assetId, true));
             } else {
                 log.warn("Asset {} has no symbol, price not updated", assetId);
-                return ResponseEntity.badRequest().body(new UpdatePriceResponse(
-                        "Asset has no symbol defined", assetId, false));
+                return ResponseEntity.badRequest()
+                        .body(
+                                new UpdatePriceResponse(
+                                        "Asset has no symbol defined", assetId, false));
             }
 
         } catch (IllegalArgumentException e) {
@@ -396,13 +359,11 @@ public class MarketDataController {
     }
 
     /**
-     * Refresh prices for all user assets in a single sequential transaction.
-     * This avoids SQLite concurrent-write conflicts that occur when the browser
-     * fires one request per asset in parallel.
+     * Refresh prices for all user assets in a single sequential transaction. This avoids SQLite
+     * concurrent-write conflicts that occur when the browser fires one request per asset in
+     * parallel.
      *
-     * <p>
-     * <strong>Endpoint:</strong> POST /api/v1/market/assets/refresh-all
-     * </p>
+     * <p><strong>Endpoint:</strong> POST /api/v1/market/assets/refresh-all
      *
      * @param authentication the authenticated user
      * @return response indicating how many assets were updated
@@ -418,15 +379,9 @@ public class MarketDataController {
         return ResponseEntity.ok(new RefreshAllResponse("Asset prices refreshed", updated));
     }
 
-    /**
-     * Response DTO for update price endpoint.
-     */
-    public record UpdatePriceResponse(String message, Long assetId, boolean updated) {
-    }
+    /** Response DTO for update price endpoint. */
+    public record UpdatePriceResponse(String message, Long assetId, boolean updated) {}
 
-    /**
-     * Response DTO for bulk refresh endpoint.
-     */
-    public record RefreshAllResponse(String message, int updated) {
-    }
+    /** Response DTO for bulk refresh endpoint. */
+    public record RefreshAllResponse(String message, int updated) {}
 }

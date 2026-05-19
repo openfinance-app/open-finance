@@ -10,15 +10,13 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openfinance.dto.ImportedTransaction;
 
 /**
- * Comprehensive test suite for OFX/QFX parser.
- * Tests both SGML (OFX 1.x) and XML (OFX 2.x) formats.
+ * Comprehensive test suite for OFX/QFX parser. Tests both SGML (OFX 1.x) and XML (OFX 2.x) formats.
  */
 class OfxParserTest {
 
@@ -29,16 +27,16 @@ class OfxParserTest {
         parser = new OfxParser();
     }
 
-    /**
-     * Helper method to parse OFX content from a string.
-     */
+    /** Helper method to parse OFX content from a string. */
     private List<ImportedTransaction> parseOfx(String content) throws IOException {
-        InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        InputStream inputStream =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
         return parser.parseFileToResult(inputStream, "test.ofx").getTransactions();
     }
 
     private String readFixture(String resourcePath) throws IOException {
-        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+        try (InputStream inputStream =
+                getClass().getClassLoader().getResourceAsStream(resourcePath)) {
             if (inputStream == null) {
                 throw new IOException("Fixture not found: " + resourcePath);
             }
@@ -53,7 +51,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse SGML format with single bank transaction")
     void testParseSGMLSingleTransaction() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 VERSION:102
@@ -126,7 +125,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse SGML format with multiple bank transactions")
     void testParseSGMLMultipleTransactions() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -187,7 +187,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should keep statement account IDs separate in multi-account OFX files")
     void testParseMultipleStatementsWithDistinctAccountIds() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <OFX>
                     <BANKMSGSRSV1>
@@ -245,7 +246,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse SGML format with credit card transactions")
     void testParseSGMLCreditCardTransactions() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -310,7 +312,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should detect SGML format from header")
     void testDetectSGMLFormat() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -340,7 +343,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should handle SGML with CHECKNUM field")
     void testParseSGMLWithCheckNum() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -379,7 +383,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse XML format (OFX 2.x)")
     void testParseXMLFormat() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <OFX>
                 <SIGNONMSGSRSV1>
@@ -441,7 +446,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse XML format with namespace")
     void testParseXMLWithNamespace() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <OFX xmlns="http://www.ofx.net/2001/ofx">
                 <BANKMSGSRSV1>
@@ -473,7 +479,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse XML with credit card transactions")
     void testParseXMLCreditCard() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <OFX>
                 <CREDITCARDMSGSRSV1>
@@ -510,7 +517,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse date with full timestamp (YYYYMMDDHHMMSS)")
     void testParseDateWithTimestamp() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -539,7 +547,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse date without timestamp (YYYYMMDD)")
     void testParseDateWithoutTimestamp() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -568,7 +577,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse date with timezone offset")
     void testParseDateWithTimezone() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -601,7 +611,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should map DTPOSTED to transaction date")
     void testMapDtposted() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -630,7 +641,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should map TRNAMT to amount")
     void testMapTrnamt() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -659,7 +671,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should map NAME to payee")
     void testMapName() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -688,7 +701,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should map MEMO to memo")
     void testMapMemo() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -718,7 +732,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should map FITID to reference number")
     void testMapFitid() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -748,7 +763,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should prefer CHECKNUM over FITID for reference number")
     void testPreferChecknumOverFitid() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -783,7 +799,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should handle all transaction types")
     void testHandleAllTransactionTypes() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -841,7 +858,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should append transaction type to memo")
     void testAppendTransactionTypeToMemo() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -878,7 +896,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should add validation error for missing date")
     void testMissingDate() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -908,7 +927,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should add validation error for missing amount")
     void testMissingAmount() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -938,7 +958,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should add validation error for invalid date format")
     void testInvalidDateFormat() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -964,13 +985,17 @@ class OfxParserTest {
         ImportedTransaction tx = transactions.get(0);
         assertThat(tx.hasErrors()).isTrue();
         assertThat(tx.getValidationErrors())
-                .anyMatch(error -> error.contains("Invalid date format") || error.contains("date is required"));
+                .anyMatch(
+                        error ->
+                                error.contains("Invalid date format")
+                                        || error.contains("date is required"));
     }
 
     @Test
     @DisplayName("Should add validation error for invalid amount format")
     void testInvalidAmountFormat() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -996,13 +1021,17 @@ class OfxParserTest {
         ImportedTransaction tx = transactions.get(0);
         assertThat(tx.hasErrors()).isTrue();
         assertThat(tx.getValidationErrors())
-                .anyMatch(error -> error.contains("Invalid amount format") || error.contains("amount is required"));
+                .anyMatch(
+                        error ->
+                                error.contains("Invalid amount format")
+                                        || error.contains("amount is required"));
     }
 
     @Test
     @DisplayName("Should add validation error for zero amount")
     void testZeroAmount() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -1034,9 +1063,12 @@ class OfxParserTest {
     @DisplayName("Should add validation error for future dates")
     void testFutureDates() throws IOException {
         LocalDate futureDate = LocalDate.now().plusDays(10);
-        String futureDateStr = futureDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String futureDateStr =
+                futureDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-        String ofx = String.format("""
+        String ofx =
+                String.format(
+                        """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -1054,7 +1086,8 @@ class OfxParserTest {
                 </STMTTRNRS>
                 </BANKMSGSRSV1>
                 </OFX>
-                """, futureDateStr);
+                """,
+                        futureDateStr);
 
         List<ImportedTransaction> transactions = parseOfx(ofx);
 
@@ -1067,7 +1100,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should return empty list for empty file")
     void testEmptyFile() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -1090,7 +1124,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should handle malformed XML gracefully by throwing IOException")
     void testMalformedXML() {
-        String ofx = """
+        String ofx =
+                """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <OFX>
                 <BANKMSGSRSV1>
@@ -1134,7 +1169,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse realistic bank OFX export (SGML)")
     void testRealisticBankExportSGML() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 VERSION:102
@@ -1274,7 +1310,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse realistic credit card OFX export (XML)")
     void testRealisticCreditCardExportXML() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <OFX>
                 <SIGNONMSGSRSV1>
@@ -1380,7 +1417,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should use DTUSER as fallback date when DTPOSTED is absent")
     void testDtuserFallbackWhenDtpostedAbsent() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -1412,7 +1450,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should use REFNUM as reference number when CHECKNUM is absent")
     void testRefnumUsedWhenChecknumAbsent() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -1444,7 +1483,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse CURRENCY field and store on transaction")
     void testCurrencyFieldParsed() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -1476,7 +1516,8 @@ class OfxParserTest {
     @Test
     @DisplayName("Should parse investment BUYMF transaction from INVSTMTTRNRS")
     void testInvestmentBuymfTransaction() throws IOException {
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <OFX>
@@ -1517,7 +1558,8 @@ class OfxParserTest {
     @DisplayName("Should detect and parse CHARSET:1252 header gracefully (ASCII-safe content)")
     void testCharsetDeclaration1252() throws IOException {
         // Use ASCII-safe content to avoid actual encoding issues in the test string
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 VERSION:102
@@ -1550,12 +1592,14 @@ class OfxParserTest {
     }
 
     @Test
-    @DisplayName("Should fall back to XML parse when SGML header present but no bare <OFX> tag found")
+    @DisplayName(
+            "Should fall back to XML parse when SGML header present but no bare <OFX> tag found")
     void testSgmlFallbackToXmlWhenNoOfxTag() throws IOException {
         // Has OFXHEADER (triggers SGML detection) but also an <?xml> declaration,
         // meaning the body is OFX 2.x XML — the parser should route to the XML path and
         // succeed.
-        String ofx = """
+        String ofx =
+                """
                 OFXHEADER:100
                 DATA:OFXSGML
                 <?xml version="1.0" encoding="UTF-8"?>

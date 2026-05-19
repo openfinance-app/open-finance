@@ -9,13 +9,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Spring configuration that selects and wires the active {@link AIProvider}
- * based on the {@code application.ai.provider} property.
+ * Spring configuration that selects and wires the active {@link AIProvider} based on the {@code
+ * application.ai.provider} property.
  *
- * <p>Supported provider values:</p>
+ * <p>Supported provider values:
+ *
  * <ul>
- *   <li>{@code ollama} (default) — local Ollama instance</li>
- *   <li>{@code openai} — OpenAI API (or compatible endpoint)</li>
+ *   <li>{@code ollama} (default) — local Ollama instance
+ *   <li>{@code openai} — OpenAI API (or compatible endpoint)
  * </ul>
  *
  * @since Sprint 11+ — AI Provider Abstraction (Langchain4J)
@@ -29,7 +30,8 @@ public class AIProviderConfig {
     private String providerName;
 
     // ---- Ollama settings (reuses existing keys for backward compatibility) ----
-    @Value("${application.ai.ollama.base-url:${application.ollama.base-url:http://localhost:11434}}")
+    @Value(
+            "${application.ai.ollama.base-url:${application.ollama.base-url:http://localhost:11434}}")
     private String ollamaBaseUrl;
 
     @Value("${application.ai.ollama.model:${application.ollama.model:qwen2.5:0.5b}}")
@@ -82,12 +84,20 @@ public class AIProviderConfig {
                     throw new IllegalStateException(
                             "application.ai.openai.api-key must be set when provider is 'openai'");
                 }
-                yield new OpenAIProvider(openaiApiKey, openaiModel, openaiTemperature,
-                        openaiMaxTokens, openaiTimeout,
+                yield new OpenAIProvider(
+                        openaiApiKey,
+                        openaiModel,
+                        openaiTemperature,
+                        openaiMaxTokens,
+                        openaiTimeout,
                         (openaiBaseUrl == null || openaiBaseUrl.isBlank()) ? null : openaiBaseUrl);
             }
-            case "ollama" -> new OllamaAIProvider(ollamaBaseUrl, ollamaModel,
-                    ollamaTemperature, ollamaMaxTokens, ollamaTimeout,
+            case "ollama" -> new OllamaAIProvider(
+                    ollamaBaseUrl,
+                    ollamaModel,
+                    ollamaTemperature,
+                    ollamaMaxTokens,
+                    ollamaTimeout,
                     (searxngBaseUrl == null || searxngBaseUrl.isBlank()) ? null : searxngBaseUrl);
             default -> throw new IllegalStateException(
                     "Unknown AI provider: '" + selected + "'. Supported values: ollama, openai");

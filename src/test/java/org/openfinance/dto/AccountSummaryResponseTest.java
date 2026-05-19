@@ -1,11 +1,10 @@
 package org.openfinance.dto;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 class AccountSummaryResponseTest {
 
@@ -22,15 +21,16 @@ class AccountSummaryResponseTest {
         String institution = "Test Bank";
 
         // When
-        AccountSummaryResponse response = AccountSummaryResponse.builder()
-                .id(id)
-                .name(name)
-                .type(type)
-                .currency(currency)
-                .balance(balance)
-                .isActive(active)
-                .institutionName(institution)
-                .build();
+        AccountSummaryResponse response =
+                AccountSummaryResponse.builder()
+                        .id(id)
+                        .name(name)
+                        .type(type)
+                        .currency(currency)
+                        .balance(balance)
+                        .isActive(active)
+                        .institutionName(institution)
+                        .build();
 
         // Then
         assertThat(response.getId()).isEqualTo(id);

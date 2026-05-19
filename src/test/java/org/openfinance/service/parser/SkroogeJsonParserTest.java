@@ -3,20 +3,18 @@ package org.openfinance.service.parser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.SkroogeImportParseResult;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @DisplayName("SkroogeJsonParser Tests")
 class SkroogeJsonParserTest {
@@ -31,9 +29,11 @@ class SkroogeJsonParserTest {
     @Test
     @DisplayName("Should parse split transactions, transfer groups, and metadata from Skrooge JSON")
     void shouldParseSplitTransactionsTransferGroupsAndMetadata() throws IOException {
-        SkroogeImportParseResult result = parser.parseFile(
-                new ByteArrayInputStream(sampleSkroogeJson().getBytes(StandardCharsets.UTF_8)),
-                "my_export.json");
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(
+                                sampleSkroogeJson().getBytes(StandardCharsets.UTF_8)),
+                        "my_export.json");
 
         assertThat(result.getCurrency()).isEqualTo("EUR");
         assertThat(result.getSkroogeMetadata().getInstitutions()).hasSize(1);
@@ -42,10 +42,11 @@ class SkroogeJsonParserTest {
                 .extracting(category -> category.getFullName())
                 .containsExactly("Food", "Food:Groceries");
 
-        ImportedTransaction groceries = result.getTransactions().stream()
-                .filter(transaction -> !transaction.isTransfer())
-                .findFirst()
-                .orElseThrow();
+        ImportedTransaction groceries =
+                result.getTransactions().stream()
+                        .filter(transaction -> !transaction.isTransfer())
+                        .findFirst()
+                        .orElseThrow();
         assertThat(groceries.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 10));
         assertThat(groceries.getAmount()).isEqualByComparingTo(new BigDecimal("-45.00"));
         assertThat(groceries.isSplitTransaction()).isTrue();
@@ -54,9 +55,8 @@ class SkroogeJsonParserTest {
                 .extracting(ImportedTransaction.SplitEntry::getAmount)
                 .containsExactly(new BigDecimal("30.00"), new BigDecimal("15.00"));
 
-        List<ImportedTransaction> transfers = result.getTransactions().stream()
-                .filter(ImportedTransaction::isTransfer)
-                .toList();
+        List<ImportedTransaction> transfers =
+                result.getTransactions().stream().filter(ImportedTransaction::isTransfer).toList();
         assertThat(transfers).hasSize(2);
         assertThat(transfers)
                 .extracting(ImportedTransaction::getTransferGroupKey)
@@ -68,10 +68,12 @@ class SkroogeJsonParserTest {
         assertThat(result.getSkroogeMetadata().getAccounts())
                 .filteredOn(account -> account.getName().equals("Checking"))
                 .singleElement()
-                .satisfies(account -> {
-                    assertThat(account.getOpeningBalance()).isEqualByComparingTo(new BigDecimal("1000.00"));
-                    assertThat(account.getCurrency()).isEqualTo("EUR");
-                });
+                .satisfies(
+                        account -> {
+                            assertThat(account.getOpeningBalance())
+                                    .isEqualByComparingTo(new BigDecimal("1000.00"));
+                            assertThat(account.getCurrency()).isEqualTo("EUR");
+                        });
     }
 
     @Test
@@ -79,9 +81,12 @@ class SkroogeJsonParserTest {
     void shouldRejectJsonWithoutRequiredCollections() {
         String invalidJson = "{" + "\"account\": []" + "}";
 
-        assertThatThrownBy(() -> parser.parseFile(
-                new ByteArrayInputStream(invalidJson.getBytes(StandardCharsets.UTF_8)),
-                "invalid.json"))
+        assertThatThrownBy(
+                        () ->
+                                parser.parseFile(
+                                        new ByteArrayInputStream(
+                                                invalidJson.getBytes(StandardCharsets.UTF_8)),
+                                        "invalid.json"))
                 .isInstanceOf(IOException.class)
                 .hasMessageContaining("missing required collections");
     }

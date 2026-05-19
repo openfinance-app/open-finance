@@ -1,7 +1,12 @@
 package org.openfinance.security;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.User;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.service.JwtService;
@@ -13,36 +18,22 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 /**
- * JWT authentication filter that intercepts HTTP requests and validates JWT
- * tokens.
+ * JWT authentication filter that intercepts HTTP requests and validates JWT tokens.
  *
- * <p>
- * This filter extracts JWT tokens from the Authorization header, validates
- * them, and sets the
+ * <p>This filter extracts JWT tokens from the Authorization header, validates them, and sets the
  * Spring Security authentication context for authenticated users.
  *
- * <p>
- * Filter behavior:
+ * <p>Filter behavior:
  *
  * <ul>
- * <li>Extracts token from "Authorization: Bearer {token}" header
- * <li>Validates token signature and expiration
- * <li>Loads user from database and sets authentication context
- * <li>Continues filter chain regardless of authentication success (allows
- * public endpoints)
+ *   <li>Extracts token from "Authorization: Bearer {token}" header
+ *   <li>Validates token signature and expiration
+ *   <li>Loads user from database and sets authentication context
+ *   <li>Continues filter chain regardless of authentication success (allows public endpoints)
  * </ul>
  *
- * <p>
- * Requirement REQ-2.1.3: JWT-based authentication filter for stateless session
- * management
+ * <p>Requirement REQ-2.1.3: JWT-based authentication filter for stateless session management
  *
  * @author Open-Finance Development Team
  * @version 1.0
@@ -62,29 +53,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     /**
      * Filters incoming HTTP requests to extract and validate JWT tokens.
      *
-     * <p>
-     * Process:
+     * <p>Process:
      *
      * <ol>
-     * <li>Extract JWT token from Authorization header
-     * <li>Validate token signature and expiration
-     * <li>Extract username from token
-     * <li>Load user from database
-     * <li>Set authentication in SecurityContext
-     * <li>Continue filter chain
+     *   <li>Extract JWT token from Authorization header
+     *   <li>Validate token signature and expiration
+     *   <li>Extract username from token
+     *   <li>Load user from database
+     *   <li>Set authentication in SecurityContext
+     *   <li>Continue filter chain
      * </ol>
      *
-     * <p>
-     * If token is missing, invalid, or user not found, the filter continues without
-     * setting
-     * authentication. SecurityConfig will handle authorization for protected
-     * endpoints.
+     * <p>If token is missing, invalid, or user not found, the filter continues without setting
+     * authentication. SecurityConfig will handle authorization for protected endpoints.
      *
-     * @param request     HTTP request
-     * @param response    HTTP response
+     * @param request HTTP request
+     * @param response HTTP response
      * @param filterChain filter chain to continue processing
      * @throws ServletException if servlet error occurs
-     * @throws IOException      if I/O error occurs
+     * @throws IOException if I/O error occurs
      */
     @Override
     protected void doFilterInternal(
@@ -117,8 +104,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     /**
      * Extracts JWT token from the Authorization header.
      *
-     * <p>
-     * Expected header format: "Authorization: Bearer {token}"
+     * <p>Expected header format: "Authorization: Bearer {token}"
      *
      * @param request HTTP request
      * @return JWT token string, or null if header is missing or invalid format
@@ -139,18 +125,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     /**
      * Authenticates user by validating JWT token and loading user details.
      *
-     * <p>
-     * Steps:
+     * <p>Steps:
      *
      * <ol>
-     * <li>Validate token signature and expiration
-     * <li>Extract username from token
-     * <li>Load user from database
-     * <li>Create authentication token
-     * <li>Set authentication in SecurityContext
+     *   <li>Validate token signature and expiration
+     *   <li>Extract username from token
+     *   <li>Load user from database
+     *   <li>Create authentication token
+     *   <li>Set authentication in SecurityContext
      * </ol>
      *
-     * @param token   JWT token string
+     * @param token JWT token string
      * @param request HTTP request for setting authentication details
      */
     private void authenticateUser(String token, HttpServletRequest request) {
@@ -173,23 +158,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         // Load user from database
-        User user = userRepository
-                .findByUsername(username)
-                .orElseThrow(
-                        () -> {
-                            // Missing user for a valid username claim might indicate stale token;
-                            // log at debug to avoid exposing user enumeration attempts in logs.
-                            log.debug("User not found for username: {}", username);
-                            return new UsernameNotFoundException(
-                                    "User not found: " + username);
-                        });
+        User user =
+                userRepository
+                        .findByUsername(username)
+                        .orElseThrow(
+                                () -> {
+                                    // Missing user for a valid username claim might indicate stale
+                                    // token;
+                                    // log at debug to avoid exposing user enumeration attempts in
+                                    // logs.
+                                    log.debug("User not found for username: {}", username);
+                                    return new UsernameNotFoundException(
+                                            "User not found: " + username);
+                                });
 
         // Create authentication token with user details
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                user, // principal (User entity)
-                null, // credentials (not needed after authentication)
-                user.getAuthorities() // user roles/authorities
-        );
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(
+                        user, // principal (User entity)
+                        null, // credentials (not needed after authentication)
+                        user.getAuthorities() // user roles/authorities
+                        );
 
         // Set additional details from request (IP address, session ID, etc.)
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

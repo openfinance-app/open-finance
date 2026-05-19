@@ -6,10 +6,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * Exception thrown when a category is not found in the database.
  *
- * <p>This exception is typically thrown when attempting to retrieve, update,
- * or delete a category by ID that doesn't exist or doesn't belong to the user.</p>
+ * <p>This exception is typically thrown when attempting to retrieve, update, or delete a category
+ * by ID that doesn't exist or doesn't belong to the user.
  *
- * <p>Requirement REQ-3.2: Authorization - Users can only access their own categories</p>
+ * <p>Requirement REQ-3.2: Authorization - Users can only access their own categories
  */
 @ResponseStatus(HttpStatus.NOT_FOUND)
 public class CategoryNotFoundException extends RuntimeException implements LocalizableException {
@@ -40,9 +40,7 @@ public class CategoryNotFoundException extends RuntimeException implements Local
         this.messageArgs = null;
     }
 
-    /**
-     * Private constructor for factory methods that carry a localizable key.
-     */
+    /** Private constructor for factory methods that carry a localizable key. */
     private CategoryNotFoundException(String message, String messageKey, Object[] messageArgs) {
         super(message);
         this.messageKey = messageKey;
@@ -57,7 +55,7 @@ public class CategoryNotFoundException extends RuntimeException implements Local
     public CategoryNotFoundException(Long categoryId) {
         super("Category not found with id: " + categoryId);
         this.messageKey = "error.category.not.found";
-        this.messageArgs = new Object[]{categoryId};
+        this.messageArgs = new Object[] {categoryId};
     }
 
     /**
@@ -69,10 +67,11 @@ public class CategoryNotFoundException extends RuntimeException implements Local
      */
     public static CategoryNotFoundException byIdAndUser(Long categoryId, Long userId) {
         return new CategoryNotFoundException(
-            String.format("Category with ID %d not found or not accessible by user %d", categoryId, userId),
-            "error.category.not.found.for.user",
-            new Object[]{categoryId, userId}
-        );
+                String.format(
+                        "Category with ID %d not found or not accessible by user %d",
+                        categoryId, userId),
+                "error.category.not.found.for.user",
+                new Object[] {categoryId, userId});
     }
 
     @Override

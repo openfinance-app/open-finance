@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Service to clean all database tables in the correct order to satisfy referential integrity constraints.
- * Used primarily in integration tests.
+ * Service to clean all database tables in the correct order to satisfy referential integrity
+ * constraints. Used primarily in integration tests.
  */
 @Component
 public class DatabaseCleanupService {
@@ -43,35 +43,38 @@ public class DatabaseCleanupService {
     @Transactional
     public void execute() {
         // Order matters for referential integrity!
-        
+
         transactionSplitRepository.deleteAll();
         transactionRepository.deleteAll();
         recurringTransactionRepository.deleteAll();
         transactionRuleRepository.deleteAll();
-        
+
         budgetAlertRepository.deleteAll();
         budgetRepository.deleteAll();
-        
+
         realEstateValueHistoryRepository.deleteAll();
         realEstateSimulationRepository.deleteAll();
         realEstateRepository.deleteAll();
-        
+
         assetRepository.deleteAll();
         interestRateVariationRepository.deleteAll();
         liabilityRepository.deleteAll();
-        
+
         accountRepository.deleteAll();
         payeeRepository.deleteAll();
-        
+
         // Hierarchical cleanup for categories
-        categoryRepository.findAll().forEach(cat -> {
-            if (cat.getParentId() != null) {
-                cat.setParentId(null);
-                categoryRepository.save(cat);
-            }
-        });
+        categoryRepository
+                .findAll()
+                .forEach(
+                        cat -> {
+                            if (cat.getParentId() != null) {
+                                cat.setParentId(null);
+                                categoryRepository.save(cat);
+                            }
+                        });
         categoryRepository.deleteAll();
-        
+
         attachmentRepository.deleteAll();
         aiConversationRepository.deleteAll();
         insightRepository.deleteAll();
@@ -82,8 +85,8 @@ public class DatabaseCleanupService {
         exchangeRateRepository.deleteAll();
         backupRepository.deleteAll();
         institutionRepository.deleteAll();
-        
+
         userRepository.deleteAll();
-        currencyRepository.deleteAll(); 
+        currencyRepository.deleteAll();
     }
 }

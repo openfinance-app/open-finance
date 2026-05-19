@@ -6,14 +6,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * Exception thrown when a real estate property is not found in the database.
  *
- * <p>This exception is typically thrown when attempting to retrieve, update,
- * or delete a property by ID that doesn't exist or doesn't belong to the user.</p>
+ * <p>This exception is typically thrown when attempting to retrieve, update, or delete a property
+ * by ID that doesn't exist or doesn't belong to the user.
  *
- * <p>Requirement REQ-3.2: Authorization - Users can only access their own properties</p>
+ * <p>Requirement REQ-3.2: Authorization - Users can only access their own properties
  */
 @ResponseStatus(HttpStatus.NOT_FOUND)
 public class RealEstatePropertyNotFoundException extends RuntimeException {
-    
+
     /**
      * Constructs a new RealEstatePropertyNotFoundException with a detail message.
      *
@@ -22,7 +22,7 @@ public class RealEstatePropertyNotFoundException extends RuntimeException {
     public RealEstatePropertyNotFoundException(String message) {
         super(message);
     }
-    
+
     /**
      * Constructs a new RealEstatePropertyNotFoundException with a detail message and cause.
      *
@@ -32,7 +32,7 @@ public class RealEstatePropertyNotFoundException extends RuntimeException {
     public RealEstatePropertyNotFoundException(String message, Throwable cause) {
         super(message, cause);
     }
-    
+
     /**
      * Creates an exception for a property not found by ID.
      *
@@ -40,9 +40,10 @@ public class RealEstatePropertyNotFoundException extends RuntimeException {
      * @return a new RealEstatePropertyNotFoundException
      */
     public static RealEstatePropertyNotFoundException byId(Long propertyId) {
-        return new RealEstatePropertyNotFoundException("Real estate property not found with id: " + propertyId);
+        return new RealEstatePropertyNotFoundException(
+                "Real estate property not found with id: " + propertyId);
     }
-    
+
     /**
      * Creates an exception for a property not found for a specific user.
      *
@@ -52,6 +53,8 @@ public class RealEstatePropertyNotFoundException extends RuntimeException {
      */
     public static RealEstatePropertyNotFoundException byIdAndUser(Long propertyId, Long userId) {
         return new RealEstatePropertyNotFoundException(
-                String.format("Real estate property not found with id: %d for user: %d", propertyId, userId));
+                String.format(
+                        "Real estate property not found with id: %d for user: %d",
+                        propertyId, userId));
     }
 }

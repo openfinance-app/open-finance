@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,14 +26,11 @@ import org.springframework.data.domain.Pageable;
 @ExtendWith(MockitoExtension.class)
 class OperationHistoryServiceTest {
 
-    @Mock
-    private OperationHistoryRepository historyRepository;
+    @Mock private OperationHistoryRepository historyRepository;
 
-    @Mock
-    private ObjectMapper objectMapper;
+    @Mock private ObjectMapper objectMapper;
 
-    @InjectMocks
-    private OperationHistoryService service;
+    @InjectMocks private OperationHistoryService service;
 
     private final Long USER_ID = 1L;
     private final Pageable pageable = Pageable.ofSize(20);
@@ -69,13 +65,14 @@ class OperationHistoryServiceTest {
         OperationHistory recent = entryAt(LocalDateTime.now());
 
         when(historyRepository.findByUserIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
-                eq(USER_ID), eq(since), any()))
+                        eq(USER_ID), eq(since), any()))
                 .thenReturn(new PageImpl<>(List.of(recent)));
 
         Page<OperationHistoryResponse> result = service.getHistory(USER_ID, null, since, pageable);
 
-        verify(historyRepository).findByUserIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
-                USER_ID, since, pageable);
+        verify(historyRepository)
+                .findByUserIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+                        USER_ID, since, pageable);
         assertThat(result.getTotalElements()).isEqualTo(1);
     }
 
@@ -84,14 +81,15 @@ class OperationHistoryServiceTest {
         OperationHistory entry = entryAt(LocalDateTime.now());
 
         when(historyRepository.findByUserIdAndEntityTypeOrderByCreatedAtDesc(
-                eq(USER_ID), eq(EntityType.ACCOUNT), any()))
+                        eq(USER_ID), eq(EntityType.ACCOUNT), any()))
                 .thenReturn(new PageImpl<>(List.of(entry)));
 
         Page<OperationHistoryResponse> result =
                 service.getHistory(USER_ID, EntityType.ACCOUNT, null, pageable);
 
-        verify(historyRepository).findByUserIdAndEntityTypeOrderByCreatedAtDesc(
-                USER_ID, EntityType.ACCOUNT, pageable);
+        verify(historyRepository)
+                .findByUserIdAndEntityTypeOrderByCreatedAtDesc(
+                        USER_ID, EntityType.ACCOUNT, pageable);
         assertThat(result.getTotalElements()).isEqualTo(1);
     }
 
@@ -100,8 +98,9 @@ class OperationHistoryServiceTest {
         LocalDateTime since = LocalDateTime.now().minusHours(1);
         OperationHistory entry = entryAt(LocalDateTime.now());
 
-        when(historyRepository.findByUserIdAndEntityTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
-                eq(USER_ID), eq(EntityType.ASSET), eq(since), any()))
+        when(historyRepository
+                        .findByUserIdAndEntityTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+                                eq(USER_ID), eq(EntityType.ASSET), eq(since), any()))
                 .thenReturn(new PageImpl<>(List.of(entry)));
 
         Page<OperationHistoryResponse> result =

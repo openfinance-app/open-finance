@@ -3,13 +3,14 @@ package org.openfinance.exception;
 /**
  * Exception thrown when market data API operations fail.
  *
- * <p>This exception is thrown in scenarios such as:</p>
+ * <p>This exception is thrown in scenarios such as:
+ *
  * <ul>
- *   <li>Invalid or unknown trading symbols</li>
- *   <li>API rate limiting or quota exceeded</li>
- *   <li>Network connectivity issues</li>
- *   <li>API service unavailability</li>
- *   <li>Malformed API responses</li>
+ *   <li>Invalid or unknown trading symbols
+ *   <li>API rate limiting or quota exceeded
+ *   <li>Network connectivity issues
+ *   <li>API service unavailability
+ *   <li>Malformed API responses
  * </ul>
  *
  * @author Open Finance Team
@@ -18,14 +19,10 @@ package org.openfinance.exception;
  */
 public class MarketDataException extends RuntimeException {
 
-    /**
-     * The trading symbol that caused the exception, if applicable.
-     */
+    /** The trading symbol that caused the exception, if applicable. */
     private final String symbol;
 
-    /**
-     * HTTP status code from the API response, if applicable.
-     */
+    /** HTTP status code from the API response, if applicable. */
     private final Integer statusCode;
 
     /**

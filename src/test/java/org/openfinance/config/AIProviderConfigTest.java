@@ -1,5 +1,8 @@
 package org.openfinance.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openfinance.service.ai.AIProvider;
@@ -7,14 +10,11 @@ import org.openfinance.service.ai.OllamaAIProvider;
 import org.openfinance.service.ai.OpenAIProvider;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 /**
  * Unit tests for {@link AIProviderConfig}.
  *
- * <p>Tests the provider selection logic without loading the full Spring context.
- * Uses ReflectionTestUtils to inject field values.</p>
+ * <p>Tests the provider selection logic without loading the full Spring context. Uses
+ * ReflectionTestUtils to inject field values.
  */
 @DisplayName("AIProviderConfig Tests")
 class AIProviderConfigTest {

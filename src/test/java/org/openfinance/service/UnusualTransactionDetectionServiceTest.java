@@ -1,5 +1,15 @@
 package org.openfinance.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -7,7 +17,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
-import org.openfinance.service.OperationHistoryService;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -18,30 +27,19 @@ import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.springframework.context.MessageSource;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 /**
  * Unit tests for {@link UnusualTransactionDetectionService}.
  *
- * <p>
- * Covers:
+ * <p>Covers:
+ *
  * <ul>
- * <li>No-op path: user not found, no recent transactions, TRANSFER skip</li>
- * <li>New-payee detection (first-time payee → HIGH insight)</li>
- * <li>Large-amount detection via Z-score (sufficient history)</li>
- * <li>Large-amount detection via relative factor (sparse history)</li>
- * <li>Category-average fallback when payee is blank</li>
- * <li>Normal transaction → no insight</li>
- * <li>Return value equals number of persisted insights</li>
+ *   <li>No-op path: user not found, no recent transactions, TRANSFER skip
+ *   <li>New-payee detection (first-time payee → HIGH insight)
+ *   <li>Large-amount detection via Z-score (sufficient history)
+ *   <li>Large-amount detection via relative factor (sparse history)
+ *   <li>Category-average fallback when payee is blank
+ *   <li>Normal transaction → no insight
+ *   <li>Return value equals number of persisted insights
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
@@ -49,34 +47,24 @@ import static org.mockito.Mockito.*;
 @DisplayName("UnusualTransactionDetectionService Unit Tests")
 class UnusualTransactionDetectionServiceTest {
 
-    @Mock
-    private TransactionRepository transactionRepository;
+    @Mock private TransactionRepository transactionRepository;
 
-    @Mock
-    private InsightRepository insightRepository;
+    @Mock private InsightRepository insightRepository;
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
-    @Mock
-    private MessageSource messageSource;
+    @Mock private MessageSource messageSource;
 
-    @Mock
-    private OperationHistoryService operationHistoryService;
+    @Mock private OperationHistoryService operationHistoryService;
 
-    @InjectMocks
-    private UnusualTransactionDetectionService service;
+    @InjectMocks private UnusualTransactionDetectionService service;
 
     private User testUser;
     private LocalDateTime since;
 
     @BeforeEach
     void setUp() {
-        testUser = User.builder()
-                .id(1L)
-                .username("testuser")
-                .email("test@example.com")
-                .build();
+        testUser = User.builder().id(1L).username("testuser").email("test@example.com").build();
         since = LocalDateTime.now().minusHours(25);
 
         // Default stub: messageSource returns the key itself so we don't need
@@ -121,8 +109,7 @@ class UnusualTransactionDetectionServiceTest {
     }
 
     private void stubRecentTx(List<Transaction> txs) {
-        when(transactionRepository.findByUserIdAndCreatedAtAfter(eq(1L), any()))
-                .thenReturn(txs);
+        when(transactionRepository.findByUserIdAndCreatedAtAfter(eq(1L), any())).thenReturn(txs);
     }
 
     // ------------------------------------------------------------------
@@ -160,15 +147,17 @@ class UnusualTransactionDetectionServiceTest {
         @DisplayName("Skips TRANSFER transactions entirely")
         void skipsTransferTransactions() {
             stubUserFound();
-            Transaction transfer = Transaction.builder()
-                    .id(1L).userId(1L)
-                    .type(TransactionType.TRANSFER)
-                    .amount(BigDecimal.valueOf(200))
-                    .currency("EUR")
-                    .payee("Internal")
-                    .date(LocalDate.now())
-                    .isDeleted(false)
-                    .build();
+            Transaction transfer =
+                    Transaction.builder()
+                            .id(1L)
+                            .userId(1L)
+                            .type(TransactionType.TRANSFER)
+                            .amount(BigDecimal.valueOf(200))
+                            .currency("EUR")
+                            .payee("Internal")
+                            .date(LocalDate.now())
+                            .isDeleted(false)
+                            .build();
             stubRecentTx(List.of(transfer));
 
             int result = service.detectAndPersist(1L, since);
@@ -185,16 +174,19 @@ class UnusualTransactionDetectionServiceTest {
             stubRecentTx(List.of(tx));
 
             // Known payee with 6 prior transactions all around 50
-            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("Supermarket"), any()))
+            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("Supermarket"), any()))
                     .thenReturn(6L);
-            List<Transaction> history = List.of(
-                    historicExpenseTx(10L, "Supermarket", 48.0),
-                    historicExpenseTx(11L, "Supermarket", 52.0),
-                    historicExpenseTx(12L, "Supermarket", 50.0),
-                    historicExpenseTx(13L, "Supermarket", 49.0),
-                    historicExpenseTx(14L, "Supermarket", 51.0),
-                    historicExpenseTx(15L, "Supermarket", 50.0));
-            when(transactionRepository.findByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("Supermarket"), any()))
+            List<Transaction> history =
+                    List.of(
+                            historicExpenseTx(10L, "Supermarket", 48.0),
+                            historicExpenseTx(11L, "Supermarket", 52.0),
+                            historicExpenseTx(12L, "Supermarket", 50.0),
+                            historicExpenseTx(13L, "Supermarket", 49.0),
+                            historicExpenseTx(14L, "Supermarket", 51.0),
+                            historicExpenseTx(15L, "Supermarket", 50.0));
+            when(transactionRepository.findByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("Supermarket"), any()))
                     .thenReturn(history);
 
             int result = service.detectAndPersist(1L, since);
@@ -219,7 +211,8 @@ class UnusualTransactionDetectionServiceTest {
             Transaction tx = expenseTx(1L, "ACME Corp", 300.0, null);
             stubRecentTx(List.of(tx));
 
-            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("ACME Corp"), any()))
+            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("ACME Corp"), any()))
                     .thenReturn(0L);
             when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -245,7 +238,8 @@ class UnusualTransactionDetectionServiceTest {
             Transaction tx = expenseTx(1L, "NewMerchant", 100.0, null);
             stubRecentTx(List.of(tx));
 
-            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("NewMerchant"), any()))
+            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("NewMerchant"), any()))
                     .thenReturn(0L);
             when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -264,9 +258,11 @@ class UnusualTransactionDetectionServiceTest {
             Transaction tx2 = expenseTx(2L, "ShopB", 200.0, null);
             stubRecentTx(List.of(tx1, tx2));
 
-            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("ShopA"), any()))
+            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("ShopA"), any()))
                     .thenReturn(0L);
-            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("ShopB"), any()))
+            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("ShopB"), any()))
                     .thenReturn(0L);
             when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -292,16 +288,19 @@ class UnusualTransactionDetectionServiceTest {
             Transaction tx = expenseTx(1L, "Netflix", 200.0, null);
             stubRecentTx(List.of(tx));
 
-            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("Netflix"), any()))
+            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("Netflix"), any()))
                     .thenReturn(6L);
-            List<Transaction> history = List.of(
-                    historicExpenseTx(10L, "Netflix", 49.0),
-                    historicExpenseTx(11L, "Netflix", 50.0),
-                    historicExpenseTx(12L, "Netflix", 51.0),
-                    historicExpenseTx(13L, "Netflix", 50.0),
-                    historicExpenseTx(14L, "Netflix", 49.5),
-                    historicExpenseTx(15L, "Netflix", 50.5));
-            when(transactionRepository.findByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("Netflix"), any()))
+            List<Transaction> history =
+                    List.of(
+                            historicExpenseTx(10L, "Netflix", 49.0),
+                            historicExpenseTx(11L, "Netflix", 50.0),
+                            historicExpenseTx(12L, "Netflix", 51.0),
+                            historicExpenseTx(13L, "Netflix", 50.0),
+                            historicExpenseTx(14L, "Netflix", 49.5),
+                            historicExpenseTx(15L, "Netflix", 50.5));
+            when(transactionRepository.findByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("Netflix"), any()))
                     .thenReturn(history);
             when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -324,16 +323,19 @@ class UnusualTransactionDetectionServiceTest {
             Transaction tx = expenseTx(1L, "Netflix", 51.5, null);
             stubRecentTx(List.of(tx));
 
-            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("Netflix"), any()))
+            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("Netflix"), any()))
                     .thenReturn(6L);
-            List<Transaction> history = List.of(
-                    historicExpenseTx(10L, "Netflix", 49.0),
-                    historicExpenseTx(11L, "Netflix", 50.0),
-                    historicExpenseTx(12L, "Netflix", 51.0),
-                    historicExpenseTx(13L, "Netflix", 50.0),
-                    historicExpenseTx(14L, "Netflix", 49.5),
-                    historicExpenseTx(15L, "Netflix", 50.5));
-            when(transactionRepository.findByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("Netflix"), any()))
+            List<Transaction> history =
+                    List.of(
+                            historicExpenseTx(10L, "Netflix", 49.0),
+                            historicExpenseTx(11L, "Netflix", 50.0),
+                            historicExpenseTx(12L, "Netflix", 51.0),
+                            historicExpenseTx(13L, "Netflix", 50.0),
+                            historicExpenseTx(14L, "Netflix", 49.5),
+                            historicExpenseTx(15L, "Netflix", 50.5));
+            when(transactionRepository.findByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("Netflix"), any()))
                     .thenReturn(history);
 
             int result = service.detectAndPersist(1L, since);
@@ -359,13 +361,16 @@ class UnusualTransactionDetectionServiceTest {
             Transaction tx = expenseTx(1L, "Amazon", 150.0, null);
             stubRecentTx(List.of(tx));
 
-            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("Amazon"), any()))
+            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("Amazon"), any()))
                     .thenReturn(3L);
-            List<Transaction> history = List.of(
-                    historicExpenseTx(10L, "Amazon", 40.0),
-                    historicExpenseTx(11L, "Amazon", 38.0),
-                    historicExpenseTx(12L, "Amazon", 42.0));
-            when(transactionRepository.findByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("Amazon"), any()))
+            List<Transaction> history =
+                    List.of(
+                            historicExpenseTx(10L, "Amazon", 40.0),
+                            historicExpenseTx(11L, "Amazon", 38.0),
+                            historicExpenseTx(12L, "Amazon", 42.0));
+            when(transactionRepository.findByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("Amazon"), any()))
                     .thenReturn(history);
             when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -386,12 +391,15 @@ class UnusualTransactionDetectionServiceTest {
             Transaction tx = expenseTx(1L, "Amazon", 100.0, null);
             stubRecentTx(List.of(tx));
 
-            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("Amazon"), any()))
+            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("Amazon"), any()))
                     .thenReturn(2L);
-            List<Transaction> history = List.of(
-                    historicExpenseTx(10L, "Amazon", 38.0),
-                    historicExpenseTx(11L, "Amazon", 42.0));
-            when(transactionRepository.findByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("Amazon"), any()))
+            List<Transaction> history =
+                    List.of(
+                            historicExpenseTx(10L, "Amazon", 38.0),
+                            historicExpenseTx(11L, "Amazon", 42.0));
+            when(transactionRepository.findByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("Amazon"), any()))
                     .thenReturn(history);
 
             int result = service.detectAndPersist(1L, since);
@@ -417,12 +425,13 @@ class UnusualTransactionDetectionServiceTest {
             Transaction tx = expenseTx(1L, null, 100.0, 99L);
             stubRecentTx(List.of(tx));
 
-            List<Transaction> history = List.of(
-                    expenseTx(10L, null, 29.0, 99L),
-                    expenseTx(11L, null, 31.0, 99L),
-                    expenseTx(12L, null, 30.0, 99L));
+            List<Transaction> history =
+                    List.of(
+                            expenseTx(10L, null, 29.0, 99L),
+                            expenseTx(11L, null, 31.0, 99L),
+                            expenseTx(12L, null, 30.0, 99L));
             when(transactionRepository.findExpensesByUserIdAndCategoryIdAndCreatedAtBefore(
-                    eq(1L), eq(99L), any()))
+                            eq(1L), eq(99L), any()))
                     .thenReturn(history);
             when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -443,7 +452,7 @@ class UnusualTransactionDetectionServiceTest {
             stubRecentTx(List.of(tx));
 
             when(transactionRepository.findExpensesByUserIdAndCategoryIdAndCreatedAtBefore(
-                    eq(1L), eq(99L), any()))
+                            eq(1L), eq(99L), any()))
                     .thenReturn(Collections.emptyList());
 
             int result = service.detectAndPersist(1L, since);
@@ -456,14 +465,16 @@ class UnusualTransactionDetectionServiceTest {
         @DisplayName("No insight when transaction has no payee and no category")
         void noInsightWhenNoPayeeAndNoCategory() {
             stubUserFound();
-            Transaction tx = Transaction.builder()
-                    .id(1L).userId(1L)
-                    .type(TransactionType.EXPENSE)
-                    .amount(BigDecimal.valueOf(999))
-                    .currency("EUR")
-                    .date(LocalDate.now())
-                    .isDeleted(false)
-                    .build();
+            Transaction tx =
+                    Transaction.builder()
+                            .id(1L)
+                            .userId(1L)
+                            .type(TransactionType.EXPENSE)
+                            .amount(BigDecimal.valueOf(999))
+                            .currency("EUR")
+                            .date(LocalDate.now())
+                            .isDeleted(false)
+                            .build();
             stubRecentTx(List.of(tx));
 
             int result = service.detectAndPersist(1L, since);
@@ -476,15 +487,17 @@ class UnusualTransactionDetectionServiceTest {
         @DisplayName("Category fallback not triggered for INCOME type (only EXPENSE)")
         void categoryFallbackNotTriggeredForIncome() {
             stubUserFound();
-            Transaction tx = Transaction.builder()
-                    .id(1L).userId(1L)
-                    .type(TransactionType.INCOME)
-                    .amount(BigDecimal.valueOf(5000))
-                    .currency("EUR")
-                    .categoryId(99L)
-                    .date(LocalDate.now())
-                    .isDeleted(false)
-                    .build();
+            Transaction tx =
+                    Transaction.builder()
+                            .id(1L)
+                            .userId(1L)
+                            .type(TransactionType.INCOME)
+                            .amount(BigDecimal.valueOf(5000))
+                            .currency("EUR")
+                            .categoryId(99L)
+                            .date(LocalDate.now())
+                            .isDeleted(false)
+                            .build();
             stubRecentTx(List.of(tx));
             // payee is null → would normally trigger category fallback, but type is INCOME
             // countByUserIdAndPayeeAndCreatedAtBefore is not called because payee is null
@@ -493,7 +506,8 @@ class UnusualTransactionDetectionServiceTest {
 
             assertThat(result).isZero();
             verify(transactionRepository, never())
-                    .findExpensesByUserIdAndCategoryIdAndCreatedAtBefore(anyLong(), anyLong(), any());
+                    .findExpensesByUserIdAndCategoryIdAndCreatedAtBefore(
+                            anyLong(), anyLong(), any());
             verifyNoInteractions(insightRepository);
         }
     }
@@ -512,7 +526,8 @@ class UnusualTransactionDetectionServiceTest {
             stubUserFound();
             Transaction tx = expenseTx(1L, "NewShop", 100.0, null);
             stubRecentTx(List.of(tx));
-            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(eq(1L), eq("NewShop"), any()))
+            when(transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(
+                            eq(1L), eq("NewShop"), any()))
                     .thenReturn(0L);
             when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 

@@ -1,16 +1,16 @@
 package org.openfinance.dto;
 
-import lombok.Builder;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import lombok.Builder;
 
 /**
  * DTO for exchange rate information.
- * 
+ *
  * <p>Used in exchange rate query endpoints to provide rate details between currency pairs.
- * 
+ *
  * <p>Example JSON:
+ *
  * <pre>
  * {
  *   "baseCurrency": "USD",
@@ -21,14 +21,13 @@ import java.time.LocalDate;
  *   "source": "Yahoo Finance"
  * }
  * </pre>
- * 
+ *
  * @param baseCurrency the source currency code (e.g., "USD")
  * @param targetCurrency the destination currency code (e.g., "EUR")
  * @param rate the exchange rate (1 baseCurrency = rate * targetCurrency)
  * @param inverseRate the inverse exchange rate (1 targetCurrency = inverseRate * baseCurrency)
  * @param rateDate the date this rate is valid for
  * @param source the data source (e.g., "Yahoo Finance")
- * 
  * @author Open-Finance Development Team
  * @since 1.0
  */
@@ -39,6 +38,4 @@ public record ExchangeRateResponse(
         BigDecimal rate,
         BigDecimal inverseRate,
         LocalDate rateDate,
-        String source
-) {
-}
+        String source) {}

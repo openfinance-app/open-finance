@@ -18,9 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service for recording and retrieving operation history (Undo/Redo).
- * 
- * <p>Recording methods run within the caller's transaction (REQUIRED) to ensure 
- * atomicity with domain operations.
+ *
+ * <p>Recording methods run within the caller's transaction (REQUIRED) to ensure atomicity with
+ * domain operations.
  */
 @Slf4j
 @Service
@@ -31,26 +31,23 @@ public class OperationHistoryService {
     private final ObjectMapper objectMapper;
 
     // Use ThreadLocal to suppress recording during internal operations like Undo/Redo
-    private static final ThreadLocal<Boolean> recordingSuppressed = ThreadLocal.withInitial(() -> false);
+    private static final ThreadLocal<Boolean> recordingSuppressed =
+            ThreadLocal.withInitial(() -> false);
 
     /**
-     * Suppresses history recording for the current thread.
-     * Useful during Undo/Redo operations to avoid redundant entries.
+     * Suppresses history recording for the current thread. Useful during Undo/Redo operations to
+     * avoid redundant entries.
      */
     public void suppressRecording() {
         recordingSuppressed.set(true);
     }
 
-    /**
-     * Resumes history recording for the current thread.
-     */
+    /** Resumes history recording for the current thread. */
     public void resumeRecording() {
         recordingSuppressed.set(false);
     }
 
-    /**
-     * Checks if history recording is suppressed for the current thread.
-     */
+    /** Checks if history recording is suppressed for the current thread. */
     public boolean isRecordingSuppressed() {
         return Boolean.TRUE.equals(recordingSuppressed.get());
     }
@@ -58,15 +55,15 @@ public class OperationHistoryService {
     /**
      * Records a mutation in the operation history.
      *
-     * @param userId             the authenticated user's ID
-     * @param entityType         the type of entity that changed
-     * @param entityId           the ID of the entity (may be null after hard delete)
-     * @param entityLabel        human-readable label (stored plain so the UI can show it without
-     *                           requiring decryption)
-     * @param operationType      CREATE, UPDATE, or DELETE
-     * @param entitySnapshotJson full JSON snapshot of the entity <em>before</em> the change;
-     *                           pass {@code null} for CREATE operations
-     * @param changedFieldsJson  JSON map of {@code {field:{before,after}}} for UPDATE display
+     * @param userId the authenticated user's ID
+     * @param entityType the type of entity that changed
+     * @param entityId the ID of the entity (may be null after hard delete)
+     * @param entityLabel human-readable label (stored plain so the UI can show it without requiring
+     *     decryption)
+     * @param operationType CREATE, UPDATE, or DELETE
+     * @param entitySnapshotJson full JSON snapshot of the entity <em>before</em> the change; pass
+     *     {@code null} for CREATE operations
+     * @param changedFieldsJson JSON map of {@code {field:{before,after}}} for UPDATE display
      */
     @Transactional
     public void record(
@@ -79,8 +76,11 @@ public class OperationHistoryService {
             String changedFieldsJson) {
 
         if (isRecordingSuppressed()) {
-            log.debug("History recording suppressed: skipping {} on {}/{}", 
-                    operationType, entityType, entityId);
+            log.debug(
+                    "History recording suppressed: skipping {} on {}/{}",
+                    operationType,
+                    entityType,
+                    entityId);
             return;
         }
 
@@ -120,9 +120,10 @@ public class OperationHistoryService {
             Map<String, Object[]> changedFields) {
 
         String snapshotJson = toJson(snapshotObject);
-        String changedJson = changedFields != null && !changedFields.isEmpty()
-                ? buildChangedFieldsJson(changedFields)
-                : null;
+        String changedJson =
+                changedFields != null && !changedFields.isEmpty()
+                        ? buildChangedFieldsJson(changedFields)
+                        : null;
 
         record(userId, entityType, entityId, entityLabel, operationType, snapshotJson, changedJson);
     }
@@ -131,9 +132,7 @@ public class OperationHistoryService {
     // Querying
     // -------------------------------------------------------------------------
 
-    /**
-     * Returns a page of operation history entries for the given user, ordered newest-first.
-     */
+    /** Returns a page of operation history entries for the given user, ordered newest-first. */
     @Transactional(readOnly = true)
     public Page<OperationHistoryResponse> getHistory(Long userId, Pageable pageable) {
         return historyRepository
@@ -142,15 +141,16 @@ public class OperationHistoryService {
     }
 
     /**
-     * Returns a page of operation history entries for the given user, optionally filtered by
-     * entity type and/or a lower bound on createdAt, ordered newest-first.
+     * Returns a page of operation history entries for the given user, optionally filtered by entity
+     * type and/or a lower bound on createdAt, ordered newest-first.
      *
      * <p>Handles all four filter combinations:
+     *
      * <ul>
-     *   <li>neither → all entries for user</li>
-     *   <li>entityType only → entries of that type</li>
-     *   <li>since only → entries at or after since</li>
-     *   <li>entityType + since → entries of that type at or after since</li>
+     *   <li>neither → all entries for user
+     *   <li>entityType only → entries of that type
+     *   <li>since only → entries at or after since
+     *   <li>entityType + since → entries of that type at or after since
      * </ul>
      */
     @Transactional(readOnly = true)
@@ -168,7 +168,8 @@ public class OperationHistoryService {
                     .map(this::toResponse);
         } else if (since != null) {
             return historyRepository
-                    .findByUserIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(userId, since, pageable)
+                    .findByUserIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+                            userId, since, pageable)
                     .map(this::toResponse);
         } else {
             return getHistory(userId, pageable);
@@ -182,8 +183,8 @@ public class OperationHistoryService {
     /**
      * Marks a history entry as undone. Returns the updated entry.
      *
-     * <p>The actual entity restoration is handled by the caller (controller) which delegates to
-     * the appropriate domain service. This method only updates the {@code undone_at} timestamp.
+     * <p>The actual entity restoration is handled by the caller (controller) which delegates to the
+     * appropriate domain service. This method only updates the {@code undone_at} timestamp.
      *
      * @throws ResourceNotFoundException if the entry does not exist or belongs to another user
      */
@@ -208,8 +209,8 @@ public class OperationHistoryService {
     }
 
     /**
-     * Returns the raw {@link OperationHistory} entry for use by the controller (e.g., to read
-     * the snapshot JSON and dispatch the actual domain operation).
+     * Returns the raw {@link OperationHistory} entry for use by the controller (e.g., to read the
+     * snapshot JSON and dispatch the actual domain operation).
      */
     @Transactional(readOnly = true)
     public OperationHistory getEntry(Long historyId, Long userId) {
@@ -221,12 +222,15 @@ public class OperationHistoryService {
     // -------------------------------------------------------------------------
 
     private OperationHistory requireOwned(Long historyId, Long userId) {
-        OperationHistory entry = historyRepository.findById(historyId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Operation history entry not found: " + historyId));
+        OperationHistory entry =
+                historyRepository
+                        .findById(historyId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Operation history entry not found: " + historyId));
         if (!entry.getUserId().equals(userId)) {
-            throw new ResourceNotFoundException(
-                    "Operation history entry not found: " + historyId);
+            throw new ResourceNotFoundException("Operation history entry not found: " + historyId);
         }
         return entry;
     }
@@ -258,18 +262,19 @@ public class OperationHistoryService {
     }
 
     /**
-     * Builds a JSON string from a map of {@code {fieldName -> [before, after]}} entries.
-     * Output format: {@code {"fieldName":{"before":"v1","after":"v2"}, ...}}
+     * Builds a JSON string from a map of {@code {fieldName -> [before, after]}} entries. Output
+     * format: {@code {"fieldName":{"before":"v1","after":"v2"}, ...}}
      */
     private String buildChangedFieldsJson(Map<String, Object[]> changedFields) {
         try {
             Map<String, Map<String, Object>> out = new java.util.LinkedHashMap<>();
-            changedFields.forEach((field, values) -> {
-                Map<String, Object> diff = new java.util.LinkedHashMap<>();
-                diff.put("before", values.length > 0 ? values[0] : null);
-                diff.put("after", values.length > 1 ? values[1] : null);
-                out.put(field, diff);
-            });
+            changedFields.forEach(
+                    (field, values) -> {
+                        Map<String, Object> diff = new java.util.LinkedHashMap<>();
+                        diff.put("before", values.length > 0 ? values[0] : null);
+                        diff.put("after", values.length > 1 ? values[1] : null);
+                        out.put(field, diff);
+                    });
             return objectMapper.writeValueAsString(out);
         } catch (Exception e) {
             log.warn("Failed to build changedFieldsJson", e);

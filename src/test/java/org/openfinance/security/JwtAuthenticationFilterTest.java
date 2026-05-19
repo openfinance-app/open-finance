@@ -1,7 +1,6 @@
 package org.openfinance.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -23,7 +22,6 @@ import org.openfinance.repository.UserRepository;
 import org.openfinance.service.JwtService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
  * Unit tests for JwtAuthenticationFilter.

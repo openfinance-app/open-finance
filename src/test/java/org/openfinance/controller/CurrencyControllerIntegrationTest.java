@@ -1,6 +1,12 @@
 package org.openfinance.controller;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,74 +18,58 @@ import org.openfinance.entity.Currency;
 import org.openfinance.entity.ExchangeRate;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.ExchangeRateRepository;
+import org.openfinance.service.OperationHistoryService;
 import org.openfinance.service.UserService;
 import org.openfinance.util.DatabaseCleanupService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.openfinance.service.OperationHistoryService;
-
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 /**
  * Integration tests for CurrencyController.
- * 
+ *
  * <p>Tests all currency and exchange rate REST endpoints:
+ *
  * <ul>
- *   <li>GET /api/v1/currencies - List active currencies</li>
- *   <li>GET /api/v1/currencies/all - List all currencies</li>
- *   <li>GET /api/v1/currencies/exchange-rates - Get exchange rate for specific date</li>
- *   <li>GET /api/v1/currencies/exchange-rates/latest - Get latest exchange rate</li>
- *   <li>POST /api/v1/currencies/convert - Convert amount between currencies</li>
- *   <li>POST /api/v1/currencies/exchange-rates/update - Update rates (admin only)</li>
+ *   <li>GET /api/v1/currencies - List active currencies
+ *   <li>GET /api/v1/currencies/all - List all currencies
+ *   <li>GET /api/v1/currencies/exchange-rates - Get exchange rate for specific date
+ *   <li>GET /api/v1/currencies/exchange-rates/latest - Get latest exchange rate
+ *   <li>POST /api/v1/currencies/convert - Convert amount between currencies
+ *   <li>POST /api/v1/currencies/exchange-rates/update - Update rates (admin only)
  * </ul>
- * 
+ *
  * <p>Requirements: REQ-6.2 (Multi-Currency Support)
- * 
+ *
  * @author Open-Finance Development Team
  * @since 1.0
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestDatabaseConfig.class)
-
 @ActiveProfiles("test")
 @DisplayName("CurrencyController Integration Tests")
 class CurrencyControllerIntegrationTest {
 
-    @MockBean
-    private OperationHistoryService operationHistoryService;
+    @MockBean private OperationHistoryService operationHistoryService;
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private CurrencyRepository currencyRepository;
+    @Autowired private CurrencyRepository currencyRepository;
 
-    @Autowired
-    private ExchangeRateRepository exchangeRateRepository;
+    @Autowired private ExchangeRateRepository exchangeRateRepository;
 
-    @Autowired
-    private DatabaseCleanupService databaseCleanupService;
+    @Autowired private DatabaseCleanupService databaseCleanupService;
 
     private String userToken;
 
@@ -89,65 +79,63 @@ class CurrencyControllerIntegrationTest {
         databaseCleanupService.execute();
 
         // Create regular user
-        UserRegistrationRequest userReg = UserRegistrationRequest.builder()
-                .username("alice")
-                .email("alice@example.com")
-                .password("Password123!")
-                .masterPassword("Master123!")
-                .skipSeeding(true)
-                .build();
+        UserRegistrationRequest userReg =
+                UserRegistrationRequest.builder()
+                        .username("alice")
+                        .email("alice@example.com")
+                        .password("Password123!")
+                        .masterPassword("Master123!")
+                        .skipSeeding(true)
+                        .build();
         userService.registerUser(userReg);
 
-        LoginRequest userLogin = LoginRequest.builder()
-                .username("alice")
-                .password("Password123!")
-                .masterPassword("Master123!")
-                .build();
+        LoginRequest userLogin =
+                LoginRequest.builder()
+                        .username("alice")
+                        .password("Password123!")
+                        .masterPassword("Master123!")
+                        .build();
 
-        MvcResult userResult = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(userLogin)))
-                .andExpect(status().isOk())
-                .andReturn();
+        MvcResult userResult =
+                mockMvc.perform(
+                                post("/api/v1/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(userLogin)))
+                        .andExpect(status().isOk())
+                        .andReturn();
 
         String userResponse = userResult.getResponse().getContentAsString();
         userToken = objectMapper.readTree(userResponse).get("token").asText();
 
         // Seed test currencies
         seedCurrencies();
-        
+
         // Seed test exchange rates
         seedExchangeRates();
     }
 
     private void seedCurrencies() {
-        Currency usd = Currency.builder()
-                .code("USD")
-                .name("US Dollar")
-                .symbol("$")
-                .isActive(true)
-                .build();
+        Currency usd =
+                Currency.builder().code("USD").name("US Dollar").symbol("$").isActive(true).build();
 
-        Currency eur = Currency.builder()
-                .code("EUR")
-                .name("Euro")
-                .symbol("€")
-                .isActive(true)
-                .build();
+        Currency eur =
+                Currency.builder().code("EUR").name("Euro").symbol("€").isActive(true).build();
 
-        Currency gbp = Currency.builder()
-                .code("GBP")
-                .name("British Pound")
-                .symbol("£")
-                .isActive(true)
-                .build();
+        Currency gbp =
+                Currency.builder()
+                        .code("GBP")
+                        .name("British Pound")
+                        .symbol("£")
+                        .isActive(true)
+                        .build();
 
-        Currency jpy = Currency.builder()
-                .code("JPY")
-                .name("Japanese Yen")
-                .symbol("¥")
-                .isActive(false) // Inactive for testing
-                .build();
+        Currency jpy =
+                Currency.builder()
+                        .code("JPY")
+                        .name("Japanese Yen")
+                        .symbol("¥")
+                        .isActive(false) // Inactive for testing
+                        .build();
 
         currencyRepository.save(usd);
         currencyRepository.save(eur);
@@ -160,30 +148,33 @@ class CurrencyControllerIntegrationTest {
         LocalDate yesterday = today.minusDays(1);
 
         // Today's rates
-        ExchangeRate usdEurToday = ExchangeRate.builder()
-                .baseCurrency("USD")
-                .targetCurrency("EUR")
-                .rate(new BigDecimal("0.85000000"))
-                .rateDate(today)
-                .source("test")
-                .build();
+        ExchangeRate usdEurToday =
+                ExchangeRate.builder()
+                        .baseCurrency("USD")
+                        .targetCurrency("EUR")
+                        .rate(new BigDecimal("0.85000000"))
+                        .rateDate(today)
+                        .source("test")
+                        .build();
 
-        ExchangeRate usdGbpToday = ExchangeRate.builder()
-                .baseCurrency("USD")
-                .targetCurrency("GBP")
-                .rate(new BigDecimal("0.79000000"))
-                .rateDate(today)
-                .source("test")
-                .build();
+        ExchangeRate usdGbpToday =
+                ExchangeRate.builder()
+                        .baseCurrency("USD")
+                        .targetCurrency("GBP")
+                        .rate(new BigDecimal("0.79000000"))
+                        .rateDate(today)
+                        .source("test")
+                        .build();
 
         // Yesterday's rate
-        ExchangeRate usdEurYesterday = ExchangeRate.builder()
-                .baseCurrency("USD")
-                .targetCurrency("EUR")
-                .rate(new BigDecimal("0.84000000"))
-                .rateDate(yesterday)
-                .source("test")
-                .build();
+        ExchangeRate usdEurYesterday =
+                ExchangeRate.builder()
+                        .baseCurrency("USD")
+                        .targetCurrency("EUR")
+                        .rate(new BigDecimal("0.84000000"))
+                        .rateDate(yesterday)
+                        .source("test")
+                        .build();
 
         exchangeRateRepository.save(usdEurToday);
         exchangeRateRepository.save(usdGbpToday);
@@ -195,8 +186,7 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return all active currencies sorted by code")
     void shouldReturnAllActiveCurrenciesSortedByCode() throws Exception {
-        mockMvc.perform(get("/api/v1/currencies")
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(get("/api/v1/currencies").header("Authorization", "Bearer " + userToken))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -213,13 +203,15 @@ class CurrencyControllerIntegrationTest {
     @DisplayName("Should return empty array when no active currencies exist")
     void shouldReturnEmptyArrayWhenNoActiveCurrencies() throws Exception {
         // Deactivate all currencies
-        currencyRepository.findAll().forEach(c -> {
-            c.setIsActive(false);
-            currencyRepository.save(c);
-        });
+        currencyRepository
+                .findAll()
+                .forEach(
+                        c -> {
+                            c.setIsActive(false);
+                            currencyRepository.save(c);
+                        });
 
-        mockMvc.perform(get("/api/v1/currencies")
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(get("/api/v1/currencies").header("Authorization", "Bearer " + userToken))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -229,9 +221,7 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return 403 when not authenticated (active currencies)")
     void shouldReturn403WhenNotAuthenticatedActiveCurrencies() throws Exception {
-        mockMvc.perform(get("/api/v1/currencies"))
-                .andDo(print())
-                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/currencies")).andDo(print()).andExpect(status().isForbidden());
     }
 
     // ========== GET /api/v1/currencies/all (List All Currencies) ==========
@@ -239,8 +229,9 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return all currencies including inactive")
     void shouldReturnAllCurrenciesIncludingInactive() throws Exception {
-        mockMvc.perform(get("/api/v1/currencies/all")
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(
+                        get("/api/v1/currencies/all")
+                                .header("Authorization", "Bearer " + userToken))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -264,11 +255,12 @@ class CurrencyControllerIntegrationTest {
     void shouldReturnExchangeRateForSpecificDate() throws Exception {
         LocalDate yesterday = LocalDate.now().minusDays(1);
 
-        mockMvc.perform(get("/api/v1/currencies/exchange-rates")
-                        .param("from", "USD")
-                        .param("to", "EUR")
-                        .param("date", yesterday.toString())
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(
+                        get("/api/v1/currencies/exchange-rates")
+                                .param("from", "USD")
+                                .param("to", "EUR")
+                                .param("date", yesterday.toString())
+                                .header("Authorization", "Bearer " + userToken))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.baseCurrency").value("USD"))
@@ -283,11 +275,12 @@ class CurrencyControllerIntegrationTest {
         // Missing exchange rate is a client error (invalid date parameter) → 400 Bad Request
         LocalDate farPast = LocalDate.of(2020, 1, 1);
 
-        mockMvc.perform(get("/api/v1/currencies/exchange-rates")
-                        .param("from", "USD")
-                        .param("to", "EUR")
-                        .param("date", farPast.toString())
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(
+                        get("/api/v1/currencies/exchange-rates")
+                                .param("from", "USD")
+                                .param("to", "EUR")
+                                .param("date", farPast.toString())
+                                .header("Authorization", "Bearer " + userToken))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -296,12 +289,14 @@ class CurrencyControllerIntegrationTest {
     @DisplayName("Should return 500 when date format is invalid")
     void shouldReturn500WhenDateFormatInvalid() throws Exception {
         // TODO: Should return 400, but Spring's date parsing throws exception (→500)
-        // Need proper @ExceptionHandler for MethodArgumentTypeMismatchException in GlobalExceptionHandler
-        mockMvc.perform(get("/api/v1/currencies/exchange-rates")
-                        .param("from", "USD")
-                        .param("to", "EUR")
-                        .param("date", "invalid-date")
-                        .header("Authorization", "Bearer " + userToken))
+        // Need proper @ExceptionHandler for MethodArgumentTypeMismatchException in
+        // GlobalExceptionHandler
+        mockMvc.perform(
+                        get("/api/v1/currencies/exchange-rates")
+                                .param("from", "USD")
+                                .param("to", "EUR")
+                                .param("date", "invalid-date")
+                                .header("Authorization", "Bearer " + userToken))
                 .andDo(print())
                 .andExpect(status().isInternalServerError());
     }
@@ -309,10 +304,11 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return 403 when not authenticated (exchange rate by date)")
     void shouldReturn403WhenNotAuthenticatedExchangeRateByDate() throws Exception {
-        mockMvc.perform(get("/api/v1/currencies/exchange-rates")
-                        .param("from", "USD")
-                        .param("to", "EUR")
-                        .param("date", LocalDate.now().toString()))
+        mockMvc.perform(
+                        get("/api/v1/currencies/exchange-rates")
+                                .param("from", "USD")
+                                .param("to", "EUR")
+                                .param("date", LocalDate.now().toString()))
                 .andDo(print())
                 .andExpect(status().isForbidden());
     }
@@ -322,10 +318,11 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return latest exchange rate")
     void shouldReturnLatestExchangeRate() throws Exception {
-        mockMvc.perform(get("/api/v1/currencies/exchange-rates/latest")
-                        .param("from", "USD")
-                        .param("to", "EUR")
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(
+                        get("/api/v1/currencies/exchange-rates/latest")
+                                .param("from", "USD")
+                                .param("to", "EUR")
+                                .header("Authorization", "Bearer " + userToken))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.baseCurrency").value("USD"))
@@ -338,10 +335,11 @@ class CurrencyControllerIntegrationTest {
     @DisplayName("Should return 400 when no exchange rate exists")
     void shouldReturn400WhenNoExchangeRateExists() throws Exception {
         // Use a currency that is NOT in the database to ensure it fails with 400
-        mockMvc.perform(get("/api/v1/currencies/exchange-rates/latest")
-                        .param("from", "USD")
-                        .param("to", "NONEXISTENT") 
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(
+                        get("/api/v1/currencies/exchange-rates/latest")
+                                .param("from", "USD")
+                                .param("to", "NONEXISTENT")
+                                .header("Authorization", "Bearer " + userToken))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -349,9 +347,10 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return 403 when not authenticated (latest exchange rate)")
     void shouldReturn403WhenNotAuthenticatedLatestExchangeRate() throws Exception {
-        mockMvc.perform(get("/api/v1/currencies/exchange-rates/latest")
-                        .param("from", "USD")
-                        .param("to", "EUR"))
+        mockMvc.perform(
+                        get("/api/v1/currencies/exchange-rates/latest")
+                                .param("from", "USD")
+                                .param("to", "EUR"))
                 .andDo(print())
                 .andExpect(status().isForbidden());
     }
@@ -361,17 +360,13 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should convert amount between currencies")
     void shouldConvertAmountBetweenCurrencies() throws Exception {
-        ConvertRequest request = new ConvertRequest(
-                new BigDecimal("100.00"),
-                "USD",
-                "EUR",
-                null
-        );
+        ConvertRequest request = new ConvertRequest(new BigDecimal("100.00"), "USD", "EUR", null);
 
-        mockMvc.perform(post("/api/v1/currencies/convert")
-                        .header("Authorization", "Bearer " + userToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/currencies/convert")
+                                .header("Authorization", "Bearer " + userToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fromCurrency").value("USD"))
@@ -384,17 +379,16 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return 400 when amount is null")
     void shouldReturn400WhenAmountIsNull() throws Exception {
-        ConvertRequest request = new ConvertRequest(
-                null, // Invalid
-                "USD",
-                "EUR",
-                null
-        );
+        ConvertRequest request =
+                new ConvertRequest(
+                        null, // Invalid
+                        "USD", "EUR", null);
 
-        mockMvc.perform(post("/api/v1/currencies/convert")
-                        .header("Authorization", "Bearer " + userToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/currencies/convert")
+                                .header("Authorization", "Bearer " + userToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -402,17 +396,18 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return 400 when amount is negative")
     void shouldReturn400WhenAmountIsNegative() throws Exception {
-        ConvertRequest request = new ConvertRequest(
-                new BigDecimal("-100.00"), // Invalid
-                "USD",
-                "EUR",
-                null
-        );
+        ConvertRequest request =
+                new ConvertRequest(
+                        new BigDecimal("-100.00"), // Invalid
+                        "USD",
+                        "EUR",
+                        null);
 
-        mockMvc.perform(post("/api/v1/currencies/convert")
-                        .header("Authorization", "Bearer " + userToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/currencies/convert")
+                                .header("Authorization", "Bearer " + userToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -420,17 +415,18 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return 400 when currency codes are invalid")
     void shouldReturn400WhenCurrencyCodesInvalid() throws Exception {
-        ConvertRequest request = new ConvertRequest(
-                new BigDecimal("100.00"),
-                "XX", // Invalid code
-                "EUR",
-                null
-        );
+        ConvertRequest request =
+                new ConvertRequest(
+                        new BigDecimal("100.00"),
+                        "XX", // Invalid code
+                        "EUR",
+                        null);
 
-        mockMvc.perform(post("/api/v1/currencies/convert")
-                        .header("Authorization", "Bearer " + userToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/currencies/convert")
+                                .header("Authorization", "Bearer " + userToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -438,17 +434,18 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return 400 when conversion fails (no exchange rate)")
     void shouldReturn400WhenConversionFails() throws Exception {
-        ConvertRequest request = new ConvertRequest(
-                new BigDecimal("100.00"),
-                "USD",
-                "NONEXISTENT", // No rate exists
-                null
-        );
+        ConvertRequest request =
+                new ConvertRequest(
+                        new BigDecimal("100.00"),
+                        "USD",
+                        "NONEXISTENT", // No rate exists
+                        null);
 
-        mockMvc.perform(post("/api/v1/currencies/convert")
-                        .header("Authorization", "Bearer " + userToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/currencies/convert")
+                                .header("Authorization", "Bearer " + userToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -456,28 +453,26 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return 403 when not authenticated (convert)")
     void shouldReturn403WhenNotAuthenticatedConvert() throws Exception {
-        ConvertRequest request = new ConvertRequest(
-                new BigDecimal("100.00"),
-                "USD",
-                "EUR",
-                null
-        );
+        ConvertRequest request = new ConvertRequest(new BigDecimal("100.00"), "USD", "EUR", null);
 
-        mockMvc.perform(post("/api/v1/currencies/convert")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/currencies/convert")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
-    // ========== POST /api/v1/currencies/exchange-rates/update (Update Rates - Admin Only) ==========
+    // ========== POST /api/v1/currencies/exchange-rates/update (Update Rates - Admin Only)
+    // ==========
 
     @Test
     @DisplayName("Should return 403 when regular user tries to update rates")
     void shouldReturn403WhenUserTriesToUpdateRates() throws Exception {
         // Expect 403 Forbidden because @PreAuthorize("hasRole('ADMIN')") is now enabled
-        mockMvc.perform(post("/api/v1/currencies/exchange-rates/update")
-                        .header("Authorization", "Bearer " + userToken)) // Regular user
+        mockMvc.perform(
+                        post("/api/v1/currencies/exchange-rates/update")
+                                .header("Authorization", "Bearer " + userToken)) // Regular user
                 .andDo(print())
                 .andExpect(status().isForbidden());
     }

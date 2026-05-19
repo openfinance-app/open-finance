@@ -1,6 +1,9 @@
 package org.openfinance.controller;
 
 import jakarta.validation.Valid;
+import java.util.Base64;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.DataExportRequest;
@@ -12,20 +15,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.util.Base64;
-
 /**
  * REST controller for data export operations.
- * 
- * <p>Provides endpoints for backing up user financial data in JSON or CSV format.</p>
- * 
- * <p><strong>Note:</strong> Import functionality is intentionally not implemented.
- * Exported data is intended for backup, archival, and external analysis purposes only.</p>
- * 
- * <p>Requirement: REQ-3.4 - Data Export and Backup</p>
- * 
+ *
+ * <p>Provides endpoints for backing up user financial data in JSON or CSV format.
+ *
+ * <p><strong>Note:</strong> Import functionality is intentionally not implemented. Exported data is
+ * intended for backup, archival, and external analysis purposes only.
+ *
+ * <p>Requirement: REQ-3.4 - Data Export and Backup
+ *
  * @author Open Finance Development Team
  */
 @RestController
@@ -38,14 +37,15 @@ public class DataExportController {
 
     /**
      * Export all user data.
-     * 
-     * <p><b>Example Request:</b></p>
+     *
+     * <p><b>Example Request:</b>
+     *
      * <pre>
      * POST /api/v1/data/export
      * Headers:
      *   Authorization: Bearer {jwt-token}
      *   X-Encryption-Key: {base64-encoded-key}
-     * 
+     *
      * Body:
      * {
      *   "format": "JSON",
@@ -61,8 +61,9 @@ public class DataExportController {
      *   "includeDeleted": false
      * }
      * </pre>
-     * 
-     * <p><b>Example Response:</b></p>
+     *
+     * <p><b>Example Response:</b>
+     *
      * <pre>
      * {
      *   "exportId": "a7f8c9d0-1234-5678-90ab-cdef12345678",
@@ -81,7 +82,7 @@ public class DataExportController {
      *   "message": "Export completed successfully"
      * }
      * </pre>
-     * 
+     *
      * @param request Export request with format and inclusion options
      * @param authentication Spring Security authentication
      * @param encryptionKeyHeader Base64-encoded encryption key
@@ -119,9 +120,10 @@ public class DataExportController {
 
     /**
      * Get export statistics for user.
-     * 
-     * <p>Returns information about the user's exportable data without actually performing the export.</p>
-     * 
+     *
+     * <p>Returns information about the user's exportable data without actually performing the
+     * export.
+     *
      * @param authentication Spring Security authentication
      * @return Statistics response with entity counts
      */

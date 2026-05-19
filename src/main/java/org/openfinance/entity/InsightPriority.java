@@ -3,13 +3,16 @@ package org.openfinance.entity;
 /**
  * Enum representing the priority/urgency level of a financial insight.
  *
- * <p>Priority levels help users understand which insights require immediate attention
- * versus informational notifications.</p>
+ * <p>Priority levels help users understand which insights require immediate attention versus
+ * informational notifications.
  *
  * <ul>
- *   <li><strong>HIGH</strong>: Requires immediate attention (e.g., budget exceeded, unusual activity, low balance)</li>
- *   <li><strong>MEDIUM</strong>: Important but not urgent (e.g., savings opportunity, trend notification, goal progress)</li>
- *   <li><strong>LOW</strong>: Informational only (e.g., monthly summary, general tips, educational content)</li>
+ *   <li><strong>HIGH</strong>: Requires immediate attention (e.g., budget exceeded, unusual
+ *       activity, low balance)
+ *   <li><strong>MEDIUM</strong>: Important but not urgent (e.g., savings opportunity, trend
+ *       notification, goal progress)
+ *   <li><strong>LOW</strong>: Informational only (e.g., monthly summary, general tips, educational
+ *       content)
  * </ul>
  *
  * @since Sprint 11 - AI Assistant Integration (Task 11.4)
@@ -19,45 +22,48 @@ public enum InsightPriority {
     /**
      * High priority - requires immediate attention.
      *
-     * <p><strong>Examples:</strong></p>
+     * <p><strong>Examples:</strong>
+     *
      * <ul>
-     *   <li>Budget exceeded by 20% or more</li>
-     *   <li>Unusual spending detected (50%+ increase)</li>
-     *   <li>Account balance critically low (below $100)</li>
-     *   <li>High-interest debt payment due soon</li>
+     *   <li>Budget exceeded by 20% or more
+     *   <li>Unusual spending detected (50%+ increase)
+     *   <li>Account balance critically low (below $100)
+     *   <li>High-interest debt payment due soon
      * </ul>
      *
-     * <p><strong>Display:</strong> Red badge, shown at top of insight list</p>
+     * <p><strong>Display:</strong> Red badge, shown at top of insight list
      */
     HIGH("High Priority", "Requires immediate attention", 1),
 
     /**
      * Medium priority - important but not urgent.
      *
-     * <p><strong>Examples:</strong></p>
+     * <p><strong>Examples:</strong>
+     *
      * <ul>
-     *   <li>Savings opportunity identified</li>
-     *   <li>Budget warning (75-99% spent)</li>
-     *   <li>Investment rebalancing suggestion</li>
-     *   <li>Goal progress milestone reached</li>
+     *   <li>Savings opportunity identified
+     *   <li>Budget warning (75-99% spent)
+     *   <li>Investment rebalancing suggestion
+     *   <li>Goal progress milestone reached
      * </ul>
      *
-     * <p><strong>Display:</strong> Yellow/orange badge, middle of insight list</p>
+     * <p><strong>Display:</strong> Yellow/orange badge, middle of insight list
      */
     MEDIUM("Medium Priority", "Important but not urgent", 2),
 
     /**
      * Low priority - informational only.
      *
-     * <p><strong>Examples:</strong></p>
+     * <p><strong>Examples:</strong>
+     *
      * <ul>
-     *   <li>Monthly spending summary</li>
-     *   <li>General financial tips</li>
-     *   <li>Educational content</li>
-     *   <li>Positive trend notifications</li>
+     *   <li>Monthly spending summary
+     *   <li>General financial tips
+     *   <li>Educational content
+     *   <li>Positive trend notifications
      * </ul>
      *
-     * <p><strong>Display:</strong> Blue/gray badge, bottom of insight list</p>
+     * <p><strong>Display:</strong> Blue/gray badge, bottom of insight list
      */
     LOW("Low Priority", "Informational only", 3);
 
@@ -92,7 +98,7 @@ public enum InsightPriority {
     /**
      * Get sort order for priority (1 = highest, 3 = lowest).
      *
-     * <p>Used for sorting insights with HIGH priority first, LOW priority last.</p>
+     * <p>Used for sorting insights with HIGH priority first, LOW priority last.
      *
      * @return Sort order (1-3)
      */

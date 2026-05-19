@@ -1,14 +1,14 @@
 package org.openfinance.testutil;
 
+import java.time.LocalDateTime;
 import org.openfinance.entity.User;
 
-import java.time.LocalDateTime;
-
 /**
- * Test data builder for User entity.
- * Provides fluent API for creating test User instances with sensible defaults.
+ * Test data builder for User entity. Provides fluent API for creating test User instances with
+ * sensible defaults.
  *
  * <p>Example usage:
+ *
  * <pre>
  * User user = UserTestBuilder.aUser()
  *     .withUsername("testuser")
@@ -87,14 +87,15 @@ public class UserTestBuilder {
      * @return User entity
      */
     public User build() {
-        User user = User.builder()
-                .username(username)
-                .email(email)
-                .passwordHash(passwordHash)
-                .masterPasswordSalt(masterPasswordSalt)
-                .createdAt(createdAt)
-                .updatedAt(updatedAt)
-                .build();
+        User user =
+                User.builder()
+                        .username(username)
+                        .email(email)
+                        .passwordHash(passwordHash)
+                        .masterPasswordSalt(masterPasswordSalt)
+                        .createdAt(createdAt)
+                        .updatedAt(updatedAt)
+                        .build();
 
         // Use reflection to set ID if needed (since it's generated)
         if (id != null) {

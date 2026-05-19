@@ -12,16 +12,16 @@ import org.springframework.context.annotation.Configuration;
  * <p>Rate limiting strategy:
  *
  * <ul>
- *   <li><strong>General endpoints</strong>: per-user token bucket: 200 requests per minute
- *       (refills every 60 seconds), with a burst capacity of 50 additional tokens.</li>
+ *   <li><strong>General endpoints</strong>: per-user token bucket: 200 requests per minute (refills
+ *       every 60 seconds), with a burst capacity of 50 additional tokens.
  *   <li><strong>Sensitive endpoints</strong> (login, register, password reset, file upload):
  *       stricter per-IP bucket: 10 requests per minute with no burst. This prevents brute-force
- *       attacks and abusive file upload patterns. Requirement TASK-15.1.5.</li>
+ *       attacks and abusive file upload patterns. Requirement TASK-15.1.5.
  * </ul>
  *
- * <p>Buckets are stored in {@link ConcurrentHashMap}s keyed by username or IP. This is an
- * in-memory implementation — appropriate for single-node deployments. For clustered deployments,
- * replace with a distributed cache-backed bucket.
+ * <p>Buckets are stored in {@link ConcurrentHashMap}s keyed by username or IP. This is an in-memory
+ * implementation — appropriate for single-node deployments. For clustered deployments, replace with
+ * a distributed cache-backed bucket.
  *
  * @author Open Finance Team
  * @version 2.0
@@ -46,8 +46,8 @@ public class RateLimitConfig {
     private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
 
     /**
-     * Per-IP bucket store for sensitive endpoints (IP → bucket). Requirement TASK-15.1.5:
-     * stricter rate limiting on auth/upload endpoints.
+     * Per-IP bucket store for sensitive endpoints (IP → bucket). Requirement TASK-15.1.5: stricter
+     * rate limiting on auth/upload endpoints.
      */
     private final ConcurrentHashMap<String, Bucket> sensitiveBuckets = new ConcurrentHashMap<>();
 
@@ -66,8 +66,7 @@ public class RateLimitConfig {
     }
 
     /**
-     * Returns (or creates) a stricter rate-limit bucket for the given IP key (sensitive
-     * endpoints).
+     * Returns (or creates) a stricter rate-limit bucket for the given IP key (sensitive endpoints).
      *
      * <p>Requirement TASK-15.1.5: Dedicated per-IP buckets for login, register, and file upload
      * endpoints to prevent brute-force and DoS attacks. Limit: {@value

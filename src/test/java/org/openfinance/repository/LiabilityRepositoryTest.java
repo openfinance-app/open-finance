@@ -1,5 +1,10 @@
 package org.openfinance.repository;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openfinance.entity.Liability;
@@ -11,30 +16,23 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.TestPropertySource;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 /**
- * Integration tests for LiabilityRepository.
- * Tests CRUD operations, custom queries, and user isolation.
+ * Integration tests for LiabilityRepository. Tests CRUD operations, custom queries, and user
+ * isolation.
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@TestPropertySource(properties = {
-    "spring.flyway.enabled=false",
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
-})
+@TestPropertySource(
+        properties = {
+            "spring.flyway.enabled=false",
+            "spring.jpa.hibernate.ddl-auto=create-drop",
+            "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
+        })
 class LiabilityRepositoryTest {
 
-    @Autowired
-    private TestEntityManager entityManager;
+    @Autowired private TestEntityManager entityManager;
 
-    @Autowired
-    private LiabilityRepository liabilityRepository;
+    @Autowired private LiabilityRepository liabilityRepository;
 
     private User testUser1;
     private User testUser2;
@@ -42,20 +40,22 @@ class LiabilityRepositoryTest {
     @BeforeEach
     void setUp() {
         // Create test users
-        testUser1 = User.builder()
-                .username("user1")
-                .email("user1@test.com")
-                .passwordHash("hash1")
-                .masterPasswordSalt("salt1")
-                .build();
+        testUser1 =
+                User.builder()
+                        .username("user1")
+                        .email("user1@test.com")
+                        .passwordHash("hash1")
+                        .masterPasswordSalt("salt1")
+                        .build();
         entityManager.persist(testUser1);
 
-        testUser2 = User.builder()
-                .username("user2")
-                .email("user2@test.com")
-                .passwordHash("hash2")
-                .masterPasswordSalt("salt2")
-                .build();
+        testUser2 =
+                User.builder()
+                        .username("user2")
+                        .email("user2@test.com")
+                        .passwordHash("hash2")
+                        .masterPasswordSalt("salt2")
+                        .build();
         entityManager.persist(testUser2);
 
         entityManager.flush();
@@ -100,7 +100,7 @@ class LiabilityRepositoryTest {
         Liability liability1 = createLiability(testUser1, "Mortgage", LiabilityType.MORTGAGE);
         Liability liability2 = createLiability(testUser1, "Car Loan", LiabilityType.LOAN);
         Liability liability3 = createLiability(testUser2, "Credit Card", LiabilityType.CREDIT_CARD);
-        
+
         liabilityRepository.save(liability1);
         Thread.sleep(10); // Ensure different timestamps
         liabilityRepository.save(liability2);
@@ -108,7 +108,8 @@ class LiabilityRepositoryTest {
         entityManager.flush();
 
         // When
-        List<Liability> user1Liabilities = liabilityRepository.findByUserIdOrderByCreatedAtDesc(testUser1.getId());
+        List<Liability> user1Liabilities =
+                liabilityRepository.findByUserIdOrderByCreatedAtDesc(testUser1.getId());
 
         // Then
         assertThat(user1Liabilities).hasSize(2);
@@ -124,8 +125,10 @@ class LiabilityRepositoryTest {
         entityManager.flush();
 
         // When
-        Optional<Liability> found = liabilityRepository.findByIdAndUserId(saved.getId(), testUser1.getId());
-        Optional<Liability> notFound = liabilityRepository.findByIdAndUserId(saved.getId(), testUser2.getId());
+        Optional<Liability> found =
+                liabilityRepository.findByIdAndUserId(saved.getId(), testUser1.getId());
+        Optional<Liability> notFound =
+                liabilityRepository.findByIdAndUserId(saved.getId(), testUser2.getId());
 
         // Then
         assertThat(found).isPresent();
@@ -140,7 +143,7 @@ class LiabilityRepositoryTest {
         Liability loan1 = createLiability(testUser1, "Car Loan", LiabilityType.LOAN);
         Liability loan2 = createLiability(testUser1, "Personal Loan", LiabilityType.PERSONAL_LOAN);
         Liability creditCard = createLiability(testUser1, "Credit Card", LiabilityType.CREDIT_CARD);
-        
+
         liabilityRepository.save(mortgage);
         liabilityRepository.save(loan1);
         liabilityRepository.save(loan2);
@@ -148,10 +151,12 @@ class LiabilityRepositoryTest {
         entityManager.flush();
 
         // When
-        List<Liability> loans = liabilityRepository.findByUserIdAndTypeOrderByCreatedAtDesc(
-                testUser1.getId(), LiabilityType.LOAN);
-        List<Liability> mortgages = liabilityRepository.findByUserIdAndTypeOrderByCreatedAtDesc(
-                testUser1.getId(), LiabilityType.MORTGAGE);
+        List<Liability> loans =
+                liabilityRepository.findByUserIdAndTypeOrderByCreatedAtDesc(
+                        testUser1.getId(), LiabilityType.LOAN);
+        List<Liability> mortgages =
+                liabilityRepository.findByUserIdAndTypeOrderByCreatedAtDesc(
+                        testUser1.getId(), LiabilityType.MORTGAGE);
 
         // Then
         assertThat(loans).hasSize(1);
@@ -166,7 +171,7 @@ class LiabilityRepositoryTest {
         Liability liability1 = createLiability(testUser1, "Mortgage", LiabilityType.MORTGAGE);
         Liability liability2 = createLiability(testUser1, "Car Loan", LiabilityType.LOAN);
         Liability liability3 = createLiability(testUser2, "Credit Card", LiabilityType.CREDIT_CARD);
-        
+
         liabilityRepository.save(liability1);
         liabilityRepository.save(liability2);
         liabilityRepository.save(liability3);
@@ -189,8 +194,10 @@ class LiabilityRepositoryTest {
         entityManager.flush();
 
         // When
-        boolean existsForUser1 = liabilityRepository.existsByIdAndUserId(saved.getId(), testUser1.getId());
-        boolean existsForUser2 = liabilityRepository.existsByIdAndUserId(saved.getId(), testUser2.getId());
+        boolean existsForUser1 =
+                liabilityRepository.existsByIdAndUserId(saved.getId(), testUser1.getId());
+        boolean existsForUser2 =
+                liabilityRepository.existsByIdAndUserId(saved.getId(), testUser2.getId());
 
         // Then
         assertThat(existsForUser1).isTrue();
@@ -254,21 +261,24 @@ class LiabilityRepositoryTest {
     @Test
     void shouldIsolateUserData() {
         // Given
-        Liability user1Liability = createLiability(testUser1, "User1 Mortgage", LiabilityType.MORTGAGE);
+        Liability user1Liability =
+                createLiability(testUser1, "User1 Mortgage", LiabilityType.MORTGAGE);
         Liability user2Liability = createLiability(testUser2, "User2 Loan", LiabilityType.LOAN);
-        
+
         liabilityRepository.save(user1Liability);
         liabilityRepository.save(user2Liability);
         entityManager.flush();
 
         // When
-        List<Liability> user1Liabilities = liabilityRepository.findByUserIdOrderByCreatedAtDesc(testUser1.getId());
-        List<Liability> user2Liabilities = liabilityRepository.findByUserIdOrderByCreatedAtDesc(testUser2.getId());
+        List<Liability> user1Liabilities =
+                liabilityRepository.findByUserIdOrderByCreatedAtDesc(testUser1.getId());
+        List<Liability> user2Liabilities =
+                liabilityRepository.findByUserIdOrderByCreatedAtDesc(testUser2.getId());
 
         // Then
         assertThat(user1Liabilities).hasSize(1);
         assertThat(user1Liabilities.get(0).getName()).isEqualTo("User1 Mortgage");
-        
+
         assertThat(user2Liabilities).hasSize(1);
         assertThat(user2Liabilities.get(0).getName()).isEqualTo("User2 Loan");
     }

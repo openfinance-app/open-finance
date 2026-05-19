@@ -21,15 +21,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LoginRequest {
 
-    /**
-     * Username for authentication. Required field that cannot be blank.
-     */
+    /** Username for authentication. Required field that cannot be blank. */
     @NotBlank(message = "{login.username.required}")
     private String username;
 
-    /**
-     * User password for authentication. Required field that cannot be blank.
-     */
+    /** User password for authentication. Required field that cannot be blank. */
     @NotBlank(message = "{login.password.required}")
     private String password;
 

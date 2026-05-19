@@ -6,9 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import javax.crypto.SecretKey;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.TransactionSplitRequest;
 import org.openfinance.dto.TransactionSplitResponse;
 import org.openfinance.entity.Category;
@@ -22,28 +22,29 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * Service responsible for managing transaction split lines.
  *
- * <p>Splits allow a single transaction to be categorized across multiple
- * categories, each with its own amount. This service handles:</p>
+ * <p>Splits allow a single transaction to be categorized across multiple categories, each with its
+ * own amount. This service handles:
+ *
  * <ul>
- *   <li>Validating that split amounts sum to the parent transaction total</li>
- *   <li>Persisting (create / replace) split lines with encrypted descriptions</li>
- *   <li>Fetching and decrypting split lines for response building</li>
- *   <li>Explicit deletion of splits during transaction updates</li>
+ *   <li>Validating that split amounts sum to the parent transaction total
+ *   <li>Persisting (create / replace) split lines with encrypted descriptions
+ *   <li>Fetching and decrypting split lines for response building
+ *   <li>Explicit deletion of splits during transaction updates
  * </ul>
  *
- * <p><strong>Security:</strong> Split descriptions are encrypted with the same
- * AES-256-GCM scheme used for transaction descriptions and notes.</p>
+ * <p><strong>Security:</strong> Split descriptions are encrypted with the same AES-256-GCM scheme
+ * used for transaction descriptions and notes.
  *
- * <p>Requirement REQ-SPL-1.2: Sum validation (±0.01 tolerance)</p>
- * <p>Requirement REQ-SPL-1.5: Splits only valid for INCOME/EXPENSE</p>
- * <p>Requirement REQ-SPL-2.6: Validate split amounts server-side</p>
- * <p>Requirement REQ-SPL-2.7: Delete all splits when parent is deleted</p>
+ * <p>Requirement REQ-SPL-1.2: Sum validation (±0.01 tolerance)
+ *
+ * <p>Requirement REQ-SPL-1.5: Splits only valid for INCOME/EXPENSE
+ *
+ * <p>Requirement REQ-SPL-2.6: Validate split amounts server-side
+ *
+ * <p>Requirement REQ-SPL-2.7: Delete all splits when parent is deleted
  *
  * @see TransactionSplit
  * @see TransactionSplitRepository
@@ -66,27 +67,28 @@ public class TransactionSplitService {
     // -----------------------------------------------------------------------
 
     /**
-     * Validates that the provided split request list is consistent with the
-     * parent transaction.
+     * Validates that the provided split request list is consistent with the parent transaction.
      *
-     * <p>Rules checked:</p>
+     * <p>Rules checked:
+     *
      * <ol>
-     *   <li>Splits are only allowed for INCOME and EXPENSE transactions.</li>
-     *   <li>If splits are provided, there must be at least 2 entries.</li>
-     *   <li>The sum of all split amounts must equal {@code totalAmount} within
-     *       ±{@value #SPLIT_SUM_TOLERANCE}.</li>
+     *   <li>Splits are only allowed for INCOME and EXPENSE transactions.
+     *   <li>If splits are provided, there must be at least 2 entries.
+     *   <li>The sum of all split amounts must equal {@code totalAmount} within ±{@value
+     *       #SPLIT_SUM_TOLERANCE}.
      * </ol>
      *
-     * @param totalAmount    the parent transaction amount
+     * @param totalAmount the parent transaction amount
      * @param transactionType the type of the parent transaction
-     * @param splits         the list of split requests (may be null/empty)
+     * @param splits the list of split requests (may be null/empty)
      * @throws InvalidTransactionException if any validation rule is violated
-     *
-     * <p>Requirement REQ-SPL-1.2: Sum must equal parent amount (±0.01)</p>
-     * <p>Requirement REQ-SPL-1.5: Splits only for INCOME/EXPENSE</p>
-     * <p>Requirement REQ-SPL-2.6: Server-side amount validation</p>
+     *     <p>Requirement REQ-SPL-1.2: Sum must equal parent amount (±0.01)
+     *     <p>Requirement REQ-SPL-1.5: Splits only for INCOME/EXPENSE
+     *     <p>Requirement REQ-SPL-2.6: Server-side amount validation
      */
-    public void validateSplits(BigDecimal totalAmount, TransactionType transactionType,
+    public void validateSplits(
+            BigDecimal totalAmount,
+            TransactionType transactionType,
             List<TransactionSplitRequest> splits) {
 
         if (CollectionUtils.isEmpty(splits)) {
@@ -106,10 +108,11 @@ public class TransactionSplitService {
         }
 
         // REQ-SPL-1.2 / REQ-SPL-2.6: sum check
-        BigDecimal splitSum = splits.stream()
-                .map(TransactionSplitRequest::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(4, RoundingMode.HALF_UP);
+        BigDecimal splitSum =
+                splits.stream()
+                        .map(TransactionSplitRequest::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .setScale(4, RoundingMode.HALF_UP);
 
         BigDecimal expected = totalAmount.setScale(4, RoundingMode.HALF_UP);
         BigDecimal difference = expected.subtract(splitSum).abs();
@@ -119,10 +122,17 @@ public class TransactionSplitService {
                     String.format(
                             "Split amounts sum to %s but parent transaction amount is %s "
                                     + "(difference %s exceeds allowed tolerance of %s)",
-                            splitSum.stripTrailingZeros(), expected, difference, SPLIT_SUM_TOLERANCE));
+                            splitSum.stripTrailingZeros(),
+                            expected,
+                            difference,
+                            SPLIT_SUM_TOLERANCE));
         }
 
-        log.debug("Split validation passed: {} splits, sum={}, expected={}", splits.size(), splitSum, expected);
+        log.debug(
+                "Split validation passed: {} splits, sum={}, expected={}",
+                splits.size(),
+                splitSum,
+                expected);
     }
 
     // -----------------------------------------------------------------------
@@ -132,21 +142,21 @@ public class TransactionSplitService {
     /**
      * Persists (or replaces) all splits for a transaction.
      *
-     * <p>Uses a delete-and-insert strategy: all existing splits for
-     * {@code transactionId} are deleted first, then the new ones are inserted.
-     * This is safe because it happens within the same database transaction.</p>
+     * <p>Uses a delete-and-insert strategy: all existing splits for {@code transactionId} are
+     * deleted first, then the new ones are inserted. This is safe because it happens within the
+     * same database transaction.
      *
-     * <p>If {@code splits} is null or empty, only the delete step is executed
-     * (all existing splits are removed).</p>
+     * <p>If {@code splits} is null or empty, only the delete step is executed (all existing splits
+     * are removed).
      *
      * @param transactionId the parent transaction ID
-     * @param splits        the new split list (may be null/empty to clear splits)
+     * @param splits the new split list (may be null/empty to clear splits)
      * @param encryptionKey AES-256 key for encrypting descriptions
-     *
-     * <p>Requirement REQ-SPL-2.1: Save splits on create</p>
-     * <p>Requirement REQ-SPL-2.2: Replace splits on update</p>
+     *     <p>Requirement REQ-SPL-2.1: Save splits on create
+     *     <p>Requirement REQ-SPL-2.2: Replace splits on update
      */
-    public void saveSplits(Long transactionId, List<TransactionSplitRequest> splits, SecretKey encryptionKey) {
+    public void saveSplits(
+            Long transactionId, List<TransactionSplitRequest> splits, SecretKey encryptionKey) {
         // Delete existing splits first (replace semantics)
         splitRepository.deleteByTransactionId(transactionId);
         splitRepository.flush(); // Ensure deletes are flushed before inserts
@@ -158,15 +168,17 @@ public class TransactionSplitService {
 
         List<TransactionSplit> entities = new ArrayList<>(splits.size());
         for (TransactionSplitRequest req : splits) {
-            TransactionSplit split = TransactionSplit.builder()
-                    .transactionId(transactionId)
-                    .categoryId(req.getCategoryId())
-                    .amount(req.getAmount())
-                    .build();
+            TransactionSplit split =
+                    TransactionSplit.builder()
+                            .transactionId(transactionId)
+                            .categoryId(req.getCategoryId())
+                            .amount(req.getAmount())
+                            .build();
 
             // Encrypt description if provided (REQ-SPL security)
             if (req.getDescription() != null && !req.getDescription().isBlank()) {
-                split.setDescription(encryptionService.encrypt(req.getDescription(), encryptionKey));
+                split.setDescription(
+                        encryptionService.encrypt(req.getDescription(), encryptionKey));
             }
 
             entities.add(split);
@@ -179,13 +191,11 @@ public class TransactionSplitService {
     /**
      * Explicitly deletes all split lines for a given transaction.
      *
-     * <p>This is primarily used as a service-layer operation during transaction
-     * soft-delete. The database FK {@code ON DELETE CASCADE} also handles this
-     * automatically on hard-delete.</p>
+     * <p>This is primarily used as a service-layer operation during transaction soft-delete. The
+     * database FK {@code ON DELETE CASCADE} also handles this automatically on hard-delete.
      *
      * @param transactionId the parent transaction ID
-     *
-     * <p>Requirement REQ-SPL-2.7: Delete all splits when parent is deleted</p>
+     *     <p>Requirement REQ-SPL-2.7: Delete all splits when parent is deleted
      */
     public void deleteSplitsForTransaction(Long transactionId) {
         splitRepository.deleteByTransactionId(transactionId);
@@ -197,18 +207,18 @@ public class TransactionSplitService {
     // -----------------------------------------------------------------------
 
     /**
-     * Fetches and decrypts all splits for a single transaction, building the
-     * full {@link TransactionSplitResponse} list with denormalized category data.
+     * Fetches and decrypts all splits for a single transaction, building the full {@link
+     * TransactionSplitResponse} list with denormalized category data.
      *
      * @param transactionId the parent transaction ID
      * @param encryptionKey AES-256 key for decrypting descriptions
      * @return ordered list of decrypted split responses (may be empty)
-     *
-     * <p>Requirement REQ-SPL-2.3: Return splits in single-transaction GET</p>
-     * <p>Requirement REQ-SPL-2.5: Dedicated endpoint retrieval</p>
+     *     <p>Requirement REQ-SPL-2.3: Return splits in single-transaction GET
+     *     <p>Requirement REQ-SPL-2.5: Dedicated endpoint retrieval
      */
     @Transactional(readOnly = true)
-    public List<TransactionSplitResponse> getSplitsForTransaction(Long transactionId, SecretKey encryptionKey) {
+    public List<TransactionSplitResponse> getSplitsForTransaction(
+            Long transactionId, SecretKey encryptionKey) {
         List<TransactionSplit> splits = splitRepository.findByTransactionIdOrderById(transactionId);
         return splits.stream()
                 .map(split -> toResponse(split, encryptionKey))
@@ -216,16 +226,14 @@ public class TransactionSplitService {
     }
 
     /**
-     * Fetches and decrypts splits for a batch of transaction IDs, grouped by
-     * transaction ID.
+     * Fetches and decrypts splits for a batch of transaction IDs, grouped by transaction ID.
      *
-     * <p>Used when building list/search responses to avoid N+1 query issues.</p>
+     * <p>Used when building list/search responses to avoid N+1 query issues.
      *
      * @param transactionIds list of parent transaction IDs
-     * @param encryptionKey  AES-256 key for decrypting descriptions
+     * @param encryptionKey AES-256 key for decrypting descriptions
      * @return map from transactionId to its list of split responses
-     *
-     * <p>Requirement REQ-SPL-2.4: Include splits in list responses</p>
+     *     <p>Requirement REQ-SPL-2.4: Include splits in list responses
      */
     @Transactional(readOnly = true)
     public Map<Long, List<TransactionSplitResponse>> getSplitsForTransactions(
@@ -237,9 +245,12 @@ public class TransactionSplitService {
 
         List<TransactionSplit> allSplits = splitRepository.findByTransactionIdIn(transactionIds);
         return allSplits.stream()
-                .collect(Collectors.groupingBy(
-                        TransactionSplit::getTransactionId,
-                        Collectors.mapping(split -> toResponse(split, encryptionKey), Collectors.toList())));
+                .collect(
+                        Collectors.groupingBy(
+                                TransactionSplit::getTransactionId,
+                                Collectors.mapping(
+                                        split -> toResponse(split, encryptionKey),
+                                        Collectors.toList())));
     }
 
     // -----------------------------------------------------------------------
@@ -247,26 +258,31 @@ public class TransactionSplitService {
     // -----------------------------------------------------------------------
 
     /**
-     * Converts a {@link TransactionSplit} entity to a {@link TransactionSplitResponse},
-     * decrypting the description and denormalizing category metadata.
+     * Converts a {@link TransactionSplit} entity to a {@link TransactionSplitResponse}, decrypting
+     * the description and denormalizing category metadata.
      *
-     * @param split         the entity to convert
+     * @param split the entity to convert
      * @param encryptionKey AES-256 key for decryption
      * @return the populated response DTO
      */
     private TransactionSplitResponse toResponse(TransactionSplit split, SecretKey encryptionKey) {
-        TransactionSplitResponse.TransactionSplitResponseBuilder builder = TransactionSplitResponse.builder()
-                .id(split.getId())
-                .transactionId(split.getTransactionId())
-                .categoryId(split.getCategoryId())
-                .amount(split.getAmount());
+        TransactionSplitResponse.TransactionSplitResponseBuilder builder =
+                TransactionSplitResponse.builder()
+                        .id(split.getId())
+                        .transactionId(split.getTransactionId())
+                        .categoryId(split.getCategoryId())
+                        .amount(split.getAmount());
 
         // Decrypt description if present
         if (split.getDescription() != null && !split.getDescription().isBlank()) {
             try {
-                builder.description(encryptionService.decrypt(split.getDescription(), encryptionKey));
+                builder.description(
+                        encryptionService.decrypt(split.getDescription(), encryptionKey));
             } catch (Exception e) {
-                log.warn("Failed to decrypt description for split {}: {}", split.getId(), e.getMessage());
+                log.warn(
+                        "Failed to decrypt description for split {}: {}",
+                        split.getId(),
+                        e.getMessage());
                 builder.description(null);
             }
         }
@@ -279,11 +295,14 @@ public class TransactionSplitService {
                     .categoryColor(category.getColor());
         } else if (split.getCategoryId() != null) {
             // Relationship not loaded — fall back to a direct repository look-up
-            categoryRepository.findById(split.getCategoryId()).ifPresent(cat -> {
-                builder.categoryName(cat.getName())
-                        .categoryIcon(cat.getIcon())
-                        .categoryColor(cat.getColor());
-            });
+            categoryRepository
+                    .findById(split.getCategoryId())
+                    .ifPresent(
+                            cat -> {
+                                builder.categoryName(cat.getName())
+                                        .categoryIcon(cat.getIcon())
+                                        .categoryColor(cat.getColor());
+                            });
         }
 
         return builder.build();

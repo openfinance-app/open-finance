@@ -2,7 +2,8 @@ package org.openfinance.controller;
 
 import java.util.List;
 import java.util.Map;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.NotificationResponse;
 import org.openfinance.service.ExchangeRateService;
 import org.openfinance.service.NotificationService;
@@ -13,17 +14,12 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * REST controller for system notifications.
  *
- * <p>
- * Provides endpoints for retrieving various types of notifications
- * that require user attention, and for triggering in-app actions
- * surfaced by those notifications (e.g. refreshing exchange rates).
- * </p>
+ * <p>Provides endpoints for retrieving various types of notifications that require user attention,
+ * and for triggering in-app actions surfaced by those notifications (e.g. refreshing exchange
+ * rates).
  */
 @RestController
 @RequestMapping("/api/v1/notifications")
@@ -60,8 +56,7 @@ public class NotificationController {
      * @return notification count
      */
     @GetMapping("/count")
-    public ResponseEntity<Integer> getNotificationCount(
-            @RequestAttribute("userId") Long userId) {
+    public ResponseEntity<Integer> getNotificationCount(@RequestAttribute("userId") Long userId) {
 
         log.debug("GET /api/v1/notifications/count - userId: {}", userId);
 
@@ -76,13 +71,12 @@ public class NotificationController {
     /**
      * Triggers an immediate exchange rate refresh.
      *
-     * <p>This endpoint is surfaced as an inline action on the
-     * {@code STALE_EXCHANGE_RATES} notification so that any authenticated user
-     * can refresh stale rates directly from the notification dropdown without
-     * navigating to the currencies management page.</p>
+     * <p>This endpoint is surfaced as an inline action on the {@code STALE_EXCHANGE_RATES}
+     * notification so that any authenticated user can refresh stale rates directly from the
+     * notification dropdown without navigating to the currencies management page.
      *
-     * @return a JSON object with {@code updatedCount} indicating how many rates
-     *         were stored, and a human-readable {@code message}
+     * @return a JSON object with {@code updatedCount} indicating how many rates were stored, and a
+     *     human-readable {@code message}
      */
     @PostMapping("/actions/update-exchange-rates")
     public ResponseEntity<Map<String, Object>> triggerExchangeRateUpdate() {
@@ -92,8 +86,11 @@ public class NotificationController {
 
         log.info("Exchange rate update completed: {} rates refreshed", updatedCount);
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Exchange rates updated successfully",
-                "updatedCount", updatedCount));
+        return ResponseEntity.ok(
+                Map.of(
+                        "message",
+                        "Exchange rates updated successfully",
+                        "updatedCount",
+                        updatedCount));
     }
 }

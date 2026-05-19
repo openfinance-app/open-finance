@@ -79,7 +79,7 @@ spring:
 application:
   version: 0.1.0
   
-  seed:
+  test-data-seed:
     enabled: false
   logo-fetch:
     enabled: false          # set to true to enable automatic logo fetching on creation

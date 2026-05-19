@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -15,18 +16,17 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import jakarta.persistence.PrePersist;
 
 /**
  * Persistent record of a single Create / Update / Delete mutation on a financial entity.
  *
- * <p>Stored in the {@code operation_history} table. Used to drive the Undo/Redo feature: the
- * {@code entitySnapshotJson} field holds a full JSON snapshot of the entity <em>before</em> the
- * change so that any operation can be undone without loss of data.
+ * <p>Stored in the {@code operation_history} table. Used to drive the Undo/Redo feature: the {@code
+ * entitySnapshotJson} field holds a full JSON snapshot of the entity <em>before</em> the change so
+ * that any operation can be undone without loss of data.
  *
  * <p>Write operations are performed outside any active transaction (propagation NOT_SUPPORTED) to
- * avoid SQLite WAL BUSY_SNAPSHOT conflicts — identical to the pattern used in
- * {@code SecurityAuditService}.
+ * avoid SQLite WAL BUSY_SNAPSHOT conflicts — identical to the pattern used in {@code
+ * SecurityAuditService}.
  */
 @Entity
 @Table(

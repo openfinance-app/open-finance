@@ -145,21 +145,23 @@ public class JwtService {
     public Long extractUserId(String token) {
         // JWT libraries may parse numeric claims as Integer or Long depending on the value.
         // Read as Number and convert to Long to be robust.
-        return extractClaim(token, claims -> {
-            Object raw = claims.get("userId");
-            if (raw == null) {
-                return null;
-            }
-            if (raw instanceof Number) {
-                return ((Number) raw).longValue();
-            }
-            // Fallback: try parsing as string
-            try {
-                return Long.parseLong(raw.toString());
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid userId claim type", e);
-            }
-        });
+        return extractClaim(
+                token,
+                claims -> {
+                    Object raw = claims.get("userId");
+                    if (raw == null) {
+                        return null;
+                    }
+                    if (raw instanceof Number) {
+                        return ((Number) raw).longValue();
+                    }
+                    // Fallback: try parsing as string
+                    try {
+                        return Long.parseLong(raw.toString());
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("Invalid userId claim type", e);
+                    }
+                });
     }
 
     /**
