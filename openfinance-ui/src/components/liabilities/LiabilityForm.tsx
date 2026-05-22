@@ -30,8 +30,8 @@ const liabilityTypes: LiabilityType[] = [
   'OTHER',
 ];
 
-const liabilitySchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
+const liabilitySchema = (tv: (key: string) => string) => z.object({
+  name: z.string().min(1, tv('form.validation.nameRequired')).max(100, tv('form.validation.nameTooLong')),
   type: z.enum([
     'MORTGAGE',
     'LOAN',
@@ -41,18 +41,18 @@ const liabilitySchema = z.object({
     'PERSONAL_LOAN',
     'OTHER',
   ]),
-  principal: z.number().positive('Principal must be greater than 0').min(0.01, 'Principal is too small'),
-  currentBalance: z.number().min(0, 'Balance cannot be negative'),
-  interestRate: z.number().min(0, 'Interest rate cannot be negative').max(100, 'Interest rate cannot exceed 100%').optional().or(z.literal(0)),
-  startDate: z.string().min(1, 'Start date is required').regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional().or(z.literal('')),
-  minimumPayment: z.number().min(0, 'Payment cannot be negative').optional().or(z.literal(0)),
-  currency: z.string().length(3, 'Currency must be a 3-letter code'),
-  notes: z.string().max(500, 'Notes are too long').optional().or(z.literal('')),
+  principal: z.number().positive(tv('form.validation.principalPositive')).min(0.01, tv('form.validation.principalTooSmall')),
+  currentBalance: z.number().min(0, tv('form.validation.balanceNonNegative')),
+  interestRate: z.number().min(0, tv('form.validation.interestRateNonNegative')).max(100, tv('form.validation.interestRateMax')).optional().or(z.literal(0)),
+  startDate: z.string().min(1, tv('form.validation.startDateRequired')).regex(/^\d{4}-\d{2}-\d{2}$/, tv('form.validation.invalidDateFormat')),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, tv('form.validation.invalidDateFormat')).optional().or(z.literal('')),
+  minimumPayment: z.number().min(0, tv('form.validation.paymentNonNegative')).optional().or(z.literal(0)),
+  currency: z.string().length(3, tv('form.validation.currencyCode')),
+  notes: z.string().max(500, tv('form.validation.notesTooLong')).optional().or(z.literal('')),
   institutionId: z.string().optional(),
   // Requirement 1.1: Insurance percentage (annual, 0–100%) and one-time/periodic additional fees
-  insurancePercentage: z.number().min(0, 'Insurance rate cannot be negative').max(100, 'Insurance rate cannot exceed 100%').optional().or(z.literal(0)),
-  additionalFees: z.number().min(0, 'Fees cannot be negative').optional().or(z.literal(0)),
+  insurancePercentage: z.number().min(0, tv('form.validation.insuranceRateNonNegative')).max(100, tv('form.validation.insuranceRateMax')).optional().or(z.literal(0)),
+  additionalFees: z.number().min(0, tv('form.validation.feesNonNegative')).optional().or(z.literal(0)),
   realEstateId: z.number().optional(),
 }).refine(
   (data) => {
@@ -60,12 +60,12 @@ const liabilitySchema = z.object({
     return data.endDate > data.startDate;
   },
   {
-    message: 'End date must be after start date',
+    message: tv('form.validation.endDateAfterStart'),
     path: ['endDate'],
   }
 );
 
-type LiabilityFormData = z.infer<typeof liabilitySchema>;
+type LiabilityFormData = z.infer<ReturnType<typeof liabilitySchema>>;
 
 interface LiabilityFormProps {
   liability?: Liability;
@@ -90,7 +90,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
     watch,
     formState: { errors },
   } = useForm<LiabilityFormData>({
-    resolver: zodResolver(liabilitySchema),
+    resolver: zodResolver(liabilitySchema(t)),
     defaultValues: liability
       ? {
         name: liability.name,

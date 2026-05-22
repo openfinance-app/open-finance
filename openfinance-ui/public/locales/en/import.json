@@ -193,5 +193,29 @@
     "amountRequired": "Transaction amount is required",
     "amountZero": "Transaction amount cannot be zero",
     "dateFuture": "Transaction date cannot be in the future"
+  },
+  "categoryMapping": {
+    "title": "Map Categories",
+    "description": "Map imported categories to your existing categories",
+    "unmapped": "{{count}} unmapped",
+    "selectCategory": "Select category...",
+    "createNew": "+ Create new category",
+    "skip": "Skip (no category)",
+    "createNewTitle": "Create new category",
+    "mappedTo": "Mapped to:",
+    "notMapped": "Not mapped",
+    "unknown": "Unknown",
+    "createDialogTitle": "Create New Category",
+    "categoryName": "Category Name",
+    "enterCategoryName": "Enter category name",
+    "type": "Type",
+    "expense": "Expense",
+    "income": "Income",
+    "cancel": "Cancel",
+    "createCategory": "Create Category",
+    "summaryFound": "unique categories found.",
+    "summaryMapped": "mapped",
+    "summaryUnmapped": "unmapped",
+    "summaryNote": "Unmapped categories will not be assigned to transactions. You can skip them or create new categories."
   }
 }

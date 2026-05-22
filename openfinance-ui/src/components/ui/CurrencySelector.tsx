@@ -96,7 +96,7 @@ export function CurrencySelector({
     return (
       <div className="flex h-10 w-full items-center justify-center rounded-lg border border-border bg-surface px-3 py-2">
         <Loader2 className="h-4 w-4 animate-spin text-text-muted" />
-        <span className="ml-2 text-sm text-text-muted">Loading currencies...</span>
+        <span className="ml-2 text-sm text-text-muted">{tc('loading')}</span>
       </div>
     );
   }
@@ -104,7 +104,7 @@ export function CurrencySelector({
   if (isError || !currencies) {
     return (
       <div className="flex h-10 w-full items-center justify-center rounded-lg border border-error bg-surface px-3 py-2">
-        <span className="text-sm text-error">Failed to load currencies</span>
+        <span className="text-sm text-error">{tc('loadError')}</span>
       </div>
     );
   }
@@ -152,7 +152,7 @@ export function CurrencySelector({
           )}
         >
           {allowNone && !value ? (
-            <span className="text-text-muted">All currencies</span>
+            <span className="text-text-muted">{t('allCurrencies')}</span>
           ) : (
             <CurrencyTriggerLabel
               currency={selectedCurrency}
@@ -229,13 +229,13 @@ export function CurrencySelector({
                 <span className="w-4 shrink-0">
                   {!value && <Check className="h-4 w-4 text-primary" />}
                 </span>
-                <span className="text-text-muted">All currencies</span>
+                <span className="text-text-muted">{t('allCurrencies')}</span>
               </button>
             )}
 
             {visibleCurrencies.length === 0 ? (
               <div className="p-3 text-center text-sm text-text-muted">
-                No currencies match your search
+                {t('noMatch')}
               </div>
             ) : (
               visibleCurrencies.map((currency: Currency) => {

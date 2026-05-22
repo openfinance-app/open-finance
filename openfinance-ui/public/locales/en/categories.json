@@ -89,6 +89,7 @@
     "expense": "Expense",
     "income": "Income",
     "parentCategory": "Parent Category (Optional)",
+    "selectParentCategory": "Select parent category...",
     "color": "Color",
     "icon": "Icon",
     "cancel": "Cancel",

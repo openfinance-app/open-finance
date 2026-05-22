@@ -3,6 +3,7 @@
   "description": "Manage your financial institutions. Default EU institutions cannot be modified.",
   "addInstitution": "Add Institution",
   "searchPlaceholder": "Search institutions...",
+  "searchInstitution": "Search institution",
   "loadError": "Failed to load institutions. Please try again.",
   "custom": {
     "title": "Custom Institutions",

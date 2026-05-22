@@ -61,45 +61,34 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
       className="p-6 hover:bg-surface-elevated transition-colors duration-150 group cursor-pointer"
       onClick={handleCardClick}
     >
-      <div className="flex items-start justify-between">
-        {/* Icon and Info */}
-        <div className="flex items-start gap-4 flex-1">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            {account.institution?.logo ? (
-              <img
-                src={account.institution.logo}
-                alt=""
-                className="h-8 w-8 rounded object-contain bg-surface"
-              />
-            ) : (
-              accountTypeIcons[account.type]
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-text-primary truncate">
-              {account.name}
-            </h3>
-            <p className="text-sm text-text-secondary mt-0.5">
-              {t(`form.types.${account.type}`)}
-            </p>
-
-            {account.institution && (
-              <p className="text-sm text-text-tertiary mt-1">
-                {account.institution.name}
-              </p>
-            )}
-
-            {account.description && (
-              <p className="text-sm text-text-tertiary mt-2 line-clamp-2">
-                {account.description}
-              </p>
-            )}
-          </div>
+      <div className="flex items-start gap-4">
+        {/* Icon */}
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          {account.institution?.logo ? (
+            <img
+              src={account.institution.logo}
+              alt=""
+              className="h-8 w-8 rounded object-contain bg-surface"
+            />
+          ) : (
+            accountTypeIcons[account.type]
+          )}
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1 ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+        {/* Info + Actions */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h3 className="text-lg font-semibold text-text-primary truncate">
+                {account.name}
+              </h3>
+              <p className="text-sm text-text-secondary mt-0.5">
+                {t(`form.types.${account.type}`)}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
           <Button
             variant="ghost"
             size="sm"
@@ -161,6 +150,20 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
           >
             <Trash2 className="h-4 w-4" />
           </Button>
+            </div>
+          </div>
+
+          {account.institution && (
+            <p className="text-sm text-text-tertiary mt-1 truncate">
+              {account.institution.name}
+            </p>
+          )}
+
+          {account.description && (
+            <p className="text-sm text-text-tertiary mt-2 line-clamp-2">
+              {account.description}
+            </p>
+          )}
         </div>
       </div>
 

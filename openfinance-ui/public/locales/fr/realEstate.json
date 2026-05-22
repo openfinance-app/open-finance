@@ -111,7 +111,25 @@
     "propertyIsActive": "Le bien est actif",
     "createProperty": "Créer le bien",
     "updateProperty": "Mettre à jour le bien",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "validation": {
+      "nameRequired": "Le nom est obligatoire",
+      "nameTooLong": "Le nom est trop long",
+      "addressRequired": "L'adresse est obligatoire",
+      "addressTooLong": "L'adresse est trop longue",
+      "purchasePricePositive": "Le prix d'achat doit être positif",
+      "priceTooSmall": "Le prix est trop petit",
+      "purchaseDateRequired": "La date d'achat est obligatoire",
+      "invalidDateFormat": "Format de date invalide",
+      "currentValuePositive": "La valeur actuelle doit être positive",
+      "valueTooSmall": "La valeur est trop petite",
+      "currencyCode": "La devise doit être un code de 3 lettres",
+      "rentalIncomeNonNegative": "Les revenus locatifs ne peuvent pas être négatifs",
+      "notesTooLong": "Les notes sont trop longues",
+      "latitudeRange": "La latitude doit être entre -90 et 90",
+      "longitudeRange": "La longitude doit être entre -180 et 180",
+      "purchaseDateFuture": "La date d'achat ne peut pas être dans le futur"
+    }
   },
   "card": {
     "purchased": "Acquis le",
@@ -121,6 +139,11 @@
     "inactive": "Inactif",
     "deleteTitle": "Supprimer le bien",
     "deleteConfirm": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ? Cette action est irréversible."
+  },
+  "propertySelector": {
+    "selectProperty": "Sélectionner un bien existant...",
+    "searchProperties": "Rechercher des biens...",
+    "noMatch": "Aucun bien ne correspond"
   },
   "comparator": {
     "title": "Comparateur Achat vs Location",

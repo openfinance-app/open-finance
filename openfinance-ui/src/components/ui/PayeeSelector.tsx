@@ -10,6 +10,7 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Popover,
   PopoverContent,
@@ -37,17 +38,26 @@ interface PayeeSelectorProps {
   allowNewPayee?: boolean;
 }
 
-const CATEGORY_NAMES: Record<string, string> = {
-  shopping: 'Shopping',
-  entertainment: 'Entertainment',
-  utilities: 'Utilities',
-  groceries: 'Groceries',
-  transport: 'Transport',
-  restaurants: 'Restaurants',
-  health: 'Health',
-  financial: 'Financial',
-  insurance: 'Insurance',
-  education: 'Education',
+function getCategoryName(category: string, t: (key: string) => string): string {
+  const key = CATEGORY_KEYS[category];
+  if (key) {
+    return t(`categories:names.${key}`);
+  }
+  // For categories not in our map, try a direct lookup
+  return t(`categories:names.${category}`, { defaultValue: category });
+}
+
+const CATEGORY_KEYS: Record<string, string> = {
+  shopping: 'shopping',
+  entertainment: 'entertainment',
+  utilities: 'utilities',
+  groceries: 'groceries',
+  transport: 'transportation',
+  restaurants: 'restaurants',
+  health: 'healthcare',
+  financial: 'business',
+  insurance: 'insurance',
+  education: 'education',
 };
 
 function shouldShowUseNew(
@@ -72,6 +82,7 @@ export function PayeeSelector({
   allowNone = true,
   allowNewPayee = true,
 }: PayeeSelectorProps) {
+  const { t } = useTranslation(['payees', 'categories', 'common']);
   const { data: payees, isLoading, isError } = useActivePayees();
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -109,11 +120,11 @@ export function PayeeSelector({
   // Get sorted categories
   const sortedCategories = useMemo(() => {
     return Object.keys(groupedPayees).sort((a, b) => {
-      const nameA = CATEGORY_NAMES[a] || a;
-      const nameB = CATEGORY_NAMES[b] || b;
+      const nameA = getCategoryName(a, t);
+      const nameB = getCategoryName(b, t);
       return nameA.localeCompare(nameB);
     });
-  }, [groupedPayees]);
+  }, [groupedPayees, t]);
 
   const selectedPayee = value
     ? payees?.find((p) => p.name === value)
@@ -218,12 +229,12 @@ export function PayeeSelector({
                   <span>{selectedPayee.name}</span>
                   {selectedPayee.category && (
                     <span className="text-text-muted text-xs">
-                      ({CATEGORY_NAMES[selectedPayee.category] || selectedPayee.category})
+                      ({getCategoryName(selectedPayee.category, t)})
                     </span>
                   )}
                 </span>
               ) : value === undefined && allowNone ? (
-                <span className="text-text-muted">None</span>
+                <span className="text-text-muted">{t('common:none')}</span>
               ) : (
                 <span className="text-text-muted">{placeholder}</span>
               )}
@@ -262,7 +273,7 @@ export function PayeeSelector({
               onKeyDown={(event) => {
                 if (event.key === 'Escape') setIsOpen(false);
               }}
-              placeholder="Search payee"
+              placeholder={t('payees:searchPayee')}
               className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
               autoFocus
             />
@@ -287,7 +298,7 @@ export function PayeeSelector({
                 <span className="flex h-4 w-4 items-center justify-center shrink-0">
                   <User className="h-4 w-4 text-text-muted" />
                 </span>
-                <span className="text-text-muted">None</span>
+                <span className="text-text-muted">{t('common:none')}</span>
               </div>
             </button>
           )}
@@ -297,7 +308,7 @@ export function PayeeSelector({
             <div key={category} className="mt-2">
               {/* Category header */}
               <div className="px-2 py-1 text-xs font-semibold text-text-muted">
-                {CATEGORY_NAMES[category] || category}
+                {getCategoryName(category, t)}
               </div>
 
               {/* Payees in this category */}
@@ -327,7 +338,7 @@ export function PayeeSelector({
           {/* Empty state */}
           {sortedCategories.length === 0 && !shouldShowUseNew(searchQuery, payees, allowNewPayee) && (
             <div className="p-2 text-center text-sm text-text-muted">
-              No payees match your search
+              {t('payees:noMatch')}
             </div>
           )}
 
@@ -340,7 +351,7 @@ export function PayeeSelector({
             >
               <div className="flex items-center gap-2 text-primary">
                 <span>✨</span>
-                <span>Use &ldquo;{searchQuery.trim()}&rdquo;</span>
+                <span>{t('payees:useNew')} &ldquo;{searchQuery.trim()}&rdquo;</span>
               </div>
             </button>
           )}

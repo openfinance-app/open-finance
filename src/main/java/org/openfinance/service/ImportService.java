@@ -1324,32 +1324,42 @@ public class ImportService {
                 continue;
             }
 
-            // 1. Try Auto-Categorization based on user history
-            Optional<AutoCategorizationService.Prediction> predictionOpt = autoCategorizationService
-                    .predictCategoryAndPayee(tx, userId);
+            // 1. If the imported file already provides a category, skip
+            // auto-categorization and go straight to category matching.
+            // File-supplied categories (e.g. QIF L-field, OFX category) are explicit
+            // user assignments from the source system and should take precedence over
+            // history-based guessing.
+            boolean hasFileCategory = tx.getCategory() != null && !tx.getCategory().trim().isEmpty();
 
-            if (predictionOpt.isPresent()) {
-                AutoCategorizationService.Prediction prediction = predictionOpt.get();
-                tx.setCategory(prediction.suggestedCategoryName());
-                tx.setCategorizationConfidence(prediction.confidenceScore());
-                if (prediction.suggestedPayee() != null) {
-                    tx.setPayee(prediction.suggestedPayee());
+            if (!hasFileCategory) {
+                // 2. Try Auto-Categorization based on user history (only when no
+                // file-supplied category)
+                Optional<AutoCategorizationService.Prediction> predictionOpt = autoCategorizationService
+                        .predictCategoryAndPayee(tx, userId);
+
+                if (predictionOpt.isPresent()) {
+                    AutoCategorizationService.Prediction prediction = predictionOpt.get();
+                    tx.setCategory(prediction.suggestedCategoryName());
+                    tx.setCategorizationConfidence(prediction.confidenceScore());
+                    if (prediction.suggestedPayee() != null) {
+                        tx.setPayee(prediction.suggestedPayee());
+                    }
+
+                    tx.addValidationError(
+                            String.format(
+                                    "AUTO-MATCH: Category and Payee assigned based on past"
+                                            + " transaction history (Confidence: %.0f%%)",
+                                    prediction.confidenceScore() * 100));
+                    log.debug(
+                            "Auto-matched transaction: category='{}', payee='{}', confidence={}",
+                            prediction.suggestedCategoryName(),
+                            prediction.suggestedPayee(),
+                            prediction.confidenceScore());
+                    continue; // Move to next transaction
                 }
 
-                tx.addValidationError(
-                        String.format(
-                                "AUTO-MATCH: Category and Payee assigned based on past transaction history (Confidence: %.0f%%)",
-                                prediction.confidenceScore() * 100));
-                log.debug(
-                        "Auto-matched transaction: category='{}', payee='{}', confidence={}",
-                        prediction.suggestedCategoryName(),
-                        prediction.suggestedPayee(),
-                        prediction.confidenceScore());
-                continue; // Move to next transaction
-            }
-
-            if (tx.getCategory() == null || tx.getCategory().trim().isEmpty()) {
-                continue; // Skip transactions without category
+                // No auto-match and no file category — nothing more to do
+                continue;
             }
 
             String importedCategory = tx.getCategory().trim();

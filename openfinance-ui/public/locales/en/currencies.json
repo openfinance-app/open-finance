@@ -1,4 +1,6 @@
 {
+  "allCurrencies": "All currencies",
+  "noMatch": "No currencies match your search",
   "currency": {
     "ADP": "Andorran Peseta",
     "AED": "United Arab Emirates Dirham",

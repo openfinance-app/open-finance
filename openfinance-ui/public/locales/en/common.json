@@ -12,6 +12,7 @@
   "filters": "Filters",
   "noResults": "No results found",
   "error": "An error occurred",
+  "loadError": "Failed to load data",
   "success": "Success",
   "lastUpdated": {
     "updated": "Updated {{time}}",
@@ -42,6 +43,12 @@
   "yes": "Yes",
   "no": "No",
   "ok": "OK",
+  "none": "None",
+  "country": {
+    "selectCountry": "Select country",
+    "searchCountry": "Search country\u2026",
+    "noMatch": "No countries match"
+  },
   "done": "Done",
   "optional": "Optional",
   "required": "Required",

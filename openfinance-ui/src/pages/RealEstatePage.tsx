@@ -242,12 +242,12 @@ export default function RealEstatePage() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader
           title={t('title')}
           description={t('description')}
         />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
             variant={showFilters ? 'primary' : 'outline'}
             onClick={() => setShowFilters(!showFilters)}

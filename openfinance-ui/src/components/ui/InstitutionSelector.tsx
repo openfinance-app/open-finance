@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Select,
   SelectContent,
@@ -55,6 +56,7 @@ export function InstitutionSelector({
   className,
   allowNone = true,
 }: InstitutionSelectorProps) {
+  const { t } = useTranslation(['institutions', 'common']);
   const { data: institutions, isLoading, isError } = useInstitutions();
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -179,7 +181,7 @@ export function InstitutionSelector({
               )}
             </span>
           ) : value === undefined && allowNone ? (
-            <span className="text-text-muted">None</span>
+            <span className="text-text-muted">{t('common:none')}</span>
           ) : (
             placeholder
           )}
@@ -197,7 +199,7 @@ export function InstitutionSelector({
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 onKeyDown={(event) => event.stopPropagation()}
-                placeholder="Search institution"
+                placeholder={t('institutions:searchInstitution')}
                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 autoFocus={isOpen}
               />
@@ -213,7 +215,7 @@ export function InstitutionSelector({
               <span className="flex h-4 w-4 items-center justify-center shrink-0">
                 <Building2 className="h-4 w-4 text-text-muted" />
               </span>
-              <span className="text-text-muted">None</span>
+              <span className="text-text-muted">{t('common:none')}</span>
             </div>
           </SelectItem>
         )}

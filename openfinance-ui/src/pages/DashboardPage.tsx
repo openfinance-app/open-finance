@@ -212,7 +212,7 @@ export default function DashboardPage() {
     // Clear custom range when switching back to a preset
     setActiveDateRange(undefined);
 
-    const cashFlowDays = days ?? 365;
+    const cashFlowDays = days ?? 36500;
     setPeriodDays(cashFlowDays);
 
     let historyDays: number;
@@ -222,7 +222,7 @@ export default function DashboardPage() {
       case '1M': historyDays = 90; break;
       case 'YTD': historyDays = days ?? 365; break;
       case '1Y': historyDays = 365; break;
-      case 'ALL': historyDays = 1825; break;
+      case 'ALL': historyDays = 36500; break;
       default: historyDays = 365;
     }
     setHistoryPeriod(historyDays);
@@ -270,7 +270,7 @@ export default function DashboardPage() {
     const firstPoint = netWorthHistory[0];
     if (firstPoint.netWorth === 0) return null;
     const changeAmount = (summary.netWorth.netWorth ?? 0) - firstPoint.netWorth;
-    const changePercent = (changeAmount / firstPoint.netWorth) * 100;
+    const changePercent = (changeAmount / Math.abs(firstPoint.netWorth)) * 100;
     return { amount: changeAmount, percentage: changePercent };
   }, [netWorthHistory, summary?.netWorth?.netWorth]);
 

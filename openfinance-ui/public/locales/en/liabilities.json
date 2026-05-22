@@ -37,12 +37,31 @@
     "notes": "Notes (Optional)",
     "notesPlaceholder": "e.g., Fixed rate, refinanced in 2023...",
     "searchPlaceholder": "Search liabilities...",
+    "searchLiability": "Search liabilities",
     "cancel": "Cancel",
     "create": "Create Liability",
     "update": "Update Liability",
     "linkToProperty": "Link to Property",
     "optional": "optional",
-    "noneOption": "— None —"
+    "noneOption": "— None —",
+    "validation": {
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name is too long",
+      "principalPositive": "Principal must be greater than 0",
+      "principalTooSmall": "Principal is too small",
+      "balanceNonNegative": "Balance cannot be negative",
+      "interestRateNonNegative": "Interest rate cannot be negative",
+      "interestRateMax": "Interest rate cannot exceed 100%",
+      "startDateRequired": "Start date is required",
+      "invalidDateFormat": "Invalid date format",
+      "paymentNonNegative": "Payment cannot be negative",
+      "currencyCode": "Currency must be a 3-letter code",
+      "notesTooLong": "Notes are too long",
+      "insuranceRateNonNegative": "Insurance rate cannot be negative",
+      "insuranceRateMax": "Insurance rate cannot exceed 100%",
+      "feesNonNegative": "Fees cannot be negative",
+      "endDateAfterStart": "End date must be after start date"
+    }
   },
   "summary": {
     "totalLiabilities": "Total Liabilities",

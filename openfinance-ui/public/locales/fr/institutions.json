@@ -3,6 +3,7 @@
   "description": "Gérez vos institutions financières. Les institutions européennes par défaut ne peuvent pas être modifiées.",
   "addInstitution": "Ajouter une institution",
   "searchPlaceholder": "Rechercher des institutions...",
+  "searchInstitution": "Rechercher une institution",
   "loadError": "Impossible de charger les institutions. Veuillez réessayer.",
   "custom": {
     "title": "Institutions personnalisées",

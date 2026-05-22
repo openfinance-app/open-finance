@@ -111,7 +111,25 @@
     "propertyIsActive": "Property is active",
     "createProperty": "Create Property",
     "updateProperty": "Update Property",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "validation": {
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name is too long",
+      "addressRequired": "Address is required",
+      "addressTooLong": "Address is too long",
+      "purchasePricePositive": "Purchase price must be positive",
+      "priceTooSmall": "Price is too small",
+      "purchaseDateRequired": "Purchase date is required",
+      "invalidDateFormat": "Invalid date format",
+      "currentValuePositive": "Current value must be positive",
+      "valueTooSmall": "Value is too small",
+      "currencyCode": "Currency must be a 3-letter code",
+      "rentalIncomeNonNegative": "Rental income cannot be negative",
+      "notesTooLong": "Notes are too long",
+      "latitudeRange": "Latitude must be between -90 and 90",
+      "longitudeRange": "Longitude must be between -180 and 180",
+      "purchaseDateFuture": "Purchase date cannot be in the future"
+    }
   },
   "card": {
     "purchased": "Purchased",
@@ -121,6 +139,11 @@
     "inactive": "Inactive",
     "deleteTitle": "Delete Property",
     "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone."
+  },
+  "propertySelector": {
+    "selectProperty": "Select an existing property...",
+    "searchProperties": "Search properties...",
+    "noMatch": "No matching properties found"
   },
   "comparator": {
     "title": "Buy vs Rent Comparator",

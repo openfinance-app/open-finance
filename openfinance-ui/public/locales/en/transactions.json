@@ -64,6 +64,7 @@
     "paymentMethodHint": "How the transaction was paid (optional)",
     "selectPaymentMethod": "Select payment method",
     "category": "Category",
+    "selectCategory": "Select category...",
     "splitTransaction": "Split transaction",
     "removeSplit": "Remove split",
     "description": "Description",
@@ -80,6 +81,15 @@
     "createTransaction": "Create Transaction",
     "updateTransaction": "Update Transaction",
     "cancel": "Cancel",
+    "validation": {
+      "amountPositive": "Amount must be positive",
+      "selectAccount": "Please select an account",
+      "currencyCode": "Currency must be a 3-letter code",
+      "dateRequired": "Date is required",
+      "descriptionTooLong": "Description is too long",
+      "notesTooLong": "Notes are too long",
+      "payeeTooLong": "Payee is too long"
+    },
     "types": {
       "INCOME": "Income",
       "EXPENSE": "Expense",

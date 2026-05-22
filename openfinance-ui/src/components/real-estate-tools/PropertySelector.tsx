@@ -8,6 +8,7 @@
 import React, { useState, useMemo } from 'react';
 import { Building2, Search, Loader2, MapPin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import { useTranslation } from 'react-i18next';
 import { useProperties } from '@/hooks/useRealEstate';
 import { useAuthContext } from '@/context/AuthContext';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
@@ -22,9 +23,12 @@ export interface PropertySelectorProps {
 
 export const PropertySelector: React.FC<PropertySelectorProps> = ({
   onPropertySelect,
-  placeholder = 'Select an existing property...',
+  placeholder,
   className,
 }) => {
+  const { t } = useTranslation('realEstate');
+  const { t: tc } = useTranslation('common');
+  const resolvedPlaceholder = placeholder ?? t('propertySelector.selectProperty');
   const { data: properties, isLoading, isError } = useProperties();
   const { baseCurrency } = useAuthContext();
   const { format: formatCurrency } = useFormatCurrency();
@@ -100,7 +104,7 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
-        Loading properties...
+        {tc('loading')}
       </div>
     );
   }
@@ -109,7 +113,7 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
     return (
       <div className="flex items-center gap-2 text-sm text-error">
         <Building2 className="h-4 w-4" />
-        Failed to load properties
+        {tc('loadError')}
       </div>
     );
   }
@@ -129,7 +133,7 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
       <SelectTrigger className={className}>
         <div className="flex items-center gap-2">
           <Building2 className="h-4 w-4 text-primary shrink-0" />
-          <SelectValue placeholder={placeholder} />
+          <SelectValue placeholder={resolvedPlaceholder} />
         </div>
       </SelectTrigger>
       <SelectContent>
@@ -141,7 +145,7 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search properties..."
+              placeholder={t('propertySelector.searchProperties')}
               className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none"
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
@@ -151,7 +155,7 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
 
         {filteredProperties.length === 0 ? (
           <div className="py-4 text-center text-sm text-text-tertiary">
-            No matching properties found
+            {t('propertySelector.noMatch')}
           </div>
         ) : (
           filteredProperties.map((property) => (

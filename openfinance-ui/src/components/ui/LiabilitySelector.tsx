@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Select,
     SelectContent,
@@ -31,6 +32,7 @@ export function LiabilitySelector({
     liabilityFilter,
     allowNone = true,
 }: LiabilitySelectorProps) {
+    const { t } = useTranslation(['liabilities', 'common']);
     const { data: liabilities, isLoading, isError } = useLiabilities();
     const [searchQuery, setSearchQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -138,7 +140,7 @@ export function LiabilitySelector({
                             </span>
                         </span>
                     ) : (
-                        <span className="text-text-muted">None</span>
+                        <span className="text-text-muted">{t('common:none')}</span>
                     )}
                 </SelectValue>
             </SelectTrigger>
@@ -154,7 +156,7 @@ export function LiabilitySelector({
                                 value={searchQuery}
                                 onChange={(event) => setSearchQuery(event.target.value)}
                                 onKeyDown={(event) => event.stopPropagation()}
-                                placeholder="Search liabilities"
+                                placeholder={t('liabilities:form.searchLiability')}
                                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                                 autoFocus={isOpen}
                             />
@@ -167,7 +169,7 @@ export function LiabilitySelector({
                     <SelectItem value="__none__" className="gap-2">
                         <span className="flex items-center gap-2">
                             <CreditCard className="h-4 w-4 text-text-muted" />
-                            <span className="text-text-muted">None</span>
+                            <span className="text-text-muted">{t('common:none')}</span>
                         </span>
                     </SelectItem>
                 )}

@@ -64,6 +64,7 @@
     "paymentMethodHint": "Comment la transaction a été payée (facultatif)",
     "selectPaymentMethod": "Sélectionner un mode de paiement",
     "category": "Catégorie",
+    "selectCategory": "Sélectionner une catégorie...",
     "splitTransaction": "Diviser la transaction",
     "removeSplit": "Supprimer la division",
     "description": "Description",
@@ -80,6 +81,15 @@
     "createTransaction": "Créer la transaction",
     "updateTransaction": "Mettre à jour la transaction",
     "cancel": "Annuler",
+    "validation": {
+      "amountPositive": "Le montant doit être positif",
+      "selectAccount": "Veuillez sélectionner un compte",
+      "currencyCode": "La devise doit être un code de 3 lettres",
+      "dateRequired": "La date est obligatoire",
+      "descriptionTooLong": "La description est trop longue",
+      "notesTooLong": "Les notes sont trop longues",
+      "payeeTooLong": "Le bénéficiaire est trop long"
+    },
     "types": {
       "INCOME": "Revenu",
       "EXPENSE": "Dépense",

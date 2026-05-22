@@ -112,7 +112,7 @@ export default function NetWorthTrendChart({ data, currency, periodLabel }: NetW
   const lastValue = data[data.length - 1]?.netWorth || 0;
   const overallChange = lastValue - firstValue;
   const overallChangePercent = firstValue !== 0
-    ? ((overallChange / firstValue) * 100).toFixed(2)
+    ? ((overallChange / Math.abs(firstValue)) * 100).toFixed(2)
     : '0.00';
 
   const getTrendIcon = () => {

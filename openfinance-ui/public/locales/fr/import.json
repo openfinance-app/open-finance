@@ -193,5 +193,29 @@
     "amountRequired": "Le montant de la transaction est requis",
     "amountZero": "Le montant de la transaction ne peut pas être nul",
     "dateFuture": "La date de la transaction ne peut pas être dans le futur"
+  },
+  "categoryMapping": {
+    "title": "Correspondance des catégories",
+    "description": "Associez les catégories importées à vos catégories existantes",
+    "unmapped": "{{count}} non associée(s)",
+    "selectCategory": "Sélectionner une catégorie...",
+    "createNew": "+ Créer une catégorie",
+    "skip": "Ignorer (sans catégorie)",
+    "createNewTitle": "Créer une catégorie",
+    "mappedTo": "Associée à :",
+    "notMapped": "Non associée",
+    "unknown": "Inconnue",
+    "createDialogTitle": "Créer une catégorie",
+    "categoryName": "Nom de la catégorie",
+    "enterCategoryName": "Saisir le nom de la catégorie",
+    "type": "Type",
+    "expense": "Dépense",
+    "income": "Revenu",
+    "cancel": "Annuler",
+    "createCategory": "Créer la catégorie",
+    "summaryFound": "catégories uniques trouvées.",
+    "summaryMapped": "associée(s)",
+    "summaryUnmapped": "non associée(s)",
+    "summaryNote": "Les catégories non associées ne seront pas attribuées aux transactions. Vous pouvez les ignorer ou créer de nouvelles catégories."
   }
 }

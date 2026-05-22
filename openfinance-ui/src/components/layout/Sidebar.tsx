@@ -163,8 +163,7 @@ export function Sidebar() {
       className={cn(
         'relative h-full bg-background border-r border-border',
         'transition-all duration-200',
-        sidebarWidth,
-        isCollapsed && 'overflow-visible'
+        sidebarWidth
       )}
     >
       <SidebarContent
@@ -356,7 +355,7 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
       </div>
 
       {/* Navigation */}
-      <nav className={cn('flex-1 px-3 space-y-1 scrollbar-hide', isCollapsed ? 'overflow-visible' : 'overflow-y-auto')}>
+      <nav className={cn('flex-1 px-3 space-y-1 scrollbar-hide overflow-y-auto min-h-0', isCollapsed && 'overflow-x-visible')}>
         {renderNavItems(navItems)}
       </nav>
 

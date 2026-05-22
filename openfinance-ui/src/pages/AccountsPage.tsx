@@ -337,9 +337,9 @@ export default function AccountsPage() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {/* Filter Toggle Button */}
           <Button
             variant={showFilters ? 'primary' : 'outline'}
@@ -408,7 +408,7 @@ export default function AccountsPage() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {[...Array(6)].map((_, i) => (
             <LoadingSkeleton key={i} className="h-48" />
           ))}
@@ -432,7 +432,7 @@ export default function AccountsPage() {
       {/* Accounts Grid */}
       {!isLoading && accounts && accounts.length > 0 && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
             {accounts.map((account) => (
               <AccountCard
                 key={account.id}

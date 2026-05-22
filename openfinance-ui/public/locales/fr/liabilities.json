@@ -37,12 +37,31 @@
     "notes": "Notes (facultatif)",
     "notesPlaceholder": "ex. Taux fixe, renégocié en 2023...",
     "searchPlaceholder": "Rechercher des passifs...",
+    "searchLiability": "Rechercher des passifs",
     "cancel": "Annuler",
     "create": "Créer le passif",
     "update": "Mettre à jour le passif",
     "linkToProperty": "Lier à un bien immobilier",
     "optional": "facultatif",
-    "noneOption": "— Aucun —"
+    "noneOption": "— Aucun —",
+    "validation": {
+      "nameRequired": "Le nom est obligatoire",
+      "nameTooLong": "Le nom est trop long",
+      "principalPositive": "Le capital doit être supérieur à 0",
+      "principalTooSmall": "Le capital est trop petit",
+      "balanceNonNegative": "Le solde ne peut pas être négatif",
+      "interestRateNonNegative": "Le taux d'intérêt ne peut pas être négatif",
+      "interestRateMax": "Le taux d'intérêt ne peut pas dépasser 100 %",
+      "startDateRequired": "La date de début est obligatoire",
+      "invalidDateFormat": "Format de date invalide",
+      "paymentNonNegative": "Le paiement ne peut pas être négatif",
+      "currencyCode": "La devise doit être un code de 3 lettres",
+      "notesTooLong": "Les notes sont trop longues",
+      "insuranceRateNonNegative": "Le taux d'assurance ne peut pas être négatif",
+      "insuranceRateMax": "Le taux d'assurance ne peut pas dépasser 100 %",
+      "feesNonNegative": "Les frais ne peuvent pas être négatifs",
+      "endDateAfterStart": "La date de fin doit être postérieure à la date de début"
+    }
   },
   "summary": {
     "totalLiabilities": "Total des passifs",

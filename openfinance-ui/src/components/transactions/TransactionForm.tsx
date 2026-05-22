@@ -37,30 +37,30 @@ const optionalNumber = z.preprocess((value) => {
   return value;
 }, z.number().optional()).optional() as z.ZodType<number | undefined>;
 
-const transactionSchema = z.object({
+const transactionSchema = (tValidation: (key: string) => string) => z.object({
   accountId: z.preprocess(
     (val) => (val === '' || val === null || val === undefined || (typeof val === 'number' && Number.isNaN(val))) ? undefined : val,
-    z.number({ error: 'Please select an account' }).min(1, 'Please select an account')
+    z.number({ error: tValidation('form.validation.selectAccount') }).min(1, tValidation('form.validation.selectAccount'))
   ),
   toAccountId: optionalNumber,
   type: z.preprocess(
     (val) => (typeof val === 'string' ? val.toUpperCase() : val),
     z.enum(['INCOME', 'EXPENSE', 'TRANSFER'])
   ),
-  amount: z.coerce.number().positive('Amount must be positive'),
-  currency: z.string().length(3, 'Currency must be a 3-letter code'),
+  amount: z.coerce.number().positive(tValidation('form.validation.amountPositive')),
+  currency: z.string().length(3, tValidation('form.validation.currencyCode')),
   categoryId: optionalNumber,
-  date: z.string().min(1, 'Date is required'),
-  description: z.string().max(200, 'Description is too long').optional(),
-  notes: z.string().max(1000, 'Notes are too long').optional(),
-  payee: z.string().max(100, 'Payee is too long').optional(),
+  date: z.string().min(1, tValidation('form.validation.dateRequired')),
+  description: z.string().max(200, tValidation('form.validation.descriptionTooLong')).optional(),
+  notes: z.string().max(1000, tValidation('form.validation.notesTooLong')).optional(),
+  payee: z.string().max(100, tValidation('form.validation.payeeTooLong')).optional(),
   tags: z.array(z.string()).optional(),
   paymentMethod: z.enum(['CASH', 'CHEQUE', 'CREDIT_CARD', 'DEBIT_CARD', 'BANK_TRANSFER', 'DEPOSIT', 'STANDING_ORDER', 'DIRECT_DEBIT', 'ONLINE', 'OTHER']).optional(),
   // Requirement 3.1: Optional link to a liability (EXPENSE transactions only)
   liabilityId: optionalNumber,
 });
 
-type TransactionFormData = z.infer<typeof transactionSchema>;
+type TransactionFormData = z.infer<ReturnType<typeof transactionSchema>>;
 
 interface TransactionFormProps {
   transaction?: Transaction;
@@ -121,7 +121,7 @@ export function TransactionForm({
     setValue,
     control,
   } = useForm<TransactionFormData>({
-    resolver: zodResolver(transactionSchema) as any,
+    resolver: zodResolver(transactionSchema(t)) as any,
     mode: 'onChange',
     defaultValues: transaction
       ? {
@@ -433,7 +433,7 @@ export function TransactionForm({
                       }
                       field.onChange(value);
                     }}
-                    placeholder="Select category..."
+                    placeholder={t('form.selectCategory')}
                     type={selectedType}
                     allowNone={true}
                     allowCreateNew={true}

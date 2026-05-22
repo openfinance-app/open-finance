@@ -89,6 +89,7 @@
     "expense": "Dépense",
     "income": "Revenu",
     "parentCategory": "Catégorie parente (facultatif)",
+    "selectParentCategory": "Sélectionner une catégorie parente...",
     "color": "Couleur",
     "icon": "Icône",
     "cancel": "Annuler",

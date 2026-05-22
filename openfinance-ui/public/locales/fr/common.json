@@ -12,6 +12,7 @@
   "filters": "Filtres",
   "noResults": "Aucun résultat trouvé",
   "error": "Une erreur s'est produite",
+  "loadError": "Échec du chargement des données",
   "success": "Succès",
   "lastUpdated": {
     "updated": "Mis à jour {{time}}",
@@ -42,6 +43,12 @@
   "yes": "Oui",
   "no": "Non",
   "ok": "OK",
+  "none": "Aucun",
+  "country": {
+    "selectCountry": "Sélectionner un pays",
+    "searchCountry": "Rechercher un pays\u2026",
+    "noMatch": "Aucun pays ne correspond"
+  },
   "done": "Terminé",
   "optional": "Optionnel",
   "required": "Obligatoire",

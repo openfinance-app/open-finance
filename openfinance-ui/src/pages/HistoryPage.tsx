@@ -92,10 +92,10 @@ export default function HistoryPage() {
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <select 
             className="h-10 px-3 py-2 border rounded-md border-input bg-background/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             value={entityTypeFilter || ''}

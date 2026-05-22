@@ -176,12 +176,12 @@ export default function BackupPage() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader
           title={t('title')}
           description={t('description')}
         />
-        <div className="flex gap-3">
+        <div className="flex gap-3 shrink-0">
           <Button variant="outline" onClick={() => setIsUploadDialogOpen(true)}>
             <Upload className="h-4 w-4 mr-2" />
             {t('uploadBackup')}

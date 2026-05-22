@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { ALL_COUNTRIES, countryFlagClass } from '@/utils/countryUtils';
 
@@ -27,11 +28,15 @@ export function CountrySelector({
   value,
   onValueChange,
   disabled = false,
-  placeholder = 'Select country',
-  searchPlaceholder = 'Search country\u2026',
-  noMatch = 'No countries match',
+  placeholder,
+  searchPlaceholder,
+  noMatch,
   className,
 }: CountrySelectorProps) {
+  const { t } = useTranslation('common');
+  const resolvedPlaceholder = placeholder ?? t('country.selectCountry');
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t('country.searchCountry');
+  const resolvedNoMatch = noMatch ?? t('country.noMatch');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -68,7 +73,7 @@ export function CountrySelector({
         <button
           type="button"
           disabled={disabled}
-          aria-label={placeholder}
+          aria-label={resolvedPlaceholder}
           className={cn(
             'flex h-10 w-full items-center justify-between rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary',
             'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background',
@@ -85,7 +90,7 @@ export function CountrySelector({
               <span>{selectedCountry.name}</span>
             </span>
           ) : (
-            <span className="text-text-muted">{placeholder}</span>
+            <span className="text-text-muted">{resolvedPlaceholder}</span>
           )}
           <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
         </button>
@@ -121,7 +126,7 @@ export function CountrySelector({
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') setOpen(false);
                 }}
-                placeholder={searchPlaceholder}
+                placeholder={resolvedSearchPlaceholder}
                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 autoComplete="off"
               />
@@ -135,7 +140,7 @@ export function CountrySelector({
             onTouchMove={(e) => e.stopPropagation()}
           >
             {visibleCountries.length === 0 ? (
-              <div className="p-3 text-center text-sm text-text-muted">{noMatch}</div>
+              <div className="p-3 text-center text-sm text-text-muted">{resolvedNoMatch}</div>
             ) : (
               visibleCountries.map((country) => (
                 <button

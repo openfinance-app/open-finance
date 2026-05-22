@@ -26,19 +26,19 @@ const propertyTypes: Array<typeof PropertyType[keyof typeof PropertyType]> = [
   PropertyType.OTHER,
 ];
 
-const propertySchema = z.object({
-  name: z.string().min(1, 'Name is required').max(500, 'Name is too long'),
-  address: z.string().min(1, 'Address is required').max(1000, 'Address is too long'),
+const propertySchema = (tv: (key: string) => string) => z.object({
+  name: z.string().min(1, tv('form.validation.nameRequired')).max(500, tv('form.validation.nameTooLong')),
+  address: z.string().min(1, tv('form.validation.addressRequired')).max(1000, tv('form.validation.addressTooLong')),
   propertyType: z.enum([PropertyType.RESIDENTIAL, PropertyType.COMMERCIAL, PropertyType.LAND, PropertyType.MIXED_USE, PropertyType.INDUSTRIAL, PropertyType.OTHER] as const),
-  purchasePrice: z.number().positive('Purchase price must be positive').min(0.01, 'Price is too small'),
-  purchaseDate: z.string().min(1, 'Purchase date is required').regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
-  currentValue: z.number().positive('Current value must be positive').min(0.01, 'Value is too small'),
-  currency: z.string().length(3, 'Currency must be a 3-letter code'),
+  purchasePrice: z.number().positive(tv('form.validation.purchasePricePositive')).min(0.01, tv('form.validation.priceTooSmall')),
+  purchaseDate: z.string().min(1, tv('form.validation.purchaseDateRequired')).regex(/^\d{4}-\d{2}-\d{2}$/, tv('form.validation.invalidDateFormat')),
+  currentValue: z.number().positive(tv('form.validation.currentValuePositive')).min(0.01, tv('form.validation.valueTooSmall')),
+  currency: z.string().length(3, tv('form.validation.currencyCode')),
   mortgageId: z.number().optional(),
-  rentalIncome: z.number().min(0, 'Rental income cannot be negative').optional().or(z.literal(0)),
-  notes: z.string().max(2048, 'Notes are too long').optional().or(z.literal('')),
-  latitude: z.number().min(-90, 'Latitude must be between -90 and 90').max(90, 'Latitude must be between -90 and 90').optional(),
-  longitude: z.number().min(-180, 'Longitude must be between -180 and 180').max(180, 'Longitude must be between -180 and 180').optional(),
+  rentalIncome: z.number().min(0, tv('form.validation.rentalIncomeNonNegative')).optional().or(z.literal(0)),
+  notes: z.string().max(2048, tv('form.validation.notesTooLong')).optional().or(z.literal('')),
+  latitude: z.number().min(-90, tv('form.validation.latitudeRange')).max(90, tv('form.validation.latitudeRange')).optional(),
+  longitude: z.number().min(-180, tv('form.validation.longitudeRange')).max(180, tv('form.validation.longitudeRange')).optional(),
   isActive: z.boolean().optional(),
 }).refine(
   (data) => {
@@ -46,12 +46,12 @@ const propertySchema = z.object({
     return data.purchaseDate <= today;
   },
   {
-    message: 'Purchase date cannot be in the future',
+    message: tv('form.validation.purchaseDateFuture'),
     path: ['purchaseDate'],
   }
 );
 
-type PropertyFormData = z.infer<typeof propertySchema>;
+type PropertyFormData = z.infer<ReturnType<typeof propertySchema>>;
 
 interface RealEstateFormProps {
   property?: RealEstateProperty;
@@ -73,7 +73,7 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
     watch,
     formState: { errors },
   } = useForm<PropertyFormData>({
-    resolver: zodResolver(propertySchema),
+    resolver: zodResolver(propertySchema(t)),
     defaultValues: property
       ? {
         name: property.name,

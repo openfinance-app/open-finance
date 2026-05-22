@@ -1,4 +1,6 @@
 {
+  "allCurrencies": "Toutes les devises",
+  "noMatch": "Aucune devise ne correspond à votre recherche",
   "currency": {
     "ADP": "Peseta andorrane",
     "AED": "Dirham des Émirats arabes unis",

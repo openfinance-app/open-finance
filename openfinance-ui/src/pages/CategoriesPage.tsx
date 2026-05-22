@@ -336,7 +336,7 @@ export function CategoryFormDialog({
             <CategorySelect
               value={formData.parentId}
               onValueChange={(value) => setFormData({ ...formData, parentId: value })}
-              placeholder="Select parent category..."
+              placeholder={t('form.selectParentCategory')}
               type={formData.type}
               allowNone={true}
             />
