@@ -127,7 +127,10 @@
     "filters": {
       "all": "Tout",
       "duplicates": "Doublons ({{count}})",
-      "errors": "Erreurs ({{count}})"
+      "errors": "Erreurs ({{count}})",
+      "uncategorized": "Non catégorisé ({{count}})",
+      "viewThese": "Voir ces transactions",
+      "showAll": "Tout afficher"
     },
     "mappings": {
       "title": "Affectations de catégories ({{count}} catégories uniques)",

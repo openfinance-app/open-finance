@@ -437,6 +437,8 @@ export function TransactionForm({
                     type={selectedType}
                     allowNone={true}
                     allowCreateNew={true}
+                    allowCreateInline
+                    inferredType={selectedType ?? 'EXPENSE'}
                     onCreateNew={() => {
                       // Could open a dialog to create new category
                       // For now, just clear the category

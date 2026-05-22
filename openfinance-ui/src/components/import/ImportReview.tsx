@@ -17,6 +17,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
 import { CategorySelect } from '@/components/ui/CategorySelect';
+import { CategoryCombobox } from '@/components/ui/CategorySelect';
+import { PayeeCombobox } from '@/components/ui/PayeeSelector';
 import {
   AlertCircle,
   ChevronDown,
@@ -26,8 +28,8 @@ import {
   X,
   Sparkles,
   Tag,
-  User,
   Info,
+  Trash2,
 } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
 import { useUserSettings, useBaseCurrency } from '@/hooks/useUserSettings';
@@ -46,12 +48,15 @@ export interface ImportReviewProps {
   /** Category mappings collected from the review step (sourceCategory → categoryId) */
   categoryMappings: Record<string, number>;
   onCategoryMappingsChange: (mappings: Record<string, number>) => void;
+  /** Source-category names that don't exist in DB yet and should be created on confirm */
+  newCategoryNames: string[];
+  onNewCategoryNamesChange: (names: string[]) => void;
 }
 
-type FilterType = 'all' | 'duplicates' | 'errors';
+type FilterType = 'all' | 'duplicates' | 'errors' | 'uncategorized' | 'auto_assigned';
 
 interface EditState {
-  categoryId: number | undefined;
+  category: string;
   payee: string;
   memo: string;
 }
@@ -168,6 +173,8 @@ export function ImportReview({
   onTransactionsChange,
   categoryMappings,
   onCategoryMappingsChange,
+  newCategoryNames,
+  onNewCategoryNamesChange,
 }: ImportReviewProps) {
   const { t } = useTranslation('import');
   const { t: tCategories } = useTranslation('categories');
@@ -188,15 +195,19 @@ export function ImportReview({
 
   // Multi-edit state
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-  const [bulkCategoryId, setBulkCategoryId] = useState<number | undefined>(undefined);
+  const [bulkCategory, setBulkCategory] = useState<string>('');
   const [bulkPayee, setBulkPayee] = useState<string>('');
 
   // Per-row inline editing
   const [editingRow, setEditingRow] = useState<number | null>(null);
-  const [editState, setEditState] = useState<EditState>({ categoryId: undefined, payee: '', memo: '' });
+  const [editState, setEditState] = useState<EditState>({ category: '', payee: '', memo: '' });
+
+  // Mapping panel: tracks which rows have "map to existing" override open
+  const [mappingPanelOverride, setMappingPanelOverride] = useState<Record<string, boolean>>({});
 
   // Auto-assign notification
   const [autoAssignedCount, setAutoAssignedCount] = useState<number>(0);
+  const [autoAssignedIndices, setAutoAssignedIndices] = useState<Set<number>>(new Set());
 
   const { data: categories = [] } = useCategories();
   const { data: settings } = useUserSettings();
@@ -231,11 +242,15 @@ export function ImportReview({
 
     let changed = false;
     let count = 0;
-    const updated = transactions.map((t) => {
+    const newIndices = new Set<number>();
+    const updated = transactions.map((t, idx) => {
       const suggested = autoAssignCategory(t, categories);
       if (suggested && suggested !== t.category) {
         changed = true;
-        if (!t.category) count++;
+        if (!t.category) {
+          count++;
+          newIndices.add(idx);
+        }
         return { ...t, category: suggested };
       }
       return t;
@@ -244,6 +259,7 @@ export function ImportReview({
     if (changed) {
       onTransactionsChange(updated);
       setAutoAssignedCount(count);
+      setAutoAssignedIndices(newIndices);
     }
     // Only run once when categories or transactions first become available
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -265,10 +281,14 @@ export function ImportReview({
     return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
   }, [transactions]);
 
-  // Keep categoryMappings in sync: when a category name matches an existing category, auto-wire the ID
+  // Keep categoryMappings in sync: when a category name matches an existing category, auto-wire the ID.
+  // Also auto-detect unknown categories (no DB match, no existing mapping) → add to newCategoryNames.
   useEffect(() => {
     const newMappings = { ...categoryMappings };
-    let changed = false;
+    const newToCreate = [...newCategoryNames];
+    let mappingChanged = false;
+    let createChanged = false;
+
     uniqueCategories.forEach(({ name }) => {
       if (!(name in newMappings)) {
         const match = categories.find(
@@ -276,11 +296,16 @@ export function ImportReview({
         );
         if (match) {
           newMappings[name] = match.id;
-          changed = true;
+          mappingChanged = true;
+        } else if (!newToCreate.includes(name)) {
+          newToCreate.push(name);
+          createChanged = true;
         }
       }
     });
-    if (changed) onCategoryMappingsChange(newMappings);
+
+    if (mappingChanged) onCategoryMappingsChange(newMappings);
+    if (createChanged) onNewCategoryNamesChange(newToCreate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uniqueCategories.length, categories.length]);
 
@@ -297,11 +322,17 @@ export function ImportReview({
       case 'duplicates':
         return transactionsWithIndex.filter((t) => t.potentialDuplicate);
       case 'errors':
-        return transactionsWithIndex.filter((t) => t.validationErrors.length > 0);
+        return transactionsWithIndex.filter((t) =>
+          t.validationErrors.some((e) => !INFO_PREFIXES.some((p) => e.startsWith(p)))
+        );
+      case 'uncategorized':
+        return transactionsWithIndex.filter((t) => !t.category);
+      case 'auto_assigned':
+        return transactionsWithIndex.filter((t) => autoAssignedIndices.has(t.originalIndex));
       default:
         return transactionsWithIndex;
     }
-  }, [transactionsWithIndex, filter]);
+  }, [transactionsWithIndex, filter, autoAssignedIndices]);
 
   const stats = useMemo(() => {
     const errorCount = transactions.filter((t) =>
@@ -316,11 +347,12 @@ export function ImportReview({
         if (!t.category) return false;
         return (
           categoryMappings[t.category] != null ||
-          categories.some((c) => c.name.toLowerCase() === t.category!.toLowerCase())
+          categories.some((c) => c.name.toLowerCase() === t.category!.toLowerCase()) ||
+          newCategoryNames.includes(t.category)
         );
       }).length,
     };
-  }, [transactions, categoryMappings, categories]);
+  }, [transactions, categoryMappings, categories, newCategoryNames]);
 
   const allSelected =
     filteredTransactions.length > 0 &&
@@ -351,24 +383,20 @@ export function ImportReview({
   // Handlers — bulk edit
   // -------------------------------------------------------------------------
   const handleBulkApply = () => {
-    if (selectedRows.size === 0 || (!bulkCategoryId && !bulkPayee)) return;
-
-    const bulkCategoryName = bulkCategoryId
-      ? categories.find((c) => c.id === bulkCategoryId)?.name ?? null
-      : null;
+    if (selectedRows.size === 0 || (!bulkCategory && !bulkPayee)) return;
 
     const updated = transactions.map((t, idx) => {
       if (!selectedRows.has(idx)) return t;
       return {
         ...t,
-        ...(bulkCategoryName ? { category: bulkCategoryName } : {}),
+        ...(bulkCategory.trim() ? { category: bulkCategory.trim() } : {}),
         ...(bulkPayee.trim() ? { payee: bulkPayee.trim() } : {}),
       };
     });
 
     onTransactionsChange(updated);
     setSelectedRows(new Set());
-    setBulkCategoryId(undefined);
+    setBulkCategory('');
     setBulkPayee('');
   };
 
@@ -377,21 +405,8 @@ export function ImportReview({
   // -------------------------------------------------------------------------
   const startEditing = (originalIndex: number) => {
     const t = transactions[originalIndex];
-    // Resolve raw category string to a category ID for the CategorySelect.
-    let resolvedCategoryId: number | undefined = undefined;
-    if (t.category) {
-      const mappedId = categoryMappings[t.category];
-      if (mappedId != null) {
-        resolvedCategoryId = mappedId;
-      } else {
-        const sys = categories.find(
-          (c) => c.name.toLowerCase() === t.category!.toLowerCase()
-        );
-        if (sys) resolvedCategoryId = sys.id;
-      }
-    }
     setEditState({
-      categoryId: resolvedCategoryId,
+      category: t.category ?? '',
       payee: t.payee ?? '',
       memo: t.memo ?? '',
     });
@@ -399,15 +414,11 @@ export function ImportReview({
   };
 
   const commitEdit = (originalIndex: number) => {
-    const categoryName = editState.categoryId
-      ? categories.find((c) => c.id === editState.categoryId)?.name ?? null
-      : null;
-
     const updated = transactions.map((t, idx) => {
       if (idx !== originalIndex) return t;
       return {
         ...t,
-        category: categoryName,
+        category: editState.category.trim() || null,
         payee: editState.payee,
         memo: editState.memo || null,
       };
@@ -449,7 +460,10 @@ export function ImportReview({
 
       {/* ── Auto-assign notification ──────────────────────────────────────── */}
       {autoAssignedCount > 0 && (
-        <div className="flex items-start space-x-3 bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm">
+        <button
+          onClick={() => setFilter(filter === 'auto_assigned' ? 'all' : 'auto_assigned')}
+          className="w-full text-left flex items-start space-x-3 bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm hover:bg-primary/10 transition-colors"
+        >
           <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
           <div>
             <span className="font-semibold text-text-primary">
@@ -458,8 +472,11 @@ export function ImportReview({
             <span className="text-text-secondary">
               {t('review.autoAssignedDescription')}
             </span>
+            <span className="ml-2 text-xs text-primary underline underline-offset-2">
+              {filter === 'auto_assigned' ? t('review.filters.showAll') : t('review.filters.viewThese')}
+            </span>
           </div>
-        </div>
+        </button>
       )}
 
       {/* ── Stats bar & filter buttons ────────────────────────────────────── */}
@@ -492,27 +509,39 @@ export function ImportReview({
           )}
         </div>
 
-        <div className="flex space-x-2">
-          {(['all', 'duplicates', 'errors'] as FilterType[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1 text-sm rounded-md transition-colors capitalize ${filter === f
-                ? f === 'all'
-                  ? 'bg-primary text-white'
+        <div className="flex space-x-2 flex-wrap gap-y-2">
+          {(['all', 'duplicates', 'errors', 'uncategorized'] as FilterType[]).map((f) => {
+            const count =
+              f === 'duplicates' ? stats.duplicates
+              : f === 'errors' ? stats.errors
+              : f === 'uncategorized' ? stats.total - stats.categorized
+              : null;
+            if (f !== 'all' && count === 0) return null;
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3 py-1 text-sm rounded-md transition-colors capitalize ${filter === f
+                  ? f === 'all'
+                    ? 'bg-primary text-white'
+                    : f === 'duplicates'
+                      ? 'bg-amber-600 text-white'
+                      : f === 'errors'
+                        ? 'bg-red-600 text-white'
+                        : 'bg-amber-500 text-white'
+                  : 'bg-surface hover:bg-surface-elevated text-text-secondary'
+                  }`}
+              >
+                {f === 'all'
+                  ? t('review.filters.all')
                   : f === 'duplicates'
-                    ? 'bg-amber-600 text-white'
-                    : 'bg-red-600 text-white'
-                : 'bg-surface hover:bg-surface-elevated text-text-secondary'
-                }`}
-            >
-              {f === 'all'
-                ? t('review.filters.all')
-                : f === 'duplicates'
-                  ? t('review.filters.duplicates', { count: stats.duplicates })
-                  : t('review.filters.errors', { count: stats.errors })}
-            </button>
-          ))}
+                    ? t('review.filters.duplicates', { count: stats.duplicates })
+                    : f === 'errors'
+                      ? t('review.filters.errors', { count: stats.errors })
+                      : t('review.filters.uncategorized', { count: stats.total - stats.categorized })}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -523,6 +552,11 @@ export function ImportReview({
             <span className="flex items-center space-x-2 font-medium text-text-primary">
               <Info className="h-4 w-4 text-primary" />
               <span>{t('review.categoryAssignments.title', { count: uniqueCategories.length })}</span>
+              {newCategoryNames.filter((n) => uniqueCategories.some((u) => u.name === n)).length > 0 && (
+                <span className="ml-1.5 text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                  {newCategoryNames.filter((n) => uniqueCategories.some((u) => u.name === n)).length} to create
+                </span>
+              )}
             </span>
             <ChevronDown className="h-4 w-4 text-text-tertiary group-open:rotate-180 transition-transform" />
           </summary>
@@ -530,11 +564,14 @@ export function ImportReview({
             {uniqueCategories.map(({ name, count }) => {
               const mappedId = categoryMappings[name];
               const isMapped = mappedId != null;
+              const isToCreate = !isMapped && newCategoryNames.includes(name);
+              const showOverride = mappingPanelOverride[name];
               return (
                 <div
                   key={name}
-                  className={`flex items-center justify-between px-4 py-2.5 text-sm ${!isMapped ? 'bg-amber-500/5' : ''
-                    }`}
+                  className={`flex items-center justify-between px-4 py-2.5 text-sm ${
+                    isToCreate ? 'bg-primary/5' : !isMapped ? 'bg-amber-500/5' : ''
+                  }`}
                 >
                   <div className="flex items-center space-x-2 min-w-0">
                     <span className="font-medium text-text-primary truncate">{name}</span>
@@ -545,24 +582,75 @@ export function ImportReview({
                   <div className="flex items-center space-x-2 flex-shrink-0 ml-4">
                     <span className="hidden sm:block text-text-tertiary">→</span>
                     <div className="w-48">
-                      <CategorySelect
-                        value={mappedId ?? undefined}
-                        onValueChange={(val) => {
-                          const next = { ...categoryMappings };
-                          if (val == null) {
-                            delete next[name];
-                          } else {
-                            next[name] = val;
-                          }
-                          onCategoryMappingsChange(next);
-                        }}
-                        placeholder={t('review.categoryAssignments.notMapped')}
-                        allowNone
-                        className={`w-full text-xs ${!isMapped ? 'border-amber-400' : ''}`}
-                      />
+                      {isToCreate && !showOverride ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-primary italic flex items-center gap-1">
+                            <Sparkles className="h-3 w-3" /> Will be created
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setMappingPanelOverride((p) => ({ ...p, [name]: true }))}
+                            className="text-xs text-text-tertiary hover:text-primary underline underline-offset-2"
+                            title="Map to existing category instead"
+                          >
+                            Map to existing
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 w-full">
+                          <div className="flex-1 min-w-0">
+                            <CategorySelect
+                              value={mappedId ?? undefined}
+                              onValueChange={(val) => {
+                                const next = { ...categoryMappings };
+                                if (val == null) {
+                                  delete next[name];
+                                  // Clearing while in override → revert to "will be created"
+                                  if (showOverride) {
+                                    setMappingPanelOverride((p) => { const n = { ...p }; delete n[name]; return n; });
+                                    if (!newCategoryNames.includes(name)) {
+                                      onNewCategoryNamesChange([...newCategoryNames, name]);
+                                    }
+                                  }
+                                } else {
+                                  next[name] = val;
+                                  // Remove from "to create" if user mapped to existing
+                                  if (newCategoryNames.includes(name)) {
+                                    onNewCategoryNamesChange(newCategoryNames.filter((n) => n !== name));
+                                  }
+                                  setMappingPanelOverride((p) => { const n = { ...p }; delete n[name]; return n; });
+                                }
+                                onCategoryMappingsChange(next);
+                              }}
+                              placeholder={t('review.categoryAssignments.notMapped')}
+                              allowNone
+                              className={`w-full text-xs ${!isMapped && !isToCreate ? 'border-amber-400' : ''}`}
+                            />
+                          </div>
+                          {/* Cancel override — revert to "Will be created" */}
+                          {showOverride && (
+                            <button
+                              type="button"
+                              title="Cancel — keep as will be created"
+                              onClick={() =>
+                                setMappingPanelOverride((p) => {
+                                  const n = { ...p };
+                                  delete n[name];
+                                  return n;
+                                })
+                              }
+                              className="p-0.5 rounded text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {isMapped ? (
                       <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    ) : isToCreate ? (
+                      <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
                     ) : (
                       <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
                     )}
@@ -579,7 +667,7 @@ export function ImportReview({
 
       {/* ── Bulk-edit toolbar ─────────────────────────────────────────────── */}
       {selectedRows.size > 0 && (
-        <div className="sticky top-0 z-10 bg-surface-elevated border border-primary/30 rounded-lg p-3 shadow-lg flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3 transition-all">
+        <div className="sticky top-0 z-20 bg-surface-elevated border border-primary/30 rounded-lg p-3 shadow-lg flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3 transition-all">
           <span className="text-sm font-semibold whitespace-nowrap text-primary px-2">
             {t('review.bulkAction.selected', { count: selectedRows.size })}
           </span>
@@ -587,24 +675,21 @@ export function ImportReview({
           <div className="flex-1 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full">
             {/* Bulk Category */}
             <div className="flex-1 min-w-0">
-              <CategorySelect
-                value={bulkCategoryId}
-                onValueChange={setBulkCategoryId}
+              <CategoryCombobox
+                value={bulkCategory}
+                onValueChange={setBulkCategory}
                 placeholder={t('review.bulkAction.setCategory')}
-                allowNone
-                className="w-full"
+                className="w-full h-10"
               />
             </div>
 
             {/* Bulk Payee */}
-            <div className="relative flex-1 min-w-0">
-              <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-tertiary pointer-events-none" />
-              <input
-                type="text"
-                placeholder={t('review.bulkAction.setPayee')}
+            <div className="flex-1 min-w-0">
+              <PayeeCombobox
                 value={bulkPayee}
-                onChange={(e) => setBulkPayee(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-surface border border-border rounded-md text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary h-10"
+                onValueChange={setBulkPayee}
+                placeholder={t('review.bulkAction.setPayee')}
+                className="w-full h-10"
               />
             </div>
           </div>
@@ -614,11 +699,23 @@ export function ImportReview({
               variant="primary"
               size="sm"
               onClick={handleBulkApply}
-              disabled={!bulkCategoryId && !bulkPayee}
+              disabled={!bulkCategory && !bulkPayee}
               className="flex-1 sm:flex-none"
             >
               <Edit2 className="h-4 w-4 mr-1.5" />
               {t('review.bulkAction.applyButton', { count: selectedRows.size })}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                onTransactionsChange(transactions.filter((_, idx) => !selectedRows.has(idx)));
+                setSelectedRows(new Set());
+              }}
+              title="Remove selected from import"
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
@@ -725,17 +822,16 @@ export function ImportReview({
                           {formatDate(transaction.transactionDate)}
                         </td>
 
-                        {/* Payee */}
-                        <td className="py-2.5 px-4 text-sm text-text-primary font-medium">
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              value={editState.payee}
-                              onChange={(e) => setEditState((s) => ({ ...s, payee: e.target.value }))}
-                              className="w-full px-2 py-1 bg-surface border border-primary rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                              autoFocus
-                            />
-                          ) : (
+                         {/* Payee */}
+                         <td className="py-2.5 px-4 text-sm text-text-primary font-medium">
+                           {isEditing ? (
+                             <PayeeCombobox
+                               value={editState.payee}
+                               onValueChange={(val) => setEditState((s) => ({ ...s, payee: val }))}
+                               placeholder={t('review.table.payee')}
+                               className="w-full"
+                             />
+                           ) : (
                             <div
                               className="max-w-[180px] truncate"
                               title={transaction.originalPayee || transaction.payee || undefined}
@@ -754,18 +850,17 @@ export function ImportReview({
                           </span>
                         </td>
 
-                        {/* Category */}
-                        <td className="py-2.5 px-4 text-sm min-w-[160px]">
-                          {isEditing ? (
-                            <CategorySelect
-                              value={editState.categoryId}
-                              onValueChange={(val) =>
-                                setEditState((s) => ({ ...s, categoryId: val }))
-                              }
-                              placeholder={t('review.table.noCategory')}
-                              allowNone
-                              className="w-full text-sm"
-                            />
+                         {/* Category */}
+                         <td className="py-2.5 px-4 text-sm min-w-[160px]">
+                           {isEditing ? (
+                             <CategoryCombobox
+                               value={editState.category}
+                               onValueChange={(val) =>
+                                 setEditState((s) => ({ ...s, category: val }))
+                               }
+                               placeholder={t('review.table.noCategory')}
+                               className="w-full text-sm"
+                             />
                           ) : transaction.category ? (
                             <span className="inline-flex items-center space-x-1">
                               <Tag className="h-3 w-3 text-text-tertiary flex-shrink-0" />

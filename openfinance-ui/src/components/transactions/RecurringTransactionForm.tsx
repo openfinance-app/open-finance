@@ -346,6 +346,8 @@ export function RecurringTransactionForm({
               placeholder={t('form.selectCategory')}
               type={selectedType}
               allowNone={true}
+              allowCreateInline
+              inferredType={selectedType ?? 'EXPENSE'}
             />
             {errors.categoryId && <p className="mt-1 text-sm text-error">{errors.categoryId.message}</p>}
           </div>

@@ -6,8 +6,9 @@
  * Supports grouping by parent category, type filtering, and creating new categories.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -16,7 +17,8 @@ import {
   SelectValue,
 } from '@/components/ui/Select';
 import { markSelectInteraction } from '@/utils/selectClickGuard';
-import { useCategoryTree } from '@/hooks/useTransactions';
+import { useCategoryTree, useCreateCategory } from '@/hooks/useTransactions';
+import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, Search, FolderOpen, Plus, ChevronRight } from 'lucide-react';
 import type { CategoryTreeNode, TransactionType } from '@/types/transaction';
 import { Button } from '@/components/ui/Button';
@@ -48,6 +50,16 @@ interface CategorySelectProps {
    * Placeholder text for the search input inside the dropdown
    */
   searchPlaceholder?: string;
+  /**
+   * Show "✨ Create" item inline when no category matches the search query.
+   * The item calls createCategory immediately on selection.
+   */
+  allowCreateInline?: boolean;
+  /**
+   * Category type to use when creating a new category inline.
+   * Pass the parent form's current transaction type. Defaults to 'EXPENSE'.
+   */
+  inferredType?: TransactionType;
 }
 
 /**
@@ -79,6 +91,22 @@ function flattenCategories(
   return result;
 }
 
+/**
+ * Pure utility — determines whether the "✨ Create" inline item should be shown.
+ * Exported for unit testing.
+ */
+export function shouldShowCreateInline(
+  query: string,
+  flatItems: Array<{ category: CategoryTreeNode }>,
+  allowCreateInline: boolean
+): boolean {
+  if (!allowCreateInline) return false;
+  const trimmed = query.trim();
+  if (!trimmed) return false;
+  const lower = trimmed.toLowerCase();
+  return !flatItems.some(({ category }) => category.name.toLowerCase() === lower);
+}
+
 export function CategorySelect({
   value,
   onValueChange,
@@ -90,9 +118,13 @@ export function CategorySelect({
   allowCreateNew = false,
   onCreateNew,
   searchPlaceholder,
+  allowCreateInline = false,
+  inferredType = 'EXPENSE',
 }: CategorySelectProps) {
   const { t } = useTranslation('categories');
   const { data: categories = [], isLoading, isError } = useCategoryTree();
+  const { mutateAsync: createCategoryAsync, isPending: isCreating } = useCreateCategory();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -133,7 +165,50 @@ export function CategorySelect({
     return findInTree(categories);
   }, [value, categories]);
 
-  const handleValueChange = (newValue: string) => {
+  const handleValueChange = async (newValue: string) => {
+    if (newValue === '__create_inline__') {
+      if (!searchQuery.trim()) return;
+      setIsOpen(true); // keep open while pending
+      try {
+        const newCategory = await createCategoryAsync({
+          name: searchQuery.trim(),
+          type: inferredType,
+        });
+        onValueChange(newCategory.id);
+        setIsOpen(false);
+        setSearchQuery('');
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 409) {
+          // Category already exists — fetch fresh tree and find it
+          try {
+            const encryptionKey = sessionStorage.getItem('encryption_key') ?? '';
+            const { default: apiClient } = await import('@/services/apiClient');
+            const res = await apiClient.get<CategoryTreeNode[]>('/categories/tree', {
+              headers: { 'X-Encryption-Key': encryptionKey },
+            });
+            await queryClient.setQueryData(['categories', 'tree'], res.data);
+            const flat = flattenCategories(res.data);
+            const match = flat.find(
+              ({ category }) =>
+                category.name.toLowerCase() === searchQuery.trim().toLowerCase()
+            );
+            if (match) {
+              onValueChange(match.category.id);
+              setIsOpen(false);
+              setSearchQuery('');
+            } else {
+              console.error('Category already exists but could not be found. Please refresh.');
+            }
+          } catch {
+            console.error('Failed to resolve duplicate category. Please try again.');
+          }
+        } else {
+          console.error('Failed to create category. Please try again.');
+        }
+      }
+      return;
+    }
     if (newValue === '__create_new__') {
       onCreateNew?.();
       return;
@@ -156,24 +231,41 @@ export function CategorySelect({
         if (!open) markSelectInteraction();
       }}
     >
-      <SelectTrigger className={className}>
-        <SelectValue placeholder={placeholder}>
-          {selectedCategory && (
-            <div className="flex items-center gap-2">
-              <div
-                className="w-5 h-5 rounded flex items-center justify-center text-white text-xs"
-                style={{ backgroundColor: selectedCategory.color || '#6B7280' }}
-              >
-                {selectedCategory.icon || <FolderOpen size={12} />}
+      <div className="relative">
+        <SelectTrigger className={className}>
+          <SelectValue placeholder={placeholder}>
+            {selectedCategory && (
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-5 h-5 rounded flex items-center justify-center text-white text-xs"
+                  style={{ backgroundColor: selectedCategory.color || '#6B7280' }}
+                >
+                  {selectedCategory.icon || <FolderOpen size={12} />}
+                </div>
+                <span>{selectedCategory.name}</span>
+                <span className="text-xs text-text-tertiary">
+                  ({selectedCategory.transactionCount || 0} txns)
+                </span>
               </div>
-              <span>{selectedCategory.name}</span>
-              <span className="text-xs text-text-tertiary">
-                ({selectedCategory.transactionCount || 0} txns)
-              </span>
-            </div>
-          )}
-        </SelectValue>
-      </SelectTrigger>
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        {/* Pointer-blocking overlay while creating — do NOT use disabled (Radix closes dropdown) */}
+        {isCreating && (
+          <div className="absolute inset-0 z-10 cursor-wait" aria-hidden="true" />
+        )}
+        {/* sr-only test trigger — allows tests to invoke creation path without Radix rendering */}
+        {allowCreateInline && (
+          <button
+            type="button"
+            data-testid="create-inline-trigger"
+            className="sr-only"
+            tabIndex={-1}
+            onClick={() => handleValueChange('__create_inline__')}
+            aria-hidden="true"
+          />
+        )}
+      </div>
 
       <SelectContent 
         className="max-h-[400px] flex flex-col p-0"
@@ -201,7 +293,7 @@ export function CategorySelect({
           </div>
         }
         footerSlot={
-          allowCreateNew && !isLoading && flatCategories.length > 0 ? (
+          allowCreateNew && !allowCreateInline && !isLoading && flatCategories.length > 0 ? (
             <div className="border-t border-border p-2 bg-surface shrink-0">
               <Button
                 variant="ghost"
@@ -290,7 +382,109 @@ export function CategorySelect({
             {searchQuery ? 'No matching categories' : 'No categories available'}
           </div>
         )}
+
+        {/* Inline create item */}
+        {!isLoading && shouldShowCreateInline(searchQuery, flatCategories, allowCreateInline) && (
+          <SelectItem
+            value="__create_inline__"
+            className="cursor-pointer border-t border-border mt-1 pt-1"
+          >
+            <div className="flex items-center gap-2 text-primary">
+              <span>✨</span>
+              <span>Create &ldquo;{searchQuery.trim()}&rdquo;</span>
+            </div>
+          </SelectItem>
+        )}
       </SelectContent>
     </Select>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CategoryCombobox — free-text input with dropdown suggestions (no creation)
+// Used in import review for inline and bulk category editing.
+// ---------------------------------------------------------------------------
+
+export interface CategoryComboboxProps {
+  value: string;
+  onValueChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+}
+
+export function CategoryCombobox({
+  value,
+  onValueChange,
+  placeholder = 'Type category...',
+  disabled = false,
+  className,
+}: CategoryComboboxProps) {
+  const { data: categories = [] } = useCategoryTree();
+  const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(value);
+
+  // Sync when value changes externally (e.g. bulk clear)
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
+  const flatList = useMemo(() => flattenCategories(categories), [categories]);
+
+  const filtered = useMemo(() => {
+    const q = inputValue.trim().toLowerCase();
+    if (!q) return flatList.slice(0, 30);
+    return flatList.filter(
+      ({ category, path }) =>
+        category.name.toLowerCase().includes(q) || path.toLowerCase().includes(q)
+    );
+  }, [flatList, inputValue]);
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={inputValue}
+        onChange={e => {
+          // Update local state only — don't call onValueChange on every keystroke
+          // to avoid expensive re-renders in parent tables.
+          setInputValue(e.target.value);
+          setIsOpen(true);
+        }}
+        onBlur={() => {
+          // Commit to parent on blur
+          setTimeout(() => setIsOpen(false), 150);
+          onValueChange(inputValue);
+        }}
+        onFocus={() => setIsOpen(true)}
+        placeholder={placeholder}
+        disabled={disabled}
+        className={cn(
+          'w-full px-2 py-1 bg-surface border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-text-tertiary',
+          className
+        )}
+      />
+      {isOpen && filtered.length > 0 && (
+        <div className="absolute top-full left-0 right-0 z-50 max-h-48 overflow-auto bg-surface border border-border rounded-b shadow-lg">
+          {filtered.map(({ category, depth }) => (
+            <button
+              key={category.id}
+              type="button"
+              onMouseDown={e => {
+                e.preventDefault();
+                // Commit immediately on selection
+                onValueChange(category.name);
+                setInputValue(category.name);
+                setIsOpen(false);
+              }}
+              className="w-full text-left px-3 py-1.5 text-sm hover:bg-surface-elevated text-text-primary"
+              style={{ paddingLeft: `${8 + depth * 16}px` }}
+            >
+              {category.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

@@ -100,6 +100,8 @@ export function SplitTransactionForm({
               placeholder={t('splitForm.categoryPlaceholder')}
               type={transactionType}
               allowNone={true}
+              allowCreateInline
+              inferredType={transactionType ?? 'EXPENSE'}
             />
           </div>
 

@@ -127,7 +127,10 @@
     "filters": {
       "all": "All",
       "duplicates": "Duplicates ({{count}})",
-      "errors": "Errors ({{count}})"
+      "errors": "Errors ({{count}})",
+      "uncategorized": "Uncategorized ({{count}})",
+      "viewThese": "View these",
+      "showAll": "Show all"
     },
     "mappings": {
       "title": "Category Assignments ({{count}} unique categories)",

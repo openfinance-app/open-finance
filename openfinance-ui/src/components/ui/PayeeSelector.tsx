@@ -48,6 +48,19 @@ const CATEGORY_NAMES: Record<string, string> = {
   education: 'Education',
 };
 
+function shouldShowUseNew(
+  query: string,
+  payees: Payee[] | undefined,
+  allowNewPayee: boolean
+): boolean {
+  if (!allowNewPayee) return false;
+  const trimmed = query.trim();
+  if (!trimmed) return false;
+  if (!payees) return false;
+  const lower = trimmed.toLowerCase();
+  return !payees.some(p => p.name.toLowerCase() === lower);
+}
+
 export function PayeeSelector({
   value,
   onValueChange,
@@ -60,8 +73,7 @@ export function PayeeSelector({
   const { data: payees, isLoading, isError } = useActivePayees();
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [customInput, setCustomInput] = useState('');
-  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const findOrCreatePayee = useFindOrCreatePayee();
 
@@ -106,33 +118,31 @@ export function PayeeSelector({
     : undefined;
 
   // Show custom input when search doesn't match any existing payee
-  useEffect(() => {
-    if (allowNewPayee && searchQuery.trim() && payees) {
-      const normalizedQuery = searchQuery.trim().toLowerCase();
-      const hasMatch = payees.some((p) => p.name.toLowerCase() === normalizedQuery);
-      setShowCustomInput(!hasMatch);
-    } else {
-      setShowCustomInput(false);
+  // (removed — replaced by inline "✨ Use" SelectItem)
+
+  const handleValueChange = async (val: string) => {
+    if (val === '__use_new__') {
+      if (!searchQuery.trim()) return;
+      setIsOpen(true);
+      setIsCreating(true);
+      try {
+        const newPayee = await findOrCreatePayee.mutateAsync(searchQuery.trim());
+        onValueChange(newPayee.name);
+        setIsOpen(false);
+        setSearchQuery('');
+      } catch (error) {
+        console.error('Failed to create payee:', error);
+      } finally {
+        setIsCreating(false);
+      }
+      return;
     }
-  }, [searchQuery, payees, allowNewPayee]);
-
-  // Handle creating a new payee
-  const handleCreateNewPayee = async () => {
-    const name = (customInput || searchQuery).trim();
-    if (!name) return;
-
-    try {
-      const newPayee = await findOrCreatePayee.mutateAsync(name);
-      onValueChange(newPayee.name);
-      setCustomInput('');
-      setSearchQuery('');
-      setShowCustomInput(false);
-    } catch (error) {
-      console.error('Failed to create payee:', error);
+    if (val === '__none__') {
+      onValueChange(undefined);
+    } else {
+      onValueChange(val);
     }
   };
-
-  // Render logo
   const renderLogo = (logo?: string, size: 'sm' | 'md' = 'md') => {
     const sizeClasses = size === 'sm' ? 'h-5 w-5' : 'h-6 w-6';
     if (logo) {
@@ -154,16 +164,6 @@ export function PayeeSelector({
         <User className="h-3 w-3 text-primary" />
       </div>
     );
-  };
-
-  const handleValueChange = (val: string) => {
-    if (val === '__none__') {
-      onValueChange(undefined);
-    } else if (val === '__new__') {
-      setShowCustomInput(true);
-    } else {
-      onValueChange(val);
-    }
   };
 
   if (isLoading) {
@@ -188,35 +188,51 @@ export function PayeeSelector({
       value={value || '__none__'}
       onValueChange={handleValueChange}
       disabled={disabled}
+      open={isOpen}
       onOpenChange={(open) => {
         setIsOpen(open);
         if (!open) {
           markSelectInteraction();
           setSearchQuery('');
-          setShowCustomInput(false);
-          setCustomInput('');
         }
       }}
     >
-      <SelectTrigger className={className}>
-        <SelectValue placeholder={placeholder}>
-          {value && selectedPayee ? (
-            <span className="flex items-center gap-2">
-              {renderLogo(selectedPayee.logo, 'sm')}
-              <span>{selectedPayee.name}</span>
-              {selectedPayee.category && (
-                <span className="text-text-muted text-xs">
-                  ({CATEGORY_NAMES[selectedPayee.category] || selectedPayee.category})
-                </span>
-              )}
-            </span>
-          ) : value === undefined && allowNone ? (
-            <span className="text-text-muted">None</span>
-          ) : (
-            placeholder
-          )}
-        </SelectValue>
-      </SelectTrigger>
+      <div className="relative">
+        <SelectTrigger className={className}>
+          <SelectValue placeholder={placeholder}>
+            {value && selectedPayee ? (
+              <span className="flex items-center gap-2">
+                {renderLogo(selectedPayee.logo, 'sm')}
+                <span>{selectedPayee.name}</span>
+                {selectedPayee.category && (
+                  <span className="text-text-muted text-xs">
+                    ({CATEGORY_NAMES[selectedPayee.category] || selectedPayee.category})
+                  </span>
+                )}
+              </span>
+            ) : value === undefined && allowNone ? (
+              <span className="text-text-muted">None</span>
+            ) : (
+              placeholder
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        {/* Pointer-blocking overlay while creating */}
+        {isCreating && (
+          <div className="absolute inset-0 z-10 cursor-wait" aria-hidden="true" />
+        )}
+        {/* sr-only test trigger */}
+        {allowNewPayee && (
+          <button
+            type="button"
+            data-testid="use-new-trigger"
+            className="sr-only"
+            tabIndex={-1}
+            onClick={() => handleValueChange('__use_new__')}
+            aria-hidden="true"
+          />
+        )}
+      </div>
       <SelectContent 
         className="p-0 flex flex-col" 
         viewportClassName="p-1"
@@ -240,43 +256,7 @@ export function PayeeSelector({
             </div>
           </div>
         }
-        footerSlot={
-          allowNewPayee && showCustomInput ? (
-            <div className="shrink-0 border-t border-border bg-surface p-2">
-              <div className="px-2 py-1 text-xs font-semibold text-primary">
-                Create new payee
-              </div>
-              <div className="flex gap-2 px-2 pb-2">
-                <input
-                  type="text"
-                  value={customInput || searchQuery}
-                  onChange={(event) => setCustomInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    event.stopPropagation();
-                    if (event.key === 'Escape') setIsOpen(false);
-                    if (event.key === 'Enter') {
-                      handleCreateNewPayee();
-                    }
-                  }}
-                  placeholder="Enter payee name"
-                  className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
-                  autoFocus
-                />
-                <button
-                  onClick={handleCreateNewPayee}
-                  disabled={!(customInput || searchQuery).trim() || findOrCreatePayee.isPending}
-                  className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {findOrCreatePayee.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    'Add'
-                  )}
-                </button>
-              </div>
-            </div>
-          ) : null
-        }
+        footerSlot={null}
       >
         {/* "None" option */}
         {allowNone && (
@@ -316,17 +296,107 @@ export function PayeeSelector({
         ))}
 
         {/* Empty state */}
-        {sortedCategories.length === 0 && !showCustomInput && (
+        {sortedCategories.length === 0 && !shouldShowUseNew(searchQuery, payees, allowNewPayee) && (
           <div className="p-2 text-center text-sm text-text-muted">
             No payees match your search
-            {allowNewPayee && searchQuery.trim() && (
-              <div className="mt-1 text-xs">
-                Press Enter to create "{searchQuery}"
-              </div>
-            )}
           </div>
+        )}
+
+        {/* Inline "use new" item */}
+        {shouldShowUseNew(searchQuery, payees, allowNewPayee) && (
+          <SelectItem
+            value="__use_new__"
+            className="cursor-pointer border-t border-border mt-1 pt-1"
+          >
+            <div className="flex items-center gap-2 text-primary">
+              <span>✨</span>
+              <span>Use &ldquo;{searchQuery.trim()}&rdquo;</span>
+            </div>
+          </SelectItem>
         )}
       </SelectContent>
     </Select>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// PayeeCombobox — free-text input with dropdown suggestions (no creation)
+// Used in import review for inline and bulk payee editing.
+// ---------------------------------------------------------------------------
+
+export interface PayeeComboboxProps {
+  value: string;
+  onValueChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+}
+
+export function PayeeCombobox({
+  value,
+  onValueChange,
+  placeholder = 'Type payee...',
+  disabled = false,
+  className,
+}: PayeeComboboxProps) {
+  const { data: payees = [] } = useActivePayees();
+  const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(value);
+
+  // Sync when value changes externally
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
+  const filtered = useMemo(() => {
+    const q = inputValue.trim().toLowerCase();
+    if (!q) return payees.slice(0, 20);
+    return payees.filter(p => p.name.toLowerCase().includes(q));
+  }, [payees, inputValue]);
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={inputValue}
+        onChange={e => {
+          // Update local state only — don't call onValueChange on every keystroke
+          // to avoid expensive re-renders in parent tables.
+          setInputValue(e.target.value);
+          setIsOpen(true);
+        }}
+        onBlur={() => {
+          // Commit to parent on blur
+          setTimeout(() => setIsOpen(false), 150);
+          onValueChange(inputValue);
+        }}
+        onFocus={() => setIsOpen(true)}
+        placeholder={placeholder}
+        disabled={disabled}
+        className={cn(
+          'w-full px-2 py-1 bg-surface border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-text-tertiary',
+          className
+        )}
+      />
+      {isOpen && filtered.length > 0 && (
+        <div className="absolute top-full left-0 right-0 z-50 max-h-48 overflow-auto bg-surface border border-border rounded-b shadow-lg">
+          {filtered.map(payee => (
+            <button
+              key={payee.id}
+              type="button"
+              onMouseDown={e => {
+                e.preventDefault();
+                onValueChange(payee.name);
+                setInputValue(payee.name);
+                setIsOpen(false);
+              }}
+              className="w-full text-left px-3 py-1.5 text-sm hover:bg-surface-elevated text-text-primary"
+            >
+              {payee.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

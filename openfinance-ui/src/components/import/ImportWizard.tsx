@@ -40,6 +40,8 @@ import {
   useUpdateAccount,
   useUpdateTransactions,
 } from '@/hooks/useImport';
+import { useCreateCategory } from '@/hooks/useTransactions';
+import { useCategories } from '@/hooks/useCategories';
 import type {
   FileUploadResponse,
   ImportWizardStep,
@@ -103,6 +105,8 @@ export function ImportWizard() {
 
   /** Source-category → target-categoryId mappings, collected in the review step */
   const [categoryMappings, setCategoryMappings] = useState<Record<string, number>>({});
+  /** Category names from the import file that don't exist in DB yet — created on confirm */
+  const [newCategoryNames, setNewCategoryNames] = useState<string[]>([]);
   const [skipDuplicates, setSkipDuplicates] = useState(true);
 
   /** Local (editable) copy of parsed transactions */
@@ -124,6 +128,8 @@ export function ImportWizard() {
   const cancelImport = useCancelImport();
   const updateAccount = useUpdateAccount();
   const updateTransactions = useUpdateTransactions();
+  const createCategory = useCreateCategory();
+  const { data: allCategories = [] } = useCategories();
 
   // ── Sync remote transactions → local on first load ───────────────────────
   useEffect(() => {
@@ -141,6 +147,7 @@ export function ImportWizard() {
       setHasInitializedTransactions(false);
       setLocalTransactions([]);
       setCategoryMappings({});
+      setNewCategoryNames([]);
       lastSessionIdRef.current = sessionId;
     }
   }, [sessionId]);
@@ -215,11 +222,84 @@ export function ImportWizard() {
   const handleConfirmImport = async () => {
     if (!sessionId) return;
     try {
+      // Build final mappings: start with what the user already mapped, then create new categories.
+      const finalMappings: Record<string, number> = { ...categoryMappings };
+
+      // Determine the type (EXPENSE/INCOME) of transactions using each new category name.
+      // Default to EXPENSE; if only income transactions use it, use INCOME.
+      const getTypeForCategory = (catName: string): 'EXPENSE' | 'INCOME' => {
+        const txns = localTransactions.filter((t) => t.category === catName);
+        if (txns.length > 0 && txns.every((t) => t.amount > 0)) return 'INCOME';
+        return 'EXPENSE';
+      };
+
+      for (const sourceName of newCategoryNames) {
+        // Skip if already mapped by the user
+        if (finalMappings[sourceName] != null) continue;
+
+        // Check if it was created in a previous iteration (e.g., as a parent)
+        const existing = allCategories.find(
+          (c) => c.name.toLowerCase() === sourceName.toLowerCase()
+        );
+        if (existing) {
+          finalMappings[sourceName] = existing.id;
+          continue;
+        }
+
+        const type = getTypeForCategory(sourceName);
+
+        // Detect hierarchical path (e.g. "Divers:Achat Divers" or "Divers/Achat Divers")
+        const parts = sourceName.split(/[:/]/).map((p) => p.trim()).filter(Boolean);
+
+        if (parts.length > 1) {
+          // Hierarchical: find or create the parent first, then the leaf
+          const parentName = parts[0];
+          let parentId: number | undefined = undefined;
+
+          const existingParent =
+            allCategories.find((c) => c.name.toLowerCase() === parentName.toLowerCase()) ??
+            // Also check already-created parents in finalMappings
+            null;
+
+          if (existingParent) {
+            parentId = existingParent.id;
+          } else {
+            // Check if we already have a mapping for the parent name
+            const parentMapping = finalMappings[parentName];
+            if (parentMapping != null) {
+              parentId = parentMapping;
+            } else {
+              // Create the parent
+              const createdParent = await createCategory.mutateAsync({
+                name: parentName,
+                type,
+              });
+              parentId = createdParent.id;
+              finalMappings[parentName] = createdParent.id;
+            }
+          }
+
+          const leafName = parts[parts.length - 1];
+          const createdLeaf = await createCategory.mutateAsync({
+            name: leafName,
+            type,
+            parentId,
+          });
+          finalMappings[sourceName] = createdLeaf.id;
+        } else {
+          // Top-level category
+          const created = await createCategory.mutateAsync({
+            name: sourceName,
+            type,
+          });
+          finalMappings[sourceName] = created.id;
+        }
+      }
+
       await confirmImport.mutateAsync({
         sessionId,
-        // accountId may be null — the backend will create one from suggestedAccountName
         accountId: accountId ?? null,
-        categoryMappings,
+        categoryMappings: finalMappings,
         skipDuplicates,
       });
       setCurrentStep('progress');
@@ -602,6 +682,8 @@ export function ImportWizard() {
                 onTransactionsChange={setLocalTransactions}
                 categoryMappings={categoryMappings}
                 onCategoryMappingsChange={setCategoryMappings}
+                newCategoryNames={newCategoryNames}
+                onNewCategoryNamesChange={setNewCategoryNames}
               />
             )}
           </div>
