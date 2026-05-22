@@ -17,11 +17,16 @@ import org.openfinance.dto.ImportedTransaction;
 /**
  * Comprehensive test suite for QIF parser.
  *
- * <p>Tests cover: - Basic transaction parsing - Multiple date formats - Split transactions - Edge
- * cases (missing fields, invalid data) - Validation and error reporting - Real-world QIF file
+ * <p>
+ * Tests cover: - Basic transaction parsing - Multiple date formats - Split
+ * transactions - Edge
+ * cases (missing fields, invalid data) - Validation and error reporting -
+ * Real-world QIF file
  * scenarios
  *
- * <p>Requirements: - REQ-2.5.1.1: File Format Support - REQ-2.5.1.3: Import Validation
+ * <p>
+ * Requirements: - REQ-2.5.1.1: File Format Support - REQ-2.5.1.3: Import
+ * Validation
  */
 @DisplayName("QIF Parser Tests")
 class QifParserTest {
@@ -38,8 +43,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse single transaction with all fields")
     void testParseSingleTransactionWithAllFields() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-45.67
@@ -69,8 +73,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse multiple transactions")
     void testParseMultipleTransactions() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-45.67
@@ -97,8 +100,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse transaction without end marker at EOF")
     void testParseTransactionWithoutEndMarker() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-45.67
@@ -116,8 +118,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse US date format (MM/DD/YYYY)")
     void testParseUSDateFormatLong() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D12/31/2023
                 T-50.00
@@ -134,8 +135,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse international date format (DD/MM/YYYY)")
     void testParseInternationalDateFormat() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D31/12/2023
                 T-50.00
@@ -152,8 +152,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse ISO date format (YYYY-MM-DD)")
     void testParseISODateFormat() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D2023-12-31
                 T-50.00
@@ -170,8 +169,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse short year format (MM/DD/YY)")
     void testParseShortYearFormat() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/24
                 T-50.00
@@ -188,8 +186,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse date without leading zeros (M/D/YYYY)")
     void testParseDateWithoutLeadingZeros() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D1/5/2024
                 T-50.00
@@ -208,8 +205,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse negative amounts")
     void testParseNegativeAmount() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-123.45
@@ -225,8 +221,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse positive amounts")
     void testParsePositiveAmount() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T1500.00
@@ -242,8 +237,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse amount with currency symbols")
     void testParseAmountWithCurrencySymbols() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T$50.00
@@ -259,8 +253,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse amount with thousands separator")
     void testParseAmountWithThousandsSeparator() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T1,500.00
@@ -278,8 +271,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse category with subcategory")
     void testParseCategoryWithSubcategory() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-50.00
@@ -296,8 +288,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should detect transfer transactions")
     void testParseTransferTransaction() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-500.00
@@ -317,8 +308,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should detect Skrooge transfer syntax with class suffix")
     void testParseTransferTransactionWithClassSuffix() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-500.00
@@ -341,8 +331,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse cleared status 'c'")
     void testParseClearedStatusC() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-50.00
@@ -359,8 +348,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse reconciled status 'X'")
     void testParseReconciledStatus() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-50.00
@@ -377,8 +365,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse cleared status '*'")
     void testParseClearedStatusAsterisk() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-50.00
@@ -397,8 +384,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse split transactions")
     void testParseSplitTransaction() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-100.00
@@ -434,8 +420,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should validate split amounts match transaction amount")
     void testValidateSplitAmountsMatch() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-100.00
@@ -455,13 +440,62 @@ class QifParserTest {
                 .anyMatch(err -> err.contains("Split amounts") && err.contains("do not match"));
     }
 
+    @Test
+    @DisplayName("Should accept split amounts within ±0.01 rounding tolerance")
+    void testSplitAmountsWithinRoundingTolerance() throws IOException {
+        // Three-way split of 100.00 → 33.33 + 33.33 + 33.33 = 99.99 (off by 0.01)
+        String qif = """
+                !Type:Bank
+                D01/15/2024
+                T-100.00
+                PThree-way split
+                SPart 1
+                $-33.33
+                SPart 2
+                $-33.33
+                SPart 3
+                $-33.33
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.hasErrors()).isFalse();
+        assertThat(tx.isSplitTransaction()).isTrue();
+        assertThat(tx.getSplits()).hasSize(3);
+    }
+
+    @Test
+    @DisplayName("Should reject split amounts exceeding ±0.01 rounding tolerance")
+    void testSplitAmountsExceedingRoundingTolerance() throws IOException {
+        // Splits sum to 98.00 but parent is 100.00 (off by 2.00)
+        String qif = """
+                !Type:Bank
+                D01/15/2024
+                T-100.00
+                PBad split
+                SPart 1
+                $-50.00
+                SPart 2
+                $-48.00
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.hasErrors()).isTrue();
+        assertThat(tx.getValidationErrors())
+                .anyMatch(err -> err.contains("Split amounts") && err.contains("do not match"));
+    }
+
     // ========== Edge Case Tests ==========
 
     @Test
     @DisplayName("Should handle missing date")
     void testHandleMissingDate() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 T-50.00
                 PTest Payee
@@ -479,8 +513,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should handle missing amount")
     void testHandleMissingAmount() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 PTest Payee
@@ -498,8 +531,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should handle invalid date format")
     void testHandleInvalidDateFormat() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D2024-15-35
                 T-50.00
@@ -518,8 +550,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should handle invalid amount format")
     void testHandleInvalidAmountFormat() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 Tabc.xyz
@@ -538,8 +569,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should handle zero amount")
     void testHandleZeroAmount() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T0.00
@@ -559,18 +589,17 @@ class QifParserTest {
     @DisplayName("Should handle future dates")
     void testHandleFutureDate() throws IOException {
         LocalDate futureDate = LocalDate.now().plusDays(30);
-        String qif =
-                String.format(
-                        """
-                !Type:Bank
-                D%02d/%02d/%d
-                T-50.00
-                PTest
-                ^
-                """,
-                        futureDate.getMonthValue(),
-                        futureDate.getDayOfMonth(),
-                        futureDate.getYear());
+        String qif = String.format(
+                """
+                        !Type:Bank
+                        D%02d/%02d/%d
+                        T-50.00
+                        PTest
+                        ^
+                        """,
+                futureDate.getMonthValue(),
+                futureDate.getDayOfMonth(),
+                futureDate.getYear());
 
         List<ImportedTransaction> transactions = parseQif(qif);
 
@@ -584,8 +613,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should handle empty lines and whitespace")
     void testHandleEmptyLinesAndWhitespace() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
 
                 D01/15/2024
@@ -605,8 +633,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should handle minimal transaction (date and amount only)")
     void testHandleMinimalTransaction() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-50.00
@@ -626,8 +653,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should handle different account types")
     void testHandleDifferentAccountTypes() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:CCard
                 D01/15/2024
                 T-50.00
@@ -650,8 +676,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should include line numbers for error reporting")
     void testIncludeLineNumbers() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-50.00
@@ -672,8 +697,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should include source file name")
     void testIncludeSourceFileName() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-50.00
@@ -681,10 +705,9 @@ class QifParserTest {
                 ^
                 """;
 
-        List<ImportedTransaction> transactions =
-                parser.parseFile(
-                        new ByteArrayInputStream(qif.getBytes(StandardCharsets.UTF_8)),
-                        "test_file.qif");
+        List<ImportedTransaction> transactions = parser.parseFile(
+                new ByteArrayInputStream(qif.getBytes(StandardCharsets.UTF_8)),
+                "test_file.qif");
 
         assertThat(transactions).hasSize(1);
         assertThat(transactions.get(0).getSourceFileName()).isEqualTo("test_file.qif");
@@ -715,8 +738,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse realistic bank export")
     void testParseRealisticBankExport() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/01/2024
                 T-1200.00
@@ -798,8 +820,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse paired-transfer QIF fixture with mirrored entries")
     void testParsePairedTransferQifFixture() throws IOException {
-        List<ImportedTransaction> transactions =
-                parseQifFixture("samples/multi_account_paired_transfer.qif");
+        List<ImportedTransaction> transactions = parseQifFixture("samples/multi_account_paired_transfer.qif");
 
         assertThat(transactions).hasSize(2);
         assertThat(transactions.get(0).isTransfer()).isTrue();
@@ -851,8 +872,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should use U field amount when T field is absent")
     void testUFieldFallbackWhenTAbsent() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 U-99.50
@@ -870,8 +890,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should prefer T field amount over U field when both present")
     void testTFieldWinsOverUField() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-45.00
@@ -891,8 +910,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should propagate account name from !Account block to subsequent transactions")
     void testAccountBlockPropagation() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Account
                 NChecking Account
                 TBank
@@ -920,8 +938,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse investment transaction (!Type:Invst) with key fields")
     void testInvestmentTransactionParsing() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Invst
                 D03/10/2024
                 NBuy
@@ -946,8 +963,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should skip transactions in !Type:Memorized section")
     void testSkipMemorizedType() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Memorized
                 D01/15/2024
                 T-50.00
@@ -969,8 +985,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should skip records in !Type:Prices section")
     void testSkipPricesType() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Prices
                 "ACME",45.50,"01/15/2024"
                 ^
@@ -992,8 +1007,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse category class separator and store class as tag")
     void testCategoryClassSeparator() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-50.00
@@ -1015,8 +1029,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse date with dash separator (MM-DD-YYYY)")
     void testDateWithDashSeparator() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01-15-2024
                 T-50.00
@@ -1033,8 +1046,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse date with dot separator (MM.DD.YYYY)")
     void testDateWithDotSeparator() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01.15.2024
                 T-50.00
@@ -1053,8 +1065,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should parse European amount format (1.234,56)")
     void testEuropeanAmountFormat() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T1.234,56
@@ -1073,8 +1084,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should not error on % split percentage field")
     void testSplitPercentageFieldIgnored() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-100.00
@@ -1098,8 +1108,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should not error on F reimbursable flag field")
     void testReimbursableFlagIgnored() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Type:Bank
                 D01/15/2024
                 T-75.00
@@ -1119,8 +1128,7 @@ class QifParserTest {
     @Test
     @DisplayName("Should ignore !Option:AllXfr directive and still parse transactions")
     void testOptionDirectiveIgnored() throws IOException {
-        String qif =
-                """
+        String qif = """
                 !Option:AllXfr
                 !Type:Bank
                 D01/15/2024
@@ -1139,8 +1147,7 @@ class QifParserTest {
     // ========== Helper Methods ==========
 
     private List<ImportedTransaction> parseQif(String qifContent) throws IOException {
-        InputStream inputStream =
-                new ByteArrayInputStream(qifContent.getBytes(StandardCharsets.UTF_8));
+        InputStream inputStream = new ByteArrayInputStream(qifContent.getBytes(StandardCharsets.UTF_8));
         return parser.parseFile(inputStream, "test.qif");
     }
 
@@ -1149,8 +1156,7 @@ class QifParserTest {
     }
 
     private String readFixture(String resourcePath) throws IOException {
-        try (InputStream inputStream =
-                getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
             if (inputStream == null) {
                 throw new IOException("Fixture not found: " + resourcePath);
             }
