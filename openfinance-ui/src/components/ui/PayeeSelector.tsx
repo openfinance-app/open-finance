@@ -3,19 +3,21 @@
  * 
  * A dropdown component for selecting payees with search functionality.
  * Supports grouping by category and allows custom payee entry.
+ *
+ * Uses Popover (not Radix Select) so that async inline-create can set the
+ * value reliably — Radix Select requires values to match a rendered SelectItem
+ * and does not support async operations during selection.
  */
 
 import { useState, useMemo, useEffect } from 'react';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/Select';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/Popover';
 import { markSelectInteraction } from '@/utils/selectClickGuard';
 import { useActivePayees, useFindOrCreatePayee } from '@/hooks/usePayees';
-import { Loader2, Search, User } from 'lucide-react';
+import { Loader2, Search, User, ChevronDown, Check } from 'lucide-react';
 import type { Payee } from '@/types/payee';
 import { cn } from '@/lib/utils';
 
@@ -117,32 +119,28 @@ export function PayeeSelector({
     ? payees?.find((p) => p.name === value)
     : undefined;
 
-  // Show custom input when search doesn't match any existing payee
-  // (removed — replaced by inline "✨ Use" SelectItem)
+  const selectItem = (val: string | undefined) => {
+    onValueChange(val);
+    setIsOpen(false);
+    setSearchQuery('');
+    markSelectInteraction();
+  };
 
-  const handleValueChange = async (val: string) => {
-    if (val === '__use_new__') {
-      if (!searchQuery.trim()) return;
-      setIsOpen(true);
-      setIsCreating(true);
-      try {
-        const newPayee = await findOrCreatePayee.mutateAsync(searchQuery.trim());
-        onValueChange(newPayee.name);
-        setIsOpen(false);
-        setSearchQuery('');
-      } catch (error) {
-        console.error('Failed to create payee:', error);
-      } finally {
-        setIsCreating(false);
-      }
-      return;
-    }
-    if (val === '__none__') {
-      onValueChange(undefined);
-    } else {
-      onValueChange(val);
+  const handleUseNew = async () => {
+    if (!searchQuery.trim()) return;
+    setIsCreating(true);
+    try {
+      const newPayee = await findOrCreatePayee.mutateAsync(searchQuery.trim());
+      onValueChange(newPayee.name);
+      setIsOpen(false);
+      setSearchQuery('');
+    } catch (error) {
+      console.error('Failed to create payee:', error);
+    } finally {
+      setIsCreating(false);
     }
   };
+
   const renderLogo = (logo?: string, size: 'sm' | 'md' = 'md') => {
     const sizeClasses = size === 'sm' ? 'h-5 w-5' : 'h-6 w-6';
     if (logo) {
@@ -166,6 +164,9 @@ export function PayeeSelector({
     );
   };
 
+  const itemClass =
+    'relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-surface-elevated focus:bg-surface-elevated transition-colors duration-150';
+
   if (isLoading) {
     return (
       <div className="flex h-10 w-full items-center justify-center rounded-lg border border-border bg-surface px-3 py-2">
@@ -184,10 +185,7 @@ export function PayeeSelector({
   }
 
   return (
-    <Select
-      value={value || '__none__'}
-      onValueChange={handleValueChange}
-      disabled={disabled}
+    <Popover
       open={isOpen}
       onOpenChange={(open) => {
         setIsOpen(open);
@@ -198,25 +196,41 @@ export function PayeeSelector({
       }}
     >
       <div className="relative">
-        <SelectTrigger className={className}>
-          <SelectValue placeholder={placeholder}>
-            {value && selectedPayee ? (
-              <span className="flex items-center gap-2">
-                {renderLogo(selectedPayee.logo, 'sm')}
-                <span>{selectedPayee.name}</span>
-                {selectedPayee.category && (
-                  <span className="text-text-muted text-xs">
-                    ({CATEGORY_NAMES[selectedPayee.category] || selectedPayee.category})
-                  </span>
-                )}
-              </span>
-            ) : value === undefined && allowNone ? (
-              <span className="text-text-muted">None</span>
-            ) : (
-              placeholder
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            role="combobox"
+            aria-expanded={isOpen}
+            disabled={disabled}
+            className={cn(
+              'flex h-10 w-full items-center justify-between rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary',
+              'placeholder:text-text-muted',
+              'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              'transition-all duration-150',
+              className
             )}
-          </SelectValue>
-        </SelectTrigger>
+          >
+            <span className="flex-1 truncate text-left">
+              {value && selectedPayee ? (
+                <span className="flex items-center gap-2">
+                  {renderLogo(selectedPayee.logo, 'sm')}
+                  <span>{selectedPayee.name}</span>
+                  {selectedPayee.category && (
+                    <span className="text-text-muted text-xs">
+                      ({CATEGORY_NAMES[selectedPayee.category] || selectedPayee.category})
+                    </span>
+                  )}
+                </span>
+              ) : value === undefined && allowNone ? (
+                <span className="text-text-muted">None</span>
+              ) : (
+                <span className="text-text-muted">{placeholder}</span>
+              )}
+            </span>
+            <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+          </button>
+        </PopoverTrigger>
         {/* Pointer-blocking overlay while creating */}
         {isCreating && (
           <div className="absolute inset-0 z-10 cursor-wait" aria-hidden="true" />
@@ -228,94 +242,111 @@ export function PayeeSelector({
             data-testid="use-new-trigger"
             className="sr-only"
             tabIndex={-1}
-            onClick={() => handleValueChange('__use_new__')}
+            onClick={() => handleUseNew()}
             aria-hidden="true"
           />
         )}
       </div>
-      <SelectContent 
-        className="p-0 flex flex-col" 
-        viewportClassName="p-1"
-        headerSlot={
-          <div className="shrink-0 border-b border-border bg-surface p-2">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  event.stopPropagation();
-                  // Prevent Enter from triggering Radix Select's keyboard selection
-                  if (event.key === 'Enter') event.preventDefault();
-                }}
-                placeholder="Search payee"
-                className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
-                autoFocus={isOpen}
-              />
-            </div>
-          </div>
-        }
-        footerSlot={null}
+      <PopoverContent
+        className="p-0 flex flex-col w-(--radix-popover-trigger-width)"
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        {/* "None" option */}
-        {allowNone && (
-          <SelectItem value="__none__">
-            <div className="flex items-center gap-2">
-              <span className="flex h-4 w-4 items-center justify-center shrink-0">
-                <User className="h-4 w-4 text-text-muted" />
-              </span>
-              <span className="text-text-muted">None</span>
-            </div>
-          </SelectItem>
-        )}
-
-        {/* Grouped payees */}
-        {sortedCategories.map((category) => (
-          <div key={category} className="mt-2">
-            {/* Category header */}
-            <div className="px-2 py-1 text-xs font-semibold text-text-muted">
-              {CATEGORY_NAMES[category] || category}
-            </div>
-
-            {/* Payees in this category */}
-            {groupedPayees[category].map((payee) => (
-              <SelectItem
-                key={payee.id}
-                value={payee.name}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="flex h-4 w-4 items-center justify-center shrink-0">
-                    {renderLogo(payee.logo, 'sm')}
-                  </span>
-                  <span className="text-sm">{payee.name}</span>
-                </div>
-              </SelectItem>
-            ))}
+        {/* Search header */}
+        <div className="shrink-0 border-b border-border bg-surface p-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setIsOpen(false);
+              }}
+              placeholder="Search payee"
+              className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
+              autoFocus
+            />
           </div>
-        ))}
+        </div>
 
-        {/* Empty state */}
-        {sortedCategories.length === 0 && !shouldShowUseNew(searchQuery, payees, allowNewPayee) && (
-          <div className="p-2 text-center text-sm text-text-muted">
-            No payees match your search
-          </div>
-        )}
+        {/* Scrollable list */}
+        <div className="max-h-72 overflow-y-auto p-1">
+          {/* "None" option */}
+          {allowNone && (
+            <button
+              type="button"
+              className={itemClass}
+              onClick={() => selectItem(undefined)}
+            >
+              {value === undefined && (
+                <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                  <Check className="h-4 w-4 text-primary" />
+                </span>
+              )}
+              <div className="flex items-center gap-2">
+                <span className="flex h-4 w-4 items-center justify-center shrink-0">
+                  <User className="h-4 w-4 text-text-muted" />
+                </span>
+                <span className="text-text-muted">None</span>
+              </div>
+            </button>
+          )}
 
-        {/* Inline "use new" item */}
-        {shouldShowUseNew(searchQuery, payees, allowNewPayee) && (
-          <SelectItem
-            value="__use_new__"
-            className="cursor-pointer border-t border-border mt-1 pt-1"
-          >
-            <div className="flex items-center gap-2 text-primary">
-              <span>✨</span>
-              <span>Use &ldquo;{searchQuery.trim()}&rdquo;</span>
+          {/* Grouped payees */}
+          {sortedCategories.map((category) => (
+            <div key={category} className="mt-2">
+              {/* Category header */}
+              <div className="px-2 py-1 text-xs font-semibold text-text-muted">
+                {CATEGORY_NAMES[category] || category}
+              </div>
+
+              {/* Payees in this category */}
+              {groupedPayees[category].map((payee) => (
+                <button
+                  key={payee.id}
+                  type="button"
+                  className={itemClass}
+                  onClick={() => selectItem(payee.name)}
+                >
+                  {value === payee.name && (
+                    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                      <Check className="h-4 w-4 text-primary" />
+                    </span>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-4 w-4 items-center justify-center shrink-0">
+                      {renderLogo(payee.logo, 'sm')}
+                    </span>
+                    <span className="text-sm">{payee.name}</span>
+                  </div>
+                </button>
+              ))}
             </div>
-          </SelectItem>
-        )}
-      </SelectContent>
-    </Select>
+          ))}
+
+          {/* Empty state */}
+          {sortedCategories.length === 0 && !shouldShowUseNew(searchQuery, payees, allowNewPayee) && (
+            <div className="p-2 text-center text-sm text-text-muted">
+              No payees match your search
+            </div>
+          )}
+
+          {/* Inline "use new" item */}
+          {shouldShowUseNew(searchQuery, payees, allowNewPayee) && (
+            <button
+              type="button"
+              className={cn(itemClass, 'cursor-pointer border-t border-border mt-1 pt-1')}
+              onClick={() => handleUseNew()}
+            >
+              <div className="flex items-center gap-2 text-primary">
+                <span>✨</span>
+                <span>Use &ldquo;{searchQuery.trim()}&rdquo;</span>
+              </div>
+            </button>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

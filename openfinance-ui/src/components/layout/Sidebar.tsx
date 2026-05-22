@@ -163,7 +163,8 @@ export function Sidebar() {
       className={cn(
         'relative h-full bg-background border-r border-border',
         'transition-all duration-200',
-        sidebarWidth
+        sidebarWidth,
+        isCollapsed && 'overflow-visible'
       )}
     >
       <SidebarContent
@@ -274,7 +275,7 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
 
         {/* Tooltip for collapsed state */}
         {isCollapsed && (
-          <div className="absolute left-full ml-2 px-3 py-1.5 bg-surface border border-border rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+          <div className="absolute left-full ml-2 px-3 py-1.5 bg-surface border border-border rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
             <span className="text-sm text-text-primary">{label}</span>
           </div>
         )}
@@ -355,7 +356,7 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 space-y-1 overflow-y-auto scrollbar-hide">
+      <nav className={cn('flex-1 px-3 space-y-1 scrollbar-hide', isCollapsed ? 'overflow-visible' : 'overflow-y-auto')}>
         {renderNavItems(navItems)}
       </nav>
 

@@ -42,6 +42,7 @@ import {
 } from '@/hooks/useImport';
 import { useCreateCategory } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
+import apiClient from '@/services/apiClient';
 import type {
   FileUploadResponse,
   ImportWizardStep,
@@ -225,6 +226,37 @@ export function ImportWizard() {
       // Build final mappings: start with what the user already mapped, then create new categories.
       const finalMappings: Record<string, number> = { ...categoryMappings };
 
+      // Helper: try to create a category; if it already exists, refetch and find it
+      const createOrFindCategory = async (
+        name: string,
+        type: 'EXPENSE' | 'INCOME',
+        parentId?: number
+      ): Promise<number> => {
+        try {
+          const created = await createCategory.mutateAsync({ name, type, parentId });
+          return created.id;
+        } catch (err: unknown) {
+          // Category already exists — refetch with English names to match QIF category names
+          const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+          const encKey = sessionStorage.getItem('encryption_key');
+          const resp = await fetch(
+            `${apiClient.defaults.baseURL}/categories`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'X-Encryption-Key': encKey || '',
+                'Accept-Language': 'en',
+              },
+            }
+          );
+          if (!resp.ok) throw err;
+          const cats: { id: number; name: string }[] = await resp.json();
+          const found = cats.find((c) => c.name.toLowerCase() === name.toLowerCase());
+          if (found) return found.id;
+          throw err; // Re-throw if we still can't find it
+        }
+      };
+
       // Determine the type (EXPENSE/INCOME) of transactions using each new category name.
       // Default to EXPENSE; if only income transactions use it, use INCOME.
       const getTypeForCategory = (catName: string): 'EXPENSE' | 'INCOME' => {
@@ -246,7 +278,7 @@ export function ImportWizard() {
           continue;
         }
 
-        const type = getTypeForCategory(sourceName);
+        let type = getTypeForCategory(sourceName);
 
         // Detect hierarchical path (e.g. "Divers:Achat Divers" or "Divers/Achat Divers")
         const parts = sourceName.split(/[:/]/).map((p) => p.trim()).filter(Boolean);
@@ -263,6 +295,8 @@ export function ImportWizard() {
 
           if (existingParent) {
             parentId = existingParent.id;
+            // Inherit type from existing parent to avoid type mismatch
+            type = existingParent.type as 'EXPENSE' | 'INCOME';
           } else {
             // Check if we already have a mapping for the parent name
             const parentMapping = finalMappings[parentName];
@@ -270,29 +304,26 @@ export function ImportWizard() {
               parentId = parentMapping;
             } else {
               // Create the parent
-              const createdParent = await createCategory.mutateAsync({
-                name: parentName,
-                type,
-              });
-              parentId = createdParent.id;
-              finalMappings[parentName] = createdParent.id;
+              const parentCatId = await createOrFindCategory(parentName, type);
+              parentId = parentCatId;
+              finalMappings[parentName] = parentCatId;
             }
           }
 
           const leafName = parts[parts.length - 1];
-          const createdLeaf = await createCategory.mutateAsync({
-            name: leafName,
-            type,
-            parentId,
-          });
-          finalMappings[sourceName] = createdLeaf.id;
+          const existingLeaf = allCategories.find(
+            (c) => c.name.toLowerCase() === leafName.toLowerCase()
+          );
+          if (existingLeaf) {
+            finalMappings[sourceName] = existingLeaf.id;
+          } else {
+            const leafCatId = await createOrFindCategory(leafName, type, parentId);
+            finalMappings[sourceName] = leafCatId;
+          }
         } else {
           // Top-level category
-          const created = await createCategory.mutateAsync({
-            name: sourceName,
-            type,
-          });
-          finalMappings[sourceName] = created.id;
+          const catId = await createOrFindCategory(sourceName, type);
+          finalMappings[sourceName] = catId;
         }
       }
 
@@ -772,7 +803,8 @@ export function ImportWizard() {
           <Button
             variant="secondary"
             onClick={handlePrevious}
-            disabled={!canGoPrevious()}
+            disabled={!canGoPrevious() || updateTransactions.isPending || confirmImport.isPending}
+            isLoading={updateTransactions.isPending && currentStep !== 'review'}
           >
             <ChevronLeft className="h-4 w-4 mr-2" />
             {t('common:buttons.previous')}
@@ -781,7 +813,7 @@ export function ImportWizard() {
           <Button
             variant="primary"
             onClick={handleNext}
-            disabled={!canGoNext()}
+            disabled={!canGoNext() || updateTransactions.isPending}
             isLoading={
               startImport.isPending ||
               confirmImport.isPending ||
