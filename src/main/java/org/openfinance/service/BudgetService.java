@@ -31,6 +31,7 @@ import org.openfinance.exception.CategoryNotFoundException;
 import org.openfinance.mapper.BudgetMapper;
 import org.openfinance.repository.BudgetRepository;
 import org.openfinance.repository.CategoryRepository;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.security.EncryptionService;
@@ -82,6 +83,7 @@ public class BudgetService {
 
     private final BudgetRepository budgetRepository;
     private final CategoryRepository categoryRepository;
+    private final CurrencyRepository currencyRepository;
     private final TransactionRepository transactionRepository;
     private final TransactionSplitRepository transactionSplitRepository;
     private final BudgetMapper budgetMapper;
@@ -141,6 +143,7 @@ public class BudgetService {
         // Map request to entity
         Budget budget = budgetMapper.toEntity(request);
         budget.setUserId(userId);
+        budget.setCurrencyId(resolveCurrencyId(budget.getCurrency()));
 
         // Encrypt amount (Requirement 2.18: Encryption at rest)
         String encryptedAmount =
@@ -226,6 +229,7 @@ public class BudgetService {
 
         // Update fields from request (only non-null fields will be copied)
         budgetMapper.updateEntityFromRequest(request, budget);
+        budget.setCurrencyId(resolveCurrencyId(budget.getCurrency()));
 
         // Re-encrypt amount
         String encryptedAmount =
@@ -1435,5 +1439,13 @@ public class BudgetService {
             default:
                 return periodStart + " – " + periodEnd;
         }
+    }
+
+    private Long resolveCurrencyId(String currencyCode) {
+        if (currencyCode == null || currencyCode.isBlank()) return null;
+        return currencyRepository
+                .findByCode(currencyCode)
+                .map(org.openfinance.entity.Currency::getId)
+                .orElse(null);
     }
 }

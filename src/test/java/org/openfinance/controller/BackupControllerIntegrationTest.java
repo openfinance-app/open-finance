@@ -97,7 +97,8 @@ class BackupControllerIntegrationTest {
 
     static {
         try {
-            // Delete any existing (potentially corrupt) H2 file before the Spring context loads
+            // Delete any existing (potentially corrupt) H2 file before the Spring context
+            // loads
             java.nio.file.Path dbDir = java.nio.file.Paths.get("./target/test-db");
             java.nio.file.Files.createDirectories(dbDir);
             java.nio.file.Files.deleteIfExists(dbDir.resolve("backup-integration-test.mv.db"));

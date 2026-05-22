@@ -31,6 +31,7 @@ import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.exception.RecurringTransactionNotFoundException;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.CategoryRepository;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.security.EncryptionService;
 
@@ -62,6 +63,8 @@ class RecurringTransactionServiceTest {
     @Mock private TransactionService transactionService;
 
     @Mock private OperationHistoryService operationHistoryService;
+
+    @Mock private CurrencyRepository currencyRepository;
 
     @InjectMocks private RecurringTransactionService recurringTransactionService;
 
@@ -452,12 +455,14 @@ class RecurringTransactionServiceTest {
         @DisplayName(
                 "BUG-REC-001: Should successfully create recurring transaction with long description (>16 chars)")
         void shouldCreateRecurringTransactionWithLongDescription() {
-            // Given - Test descriptions of various lengths to verify encryption works correctly
+            // Given - Test descriptions of various lengths to verify encryption works
+            // correctly
             String shortDescription = "Test"; // 4 chars
             String mediumDescription = "Monthly Bill"; // 12 chars
             String longDescription = "Monthly Rent Payment"; // 20 chars - previously failed
             String veryLongDescription =
-                    "This is a very long recurring transaction description that should still work correctly with encryption"; // 104 chars
+                    "This is a very long recurring transaction description that should still work correctly with encryption"; // 104
+            // chars
 
             // Test with 20-character description (the bug threshold)
             RecurringTransactionRequest longDescRequest =
@@ -530,7 +535,8 @@ class RecurringTransactionServiceTest {
                     .encrypt("Additional notes for this recurring payment", testEncryptionKey);
             verify(recurringTransactionRepository).save(any(RecurringTransaction.class));
 
-            // Verify the saved entity has encrypted values (no validation error on encrypted field)
+            // Verify the saved entity has encrypted values (no validation error on
+            // encrypted field)
             ArgumentCaptor<RecurringTransaction> captor =
                     ArgumentCaptor.forClass(RecurringTransaction.class);
             verify(recurringTransactionRepository).save(captor.capture());

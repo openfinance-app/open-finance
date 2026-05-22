@@ -22,6 +22,7 @@ import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.NetWorth;
 import org.openfinance.repository.AccountRepository;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.NetWorthRepository;
 
 /**
@@ -45,6 +46,8 @@ class NetWorthServiceTest {
     @Mock private org.openfinance.repository.LiabilityRepository liabilityRepository;
 
     @Mock private OperationHistoryService operationHistoryService;
+
+    @Mock private CurrencyRepository currencyRepository;
 
     @InjectMocks private NetWorthService netWorthService;
 

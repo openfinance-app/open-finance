@@ -46,6 +46,7 @@ import org.openfinance.exception.CategoryNotFoundException;
 import org.openfinance.mapper.BudgetMapper;
 import org.openfinance.repository.BudgetRepository;
 import org.openfinance.repository.CategoryRepository;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.security.EncryptionService;
@@ -83,6 +84,8 @@ class BudgetServiceTest {
     @Mock private OperationHistoryService operationHistoryService;
 
     @Mock private MessageSource messageSource;
+
+    @Mock private CurrencyRepository currencyRepository;
 
     @InjectMocks private BudgetService budgetService;
 

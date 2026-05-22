@@ -165,6 +165,20 @@ public class Transaction {
     private String currency;
 
     /**
+     * ID of the currency entity linked to this transaction (nullable).
+     *
+     * <p>Foreign key reference to the currencies table. Provides referential integrity for the
+     * currency code.
+     */
+    @Column(name = "currency_id")
+    private Long currencyId;
+
+    /** Reference to the currency entity (lazy-loaded). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "currency_id", insertable = false, updatable = false)
+    private Currency currencyEntity;
+
+    /**
      * ID of the category this transaction belongs to (nullable).
      *
      * <p>Categories organize transactions for budgeting and reporting. Can be null for
@@ -235,15 +249,31 @@ public class Transaction {
     private String tags;
 
     /**
-     * Payee or payer name (optional).
+     * Payee or payer name (denormalized from Payee entity for fast reads/search).
      *
-     * <p>Who the money was paid to (for expenses) or received from (for income).
+     * <p>Who the money was paid to (for expenses) or received from (for income). Kept in sync with
+     * {@link #payeeEntity} name for performance — avoids JOINs in queries, FTS indexing, rule
+     * matching, and reporting.
      *
      * <p>Examples: "Walmart", "John Doe", "Acme Corporation"
      */
     @Size(max = 100, message = "Payee must not exceed 100 characters")
     @Column(name = "payee", length = 100)
     private String payee;
+
+    /**
+     * ID of the payee entity linked to this transaction (nullable).
+     *
+     * <p>Foreign key reference to the payees table. When set, this provides richer payee
+     * information including default category, logo, etc.
+     */
+    @Column(name = "payee_id")
+    private Long payeeId;
+
+    /** Reference to the payee entity (lazy-loaded). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payee_id", insertable = false, updatable = false)
+    private Payee payeeEntity;
 
     /**
      * Payment method used for this transaction (optional).
@@ -401,6 +431,10 @@ public class Transaction {
                 + ", payee='"
                 + payee
                 + '\''
+                + ", payeeId="
+                + payeeId
+                + ", currencyId="
+                + currencyId
                 + ", paymentMethod="
                 + paymentMethod
                 + ", externalReference='"

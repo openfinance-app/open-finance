@@ -106,6 +106,15 @@ public class Liability {
     @ToString.Include
     private String currency;
 
+    /** FK to the currencies table for referential integrity. */
+    @Column(name = "currency_id")
+    private Long currencyId;
+
+    /** Reference to the currency entity (lazy-loaded). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "currency_id", insertable = false, updatable = false)
+    private Currency currencyEntity;
+
     /**
      * Annual insurance rate as a percentage of the principal amount (encrypted). Example: 0.5 means
      * 0.5% of principal per year for insurance. Monthly insurance cost = principal ×

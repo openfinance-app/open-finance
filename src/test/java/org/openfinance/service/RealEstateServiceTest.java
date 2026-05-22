@@ -34,6 +34,7 @@ import org.openfinance.entity.RealEstateProperty;
 import org.openfinance.entity.User;
 import org.openfinance.exception.RealEstatePropertyNotFoundException;
 import org.openfinance.mapper.RealEstateMapper;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.RealEstateRepository;
@@ -81,6 +82,8 @@ class RealEstateServiceTest {
     private NetWorthRepository netWorthRepository;
 
     @Mock private OperationHistoryService operationHistoryService;
+
+    @Mock private CurrencyRepository currencyRepository;
 
     @InjectMocks private RealEstateService realEstateService;
 

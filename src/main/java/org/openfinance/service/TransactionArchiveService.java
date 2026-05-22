@@ -60,12 +60,14 @@ public class TransactionArchiveService {
                      description, notes, tags, payee,
                      is_reconciled, is_deleted, transfer_id,
                      payment_method, liability_id, external_reference,
+                     payee_id, currency_id,
                      created_at, updated_at)
                 SELECT id, user_id, account_id, to_account_id, transaction_type,
                        amount, currency, category_id, transaction_date,
                        description, notes, tags, payee,
                        is_reconciled, is_deleted, transfer_id,
                        payment_method, liability_id, external_reference,
+                       payee_id, currency_id,
                        created_at, updated_at
                 FROM transactions
                 WHERE user_id = :userId

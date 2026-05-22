@@ -44,9 +44,11 @@ import org.openfinance.entity.User;
 import org.openfinance.exception.ResourceNotFoundException;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.CategoryRepository;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.ImportSessionRepository;
 import org.openfinance.repository.InstitutionRepository;
 import org.openfinance.repository.NetWorthRepository;
+import org.openfinance.repository.PayeeRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
@@ -111,6 +113,8 @@ public class ImportService {
     private final MessageSource messageSource;
     private final EncryptionService encryptionService;
     private final InstitutionRepository institutionRepository;
+    private final PayeeRepository payeeRepository;
+    private final CurrencyRepository currencyRepository;
 
     /**
      * Start a new import session and parse the uploaded file.
@@ -2389,6 +2393,18 @@ public class ImportService {
             transactionType = TransactionType.EXPENSE;
         }
 
+        // Resolve currency code and link to Currency entity
+        String currencyCode =
+                importedTx.getCurrency() != null && !importedTx.getCurrency().isBlank()
+                        ? importedTx.getCurrency()
+                        : "USD";
+        Long currencyId =
+                currencyRepository.findByCode(currencyCode).map(c -> c.getId()).orElse(null);
+
+        // Resolve or create Payee entity
+        String payeeName = truncate(importedTx.getPayee(), TRANSACTION_PAYEE_MAX_LENGTH);
+        Long payeeId = resolveOrCreatePayeeId(payeeName, userId);
+
         // Build transaction using builder pattern
         Transaction.TransactionBuilder builder =
                 Transaction.builder()
@@ -2396,15 +2412,13 @@ public class ImportService {
                         .accountId(accountId)
                         .date(importedTx.getTransactionDate())
                         .amount(amount)
-                        .currency(
-                                importedTx.getCurrency() != null
-                                                && !importedTx.getCurrency().isBlank()
-                                        ? importedTx.getCurrency()
-                                        : "USD")
+                        .currency(currencyCode)
+                        .currencyId(currencyId)
                         .description(
                                 truncate(importedTx.getPayee(), TRANSACTION_DESCRIPTION_MAX_LENGTH))
                         .notes(truncate(importedTx.getMemo(), TRANSACTION_NOTES_MAX_LENGTH))
-                        .payee(truncate(importedTx.getPayee(), TRANSACTION_PAYEE_MAX_LENGTH))
+                        .payee(payeeName)
+                        .payeeId(payeeId)
                         .type(transactionType)
                         .externalReference(
                                 importedTx.getReferenceNumber()) // Persist for future dedup
@@ -2465,6 +2479,32 @@ public class ImportService {
             return value;
         }
         return value.substring(0, maxLength);
+    }
+
+    /**
+     * Resolve an existing Payee by name (case-insensitive) or create a new one. Returns the payee
+     * ID, or null if the payee name is blank.
+     */
+    private Long resolveOrCreatePayeeId(String payeeName, Long userId) {
+        if (payeeName == null || payeeName.isBlank()) {
+            return null;
+        }
+        String trimmed = payeeName.trim();
+        // Try to find existing payee visible to this user
+        org.openfinance.entity.Payee existing =
+                payeeRepository.findByNameIgnoreCaseAndUser(trimmed, userId);
+        if (existing != null) {
+            return existing.getId();
+        }
+        // Create a new user-scoped payee
+        org.openfinance.entity.Payee newPayee =
+                org.openfinance.entity.Payee.builder()
+                        .name(trimmed)
+                        .userId(userId)
+                        .isSystem(false)
+                        .isActive(true)
+                        .build();
+        return payeeRepository.save(newPayee).getId();
     }
 
     private BigDecimal normalizeAmount(BigDecimal amount) {

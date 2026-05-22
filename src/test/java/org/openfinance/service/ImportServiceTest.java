@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -31,7 +32,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.ImportParseResult;
@@ -40,17 +40,25 @@ import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
+import org.openfinance.entity.Payee;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.exception.ResourceNotFoundException;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.CategoryRepository;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.ImportSessionRepository;
+import org.openfinance.repository.InstitutionRepository;
+import org.openfinance.repository.NetWorthRepository;
+import org.openfinance.repository.PayeeRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
+import org.openfinance.security.EncryptionService;
 import org.openfinance.service.parser.CsvParser;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
+import org.openfinance.service.parser.SkroogeJsonParser;
+import org.springframework.context.MessageSource;
 
 /**
  * Unit tests for ImportService.
@@ -105,7 +113,27 @@ class ImportServiceTest {
 
     @Mock private OperationHistoryService operationHistoryService;
 
-    @InjectMocks private ImportService importService;
+    @Mock private PayeeRepository payeeRepository;
+
+    @Mock private CurrencyRepository currencyRepository;
+
+    @Mock private SkroogeJsonParser skroogeJsonParser;
+
+    @Mock private TransactionService transactionService;
+
+    @Mock private TransactionSplitService transactionSplitService;
+
+    @Mock private NetWorthRepository netWorthRepository;
+
+    @Mock private AICategorizationService aiCategorizationService;
+
+    @Mock private MessageSource messageSource;
+
+    @Mock private EncryptionService encryptionService;
+
+    @Mock private InstitutionRepository institutionRepository;
+
+    private ImportService importService;
 
     private static final Long USER_ID = 123L;
     private static final Long ACCOUNT_ID = 1L;
@@ -118,6 +146,32 @@ class ImportServiceTest {
 
     @BeforeEach
     void setUp() {
+        importService =
+                new ImportService(
+                        importSessionRepository,
+                        transactionRepository,
+                        accountRepository,
+                        categoryRepository,
+                        userRepository,
+                        fileStorageService,
+                        qifParser,
+                        ofxParser,
+                        csvParser,
+                        skroogeJsonParser,
+                        objectMapper,
+                        autoCategorizationService,
+                        accountService,
+                        transactionRuleService,
+                        transactionService,
+                        transactionSplitService,
+                        netWorthRepository,
+                        aiCategorizationService,
+                        messageSource,
+                        encryptionService,
+                        institutionRepository,
+                        payeeRepository,
+                        currencyRepository);
+
         // Setup test account
         testAccount =
                 Account.builder()
@@ -148,6 +202,16 @@ class ImportServiceTest {
 
         // Setup test transactions
         testTransactions = createTestTransactions();
+
+        // Lenient stubs for payee/currency resolution (used by convertToTransaction)
+        lenient()
+                .when(payeeRepository.save(any(Payee.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Payee p = invocation.getArgument(0);
+                            p.setId(999L);
+                            return p;
+                        });
     }
 
     // ========================================

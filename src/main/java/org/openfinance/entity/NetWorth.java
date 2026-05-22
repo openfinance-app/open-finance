@@ -94,6 +94,15 @@ public class NetWorth {
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;
 
+    /** FK to the currencies table for referential integrity. */
+    @Column(name = "currency_id")
+    private Long currencyId;
+
+    /** Reference to the currency entity (lazy-loaded). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "currency_id", insertable = false, updatable = false)
+    private Currency currencyEntity;
+
     /** Timestamp when this snapshot was created. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

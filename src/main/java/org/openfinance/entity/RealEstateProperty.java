@@ -142,6 +142,15 @@ public class RealEstateProperty {
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;
 
+    /** FK to the currencies table for referential integrity. */
+    @Column(name = "currency_id")
+    private Long currencyId;
+
+    /** Reference to the currency entity (lazy-loaded). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "currency_id", insertable = false, updatable = false)
+    private Currency currencyEntity;
+
     /**
      * Optional link to associated mortgage liability. Requirement REQ-2.16.7: Link property to
      * mortgage for equity calculation

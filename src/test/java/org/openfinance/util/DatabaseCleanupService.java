@@ -1,5 +1,7 @@
 package org.openfinance.util;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.openfinance.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -11,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 public class DatabaseCleanupService {
+
+    @PersistenceContext private EntityManager entityManager;
 
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private TransactionSplitRepository transactionSplitRepository;
@@ -88,5 +92,10 @@ public class DatabaseCleanupService {
 
         userRepository.deleteAll();
         currencyRepository.deleteAll();
+
+        // Flush to ensure DELETEs are executed before any subsequent INSERTs
+        // (Hibernate defers DELETEs after INSERTs at flush time, which can cause
+        // unique constraint violations when re-inserting with the same keys)
+        entityManager.flush();
     }
 }

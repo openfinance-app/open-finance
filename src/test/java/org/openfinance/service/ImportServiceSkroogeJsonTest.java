@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,12 +43,15 @@ import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
 import org.openfinance.entity.Institution;
+import org.openfinance.entity.Payee;
 import org.openfinance.entity.Transaction;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.CategoryRepository;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.ImportSessionRepository;
 import org.openfinance.repository.InstitutionRepository;
 import org.openfinance.repository.NetWorthRepository;
+import org.openfinance.repository.PayeeRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
@@ -84,6 +88,8 @@ class ImportServiceSkroogeJsonTest {
     @Mock private MessageSource messageSource;
     @Mock private EncryptionService encryptionService;
     @Mock private InstitutionRepository institutionRepository;
+    @Mock private PayeeRepository payeeRepository;
+    @Mock private CurrencyRepository currencyRepository;
     @Mock private SecretKey encryptionKey;
 
     private ImportService importService;
@@ -116,7 +122,19 @@ class ImportServiceSkroogeJsonTest {
                         aiCategorizationService,
                         messageSource,
                         encryptionService,
-                        institutionRepository);
+                        institutionRepository,
+                        payeeRepository,
+                        currencyRepository);
+
+        // Lenient stubs for payee/currency resolution (used by convertToTransaction)
+        lenient()
+                .when(payeeRepository.save(any(Payee.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Payee p = invocation.getArgument(0);
+                            p.setId(999L);
+                            return p;
+                        });
     }
 
     @Test

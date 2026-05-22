@@ -22,6 +22,7 @@ import org.openfinance.exception.AssetNotFoundException;
 import org.openfinance.mapper.AssetMapper;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.AssetRepository;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
@@ -72,6 +73,7 @@ public class AssetService {
 
     private final AssetRepository assetRepository;
     private final AccountRepository accountRepository;
+    private final CurrencyRepository currencyRepository;
     private final AssetMapper assetMapper;
     private final EncryptionService encryptionService;
     private final UserRepository userRepository;
@@ -122,6 +124,7 @@ public class AssetService {
         // Map request to entity
         Asset asset = assetMapper.toEntity(request);
         asset.setUserId(userId);
+        asset.setCurrencyId(resolveCurrencyId(asset.getCurrency()));
 
         // Encrypt sensitive fields (Requirement 2.18: Encryption at rest)
         String encryptedName = encryptionService.encrypt(request.getName(), encryptionKey);
@@ -236,7 +239,8 @@ public class AssetService {
         // Capture snapshot before update for history
         AssetResponse beforeAssetSnapshot = toResponseWithDecryption(asset, encryptionKey);
 
-        // Store old price and purchase date to detect changes relevant to net worth history
+        // Store old price and purchase date to detect changes relevant to net worth
+        // history
         BigDecimal oldPrice = asset.getCurrentPrice();
         LocalDate oldPurchaseDate = asset.getPurchaseDate();
 
@@ -247,6 +251,7 @@ public class AssetService {
 
         // Update fields from request (only non-null fields will be copied)
         assetMapper.updateEntityFromRequest(request, asset);
+        asset.setCurrencyId(resolveCurrencyId(asset.getCurrency()));
 
         // Re-encrypt sensitive fields (always re-encrypt the provided plaintext values)
         String encryptedName = encryptionService.encrypt(request.getName(), encryptionKey);
@@ -1049,5 +1054,13 @@ public class AssetService {
                     fromDate,
                     e.getMessage());
         }
+    }
+
+    private Long resolveCurrencyId(String currencyCode) {
+        if (currencyCode == null || currencyCode.isBlank()) return null;
+        return currencyRepository
+                .findByCode(currencyCode)
+                .map(org.openfinance.entity.Currency::getId)
+                .orElse(null);
     }
 }

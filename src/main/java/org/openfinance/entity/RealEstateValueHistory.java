@@ -39,6 +39,11 @@ public class RealEstateValueHistory {
     @Column(name = "property_id", nullable = false)
     private Long propertyId;
 
+    /** Reference to the property entity (lazy-loaded). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "property_id", insertable = false, updatable = false)
+    private RealEstateProperty property;
+
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -52,6 +57,15 @@ public class RealEstateValueHistory {
 
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;
+
+    /** FK to the currencies table for referential integrity. */
+    @Column(name = "currency_id")
+    private Long currencyId;
+
+    /** Reference to the currency entity (lazy-loaded). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "currency_id", insertable = false, updatable = false)
+    private Currency currencyEntity;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

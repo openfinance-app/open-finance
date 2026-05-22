@@ -21,6 +21,7 @@ import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.AssetRepository;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.RealEstateValueHistoryRepository;
@@ -73,6 +74,7 @@ public class NetWorthService {
 
     private final NetWorthRepository netWorthRepository;
     private final AccountRepository accountRepository;
+    private final CurrencyRepository currencyRepository;
     private final AssetRepository assetRepository;
     private final LiabilityRepository liabilityRepository;
     private final org.openfinance.repository.RealEstateRepository realEstateRepository;
@@ -697,6 +699,8 @@ public class NetWorthService {
         Optional<NetWorth> existingSnapshot =
                 netWorthRepository.findByUserIdAndSnapshotDate(userId, date);
 
+        Long currencyId = resolveCurrencyId(baseCurrency);
+
         NetWorth snapshot;
         if (existingSnapshot.isPresent()) {
             // Update existing snapshot
@@ -704,7 +708,8 @@ public class NetWorthService {
             snapshot.setTotalAssets(totalAssets);
             snapshot.setTotalLiabilities(totalLiabilities);
             snapshot.setNetWorth(netWorth);
-            snapshot.setCurrency(baseCurrency); // Update currency too
+            snapshot.setCurrency(baseCurrency);
+            snapshot.setCurrencyId(currencyId);
             log.debug("Updating existing net worth snapshot: id={}", snapshot.getId());
         } else {
             // Create new snapshot
@@ -715,7 +720,8 @@ public class NetWorthService {
                             .totalAssets(totalAssets)
                             .totalLiabilities(totalLiabilities)
                             .netWorth(netWorth)
-                            .currency(baseCurrency) // Use base currency instead of hardcoded "EUR"
+                            .currency(baseCurrency)
+                            .currencyId(currencyId)
                             .build();
             log.debug("Creating new net worth snapshot");
         }
@@ -775,6 +781,8 @@ public class NetWorthService {
         Optional<NetWorth> existingSnapshot =
                 netWorthRepository.findByUserIdAndSnapshotDate(userId, date);
 
+        Long currencyId = resolveCurrencyId(baseCurrency);
+
         NetWorth snapshot;
         if (existingSnapshot.isPresent()) {
             // Update existing snapshot
@@ -782,7 +790,8 @@ public class NetWorthService {
             snapshot.setTotalAssets(totalAssets);
             snapshot.setTotalLiabilities(totalLiabilities);
             snapshot.setNetWorth(netWorth);
-            snapshot.setCurrency(baseCurrency); // Update currency too
+            snapshot.setCurrency(baseCurrency);
+            snapshot.setCurrencyId(currencyId);
             log.debug("Updating existing net worth snapshot: id={}", snapshot.getId());
         } else {
             // Create new snapshot
@@ -793,7 +802,8 @@ public class NetWorthService {
                             .totalAssets(totalAssets)
                             .totalLiabilities(totalLiabilities)
                             .netWorth(netWorth)
-                            .currency(baseCurrency) // Use base currency instead of hardcoded "EUR"
+                            .currency(baseCurrency)
+                            .currencyId(currencyId)
                             .build();
             log.debug("Creating new net worth snapshot");
         }
@@ -1291,6 +1301,7 @@ public class NetWorthService {
                                     .totalLiabilities(totalLiabilities)
                                     .netWorth(netWorthAtDate)
                                     .currency(baseCurrency)
+                                    .currencyId(resolveCurrencyId(baseCurrency))
                                     .build();
                     netWorthRepository.save(snapshot);
                     savedCount++;
@@ -1411,5 +1422,13 @@ public class NetWorthService {
         }
 
         return currentBalance.add(delta);
+    }
+
+    private Long resolveCurrencyId(String currencyCode) {
+        if (currencyCode == null || currencyCode.isBlank()) return null;
+        return currencyRepository
+                .findByCode(currencyCode)
+                .map(org.openfinance.entity.Currency::getId)
+                .orElse(null);
     }
 }

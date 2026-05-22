@@ -37,6 +37,7 @@ import org.openfinance.exception.AssetNotFoundException;
 import org.openfinance.mapper.AssetMapper;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.AssetRepository;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
 
@@ -63,6 +64,8 @@ class AssetServiceTest {
     @Mock private ExchangeRateService exchangeRateService;
 
     @Mock private OperationHistoryService operationHistoryService;
+
+    @Mock private CurrencyRepository currencyRepository;
 
     @InjectMocks private AssetService assetService;
 
@@ -1388,7 +1391,8 @@ class AssetServiceTest {
     @DisplayName(
             "Should set secondary fields to null when native currency equals secondary currency")
     void shouldSkipSecondaryCurrencyConversionWhenNativeEqualsSecondary() {
-        // Arrange — native=USD, base=EUR, secondary=USD (same as native → no conversion)
+        // Arrange — native=USD, base=EUR, secondary=USD (same as native → no
+        // conversion)
         Asset asset =
                 Asset.builder()
                         .id(1L)
@@ -1420,7 +1424,8 @@ class AssetServiceTest {
         // Act
         AssetResponse result = assetService.getAssetById(1L, 1L, testKey);
 
-        // Assert — Requirement REQ-4.6: no redundant conversion when native equals secondary
+        // Assert — Requirement REQ-4.6: no redundant conversion when native equals
+        // secondary
         assertThat(result.getValueInSecondaryCurrency()).isNull();
         assertThat(result.getSecondaryCurrency()).isEqualTo("USD");
         assertThat(result.getSecondaryExchangeRate()).isNull();
@@ -1469,7 +1474,8 @@ class AssetServiceTest {
         // Act — must not throw
         AssetResponse result = assetService.getAssetById(1L, 1L, testKey);
 
-        // Assert — Requirement REQ-4.5: graceful fallback; amount null, currency code still set
+        // Assert — Requirement REQ-4.5: graceful fallback; amount null, currency code
+        // still set
         assertThat(result.getValueInSecondaryCurrency()).isNull();
         assertThat(result.getSecondaryCurrency()).isEqualTo("JPY");
         // Base conversion is unaffected

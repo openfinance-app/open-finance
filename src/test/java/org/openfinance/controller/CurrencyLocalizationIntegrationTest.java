@@ -4,6 +4,8 @@ import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openfinance.entity.Currency;
@@ -43,10 +45,13 @@ class CurrencyLocalizationIntegrationTest {
 
     @Autowired private DatabaseCleanupService databaseCleanupService;
 
+    @PersistenceContext private EntityManager entityManager;
+
     @BeforeEach
     void setUp() {
         // Seed test currencies with nameKey
         databaseCleanupService.execute();
+        entityManager.flush();
 
         currencyRepository.save(
                 Currency.builder()

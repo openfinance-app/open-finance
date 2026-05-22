@@ -30,6 +30,7 @@ import org.openfinance.entity.Liability;
 import org.openfinance.entity.LiabilityType;
 import org.openfinance.entity.User;
 import org.openfinance.exception.LiabilityNotFoundException;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.UserRepository;
@@ -55,6 +56,8 @@ class LiabilityServiceTest {
     @Mock private RealEstateRepository realEstateRepository;
 
     @Mock private OperationHistoryService operationHistoryService;
+
+    @Mock private CurrencyRepository currencyRepository;
 
     @InjectMocks private LiabilityService liabilityService;
 

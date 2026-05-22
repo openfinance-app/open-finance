@@ -22,6 +22,7 @@ import org.openfinance.entity.User;
 import org.openfinance.exception.LiabilityNotFoundException;
 import org.openfinance.exception.RealEstatePropertyNotFoundException;
 import org.openfinance.mapper.RealEstateMapper;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.RealEstateRepository;
@@ -80,6 +81,7 @@ public class RealEstateService {
     private final RealEstateRepository realEstateRepository;
     private final RealEstateValueHistoryRepository valueHistoryRepository;
     private final LiabilityRepository liabilityRepository;
+    private final CurrencyRepository currencyRepository;
     private final RealEstateMapper realEstateMapper;
     private final EncryptionService encryptionService;
     private final AssetService assetService;
@@ -137,6 +139,7 @@ public class RealEstateService {
         // Map request to entity
         RealEstateProperty property = realEstateMapper.toEntity(request);
         property.setUserId(userId);
+        property.setCurrencyId(resolveCurrencyId(property.getCurrency()));
 
         // Encrypt sensitive fields (Requirement 2.18: Encryption at rest)
         encryptProperty(property, request, encryptionKey);
@@ -264,12 +267,14 @@ public class RealEstateService {
             validateMortgageOwnership(request.getMortgageId(), userId);
         }
 
-        // Capture old currentValue and purchase date before overwriting, for change detection
+        // Capture old currentValue and purchase date before overwriting, for change
+        // detection
         String oldEncryptedValue = property.getCurrentValue();
         LocalDate oldPurchaseDate = property.getPurchaseDate();
 
         // Update entity fields (MapStruct will skip null values)
         realEstateMapper.updateEntityFromRequest(request, property);
+        property.setCurrencyId(resolveCurrencyId(property.getCurrency()));
 
         // Re-encrypt sensitive fields
         encryptProperty(property, request, encryptionKey);
@@ -386,7 +391,8 @@ public class RealEstateService {
         // Sync with Assets module - HARD DELETE the asset to remove from net worth
         if (property.getAssetId() != null) {
             try {
-                // Pass null encryptionKey here as we don't necessarily need another snapshot for
+                // Pass null encryptionKey here as we don't necessarily need another snapshot
+                // for
                 // the asset repo sync
                 assetService.deleteAsset(property.getAssetId(), userId, null);
                 property.setAssetId(null); // Clear the link
@@ -1128,6 +1134,7 @@ public class RealEstateService {
                             .effectiveDate(LocalDate.now())
                             .recordedValue(encryptedValue)
                             .currency(property.getCurrency())
+                            .currencyId(property.getCurrencyId())
                             .build();
             valueHistoryRepository.save(entry);
             log.debug(
@@ -1506,5 +1513,13 @@ public class RealEstateService {
                     fromDate,
                     e.getMessage());
         }
+    }
+
+    private Long resolveCurrencyId(String currencyCode) {
+        if (currencyCode == null || currencyCode.isBlank()) return null;
+        return currencyRepository
+                .findByCode(currencyCode)
+                .map(org.openfinance.entity.Currency::getId)
+                .orElse(null);
     }
 }

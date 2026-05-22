@@ -22,6 +22,7 @@ import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.exception.RecurringTransactionNotFoundException;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.CategoryRepository;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.security.EncryptionService;
 import org.springframework.cache.annotation.CacheEvict;
@@ -88,6 +89,7 @@ public class RecurringTransactionService {
     private final RecurringTransactionRepository recurringTransactionRepository;
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
+    private final CurrencyRepository currencyRepository;
     private final EncryptionService encryptionService;
     private final TransactionService transactionService;
 
@@ -154,6 +156,7 @@ public class RecurringTransactionService {
                         .type(request.getType())
                         .amount(request.getAmount())
                         .currency(request.getCurrency())
+                        .currencyId(resolveCurrencyId(request.getCurrency()))
                         .categoryId(request.getCategoryId())
                         .frequency(request.getFrequency())
                         .nextOccurrence(request.getNextOccurrence())
@@ -237,6 +240,7 @@ public class RecurringTransactionService {
         recurringTransaction.setType(request.getType());
         recurringTransaction.setAmount(request.getAmount());
         recurringTransaction.setCurrency(request.getCurrency());
+        recurringTransaction.setCurrencyId(resolveCurrencyId(request.getCurrency()));
         recurringTransaction.setCategoryId(request.getCategoryId());
         recurringTransaction.setFrequency(request.getFrequency());
         recurringTransaction.setNextOccurrence(request.getNextOccurrence());
@@ -1102,6 +1106,14 @@ public class RecurringTransactionService {
                     e.getMessage());
             return storedValue;
         }
+    }
+
+    private Long resolveCurrencyId(String currencyCode) {
+        if (currencyCode == null || currencyCode.isBlank()) return null;
+        return currencyRepository
+                .findByCode(currencyCode)
+                .map(org.openfinance.entity.Currency::getId)
+                .orElse(null);
     }
 
     /**

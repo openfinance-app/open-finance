@@ -26,6 +26,7 @@ import org.openfinance.entity.Transaction;
 import org.openfinance.entity.User;
 import org.openfinance.exception.LiabilityNotFoundException;
 import org.openfinance.exception.ResourceNotFoundException;
+import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.RealEstateRepository;
@@ -79,6 +80,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class LiabilityService {
 
     private final LiabilityRepository liabilityRepository;
+    private final CurrencyRepository currencyRepository;
     private final EncryptionService encryptionService;
     private final TransactionRepository transactionRepository;
     private final TransactionService transactionService;
@@ -135,6 +137,7 @@ public class LiabilityService {
         liability.setStartDate(request.getStartDate());
         liability.setEndDate(request.getEndDate());
         liability.setCurrency(request.getCurrency());
+        liability.setCurrencyId(resolveCurrencyId(request.getCurrency()));
 
         // Encrypt sensitive fields (Requirement 2.18: Encryption at rest)
         String encryptedName = encryptionService.encrypt(request.getName(), encryptionKey);
@@ -294,6 +297,7 @@ public class LiabilityService {
         liability.setStartDate(request.getStartDate());
         liability.setEndDate(request.getEndDate());
         liability.setCurrency(request.getCurrency());
+        liability.setCurrencyId(resolveCurrencyId(request.getCurrency()));
 
         // Re-encrypt sensitive fields
         String encryptedName = encryptionService.encrypt(request.getName(), encryptionKey);
@@ -1540,5 +1544,13 @@ public class LiabilityService {
                     fromDate,
                     e.getMessage());
         }
+    }
+
+    private Long resolveCurrencyId(String currencyCode) {
+        if (currencyCode == null || currencyCode.isBlank()) return null;
+        return currencyRepository
+                .findByCode(currencyCode)
+                .map(org.openfinance.entity.Currency::getId)
+                .orElse(null);
     }
 }

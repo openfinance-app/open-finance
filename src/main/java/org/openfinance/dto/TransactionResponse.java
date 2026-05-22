@@ -70,6 +70,9 @@ public class TransactionResponse {
      */
     private String currency;
 
+    /** ID of the linked Currency entity (nullable). */
+    private Long currencyId;
+
     /** ID of the category (null for transfers or uncategorized transactions). */
     private Long categoryId;
 
@@ -116,6 +119,9 @@ public class TransactionResponse {
      * <p>Requirement REQ-2.3.1: Display payee information
      */
     private String payee;
+
+    /** ID of the linked Payee entity (nullable). */
+    private Long payeeId;
 
     /**
      * Payment method used for this transaction.
