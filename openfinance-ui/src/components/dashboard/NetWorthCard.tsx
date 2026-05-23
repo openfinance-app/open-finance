@@ -30,8 +30,10 @@ export default function NetWorthCard({ netWorth, periodLabel = 'last month', per
   const { t } = useTranslation('dashboard');
   const { data: settings } = useUserSettings();
   const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(netWorth.currency);
-  const changeAmount = periodChange?.amount ?? netWorth.monthlyChangeAmount;
-  const changePercentage = periodChange?.percentage ?? netWorth.monthlyChangePercentage;
+  // When periodChange is explicitly null, no comparison data exists for this period — don't fall back to monthly.
+  // Only use monthly fallback when periodChange is undefined (prop not passed).
+  const changeAmount = periodChange === null ? null : (periodChange?.amount ?? netWorth.monthlyChangeAmount);
+  const changePercentage = periodChange === null ? null : (periodChange?.percentage ?? netWorth.monthlyChangePercentage);
   const hasComparison = changeAmount != null && changePercentage != null;
   const isPositiveChange = hasComparison && (changeAmount ?? 0) >= 0;
   const changeColor = isPositiveChange ? 'text-green-500' : 'text-red-500';

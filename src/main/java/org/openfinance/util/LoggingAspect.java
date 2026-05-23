@@ -9,10 +9,12 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
 
 /**
- * Aspect for logging method execution in service and controller layers. Automatically logs method
+ * Aspect for logging method execution in service and controller layers.
+ * Automatically logs method
  * entry, exit, and exceptions.
  *
- * <p>Usage: Annotate methods with @Logged or apply to entire classes.
+ * <p>
+ * Usage: Annotate methods with @Logged or apply to entire classes.
  *
  * @see Logged
  */
@@ -23,15 +25,18 @@ public class LoggingAspect {
 
     /** Pointcut for all methods in service layer */
     @Pointcut("within(org.openfinance.service..*)")
-    public void serviceMethods() {}
+    public void serviceMethods() {
+    }
 
     /** Pointcut for all methods in controller layer */
     @Pointcut("within(org.openfinance.controller..*)")
-    public void controllerMethods() {}
+    public void controllerMethods() {
+    }
 
     /** Pointcut for methods annotated with @Logged */
     @Pointcut("@annotation(org.openfinance.util.Logged)")
-    public void loggedMethods() {}
+    public void loggedMethods() {
+    }
 
     /** Around advice for service methods */
     @Around("serviceMethods() && !loggedMethods()")
@@ -55,7 +60,7 @@ public class LoggingAspect {
      * Logs method execution with timing information
      *
      * @param joinPoint the join point
-     * @param layer the layer (SERVICE, CONTROLLER, etc.)
+     * @param layer     the layer (SERVICE, CONTROLLER, etc.)
      * @return the method result
      * @throws Throwable if method throws exception
      */

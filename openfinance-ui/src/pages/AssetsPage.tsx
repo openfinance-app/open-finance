@@ -111,7 +111,13 @@ export default function AssetsPage() {
       }
       return sum + effectiveNative;
     }, 0);
-    const totalCost = assetList.reduce((sum, a) => sum + a.totalCost, 0);
+    const totalCost = assetList.reduce((sum, a) => {
+      if (a.valueInBaseCurrency !== undefined && a.valueInBaseCurrency !== null && a.totalValue > 0) {
+        const rate = a.valueInBaseCurrency / a.totalValue;
+        return sum + a.totalCost * rate;
+      }
+      return sum + a.totalCost;
+    }, 0);
     const totalGain = totalValue - totalCost;
     const gainPct = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
     // Prefer the base currency from the server response; fall back to auth context baseCurrency

@@ -134,7 +134,7 @@ export default function DashboardPage() {
   // ── Period state ────────────────────────────────────────────────────────────
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('1M');
   const [periodDays, setPeriodDays] = useState<number>(30);
-  const [historyPeriod, setHistoryPeriod] = useState<number>(365);
+  const [historyPeriod, setHistoryPeriod] = useState<number>(90);
   /**
    * When the user selects "Custom", this is populated with the chosen range.
    * For all preset periods it is `undefined` — the hooks fall back to `period` (days).
@@ -267,12 +267,23 @@ export default function DashboardPage() {
   // ── Period change computed from history chart (BUG-D1) ─────────────────────
   const periodChange = useMemo(() => {
     if (!netWorthHistory || netWorthHistory.length < 2 || summary?.netWorth?.netWorth == null) return null;
-    const firstPoint = netWorthHistory[0];
-    if (firstPoint.netWorth === 0) return null;
-    const changeAmount = (summary.netWorth.netWorth ?? 0) - firstPoint.netWorth;
-    const changePercent = (changeAmount / Math.abs(firstPoint.netWorth)) * 100;
+    // Find the data point closest to periodDays ago (not just the first point
+    // in the history, which may span a wider window for chart context).
+    const targetTime = Date.now() - periodDays * 86_400_000;
+    let closest = netWorthHistory[0];
+    let closestDiff = Math.abs(new Date(closest.date).getTime() - targetTime);
+    for (const point of netWorthHistory) {
+      const diff = Math.abs(new Date(point.date).getTime() - targetTime);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closest = point;
+      }
+    }
+    if (closest.netWorth === 0) return null;
+    const changeAmount = (summary.netWorth.netWorth ?? 0) - closest.netWorth;
+    const changePercent = (changeAmount / Math.abs(closest.netWorth)) * 100;
     return { amount: changeAmount, percentage: changePercent };
-  }, [netWorthHistory, summary?.netWorth?.netWorth]);
+  }, [netWorthHistory, summary?.netWorth?.netWorth, periodDays]);
 
   // ── Close card menu on outside click ───────────────────────────────────────
   useEffect(() => {

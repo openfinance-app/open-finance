@@ -12,26 +12,33 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 /**
- * Entity representing a financial asset (stock, ETF, crypto, etc.) in the Open-Finance system.
+ * Entity representing a financial asset (stock, ETF, crypto, etc.) in the
+ * Open-Finance system.
  *
- * <p>Assets represent investment holdings that can appreciate or depreciate over time. Each asset
+ * <p>
+ * Assets represent investment holdings that can appreciate or depreciate over
+ * time. Each asset
  * belongs to a user and optionally to an account (e.g., brokerage account).
  *
- * <p>Requirement REQ-2.6: Asset Management - Users can track various types of financial assets
- * including stocks, ETFs, mutual funds, bonds, cryptocurrencies, commodities, and real estate.
+ * <p>
+ * Requirement REQ-2.6: Asset Management - Users can track various types of
+ * financial assets
+ * including stocks, ETFs, mutual funds, bonds, cryptocurrencies, commodities,
+ * and real estate.
  *
- * <p><strong>Security Note:</strong> The {@code name} and {@code notes} fields will be encrypted by
- * the AssetService before persisting to the database to protect sensitive financial information.
+ * <p>
+ * <strong>Security Note:</strong> The {@code name} and {@code notes} fields
+ * will be encrypted by
+ * the AssetService before persisting to the database to protect sensitive
+ * financial information.
  */
 @Entity
-@Table(
-        name = "assets",
-        indexes = {
-            @Index(name = "idx_asset_user_id", columnList = "user_id"),
-            @Index(name = "idx_asset_account_id", columnList = "account_id"),
-            @Index(name = "idx_asset_type", columnList = "asset_type"),
-            @Index(name = "idx_asset_symbol", columnList = "symbol")
-        })
+@Table(name = "assets", indexes = {
+        @Index(name = "idx_asset_user_id", columnList = "user_id"),
+        @Index(name = "idx_asset_account_id", columnList = "account_id"),
+        @Index(name = "idx_asset_type", columnList = "asset_type"),
+        @Index(name = "idx_asset_symbol", columnList = "symbol")
+})
 @Getter
 @Setter
 @Builder
@@ -47,7 +54,10 @@ public class Asset {
     @EqualsAndHashCode.Include
     private Long id;
 
-    /** The user who owns this asset. Requirement REQ-2.6.1: Each asset belongs to a single user */
+    /**
+     * The user who owns this asset. Requirement REQ-2.6.1: Each asset belongs to a
+     * single user
+     */
     @NotNull(message = "User ID cannot be null")
     @Column(name = "user_id", nullable = false)
     @ToString.Include
@@ -59,7 +69,8 @@ public class Asset {
     private User user;
 
     /**
-     * Optional account this asset belongs to (e.g., brokerage account). Requirement REQ-2.6.2:
+     * Optional account this asset belongs to (e.g., brokerage account). Requirement
+     * REQ-2.6.2:
      * Assets can be linked to accounts
      */
     @Column(name = "account_id")
@@ -73,8 +84,11 @@ public class Asset {
     /**
      * Name of the asset (e.g., "Apple Inc.", "Bitcoin", "S&P 500 ETF").
      *
-     * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database. The
-     * AssetService handles encryption/decryption transparently. Requirement REQ-2.6.2: Asset must
+     * <p>
+     * <strong>Encrypted Field:</strong> This field is stored encrypted in the
+     * database. The
+     * AssetService handles encryption/decryption transparently. Requirement
+     * REQ-2.6.2: Asset must
      * have a descriptive name
      */
     @NotNull(message = "Asset name cannot be null")
@@ -83,7 +97,8 @@ public class Asset {
     private String name;
 
     /**
-     * Type of asset (STOCK, ETF, MUTUAL_FUND, BOND, CRYPTO, COMMODITY, REAL_ESTATE, OTHER).
+     * Type of asset (STOCK, ETF, MUTUAL_FUND, BOND, CRYPTO, COMMODITY, REAL_ESTATE,
+     * OTHER).
      * Requirement REQ-2.6: Asset type categorization
      */
     @NotNull(message = "Asset type cannot be null")
@@ -93,10 +108,12 @@ public class Asset {
     private AssetType type;
 
     /**
-     * Ticker symbol or identifier (e.g., "AAPL", "BTC-USD", "SPY"). Used for fetching market data
+     * Ticker symbol or identifier (e.g., "AAPL", "BTC-USD", "SPY"). Used for
+     * fetching market data
      * and price updates.
      *
-     * <p>Requirement REQ-2.6.4: Symbol for market data integration
+     * <p>
+     * Requirement REQ-2.6.4: Symbol for market data integration
      */
     @Size(max = 20, message = "Symbol must not exceed 20 characters")
     @Column(name = "symbol", length = 20)
@@ -106,15 +123,18 @@ public class Asset {
     /**
      * Quantity or number of units owned.
      *
-     * <p>Examples:
+     * <p>
+     * Examples:
      *
      * <ul>
-     *   <li>100 shares of AAPL
-     *   <li>0.5 Bitcoin
-     *   <li>250 units of mutual fund
+     * <li>100 shares of AAPL
+     * <li>0.5 Bitcoin
+     * <li>250 units of mutual fund
      * </ul>
      *
-     * <p>Stored with precision 19, scale 8 to handle fractional assets (e.g., cryptocurrencies).
+     * <p>
+     * Stored with precision 19, scale 8 to handle fractional assets (e.g.,
+     * cryptocurrencies).
      * Requirement REQ-2.6.2: Track quantity of assets
      */
     @NotNull(message = "Quantity cannot be null")
@@ -123,7 +143,8 @@ public class Asset {
     private BigDecimal quantity;
 
     /**
-     * Purchase price per unit in the specified currency. Requirement REQ-2.6.2: Track purchase
+     * Purchase price per unit in the specified currency. Requirement REQ-2.6.2:
+     * Track purchase
      * price for gain/loss calculation
      */
     @NotNull(message = "Purchase price cannot be null")
@@ -132,10 +153,12 @@ public class Asset {
     private BigDecimal purchasePrice;
 
     /**
-     * Current market price per unit in the specified currency. Updated by market data integration
+     * Current market price per unit in the specified currency. Updated by market
+     * data integration
      * or manually by user.
      *
-     * <p>Requirement REQ-2.6.4: Track current price for portfolio valuation
+     * <p>
+     * Requirement REQ-2.6.4: Track current price for portfolio valuation
      */
     @NotNull(message = "Current price cannot be null")
     @DecimalMin(value = "0.00", message = "Current price must be non-negative")
@@ -143,7 +166,8 @@ public class Asset {
     private BigDecimal currentPrice;
 
     /**
-     * Currency code in ISO 4217 format (e.g., USD, EUR, GBP). Requirement REQ-2.8: Multi-currency
+     * Currency code in ISO 4217 format (e.g., USD, EUR, GBP). Requirement REQ-2.8:
+     * Multi-currency
      * support for assets
      */
     @NotNull(message = "Currency cannot be null")
@@ -161,9 +185,11 @@ public class Asset {
     private Currency currencyEntity;
 
     /**
-     * Date when the asset was purchased. Used for calculating holding period and tax implications.
+     * Date when the asset was purchased. Used for calculating holding period and
+     * tax implications.
      *
-     * <p>Requirement REQ-2.6.2: Track purchase date
+     * <p>
+     * Requirement REQ-2.6.2: Track purchase date
      */
     @NotNull(message = "Purchase date cannot be null")
     @Column(name = "purchase_date", nullable = false)
@@ -172,7 +198,9 @@ public class Asset {
     /**
      * Optional notes about the asset (e.g., investment thesis, broker info).
      *
-     * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database. The
+     * <p>
+     * <strong>Encrypted Field:</strong> This field is stored encrypted in the
+     * database. The
      * AssetService handles encryption/decryption transparently.
      */
     @Column(name = "notes", columnDefinition = "TEXT")
@@ -182,71 +210,88 @@ public class Asset {
     // FURNITURE) =====
 
     /**
-     * Serial number or identification number for physical assets. Examples: VIN for vehicles,
+     * Serial number or identification number for physical assets. Examples: VIN for
+     * vehicles,
      * serial number for electronics, certificate number for jewelry.
      *
-     * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database.
+     * <p>
+     * <strong>Encrypted Field:</strong> This field is stored encrypted in the
+     * database.
      *
-     * <p>Requirement REQ-2.6: Track physical asset identification
+     * <p>
+     * Requirement REQ-2.6: Track physical asset identification
      */
     @Size(max = 500, message = "Serial number must not exceed 500 characters")
     @Column(name = "serial_number", length = 500)
     private String serialNumber;
 
     /**
-     * Brand or manufacturer name for physical assets. Examples: Tesla, Apple, Rolex, IKEA.
+     * Brand or manufacturer name for physical assets. Examples: Tesla, Apple,
+     * Rolex, IKEA.
      *
-     * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database.
+     * <p>
+     * <strong>Encrypted Field:</strong> This field is stored encrypted in the
+     * database.
      */
     @Size(max = 500, message = "Brand must not exceed 500 characters")
     @Column(name = "brand", length = 500)
     private String brand;
 
     /**
-     * Model name or number for physical assets. Examples: Model 3, iPhone 15 Pro, Submariner, MALM.
+     * Model name or number for physical assets. Examples: Model 3, iPhone 15 Pro,
+     * Submariner, MALM.
      *
-     * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database.
+     * <p>
+     * <strong>Encrypted Field:</strong> This field is stored encrypted in the
+     * database.
      */
     @Size(max = 500, message = "Model must not exceed 500 characters")
     @Column(name = "model", length = 500)
     private String model;
 
     /**
-     * Physical condition of the asset. Used for depreciation calculation and value assessment.
+     * Physical condition of the asset. Used for depreciation calculation and value
+     * assessment.
      *
-     * <p>Valid values: NEW, EXCELLENT, GOOD, FAIR, POOR
+     * <p>
+     * Valid values: NEW, EXCELLENT, GOOD, FAIR, POOR
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "condition", length = 20)
     private AssetCondition condition;
 
     /**
-     * Warranty expiration date for physical assets. Used to track coverage and factor into resale
+     * Warranty expiration date for physical assets. Used to track coverage and
+     * factor into resale
      * value.
      */
     @Column(name = "warranty_expiration")
     private LocalDate warrantyExpiration;
 
     /**
-     * Expected useful life in years (for depreciation calculation). Used for straight-line
+     * Expected useful life in years (for depreciation calculation). Used for
+     * straight-line
      * depreciation of physical assets.
      *
-     * <p>Typical values:
+     * <p>
+     * Typical values:
      *
      * <ul>
-     *   <li>Vehicles: 10-15 years
-     *   <li>Electronics: 3-5 years
-     *   <li>Furniture: 7-10 years
-     *   <li>Jewelry/Collectibles: N/A (may appreciate)
+     * <li>Vehicles: 10-15 years
+     * <li>Electronics: 3-5 years
+     * <li>Furniture: 7-10 years
+     * <li>Jewelry/Collectibles: N/A (may appreciate)
      * </ul>
      */
     @Column(name = "useful_life_years")
     private Integer usefulLifeYears;
 
     /**
-     * Path to photo or image file for the asset. Stored as relative path to the uploads directory.
+     * Path to photo or image file for the asset. Stored as relative path to the
+     * uploads directory.
      *
-     * <p>Examples: assets/photos/IMG_1234.jpg, assets/photos/vehicle_vin12345.png
+     * <p>
+     * Examples: assets/photos/IMG_1234.jpg, assets/photos/vehicle_vin12345.png
      */
     @Size(max = 500, message = "Photo path must not exceed 500 characters")
     @Column(name = "photo_path", length = 500)
@@ -255,22 +300,26 @@ public class Asset {
     // ===== End Physical Asset Fields =====
 
     /**
-     * Timestamp when the current price was last updated. Set when market data is refreshed.
+     * Timestamp when the current price was last updated. Set when market data is
+     * refreshed.
      *
-     * <p>Requirement REQ-2.6.5: Track when prices were last updated
+     * <p>
+     * Requirement REQ-2.6.5: Track when prices were last updated
      */
     @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
 
     /**
-     * Timestamp when the asset record was created. Automatically set by Hibernate on first insert.
+     * Timestamp when the asset record was created. Automatically set by Hibernate
+     * on first insert.
      */
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     /**
-     * Timestamp when the asset record was last modified. Automatically updated by Hibernate on any
+     * Timestamp when the asset record was last modified. Automatically updated by
+     * Hibernate on any
      * modification.
      */
     @UpdateTimestamp
@@ -319,37 +368,47 @@ public class Asset {
     }
 
     /**
-     * Calculates the depreciated value of a physical asset using straight-line depreciation. Only
+     * Calculates the depreciated value of a physical asset using straight-line
+     * depreciation. Only
      * applicable to physical assets with a useful life defined.
      *
-     * <p>Formula: Purchase Price - (Purchase Price / Useful Life * Years Owned)
+     * <p>
+     * Formula: Purchase Price - (Purchase Price / Useful Life * Years Owned)
      *
-     * @return depreciated value, or current price if not a depreciating physical asset
+     * @return depreciated value, or current price if not a depreciating physical
+     *         asset
      */
     public BigDecimal getDepreciatedValue() {
         // Only calculate depreciation for physical assets with useful life
-        if (type == null || !type.isPhysical() || usefulLifeYears == null || usefulLifeYears <= 0) {
+        if (type == null || !type.isPhysical()) {
+            return null;
+        }
+
+        // Use explicit usefulLifeYears, then fall back to type default
+        Integer effectiveLife = usefulLifeYears;
+        if (effectiveLife == null || effectiveLife <= 0) {
+            effectiveLife = type.getDefaultUsefulLifeYears();
+        }
+        if (effectiveLife == null || effectiveLife <= 0) {
             return null;
         }
 
         // Calculate years owned
         long daysOwned = java.time.temporal.ChronoUnit.DAYS.between(purchaseDate, LocalDate.now());
-        BigDecimal yearsOwned =
-                BigDecimal.valueOf(daysOwned)
-                        .divide(BigDecimal.valueOf(365), 4, java.math.RoundingMode.HALF_UP);
+        BigDecimal yearsOwned = BigDecimal.valueOf(daysOwned)
+                .divide(BigDecimal.valueOf(365), 4, java.math.RoundingMode.HALF_UP);
 
         // If asset is fully depreciated, return salvage value (10% of purchase price)
-        if (yearsOwned.compareTo(BigDecimal.valueOf(usefulLifeYears)) >= 0) {
+        if (yearsOwned.compareTo(BigDecimal.valueOf(effectiveLife)) >= 0) {
             return getTotalCost().multiply(BigDecimal.valueOf(0.10));
         }
 
         // Calculate annual depreciation
-        BigDecimal annualDepreciation =
-                getTotalCost()
-                        .divide(
-                                BigDecimal.valueOf(usefulLifeYears),
-                                4,
-                                java.math.RoundingMode.HALF_UP);
+        BigDecimal annualDepreciation = getTotalCost()
+                .divide(
+                        BigDecimal.valueOf(effectiveLife),
+                        4,
+                        java.math.RoundingMode.HALF_UP);
         BigDecimal totalDepreciation = annualDepreciation.multiply(yearsOwned);
 
         // Depreciated value = Purchase Cost - Total Depreciation
@@ -361,10 +420,12 @@ public class Asset {
     }
 
     /**
-     * Calculates the condition-adjusted value of a physical asset. Applies the condition retention
+     * Calculates the condition-adjusted value of a physical asset. Applies the
+     * condition retention
      * factor to the depreciated value.
      *
-     * @return condition-adjusted value, or depreciated value if condition is not set
+     * @return condition-adjusted value, or depreciated value if condition is not
+     *         set
      */
     public BigDecimal getConditionAdjustedValue() {
         if (!isPhysical()) {
@@ -377,8 +438,7 @@ public class Asset {
         // On purchase day (daysOwned == 0), return full cost — condition wear hasn't
         // accrued yet
         if (purchaseDate != null) {
-            long daysOwned =
-                    java.time.temporal.ChronoUnit.DAYS.between(purchaseDate, LocalDate.now());
+            long daysOwned = java.time.temporal.ChronoUnit.DAYS.between(purchaseDate, LocalDate.now());
             if (daysOwned == 0) {
                 return getTotalCost();
             }

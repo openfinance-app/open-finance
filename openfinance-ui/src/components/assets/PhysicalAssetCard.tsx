@@ -26,12 +26,13 @@ interface PhysicalAssetCardProps {
 export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
   const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(asset.currency);
   const isWarrantyValid = asset.isWarrantyValid;
-  const hasDepreciation = asset.depreciatedValue !== undefined && asset.depreciatedValue !== asset.totalValue;
-  
-  // Calculate depreciation percentage
-  const depreciationPercent = hasDepreciation && asset.depreciatedValue && asset.totalCost
-    ? ((asset.totalCost - asset.depreciatedValue) / asset.totalCost) * 100
-    : 0;
+
+  // Actual market value change: purchase cost vs current market value
+  const currentValue = asset.totalValue; // quantity × currentPrice (actual market value)
+  const valueLoss = asset.totalCost - currentValue;
+  const lossPercent = asset.totalCost > 0 ? (valueLoss / asset.totalCost) * 100 : 0;
+  const retainedPercent = asset.totalCost > 0 ? Math.min((currentValue / asset.totalCost) * 100, 100) : 0;
+  const hasValueChange = asset.totalCost > 0 && currentValue !== asset.totalCost;
 
   return (
     <Card
@@ -91,86 +92,71 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
         )}
       </div>
 
-      {/* Depreciation Progress Bar */}
-      {hasDepreciation && asset.conditionAdjustedValue !== undefined && (
+      {/* Value Change Bar */}
+      {hasValueChange && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-1.5">
               <TrendingDown className="h-4 w-4 text-text-secondary" />
-              <span className="text-text-secondary font-medium">Value Timeline</span>
+              <span className="text-text-secondary font-medium">Value Change</span>
             </div>
-            <span className="text-text-tertiary text-xs">
-              -{depreciationPercent.toFixed(0)}% depreciation
+            <span className={`text-xs font-medium ${valueLoss > 0 ? 'text-red-500' : 'text-green-500'}`}>
+              {valueLoss > 0 ? '-' : '+'}{Math.abs(lossPercent).toFixed(0)}%
+              {' '}
+              ({valueLoss > 0 ? '-' : '+'}
+              <ConvertedAmount
+                amount={Math.abs(valueLoss)}
+                currency={asset.currency}
+                isConverted={false}
+                inline
+              />)
             </span>
           </div>
           
-          {/* Progress Bar */}
-          <div className="relative h-6 bg-surface-elevated rounded-full overflow-hidden border border-border">
-            {/* Purchase Price (Full bar - neutral background) */}
-            <div className="absolute inset-0 bg-surface-elevated" />
-            
-            {/* Depreciated Value (Blue) */}
+          {/* Progress Bar — green = retained value, gray = loss */}
+          <div className="relative h-6 bg-red-100 dark:bg-red-950 rounded-full overflow-hidden border border-border">
+            {/* Retained value portion */}
             <div 
-              className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300"
-              style={{ 
-                width: `${asset.depreciatedValue && asset.totalCost 
-                  ? (asset.depreciatedValue / asset.totalCost) * 100 
-                  : 0}%` 
-              }}
-            />
-            
-            {/* Condition Adjusted Value (Green) */}
-            <div 
-              className="absolute inset-y-0 left-0 bg-gradient-to-r from-green-500 to-green-600 transition-all duration-300"
-              style={{ 
-                width: `${asset.conditionAdjustedValue && asset.totalCost 
-                  ? (asset.conditionAdjustedValue / asset.totalCost) * 100 
-                  : 0}%` 
-              }}
+              className={`absolute inset-y-0 left-0 transition-all duration-300 ${
+                valueLoss > 0
+                  ? 'bg-gradient-to-r from-green-500 to-green-600'
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600'
+              }`}
+              style={{ width: `${retainedPercent}%` }}
             />
             
             {/* Labels */}
-            <div className="relative h-full flex items-center justify-between px-3 text-xs font-medium text-white">
-              <span className="drop-shadow-md">
+            <div className="relative h-full flex items-center justify-between px-3 text-xs font-medium">
+              <span className="text-white drop-shadow-md">
                 <ConvertedAmount
-                  amount={asset.totalCost}
+                  amount={currentValue}
                   currency={asset.currency}
                   isConverted={false}
-                  secondaryAmount={convert(asset.totalCost)}
-                  secondaryCurrency={secCurrency}
-                  secondaryExchangeRate={secondaryExchangeRate}
                   inline
                 />
               </span>
-              <span className="drop-shadow-md">
-                <ConvertedAmount
-                  amount={asset.conditionAdjustedValue ?? 0}
-                  currency={asset.currency}
-                  isConverted={false}
-                  secondaryAmount={convert(asset.conditionAdjustedValue ?? 0)}
-                  secondaryCurrency={secCurrency}
-                  secondaryExchangeRate={secondaryExchangeRate}
-                  inline
-                />
-              </span>
+              {valueLoss > 0 && retainedPercent < 85 && (
+                <span className="text-red-600 dark:text-red-400 drop-shadow-sm">
+                  <ConvertedAmount
+                    amount={asset.totalCost}
+                    currency={asset.currency}
+                    isConverted={false}
+                    inline
+                  />
+                </span>
+              )}
             </div>
           </div>
           
-          {/* Value Legend */}
-          <div className="flex items-center justify-between text-xs text-text-tertiary pt-1">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-border" />
-                <span>Purchase</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-blue-500" />
-                <span>Depreciated</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span>Adjusted</span>
-              </div>
+          {/* Legend */}
+          <div className="flex items-center gap-4 text-xs text-text-tertiary pt-1">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-3 h-3 rounded-full ${valueLoss > 0 ? 'bg-green-500' : 'bg-blue-500'}`} />
+              <span>Current Value</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-200 dark:bg-red-900" />
+              <span>Loss</span>
             </div>
           </div>
         </div>
@@ -183,7 +169,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           <div className="text-lg font-bold text-text-primary">
             {/* Reference REQ-10.1: Show asset value with base-currency conversion hint */}
              <ConvertedAmount
-               amount={asset.conditionAdjustedValue || asset.totalValue}
+               amount={asset.totalValue}
                currency={asset.currency}
                convertedAmount={asset.valueInBaseCurrency}
                baseCurrency={asset.baseCurrency}

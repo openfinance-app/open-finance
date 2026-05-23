@@ -38,6 +38,7 @@ import org.openfinance.dto.ImportParseResult;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
+import org.openfinance.entity.Category;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
 import org.openfinance.entity.Payee;
@@ -234,6 +235,20 @@ class ImportServiceTest {
                                                         Payee p = invocation.getArgument(0);
                                                         p.setId(999L);
                                                         return p;
+                                                });
+
+                // Lenient stubs for category resolution (used by
+                // resolveOrCreateHierarchicalCategory)
+                lenient()
+                                .when(categoryRepository.findByUserId(anyLong()))
+                                .thenReturn(Collections.emptyList());
+                lenient()
+                                .when(categoryRepository.save(any(Category.class)))
+                                .thenAnswer(
+                                                invocation -> {
+                                                        Category c = invocation.getArgument(0);
+                                                        c.setId(900L);
+                                                        return c;
                                                 });
         }
 

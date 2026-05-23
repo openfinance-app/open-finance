@@ -207,7 +207,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                 {financialAssets.map((asset) => {
                    const { formatted, color } = formatGainLoss(
                      asset.unrealizedGain,
-                     asset.gainPercentage,
+                     asset.gainPercentage * 100,
                      asset.baseCurrency ?? asset.currency
                    );
 
@@ -311,7 +311,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
             {financialAssets.map((asset) => {
               const { formatted, color } = formatGainLoss(
                 asset.unrealizedGain,
-                asset.gainPercentage
+                asset.gainPercentage * 100
               );
 
               return (

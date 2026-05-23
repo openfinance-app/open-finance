@@ -1,20 +1,22 @@
 package org.openfinance.entity;
 
 /**
- * Enumeration representing different types of financial assets. Used to categorize assets for
+ * Enumeration representing different types of financial assets. Used to
+ * categorize assets for
  * portfolio tracking and reporting.
  *
- * <p>Asset types include:
+ * <p>
+ * Asset types include:
  *
  * <ul>
- *   <li>STOCK - Individual company stocks/equities
- *   <li>ETF - Exchange-traded funds
- *   <li>MUTUAL_FUND - Mutual funds and index funds
- *   <li>BOND - Government and corporate bonds
- *   <li>CRYPTO - Cryptocurrencies (Bitcoin, Ethereum, etc.)
- *   <li>COMMODITY - Physical commodities (gold, silver, oil, etc.)
- *   <li>REAL_ESTATE - Real estate investments (REITs, properties)
- *   <li>OTHER - Any other asset types
+ * <li>STOCK - Individual company stocks/equities
+ * <li>ETF - Exchange-traded funds
+ * <li>MUTUAL_FUND - Mutual funds and index funds
+ * <li>BOND - Government and corporate bonds
+ * <li>CRYPTO - Cryptocurrencies (Bitcoin, Ethereum, etc.)
+ * <li>COMMODITY - Physical commodities (gold, silver, oil, etc.)
+ * <li>REAL_ESTATE - Real estate investments (REITs, properties)
+ * <li>OTHER - Any other asset types
  * </ul>
  *
  * @see Asset
@@ -29,7 +31,9 @@ public enum AssetType {
     /** Mutual funds and index funds. Example: VFIAX, FXAIX */
     MUTUAL_FUND,
 
-    /** Government and corporate bonds. Example: US Treasury bonds, corporate debt */
+    /**
+     * Government and corporate bonds. Example: US Treasury bonds, corporate debt
+     */
     BOND,
 
     /** Cryptocurrencies. Example: Bitcoin (BTC), Ethereum (ETH) */
@@ -38,11 +42,15 @@ public enum AssetType {
     /** Physical commodities. Example: Gold, Silver, Oil, Natural Gas */
     COMMODITY,
 
-    /** Real estate investments. Example: REITs, rental properties, commercial real estate */
+    /**
+     * Real estate investments. Example: REITs, rental properties, commercial real
+     * estate
+     */
     REAL_ESTATE,
 
     /**
-     * Vehicles (cars, motorcycles, boats, aircraft). Example: Tesla Model 3, Honda Civic, Yamaha
+     * Vehicles (cars, motorcycles, boats, aircraft). Example: Tesla Model 3, Honda
+     * Civic, Yamaha
      * YZF-R1
      */
     VEHICLE,
@@ -51,12 +59,16 @@ public enum AssetType {
     JEWELRY,
 
     /**
-     * Collectible items with potential appreciation. Example: Artwork, antiques, coins, stamps,
+     * Collectible items with potential appreciation. Example: Artwork, antiques,
+     * coins, stamps,
      * trading cards
      */
     COLLECTIBLE,
 
-    /** Electronic devices and equipment. Example: Laptops, smartphones, cameras, audio equipment */
+    /**
+     * Electronic devices and equipment. Example: Laptops, smartphones, cameras,
+     * audio equipment
+     */
     ELECTRONICS,
 
     /** Furniture and home furnishings. Example: Sofas, tables, beds, appliances */
@@ -89,9 +101,11 @@ public enum AssetType {
     }
 
     /**
-     * Checks if this asset type represents a security (tradable financial instrument).
+     * Checks if this asset type represents a security (tradable financial
+     * instrument).
      *
-     * @return true if the asset is a security (STOCK, ETF, MUTUAL_FUND, BOND), false otherwise
+     * @return true if the asset is a security (STOCK, ETF, MUTUAL_FUND, BOND),
+     *         false otherwise
      */
     public boolean isSecurity() {
         return this == STOCK || this == ETF || this == MUTUAL_FUND || this == BOND;
@@ -109,8 +123,9 @@ public enum AssetType {
     /**
      * Checks if this asset type represents a physical asset (not financial).
      *
-     * @return true if the asset is physical (VEHICLE, JEWELRY, COLLECTIBLE, ELECTRONICS,
-     *     FURNITURE), false otherwise
+     * @return true if the asset is physical (VEHICLE, JEWELRY, COLLECTIBLE,
+     *         ELECTRONICS,
+     *         FURNITURE), false otherwise
      */
     public boolean isPhysical() {
         return this == VEHICLE
@@ -127,5 +142,21 @@ public enum AssetType {
      */
     public boolean isDepreciating() {
         return this == VEHICLE || this == ELECTRONICS || this == FURNITURE;
+    }
+
+    /**
+     * Returns the default useful life in years for depreciating asset types. Used
+     * when the user
+     * does not explicitly provide a useful life.
+     *
+     * @return default useful life in years, or null if the type does not depreciate
+     */
+    public Integer getDefaultUsefulLifeYears() {
+        return switch (this) {
+            case VEHICLE -> 10;
+            case ELECTRONICS -> 5;
+            case FURNITURE -> 10;
+            default -> null;
+        };
     }
 }

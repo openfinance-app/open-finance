@@ -121,7 +121,8 @@
     "totalAssetsTooltip": "Valeur totale de tous vos comptes et investissements",
     "totalLiabilities": "Total des passifs",
     "totalLiabilitiesTooltip": "Montant total que vous devez sur tous vos prêts et cartes de crédit",
-    "vsPeriod": "vs {{period}}"
+    "vsPeriod": "vs {{period}}",
+    "noComparisonData": "Nouveau"
   },
   "insightsCard": {
     "title": "Insights IA",

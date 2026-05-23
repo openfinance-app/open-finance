@@ -121,7 +121,8 @@
     "totalAssetsTooltip": "Total value of all your accounts and investments",
     "totalLiabilities": "Total Liabilities",
     "totalLiabilitiesTooltip": "Total amount you owe across all loans and credit cards",
-    "vsPeriod": "vs {{period}}"
+    "vsPeriod": "vs {{period}}",
+    "noComparisonData": "New"
   },
   "insightsCard": {
     "title": "AI Insights",

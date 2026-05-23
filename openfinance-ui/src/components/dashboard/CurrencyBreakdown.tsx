@@ -120,6 +120,7 @@ export default function CurrencyBreakdown({ baseCurrency = 'USD' }: CurrencyBrea
         currencyGroups[asset.currency] = { balance: 0, accountCount: 0 };
       }
       currencyGroups[asset.currency].balance += asset.totalValue;
+      currencyGroups[asset.currency].accountCount += 1;
     });
   }
 

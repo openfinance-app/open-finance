@@ -707,7 +707,6 @@ public class ImportService {
                     Transaction saved = transactionRepository.save(transaction);
                     // Save splits if present (REQ-SPL)
                     if (importedTx.isSplitTransaction()) {
-                        List<Category> userCategories = categoryRepository.findByUserId(userId);
                         List<TransactionSplitRequest> splitRequests = importedTx.getSplits().stream()
                                 .map(
                                         se -> {
@@ -721,30 +720,13 @@ public class ImportService {
                                                         : null;
                                                 if (mapped != null) {
                                                     catId = mapped;
-                                                } else {
-                                                    // Try full name first, then last
-                                                    // segment of colon-separated path
-                                                    // e.g. "Food:Groceries" ΓåÆ try
-                                                    // "Food:Groceries" then "Groceries"
-                                                    String lastSegment = catName.contains(":")
-                                                            ? catName.substring(
-                                                                    catName
-                                                                            .lastIndexOf(
-                                                                                    ':')
-                                                                            + 1)
-                                                                    .trim()
-                                                            : catName;
-                                                    catId = userCategories.stream()
-                                                            .filter(
-                                                                    c -> c.getName()
-                                                                            .equalsIgnoreCase(
-                                                                                    catName)
-                                                                            || c.getName()
-                                                                                    .equalsIgnoreCase(
-                                                                                            lastSegment))
-                                                            .findFirst()
-                                                            .map(c -> c.getId())
-                                                            .orElse(null);
+                                                } else if (!catName.startsWith("[")) {
+                                                    CategoryType catType = se.getAmount()
+                                                            .compareTo(BigDecimal.ZERO) >= 0
+                                                                    ? CategoryType.INCOME
+                                                                    : CategoryType.EXPENSE;
+                                                    catId = resolveOrCreateHierarchicalCategory(
+                                                            catName, userId, catType);
                                                 }
                                             }
                                             return TransactionSplitRequest.builder()
@@ -2266,7 +2248,6 @@ public class ImportService {
             Long userId,
             Map<String, Long> categoryMappings,
             Map<Long, Long> categoryIdsBySource) {
-        List<Category> userCategories = categoryRepository.findByUserId(userId);
         return importedTx.getSplits().stream()
                 .map(
                         splitEntry -> {
@@ -2280,24 +2261,14 @@ public class ImportService {
                                 categoryId = categoryMappings.get(splitEntry.getCategory());
                             }
                             if (categoryId == null && splitEntry.getCategory() != null) {
-                                String categoryName = splitEntry.getCategory().contains(":")
-                                        ? splitEntry
-                                                .getCategory()
-                                                .substring(
-                                                        splitEntry
-                                                                .getCategory()
-                                                                .lastIndexOf(':')
-                                                                + 1)
-                                                .trim()
-                                        : splitEntry.getCategory().trim();
-                                categoryId = userCategories.stream()
-                                        .filter(
-                                                category -> category.getName()
-                                                        .equalsIgnoreCase(
-                                                                categoryName))
-                                        .findFirst()
-                                        .map(Category::getId)
-                                        .orElse(null);
+                                String catName = splitEntry.getCategory().trim();
+                                if (!catName.isEmpty() && !catName.startsWith("[")) {
+                                    CategoryType catType = splitEntry.getAmount().compareTo(BigDecimal.ZERO) >= 0
+                                            ? CategoryType.INCOME
+                                            : CategoryType.EXPENSE;
+                                    categoryId = resolveOrCreateHierarchicalCategory(
+                                            catName, userId, catType);
+                                }
                             }
                             return TransactionSplitRequest.builder()
                                     .categoryId(categoryId)
@@ -2367,6 +2338,109 @@ public class ImportService {
     }
 
     /**
+     * Resolve a hierarchical category path (e.g., "Income:Salary") to a category
+     * ID.
+     *
+     * <p>
+     * Resolution order:
+     * <ol>
+     * <li>Exact match on full path name (e.g., "Income:Salary")
+     * <li>Match child name under matching parent (parent "Income", child "Salary")
+     * <li>Match leaf name only (e.g., "Salary")
+     * <li>Create parent and child categories if no match found
+     * </ol>
+     *
+     * @param categoryPath full category path from import file (e.g.,
+     *                     "Income:Salary")
+     * @param userId       the user who owns the categories
+     * @param type         INCOME or EXPENSE for newly created categories
+     * @return the resolved or created category ID, or null if path is blank
+     */
+    private Long resolveOrCreateHierarchicalCategory(String categoryPath, Long userId, CategoryType type) {
+        if (categoryPath == null || categoryPath.isBlank()) {
+            return null;
+        }
+
+        List<Category> userCategories = categoryRepository.findByUserId(userId);
+
+        // 1. Try exact match on full path name
+        Optional<Category> exactMatch = userCategories.stream()
+                .filter(c -> c.getName().equalsIgnoreCase(categoryPath))
+                .findFirst();
+        if (exactMatch.isPresent()) {
+            log.debug("Category '{}' matched exactly to ID={}", categoryPath, exactMatch.get().getId());
+            return exactMatch.get().getId();
+        }
+
+        // 2. If hierarchical (contains ":"), try parent/child match then leaf match
+        if (categoryPath.contains(":")) {
+            String[] segments = categoryPath.split(":");
+            String parentName = segments[0].trim();
+            String childName = segments[segments.length - 1].trim();
+
+            // Try to find child with a matching parent
+            Optional<Category> hierarchicalMatch = userCategories.stream()
+                    .filter(c -> c.getName().equalsIgnoreCase(childName) && c.getParentId() != null)
+                    .filter(c -> userCategories.stream()
+                            .anyMatch(p -> p.getId().equals(c.getParentId())
+                                    && p.getName().equalsIgnoreCase(parentName)))
+                    .findFirst();
+            if (hierarchicalMatch.isPresent()) {
+                log.debug("Category '{}' matched hierarchically (parent '{}', child '{}') to ID={}",
+                        categoryPath, parentName, childName, hierarchicalMatch.get().getId());
+                return hierarchicalMatch.get().getId();
+            }
+
+            // Try just the leaf name
+            Optional<Category> leafMatch = userCategories.stream()
+                    .filter(c -> c.getName().equalsIgnoreCase(childName))
+                    .findFirst();
+            if (leafMatch.isPresent()) {
+                log.debug("Category '{}' matched by leaf name '{}' to ID={}",
+                        categoryPath, childName, leafMatch.get().getId());
+                return leafMatch.get().getId();
+            }
+
+            // No match — create parent (if not existing) and child
+            Category parent = userCategories.stream()
+                    .filter(c -> c.getName().equalsIgnoreCase(parentName) && c.getParentId() == null)
+                    .findFirst()
+                    .orElseGet(() -> {
+                        Category newParent = categoryRepository.save(Category.builder()
+                                .userId(userId)
+                                .name(parentName)
+                                .type(type)
+                                .isSystem(false)
+                                .build());
+                        log.info("Created parent category '{}' (ID={}) for user {}",
+                                parentName, newParent.getId(), userId);
+                        return newParent;
+                    });
+
+            Category child = categoryRepository.save(Category.builder()
+                    .userId(userId)
+                    .name(childName)
+                    .parentId(parent.getId())
+                    .type(type)
+                    .isSystem(false)
+                    .build());
+            log.info("Created child category '{}' under parent '{}' (ID={}) for user {}",
+                    childName, parentName, child.getId(), userId);
+            return child.getId();
+        }
+
+        // Non-hierarchical: no exact match was found, create as root category
+        Category newCategory = categoryRepository.save(Category.builder()
+                .userId(userId)
+                .name(categoryPath)
+                .type(type)
+                .isSystem(false)
+                .build());
+        log.info("Created root category '{}' (ID={}) for user {}", categoryPath, newCategory.getId(), userId);
+        return newCategory.getId();
+    }
+
+    /**
      * Convert ImportedTransaction to Transaction entity. The
      * {@code referenceNumber} from the
      * imported file is persisted as {@code externalReference} so that future
@@ -2399,9 +2473,7 @@ public class ImportService {
         }
 
         // Resolve currency code and link to Currency entity
-        String currencyCode = importedTx.getCurrency() != null && !importedTx.getCurrency().isBlank()
-                ? importedTx.getCurrency()
-                : "USD";
+        String currencyCode = resolveTransactionCurrency(importedTx, accountId);
         Long currencyId = currencyRepository.findByCode(currencyCode).map(c -> c.getId()).orElse(null);
 
         // Resolve or create Payee entity
@@ -2442,24 +2514,17 @@ public class ImportService {
                         categoryName,
                         categoryId);
                 builder.categoryId(categoryId);
-            } else {
-                // Try to find category by name
-                log.debug("No explicit mapping for category '{}', searching by name", categoryName);
-                categoryRepository.findByUserId(userId).stream()
-                        .filter(cat -> cat.getName().equalsIgnoreCase(categoryName))
-                        .findFirst()
-                        .ifPresentOrElse(
-                                cat -> {
-                                    log.debug(
-                                            "Found matching category '{}' by name, ID={}",
-                                            cat.getName(),
-                                            cat.getId());
-                                    builder.categoryId(cat.getId());
-                                },
-                                () -> log.warn(
-                                        "Target category '{}' not found and no mapping provided for user {}",
-                                        categoryName,
-                                        userId));
+            } else if (!categoryName.startsWith("[")) {
+                // Resolve hierarchical category (e.g., "Income:Salary" → parent "Income", child
+                // "Salary")
+                // Skip transfer categories (bracket syntax like "[Savings Account]")
+                CategoryType catType = transactionType == TransactionType.INCOME
+                        ? CategoryType.INCOME
+                        : CategoryType.EXPENSE;
+                Long resolvedId = resolveOrCreateHierarchicalCategory(categoryName, userId, catType);
+                if (resolvedId != null) {
+                    builder.categoryId(resolvedId);
+                }
             }
         }
 
