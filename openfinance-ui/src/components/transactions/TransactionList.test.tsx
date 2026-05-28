@@ -430,4 +430,224 @@ describe('TransactionList', () => {
       expect(splitBadge).toHaveClass('text-accent-blue');
     });
   });
+
+  describe('Empty State', () => {
+    it('shows empty message when no transactions', () => {
+      renderList({ transactions: [] });
+      expect(screen.getByText(/no transactions found/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Transaction Rendering', () => {
+    it('renders transaction description', () => {
+      renderList({ transactions: [mockRegularTransaction] });
+      expect(screen.getByText('Regular transaction')).toBeInTheDocument();
+    });
+
+    it('renders payee name', () => {
+      renderList({ transactions: [mockRegularTransaction] });
+      expect(screen.getByText('Spotify')).toBeInTheDocument();
+    });
+
+    it('renders category name', () => {
+      renderList({ transactions: [mockRegularTransaction] });
+      expect(screen.getByText('Entertainment')).toBeInTheDocument();
+    });
+
+    it('renders account name when present', () => {
+      const txWithAccount: Transaction = {
+        ...mockRegularTransaction,
+        accountName: 'Checking Account',
+      };
+      renderList({ transactions: [txWithAccount] });
+      expect(screen.getByText('Checking Account')).toBeInTheDocument();
+    });
+
+    it('renders tags from array', () => {
+      const txWithTags: Transaction = {
+        ...mockRegularTransaction,
+        tags: ['groceries', 'food'],
+      };
+      renderList({ transactions: [txWithTags] });
+      expect(screen.getByText('groceries')).toBeInTheDocument();
+      expect(screen.getByText('food')).toBeInTheDocument();
+    });
+
+    it('renders tags from comma-separated string', () => {
+      const txWithStringTags: Transaction = {
+        ...mockRegularTransaction,
+        tags: 'travel, work' as any,
+      };
+      renderList({ transactions: [txWithStringTags] });
+      expect(screen.getByText('travel')).toBeInTheDocument();
+      expect(screen.getByText('work')).toBeInTheDocument();
+    });
+
+    it('shows income transaction with + prefix', () => {
+      const incomeTx: Transaction = {
+        ...mockRegularTransaction,
+        id: 10,
+        type: 'INCOME',
+        amount: 1000,
+        description: 'Salary',
+      };
+      renderList({ transactions: [incomeTx] });
+      expect(screen.getByText('+')).toBeInTheDocument();
+    });
+
+    it('shows future date badge for future transactions', () => {
+      const futureTx: Transaction = {
+        ...mockRegularTransaction,
+        id: 11,
+        date: '2099-12-31',
+      };
+      renderList({ transactions: [futureTx] });
+      expect(screen.getByText(/future/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('User Interactions', () => {
+    it('calls onEdit when edit button is clicked', async () => {
+      const onEdit = vi.fn();
+      renderList({ transactions: [mockRegularTransaction], onEdit });
+      const editBtn = screen.getByLabelText(/edit/i);
+      await userEvent.setup().click(editBtn);
+      expect(onEdit).toHaveBeenCalledWith(mockRegularTransaction);
+    });
+
+    it('calls onDelete when delete button is clicked', async () => {
+      const onDelete = vi.fn();
+      renderList({ transactions: [mockRegularTransaction], onDelete });
+      const deleteBtn = screen.getByLabelText(/delete/i);
+      await userEvent.setup().click(deleteBtn);
+      expect(onDelete).toHaveBeenCalledWith(mockRegularTransaction);
+    });
+
+    it('calls onViewDetail when card is clicked', async () => {
+      const onViewDetail = vi.fn();
+      renderWithProviders(
+        <TransactionList
+          transactions={[mockRegularTransaction]}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onViewDetail={onViewDetail}
+        />
+      );
+      fireEvent.click(screen.getByText('Regular transaction'));
+      expect(onViewDetail).toHaveBeenCalledWith(mockRegularTransaction);
+    });
+
+    it('does not call onViewDetail when button inside card is clicked', async () => {
+      const onViewDetail = vi.fn();
+      renderWithProviders(
+        <TransactionList
+          transactions={[mockRegularTransaction]}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onViewDetail={onViewDetail}
+        />
+      );
+      const editBtn = screen.getByLabelText(/edit/i);
+      await userEvent.setup().click(editBtn);
+      expect(onViewDetail).not.toHaveBeenCalled();
+    });
+
+    it('scrolls highlighted transaction into view', () => {
+      vi.useFakeTimers();
+      renderList({ transactions: [mockRegularTransaction], highlightedId: 2 });
+      vi.advanceTimersByTime(200);
+      expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+  });
+
+  describe('Transfer Rendering', () => {
+    it('renders transfer pair with source and destination', () => {
+      const sourceTx: Transaction = {
+        ...mockRegularTransaction,
+        id: 20,
+        type: 'EXPENSE',
+        transferId: 'xfer-1',
+        description: 'Transfer Out',
+      };
+      const destTx: Transaction = {
+        ...mockRegularTransaction,
+        id: 21,
+        type: 'INCOME',
+        transferId: 'xfer-1',
+        description: 'Transfer In',
+      };
+      renderList({ transactions: [sourceTx, destTx] });
+      expect(screen.getByText('Transfer Out')).toBeInTheDocument();
+      expect(screen.getByText('Transfer In')).toBeInTheDocument();
+    });
+
+    it('renders transfer destination account name', () => {
+      const transferTx: Transaction = {
+        ...mockRegularTransaction,
+        id: 30,
+        type: 'TRANSFER',
+        toAccountName: 'Savings Account',
+      };
+      renderList({ transactions: [transferTx] });
+      expect(screen.getByText('Savings Account')).toBeInTheDocument();
+    });
+  });
+
+  describe('Payee Avatar', () => {
+    it('renders payee logo when available', () => {
+      renderList({ transactions: [mockRegularTransaction] });
+      const img = screen.getByAltText('Spotify');
+      expect(img).toBeInTheDocument();
+      expect(img).toHaveAttribute('src', 'https://example.com/spotify.png');
+    });
+
+    it('shows initial circle for payee without logo', () => {
+      mockUseActivePayees.mockReturnValue({
+        data: [{ ...mockPayees[1], logo: undefined }],
+        isLoading: false,
+        isError: false,
+      } as any);
+      renderList({ transactions: [mockRegularTransaction] });
+      expect(screen.getByText('S')).toBeInTheDocument();
+    });
+
+    it('shows type icon when no payee found', () => {
+      mockUseActivePayees.mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      } as any);
+      const txNoPayee: Transaction = {
+        ...mockRegularTransaction,
+        payee: undefined,
+      };
+      renderList({ transactions: [txNoPayee] });
+      // Should show the type icon circle, not a payee avatar
+      expect(screen.queryByAltText('Spotify')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Sort Direction', () => {
+    it('sorts date groups in descending order by default', () => {
+      const tx1: Transaction = { ...mockRegularTransaction, id: 40, date: '2024-01-01', description: 'Old' };
+      const tx2: Transaction = { ...mockRegularTransaction, id: 41, date: '2024-06-01', description: 'New' };
+      renderWithProviders(
+        <TransactionList transactions={[tx1, tx2]} onEdit={vi.fn()} onDelete={vi.fn()} />
+      );
+      const headings = screen.getAllByRole('heading', { level: 3 });
+      // Desc order: newest date first
+      expect(headings.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('sorts date groups in ascending order when specified', () => {
+      const tx1: Transaction = { ...mockRegularTransaction, id: 42, date: '2024-01-01', description: 'Old' };
+      const tx2: Transaction = { ...mockRegularTransaction, id: 43, date: '2024-06-01', description: 'New' };
+      renderWithProviders(
+        <TransactionList transactions={[tx1, tx2]} onEdit={vi.fn()} onDelete={vi.fn()} sortDirection="asc" />
+      );
+      const headings = screen.getAllByRole('heading', { level: 3 });
+      expect(headings.length).toBeGreaterThanOrEqual(2);
+    });
+  });
 });

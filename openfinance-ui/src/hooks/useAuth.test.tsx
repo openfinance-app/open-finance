@@ -16,13 +16,22 @@ vi.mock('react-router', async () => {
 
 // Mock API client
 const postMock = vi.fn();
+const getMock = vi.fn();
+const putMock = vi.fn();
+const deleteMock = vi.fn();
 vi.mock('@/services/apiClient', () => ({
-  default: { post: (...args: any[]) => postMock(...args) },
+  default: {
+    post: (...args: any[]) => postMock(...args),
+    get: (...args: any[]) => getMock(...args),
+    put: (...args: any[]) => putMock(...args),
+    delete: (...args: any[]) => deleteMock(...args),
+  },
 }));
 
-import { useRegister, useLogin, useLogout } from './useAuth';
+import { useRegister, useLogin, useLogout, useGetProfile, useUpdateProfile, useUploadProfileImage, useDeleteProfileImage, useCompleteOnboarding } from './useAuth';
 import { AuthProvider } from '@/context/AuthContext';
 import { VisibilityProvider } from '@/context/VisibilityContext';
+import { CurrencyDisplayProvider } from '@/context/CurrencyDisplayContext';
 
 function renderWithProviders(ui: React.ReactElement) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -31,7 +40,9 @@ function renderWithProviders(ui: React.ReactElement) {
     <MemoryRouter>
       <QueryClientProvider client={qc}>
         <AuthProvider>
-          <VisibilityProvider>{children}</VisibilityProvider>
+          <VisibilityProvider>
+            <CurrencyDisplayProvider>{children}</CurrencyDisplayProvider>
+          </VisibilityProvider>
         </AuthProvider>
       </QueryClientProvider>
     </MemoryRouter>
@@ -143,5 +154,76 @@ describe('useAuth hooks', () => {
     expect(localStorage.getItem('auth_token')).toBeNull();
     expect(sessionStorage.getItem('encryption_key')).toBeNull();
     expect(mockNavigate).toHaveBeenCalledWith('/login');
+  });
+
+  it('useGetProfile fetches profile data', async () => {
+    const user = { id: 1, username: 'alice', email: 'a@b.c', baseCurrency: 'EUR', createdAt: '2024-01-01' };
+    getMock.mockResolvedValueOnce({ data: user });
+
+    const TestComponent = () => {
+      const { data, isSuccess } = useGetProfile();
+      return <div>{isSuccess ? data?.username : 'loading'}</div>;
+    };
+
+    const { findByText } = renderWithProviders(<TestComponent />);
+    await findByText('alice');
+    expect(getMock).toHaveBeenCalledWith('/auth/profile');
+  });
+
+  it('useUpdateProfile updates profile and cache', async () => {
+    const updatedUser = { id: 1, username: 'alice2', email: 'a@b.c', baseCurrency: 'EUR', createdAt: '2024-01-01' };
+    putMock.mockResolvedValueOnce({ data: updatedUser });
+
+    const TestComponent = () => {
+      const mutation = useUpdateProfile();
+      return <button onClick={() => mutation.mutate({ username: 'alice2' } as any)}>update</button>;
+    };
+
+    const { getByText } = renderWithProviders(<TestComponent />);
+    fireEvent.click(getByText('update'));
+    await waitFor(() => expect(putMock).toHaveBeenCalledWith('/auth/profile', expect.any(Object)));
+  });
+
+  it('useUploadProfileImage uploads image', async () => {
+    const updatedUser = { id: 1, username: 'alice', profileImage: 'data:image/png;base64,...' };
+    postMock.mockResolvedValueOnce({ data: updatedUser });
+
+    const TestComponent = () => {
+      const mutation = useUploadProfileImage();
+      return <button onClick={() => mutation.mutate(new File([''], 'avatar.png', { type: 'image/png' }))}>upload</button>;
+    };
+
+    const { getByText } = renderWithProviders(<TestComponent />);
+    fireEvent.click(getByText('upload'));
+    await waitFor(() => expect(postMock).toHaveBeenCalledWith('/users/me/profile-image', expect.any(FormData), expect.any(Object)));
+  });
+
+  it('useDeleteProfileImage deletes image', async () => {
+    const updatedUser = { id: 1, username: 'alice', profileImage: null };
+    deleteMock.mockResolvedValueOnce({ data: updatedUser });
+
+    const TestComponent = () => {
+      const mutation = useDeleteProfileImage();
+      return <button onClick={() => mutation.mutate()}>delete</button>;
+    };
+
+    const { getByText } = renderWithProviders(<TestComponent />);
+    fireEvent.click(getByText('delete'));
+    await waitFor(() => expect(deleteMock).toHaveBeenCalledWith('/users/me/profile-image'));
+  });
+
+  it('useCompleteOnboarding submits and navigates to dashboard', async () => {
+    const settings = { baseCurrency: 'EUR', amountDisplayMode: 'original' };
+    postMock.mockResolvedValueOnce({ data: settings });
+
+    const TestComponent = () => {
+      const mutation = useCompleteOnboarding();
+      return <button onClick={() => mutation.mutate({ baseCurrency: 'EUR', amountDisplayMode: 'original' } as any)}>onboard</button>;
+    };
+
+    const { getByText } = renderWithProviders(<TestComponent />);
+    fireEvent.click(getByText('onboard'));
+    await waitFor(() => expect(postMock).toHaveBeenCalledWith('/users/me/onboarding', expect.any(Object)));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true }));
   });
 });

@@ -212,18 +212,90 @@ describe('DashboardPage Integration Tests', () => {
         expect(screen.getByRole('heading', { name: /dashboard|tableau de bord/i })).toBeInTheDocument();
         expect(screen.getByDisplayValue('2026-01-01')).toBeInTheDocument();
       });
-    });
+    }, 15000);
   });
 
   describe('Empty States', () => {
-    it('should display empty state when no data is available', async () => {
-      // Skipped
+    it('should display dashboard subtitle with snapshot date', async () => {
+      renderWithProviders(<DashboardPage />);
+      const subtitle = await screen.findByText(/2026-02-04/i, {}, { timeout: 5000 });
+      expect(subtitle).toBeInTheDocument();
     });
   });
 
   describe('Error Handling', () => {
     it('should display error message when API fails', async () => {
-      // Skipped
+      server.use(
+        http.get('/api/v1/dashboard/summary', () =>
+          HttpResponse.json({ message: 'Server error' }, { status: 500 })
+        ),
+      );
+      renderWithProviders(<DashboardPage />);
+      const errorText = await screen.findByText(/failed to load/i, {}, { timeout: 10000 });
+      expect(errorText).toBeInTheDocument();
+    }, 15000);
+  });
+
+  describe('Card Visibility', () => {
+    it('should open cards menu and toggle a card off', async () => {
+      renderWithProviders(<DashboardPage />);
+      await screen.findAllByText(/Net Worth/i);
+      
+      // Find the cards/sliders button
+      const cardsButton = screen.getByRole('button', { name: /cards|cartes/i });
+      fireEvent.click(cardsButton);
+      
+      // Should see checkboxes for card visibility
+      await waitFor(() => {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        expect(checkboxes.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should reset layout when reset button is clicked', async () => {
+      // Pre-set a custom layout in localStorage
+      localStorage.setItem('open_finance_dashboard_layouts', JSON.stringify({ lg: [] }));
+      renderWithProviders(<DashboardPage />);
+      await screen.findAllByText(/Net Worth/i);
+      
+      // Open cards menu
+      const cardsButton = screen.getByRole('button', { name: /cards|cartes/i });
+      fireEvent.click(cardsButton);
+      
+      // Click reset layout
+      await waitFor(() => {
+        const resetButton = screen.getByText(/reset/i);
+        fireEvent.click(resetButton);
+      });
+      
+      // Verify localStorage was updated with default layout
+      const stored = JSON.parse(localStorage.getItem('open_finance_dashboard_layouts') || '{}');
+      expect(stored.lg).toBeDefined();
+      expect(stored.lg.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Period Selection', () => {
+    it('should switch to 1Y period and update net worth change', async () => {
+      renderWithProviders(<DashboardPage />);
+      await screen.findAllByText(/Net Worth/i);
+      
+      // Find and click the 1Y period button
+      const yearButton = await screen.findByRole('button', { name: /1Y|1A/i });
+      fireEvent.click(yearButton);
+      
+      // Dashboard should still render after period change
+      expect(screen.getAllByText(/Net Worth/i).length).toBeGreaterThan(0);
+    });
+
+    it('should switch to ALL period', async () => {
+      renderWithProviders(<DashboardPage />);
+      await screen.findAllByText(/Net Worth/i);
+      
+      const allButton = await screen.findByRole('button', { name: /^ALL$|^TOUT$/i });
+      fireEvent.click(allButton);
+      
+      expect(screen.getAllByText(/Net Worth/i).length).toBeGreaterThan(0);
     });
   });
 

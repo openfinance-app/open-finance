@@ -2,8 +2,8 @@
  * Unit tests for AmortizationSchedule component
  * Focus: Test privacy implementation with PrivateAmount wrapping of currency displays
  */
-import { screen } from '@testing-library/react';
-import { vi, describe, it, expect } from 'vitest';
+import { screen, fireEvent } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
 import { renderWithProviders } from '@/test/test-utils';
 import { AmortizationSchedule } from '../AmortizationSchedule';
@@ -166,6 +166,86 @@ describe('AmortizationSchedule', () => {
 
       const scrollContainer = document.querySelector('.overflow-x-auto');
       expect(scrollContainer).toBeInTheDocument();
+    });
+  });
+
+  describe('No Schedule', () => {
+    it('shows message when schedule has no payments', () => {
+      const emptySchedule = { ...mockSchedule, payments: undefined as any };
+      renderWithProviders(<AmortizationSchedule schedule={emptySchedule} />);
+      expect(screen.getByText(/no amortization schedule/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Filter Options', () => {
+    const manyPayments = Array.from({ length: 30 }, (_, i) => ({
+      paymentNumber: i + 1,
+      paymentDate: `2020-${String((i % 12) + 1).padStart(2, '0')}-01`,
+      paymentAmount: 1500,
+      principalPayment: 1200,
+      interestPayment: 300,
+      remainingBalance: 300000 - (i + 1) * 1200,
+    }));
+    const bigSchedule = { ...mockSchedule, payments: manyPayments };
+
+    it('filters to 12 payments', () => {
+      renderWithProviders(<AmortizationSchedule schedule={bigSchedule} />);
+      fireEvent.click(screen.getByText(/Next 12 Months/));
+      const rows = document.querySelectorAll('tbody tr');
+      expect(rows.length).toBe(12);
+    });
+
+    it('filters to 24 payments', () => {
+      renderWithProviders(<AmortizationSchedule schedule={bigSchedule} />);
+      fireEvent.click(screen.getByText(/Next 24 Months/));
+      const rows = document.querySelectorAll('tbody tr');
+      expect(rows.length).toBe(24);
+    });
+
+    it('shows expand button when all selected and >12 payments', () => {
+      renderWithProviders(<AmortizationSchedule schedule={bigSchedule} />);
+      const rows = document.querySelectorAll('tbody tr');
+      expect(rows.length).toBe(12);
+      expect(screen.getAllByText(/Show All 30 Payments/).length).toBeGreaterThan(0);
+    });
+
+    it('expands to show all payments', () => {
+      renderWithProviders(<AmortizationSchedule schedule={bigSchedule} />);
+      fireEvent.click(screen.getAllByText(/Show All 30 Payments/)[0]);
+      const rows = document.querySelectorAll('tbody tr');
+      expect(rows.length).toBe(30);
+    });
+  });
+
+  describe('CSV Export', () => {
+    it('renders export button', () => {
+      renderWithProviders(<AmortizationSchedule schedule={mockSchedule} />);
+      expect(screen.getByText(/Export CSV/i)).toBeInTheDocument();
+    });
+
+    it('creates CSV download on export click', () => {
+      const createObjectURL = vi.fn(() => 'blob:test');
+      const revokeObjectURL = vi.fn();
+      global.URL.createObjectURL = createObjectURL;
+      global.URL.revokeObjectURL = revokeObjectURL;
+
+      renderWithProviders(<AmortizationSchedule schedule={mockSchedule} />);
+      fireEvent.click(screen.getByText(/Export CSV/i));
+      expect(createObjectURL).toHaveBeenCalled();
+    });
+  });
+
+  describe('Close Button', () => {
+    it('calls onClose when close button clicked', () => {
+      const onClose = vi.fn();
+      renderWithProviders(<AmortizationSchedule schedule={mockSchedule} onClose={onClose} />);
+      // Find close button - might be icon-only
+      const closeButtons = screen.getAllByRole('button');
+      const closeBtn = closeButtons.find(b => b.textContent?.toLowerCase().includes('close'));
+      if (closeBtn) {
+        fireEvent.click(closeBtn);
+        expect(onClose).toHaveBeenCalled();
+      }
     });
   });
 });

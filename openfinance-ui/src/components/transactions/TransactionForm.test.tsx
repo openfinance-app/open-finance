@@ -8,12 +8,13 @@
  * Requirement REQ-CAT-2.4: Payee-to-category auto-fill in TransactionForm
  * Requirement REQ-CAT-2.5: Allow override of auto-filled category
  */
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { TransactionForm } from './TransactionForm';
 import * as usePayeesModule from '@/hooks/usePayees';
 import * as useTransactionTagsModule from '@/hooks/useTransactionTags';
 import * as useTransactionsModule from '@/hooks/useTransactions';
+import * as useLiabilitiesModule from '@/hooks/useLiabilities';
 import { renderWithProviders } from '@/test/test-utils';
 import type { Payee } from '@/types/payee';
 import type { Category, Transaction } from '@/types/transaction';
@@ -94,6 +95,19 @@ vi.mock('./TagInput', () => ({
   TagInput: () => <div data-testid="tag-input" />,
 }));
 
+vi.mock('@/components/ui/LiabilitySelector', () => ({
+  LiabilitySelector: ({ value, onValueChange }: any) => (
+    <select data-testid="liability-selector" value={value ?? ''} onChange={(e: any) => onValueChange(e.target.value ? Number(e.target.value) : undefined)}>
+      <option value="">-- no liability --</option>
+      <option value="1">Mortgage</option>
+    </select>
+  ),
+}));
+
+vi.mock('./SplitTransactionForm', () => ({
+  SplitTransactionForm: () => <div data-testid="split-form">Split Form</div>,
+}));
+
 // ── Mock hooks ────────────────────────────────────────────────────────────────
 
 vi.mock('@/hooks/usePayees', async (importOriginal) => {
@@ -113,11 +127,17 @@ vi.mock('@/hooks/useTransactions', async (importOriginal) => {
   return { ...actual, useCategoryTree: vi.fn() };
 });
 
+vi.mock('@/hooks/useLiabilities', async (importOriginal) => {
+  const actual = await importOriginal<typeof useLiabilitiesModule>();
+  return { ...actual, useLiabilities: vi.fn() };
+});
+
 // ── Typed mock references ─────────────────────────────────────────────────────
 
 const mockUseActivePayees = vi.mocked(usePayeesModule.useActivePayees);
 const mockUsePopularTags = vi.mocked(useTransactionTagsModule.usePopularTags);
 const mockUseCategoryTree = vi.mocked(useTransactionsModule.useCategoryTree);
+const mockUseLiabilities = vi.mocked(useLiabilitiesModule.useLiabilities);
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -234,6 +254,12 @@ describe('TransactionForm', () => {
       isLoading: false,
       isError: false,
     } as ReturnType<typeof useTransactionsModule.useCategoryTree>);
+
+    mockUseLiabilities.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    } as any);
   });
 
   // ── Basic Rendering ─────────────────────────────────────────────────────────
@@ -664,6 +690,255 @@ describe('TransactionForm', () => {
       const removeButton = screen.getByRole('button', { name: 'Remove split' });
       expect(removeButton).toHaveAttribute('aria-pressed', 'true');
       expect(removeButton).toHaveAttribute('title', 'Switch back to single category');
+    });
+  });
+
+  // ── Transfer Type ─────────────────────────────────────────────────────────
+
+  describe('Transfer Type', () => {
+    it('shows "To Account" field when type is TRANSFER', async () => {
+      renderForm();
+
+      const typeSelect = screen.getByLabelText(/type/i);
+      await act(async () => {
+        fireEvent.change(typeSelect, { target: { value: 'TRANSFER' } });
+      });
+
+      expect(screen.getByText(/to account/i)).toBeInTheDocument();
+    });
+
+    it('shows "From Account" label instead of "Account" for TRANSFER', async () => {
+      renderForm();
+
+      const typeSelect = screen.getByLabelText(/type/i);
+      await act(async () => {
+        fireEvent.change(typeSelect, { target: { value: 'TRANSFER' } });
+      });
+
+      expect(screen.getByText(/from account/i)).toBeInTheDocument();
+    });
+
+    it('hides category field when type is TRANSFER', async () => {
+      renderForm();
+
+      const typeSelect = screen.getByLabelText(/type/i);
+      await act(async () => {
+        fireEvent.change(typeSelect, { target: { value: 'TRANSFER' } });
+      });
+
+      // Category is hidden for TRANSFER type
+      expect(screen.queryByTestId('category-select')).not.toBeInTheDocument();
+    });
+  });
+
+  // ── Liability Selector ────────────────────────────────────────────────────
+
+  describe('Liability Selector', () => {
+    it('shows liability selector for EXPENSE when liabilities exist', () => {
+      mockUseLiabilities.mockReturnValue({
+        data: [{ id: 1, name: 'Mortgage', userId: 1, type: 'MORTGAGE', currentBalance: 100000, currency: 'EUR', interestRate: 3.5, startDate: '2020-01-01', isActive: true, createdAt: '2020-01-01' }],
+        isLoading: false,
+        isError: false,
+      } as any);
+
+      renderForm();
+
+      expect(screen.getByTestId('liability-selector')).toBeInTheDocument();
+    });
+
+    it('hides liability selector when no liabilities exist', () => {
+      renderForm();
+
+      expect(screen.queryByTestId('liability-selector')).not.toBeInTheDocument();
+    });
+
+    it('hides liability selector for INCOME type even with liabilities', () => {
+      mockUseLiabilities.mockReturnValue({
+        data: [{ id: 1, name: 'Mortgage', userId: 1, type: 'MORTGAGE', currentBalance: 100000, currency: 'EUR', interestRate: 3.5, startDate: '2020-01-01', isActive: true, createdAt: '2020-01-01' }],
+        isLoading: false,
+        isError: false,
+      } as any);
+
+      renderForm();
+
+      const typeSelect = screen.getByLabelText(/type/i);
+      fireEvent.change(typeSelect, { target: { value: 'INCOME' } });
+
+      expect(screen.queryByTestId('liability-selector')).not.toBeInTheDocument();
+    });
+  });
+
+  // ── Currency Auto-Set ─────────────────────────────────────────────────────
+
+  describe('Currency Auto-Set', () => {
+    it('submits with account currency after selecting account', async () => {
+      const { onSubmit } = renderForm();
+
+      // Fill required fields
+      fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'EXPENSE' } });
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '25' } });
+      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+
+      // Select account (triggers currency auto-set to EUR)
+      await act(async () => {
+        screen.getByTestId('account-selector').click();
+      });
+
+      // Submit
+      await act(async () => {
+        screen.getByRole('button', { name: /create transaction/i }).click();
+      });
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+      });
+
+      expect(onSubmit.mock.calls[0][0].currency).toBe('EUR');
+    });
+  });
+
+  // ── Form Submission ───────────────────────────────────────────────────────
+
+  describe('Form Submission', () => {
+    it('submits form with correct data for EXPENSE transaction', async () => {
+      const { onSubmit } = renderForm();
+
+      // Fill required fields
+      const typeSelect = screen.getByLabelText(/type/i);
+      fireEvent.change(typeSelect, { target: { value: 'EXPENSE' } });
+
+      const amountInput = screen.getByLabelText(/amount/i);
+      fireEvent.change(amountInput, { target: { value: '42.50' } });
+
+      const dateInput = screen.getByLabelText(/date/i);
+      fireEvent.change(dateInput, { target: { value: '2024-06-15' } });
+
+      // Select account
+      const accountBtn = screen.getByTestId('account-selector');
+      await act(async () => {
+        accountBtn.click();
+      });
+
+      // Submit
+      const submitButton = screen.getByRole('button', { name: /create transaction/i });
+      await act(async () => {
+        submitButton.click();
+      });
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+      });
+
+      const submittedData = onSubmit.mock.calls[0][0];
+      expect(submittedData.type).toBe('EXPENSE');
+      expect(submittedData.amount).toBe(42.5);
+      expect(submittedData.date).toBe('2024-06-15');
+      expect(submittedData.accountId).toBe(1);
+    });
+
+    it('excludes categoryId when submitting in split mode', async () => {
+      const { onSubmit } = renderForm();
+
+      // Fill required fields
+      fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'EXPENSE' } });
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
+      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+
+      // Select account
+      await act(async () => {
+        screen.getByTestId('account-selector').click();
+      });
+
+      // Select a category first
+      await selectCategory(10);
+
+      // Enter split mode — this should clear categoryId
+      const splitButton = screen.getByRole('button', { name: /split transaction/i });
+      await act(async () => {
+        splitButton.click();
+      });
+
+      // Submit
+      await act(async () => {
+        screen.getByRole('button', { name: /create transaction/i }).click();
+      });
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+      });
+
+      const submittedData = onSubmit.mock.calls[0][0];
+      expect(submittedData.categoryId).toBeUndefined();
+    });
+
+    it('excludes liabilityId for non-EXPENSE transactions', async () => {
+      mockUseLiabilities.mockReturnValue({
+        data: [{ id: 1, name: 'Mortgage', userId: 1, type: 'MORTGAGE', currentBalance: 100000, currency: 'EUR', interestRate: 3.5, startDate: '2020-01-01', isActive: true, createdAt: '2020-01-01' }],
+        isLoading: false,
+        isError: false,
+      } as any);
+
+      const { onSubmit } = renderForm();
+
+      // Start as EXPENSE, select a liability
+      fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'EXPENSE' } });
+      fireEvent.change(screen.getByTestId('liability-selector'), { target: { value: '1' } });
+
+      // Switch to INCOME
+      fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'INCOME' } });
+
+      // Fill required fields
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
+      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+      await act(async () => {
+        screen.getByTestId('account-selector').click();
+      });
+
+      // Submit
+      await act(async () => {
+        screen.getByRole('button', { name: /create transaction/i }).click();
+      });
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+      });
+
+      expect(onSubmit.mock.calls[0][0].liabilityId).toBeUndefined();
+    });
+  });
+
+  // ── Payment Method & Notes ────────────────────────────────────────────────
+
+  describe('Payment Method & Notes', () => {
+    it('renders payment method dropdown', () => {
+      renderForm();
+
+      expect(screen.getByLabelText(/payment method/i)).toBeInTheDocument();
+    });
+
+    it('renders notes textarea', () => {
+      renderForm();
+
+      expect(screen.getByLabelText(/notes/i)).toBeInTheDocument();
+    });
+
+    it('pre-fills notes when editing a transaction with notes', () => {
+      const existing: Transaction = {
+        id: 99,
+        userId: 1,
+        accountId: 1,
+        type: 'EXPENSE',
+        amount: 50,
+        currency: 'EUR',
+        date: '2024-06-01',
+        isReconciled: false,
+        createdAt: '2024-06-01',
+        notes: 'Some important note',
+      };
+
+      renderForm({ transaction: existing });
+
+      expect(screen.getByLabelText(/notes/i)).toHaveValue('Some important note');
     });
   });
 });

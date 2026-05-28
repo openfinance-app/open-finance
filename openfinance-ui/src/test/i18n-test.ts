@@ -32,6 +32,7 @@ import aiEn from '../../public/locales/en/ai.json';
 import toolsEn from '../../public/locales/en/tools.json';
 import errorsEn from '../../public/locales/en/errors.json';
 import validationEn from '../../public/locales/en/validation.json';
+import onboardingEn from '../../public/locales/en/onboarding.json';
 
 import commonFr from '../../public/locales/fr/common.json';
 import authFr from '../../public/locales/fr/auth.json';
@@ -56,6 +57,7 @@ import aiFr from '../../public/locales/fr/ai.json';
 import toolsFr from '../../public/locales/fr/tools.json';
 import errorsFr from '../../public/locales/fr/errors.json';
 import validationFr from '../../public/locales/fr/validation.json';
+import onboardingFr from '../../public/locales/fr/onboarding.json';
 
 // Initialize i18n with preloaded resources
 i18n
@@ -89,6 +91,7 @@ i18n
       'tools',
       'errors',
       'validation',
+      'onboarding',
     ],
     resources: {
       en: {
@@ -115,6 +118,7 @@ i18n
         tools: toolsEn,
         errors: errorsEn,
         validation: validationEn,
+        onboarding: onboardingEn,
       },
       fr: {
         common: commonFr,
@@ -140,6 +144,7 @@ i18n
         tools: toolsFr,
         errors: errorsFr,
         validation: validationFr,
+        onboarding: onboardingFr,
       },
     },
     interpolation: {

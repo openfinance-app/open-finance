@@ -8,6 +8,7 @@ import {
   useConversations,
   useConversation,
   useDeleteConversation,
+  useStreamingChat,
   useAIChat,
 } from './useAIChat';
 import apiClient from '@/services/apiClient';
@@ -253,6 +254,209 @@ describe('useAIChat hooks', () => {
       const { result } = renderHook(() => useAIChat('conv-existing'), { wrapper });
 
       await waitFor(() => expect(result.current.conversation).toEqual(mockConversation));
+    });
+  });
+
+  // ── useStreamingChat ─────────────────────────────────────────────────
+  describe('useStreamingChat', () => {
+    let mockEventSourceInstance: any;
+
+    beforeEach(() => {
+      mockEventSourceInstance = {
+        onmessage: null as any,
+        onerror: null as any,
+        addEventListener: vi.fn(),
+        close: vi.fn(),
+      };
+
+      // Use a class so `new EventSource(...)` works as a constructor
+      const instance = mockEventSourceInstance;
+      (globalThis as any).EventSource = class MockEventSource {
+        addEventListener = instance.addEventListener;
+        close = instance.close;
+        onmessage: any = null;
+        onerror: any = null;
+        constructor() {
+          // Proxy property sets back to the shared instance
+          const self = this;
+          Object.defineProperty(instance, 'onmessage', {
+            get: () => self.onmessage,
+            set: (v: any) => { self.onmessage = v; },
+            configurable: true,
+          });
+          Object.defineProperty(instance, 'onerror', {
+            get: () => self.onerror,
+            set: (v: any) => { self.onerror = v; },
+            configurable: true,
+          });
+        }
+      };
+    });
+
+    it('should create EventSource with correct URL', async () => {
+      let capturedUrl = '';
+      const instance = mockEventSourceInstance;
+      (globalThis as any).EventSource = class MockEventSource {
+        addEventListener = instance.addEventListener;
+        close = instance.close;
+        onmessage: any = null;
+        onerror: any = null;
+        constructor(url: string) {
+          capturedUrl = url;
+        }
+      };
+
+      const onChunk = vi.fn();
+      const onComplete = vi.fn();
+      const onError = vi.fn();
+
+      const { result } = renderHook(
+        () => useStreamingChat(onChunk, onComplete, onError),
+        { wrapper }
+      );
+
+      await act(async () => {
+        await result.current.sendStreamingMessage({
+          question: 'Test question',
+          conversation_id: 'conv-1',
+          include_full_context: true,
+        });
+      });
+
+      expect(capturedUrl).toContain('/ai/chat/stream?');
+      expect(capturedUrl).toContain('question=Test+question');
+    });
+
+    it('should call onChunk when receiving SSE message', async () => {
+      const onChunk = vi.fn();
+      const onComplete = vi.fn();
+      const onError = vi.fn();
+
+      const { result } = renderHook(
+        () => useStreamingChat(onChunk, onComplete, onError),
+        { wrapper }
+      );
+
+      await act(async () => {
+        await result.current.sendStreamingMessage({
+          question: 'Test',
+          conversation_id: null,
+          include_full_context: true,
+        });
+      });
+
+      act(() => {
+        mockEventSourceInstance.onmessage({ data: 'chunk1' });
+      });
+
+      expect(onChunk).toHaveBeenCalledWith('chunk1');
+    });
+
+    it('should call onError and close when SSE errors', async () => {
+      const onChunk = vi.fn();
+      const onComplete = vi.fn();
+      const onError = vi.fn();
+
+      const { result } = renderHook(
+        () => useStreamingChat(onChunk, onComplete, onError),
+        { wrapper }
+      );
+
+      await act(async () => {
+        await result.current.sendStreamingMessage({
+          question: 'Test',
+          conversation_id: null,
+          include_full_context: true,
+        });
+      });
+
+      act(() => {
+        mockEventSourceInstance.onerror(new Event('error'));
+      });
+
+      expect(onError).toHaveBeenCalledWith(expect.any(Error));
+      expect(mockEventSourceInstance.close).toHaveBeenCalled();
+    });
+
+    it('should error when encryption key is missing', () => {
+      mockSessionStorage.getItem.mockReturnValue(null);
+      const onChunk = vi.fn();
+      const onComplete = vi.fn();
+      const onError = vi.fn();
+
+      const { result } = renderHook(
+        () => useStreamingChat(onChunk, onComplete, onError),
+        { wrapper }
+      );
+
+      act(() => {
+        result.current.sendStreamingMessage({
+          question: 'Test',
+          conversation_id: null,
+          include_full_context: true,
+        });
+      });
+
+      expect(onError).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Encryption key not found',
+      }));
+    });
+
+    it('should close EventSource when cancelStream is called', async () => {
+      const onChunk = vi.fn();
+      const onComplete = vi.fn();
+      const onError = vi.fn();
+
+      const { result } = renderHook(
+        () => useStreamingChat(onChunk, onComplete, onError),
+        { wrapper }
+      );
+
+      await act(async () => {
+        await result.current.sendStreamingMessage({
+          question: 'Test',
+          conversation_id: null,
+          include_full_context: true,
+        });
+      });
+
+      act(() => {
+        result.current.cancelStream();
+      });
+
+      expect(mockEventSourceInstance.close).toHaveBeenCalled();
+    });
+
+    it('should handle complete event', async () => {
+      const onChunk = vi.fn();
+      const onComplete = vi.fn();
+      const onError = vi.fn();
+
+      const { result } = renderHook(
+        () => useStreamingChat(onChunk, onComplete, onError),
+        { wrapper }
+      );
+
+      await act(async () => {
+        await result.current.sendStreamingMessage({
+          question: 'Test',
+          conversation_id: null,
+          include_full_context: true,
+        });
+      });
+
+      // Get the 'complete' event listener
+      const completeHandler = mockEventSourceInstance.addEventListener.mock.calls.find(
+        (call: any[]) => call[0] === 'complete'
+      );
+      expect(completeHandler).toBeDefined();
+
+      act(() => {
+        completeHandler[1]();
+      });
+
+      expect(onComplete).toHaveBeenCalled();
+      expect(mockEventSourceInstance.close).toHaveBeenCalled();
     });
   });
 });

@@ -1,205 +1,280 @@
 /**
- * AccountsPage Integration Tests
- * 
- * Tests the accounts page component with mocked API responses
- * to verify CRUD operations, data display, and user interactions.
+ * AccountsPage Tests
  */
-
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent } from '@/test/test-utils';
 import AccountsPage from '@/pages/AccountsPage';
 
-describe('AccountsPage Integration Tests', () => {
+const mockAccount = {
+  id: 1,
+  userId: 1,
+  name: 'Checking Account',
+  type: 'CHECKING',
+  currency: 'USD',
+  balance: 5000,
+  isActive: true,
+  createdAt: '2023-01-01',
+  baseCurrency: 'USD',
+  isConverted: false,
+  balanceInBaseCurrency: null,
+};
+
+const mockAccount2 = {
+  id: 2,
+  userId: 1,
+  name: 'Savings Account',
+  type: 'SAVINGS',
+  currency: 'USD',
+  balance: 15000,
+  isActive: true,
+  createdAt: '2023-01-01',
+  baseCurrency: 'USD',
+  isConverted: false,
+  balanceInBaseCurrency: null,
+};
+
+let mockPagedResponse: any = {
+  content: [mockAccount, mockAccount2],
+  totalElements: 2,
+  totalPages: 1,
+  number: 0,
+  size: 20,
+};
+let mockIsLoading = false;
+let mockError: any = null;
+const mockCreateMutateAsync = vi.fn();
+const mockUpdateMutateAsync = vi.fn();
+const mockCloseMutateAsync = vi.fn();
+const mockReopenMutateAsync = vi.fn();
+const mockDeleteMutateAsync = vi.fn();
+
+vi.mock('@/hooks/useAccounts', () => ({
+  useAccountsSearch: () => ({
+    data: mockPagedResponse,
+    isLoading: mockIsLoading,
+    error: mockError,
+  }),
+  useCreateAccount: () => ({ mutateAsync: mockCreateMutateAsync, isPending: false }),
+  useUpdateAccount: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
+  useCloseAccount: () => ({ mutateAsync: mockCloseMutateAsync, isPending: false }),
+  useReopenAccount: () => ({ mutateAsync: mockReopenMutateAsync, isPending: false }),
+  usePermanentDeleteAccount: () => ({ mutateAsync: mockDeleteMutateAsync, isPending: false }),
+}));
+
+vi.mock('@/components/accounts/AccountCard', () => ({
+  AccountCard: ({ account, onEdit, onDelete, onClose, onReopen, onViewDetail }: any) => (
+    <div data-testid={`account-card-${account.id}`}>
+      <span>{account.name}</span>
+      <span>{account.type}</span>
+      <span>{account.balance}</span>
+      <button onClick={() => onEdit(account)}>Edit</button>
+      <button onClick={() => onDelete(account)}>Delete</button>
+      <button onClick={() => onClose(account)}>Close</button>
+      <button onClick={() => onReopen(account)}>Reopen</button>
+      <button onClick={() => onViewDetail(account.id)}>View Detail</button>
+    </div>
+  ),
+}));
+
+vi.mock('@/components/accounts/AccountForm', () => ({
+  AccountForm: ({ account, onSubmit, onCancel }: any) => (
+    <div data-testid="account-form">
+      {account && <span data-testid="editing-name">{account.name}</span>}
+      <button onClick={() => onSubmit({ name: 'Test', type: 'CHECKING', currency: 'USD', balance: 1000 })}>Submit</button>
+      <button onClick={onCancel}>Cancel</button>
+    </div>
+  ),
+}));
+
+vi.mock('@/components/accounts/AccountFilters', () => ({
+  AccountFilters: () => <div data-testid="account-filters">Filters Panel</div>,
+}));
+
+vi.mock('@/components/accounts/AccountDetailModal', () => ({
+  AccountDetailModal: ({ onClose }: any) => (
+    <div data-testid="account-detail-modal">
+      <button onClick={onClose}>Close Detail</button>
+    </div>
+  ),
+}));
+
+vi.mock('@/components/ConfirmationDialog', () => ({
+  ConfirmationDialog: ({ open, onConfirm, onCancel, title }: any) =>
+    open ? (
+      <div data-testid="confirmation-dialog">
+        <span>{title}</span>
+        <button onClick={onConfirm}>Confirm Action</button>
+        <button onClick={onCancel}>Cancel Action</button>
+      </div>
+    ) : null,
+}));
+
+describe('AccountsPage', () => {
   beforeEach(() => {
     clearAuthentication();
     mockAuthentication();
+    Element.prototype.scrollIntoView = vi.fn();
+    vi.clearAllMocks();
+    mockPagedResponse = {
+      content: [mockAccount, mockAccount2],
+      totalElements: 2,
+      totalPages: 1,
+      number: 0,
+      size: 20,
+    };
+    mockIsLoading = false;
+    mockError = null;
   });
 
-  describe('Data Fetching and Display', () => {
-    it('should fetch and display list of accounts', async () => {
-      renderWithProviders(<AccountsPage />);
-
-      // Wait for accounts to load
-      expect(await screen.findByText('Checking Account')).toBeInTheDocument();
-      expect(await screen.findByText('Savings Account')).toBeInTheDocument();
-    });
-
-    it('should display account balances with currency formatting', async () => {
-      renderWithProviders(<AccountsPage />);
-
-      // Wait for balances to load - use findAllByText since amounts may appear multiple times
-      const balances5k = await screen.findAllByText(/5,000\.00/);
-      expect(balances5k.length).toBeGreaterThan(0);
-      
-      const balances15k = await screen.findAllByText(/15,000\.00/);
-      expect(balances15k.length).toBeGreaterThan(0);
-    });
-
-    it('should display account types correctly', async () => {
-      renderWithProviders(<AccountsPage />);
-
-      // Wait for account types - use findAllByText since types may appear multiple times
-      const checkingElements = await screen.findAllByText(/checking/i);
-      expect(checkingElements.length).toBeGreaterThan(0);
-      
-      const savingsElements = await screen.findAllByText(/savings/i);
-      expect(savingsElements.length).toBeGreaterThan(0);
-    });
-
-    it('should show loading state while fetching data', () => {
-      renderWithProviders(<AccountsPage />);
-
-      // Check for loading indicators
-      const loadingElements = screen.queryAllByRole('status');
-      expect(loadingElements.length).toBeGreaterThanOrEqual(0);
-    });
+  it('renders page heading', () => {
+    renderWithProviders(<AccountsPage />);
+    expect(screen.getByText('Accounts')).toBeInTheDocument();
   });
 
-  describe('Create Account', () => {
-    it('should have an "Add Account" button', async () => {
-      renderWithProviders(<AccountsPage />);
-
-      // Wait for page to load
-      await screen.findByText('Checking Account');
-
-      // Find add button
-      const addButton = screen.getByRole('button', { name: /add account/i });
-      expect(addButton).toBeInTheDocument();
-    });
-
-    it('should open account form when add button is clicked', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<AccountsPage />);
-
-      // Wait for page to load
-      await screen.findByText('Checking Account');
-
-      // Click add button
-      const addButton = screen.getByRole('button', { name: /add account/i });
-      await user.click(addButton);
-
-      // Verify form appears (look for form fields)
-      await waitFor(() => {
-        expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
-      });
-    });
+  it('displays account cards', () => {
+    renderWithProviders(<AccountsPage />);
+    expect(screen.getByText('Checking Account')).toBeInTheDocument();
+    expect(screen.getByText('Savings Account')).toBeInTheDocument();
   });
 
-  describe('Edit Account', () => {
-    it('should have edit buttons for each account', async () => {
-      renderWithProviders(<AccountsPage />);
-
-      // Wait for accounts to load
-      await screen.findByText('Checking Account');
-
-      // Find edit buttons
-      const editButtons = screen.getAllByRole('button', { name: /edit/i });
-      expect(editButtons.length).toBeGreaterThan(0);
-    });
-
-    it('should open edit form when edit button is clicked', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<AccountsPage />);
-
-      // Wait for accounts to load
-      await screen.findByText('Checking Account');
-
-      // Click first edit button
-      const editButtons = screen.getAllByRole('button', { name: /edit/i });
-      await user.click(editButtons[0]);
-
-      // Verify form appears with existing data
-      await waitFor(() => {
-        const nameInput = screen.getByLabelText(/name/i) as HTMLInputElement;
-        expect(nameInput).toBeInTheDocument();
-        expect(nameInput.value).toBeTruthy();
-      });
-    });
+  it('shows loading state', () => {
+    mockIsLoading = true;
+    renderWithProviders(<AccountsPage />);
+    expect(screen.queryByText('Checking Account')).not.toBeInTheDocument();
   });
 
-  describe('Delete Account', () => {
-    it('should have delete buttons for each account', async () => {
-      renderWithProviders(<AccountsPage />);
-
-      // Wait for accounts to load
-      await screen.findByText('Checking Account');
-
-      // Find delete buttons
-      const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
-      expect(deleteButtons.length).toBeGreaterThan(0);
-    });
-
-    it('should show confirmation dialog when delete is clicked', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<AccountsPage />);
-
-      // Wait for accounts to load
-      await screen.findByText('Checking Account');
-
-      // Click first delete button
-      const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
-      await user.click(deleteButtons[0]);
-
-      // Verify confirmation dialog appears - look for common dialog text
-      await waitFor(() => {
-        // Dialog might have "Delete", "Cancel", "Are you sure", etc.
-        const dialog = screen.queryByRole('alertdialog') || screen.queryByRole('dialog');
-        expect(dialog || screen.queryByText(/delete|cancel|are you sure/i)).toBeInTheDocument();
-      });
-    });
+  it('shows error state', () => {
+    mockError = new Error('Network error');
+    renderWithProviders(<AccountsPage />);
+    expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
   });
 
-  describe('Account Summary', () => {
-    it('should display total balance summary', async () => {
-      renderWithProviders(<AccountsPage />);
-
-      // Wait for accounts to load
-      await screen.findByText('Checking Account');
-
-      // Look for total balance (5000 + 15000 = 20000)
-      // Note: This assumes the page calculates and displays total
-      // Adjust based on actual implementation
-    });
-
-    it('should show account count', async () => {
-      renderWithProviders(<AccountsPage />);
-
-      // Wait for accounts to load
-      await screen.findByText('Checking Account');
-
-      // Verify 2 accounts are displayed
-      const accounts = screen.getAllByText(/account/i);
-      expect(accounts.length).toBeGreaterThan(0);
-    });
+  it('shows empty state when no accounts', () => {
+    mockPagedResponse = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 };
+    renderWithProviders(<AccountsPage />);
+    expect(screen.getByText(/no accounts/i)).toBeInTheDocument();
   });
 
-  describe('Empty State', () => {
-    it('should display empty state when no accounts exist', async () => {
-      // This would require overriding MSW handlers to return empty array
-      // Skipping for now, can be implemented with server.use()
-    });
+  it('has add account button', () => {
+    renderWithProviders(<AccountsPage />);
+    expect(screen.getByRole('button', { name: /add account/i })).toBeInTheDocument();
   });
 
-  describe('Error Handling', () => {
-    it('should display error message when fetch fails', async () => {
-      // This would require overriding MSW handlers to return error
-      // Skipping for now, can be implemented with server.use()
-    });
+  it('opens create form dialog', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AccountsPage />);
+    await user.click(screen.getByRole('button', { name: /add account/i }));
+    await waitFor(() => expect(screen.getByTestId('account-form')).toBeInTheDocument());
   });
 
-  describe('Filtering and Sorting', () => {
-    it('should filter accounts by type if filter exists', async () => {
-      renderWithProviders(<AccountsPage />);
+  it('submits create form', async () => {
+    const user = userEvent.setup();
+    mockCreateMutateAsync.mockResolvedValue({});
+    renderWithProviders(<AccountsPage />);
+    await user.click(screen.getByRole('button', { name: /add account/i }));
+    await waitFor(() => expect(screen.getByTestId('account-form')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+    expect(mockCreateMutateAsync).toHaveBeenCalled();
+  });
 
-      // Wait for accounts to load
-      await screen.findByText('Checking Account');
+  it('opens edit form with existing account', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AccountsPage />);
+    const editButtons = screen.getAllByRole('button', { name: /^edit$/i });
+    await user.click(editButtons[0]);
+    await waitFor(() => expect(screen.getByTestId('editing-name')).toHaveTextContent('Checking Account'));
+  });
 
-      // If there are type filters, test them
-      const typeFilters = screen.queryAllByRole('button', { name: /checking|savings|all/i });
-      if (typeFilters.length > 0) {
-        // Test filtering logic
-      }
-    });
+  it('submits edit form', async () => {
+    const user = userEvent.setup();
+    mockUpdateMutateAsync.mockResolvedValue({});
+    renderWithProviders(<AccountsPage />);
+    const editButtons = screen.getAllByRole('button', { name: /^edit$/i });
+    await user.click(editButtons[0]);
+    await waitFor(() => expect(screen.getByTestId('account-form')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+    expect(mockUpdateMutateAsync).toHaveBeenCalled();
+  });
+
+  it('cancels form dialog', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AccountsPage />);
+    await user.click(screen.getByRole('button', { name: /add account/i }));
+    await waitFor(() => expect(screen.getByTestId('account-form')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+    await waitFor(() => expect(screen.queryByTestId('account-form')).not.toBeInTheDocument());
+  });
+
+  it('shows delete confirmation dialog', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AccountsPage />);
+    const deleteButtons = screen.getAllByRole('button', { name: /^delete$/i });
+    await user.click(deleteButtons[0]);
+    expect(screen.getByTestId('confirmation-dialog')).toBeInTheDocument();
+  });
+
+  it('confirms delete action', async () => {
+    const user = userEvent.setup();
+    mockDeleteMutateAsync.mockResolvedValue({});
+    renderWithProviders(<AccountsPage />);
+    const deleteButtons = screen.getAllByRole('button', { name: /^delete$/i });
+    await user.click(deleteButtons[0]);
+    await user.click(screen.getByRole('button', { name: /confirm action/i }));
+    expect(mockDeleteMutateAsync).toHaveBeenCalledWith(1);
+  });
+
+  it('shows close confirmation dialog', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AccountsPage />);
+    const closeButtons = screen.getAllByRole('button', { name: /^close$/i });
+    await user.click(closeButtons[0]);
+    expect(screen.getByTestId('confirmation-dialog')).toBeInTheDocument();
+  });
+
+  it('confirms close action', async () => {
+    const user = userEvent.setup();
+    mockCloseMutateAsync.mockResolvedValue({});
+    renderWithProviders(<AccountsPage />);
+    const closeButtons = screen.getAllByRole('button', { name: /^close$/i });
+    await user.click(closeButtons[0]);
+    await user.click(screen.getByRole('button', { name: /confirm action/i }));
+    expect(mockCloseMutateAsync).toHaveBeenCalledWith(1);
+  });
+
+  it('shows reopen confirmation dialog', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AccountsPage />);
+    const reopenButtons = screen.getAllByRole('button', { name: /^reopen$/i });
+    await user.click(reopenButtons[0]);
+    expect(screen.getByTestId('confirmation-dialog')).toBeInTheDocument();
+  });
+
+  it('opens detail modal on view detail', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AccountsPage />);
+    const viewButtons = screen.getAllByRole('button', { name: /view detail/i });
+    await user.click(viewButtons[0]);
+    expect(screen.getByTestId('account-detail-modal')).toBeInTheDocument();
+  });
+
+  it('closes detail modal', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AccountsPage />);
+    const viewButtons = screen.getAllByRole('button', { name: /view detail/i });
+    await user.click(viewButtons[0]);
+    expect(screen.getByTestId('account-detail-modal')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /close detail/i }));
+    expect(screen.queryByTestId('account-detail-modal')).not.toBeInTheDocument();
+  });
+
+  it('toggles filter panel', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AccountsPage />);
+    expect(screen.queryByTestId('account-filters')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /filter/i }));
+    expect(screen.getByTestId('account-filters')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /filter/i }));
+    expect(screen.queryByTestId('account-filters')).not.toBeInTheDocument();
   });
 });

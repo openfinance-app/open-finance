@@ -507,4 +507,359 @@ describe('GlobalSearch', () => {
 
     expect(mockUpdateQuery).toHaveBeenCalledWith('');
   });
+
+  it('shows loading state while searching', async () => {
+    vi.spyOn(useSearchHook, 'useSearchWithDebounce').mockReturnValue({
+      query: 'test',
+      debouncedQuery: 'test',
+      isDebouncing: false,
+      updateQuery: vi.fn(),
+      searchResult: {
+        data: undefined,
+        isLoading: true,
+        error: null,
+        isError: false,
+        isSuccess: false,
+      } as any,
+      saveRecentSearch: vi.fn(),
+      getRecentSearches: () => [],
+    });
+
+    renderWithProviders(<GlobalSearch />, { queryClient });
+
+    const input = screen.getByPlaceholderText(/search accounts/i);
+    fireEvent.focus(input);
+
+    // A loading indicator should be present (spinner/loader)
+    await waitFor(() => {
+      const loader = document.querySelector('.animate-spin');
+      expect(loader).toBeInTheDocument();
+    });
+  });
+
+  it('shows no results message when search returns empty', async () => {
+    const emptyResult: GlobalSearchResponse = {
+      query: 'xyz',
+      totalResults: 0,
+      resultsByType: {},
+      countsPerType: {},
+      executionTimeMs: 5,
+      hasMore: false,
+      limit: 50,
+    };
+
+    vi.spyOn(useSearchHook, 'useSearchWithDebounce').mockReturnValue({
+      query: 'xyz',
+      debouncedQuery: 'xyz',
+      isDebouncing: false,
+      updateQuery: vi.fn(),
+      searchResult: {
+        data: emptyResult,
+        isLoading: false,
+        error: null,
+        isError: false,
+        isSuccess: true,
+      } as any,
+      saveRecentSearch: vi.fn(),
+      getRecentSearches: () => [],
+    });
+
+    renderWithProviders(<GlobalSearch />, { queryClient });
+
+    const input = screen.getByPlaceholderText(/search accounts/i);
+    fireEvent.focus(input);
+
+    await waitFor(() => {
+      expect(screen.getByText(/no results/i)).toBeInTheDocument();
+    });
+  });
+
+  it('closes dropdown on Escape key', async () => {
+    vi.spyOn(useSearchHook, 'useSearchWithDebounce').mockReturnValue({
+      query: '',
+      debouncedQuery: '',
+      isDebouncing: false,
+      updateQuery: vi.fn(),
+      searchResult: {
+        data: undefined,
+        isLoading: false,
+        error: null,
+        isError: false,
+        isSuccess: false,
+      } as any,
+      saveRecentSearch: vi.fn(),
+      getRecentSearches: () => ['recent-test'],
+    });
+
+    renderWithProviders(<GlobalSearch />, { queryClient });
+
+    const input = screen.getByPlaceholderText(/search accounts/i);
+    fireEvent.focus(input);
+
+    await waitFor(() => {
+      expect(screen.getByText('recent-test')).toBeInTheDocument();
+    });
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+
+    await waitFor(() => {
+      expect(screen.queryByText('recent-test')).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows "type at least 2 characters" message for short queries', async () => {
+    vi.spyOn(useSearchHook, 'useSearchWithDebounce').mockReturnValue({
+      query: 'a',
+      debouncedQuery: 'a',
+      isDebouncing: false,
+      updateQuery: vi.fn(),
+      searchResult: {
+        data: undefined,
+        isLoading: false,
+        error: null,
+        isError: false,
+        isSuccess: false,
+      } as any,
+      saveRecentSearch: vi.fn(),
+      getRecentSearches: () => [],
+    });
+
+    renderWithProviders(<GlobalSearch />, { queryClient });
+    const input = screen.getByPlaceholderText(/search accounts/i);
+    fireEvent.focus(input);
+
+    await waitFor(() => {
+      expect(screen.getByText(/type at least/i)).toBeInTheDocument();
+    });
+  });
+
+  it('navigates to /search page when Enter is pressed with query >= 2 chars', async () => {
+    const mockSaveRecentSearch = vi.fn();
+    vi.spyOn(useSearchHook, 'useSearchWithDebounce').mockReturnValue({
+      query: 'test',
+      debouncedQuery: 'test',
+      isDebouncing: false,
+      updateQuery: vi.fn(),
+      searchResult: {
+        data: { query: 'test', totalResults: 5, resultsByType: {}, countsPerType: {}, executionTimeMs: 5, hasMore: false, limit: 50 },
+        isLoading: false,
+        error: null,
+        isError: false,
+        isSuccess: true,
+      } as any,
+      saveRecentSearch: mockSaveRecentSearch,
+      getRecentSearches: () => [],
+    });
+
+    renderWithProviders(<GlobalSearch />, { queryClient });
+    const input = screen.getByPlaceholderText(/search accounts/i);
+    fireEvent.focus(input);
+
+    // Press Enter without selecting a result to navigate to search page
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(mockNavigate).toHaveBeenCalledWith('/search?q=test');
+    expect(mockSaveRecentSearch).toHaveBeenCalledWith('test');
+  });
+
+  it('navigates to search page via view all results button', async () => {
+    const mockSearchResult: GlobalSearchResponse = {
+      query: 'payment',
+      totalResults: 10,
+      resultsByType: {
+        TRANSACTION: [
+          { resultType: 'TRANSACTION', id: 1, title: 'Payment 1', createdAt: '2024-01-01T00:00:00' },
+          { resultType: 'TRANSACTION', id: 2, title: 'Payment 2', createdAt: '2024-01-01T00:00:00' },
+        ],
+      },
+      countsPerType: { TRANSACTION: 10 },
+      executionTimeMs: 10,
+      hasMore: true,
+      limit: 50,
+    };
+
+    vi.spyOn(useSearchHook, 'useSearchWithDebounce').mockReturnValue({
+      query: 'payment',
+      debouncedQuery: 'payment',
+      isDebouncing: false,
+      updateQuery: vi.fn(),
+      searchResult: {
+        data: mockSearchResult,
+        isLoading: false,
+        error: null,
+        isError: false,
+        isSuccess: true,
+      } as any,
+      saveRecentSearch: vi.fn(),
+      getRecentSearches: () => [],
+    });
+
+    renderWithProviders(<GlobalSearch />, { queryClient });
+    const input = screen.getByPlaceholderText(/search accounts/i);
+    fireEvent.focus(input);
+
+    await waitFor(() => {
+      expect(screen.getByText('Payment 1')).toBeInTheDocument();
+    });
+
+    const viewAllButton = screen.getByText(/view all/i).closest('button');
+    fireEvent.click(viewAllButton!);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/search?q=payment');
+  });
+
+  it('selects recent search with arrow keys and Enter', async () => {
+    const mockUpdateQuery = vi.fn();
+    vi.spyOn(useSearchHook, 'useSearchWithDebounce').mockReturnValue({
+      query: '',
+      debouncedQuery: '',
+      isDebouncing: false,
+      updateQuery: mockUpdateQuery,
+      searchResult: {
+        data: undefined,
+        isLoading: false,
+        error: null,
+        isError: false,
+        isSuccess: false,
+      } as any,
+      saveRecentSearch: vi.fn(),
+      getRecentSearches: () => ['recent query'],
+    });
+
+    renderWithProviders(<GlobalSearch />, { queryClient });
+    const input = screen.getByPlaceholderText(/search accounts/i);
+    fireEvent.focus(input);
+
+    await waitFor(() => {
+      expect(screen.getByText('recent query')).toBeInTheDocument();
+    });
+
+    // Arrow down to select the recent search
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    // Enter to select it
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(mockUpdateQuery).toHaveBeenCalledWith('recent query');
+  });
+
+  it('displays category result with translated subtitle', async () => {
+    const mockSearchResult: GlobalSearchResponse = {
+      query: 'food',
+      totalResults: 1,
+      resultsByType: {
+        CATEGORY: [
+          {
+            resultType: 'CATEGORY',
+            id: 10,
+            title: 'Food',
+            subtitle: 'EXPENSE',
+            icon: 'ShoppingCart',
+            color: '#22c55e',
+            createdAt: '2024-01-01T00:00:00',
+          },
+        ],
+      },
+      countsPerType: { CATEGORY: 1 },
+      executionTimeMs: 5,
+      hasMore: false,
+      limit: 50,
+    };
+
+    vi.spyOn(useSearchHook, 'useSearchWithDebounce').mockReturnValue({
+      query: 'food',
+      debouncedQuery: 'food',
+      isDebouncing: false,
+      updateQuery: vi.fn(),
+      searchResult: {
+        data: mockSearchResult,
+        isLoading: false,
+        error: null,
+        isError: false,
+        isSuccess: true,
+      } as any,
+      saveRecentSearch: vi.fn(),
+      getRecentSearches: () => [],
+    });
+
+    renderWithProviders(<GlobalSearch />, { queryClient });
+    const input = screen.getByPlaceholderText(/search accounts/i);
+    fireEvent.focus(input);
+
+    await waitFor(() => {
+      expect(screen.getByText('Food')).toBeInTheDocument();
+    });
+  });
+
+  it('displays result with amount and currency', async () => {
+    const mockSearchResult: GlobalSearchResponse = {
+      query: 'savings',
+      totalResults: 1,
+      resultsByType: {
+        ACCOUNT: [
+          {
+            resultType: 'ACCOUNT',
+            id: 50,
+            title: 'Savings Account',
+            amount: 12345.67,
+            currency: 'USD',
+            icon: 'Wallet',
+            color: '#3b82f6',
+            createdAt: '2024-01-01T00:00:00',
+          },
+        ],
+      },
+      countsPerType: { ACCOUNT: 1 },
+      executionTimeMs: 5,
+      hasMore: false,
+      limit: 50,
+    };
+
+    vi.spyOn(useSearchHook, 'useSearchWithDebounce').mockReturnValue({
+      query: 'savings',
+      debouncedQuery: 'savings',
+      isDebouncing: false,
+      updateQuery: vi.fn(),
+      searchResult: {
+        data: mockSearchResult,
+        isLoading: false,
+        error: null,
+        isError: false,
+        isSuccess: true,
+      } as any,
+      saveRecentSearch: vi.fn(),
+      getRecentSearches: () => [],
+    });
+
+    renderWithProviders(<GlobalSearch />, { queryClient });
+    const input = screen.getByPlaceholderText(/search accounts/i);
+    fireEvent.focus(input);
+
+    await waitFor(() => {
+      expect(screen.getByText('Savings Account')).toBeInTheDocument();
+      // Should display the formatted amount
+      expect(screen.getByText(/12.*345/)).toBeInTheDocument();
+    });
+  });
+
+  it('shows debouncing spinner', async () => {
+    vi.spyOn(useSearchHook, 'useSearchWithDebounce').mockReturnValue({
+      query: 'test',
+      debouncedQuery: '',
+      isDebouncing: true,
+      updateQuery: vi.fn(),
+      searchResult: {
+        data: undefined,
+        isLoading: false,
+        error: null,
+        isError: false,
+        isSuccess: false,
+      } as any,
+      saveRecentSearch: vi.fn(),
+      getRecentSearches: () => [],
+    });
+
+    renderWithProviders(<GlobalSearch />, { queryClient });
+    const spinner = document.querySelector('.animate-spin');
+    expect(spinner).toBeInTheDocument();
+  });
 });

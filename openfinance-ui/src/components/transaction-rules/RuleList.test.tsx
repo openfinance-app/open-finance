@@ -223,4 +223,90 @@ describe('RuleList', () => {
     expect(screen.getByText('Actions')).toBeInTheDocument();
     expect(screen.getByText('Controls')).toBeInTheDocument();
   });
+
+  it('should sort rules by name when clicking the Name header', () => {
+    renderWithI18n(
+      <RuleList
+        rules={mockRules}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        onToggle={mockOnToggle}
+        onCreateFirst={mockOnCreateFirst}
+      />
+    );
+
+    const nameHeader = screen.getByText('Name');
+    // Click to sort ascending
+    fireEvent.click(nameHeader);
+    // Click again to toggle direction
+    fireEvent.click(nameHeader);
+
+    // Both rules still present after sorting
+    expect(screen.getByText('Groceries Rule')).toBeInTheDocument();
+    expect(screen.getByText('Salary Rule')).toBeInTheDocument();
+  });
+
+  it('should sort by priority column', () => {
+    renderWithI18n(
+      <RuleList
+        rules={mockRules}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        onToggle={mockOnToggle}
+        onCreateFirst={mockOnCreateFirst}
+      />
+    );
+
+    const priorityHeader = screen.getByText('Priority');
+    fireEvent.click(priorityHeader);
+    expect(screen.getByText('Groceries Rule')).toBeInTheDocument();
+  });
+
+  it('should sort by status column', () => {
+    renderWithI18n(
+      <RuleList
+        rules={mockRules}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        onToggle={mockOnToggle}
+        onCreateFirst={mockOnCreateFirst}
+      />
+    );
+
+    const statusHeader = screen.getByText('Status');
+    fireEvent.click(statusHeader);
+    expect(screen.getByText('Active')).toBeInTheDocument();
+  });
+
+  it('should sort by conditions column', () => {
+    renderWithI18n(
+      <RuleList
+        rules={mockRules}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        onToggle={mockOnToggle}
+        onCreateFirst={mockOnCreateFirst}
+      />
+    );
+
+    const conditionsHeader = screen.getByText('Conditions');
+    fireEvent.click(conditionsHeader);
+    expect(screen.getByText('Groceries Rule')).toBeInTheDocument();
+  });
+
+  it('should sort by actions column', () => {
+    renderWithI18n(
+      <RuleList
+        rules={mockRules}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        onToggle={mockOnToggle}
+        onCreateFirst={mockOnCreateFirst}
+      />
+    );
+
+    const actionsHeader = screen.getByText('Actions');
+    fireEvent.click(actionsHeader);
+    expect(screen.getByText('Groceries Rule')).toBeInTheDocument();
+  });
 });

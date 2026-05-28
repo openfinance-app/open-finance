@@ -483,4 +483,120 @@ describe('LiabilityList', () => {
       expect(hiddenSpans.length).toBeGreaterThan(0);
     });
   });
+
+  describe('Delete confirmation', () => {
+    it('calls onDelete when confirmation is confirmed', () => {
+      renderWithProviders(
+        <LiabilityList
+          liabilities={[mockLiability]}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+          onViewDetails={mockOnViewDetails}
+        />
+      );
+
+      const deleteButton = screen.getByRole('button', { name: /delete liability/i });
+      fireEvent.click(deleteButton);
+      expect(screen.getByTestId('confirmation-dialog')).toBeInTheDocument();
+
+      // Click the confirm button inside the dialog
+      const confirmBtn = screen.getByText('Delete');
+      fireEvent.click(confirmBtn);
+      expect(mockOnDelete).toHaveBeenCalledWith(1);
+    });
+
+    it('closes dialog when Cancel is clicked', () => {
+      renderWithProviders(
+        <LiabilityList
+          liabilities={[mockLiability]}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+          onViewDetails={mockOnViewDetails}
+        />
+      );
+
+      const deleteButton = screen.getByRole('button', { name: /delete liability/i });
+      fireEvent.click(deleteButton);
+      expect(screen.getByTestId('confirmation-dialog')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Cancel'));
+      expect(screen.queryByTestId('confirmation-dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Highlighted liability', () => {
+    it('renders highlighted liability with highlight styling', () => {
+      Element.prototype.scrollIntoView = vi.fn();
+
+      renderWithProviders(
+        <LiabilityList
+          liabilities={[mockLiability]}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+          highlightedId={1}
+        />
+      );
+
+      // Check that the highlighted card has special styling
+      const body = document.body.innerHTML;
+      expect(body).toContain('ring');
+    });
+
+    it('applies highlight styling to matching liability', () => {
+      renderWithProviders(
+        <LiabilityList
+          liabilities={[mockLiability]}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+          highlightedId={1}
+        />
+      );
+
+      // The highlighted card should have ring styling
+      const cards = document.querySelectorAll('[class*="ring"]');
+      expect(cards.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Liability without end date', () => {
+    it('does not show remaining months when endDate is undefined', () => {
+      const noEndDate = { ...mockLiability, endDate: undefined };
+      renderWithProviders(
+        <LiabilityList
+          liabilities={[noEndDate]}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />
+      );
+      expect(screen.queryByText(/months remaining/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Liability with past end date', () => {
+    it('shows overdue text for past end dates', () => {
+      const pastEnd = { ...mockLiability, endDate: '2020-01-01' };
+      renderWithProviders(
+        <LiabilityList
+          liabilities={[pastEnd]}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />
+      );
+      // Should show ended/overdue text since end date is in the past
+      expect(screen.getByText(/Ends|Ended/)).toBeInTheDocument();
+    });
+  });
+
+  describe('Single liability count', () => {
+    it('shows singular text for one liability', () => {
+      renderWithProviders(
+        <LiabilityList
+          liabilities={[mockLiability]}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />
+      );
+      expect(screen.getByText(/Showing 1 liabilit/)).toBeInTheDocument();
+    });
+  });
 });

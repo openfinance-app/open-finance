@@ -691,6 +691,208 @@ export const compoundInterestHandlers = [
 ];
 
 /**
+ * Request handlers for asset search (paginated)
+ */
+export const assetSearchHandlers = [
+  http.get(`${API_BASE_URL}/assets/search`, () => {
+    return HttpResponse.json({
+      content: mockAssets,
+      totalElements: mockAssets.length,
+      totalPages: 1,
+      number: 0,
+      size: 20,
+    });
+  }),
+
+  http.post(`${API_BASE_URL}/assets`, async ({ request }) => {
+    const body = await request.json() as any;
+    const newAsset = { id: mockAssets.length + 1, ...body };
+    return HttpResponse.json(newAsset, { status: 201 });
+  }),
+
+  http.put(`${API_BASE_URL}/assets/:id`, async ({ params, request }) => {
+    const body = await request.json() as any;
+    const asset = mockAssets.find((a) => a.id === Number(params.id));
+    return HttpResponse.json({ ...asset, ...body });
+  }),
+
+  http.delete(`${API_BASE_URL}/assets/:id`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get(`${API_BASE_URL}/assets/:id`, ({ params }) => {
+    const asset = mockAssets.find((a) => a.id === Number(params.id));
+    if (asset) return HttpResponse.json(asset);
+    return HttpResponse.json({ message: 'Asset not found' }, { status: 404 });
+  }),
+
+  http.post(`${API_BASE_URL}/assets/update-prices`, () => {
+    return HttpResponse.json({ updatedCount: 1 });
+  }),
+];
+
+/**
+ * Request handlers for liabilities (paginated)
+ */
+export const liabilityPagedHandlers = [
+  http.get(`${API_BASE_URL}/liabilities/paged`, () => {
+    return HttpResponse.json({
+      content: mockLiabilities,
+      totalElements: mockLiabilities.length,
+      totalPages: 1,
+      number: 0,
+      size: 20,
+    });
+  }),
+
+  http.post(`${API_BASE_URL}/liabilities`, async ({ request }) => {
+    const body = await request.json() as any;
+    const newLiability = { id: mockLiabilities.length + 1, ...body };
+    return HttpResponse.json(newLiability, { status: 201 });
+  }),
+
+  http.put(`${API_BASE_URL}/liabilities/:id`, async ({ params, request }) => {
+    const body = await request.json() as any;
+    const liability = mockLiabilities.find((l) => l.id === Number(params.id));
+    return HttpResponse.json({ ...liability, ...body });
+  }),
+
+  http.delete(`${API_BASE_URL}/liabilities/:id`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+];
+
+/**
+ * Request handlers for operation history
+ */
+export const historyHandlers = [
+  http.get(`${API_BASE_URL}/history`, () => {
+    return HttpResponse.json({
+      content: [
+        {
+          id: 1,
+          entityType: 'TRANSACTION',
+          entityId: 1,
+          operationType: 'CREATE',
+          description: 'Created transaction: Weekly groceries',
+          createdAt: '2026-02-03T10:30:00Z',
+          canUndo: true,
+          canRedo: false,
+        },
+        {
+          id: 2,
+          entityType: 'ACCOUNT',
+          entityId: 1,
+          operationType: 'UPDATE',
+          description: 'Updated account: Checking Account',
+          createdAt: '2026-02-02T09:00:00Z',
+          canUndo: false,
+          canRedo: false,
+        },
+      ],
+      totalElements: 2,
+      totalPages: 1,
+      number: 0,
+      size: 20,
+    });
+  }),
+
+  http.post(`${API_BASE_URL}/history/:id/undo`, () => {
+    return HttpResponse.json({ id: 1, operationType: 'CREATE', canUndo: false, canRedo: true });
+  }),
+
+  http.post(`${API_BASE_URL}/history/:id/redo`, () => {
+    return HttpResponse.json({ id: 1, operationType: 'CREATE', canUndo: true, canRedo: false });
+  }),
+];
+
+/**
+ * Request handlers for budget alerts
+ */
+export const budgetAlertHandlers = [
+  http.get(`${API_BASE_URL}/budgets/alerts/unread`, () => {
+    return HttpResponse.json([]);
+  }),
+
+  http.get(`${API_BASE_URL}/budgets/alerts/unread/count`, () => {
+    return HttpResponse.json(0);
+  }),
+
+  http.get(`${API_BASE_URL}/budgets/alerts/:budgetId`, () => {
+    return HttpResponse.json([]);
+  }),
+
+  http.post(`${API_BASE_URL}/budgets/alerts`, async ({ request }) => {
+    const body = await request.json() as any;
+    return HttpResponse.json({ id: 'new-alert', ...body }, { status: 201 });
+  }),
+
+  http.put(`${API_BASE_URL}/budgets/alerts/:id`, async ({ params, request }) => {
+    const body = await request.json() as any;
+    return HttpResponse.json({ id: params.id, ...body });
+  }),
+
+  http.delete(`${API_BASE_URL}/budgets/alerts/:id`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.put(`${API_BASE_URL}/budgets/alerts/:id/read`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.put(`${API_BASE_URL}/budgets/alerts/read-all`, () => {
+    return HttpResponse.json(0);
+  }),
+];
+
+/**
+ * Request handlers for notifications
+ */
+export const notificationHandlers = [
+  http.get(`${API_BASE_URL}/notifications`, () => {
+    return HttpResponse.json([]);
+  }),
+
+  http.get(`${API_BASE_URL}/notifications/count`, () => {
+    return HttpResponse.json(0);
+  }),
+];
+
+/**
+ * Request handlers for search
+ */
+export const searchHandlers = [
+  http.get(`${API_BASE_URL}/search/global`, () => {
+    return HttpResponse.json({
+      results: [],
+      totalResults: 0,
+      query: '',
+    });
+  }),
+
+  http.post(`${API_BASE_URL}/search/advanced`, () => {
+    return HttpResponse.json({
+      results: [],
+      totalResults: 0,
+      query: '',
+    });
+  }),
+
+  http.get(`${API_BASE_URL}/search/saved`, () => {
+    return HttpResponse.json([]);
+  }),
+];
+
+/**
+ * Request handlers for market data
+ */
+export const marketDataHandlers = [
+  http.post(`${API_BASE_URL}/market-data/update-all`, () => {
+    return HttpResponse.json({ updatedCount: 0 });
+  }),
+];
+
+/**
  * All handlers combined
  */
 export const handlers = [
@@ -702,7 +904,14 @@ export const handlers = [
   ...institutionHandlers,
   ...currencyHandlers,
   ...liabilityHandlers,
+  ...liabilityPagedHandlers,
   ...dashboardHandlers,
   ...assetHandlers,
+  ...assetSearchHandlers,
   ...compoundInterestHandlers,
+  ...historyHandlers,
+  ...budgetAlertHandlers,
+  ...notificationHandlers,
+  ...searchHandlers,
+  ...marketDataHandlers,
 ];

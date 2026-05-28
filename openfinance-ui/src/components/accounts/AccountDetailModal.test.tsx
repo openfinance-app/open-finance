@@ -407,5 +407,54 @@ describe('AccountDetailModal', () => {
       expect(screen.getByRole('button', { name: '3M' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument();
     });
+
+    it('changes period when a period button is clicked', () => {
+      renderWithProviders(<AccountDetailModal {...defaultProps} />);
+      fireEvent.click(screen.getByRole('button', { name: '1M' }));
+      // The 1M button should now be active (has different styling)
+      const btn = screen.getByRole('button', { name: '1M' });
+      expect(btn.className).toContain('bg-primary');
+    });
+
+    it('shows loading skeleton for balance history', () => {
+      mockUseAccountBalanceHistory.mockReturnValue({ data: undefined, isLoading: true } as any);
+      renderWithProviders(<AccountDetailModal {...defaultProps} />);
+      const skeletons = document.querySelectorAll('.shimmer');
+      expect(skeletons.length).toBeGreaterThan(0);
+    });
+
+    it('shows loading skeleton for transactions', () => {
+      mockUseTransactions.mockReturnValue({ data: undefined, isLoading: true } as any);
+      renderWithProviders(<AccountDetailModal {...defaultProps} />);
+      const skeletons = document.querySelectorAll('.shimmer');
+      expect(skeletons.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Account details section', () => {
+    it('displays account number', () => {
+      renderWithProviders(<AccountDetailModal {...defaultProps} />);
+      expect(screen.getByText('****1234')).toBeInTheDocument();
+    });
+
+    it('displays dash when no account number', () => {
+      mockUseAccount.mockReturnValue({
+        data: { ...mockAccount, accountNumber: undefined },
+        isLoading: false,
+      } as any);
+      renderWithProviders(<AccountDetailModal {...defaultProps} />);
+      // Should show dash for missing account number
+      const body = document.body.textContent || '';
+      expect(body).toContain('—');
+    });
+
+    it('displays institution name when present', () => {
+      mockUseAccount.mockReturnValue({
+        data: { ...mockAccount, institution: { id: 1, name: 'Chase Bank' } },
+        isLoading: false,
+      } as any);
+      renderWithProviders(<AccountDetailModal {...defaultProps} />);
+      expect(screen.getByText('Chase Bank')).toBeInTheDocument();
+    });
   });
 });
