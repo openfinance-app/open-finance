@@ -13,6 +13,7 @@ import type {
   IDailyCashFlow,
   ICashflowSankey,
   IEstimatedInterestSummary,
+  IYearlyBalanceResponse,
 } from '../types/dashboard';
 import type { Transaction } from '../types/transaction';
 import type { DateRange } from '../components/ui/PeriodSelector';
@@ -298,6 +299,25 @@ export const useTransactionsByPeriod = (period: number = 30, dateRange?: DateRan
   useQuery({
     queryKey: ['dashboard', 'transactions-period', periodKey(period, dateRange)],
     queryFn: () => fetchTransactionsByPeriod(period, dateRange),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+// ─── Yearly Balance Variation ─────────────────────────────────────────────────
+
+const fetchYearlyBalance = async (): Promise<IYearlyBalanceResponse> => {
+  const encryptionKey = getEncryptionKey();
+  if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
+  const response = await apiClient.get<IYearlyBalanceResponse>('/dashboard/yearly-balance', {
+    headers: { 'X-Encryption-Key': encryptionKey },
+  });
+  return response.data;
+};
+
+export const useYearlyBalance = () =>
+  useQuery({
+    queryKey: ['dashboard', 'yearly-balance'],
+    queryFn: fetchYearlyBalance,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });

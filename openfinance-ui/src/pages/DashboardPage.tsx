@@ -34,6 +34,7 @@ import EstimatedInterestCard from '../components/dashboard/EstimatedInterestCard
 import PeriodSelector, { type Period, type DateRange, dateRangeToDays } from '../components/ui/PeriodSelector';
 import BudgetProgressCard from '../components/dashboard/BudgetProgressCard';
 import RssFeedCard from '../components/dashboard/RssFeedCard';
+import BalanceVariationCard from '../components/dashboard/BalanceVariationCard';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { cn } from '@/lib/utils';
@@ -56,7 +57,8 @@ type DashboardCardId =
   | 'estimatedInterest'
   | 'institutionBreakdown'
   | 'budgetProgress'
-  | 'financeNews';
+  | 'financeNews'
+  | 'balanceVariation';
 
 interface DashboardCardConfig {
   id: DashboardCardId;
@@ -83,6 +85,7 @@ const DEFAULT_CARD_ORDER: DashboardCardId[] = [
   'netWorthAllocation',
   'estimatedInterest',
   'institutionBreakdown',
+  'balanceVariation',
 ];
 
 const STORAGE_KEY = 'open_finance_dashboard_layouts';
@@ -123,6 +126,9 @@ const generateDefaultLayouts = (): Record<string, any> => ({
     // Row 8 (y=63 to y=72)
     { i: 'estimatedInterest', x: 0, y: 63, w: 4, h: 9, minW: 3, minH: 6 },
     { i: 'financeNews', x: 4, y: 63, w: 4, h: 9, minW: 3, minH: 6 },
+
+    // Row 9 (y=72 to y=82)
+    { i: 'balanceVariation', x: 0, y: 72, w: 12, h: 10, minW: 6, minH: 7 },
   ]
 });
 
@@ -440,6 +446,13 @@ export default function DashboardPage() {
         description: 'Latest finance news from top sources',
         isAvailable: true,
         render: () => <RssFeedCard />,
+      },
+      {
+        id: 'balanceVariation',
+        label: t('cards.balanceVariation.label'),
+        description: t('cards.balanceVariation.description'),
+        isAvailable: true,
+        render: () => <BalanceVariationCard currency={summary.baseCurrency} />,
       },
     ];
   }, [

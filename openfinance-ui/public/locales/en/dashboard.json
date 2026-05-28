@@ -98,6 +98,10 @@
     "estimatedInterest": {
       "label": "Estimated Interest",
       "description": "Interest earned across accounts"
+    },
+    "balanceVariation": {
+      "label": "Yearly Balance",
+      "description": "Year-over-year balance variations"
     }
   },
   "stats": {
@@ -328,5 +332,17 @@
     "Checking": "Checking",
     "Savings": "Savings",
     "Pension": "Pension"
+  },
+  "balanceVariation": {
+    "title": "Yearly Balance Variation",
+    "tooltip": "Year-over-year balance evolution from the year of your first transaction to the most recent. Shows total amount per year and the variation percentage against the previous year.",
+    "noData": "No yearly balance data available",
+    "viewNetWorth": "Total Net Worth",
+    "viewAccounts": "Individual Accounts",
+    "viewInstitutions": "Institutions",
+    "chartBar": "Bar Chart",
+    "chartLine": "Line Chart",
+    "averageIncrease": "Avg. yearly change",
+    "perYear": "per year"
   }
 }

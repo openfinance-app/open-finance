@@ -98,6 +98,10 @@
     "estimatedInterest": {
       "label": "Intérêts estimés",
       "description": "Intérêts perçus sur l'ensemble des comptes"
+    },
+    "balanceVariation": {
+      "label": "Solde annuel",
+      "description": "Variations du solde d'année en année"
     }
   },
   "stats": {
@@ -328,5 +332,17 @@
     "Checking": "Compte courant",
     "Savings": "Épargne",
     "Pension": "Retraite"
+  },
+  "balanceVariation": {
+    "title": "Variation annuelle du solde",
+    "tooltip": "Évolution du solde d'année en année, depuis l'année de votre première transaction jusqu'à la plus récente. Affiche le montant total par an et le pourcentage de variation par rapport à l'année précédente.",
+    "noData": "Aucune donnée de solde annuel disponible",
+    "viewNetWorth": "Valeur nette totale",
+    "viewAccounts": "Comptes individuels",
+    "viewInstitutions": "Établissements",
+    "chartBar": "Barres",
+    "chartLine": "Courbe",
+    "averageIncrease": "Variation moyenne annuelle",
+    "perYear": "par an"
   }
 }

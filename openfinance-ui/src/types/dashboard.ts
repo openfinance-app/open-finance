@@ -169,3 +169,32 @@ export interface IEstimatedInterestSummary {
   totalProjected: number;
   currency: string;
 }
+
+/**
+ * A single year's data point with amount and variation percentage
+ */
+export interface IYearlyDataPoint {
+  year: number;
+  amount: number;
+  variationPercentage: number | null;
+}
+
+/**
+ * Named entry (account or institution) with yearly data
+ */
+export interface IYearlyBalanceEntry {
+  id: number;
+  name: string;
+  data: IYearlyDataPoint[];
+}
+
+/**
+ * Yearly balance variation response for dashboard visualization
+ */
+export interface IYearlyBalanceResponse {
+  years: number[];
+  netWorth: IYearlyDataPoint[];
+  accounts: IYearlyBalanceEntry[];
+  institutions: IYearlyBalanceEntry[];
+  currency: string;
+}
