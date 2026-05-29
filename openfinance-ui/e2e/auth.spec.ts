@@ -18,20 +18,42 @@ test.describe('Authentication', () => {
 
   test.describe('Login', () => {
     test('core-007: login happy path redirects to dashboard', async ({ page }) => {
-      await page.goto('/login');
-      await expect(page).toHaveTitle(/open finance/i);
+      // Retry loop to handle rate limiting from previous test runs
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await page.goto('/login');
+        if (attempt === 0) {
+          await expect(page).toHaveTitle(/open finance/i);
+        }
 
-      // Fill credentials
-      await page.getByLabel(/username/i).fill(E2E_USER.username);
-      await page.getByLabel(/^password$/i).fill(E2E_USER.password);
-      await page.getByLabel(/master password/i).fill(E2E_USER.masterPassword);
+        // Fill credentials
+        await page.getByLabel(/username/i).fill(E2E_USER.username);
+        await page.getByLabel(/^password$/i).fill(E2E_USER.password);
+        await page.locator('#masterPassword').fill(E2E_USER.masterPassword);
 
-      // Submit
-      const submitBtn = page.getByRole('button', { name: /sign in|log in/i });
-      await submitBtn.click();
+        // Submit
+        const submitBtn = page.getByRole('button', { name: /sign in|log in/i });
+        await submitBtn.click();
+
+        // Race: navigate or error
+        const result = await Promise.race([
+          page.waitForURL(/\/(dashboard|onboarding)/, { timeout: 15_000 }).then(() => 'ok' as const),
+          page.getByTestId('login-error-message').waitFor({ state: 'visible', timeout: 15_000 }).then(() => 'error' as const),
+        ]);
+
+        if (result === 'ok') break;
+
+        const errorText = await page.getByTestId('login-error-message').innerText();
+        if (/too many requests/i.test(errorText) && attempt < 2) {
+          const match = errorText.match(/(\d+)\s*second/);
+          const waitSec = match ? parseInt(match[1], 10) : 2;
+          await page.waitForTimeout((waitSec + 1) * 1000);
+          continue;
+        }
+        throw new Error(`Login failed: ${errorText}`);
+      }
 
       // Should land on dashboard
-      await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+      await expect(page).toHaveURL(/\/dashboard/);
       await expect(page.getByRole('main')).toBeVisible();
     });
 
@@ -40,7 +62,7 @@ test.describe('Authentication', () => {
 
       await page.getByLabel(/username/i).fill('nonexistent_user_xyz');
       await page.getByLabel(/^password$/i).fill('WrongPassword123!');
-      await page.getByLabel(/master password/i).fill('WrongMaster123!');
+      await page.locator('#masterPassword').fill('WrongMaster123!');
 
       const submitBtn = page.getByRole('button', { name: /sign in|log in/i });
       await submitBtn.click();
@@ -82,28 +104,11 @@ test.describe('Authentication', () => {
       // Verify we are on the dashboard
       await expect(page).toHaveURL(/\/dashboard/);
 
-      // Find and click the user/account menu — typically a button in the sidebar footer
-      // The sidebar has a user profile section or settings link
-      let logoutLink = page.getByRole('button', { name: /log ?out|sign ?out/i })
-        .or(page.getByRole('link', { name: /log ?out|sign ?out/i }));
+      // Open the user dropdown menu (aria-label="User menu")
+      await page.getByRole('button', { name: /user menu/i }).click();
 
-      // If logout is inside a dropdown, try clicking a user-menu trigger first
-      if (!(await logoutLink.isVisible().catch(() => false))) {
-        // Try clicking the user menu button (aria-label="User menu" in UserDropdownMenu)
-        const userMenuBtn = page.getByRole('button', { name: /user menu/i });
-        if (await userMenuBtn.isVisible().catch(() => false)) {
-          await userMenuBtn.click();
-        } else {
-          // Fallback to searching sidebar
-          const profileBtn = page.locator('nav').getByRole('link', { name: /profile|settings/i }).last();
-          if (await profileBtn.isVisible().catch(() => false)) {
-            await profileBtn.click();
-          }
-        }
-      }
-
-      await expect(logoutLink.first()).toBeVisible({ timeout: 5_000 });
-      await logoutLink.first().click();
+      // Click the Logout button inside the dropdown
+      await page.getByRole('button', { name: /log ?out/i }).click();
 
       // Should be redirected to login
       await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
@@ -163,17 +168,10 @@ test.describe('Authentication', () => {
       await page.getByLabel(/username/i).fill(E2E_USER.username);
       await page.getByLabel(/email/i).fill('unique_email_xyz@test.local');
 
-      const passwordFields = await page.getByLabel(/^password$/i).all();
-      if (passwordFields[0]) await passwordFields[0].fill('E2eTest123!');
-
-      const confirmPasswordFields = await page.getByLabel(/confirm password/i).all();
-      if (confirmPasswordFields[0]) await confirmPasswordFields[0].fill('E2eTest123!');
-
-      const masterFields = await page.getByLabel(/master password/i).all();
-      if (masterFields[0]) await masterFields[0].fill('E2eMaster123!');
-
-      const confirmMasterFields = await page.getByLabel(/confirm master/i).all();
-      if (confirmMasterFields[0]) await confirmMasterFields[0].fill('E2eMaster123!');
+      await page.locator('#password').fill('E2eTest123!');
+      await page.locator('#confirmPassword').fill('E2eTest123!');
+      await page.locator('#masterPassword').fill('E2eMaster123!');
+      await page.locator('#confirmMasterPassword').fill('E2eMaster123!');
 
       const submitBtn = page.getByRole('button', { name: /create account|register|sign up/i });
       await submitBtn.click();
@@ -193,7 +191,7 @@ test.describe('Authentication', () => {
 
     test('login page has link to register page', async ({ page }) => {
       await page.goto('/login');
-      const registerLink = page.getByRole('link', { name: /create account|register|sign up/i });
+      const registerLink = page.getByRole('link', { name: /create|register|sign up/i });
       await expect(registerLink).toBeVisible();
       await registerLink.click();
       await expect(page).toHaveURL(/\/register/);

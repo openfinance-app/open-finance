@@ -43,7 +43,7 @@ test.describe('Navigation', () => {
   });
 
   test('core-060c: sidebar Transactions link navigates to /transactions', async ({ page }) => {
-    const transactionsLink = page.getByRole('link', { name: /^transactions$/i }).first();
+    const transactionsLink = page.getByRole('link', { name: /transactions/i }).first();
     await expect(transactionsLink).toBeVisible();
     await transactionsLink.click();
 
@@ -156,6 +156,6 @@ test.describe('Navigation', () => {
     expect(isExpectedUrl).toBe(true);
 
     // Page should not be blank — main landmark or body content must exist
-    await expect(page.getByRole('main').or(page.locator('body'))).toBeVisible();
+    await expect(page.getByRole('main')).toBeVisible();
   });
 });

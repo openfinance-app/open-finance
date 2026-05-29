@@ -31,33 +31,45 @@ export async function loginAs(
   page: Page,
   credentials: { username: string; password: string; masterPassword: string } = E2E_USER,
 ): Promise<void> {
-  await page.goto('/login');
-  await page.waitForLoadState('networkidle');
+  const maxRetries = 3;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    await page.goto('/login');
+    await page.waitForLoadState('networkidle');
 
-  await page.getByLabel(/username/i).fill(credentials.username);
-  await page.getByLabel(/^password$/i).fill(credentials.password);
-  await page.getByLabel(/master password/i).fill(credentials.masterPassword);
+    await page.getByLabel(/username/i).fill(credentials.username);
+    await page.getByLabel(/^password$/i).fill(credentials.password);
+    await page.locator('#masterPassword').fill(credentials.masterPassword);
 
-  const submitBtn = page.getByRole('button', { name: /sign in|log in/i });
-  await submitBtn.click();
+    const submitBtn = page.getByRole('button', { name: /sign in|log in/i });
+    await submitBtn.click();
 
-  // If we are still on /login, it might be due to a validation error or slow response
-  // We check if the button is still there and if there are error messages
-  try {
+    // Race: either we navigate to dashboard/onboarding, or an error message appears
+    const result = await Promise.race([
+      page.waitForURL(/\/(dashboard|onboarding)/, { timeout: 15_000 }).then(() => 'navigated' as const),
+      page.getByTestId('login-error-message').waitFor({ state: 'visible', timeout: 15_000 }).then(() => 'error' as const),
+    ]);
+
+    if (result === 'navigated') {
+      break; // success
+    }
+
+    // Error appeared — check if it's rate limiting
+    const errorText = await page.getByTestId('login-error-message').innerText();
+    if (/too many requests/i.test(errorText) && attempt < maxRetries - 1) {
+      // Extract wait time from error message and wait
+      const match = errorText.match(/(\d+)\s*second/);
+      const waitSec = match ? parseInt(match[1], 10) : 2;
+      await page.waitForTimeout((waitSec + 1) * 1000);
+      continue;
+    }
+    throw new Error(`Login failed with error: ${errorText}`);
+  }
+
+  // First-time users land on /onboarding — complete it so tests can proceed
+  if (page.url().includes('/onboarding')) {
+    const submitBtn = page.getByRole('button', { name: /get started/i });
+    await submitBtn.click();
     await page.waitForURL('**/dashboard', { timeout: 15_000 });
-  } catch (e) {
-    const errorVisible = await page.getByTestId('login-error-message').isVisible();
-    if (errorVisible) {
-      const errorText = await page.getByTestId('login-error-message').innerText();
-      throw new Error(`Login failed with error: ${errorText}`);
-    }
-    // If no error banner, maybe validation failed?
-    const validationErrors = page.locator('[role="alert"], .text-error');
-    if (await validationErrors.count() > 0) {
-      const firstError = await validationErrors.first().innerText();
-      throw new Error(`Login failed with validation error: ${firstError}`);
-    }
-    throw e;
   }
 }
 
@@ -88,18 +100,11 @@ export async function registerUser(
   await page.getByLabel(/username/i).fill(user.username);
   await page.getByLabel(/email/i).fill(user.email);
 
-  // Password fields — target by autocomplete or label
-  const passwordFields = await page.getByLabel(/^password$/i).all();
-  if (passwordFields.length >= 1) await passwordFields[0].fill(user.password);
-
-  const confirmFields = await page.getByLabel(/confirm password/i).all();
-  if (confirmFields.length >= 1) await confirmFields[0].fill(user.password);
-
-  const masterFields = await page.getByLabel(/master password/i).all();
-  if (masterFields.length >= 1) await masterFields[0].fill(user.masterPassword);
-
-  const confirmMasterFields = await page.getByLabel(/confirm master/i).all();
-  if (confirmMasterFields.length >= 1) await confirmMasterFields[0].fill(user.masterPassword);
+  // Password fields — target by id to avoid matching toggle buttons
+  await page.locator('#password').fill(user.password);
+  await page.locator('#confirmPassword').fill(user.password);
+  await page.locator('#masterPassword').fill(user.masterPassword);
+  await page.locator('#confirmMasterPassword').fill(user.masterPassword);
 
   await page.getByRole('button', { name: /create account|register|sign up/i }).click();
   // After successful registration navigate to /login

@@ -28,14 +28,14 @@ test.describe('Transaction Management', () => {
   // ─── Page render ────────────────────────────────────────────────────────────
 
   test('transactions page renders heading and Add Transaction button', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: /transactions/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /add transaction/i })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /transactions/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /add transaction/i }).first()).toBeVisible();
   });
 
   // ─── Create transactions ────────────────────────────────────────────────────
 
   test('core-020: create income transaction opens form and submits', async ({ page }) => {
-    await page.getByRole('button', { name: /add transaction/i }).click();
+    await page.getByRole('button', { name: /add transaction/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Select INCOME type
@@ -49,8 +49,16 @@ test.describe('Transaction Management', () => {
       if (await incomeBtn.isVisible().catch(() => false)) await incomeBtn.click();
     }
 
+    // Select an account (required field) — Radix Select trigger
+    const accountTrigger = page.getByRole('dialog').locator('button[role="combobox"]').first();
+    await accountTrigger.click();
+    // Wait for the Radix portal to render options, then pick the first real account
+    const accountOption = page.locator('[role="listbox"] [role="option"]').first();
+    await accountOption.waitFor({ state: 'visible', timeout: 5_000 });
+    await accountOption.click();
+
     // Amount
-    await page.getByLabel(/amount/i).fill('1000');
+    await page.locator('input#amount').fill('1000');
 
     // Date - fill with today's date
     const today = new Date().toISOString().split('T')[0];
@@ -66,7 +74,7 @@ test.describe('Transaction Management', () => {
   });
 
   test('core-021: create expense transaction', async ({ page }) => {
-    await page.getByRole('button', { name: /add transaction/i }).click();
+    await page.getByRole('button', { name: /add transaction/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     const typeSelect = page.locator('select[name="type"]').first();
@@ -77,7 +85,14 @@ test.describe('Transaction Management', () => {
       if (await expenseBtn.isVisible().catch(() => false)) await expenseBtn.click();
     }
 
-    await page.getByLabel(/amount/i).fill('50.75');
+    // Select an account (required field) — Radix Select trigger
+    const accountTrigger2 = page.getByRole('dialog').locator('button[role="combobox"]').first();
+    await accountTrigger2.click();
+    const accountOption2 = page.locator('[role="listbox"] [role="option"]').first();
+    await accountOption2.waitFor({ state: 'visible', timeout: 5_000 });
+    await accountOption2.click();
+
+    await page.locator('input#amount').fill('50.75');
 
     const today = new Date().toISOString().split('T')[0];
     await page.getByLabel(/date/i).fill(today);
@@ -88,11 +103,11 @@ test.describe('Transaction Management', () => {
   });
 
   test('transaction form validates positive amount', async ({ page }) => {
-    await page.getByRole('button', { name: /add transaction/i }).click();
+    await page.getByRole('button', { name: /add transaction/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Submit with negative amount — should fail validation
-    await page.getByLabel(/amount/i).fill('-100');
+    await page.locator('input#amount').fill('-100');
     const submitBtn3 = page.getByRole('button', { name: /create|save/i });
     await submitBtn3.click();
 
@@ -105,7 +120,7 @@ test.describe('Transaction Management', () => {
   });
 
   test('transaction form cancel button closes dialog', async ({ page }) => {
-    await page.getByRole('button', { name: /add transaction/i }).click();
+    await page.getByRole('button', { name: /add transaction/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     await page.getByRole('button', { name: /cancel/i }).click();
@@ -153,8 +168,8 @@ test.describe('Transaction Management', () => {
     }
 
     // Set date range
-    const dateFromInput = page.getByLabel(/from|start date/i).first();
-    const dateToInput = page.getByLabel(/to|end date/i).first();
+    const dateFromInput = page.locator('#dateFrom');
+    const dateToInput = page.locator('#dateTo');
 
     if (await dateFromInput.isVisible().catch(() => false)) {
       await dateFromInput.fill('2026-01-01');

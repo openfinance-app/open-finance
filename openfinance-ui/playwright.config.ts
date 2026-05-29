@@ -22,8 +22,8 @@ export default defineConfig({
   /** Fail the build on CI if `test.only` is accidentally left in code */
   forbidOnly: !!process.env.CI,
 
-  /** Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  /** Retry failed tests (rate-limiting can cause transient failures) */
+  retries: process.env.CI ? 2 : 1,
 
   /** Number of workers — keep sequential for stability with shared backend */
   workers: 1,
@@ -52,8 +52,8 @@ export default defineConfig({
     viewport: { width: 1280, height: 720 },
   },
 
-  /** Global test timeout */
-  timeout: 30_000,
+  /** Global test timeout (60s to allow rate-limit retries in loginAs) */
+  timeout: 60_000,
 
   /** Expect assertion timeout */
   expect: {
@@ -64,6 +64,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: '**/responsive.spec.ts',
     },
     {
       name: 'mobile-chrome',
@@ -73,9 +74,22 @@ export default defineConfig({
   ],
 
   /**
-   * Do NOT start the dev server automatically — the dev server must already
-   * be running before executing Playwright tests. This avoids dependency on
-   * a specific start command and allows testing against a real backend.
+   * Start the backend and frontend dev servers if they are not already running.
+   * When `reuseExistingServer` is true Playwright skips launching the command
+   * if the port is already in use, so manually started servers are respected.
    */
-  // webServer: { ... }
+  webServer: [
+    {
+      command: 'mvn spring-boot:run -f ../pom.xml',
+      port: 8080,
+      reuseExistingServer: true,
+      timeout: 120_000,
+    },
+    {
+      command: 'npm run dev',
+      port: 3000,
+      reuseExistingServer: true,
+      timeout: 30_000,
+    },
+  ],
 });

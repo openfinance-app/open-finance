@@ -32,12 +32,12 @@ test.describe('Responsive Design (Mobile)', () => {
   test('core-070: mobile hamburger menu button is visible', async ({ page }) => {
     // The Sidebar component renders a fixed hamburger button on mobile
     // aria-label is t('openMenu') from the navigation namespace
-    const hamburger = page.getByRole('button', { name: /open menu|menu/i });
+    const hamburger = page.getByRole('button', { name: /^open menu$/i });
     await expect(hamburger).toBeVisible({ timeout: 10_000 });
   });
 
   test('core-070b: hamburger button meets 44px minimum touch target', async ({ page }) => {
-    const hamburger = page.getByRole('button', { name: /open menu|menu/i });
+    const hamburger = page.getByRole('button', { name: /^open menu$/i });
     await expect(hamburger).toBeVisible({ timeout: 10_000 });
 
     const box = await hamburger.boundingBox();
@@ -51,7 +51,7 @@ test.describe('Responsive Design (Mobile)', () => {
   // ─── Mobile sidebar open/close ────────────────────────────────────────────
 
   test('core-071a: clicking hamburger opens the mobile sidebar', async ({ page }) => {
-    const hamburger = page.getByRole('button', { name: /open menu|menu/i });
+    const hamburger = page.getByRole('button', { name: /^open menu$/i });
     await expect(hamburger).toBeVisible({ timeout: 10_000 });
     await hamburger.click();
 
@@ -62,7 +62,7 @@ test.describe('Responsive Design (Mobile)', () => {
 
   test('core-071b: close button inside mobile sidebar closes it', async ({ page }) => {
     // Open sidebar
-    const hamburger = page.getByRole('button', { name: /open menu|menu/i });
+    const hamburger = page.getByRole('button', { name: /^open menu$/i });
     await hamburger.click();
 
     // Close button inside sidebar has aria-label t('closeMenu')
@@ -70,16 +70,13 @@ test.describe('Responsive Design (Mobile)', () => {
     await expect(closeBtn).toBeVisible({ timeout: 5_000 });
     await closeBtn.click();
 
-    // Sidebar should no longer be translated into view (translate-x-0 removed)
-    // We check by verifying that the nav links inside are no longer visible
-    await page.waitForTimeout(300); // allow slide-out animation
-
-    // The close button itself should be gone (sidebar is off-screen)
-    await expect(closeBtn).not.toBeVisible({ timeout: 3_000 });
+    // After closing, sidebar should have -translate-x-full (off-screen)
+    const sidebar = page.locator('aside');
+    await expect(sidebar).toHaveClass(/-translate-x-full/, { timeout: 5_000 });
   });
 
   test('core-071c: tapping backdrop closes the mobile sidebar', async ({ page }) => {
-    const hamburger = page.getByRole('button', { name: /open menu|menu/i });
+    const hamburger = page.getByRole('button', { name: /^open menu$/i });
     await hamburger.click();
 
     // Wait for sidebar to open
@@ -89,15 +86,16 @@ test.describe('Responsive Design (Mobile)', () => {
     // The backdrop div sits behind the sidebar — click on the right side of screen (outside sidebar)
     // Pixel 5 width is 393px; sidebar is 240px wide; click at x=350 to hit backdrop
     await page.mouse.click(350, 400);
-    await page.waitForTimeout(300);
 
-    await expect(closeBtn).not.toBeVisible({ timeout: 3_000 });
+    // After closing, sidebar should have -translate-x-full (off-screen)
+    const sidebar = page.locator('aside');
+    await expect(sidebar).toHaveClass(/-translate-x-full/, { timeout: 5_000 });
   });
 
   // ─── Mobile sidebar navigation ────────────────────────────────────────────
 
   test('core-072: clicking a mobile sidebar link navigates to correct page', async ({ page }) => {
-    const hamburger = page.getByRole('button', { name: /open menu|menu/i });
+    const hamburger = page.getByRole('button', { name: /^open menu$/i });
     await hamburger.click();
 
     // Click "Accounts" inside the mobile sidebar
@@ -118,7 +116,7 @@ test.describe('Responsive Design (Mobile)', () => {
     // Username, password, and master password fields should be reachable
     await expect(page.getByLabel(/username/i)).toBeVisible();
     await expect(page.getByLabel(/^password$/i)).toBeVisible();
-    await expect(page.getByLabel(/master password/i)).toBeVisible();
+    await expect(page.locator('#masterPassword')).toBeVisible();
 
     // Submit button should have adequate touch target
     const submitBtn = page.getByRole('button', { name: /sign in|log in/i });
@@ -163,7 +161,7 @@ test.describe('Responsive Design (Mobile)', () => {
     await page.goto('/transactions');
     await page.waitForLoadState('networkidle');
 
-    const addBtn = page.getByRole('button', { name: /add transaction/i });
+    const addBtn = page.getByRole('button', { name: /add transaction/i }).first();
     await expect(addBtn).toBeVisible({ timeout: 10_000 });
 
     const box = await addBtn.boundingBox();

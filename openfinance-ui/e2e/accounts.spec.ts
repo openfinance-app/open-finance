@@ -29,12 +29,18 @@ test.describe('Account Management', () => {
   // ─── Accounts page ─────────────────────────────────────────────────────────
 
   test('accounts page renders page heading', async ({ page }) => {
-    // Page title should include "Accounts"
-    await expect(page.getByRole('heading', { name: /accounts/i })).toBeVisible();
+    await expect(page).toHaveURL(/\/accounts(?:\?.*)?$/);
+
+    const heading = page
+      .locator('h1, h2, [role="heading"]')
+      .filter({ hasText: /accounts/i })
+      .first();
+
+    await expect(heading).toBeVisible();
   });
 
   test('accounts page shows Add Account button', async ({ page }) => {
-    const addBtn = page.getByRole('button', { name: /add account/i });
+    const addBtn = page.getByRole('button', { name: /add account/i }).first();
     await expect(addBtn).toBeVisible();
   });
 
@@ -44,72 +50,93 @@ test.describe('Account Management', () => {
     const accountName = `E2E Checking ${RUN_ID}`;
 
     // Open the create form
-    await page.getByRole('button', { name: /add account/i }).click();
+    await page.getByRole('button', { name: /add account/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Fill in the form
-    await page.getByLabel(/name/i).fill(accountName);
+    const nameInput = page.locator('input#name');
+    const balanceInput = page.locator('input#initialBalance');
 
-    // Select account type — "Checking" is the default, but set it explicitly
-    const typeSelect = page.locator('select[name="type"], [aria-label*="type" i]').first();
-    if (await typeSelect.isVisible().catch(() => false)) {
+    // Select account type first (default is CHECKING, but set explicitly)
+    const typeSelect = page.locator('select#type');
+    if (await typeSelect.isVisible({ timeout: 2_000 }).catch(() => false)) {
       await typeSelect.selectOption('CHECKING');
     }
 
     // Set initial balance
-    const balanceInput = page.getByLabel(/initial balance/i);
     await balanceInput.fill('1500');
 
-    // Submit
-    const submitBtn = page.getByRole('button', { name: /create|save/i });
-    await submitBtn.click();
+    // Fill name last
+    await nameInput.fill(accountName);
+    await expect(nameInput).toHaveValue(accountName);
 
-    // Dialog should close and the new account should appear in the list
+    // Submit
+    await page.getByRole('button', { name: /create|save/i }).click();
+
+    // Dialog should close — this proves the API call succeeded
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10_000 });
+
+    // Use the filter to find the newly created account (list may be paginated)
+    await page.getByRole('button', { name: /filter/i }).click();
+    await page.locator('#keyword').fill(accountName);
     await expect(page.getByText(accountName)).toBeVisible({ timeout: 10_000 });
   });
 
   test('core-013: create savings account', async ({ page }) => {
     const accountName = `E2E Savings ${RUN_ID}`;
 
-    await page.getByRole('button', { name: /add account/i }).click();
+    await page.getByRole('button', { name: /add account/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
-    await page.getByLabel(/name/i).fill(accountName);
+    const nameInput = page.locator('input#name');
+    const balanceInput = page.locator('input#initialBalance');
 
-    const typeSelect = page.locator('select[name="type"]').first();
-    if (await typeSelect.isVisible().catch(() => false)) {
+    // Select type first
+    const typeSelect = page.locator('select#type');
+    if (await typeSelect.isVisible({ timeout: 2_000 }).catch(() => false)) {
       await typeSelect.selectOption('SAVINGS');
     }
 
-    const balanceInput = page.getByLabel(/initial balance/i);
+    // Fill balance
     await balanceInput.fill('5000');
 
-    const submitBtn2 = page.getByRole('button', { name: /create|save/i });
-    await submitBtn2.click();
+    // Fill name last
+    await nameInput.fill(accountName);
+    await expect(nameInput).toHaveValue(accountName);
+
+    // Submit
+    await page.getByRole('button', { name: /create|save/i }).click();
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10_000 });
+
+    // Use the filter to find the newly created account (list may be paginated)
+    await page.getByRole('button', { name: /filter/i }).click();
+    await page.locator('#keyword').fill(accountName);
     await expect(page.getByText(accountName)).toBeVisible({ timeout: 10_000 });
   });
 
   test('core-014: create account with zero initial balance', async ({ page }) => {
     const accountName = `E2E Zero ${RUN_ID}`;
 
-    await page.getByRole('button', { name: /add account/i }).click();
+    await page.getByRole('button', { name: /add account/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
-    await page.getByLabel(/name/i).fill(accountName);
+    await page.locator('input#name').fill(accountName);
 
-    const balanceInput = page.getByLabel(/initial balance/i);
+    const balanceInput = page.locator('input#initialBalance');
     await balanceInput.fill('0');
 
     const submitBtn3 = page.getByRole('button', { name: /create|save/i });
     await submitBtn3.click();
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10_000 });
+
+    // Use the filter to find the newly created account (list may be paginated)
+    await page.getByRole('button', { name: /filter/i }).click();
+    await page.locator('#keyword').fill(accountName);
     await expect(page.getByText(accountName)).toBeVisible({ timeout: 10_000 });
   });
 
   test('account form validates required name field', async ({ page }) => {
-    await page.getByRole('button', { name: /add account/i }).click();
+    await page.getByRole('button', { name: /add account/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Submit without filling name
@@ -127,21 +154,34 @@ test.describe('Account Management', () => {
   // ─── Edit account ──────────────────────────────────────────────────────────
 
   test('core-018: edit account name opens pre-filled form', async ({ page }) => {
-    // Wait for at least one account card to be rendered
-    const firstCard = page.locator('[aria-label="Edit account"]').first();
-    await expect(firstCard).toBeVisible({ timeout: 10_000 });
+    const accountName = `E2E Edit ${RUN_ID}`;
 
-    // Hover to reveal action buttons (they are opacity-0 by default)
-    const cardContainer = page.locator('.group').first();
+    // Create an account so edit flow does not depend on seeded data
+    await page.getByRole('button', { name: /add account/i }).first().click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.locator('input#name').fill(accountName);
+    await page.locator('input#initialBalance').fill('100');
+    await page.getByRole('button', { name: /create|save/i }).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10_000 });
+
+    // Use the filter to find the newly created account (list may be paginated)
+    await page.getByRole('button', { name: /filter/i }).click();
+    await page.locator('#keyword').fill(accountName);
+
+    // Find the created account card and click its edit action
+    const cardContainer = page.locator('.group', { hasText: accountName }).first();
+    await expect(cardContainer).toBeVisible({ timeout: 10_000 });
     await cardContainer.hover();
 
-    await firstCard.click();
+    const editBtn = cardContainer.locator('[aria-label="Edit account"]').first();
+    await expect(editBtn).toBeVisible({ timeout: 10_000 });
+    await editBtn.click();
 
     // Edit dialog should open
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Name field should be pre-filled (not empty)
-    const nameField = page.getByLabel(/name/i);
+    const nameField = page.locator('input#name');
     const currentName = await nameField.inputValue();
     expect(currentName.length).toBeGreaterThan(0);
   });
@@ -149,7 +189,7 @@ test.describe('Account Management', () => {
   // ─── Cancel / Close form ────────────────────────────────────────────────────
 
   test('cancel button closes the account form without saving', async ({ page }) => {
-    await page.getByRole('button', { name: /add account/i }).click();
+    await page.getByRole('button', { name: /add account/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Click cancel
