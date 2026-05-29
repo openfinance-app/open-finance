@@ -29,18 +29,7 @@ interface BalanceVariationCardProps {
   currency?: string;
 }
 
-const COLORS = [
-  '#7b68ee',
-  '#10b981',
-  '#f59e0b',
-  '#ef4444',
-  '#3b82f6',
-  '#8b5cf6',
-  '#ec4899',
-  '#14b8a6',
-  '#f97316',
-  '#06b6d4',
-];
+
 
 const CustomTooltip = ({
   active,
@@ -257,7 +246,7 @@ export default function BalanceVariationCard({ currency = 'EUR' }: BalanceVariat
                 {chartData.map(
                   (
                     entry: { year: number; amount: number; variationPercentage: number | null },
-                    index: number
+                    _index: number
                   ) => (
                     <Cell
                       key={`cell-${entry.year}`}

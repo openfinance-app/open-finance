@@ -44,7 +44,7 @@ function getCategoryName(category: string, t: (key: string) => string): string {
     return t(`categories:names.${key}`);
   }
   // For categories not in our map, try a direct lookup
-  return t(`categories:names.${category}`, { defaultValue: category });
+  return t(`categories:names.${category}`) || category;
 }
 
 const CATEGORY_KEYS: Record<string, string> = {
