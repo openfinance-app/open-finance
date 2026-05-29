@@ -70,23 +70,23 @@ See [docs/SECURITY.md](docs/SECURITY.md) for encryption, authentication, and res
 
 ## PFA Landscape
 
-| Feature                      | Open-Finance | Finary | Maybe/Sure | Wealthfolio | GnuCash | HomeBank | MMEX | KmyMoney | Skrooge |
-| ---------------------------- | :----------: | :----: | :--------: | :---------: | :-----: | :------: | :--: | :------: | :-----: |
-| **Modern Interface**         |      ✅      |   ✅   |     ✅     |     ✅      |   ⚠️    |    ⚠️    |  ⚠️  |    ❌    |   ❌    |
-| **Basic Finance Management** |      ✅      |   ✅   |     ✅     |     ⚠️      |   ✅    |    ✅    |  ✅  |    ✅    |   ✅    |
-| **Rich Dashboards**          |      ✅      |   ✅   |     ✅     |     ✅      |   ❌    |    ⚠️    |  ⚠️  |    ⚠️    |   ⚠️    |
-| **QIF/OFX import**           |      ✅      |   ❌   |     ❌     |     ⚠️      |   ✅    |    ✅    |  ⚠️  |    ✅    |   ✅    |
-| **Real Estate Management**   |      ✅      |   ✅   |     ⚠️     |     ⚠️      |   ⚠️    |    ❌    |  ❌  |    ⚠️    |   ❌    |
-| **File Attachments**         |      ✅      |   ❌   |     ❌     |     ❌      |   ✅    |    ⚠️    |  ✅  |    ✅    |   ✅    |
-| **Auto Categorization**      |      ✅      |   ⚠️   |     ✅     |     ❌      |   ⚠️    |    ⚠️    |  ⚠️  |    ⚠️    |   ⚠️    |
-| **Undo/Redo/Backup**         |      ✅      |   ⚠️   |     ⚠️     |     ⚠️      |   ✅    |    ⚠️    |  ⚠️  |    ✅    |   ✅    |
-| **Financial Planning Tools** |      ✅      |   ✅   |     ✅     |     ⚠️      |   ⚠️    |    ⚠️    |  ⚠️  |    ⚠️    |   ⚠️    |
-| **Financial News**           |      ✅      |   ❌   |     ❌     |     ❌      |   ❌    |    ❌    |  ❌  |    ❌    |   ❌    |
-| **Multi-currency**           |      ✅      |   ✅   |     ✅     |     ✅      |   ✅    |    ✅    |  ✅  |    ✅    |   ✅    |
-| **AI assistant**             |      ✅      |   ❌   |     ✅     |     ✅      |   ❌    |    ❌    |  ❌  |    ❌    |   ❌    |
-| **Data Security/Privacy**    |      ✅      |   ❌   |     ⚠️     |     ✅      |   ✅    |    ✅    |  ✅  |    ✅    |   ✅    |
-| **FOSS**                     |      ✅      |   ❌   |     ✅     |     ✅      |   ✅    |    ✅    |  ✅  |    ✅    |   ✅    |
-| **Multilingual (EN/FR)**     |      ✅      |   ✅   |     ✅     |     ❌      |   ✅    |    ✅    |  ✅  |    ✅    |   ✅    |
+| Feature                   | Open-Finance | Finary | Maybe/Sure | Wealthfolio | GnuCash | HomeBank | MMEX | KMyMoney | Skrooge |
+| ------------------------- | ------------ | ------ | ---------- | ----------- | ------- | -------- | ---- | -------- | ------- |
+| **Modern Interface**      | ✅           | ✅     | ✅         | ✅          | ⚠️      | ⚠️       | ⚠️   | ⚠️       | ⚠️      |
+| **Basic Finance Mgmt**    | ✅           | ✅     | ✅         | ⚠️          | ✅      | ✅       | ✅   | ✅       | ✅      |
+| **Rich Dashboards**       | ✅           | ✅     | ✅         | ✅          | ❌      | ⚠️       | ⚠️   | ⚠️       | ⚠️      |
+| **QIF/OFX Import**        | ✅           | ❌     | ❌         | ⚠️          | ✅      | ✅       | ⚠️   | ✅       | ✅      |
+| **Real Estate Mgmt**      | ✅           | ✅     | ⚠️         | ⚠️          | ⚠️      | ❌       | ❌   | ⚠️       | ❌      |
+| **File Attachments**      | ✅           | ❌     | ❌         | ❌          | ✅      | ⚠️       | ✅   | ✅       | ✅      |
+| **Auto Categorization**   | ✅           | ✅     | ✅         | ❌          | ⚠️      | ⚠️       | ⚠️   | ⚠️       | ⚠️      |
+| **Undo/Redo/Backup**      | ✅           | ⚠️     | ⚠️         | ⚠️          | ✅      | ⚠️       | ⚠️   | ✅       | ✅      |
+| **Financial Planning**    | ✅           | ✅     | ✅         | ✅          | ⚠️      | ⚠️       | ⚠️   | ⚠️       | ⚠️      |
+| **Financial News**        | ✅           | ❌     | ❌         | ❌          | ❌      | ❌       | ❌   | ❌       | ❌      |
+| **Multi-Currency**        | ✅           | ✅     | ✅         | ✅          | ✅      | ✅       | ✅   | ✅       | ✅      |
+| **AI Assistant**          | ✅           | ❌     | ✅         | ✅          | ❌      | ❌       | ❌   | ❌       | ❌      |
+| **Data Security/Privacy** | ✅           | ❌     | ⚠️         | ✅          | ✅      | ✅       | ✅   | ✅       | ✅      |
+| **FOSS**                  | ✅           | ❌     | ✅         | ✅          | ✅      | ✅       | ✅   | ✅       | ✅      |
+| **Multilingual (EN/FR)**  | ✅           | ✅     | ✅         | ❌          | ✅      | ✅       | ✅   | ✅       | ✅      |
 
 ✅ Full support · ⚠️ Partial · ❌ Not supported
 
