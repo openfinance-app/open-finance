@@ -106,17 +106,9 @@ public class TransactionSpecification {
                         criteriaBuilder.lessThanOrEqualTo(root.get("date"), criteria.getDateTo()));
             }
 
-            // Filter by amount range
-            if (criteria.getAmountMin() != null) {
-                predicates.add(
-                        criteriaBuilder.greaterThanOrEqualTo(
-                                root.get("amount"), criteria.getAmountMin()));
-            }
-            if (criteria.getAmountMax() != null) {
-                predicates.add(
-                        criteriaBuilder.lessThanOrEqualTo(
-                                root.get("amount"), criteria.getAmountMax()));
-            }
+            // Amount range filtering is handled in-memory in TransactionService
+            // because the amount field is encrypted and SQL comparisons on ciphertext
+            // are meaningless. IDs are pre-filtered and passed via matchedTransactionIds.
 
             // Filter by payee name
             if (criteria.getPayee() != null && !criteria.getPayee().trim().isEmpty()) {

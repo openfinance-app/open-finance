@@ -316,7 +316,8 @@ class TransactionControllerTest {
                                                 .header("Authorization", "Bearer " + token)
                                                 .header("X-Encryption-Session", encKey))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.content", hasSize(0)));
+                                .andExpect(jsonPath("$.content", hasSize(1)))
+                                .andExpect(jsonPath("$.content[0].amount").value(50.00));
         }
 
         @Test
@@ -400,7 +401,8 @@ class TransactionControllerTest {
                                                 .header("Authorization", "Bearer " + token)
                                                 .header("X-Encryption-Session", encKey))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.content", hasSize(0)));
+                                .andExpect(jsonPath("$.content", hasSize(1)))
+                                .andExpect(jsonPath("$.content[0].amount").value(50.00));
         }
 
         @Test

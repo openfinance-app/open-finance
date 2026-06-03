@@ -1368,33 +1368,59 @@ public class TransactionService {
                                 criteria.getDateTo());
 
                 List<Long> matchedTransactionIds = null;
-                if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
-                        // Encrypted fields prevent FTS5 search. Fetch all user transactions
-                        // via JPA (which decrypts transparently) and filter by keyword in Java.
-                        String lowerKeyword = criteria.getKeyword().trim().toLowerCase();
-                        matchedTransactionIds = transactionRepository.findByUserId(userId).stream()
+                boolean needsInMemoryPreFilter = (criteria.getKeyword() != null
+                                && !criteria.getKeyword().trim().isEmpty())
+                                || criteria.getAmountMin() != null
+                                || criteria.getAmountMax() != null;
+
+                if (needsInMemoryPreFilter) {
+                        // Encrypted fields (description, notes, payee, tags, amount) cannot be
+                        // filtered at the SQL level. Fetch all non-deleted user transactions via
+                        // JPA (which decrypts transparently) and filter in Java.
+                        List<Transaction> allUserTransactions = transactionRepository
+                                        .findByUserId(userId).stream()
                                         .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
-                                        .filter(t -> {
-                                                if (t.getDescription() != null
-                                                                && t.getDescription().toLowerCase()
-                                                                                .contains(lowerKeyword))
-                                                        return true;
-                                                if (t.getNotes() != null
-                                                                && t.getNotes().toLowerCase().contains(lowerKeyword))
-                                                        return true;
-                                                if (t.getPayee() != null
-                                                                && t.getPayee().toLowerCase().contains(lowerKeyword))
-                                                        return true;
-                                                if (t.getTags() != null
-                                                                && t.getTags().toLowerCase().contains(lowerKeyword))
-                                                        return true;
-                                                return false;
-                                        })
+                                        .toList();
+
+                        java.util.stream.Stream<Transaction> stream = allUserTransactions.stream();
+
+                        // Keyword filter (description, notes, payee, tags)
+                        if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
+                                String lowerKeyword = criteria.getKeyword().trim().toLowerCase();
+                                stream = stream.filter(t -> {
+                                        if (t.getDescription() != null
+                                                        && t.getDescription().toLowerCase()
+                                                                        .contains(lowerKeyword))
+                                                return true;
+                                        if (t.getNotes() != null
+                                                        && t.getNotes().toLowerCase().contains(lowerKeyword))
+                                                return true;
+                                        if (t.getPayee() != null
+                                                        && t.getPayee().toLowerCase().contains(lowerKeyword))
+                                                return true;
+                                        if (t.getTags() != null
+                                                        && t.getTags().toLowerCase().contains(lowerKeyword))
+                                                return true;
+                                        return false;
+                                });
+                        }
+
+                        // Amount range filter (amount is encrypted, SQL comparison is meaningless)
+                        if (criteria.getAmountMin() != null) {
+                                stream = stream.filter(t -> t.getAmount() != null
+                                                && t.getAmount().compareTo(criteria.getAmountMin()) >= 0);
+                        }
+                        if (criteria.getAmountMax() != null) {
+                                stream = stream.filter(t -> t.getAmount() != null
+                                                && t.getAmount().compareTo(criteria.getAmountMax()) <= 0);
+                        }
+
+                        matchedTransactionIds = stream
                                         .map(org.openfinance.entity.Transaction::getId)
                                         .limit(1000)
                                         .toList();
 
-                        // If keyword is specified but no matches found, return empty page
+                        // If pre-filter criteria matched nothing, return empty page immediately
                         if (matchedTransactionIds.isEmpty()) {
                                 return org.springframework.data.domain.Page.empty(pageable);
                         }

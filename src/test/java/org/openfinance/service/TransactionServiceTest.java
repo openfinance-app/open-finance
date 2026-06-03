@@ -1404,6 +1404,7 @@ class TransactionServiceTest {
                 org.springframework.data.domain.Page<Transaction> page = new org.springframework.data.domain.PageImpl<>(
                                 transactions, pageable, 1);
 
+                when(transactionRepository.findByUserId(userId)).thenReturn(transactions);
                 when(transactionRepository.findAll(
                                 any(org.springframework.data.jpa.domain.Specification.class),
                                 any(org.springframework.data.domain.Pageable.class)))
