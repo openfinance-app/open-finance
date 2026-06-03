@@ -2,6 +2,7 @@ package org.openfinance.entity;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -28,28 +29,35 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.openfinance.converter.EncryptedBigDecimalConverter;
+import org.openfinance.converter.EncryptedStringConverter;
 
 /**
  * Entity representing a financial account in the Open-Finance system.
  *
- * <p>Accounts are containers for financial assets and liabilities. Each account belongs to a single
+ * <p>
+ * Accounts are containers for financial assets and liabilities. Each account
+ * belongs to a single
  * user and tracks balance, transactions, and metadata.
  *
- * <p>Requirement REQ-2.2: Account Management - Users can create and manage different types of
+ * <p>
+ * Requirement REQ-2.2: Account Management - Users can create and manage
+ * different types of
  * financial accounts (checking, savings, credit cards, investments, cash).
  *
- * <p><strong>Security Note:</strong> The {@code name} and {@code description} fields will be
- * encrypted by the AccountService before persisting to the database to protect sensitive financial
+ * <p>
+ * <strong>Security Note:</strong> The {@code name} and {@code description}
+ * fields will be
+ * encrypted by the AccountService before persisting to the database to protect
+ * sensitive financial
  * information. The database stores only encrypted values.
  */
 @Entity
-@Table(
-        name = "accounts",
-        indexes = {
-            @Index(name = "idx_account_user_id", columnList = "user_id"),
-            @Index(name = "idx_account_type", columnList = "account_type"),
-            @Index(name = "idx_account_is_active", columnList = "is_active")
-        })
+@Table(name = "accounts", indexes = {
+        @Index(name = "idx_account_user_id", columnList = "user_id"),
+        @Index(name = "idx_account_type", columnList = "account_type"),
+        @Index(name = "idx_account_is_active", columnList = "is_active")
+})
 @Data
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -61,7 +69,8 @@ public class Account {
     private Long id;
 
     /**
-     * The user who owns this account. Requirement REQ-2.2.1: Each account belongs to a single user
+     * The user who owns this account. Requirement REQ-2.2.1: Each account belongs
+     * to a single user
      */
     @NotNull(message = "User ID cannot be null")
     @Column(name = "user_id", nullable = false)
@@ -76,20 +85,28 @@ public class Account {
     /**
      * Account number for matching during transaction import.
      *
-     * <p>This field stores the official account number (e.g., checking account number, IBAN, or
-     * other identifier) assigned by the financial institution. It is used to automatically match
+     * <p>
+     * This field stores the official account number (e.g., checking account number,
+     * IBAN, or
+     * other identifier) assigned by the financial institution. It is used to
+     * automatically match
      * imported transactions to the correct account.
      *
-     * <p>Requirement: Account Number field for transaction import matching
+     * <p>
+     * Requirement: Account Number field for transaction import matching
      */
     @Column(name = "account_number", length = 512)
+    @Convert(converter = EncryptedStringConverter.class)
     private String accountNumber;
 
     /**
      * Name of the account (e.g., "Chase Checking", "401k Retirement").
      *
-     * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database. The
-     * AccountService handles encryption/decryption transparently. Requirement REQ-2.2.2: Account
+     * <p>
+     * <strong>Encrypted Field:</strong> This field is stored encrypted in the
+     * database. The
+     * AccountService handles encryption/decryption transparently. Requirement
+     * REQ-2.2.2: Account
      * must have a descriptive name
      */
     @NotNull(message = "Account name cannot be null")
@@ -97,10 +114,12 @@ public class Account {
     // encryption
     @Size(min = 1, max = 500, message = "Account name must be between 1 and 500 characters")
     @Column(name = "name", nullable = false, length = 500) // Extra length for encrypted data
+    @Convert(converter = EncryptedStringConverter.class)
     private String name;
 
     /**
-     * Type of account (CHECKING, SAVINGS, CREDIT_CARD, INVESTMENT, CASH, OTHER). Requirement
+     * Type of account (CHECKING, SAVINGS, CREDIT_CARD, INVESTMENT, CASH, OTHER).
+     * Requirement
      * REQ-2.2.2: Account type categorization
      */
     @NotNull(message = "Account type cannot be null")
@@ -109,7 +128,8 @@ public class Account {
     private AccountType type;
 
     /**
-     * Optional relationship to an institution (bank, investment platform, etc.). Requirement
+     * Optional relationship to an institution (bank, investment platform, etc.).
+     * Requirement
      * REQ-2.6.1.3: Predefined Financial Institutions
      */
     @ManyToOne(fetch = FetchType.LAZY)
@@ -118,7 +138,8 @@ public class Account {
     private Institution institution;
 
     /**
-     * Currency code in ISO 4217 format (e.g., USD, EUR, GBP). Requirement REQ-2.7: Multi-currency
+     * Currency code in ISO 4217 format (e.g., USD, EUR, GBP). Requirement REQ-2.7:
+     * Multi-currency
      * support
      */
     @NotNull(message = "Currency cannot be null")
@@ -129,39 +150,53 @@ public class Account {
     /**
      * Current balance of the account.
      *
-     * <p>Balance is calculated from transactions and stored for performance. Must be kept in sync
+     * <p>
+     * Balance is calculated from transactions and stored for performance. Must be
+     * kept in sync
      * with transaction totals.
      *
-     * <p>Stored with precision 19, scale 4 to handle large amounts and fractional currencies.
+     * <p>
+     * Stored with precision 19, scale 4 to handle large amounts and fractional
+     * currencies.
      *
-     * <p>Note: Balances may be negative for liability accounts (e.g., credit cards). Business rules
-     * for permitted ranges should be enforced in the service layer. Requirement REQ-2.2.5: Account
+     * <p>
+     * Note: Balances may be negative for liability accounts (e.g., credit cards).
+     * Business rules
+     * for permitted ranges should be enforced in the service layer. Requirement
+     * REQ-2.2.5: Account
      * balance calculation
      */
     @NotNull(message = "Balance cannot be null")
-    @Column(name = "balance", nullable = false, precision = 19, scale = 4)
+    @Column(name = "balance", nullable = false, length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
     @Builder.Default
     private BigDecimal balance = BigDecimal.ZERO;
 
     /**
      * Opening balance of the account when it was created.
      *
-     * <p>This is the initial balance that was set when the account was created. Used for
+     * <p>
+     * This is the initial balance that was set when the account was created. Used
+     * for
      * calculating balance history from the account's opening date.
      *
-     * <p>Requirement REQ-2.6.1.2: Account Balance Tracking - Historical snapshots
+     * <p>
+     * Requirement REQ-2.6.1.2: Account Balance Tracking - Historical snapshots
      */
     @NotNull(message = "Opening balance cannot be null")
-    @Column(name = "opening_balance", nullable = false, precision = 19, scale = 4)
+    @Column(name = "opening_balance", nullable = false, length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
     @Builder.Default
     private BigDecimal openingBalance = BigDecimal.ZERO;
 
     /**
      * Date when the account was opened.
      *
-     * <p>Used as the starting point for balance history calculation.
+     * <p>
+     * Used as the starting point for balance history calculation.
      *
-     * <p>Requirement REQ-2.6.1.2: Account Balance Tracking - Historical snapshots
+     * <p>
+     * Requirement REQ-2.6.1.2: Account Balance Tracking - Historical snapshots
      */
     @NotNull(message = "Opening date cannot be null")
     @Column(name = "opening_date", nullable = false)
@@ -169,19 +204,25 @@ public class Account {
     private java.time.LocalDate openingDate = java.time.LocalDate.now();
 
     /**
-     * Optional description of the account (e.g., institution details, account purpose).
+     * Optional description of the account (e.g., institution details, account
+     * purpose).
      *
-     * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database. The
+     * <p>
+     * <strong>Encrypted Field:</strong> This field is stored encrypted in the
+     * database. The
      * AccountService handles encryption/decryption transparently.
      */
     @Column(name = "description", length = 1000) // Extra length for encrypted data
+    @Convert(converter = EncryptedStringConverter.class)
     private String description;
 
     /**
-     * Flag indicating whether the account is active. Inactive accounts are soft-deleted (not shown
+     * Flag indicating whether the account is active. Inactive accounts are
+     * soft-deleted (not shown
      * in UI but preserved for historical data).
      *
-     * <p>Requirement REQ-2.2.4: Soft delete for accounts
+     * <p>
+     * Requirement REQ-2.2.4: Soft delete for accounts
      */
     @NotNull(message = "isActive flag cannot be null")
     @Column(name = "is_active", nullable = false)
@@ -205,13 +246,17 @@ public class Account {
     @Builder.Default
     private List<InterestRateVariation> interestRateVariations = new ArrayList<>();
 
-    /** Timestamp when the account was created. Automatically set by Hibernate on first insert. */
+    /**
+     * Timestamp when the account was created. Automatically set by Hibernate on
+     * first insert.
+     */
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     /**
-     * Timestamp when the account was last updated. Automatically updated by Hibernate on any
+     * Timestamp when the account was last updated. Automatically updated by
+     * Hibernate on any
      * modification.
      */
     @UpdateTimestamp
@@ -219,13 +264,16 @@ public class Account {
     private LocalDateTime updatedAt;
 
     /**
-     * Override equals to use business key (userId + name) instead of ID. This prevents issues with
+     * Override equals to use business key (userId + name) instead of ID. This
+     * prevents issues with
      * detached entities and ensures logical equality.
      */
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Account)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof Account))
+            return false;
         Account other = (Account) o;
         // Prefer database identity when available
         if (this.id != null && other.id != null) {
@@ -247,7 +295,8 @@ public class Account {
     }
 
     /**
-     * Override toString to prevent logging encrypted data. Requirement: Security - Never log
+     * Override toString to prevent logging encrypted data. Requirement: Security -
+     * Never log
      * encrypted fields in plain text
      */
     @Override

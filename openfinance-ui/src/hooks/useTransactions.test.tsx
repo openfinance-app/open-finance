@@ -91,7 +91,7 @@ describe('useTransactions', () => {
         '/transactions/search?sort=date%2Cdesc',
         {
           headers: {
-            'X-Encryption-Key': 'test-encryption-key',
+            'X-Encryption-Session': 'test-encryption-key',
           },
         }
       );
@@ -143,7 +143,7 @@ describe('useTransactions', () => {
         expectedUrl,
         {
           headers: {
-            'X-Encryption-Key': 'test-encryption-key',
+            'X-Encryption-Session': 'test-encryption-key',
           },
         }
       );
@@ -175,7 +175,7 @@ describe('useTransactions', () => {
         '/transactions/search?keyword=test&sort=date%2Cdesc',
         {
           headers: {
-            'X-Encryption-Key': 'test-encryption-key',
+            'X-Encryption-Session': 'test-encryption-key',
           },
         }
       );
@@ -208,7 +208,7 @@ describe('useTransactions', () => {
         '/transactions/search?accountId=1&page=0&sort=date%2Cdesc',
         {
           headers: {
-            'X-Encryption-Key': 'test-encryption-key',
+            'X-Encryption-Session': 'test-encryption-key',
           },
         }
       );
@@ -276,7 +276,7 @@ describe('useTransactions', () => {
       const { result } = renderHook(() => useCreateTransaction(), { wrapper });
       await result.current.mutateAsync({ type: 'EXPENSE', accountId: 1, amount: 50, currency: 'USD', date: '2026-01-01', description: 'Test' });
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/transactions', expect.any(Object), expect.objectContaining({ headers: { 'X-Encryption-Key': 'test-key' } }));
+      expect(mockedApiClient.post).toHaveBeenCalledWith('/transactions', expect.any(Object), expect.objectContaining({ headers: { 'X-Encryption-Session': 'test-key' } }));
     });
 
     it('throws when encryption key missing', async () => {

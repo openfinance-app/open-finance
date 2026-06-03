@@ -2,7 +2,7 @@
  * Unit tests for useSplitTransactions hook
  *
  * Tests fetching from /api/v1/transactions/{id}/splits, disabled when transactionId is null,
- * uses X-Encryption-Key header.
+ * uses X-Encryption-Session header.
  */
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -133,13 +133,13 @@ describe('useSplitTransactions', () => {
         '/transactions/123/splits',
         {
           headers: {
-            'X-Encryption-Key': 'test-encryption-key',
+            'X-Encryption-Session': 'test-encryption-key',
           },
         }
       );
     });
 
-    it('includes X-Encryption-Key header in request', async () => {
+    it('includes X-Encryption-Session header in request', async () => {
       const mockResponse = { data: [] };
       mockedApiClient.get.mockResolvedValue(mockResponse);
 
@@ -153,7 +153,7 @@ describe('useSplitTransactions', () => {
         '/transactions/456/splits',
         {
           headers: {
-            'X-Encryption-Key': 'test-encryption-key',
+            'X-Encryption-Session': 'test-encryption-key',
           },
         }
       );

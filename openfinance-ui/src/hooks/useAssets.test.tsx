@@ -125,7 +125,7 @@ describe('useAssets hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(mockedApiClient.get).toHaveBeenCalledWith('/assets/1', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
 
@@ -182,7 +182,7 @@ describe('useAssets hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockedApiClient.delete).toHaveBeenCalledWith('/assets/1', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['assets'] });
     });

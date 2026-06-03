@@ -16,6 +16,7 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+    defer-datasource-initialization: true
     properties:
       hibernate:
         format_sql: true
@@ -24,6 +25,9 @@ spring:
           db_structure_naming_strategy: single
   flyway:
     enabled: false
+  sql:
+    init:
+      mode: always
   test:
     mockmvc:
       print: default

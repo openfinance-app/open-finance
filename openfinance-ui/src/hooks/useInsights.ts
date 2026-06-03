@@ -16,14 +16,14 @@ export function useTopInsights(limit: number = 3) {
   return useQuery<Insight[]>({
     queryKey: ['insights', 'top', limit],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
       
       const response = await apiClient.get<Insight[]>(`/insights/top/${limit}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -41,14 +41,14 @@ export function useInsights() {
   return useQuery<Insight[]>({
     queryKey: ['insights'],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
       
       const response = await apiClient.get<Insight[]>('/insights', {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -67,7 +67,7 @@ export function useGenerateInsights() {
   
   return useMutation<Insight[], Error, void>({
     mutationFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -77,7 +77,7 @@ export function useGenerateInsights() {
         {},
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );

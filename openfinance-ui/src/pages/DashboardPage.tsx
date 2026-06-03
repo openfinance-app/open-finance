@@ -275,6 +275,7 @@ export default function DashboardPage() {
     if (!netWorthHistory || netWorthHistory.length < 2 || summary?.netWorth?.netWorth == null) return null;
     // Find the data point closest to periodDays ago (not just the first point
     // in the history, which may span a wider window for chart context).
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- Date.now() is intentionally used to find closest historical data point
     const targetTime = Date.now() - periodDays * 86_400_000;
     let closest = netWorthHistory[0];
     let closestDiff = Math.abs(new Date(closest.date).getTime() - targetTime);

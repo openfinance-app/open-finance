@@ -17,14 +17,14 @@ export function useFinanceNews(language: string) {
   return useQuery<RssFeedItem[]>({
     queryKey: ['rss', 'finance', language],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
       
       const response = await apiClient.get<RssFeedItem[]>('/rss/finance', {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
           'Accept-Language': language
         },
       });

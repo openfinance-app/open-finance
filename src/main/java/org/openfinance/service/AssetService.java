@@ -25,6 +25,7 @@ import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.UserRepository;
+import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.specification.AssetSpecification;
 import org.springframework.data.domain.Page;
@@ -90,6 +91,7 @@ public class AssetService {
     private final ExchangeRateService exchangeRateService;
     private final NetWorthRepository netWorthRepository;
     private final OperationHistoryService operationHistoryService;
+    private final SearchTokenService searchTokenService;
 
     /**
      * Creates a new asset for the specified user.
@@ -114,17 +116,13 @@ public class AssetService {
      *                                  found or doesn't
      *                                  belong to user
      */
-    public AssetResponse createAsset(Long userId, AssetRequest request, SecretKey encryptionKey) {
+    public AssetResponse createAsset(Long userId, AssetRequest request) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
         if (request == null) {
             throw new IllegalArgumentException("Asset request cannot be null");
         }
-        if (encryptionKey == null) {
-            throw new IllegalArgumentException("Encryption key cannot be null");
-        }
-
         log.debug(
                 "Creating asset for user {}: type={}, symbol={}",
                 userId,
@@ -148,36 +146,14 @@ public class AssetService {
             asset.setUsefulLifeYears(asset.getType().getDefaultUsefulLifeYears());
         }
 
-        // Encrypt sensitive fields (Requirement 2.18: Encryption at rest)
-        String encryptedName = encryptionService.encrypt(request.getName(), encryptionKey);
-        asset.setName(encryptedName);
-
-        if (request.getNotes() != null && !request.getNotes().isBlank()) {
-            String encryptedNotes = encryptionService.encrypt(request.getNotes(), encryptionKey);
-            asset.setNotes(encryptedNotes);
-        }
-
-        // Encrypt physical asset fields if present
-        if (request.getSerialNumber() != null && !request.getSerialNumber().isBlank()) {
-            String encryptedSerialNumber = encryptionService.encrypt(request.getSerialNumber(), encryptionKey);
-            asset.setSerialNumber(encryptedSerialNumber);
-        }
-
-        if (request.getBrand() != null && !request.getBrand().isBlank()) {
-            String encryptedBrand = encryptionService.encrypt(request.getBrand(), encryptionKey);
-            asset.setBrand(encryptedBrand);
-        }
-
-        if (request.getModel() != null && !request.getModel().isBlank()) {
-            String encryptedModel = encryptionService.encrypt(request.getModel(), encryptionKey);
-            asset.setModel(encryptedModel);
-        }
+        // Sensitive fields handled by JPA converter automatically
 
         // Set lastUpdated timestamp to now (initial price entry)
         asset.setLastUpdated(LocalDateTime.now());
 
         // Save to database
         Asset savedAsset = assetRepository.save(asset);
+        indexAssetSearchTokens(savedAsset, request.getName());
         log.info(
                 "Asset created successfully: id={}, userId={}, type={}, symbol={}",
                 savedAsset.getId(),
@@ -195,7 +171,7 @@ public class AssetService {
         }
 
         // Decrypt and return response with calculated fields
-        AssetResponse assetCreateResponse = toResponseWithDecryption(savedAsset, encryptionKey);
+        AssetResponse assetCreateResponse = toResponseWithDecryption(savedAsset);
 
         // Record in operation history
         operationHistoryService.record(
@@ -242,7 +218,7 @@ public class AssetService {
      * @throws IllegalArgumentException if any parameter is null
      */
     public AssetResponse updateAsset(
-            Long assetId, Long userId, AssetRequest request, SecretKey encryptionKey) {
+            Long assetId, Long userId, AssetRequest request) {
         log.debug("Updating asset {}: userId={}", assetId, userId);
 
         if (assetId == null) {
@@ -254,17 +230,13 @@ public class AssetService {
         if (request == null) {
             throw new IllegalArgumentException("Asset request cannot be null");
         }
-        if (encryptionKey == null) {
-            throw new IllegalArgumentException("Encryption key cannot be null");
-        }
-
         // Fetch asset and verify ownership (Requirement 3.2: Authorization)
         Asset asset = assetRepository
                 .findByIdAndUserId(assetId, userId)
                 .orElseThrow(() -> AssetNotFoundException.byIdAndUser(assetId, userId));
 
         // Capture snapshot before update for history
-        AssetResponse beforeAssetSnapshot = toResponseWithDecryption(asset, encryptionKey);
+        AssetResponse beforeAssetSnapshot = toResponseWithDecryption(asset);
 
         // Store old price and purchase date to detect changes relevant to net worth
         // history
@@ -287,36 +259,31 @@ public class AssetService {
             asset.setUsefulLifeYears(asset.getType().getDefaultUsefulLifeYears());
         }
 
-        // Re-encrypt sensitive fields (always re-encrypt the provided plaintext values)
-        String encryptedName = encryptionService.encrypt(request.getName(), encryptionKey);
-        asset.setName(encryptedName);
+        // Sensitive fields handled by JPA converter — just set plain text from request
+        asset.setName(request.getName());
 
         if (request.getNotes() != null && !request.getNotes().isBlank()) {
-            String encryptedNotes = encryptionService.encrypt(request.getNotes(), encryptionKey);
-            asset.setNotes(encryptedNotes);
+            asset.setNotes(request.getNotes());
         } else if (request.getNotes() != null) {
             // explicit empty notes -> clear stored value
             asset.setNotes(null);
         }
 
-        // Re-encrypt physical asset fields if provided
+        // Physical asset fields — plain text, converter handles encryption
         if (request.getSerialNumber() != null && !request.getSerialNumber().isBlank()) {
-            String encryptedSerialNumber = encryptionService.encrypt(request.getSerialNumber(), encryptionKey);
-            asset.setSerialNumber(encryptedSerialNumber);
+            asset.setSerialNumber(request.getSerialNumber());
         } else if (request.getSerialNumber() != null) {
             asset.setSerialNumber(null);
         }
 
         if (request.getBrand() != null && !request.getBrand().isBlank()) {
-            String encryptedBrand = encryptionService.encrypt(request.getBrand(), encryptionKey);
-            asset.setBrand(encryptedBrand);
+            asset.setBrand(request.getBrand());
         } else if (request.getBrand() != null) {
             asset.setBrand(null);
         }
 
         if (request.getModel() != null && !request.getModel().isBlank()) {
-            String encryptedModel = encryptionService.encrypt(request.getModel(), encryptionKey);
-            asset.setModel(encryptedModel);
+            asset.setModel(request.getModel());
         } else if (request.getModel() != null) {
             asset.setModel(null);
         }
@@ -334,6 +301,7 @@ public class AssetService {
 
         // Save changes
         Asset updatedAsset = assetRepository.save(asset);
+        indexAssetSearchTokens(updatedAsset, request.getName());
         log.info("Asset updated successfully: id={}, userId={}", assetId, userId);
         // Invalidate snapshots from the earliest affected purchase date onward
         LocalDate newPurchaseDate = updatedAsset.getPurchaseDate();
@@ -345,7 +313,7 @@ public class AssetService {
         invalidateSnapshotsFrom(userId, cutoff);
 
         // Decrypt and return response with calculated fields
-        AssetResponse assetUpdateResponse = toResponseWithDecryption(updatedAsset, encryptionKey);
+        AssetResponse assetUpdateResponse = toResponseWithDecryption(updatedAsset);
 
         // Record in operation history
         operationHistoryService.record(
@@ -381,12 +349,12 @@ public class AssetService {
      * @throws AssetNotFoundException   if asset not found or doesn't belong to user
      * @throws IllegalArgumentException if any parameter is null
      */
-    public void deleteAsset(Long assetId, Long userId, SecretKey encryptionKey) {
+    public void deleteAsset(Long assetId, Long userId) {
         log.debug(
                 "Deleting asset {}: userId={}, keyPresent={}",
                 assetId,
                 userId,
-                encryptionKey != null);
+                EncryptionContext.getKey() != null);
 
         if (assetId == null) {
             throw new IllegalArgumentException("Asset ID cannot be null");
@@ -403,9 +371,9 @@ public class AssetService {
         // Capture snapshot before delete for history (only if key provided)
         AssetResponse beforeDeleteSnapshot = null;
         String label = null;
-        if (encryptionKey != null) {
+        if (EncryptionContext.getKey() != null) {
             try {
-                beforeDeleteSnapshot = toResponseWithDecryption(asset, encryptionKey);
+                beforeDeleteSnapshot = toResponseWithDecryption(asset);
                 label = beforeDeleteSnapshot.getName();
             } catch (Exception e) {
                 log.warn("Failed to capture snapshot for history: {}", e.getMessage());
@@ -415,6 +383,7 @@ public class AssetService {
         // Hard delete
         LocalDate assetPurchaseDate = asset.getPurchaseDate();
         assetRepository.delete(asset);
+        searchTokenService.removeEntity("ASSET", assetId);
         invalidateSnapshotsFrom(userId, assetPurchaseDate);
 
         log.info("Asset deleted successfully: id={}, userId={}", assetId, userId);
@@ -457,7 +426,7 @@ public class AssetService {
      * @throws IllegalArgumentException if any parameter is null
      */
     @Transactional(readOnly = true)
-    public AssetResponse getAssetById(Long assetId, Long userId, SecretKey encryptionKey) {
+    public AssetResponse getAssetById(Long assetId, Long userId) {
         log.debug("Retrieving asset {}: userId={}", assetId, userId);
 
         if (assetId == null) {
@@ -466,17 +435,13 @@ public class AssetService {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
-        if (encryptionKey == null) {
-            throw new IllegalArgumentException("Encryption key cannot be null");
-        }
-
         // Fetch asset and verify ownership (Requirement 3.2: Authorization)
         Asset asset = assetRepository
                 .findByIdAndUserId(assetId, userId)
                 .orElseThrow(() -> AssetNotFoundException.byIdAndUser(assetId, userId));
 
         // Decrypt and return response with calculated fields
-        return toResponseWithDecryption(asset, encryptionKey);
+        return toResponseWithDecryption(asset);
     }
 
     /**
@@ -499,16 +464,12 @@ public class AssetService {
      * @throws IllegalArgumentException if userId or encryptionKey is null
      */
     @Transactional(readOnly = true)
-    public List<AssetResponse> getAssetsByUserId(Long userId, SecretKey encryptionKey) {
+    public List<AssetResponse> getAssetsByUserId(Long userId) {
         log.debug("Retrieving all assets for user {}", userId);
 
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
-        if (encryptionKey == null) {
-            throw new IllegalArgumentException("Encryption key cannot be null");
-        }
-
         // Fetch all assets for user
         List<Asset> assets = assetRepository.findByUserId(userId);
 
@@ -516,7 +477,7 @@ public class AssetService {
 
         // Decrypt and map to responses with calculated fields
         return assets.stream()
-                .map(asset -> toResponseWithDecryption(asset, encryptionKey))
+                .map(asset -> toResponseWithDecryption(asset))
                 .collect(Collectors.toList());
     }
 
@@ -555,7 +516,7 @@ public class AssetService {
      */
     @Transactional(readOnly = true)
     public Page<AssetResponse> searchAssets(
-            Long userId, AssetSearchCriteria criteria, Pageable pageable, SecretKey encryptionKey) {
+            Long userId, AssetSearchCriteria criteria, Pageable pageable) {
 
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -566,10 +527,6 @@ public class AssetService {
         if (pageable == null) {
             throw new IllegalArgumentException("Pageable cannot be null");
         }
-        if (encryptionKey == null) {
-            throw new IllegalArgumentException("Encryption key cannot be null");
-        }
-
         log.debug(
                 "Searching assets for user {}: keyword={}, type={}, accountId={}",
                 userId,
@@ -600,7 +557,7 @@ public class AssetService {
 
             String lowerKeyword = criteria.getKeyword().trim().toLowerCase();
             List<AssetResponse> filtered = allMatching.stream()
-                    .map(asset -> toResponseWithDecryption(asset, encryptionKey))
+                    .map(asset -> toResponseWithDecryption(asset))
                     .filter(
                             response -> response.getName() != null
                                     && response.getName()
@@ -639,7 +596,7 @@ public class AssetService {
                 assetPage.getTotalPages());
 
         // Decrypt and map to responses (preserving pagination metadata)
-        return assetPage.map(asset -> toResponseWithDecryption(asset, encryptionKey));
+        return assetPage.map(asset -> toResponseWithDecryption(asset));
     }
 
     /**
@@ -663,7 +620,7 @@ public class AssetService {
      */
     @Transactional(readOnly = true)
     public List<AssetResponse> getAssetsByAccountId(
-            Long accountId, Long userId, SecretKey encryptionKey) {
+            Long accountId, Long userId) {
         log.debug("Retrieving assets for account {}: userId={}", accountId, userId);
 
         if (accountId == null) {
@@ -672,10 +629,6 @@ public class AssetService {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
-        if (encryptionKey == null) {
-            throw new IllegalArgumentException("Encryption key cannot be null");
-        }
-
         // Validate account ownership
         validateAccountOwnership(accountId, userId);
 
@@ -686,7 +639,7 @@ public class AssetService {
 
         // Decrypt and map to responses with calculated fields
         return assets.stream()
-                .map(asset -> toResponseWithDecryption(asset, encryptionKey))
+                .map(asset -> toResponseWithDecryption(asset))
                 .collect(Collectors.toList());
     }
 
@@ -708,7 +661,7 @@ public class AssetService {
      */
     @Transactional(readOnly = true)
     public List<AssetResponse> getAssetsByType(
-            Long userId, AssetType type, SecretKey encryptionKey) {
+            Long userId, AssetType type) {
         log.debug("Retrieving assets of type {} for user {}", type, userId);
 
         if (userId == null) {
@@ -717,10 +670,6 @@ public class AssetService {
         if (type == null) {
             throw new IllegalArgumentException("Asset type cannot be null");
         }
-        if (encryptionKey == null) {
-            throw new IllegalArgumentException("Encryption key cannot be null");
-        }
-
         // Fetch assets by type
         List<Asset> assets = assetRepository.findByUserIdAndType(userId, type);
 
@@ -728,7 +677,7 @@ public class AssetService {
 
         // Decrypt and map to responses with calculated fields
         return assets.stream()
-                .map(asset -> toResponseWithDecryption(asset, encryptionKey))
+                .map(asset -> toResponseWithDecryption(asset))
                 .collect(Collectors.toList());
     }
 
@@ -839,16 +788,12 @@ public class AssetService {
      * @throws IllegalArgumentException if userId or encryptionKey is null
      */
     @Transactional(readOnly = true)
-    public List<AssetSummaryResponse> getAssetsSummary(Long userId, SecretKey encryptionKey) {
+    public List<AssetSummaryResponse> getAssetsSummary(Long userId) {
         log.debug("Retrieving asset summaries for user {}", userId);
 
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
-        if (encryptionKey == null) {
-            throw new IllegalArgumentException("Encryption key cannot be null");
-        }
-
         List<Asset> assets = assetRepository.findByUserId(userId);
 
         log.debug("Found {} assets for summary (userId={})", assets.size(), userId);
@@ -856,14 +801,8 @@ public class AssetService {
         return assets.stream()
                 .map(
                         asset -> {
-                            String decryptedName;
-                            try {
-                                decryptedName = encryptionService.decrypt(asset.getName(), encryptionKey);
-                            } catch (Exception e) {
-                                log.error(
-                                        "Failed to decrypt asset name for id={}", asset.getId(), e);
-                                decryptedName = "Unknown Asset";
-                            }
+                            // Name already decrypted by JPA converter
+                            String decryptedName = asset.getName();
                             BigDecimal totalValue = (asset.getQuantity() != null && asset.getCurrentPrice() != null)
                                     ? asset.getQuantity().multiply(asset.getCurrentPrice())
                                     : null;
@@ -909,74 +848,30 @@ public class AssetService {
      * @param encryptionKey the encryption key for decryption
      * @return the asset response with decrypted fields and calculated values
      */
-    private AssetResponse toResponseWithDecryption(Asset asset, SecretKey encryptionKey) {
+    private AssetResponse toResponseWithDecryption(Asset asset) {
         // Map to response first (mapper will populate calculated fields automatically)
         AssetResponse response = assetMapper.toResponse(asset);
 
         // Standardize: if no key, return response with encrypted/null fields
-        if (encryptionKey == null) {
+        if (EncryptionContext.getKey() == null) {
             return response;
         }
 
-        // Decrypt sensitive fields and set on response (NOT on entity)
-        try {
-            String decryptedName = encryptionService.decrypt(asset.getName(), encryptionKey);
-            response.setName(decryptedName);
-        } catch (Exception e) {
-            log.warn("Failed to decrypt asset name for id={}: {}", asset.getId(), e.getMessage());
-        }
+        // Fields already decrypted by JPA converter — just set them on response
+        response.setName(asset.getName());
+        response.setNotes(asset.getNotes());
+        response.setSerialNumber(asset.getSerialNumber());
+        response.setBrand(asset.getBrand());
+        response.setModel(asset.getModel());
 
-        if (asset.getNotes() != null && !asset.getNotes().isBlank()) {
-            try {
-                String decryptedNotes = encryptionService.decrypt(asset.getNotes(), encryptionKey);
-                response.setNotes(decryptedNotes);
-            } catch (Exception e) {
-                log.warn("Failed to decrypt asset notes for id={}", asset.getId());
-            }
-        }
-
-        // Decrypt physical asset fields if present
-        if (asset.getSerialNumber() != null && !asset.getSerialNumber().isBlank()) {
-            try {
-                String decryptedSerialNumber = encryptionService.decrypt(asset.getSerialNumber(), encryptionKey);
-                response.setSerialNumber(decryptedSerialNumber);
-            } catch (Exception e) {
-                log.warn("Failed to decrypt serial number for asset id={}", asset.getId());
-            }
-        }
-
-        if (asset.getBrand() != null && !asset.getBrand().isBlank()) {
-            try {
-                String decryptedBrand = encryptionService.decrypt(asset.getBrand(), encryptionKey);
-                response.setBrand(decryptedBrand);
-            } catch (Exception e) {
-                log.warn("Failed to decrypt brand for asset id={}", asset.getId());
-            }
-        }
-
-        if (asset.getModel() != null && !asset.getModel().isBlank()) {
-            try {
-                String decryptedModel = encryptionService.decrypt(asset.getModel(), encryptionKey);
-                response.setModel(decryptedModel);
-            } catch (Exception e) {
-                log.warn("Failed to decrypt model for asset id={}", asset.getId());
-            }
-        }
-
-        // Decrypt and set account name if asset has an account
+        // Account name already decrypted by JPA converter
         log.debug(
                 "Asset account relationship: accountId={}, account={}",
                 asset.getAccountId(),
                 asset.getAccount());
         if (asset.getAccount() != null && asset.getAccount().getName() != null) {
-            log.debug("Decrypting account name: encrypted={}", asset.getAccount().getName());
-            try {
-                String decryptedAccountName = encryptionService.decrypt(asset.getAccount().getName(), encryptionKey);
-                response.setAccountName(decryptedAccountName);
-                log.debug("Account name decrypted and set: {}", decryptedAccountName);
-            } catch (Exception e) {
-                log.warn("Failed to decrypt account name for asset id={}", asset.getId());
-            }
+            response.setAccountName(asset.getAccount().getName());
+            log.debug("Account name set: {}", asset.getAccount().getName());
         } else if (asset.getAccountId() != null) {
             log.warn(
                     "Account relationship not loaded for asset id={}, accountId={}",
@@ -1136,5 +1031,20 @@ public class AssetService {
                 .findByCode(currencyCode)
                 .map(org.openfinance.entity.Currency::getId)
                 .orElse(null);
+    }
+
+    private void indexAssetSearchTokens(Asset asset, String name) {
+        try {
+            SecretKey key = EncryptionContext.getKey();
+            if (key == null) {
+                return;
+            }
+            SecretKey searchKey = searchTokenService.deriveSearchKey(key);
+            searchTokenService.indexEntity(asset.getUserId(), "ASSET", asset.getId(),
+                    java.util.List.<String[]>of(new String[] { "name", name }),
+                    searchKey);
+        } catch (Exception e) {
+            log.warn("Failed to index asset {} search tokens: {}", asset.getId(), e.getMessage());
+        }
     }
 }

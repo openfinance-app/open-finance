@@ -9,8 +9,8 @@ import { NumberFormatProvider } from '@/context/NumberFormatContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock Recharts — render children and call tickFormatter / tooltip render
-vi.mock('recharts', () => {
-  const React = require('react');
+vi.mock('recharts', async () => {
+  const React = await import('react');
   return {
     ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
     BarChart: ({ children, data }: any) => <div data-testid="bar-chart" data-items={JSON.stringify(data)}>{children}</div>,

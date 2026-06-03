@@ -83,14 +83,10 @@ public class BudgetAlertService {
      * @throws IllegalArgumentException if userId or encryptionKey is null
      */
     public List<BudgetAlert> checkBudgetAlertsAfterTransaction(
-            Long userId, SecretKey encryptionKey) {
+            Long userId) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
-        if (encryptionKey == null) {
-            throw new IllegalArgumentException("Encryption key cannot be null");
-        }
-
         log.debug("Checking budget alerts for user: {}", userId);
 
         // Find all enabled alerts for this user
@@ -115,7 +111,7 @@ public class BudgetAlertService {
                 currentBudgetId = budgetId;
                 try {
                     currentProgress =
-                            budgetService.calculateBudgetProgress(budgetId, userId, encryptionKey);
+                            budgetService.calculateBudgetProgress(budgetId, userId);
                 } catch (Exception e) {
                     log.error(
                             "Error fetching budget progress for budget {}: {}",

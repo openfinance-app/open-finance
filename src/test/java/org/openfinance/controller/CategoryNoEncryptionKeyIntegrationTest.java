@@ -27,7 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Integration tests to verify behavior when X-Encryption-Key header is missing. Verifies that
+ * Integration tests to verify behavior when X-Encryption-Session header is missing. Verifies that
  * system categories are still accessible while user categories are protected.
  */
 @SpringBootTest
@@ -89,12 +89,12 @@ class CategoryNoEncryptionKeyIntegrationTest {
         mockMvc.perform(
                         post("/api/v1/categories")
                                 .header("Authorization", "Bearer " + authToken)
-                                .header("X-Encryption-Key", encryptionKeyHeader)
+                                .header("X-Encryption-Session", encryptionKeyHeader)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(userCat)))
                 .andExpect(status().isCreated());
 
-        // Now fetch without X-Encryption-Key
+        // Now fetch without X-Encryption-Session
         mockMvc.perform(get("/api/v1/categories").header("Authorization", "Bearer " + authToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThan(0))))
@@ -122,7 +122,7 @@ class CategoryNoEncryptionKeyIntegrationTest {
                 mockMvc.perform(
                                 post("/api/v1/categories")
                                         .header("Authorization", "Bearer " + authToken)
-                                        .header("X-Encryption-Key", encryptionKeyHeader)
+                                        .header("X-Encryption-Session", encryptionKeyHeader)
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(objectMapper.writeValueAsString(userCat)))
                         .andExpect(status().isCreated())
@@ -148,7 +148,7 @@ class CategoryNoEncryptionKeyIntegrationTest {
                 mockMvc.perform(
                                 get("/api/v1/categories")
                                         .header("Authorization", "Bearer " + authToken)
-                                        .header("X-Encryption-Key", encryptionKeyHeader))
+                                        .header("X-Encryption-Session", encryptionKeyHeader))
                         .andExpect(status().isOk())
                         .andReturn()
                         .getResponse()

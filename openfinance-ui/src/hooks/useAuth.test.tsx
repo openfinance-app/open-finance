@@ -109,7 +109,7 @@ describe('useAuth hooks', () => {
     }, { timeout: 5000 });
     
     await waitFor(() => {
-      const encKey = sessionStorage.getItem('encryption_key');
+      const encKey = sessionStorage.getItem('encryption_session');
       expect(encKey).toBe('enc-key');
     }, { timeout: 5000 });
   });
@@ -117,7 +117,7 @@ describe('useAuth hooks', () => {
   it('should clear storage on login error', async () => {
     // Arrange: set stale tokens first
     localStorage.setItem('auth_token', 'stale');
-    sessionStorage.setItem('encryption_key', 'stale');
+    sessionStorage.setItem('encryption_session', 'stale');
     postMock.mockRejectedValueOnce(new Error('bad creds'));
 
     const TestComponent = () => {
@@ -133,12 +133,13 @@ describe('useAuth hooks', () => {
 
     // Assert: storage cleared
     await waitFor(() => expect(localStorage.getItem('auth_token')).toBeNull());
-    await waitFor(() => expect(sessionStorage.getItem('encryption_key')).toBeNull());
+    await waitFor(() => expect(sessionStorage.getItem('encryption_session')).toBeNull());
   });
 
   it('useLogout should clear storage and navigate to /login', async () => {
     localStorage.setItem('auth_token', 'x');
-    sessionStorage.setItem('encryption_key', 'y');
+    sessionStorage.setItem('encryption_session', 'y');
+    postMock.mockResolvedValueOnce({});
 
     const TestComponent = () => {
       const logout = useLogout();
@@ -152,7 +153,7 @@ describe('useAuth hooks', () => {
 
     // Assert
     expect(localStorage.getItem('auth_token')).toBeNull();
-    expect(sessionStorage.getItem('encryption_key')).toBeNull();
+    expect(sessionStorage.getItem('encryption_session')).toBeNull();
     expect(mockNavigate).toHaveBeenCalledWith('/login');
   });
 

@@ -188,10 +188,10 @@ export function CategorySelect({
       if (status === 409) {
         // Category already exists — fetch fresh tree and find it
         try {
-          const encryptionKey = sessionStorage.getItem('encryption_key') ?? '';
+          const encryptionKey = sessionStorage.getItem('encryption_session') ?? '';
           const { default: apiClient } = await import('@/services/apiClient');
           const res = await apiClient.get<CategoryTreeNode[]>('/categories/tree', {
-            headers: { 'X-Encryption-Key': encryptionKey },
+            headers: { 'X-Encryption-Session': encryptionKey },
           });
           await queryClient.setQueryData(['categories', 'tree'], res.data);
           const flat = flattenCategories(res.data);

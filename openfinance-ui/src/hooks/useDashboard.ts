@@ -21,7 +21,7 @@ import type { DateRange } from '../components/ui/PeriodSelector';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const getEncryptionKey = (): string | null =>
-  sessionStorage.getItem('encryption_key');
+  sessionStorage.getItem('encryption_session');
 
 /**
  * Build query params that support either a simple `period` (days) or an
@@ -44,7 +44,7 @@ const fetchDashboardSummary = async (): Promise<IDashboardSummary> => {
   const encryptionKey = getEncryptionKey();
   if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<IDashboardSummary>('/dashboard', {
-    headers: { 'X-Encryption-Key': encryptionKey },
+    headers: { 'X-Encryption-Session': encryptionKey },
   });
   return response.data;
 };
@@ -53,7 +53,7 @@ const fetchAccountSummaries = async (): Promise<IAccountSummary[]> => {
   const encryptionKey = getEncryptionKey();
   if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<IAccountSummary[]>('/dashboard/accounts', {
-    headers: { 'X-Encryption-Key': encryptionKey },
+    headers: { 'X-Encryption-Session': encryptionKey },
   });
   return response.data;
 };
@@ -86,7 +86,7 @@ const fetchNetWorthHistory = async (
   if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<INetWorthSummary[]>('/dashboard/networth-history', {
     params: periodParams(period, dateRange),
-    headers: { 'X-Encryption-Key': encryptionKey },
+    headers: { 'X-Encryption-Session': encryptionKey },
   });
   return response.data;
 };
@@ -130,7 +130,7 @@ const fetchTransactionsByPeriod = async (
     '/transactions/search',
     {
       params: searchParams,
-      headers: { 'X-Encryption-Key': encryptionKey },
+      headers: { 'X-Encryption-Session': encryptionKey },
     },
   );
   const data = response.data;
@@ -145,7 +145,7 @@ const fetchBorrowingCapacity = async (
   if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<IBorrowingCapacity>('/dashboard/borrowing-capacity', {
     params: periodParams(period, dateRange),
-    headers: { 'X-Encryption-Key': encryptionKey },
+    headers: { 'X-Encryption-Session': encryptionKey },
   });
   return response.data;
 };
@@ -154,7 +154,7 @@ const fetchNetWorthAllocation = async (): Promise<INetWorthAllocation[]> => {
   const encryptionKey = getEncryptionKey();
   if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<INetWorthAllocation[]>('/dashboard/networth-allocation', {
-    headers: { 'X-Encryption-Key': encryptionKey },
+    headers: { 'X-Encryption-Session': encryptionKey },
   });
   return response.data;
 };
@@ -172,7 +172,7 @@ const fetchCashflowSankey = async (
 ): Promise<ICashflowSankey> => {
   const encryptionKey = getEncryptionKey();
   const headers: Record<string, string> = {};
-  if (encryptionKey) headers['X-Encryption-Key'] = encryptionKey;
+  if (encryptionKey) headers['X-Encryption-Session'] = encryptionKey;
   const response = await apiClient.get<ICashflowSankey>('/dashboard/cashflow-sankey', {
     params: periodParams(period, dateRange),
     headers,
@@ -185,7 +185,7 @@ const fetchEstimatedInterest = async (period: string = '1Y'): Promise<IEstimated
   if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<IEstimatedInterestSummary>('/dashboard/estimated-interest', {
     params: { period },
-    headers: { 'X-Encryption-Key': encryptionKey },
+    headers: { 'X-Encryption-Session': encryptionKey },
   });
   return response.data;
 };
@@ -309,7 +309,7 @@ const fetchYearlyBalance = async (): Promise<IYearlyBalanceResponse> => {
   const encryptionKey = getEncryptionKey();
   if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<IYearlyBalanceResponse>('/dashboard/yearly-balance', {
-    headers: { 'X-Encryption-Key': encryptionKey },
+    headers: { 'X-Encryption-Session': encryptionKey },
   });
   return response.data;
 };

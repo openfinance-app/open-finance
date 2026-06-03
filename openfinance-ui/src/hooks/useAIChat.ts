@@ -43,14 +43,14 @@ export function useSendMessage() {
 
   return useMutation<ChatResponse, Error, ChatRequest>({
     mutationFn: async (request: ChatRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.post<ChatResponse>('/ai/chat', request, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -89,7 +89,7 @@ export function useStreamingChat(
   let eventSource: EventSource | null = null;
 
   const sendStreamingMessage = async (request: ChatRequest) => {
-    const encryptionKey = sessionStorage.getItem('encryption_key');
+    const encryptionKey = sessionStorage.getItem('encryption_session');
     if (!encryptionKey) {
       onError(new Error('Encryption key not found'));
       return;

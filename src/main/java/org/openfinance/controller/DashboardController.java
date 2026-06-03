@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import org.openfinance.dto.AccountSummary;
 import org.openfinance.dto.AssetAllocation;
@@ -25,7 +24,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -54,7 +52,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <ul>
  * <li>All endpoints require JWT authentication
- * <li>Encryption key must be provided via X-Encryption-Key header
+ * <li>Encryption key must be provided via X-Encryption-Session header
  * <li>Users can only access their own dashboard data
  * <li>Sensitive fields (account names, transaction details) are decrypted
  * </ul>
@@ -80,8 +78,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class DashboardController {
 
         private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
-        private static final String ENCRYPTION_KEY_HEADER = "X-Encryption-Key";
-
         private final DashboardService dashboardService;
         private final NetWorthService netWorthService;
 
@@ -96,7 +92,7 @@ public class DashboardController {
          *
          * <ul>
          * <li>Authorization: Bearer {jwt_token}
-         * <li>X-Encryption-Key: {base64_encoded_key}
+         * <li>X-Encryption-Session: {base64_encoded_key}
          * </ul>
          *
          * <p><b>Success Response (HTTP 200 OK):</b>
@@ -154,34 +150,23 @@ public class DashboardController {
          *
          * @param authentication the authentication object containing the authenticated
          * user
-         * @param encryptionKeyHeader the base64-encoded encryption key from request
-         * header
          * @return ResponseEntity containing the complete dashboard summary
          */
         @GetMapping({ "", "/summary" })
         public ResponseEntity<DashboardSummary> getDashboardSummary(
-                        Authentication authentication,
-                        @RequestHeader(ENCRYPTION_KEY_HEADER) String encryptionKeyHeader) {
+                        Authentication authentication) {
 
                 log.debug("Received dashboard summary request");
-
-                // Validate encryption key header
-                if (encryptionKeyHeader == null || encryptionKeyHeader.isBlank()) {
-                        log.warn("Missing encryption key header in dashboard request");
-                        return ResponseEntity.badRequest().build();
-                }
 
                 // Extract user ID from authentication
                 User user = (User) authentication.getPrincipal();
                 Long userId = user.getId();
 
                 // Decode encryption key using Utility for consistency and security
-                SecretKey encryptionKey = org.openfinance.util.EncryptionUtil.decodeEncryptionKey(encryptionKeyHeader);
-
                 log.info("Fetching dashboard summary for user {}", userId);
 
                 // Get dashboard summary
-                DashboardSummary summary = dashboardService.getDashboardSummary(userId, encryptionKey);
+                DashboardSummary summary = dashboardService.getDashboardSummary(userId);
 
                 log.debug(
                                 "Dashboard summary retrieved for user {}: {} accounts, {} transactions",
@@ -203,7 +188,7 @@ public class DashboardController {
          *
          * <ul>
          * <li>Authorization: Bearer {jwt_token}
-         * <li>X-Encryption-Key: {base64_encoded_key}
+         * <li>X-Encryption-Session: {base64_encoded_key}
          * </ul>
          *
          * <p><b>Success Response (HTTP 200 OK):</b>
@@ -241,34 +226,23 @@ public class DashboardController {
          *
          * @param authentication the authentication object containing the authenticated
          * user
-         * @param encryptionKeyHeader the base64-encoded encryption key from request
-         * header
          * @return ResponseEntity containing list of account summaries
          */
         @GetMapping("/accounts")
         public ResponseEntity<List<AccountSummary>> getAccountSummaries(
-                        Authentication authentication,
-                        @RequestHeader(ENCRYPTION_KEY_HEADER) String encryptionKeyHeader) {
+                        Authentication authentication) {
 
                 log.debug("Received account summaries request");
-
-                // Validate encryption key header
-                if (encryptionKeyHeader == null || encryptionKeyHeader.isBlank()) {
-                        log.warn("Missing encryption key header in account summaries request");
-                        return ResponseEntity.badRequest().build();
-                }
 
                 // Extract user ID from authentication
                 User user = (User) authentication.getPrincipal();
                 Long userId = user.getId();
 
                 // Decode encryption key using Utility for consistency and security
-                SecretKey encryptionKey = org.openfinance.util.EncryptionUtil.decodeEncryptionKey(encryptionKeyHeader);
-
                 log.info("Fetching account summaries for user {}", userId);
 
                 // Get account summaries
-                List<AccountSummary> summaries = dashboardService.getAccountSummaries(userId, encryptionKey);
+                List<AccountSummary> summaries = dashboardService.getAccountSummaries(userId);
 
                 log.debug("Retrieved {} account summaries for user {}", summaries.size(), userId);
 
@@ -543,8 +517,7 @@ public class DashboardController {
                         @RequestParam(defaultValue = "365") int period,
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
-                        @RequestParam(defaultValue = "false") boolean recalculate,
-                        @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encryptionKeyHeader) {
+                        @RequestParam(defaultValue = "false") boolean recalculate) {
 
                 log.debug(
                                 "Received net worth history request for period: {} days, startDate: {}, endDate: {}, recalculate: {}",
@@ -579,16 +552,12 @@ public class DashboardController {
                 String userCurrency = (user.getBaseCurrency() != null && !user.getBaseCurrency().isBlank())
                                 ? user.getBaseCurrency()
                                 : "USD";
-                SecretKey backfillKey = (encryptionKeyHeader != null && !encryptionKeyHeader.isBlank())
-                                ? org.openfinance.util.EncryptionUtil.decodeEncryptionKey(
-                                                encryptionKeyHeader)
-                                : null;
 
                 // Force-recalculate: delete existing snapshots in range and recompute from
                 // scratch
                 if (recalculate) {
                         int rebuilt = netWorthService.backfillNetWorthHistory(
-                                        userId, effectiveStart, effectiveEnd, userCurrency, backfillKey, true);
+                                        userId, effectiveStart, effectiveEnd, userCurrency, true);
                         log.info(
                                         "Recalculated {} net worth snapshots for user {} from {} to {}",
                                         rebuilt,
@@ -606,7 +575,7 @@ public class DashboardController {
                                                 .filter(nw -> nw.getNetWorth().compareTo(BigDecimal.ZERO) != 0)
                                                 .count() < 3) {
                         int backfilled = netWorthService.backfillNetWorthHistory(
-                                        userId, effectiveStart, effectiveEnd, userCurrency, backfillKey);
+                                        userId, effectiveStart, effectiveEnd, userCurrency);
                         if (backfilled > 0) {
                                 log.info(
                                                 "Backfilled {} net worth snapshots for user {} from {} to {}",
@@ -841,7 +810,7 @@ public class DashboardController {
          *
          * <ul>
          * <li>Authorization: Bearer {jwt_token}
-         * <li>X-Encryption-Key: {base64_encoded_key}
+         * <li>X-Encryption-Session: {base64_encoded_key}
          * </ul>
          *
          * <p><b>Request Parameters:</b>
@@ -873,15 +842,12 @@ public class DashboardController {
          *
          * @param authentication the authentication object containing the authenticated
          * user
-         * @param encryptionKeyHeader the base64-encoded encryption key from request
-         * header
          * @param period the analysis period in days (default: 90)
          * @return ResponseEntity containing borrowing capacity analysis
          */
         @GetMapping("/borrowing-capacity")
         public ResponseEntity<BorrowingCapacity> getBorrowingCapacity(
                         Authentication authentication,
-                        @RequestHeader(ENCRYPTION_KEY_HEADER) String encryptionKeyHeader,
                         @RequestParam(defaultValue = "90") int period,
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
@@ -892,18 +858,9 @@ public class DashboardController {
                                 startDate,
                                 endDate);
 
-                // Validate encryption key header
-                if (encryptionKeyHeader == null || encryptionKeyHeader.isBlank()) {
-                        log.warn("Missing encryption key header in borrowing capacity request");
-                        return ResponseEntity.badRequest().build();
-                }
-
                 // Extract user ID from authentication
                 User user = (User) authentication.getPrincipal();
                 Long userId = user.getId();
-
-                // Decode encryption key
-                SecretKey encryptionKey = org.openfinance.util.EncryptionUtil.decodeEncryptionKey(encryptionKeyHeader);
 
                 BorrowingCapacity capacity;
                 if (startDate != null && endDate != null) {
@@ -913,14 +870,14 @@ public class DashboardController {
                                         startDate,
                                         endDate);
                         capacity = dashboardService.getBorrowingCapacity(
-                                        userId, startDate, endDate, encryptionKey);
+                                        userId, startDate, endDate);
                 } else {
                         if (period <= 0) {
                                 log.warn("Invalid period parameter: {}", period);
                                 return ResponseEntity.badRequest().build();
                         }
                         log.info("Fetching borrowing capacity for user {} over {} days", userId, period);
-                        capacity = dashboardService.getBorrowingCapacity(userId, period, encryptionKey);
+                        capacity = dashboardService.getBorrowingCapacity(userId, period);
                 }
 
                 log.debug(
@@ -942,7 +899,7 @@ public class DashboardController {
          *
          * <ul>
          * <li>Authorization: Bearer {jwt_token}
-         * <li>X-Encryption-Key: {base64_encoded_key}
+         * <li>X-Encryption-Session: {base64_encoded_key}
          * </ul>
          *
          * <p><b>Example Request:</b>
@@ -982,34 +939,22 @@ public class DashboardController {
          *
          * @param authentication the authentication object containing the authenticated
          * user
-         * @param encryptionKeyHeader the base64-encoded encryption key from request
-         * header
          * @return ResponseEntity containing list of net worth allocations
          */
         @GetMapping("/networth-allocation")
         public ResponseEntity<List<NetWorthAllocation>> getNetWorthAllocation(
-                        Authentication authentication,
-                        @RequestHeader(ENCRYPTION_KEY_HEADER) String encryptionKeyHeader) {
+                        Authentication authentication) {
 
                 log.debug("Received net worth allocation request");
-
-                // Validate encryption key header
-                if (encryptionKeyHeader == null || encryptionKeyHeader.isBlank()) {
-                        log.warn("Missing encryption key header in net worth allocation request");
-                        return ResponseEntity.badRequest().build();
-                }
 
                 // Extract user ID from authentication
                 User user = (User) authentication.getPrincipal();
                 Long userId = user.getId();
 
-                // Decode encryption key
-                SecretKey encryptionKey = org.openfinance.util.EncryptionUtil.decodeEncryptionKey(encryptionKeyHeader);
-
                 log.info("Fetching net worth allocation for user {}", userId);
 
                 // Get net worth allocation
-                List<NetWorthAllocation> allocations = dashboardService.getNetWorthAllocation(userId, encryptionKey);
+                List<NetWorthAllocation> allocations = dashboardService.getNetWorthAllocation(userId);
 
                 log.debug(
                                 "Net worth allocation retrieved for user {}: {} categories",
@@ -1030,7 +975,7 @@ public class DashboardController {
          *
          * <ul>
          * <li>Authorization: Bearer {jwt_token}
-         * <li>X-Encryption-Key: {base64_encoded_key}
+         * <li>X-Encryption-Session: {base64_encoded_key}
          * </ul>
          *
          * <p><b>Request Parameters:</b>
@@ -1064,15 +1009,12 @@ public class DashboardController {
          * }</pre>
          *
          * @param authentication the authentication object
-         * @param encryptionKeyHeader the base64-encoded encryption key from request
-         * header
          * @param period the time period in days (default: 30)
          * @return ResponseEntity containing CashflowSankeyDto
          */
         @GetMapping("/cashflow-sankey")
         public ResponseEntity<CashflowSankeyDto> getCashflowSankey(
                         Authentication authentication,
-                        @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encryptionKeyHeader,
                         @RequestParam(defaultValue = "30") int period,
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
@@ -1086,11 +1028,6 @@ public class DashboardController {
                 User user = (User) authentication.getPrincipal();
                 Long userId = user.getId();
 
-                SecretKey encryptionKey = null;
-                if (encryptionKeyHeader != null && !encryptionKeyHeader.isBlank()) {
-                        encryptionKey = org.openfinance.util.EncryptionUtil.decodeEncryptionKey(encryptionKeyHeader);
-                }
-
                 CashflowSankeyDto sankey;
                 if (startDate != null && endDate != null) {
                         log.info(
@@ -1098,14 +1035,14 @@ public class DashboardController {
                                         userId,
                                         startDate,
                                         endDate);
-                        sankey = dashboardService.getCashflowSankey(userId, startDate, endDate, encryptionKey);
+                        sankey = dashboardService.getCashflowSankey(userId, startDate, endDate);
                 } else {
                         if (period <= 0) {
                                 log.warn("Invalid period parameter: {}", period);
                                 return ResponseEntity.badRequest().build();
                         }
                         log.info("Fetching cashflow sankey for user {} over {} days", userId, period);
-                        sankey = dashboardService.getCashflowSankey(userId, period, encryptionKey);
+                        sankey = dashboardService.getCashflowSankey(userId, period);
                 }
 
                 log.debug(
@@ -1121,35 +1058,23 @@ public class DashboardController {
          * Retrieves the estimated interest summary across all interest-bearing
          * accounts.
          *
-         * @param authentication      the authentication object containing the
-         *                            authenticated user
-         * @param period              the time period string (e.g., "1M", "1Y", "30")
-         *                            for historical calculation
-         *                            (default: "1Y")
-         * @param encryptionKeyHeader the base64-encoded encryption key from request
-         *                            header
+         * @param authentication the authentication object containing the
+         *                       authenticated user
+         * @param period         the time period string (e.g., "1M", "1Y", "30")
+         *                       for historical calculation
+         *                       (default: "1Y")
          * @return ResponseEntity containing estimated interest summary
          */
         @GetMapping("/estimated-interest")
         public ResponseEntity<EstimatedInterestSummary> getEstimatedInterest(
                         Authentication authentication,
-                        @RequestParam(defaultValue = "1Y") String period,
-                        @RequestHeader(ENCRYPTION_KEY_HEADER) String encryptionKeyHeader) {
+                        @RequestParam(defaultValue = "1Y") String period) {
 
                 log.debug("Received estimated interest request for period: {}", period);
 
-                if (encryptionKeyHeader == null || encryptionKeyHeader.isBlank()) {
-                        log.warn("Missing encryption key header in estimated interest request");
-                        return ResponseEntity.badRequest().build();
-                }
-
                 User user = (User) authentication.getPrincipal();
                 Long userId = user.getId();
-
-                SecretKey encryptionKey = org.openfinance.util.EncryptionUtil.decodeEncryptionKey(encryptionKeyHeader);
-
-                EstimatedInterestSummary summary = dashboardService.getEstimatedInterestSummary(userId, period,
-                                encryptionKey);
+                EstimatedInterestSummary summary = dashboardService.getEstimatedInterestSummary(userId, period);
 
                 return ResponseEntity.ok(summary);
         }
@@ -1163,31 +1088,21 @@ public class DashboardController {
          * of the
          * last transaction, along with year-over-year variation percentages.
          *
-         * @param authentication      the authentication object
-         * @param encryptionKeyHeader the base64-encoded encryption key
+         * @param authentication the authentication object
          * @return yearly balance variation data
          */
         @GetMapping("/yearly-balance")
         public ResponseEntity<org.openfinance.dto.YearlyBalanceResponse> getYearlyBalance(
-                        Authentication authentication,
-                        @RequestHeader(ENCRYPTION_KEY_HEADER) String encryptionKeyHeader) {
+                        Authentication authentication) {
 
                 log.debug("Received yearly balance request");
 
-                if (encryptionKeyHeader == null || encryptionKeyHeader.isBlank()) {
-                        log.warn("Missing encryption key header in yearly balance request");
-                        return ResponseEntity.badRequest().build();
-                }
-
                 User user = (User) authentication.getPrincipal();
                 Long userId = user.getId();
-
-                SecretKey encryptionKey = org.openfinance.util.EncryptionUtil.decodeEncryptionKey(encryptionKeyHeader);
-
                 log.info("Fetching yearly balance variations for user {}", userId);
 
-                org.openfinance.dto.YearlyBalanceResponse response = dashboardService.getYearlyBalanceVariations(userId,
-                                encryptionKey);
+                org.openfinance.dto.YearlyBalanceResponse response = dashboardService
+                                .getYearlyBalanceVariations(userId);
 
                 log.debug("Yearly balance retrieved for user {}: {} years", userId,
                                 response.getYears().size());

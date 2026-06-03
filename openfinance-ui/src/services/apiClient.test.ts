@@ -58,13 +58,13 @@ describe('apiClient', () => {
     });
 
     it('request interceptor adds encryption key from sessionStorage', async () => {
-        sessionStorage.setItem('encryption_key', 'enc-key-123');
+        sessionStorage.setItem('encryption_session', 'enc-key-123');
         const apiClient = (await import('./apiClient')).default;
 
         const config = { headers: {} } as any;
         const interceptor = (apiClient.interceptors.request as any).handlers[0];
         const result = interceptor.fulfilled(config);
-        expect(result.headers['X-Encryption-Key']).toBe('enc-key-123');
+        expect(result.headers['X-Encryption-Session']).toBe('enc-key-123');
     });
 
     it('request interceptor adds Accept-Language header', async () => {
@@ -76,19 +76,19 @@ describe('apiClient', () => {
         expect(result.headers['Accept-Language']).toBeDefined();
     });
 
-    it('request interceptor does not overwrite existing X-Encryption-Key', async () => {
-        sessionStorage.setItem('encryption_key', 'should-not-use');
+    it('request interceptor does not overwrite existing X-Encryption-Session', async () => {
+        sessionStorage.setItem('encryption_session', 'should-not-use');
         const apiClient = (await import('./apiClient')).default;
 
-        const config = { headers: { 'X-Encryption-Key': 'existing' } } as any;
+        const config = { headers: { 'X-Encryption-Session': 'existing' } } as any;
         const interceptor = (apiClient.interceptors.request as any).handlers[0];
         const result = interceptor.fulfilled(config);
-        expect(result.headers['X-Encryption-Key']).toBe('existing');
+        expect(result.headers['X-Encryption-Session']).toBe('existing');
     });
 
     it('response interceptor clears storage on 401 for non-login requests', async () => {
         localStorage.setItem('auth_token', 'stale');
-        sessionStorage.setItem('encryption_key', 'stale');
+        sessionStorage.setItem('encryption_session', 'stale');
 
         const apiClient = (await import('./apiClient')).default;
         const interceptor = (apiClient.interceptors.response as any).handlers[0];
@@ -100,7 +100,7 @@ describe('apiClient', () => {
 
         await expect(interceptor.rejected(error)).rejects.toEqual(error);
         expect(localStorage.getItem('auth_token')).toBeNull();
-        expect(sessionStorage.getItem('encryption_key')).toBeNull();
+        expect(sessionStorage.getItem('encryption_session')).toBeNull();
     });
 
     it('response interceptor does NOT clear storage on 401 for login endpoint', async () => {

@@ -47,7 +47,7 @@ const realEstateKeys = {
  * Fetch all properties for the authenticated user
  */
 async function fetchProperties(filters?: PropertyFilters): Promise<RealEstateProperty[]> {
-  const encryptionKey = sessionStorage.getItem('encryption_key');
+  const encryptionKey = sessionStorage.getItem('encryption_session');
   if (!encryptionKey) {
     throw new Error('Encryption key not found');
   }
@@ -62,7 +62,7 @@ async function fetchProperties(filters?: PropertyFilters): Promise<RealEstatePro
 
   const url = params.toString() ? `${API_BASE_URL}?${params}` : API_BASE_URL;
   const response = await apiClient.get<RealEstateProperty[]>(url, {
-    headers: { 'X-Encryption-Key': encryptionKey }
+    headers: { 'X-Encryption-Session': encryptionKey }
   });
 
   return response.data;
@@ -78,7 +78,7 @@ async function fetchPropertiesSearch(filters?: PropertySearchFilters): Promise<{
   number: number;
   size: number;
 }> {
-  const encryptionKey = sessionStorage.getItem('encryption_key');
+  const encryptionKey = sessionStorage.getItem('encryption_session');
   if (!encryptionKey) {
     throw new Error('Encryption key not found');
   }
@@ -112,7 +112,7 @@ async function fetchPropertiesSearch(filters?: PropertySearchFilters): Promise<{
     number: number;
     size: number;
   }>(`${API_BASE_URL}/search?${params.toString()}`, {
-    headers: { 'X-Encryption-Key': encryptionKey }
+    headers: { 'X-Encryption-Session': encryptionKey }
   });
 
   return response.data;
@@ -122,12 +122,12 @@ async function fetchPropertiesSearch(filters?: PropertySearchFilters): Promise<{
  * Fetch a single property by ID
  */
 async function fetchProperty(id: number): Promise<RealEstateProperty> {
-  const encryptionKey = sessionStorage.getItem('encryption_key');
+  const encryptionKey = sessionStorage.getItem('encryption_session');
   if (!encryptionKey) {
     throw new Error('Encryption key not found');
   }
   const response = await apiClient.get<RealEstateProperty>(`${API_BASE_URL}/${id}`, {
-    headers: { 'X-Encryption-Key': encryptionKey }
+    headers: { 'X-Encryption-Session': encryptionKey }
   });
 
   return response.data;
@@ -137,12 +137,12 @@ async function fetchProperty(id: number): Promise<RealEstateProperty> {
  * Create a new property
  */
 async function createProperty(request: RealEstatePropertyRequest): Promise<RealEstateProperty> {
-  const encryptionKey = sessionStorage.getItem('encryption_key');
+  const encryptionKey = sessionStorage.getItem('encryption_session');
   if (!encryptionKey) {
     throw new Error('Encryption key not found');
   }
   const response = await apiClient.post<RealEstateProperty>(API_BASE_URL, request, {
-    headers: { 'X-Encryption-Key': encryptionKey }
+    headers: { 'X-Encryption-Session': encryptionKey }
   });
 
   return response.data;
@@ -152,12 +152,12 @@ async function createProperty(request: RealEstatePropertyRequest): Promise<RealE
  * Update an existing property
  */
 async function updateProperty(id: number, request: RealEstatePropertyRequest): Promise<RealEstateProperty> {
-  const encryptionKey = sessionStorage.getItem('encryption_key');
+  const encryptionKey = sessionStorage.getItem('encryption_session');
   if (!encryptionKey) {
     throw new Error('Encryption key not found');
   }
   const response = await apiClient.put<RealEstateProperty>(`${API_BASE_URL}/${id}`, request, {
-    headers: { 'X-Encryption-Key': encryptionKey }
+    headers: { 'X-Encryption-Session': encryptionKey }
   });
 
   return response.data;
@@ -167,12 +167,12 @@ async function updateProperty(id: number, request: RealEstatePropertyRequest): P
  * Delete a property (soft delete - sets isActive = false)
  */
 async function deleteProperty(id: number): Promise<void> {
-  const encryptionKey = sessionStorage.getItem('encryption_key');
+  const encryptionKey = sessionStorage.getItem('encryption_session');
   if (!encryptionKey) {
     throw new Error('Encryption key not found');
   }
   await apiClient.delete(`${API_BASE_URL}/${id}`, {
-    headers: { 'X-Encryption-Key': encryptionKey }
+    headers: { 'X-Encryption-Session': encryptionKey }
   });
 }
 
@@ -180,12 +180,12 @@ async function deleteProperty(id: number): Promise<void> {
  * Calculate property equity
  */
 async function fetchPropertyEquity(id: number): Promise<PropertyEquityResponse> {
-  const encryptionKey = sessionStorage.getItem('encryption_key');
+  const encryptionKey = sessionStorage.getItem('encryption_session');
   if (!encryptionKey) {
     throw new Error('Encryption key not found');
   }
   const response = await apiClient.get<PropertyEquityResponse>(`${API_BASE_URL}/${id}/equity`, {
-    headers: { 'X-Encryption-Key': encryptionKey }
+    headers: { 'X-Encryption-Session': encryptionKey }
   });
 
   return response.data;
@@ -195,12 +195,12 @@ async function fetchPropertyEquity(id: number): Promise<PropertyEquityResponse> 
  * Calculate property ROI
  */
 async function fetchPropertyROI(id: number): Promise<PropertyROIResponse> {
-  const encryptionKey = sessionStorage.getItem('encryption_key');
+  const encryptionKey = sessionStorage.getItem('encryption_session');
   if (!encryptionKey) {
     throw new Error('Encryption key not found');
   }
   const response = await apiClient.get<PropertyROIResponse>(`${API_BASE_URL}/${id}/roi`, {
-    headers: { 'X-Encryption-Key': encryptionKey }
+    headers: { 'X-Encryption-Session': encryptionKey }
   });
 
   return response.data;
@@ -210,14 +210,14 @@ async function fetchPropertyROI(id: number): Promise<PropertyROIResponse> {
  * Update property value estimate
  */
 async function updatePropertyValue(id: number, newValue: number): Promise<RealEstateProperty> {
-  const encryptionKey = sessionStorage.getItem('encryption_key');
+  const encryptionKey = sessionStorage.getItem('encryption_session');
   if (!encryptionKey) {
     throw new Error('Encryption key not found');
   }
   const response = await apiClient.put<RealEstateProperty>(
     `${API_BASE_URL}/${id}/value`,
     { currentValue: newValue },
-    { headers: { 'X-Encryption-Key': encryptionKey } }
+    { headers: { 'X-Encryption-Session': encryptionKey } }
   );
 
   return response.data;

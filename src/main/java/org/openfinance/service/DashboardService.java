@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AccountInterest;
@@ -44,6 +43,7 @@ import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
+import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -120,24 +120,20 @@ public class DashboardService {
          * @throws IllegalArgumentException if userId or encryptionKey is null
          */
         @Cacheable(value = "dashboardSummary", key = "#userId")
-        public DashboardSummary getDashboardSummary(Long userId, SecretKey encryptionKey) {
+        public DashboardSummary getDashboardSummary(Long userId) {
                 if (userId == null) {
                         throw new IllegalArgumentException("User ID cannot be null");
                 }
-                if (encryptionKey == null) {
-                        throw new IllegalArgumentException("Encryption key cannot be null");
-                }
-
                 log.debug("Generating dashboard summary for user {}", userId);
 
                 // Get net worth summary
-                NetWorthSummary netWorthSummary = getNetWorthSummary(userId, encryptionKey);
+                NetWorthSummary netWorthSummary = getNetWorthSummary(userId);
 
                 // Get account summaries (decrypted)
-                List<AccountSummary> accountSummaries = getAccountSummaries(userId, encryptionKey);
+                List<AccountSummary> accountSummaries = getAccountSummaries(userId);
 
                 // Get recent transactions (last 10, decrypted)
-                List<TransactionResponse> recentTransactions = getRecentTransactions(userId, 10, encryptionKey);
+                List<TransactionResponse> recentTransactions = getRecentTransactions(userId, 10);
 
                 // Get statistics
                 long totalTransactions = transactionRepository.countByUserId(userId);
@@ -196,14 +192,10 @@ public class DashboardService {
          * @throws IllegalArgumentException if userId is null
          */
         @Cacheable(value = "netWorthSummary", key = "#userId")
-        public NetWorthSummary getNetWorthSummary(Long userId, SecretKey encryptionKey) {
+        public NetWorthSummary getNetWorthSummary(Long userId) {
                 if (userId == null) {
                         throw new IllegalArgumentException("User ID cannot be null");
                 }
-                if (encryptionKey == null) {
-                        throw new IllegalArgumentException("Encryption key cannot be null");
-                }
-
                 log.debug("Retrieving net worth summary for user {}", userId);
 
                 // Always calculate/update today's snapshot to keep totals accurate after data
@@ -218,8 +210,7 @@ public class DashboardService {
                                 ? "USD"
                                 : user.getBaseCurrency();
 
-                NetWorth currentNetWorth = netWorthService.saveNetWorthSnapshot(userId, today, encryptionKey,
-                                baseCurrency);
+                NetWorth currentNetWorth = netWorthService.saveNetWorthSnapshot(userId, today, baseCurrency);
 
                 // Calculate monthly change
                 NetWorthService.NetWorthChange monthlyChange = netWorthService.calculateMonthlyChange(userId);
@@ -253,20 +244,16 @@ public class DashboardService {
          * @throws IllegalArgumentException if userId or encryptionKey is null
          */
         @Cacheable(value = "accountSummaries", key = "#userId")
-        public List<AccountSummary> getAccountSummaries(Long userId, SecretKey encryptionKey) {
+        public List<AccountSummary> getAccountSummaries(Long userId) {
                 if (userId == null) {
                         throw new IllegalArgumentException("User ID cannot be null");
                 }
-                if (encryptionKey == null) {
-                        throw new IllegalArgumentException("Encryption key cannot be null");
-                }
-
                 log.debug("Retrieving account summaries for user {}", userId);
 
                 List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
 
                 List<AccountSummary> summaries = accounts.stream()
-                                .map(account -> mapToAccountSummary(account, encryptionKey))
+                                .map(account -> mapToAccountSummary(account))
                                 .sorted(
                                                 (a, b) -> b.getBalance().compareTo(a.getBalance())) // Sort by balance
                                 // descending
@@ -305,12 +292,9 @@ public class DashboardService {
          *                                  limit <= 0
          */
         public List<TransactionResponse> getRecentTransactions(
-                        Long userId, int limit, SecretKey encryptionKey) {
+                        Long userId, int limit) {
                 if (userId == null) {
                         throw new IllegalArgumentException("User ID cannot be null");
-                }
-                if (encryptionKey == null) {
-                        throw new IllegalArgumentException("Encryption key cannot be null");
                 }
                 if (limit <= 0) {
                         throw new IllegalArgumentException("Limit must be positive");
@@ -356,39 +340,15 @@ public class DashboardService {
                                                         TransactionResponse response = transactionMapper
                                                                         .toResponse(transaction);
 
-                                                        // Decrypt sensitive fields
+                                                        // Fields already decrypted by JPA converter
                                                         if (transaction.getDescription() != null
                                                                         && !transaction.getDescription().isBlank()) {
-                                                                try {
-                                                                        response.setDescription(
-                                                                                        encryptionService.decrypt(
-                                                                                                        transaction.getDescription(),
-                                                                                                        encryptionKey));
-                                                                } catch (IllegalArgumentException
-                                                                                | IllegalStateException e) {
-                                                                        log.warn(
-                                                                                        "Failed to decrypt transaction description for id={}; leaving as-is",
-                                                                                        transaction.getId(),
-                                                                                        e);
-                                                                        response.setDescription(
-                                                                                        transaction.getDescription());
-                                                                }
+                                                                response.setDescription(
+                                                                                transaction.getDescription());
                                                         }
                                                         if (transaction.getNotes() != null
                                                                         && !transaction.getNotes().isBlank()) {
-                                                                try {
-                                                                        response.setNotes(
-                                                                                        encryptionService.decrypt(
-                                                                                                        transaction.getNotes(),
-                                                                                                        encryptionKey));
-                                                                } catch (IllegalArgumentException
-                                                                                | IllegalStateException e) {
-                                                                        log.warn(
-                                                                                        "Failed to decrypt transaction notes for id={}; leaving as-is",
-                                                                                        transaction.getId(),
-                                                                                        e);
-                                                                        response.setNotes(transaction.getNotes());
-                                                                }
+                                                                response.setNotes(transaction.getNotes());
                                                         }
                                                         // Payee is stored in plaintext and should NOT be decrypted
                                                         response.setPayee(transaction.getPayee());
@@ -399,19 +359,7 @@ public class DashboardService {
                                                         if (account != null) {
                                                                 if (account.getName() != null
                                                                                 && !account.getName().isBlank()) {
-                                                                        try {
-                                                                                response.setAccountName(
-                                                                                                encryptionService
-                                                                                                                .decrypt(
-                                                                                                                                account.getName(),
-                                                                                                                                encryptionKey));
-                                                                        } catch (IllegalArgumentException
-                                                                                        | IllegalStateException e) {
-                                                                                log.warn(
-                                                                                                "Failed to decrypt account name for account id={}; leaving name empty",
-                                                                                                account.getId(),
-                                                                                                e);
-                                                                        }
+                                                                        response.setAccountName(account.getName());
                                                                 }
                                                         } else {
                                                                 response.setAccountName(
@@ -426,19 +374,7 @@ public class DashboardService {
                                                                 if (toAccount != null
                                                                                 && toAccount.getName() != null
                                                                                 && !toAccount.getName().isBlank()) {
-                                                                        try {
-                                                                                response.setToAccountName(
-                                                                                                encryptionService
-                                                                                                                .decrypt(
-                                                                                                                                toAccount.getName(),
-                                                                                                                                encryptionKey));
-                                                                        } catch (IllegalArgumentException
-                                                                                        | IllegalStateException e) {
-                                                                                log.warn(
-                                                                                                "Failed to decrypt destination account name for account id={}; leaving name empty",
-                                                                                                toAccount.getId(),
-                                                                                                e);
-                                                                        }
+                                                                        response.setToAccountName(toAccount.getName());
                                                                 }
                                                         }
 
@@ -448,30 +384,7 @@ public class DashboardService {
                                                                 Category category = categoryMap
                                                                                 .get(transaction.getCategoryId());
                                                                 if (category != null) {
-                                                                        String categoryName;
-                                                                        if (Boolean.TRUE.equals(
-                                                                                        category.getIsSystem())) {
-                                                                                categoryName = category.getName();
-                                                                        } else if (category.getName() != null
-                                                                                        && !category.getName()
-                                                                                                        .isBlank()) {
-                                                                                try {
-                                                                                        categoryName = encryptionService
-                                                                                                        .decrypt(
-                                                                                                                        category.getName(),
-                                                                                                                        encryptionKey);
-                                                                                } catch (IllegalArgumentException
-                                                                                                | IllegalStateException e) {
-                                                                                        log.warn(
-                                                                                                        "Failed to decrypt category name for category id={}; using raw value if available",
-                                                                                                        category.getId(),
-                                                                                                        e);
-                                                                                        categoryName = category
-                                                                                                        .getName();
-                                                                                }
-                                                                        } else {
-                                                                                categoryName = null;
-                                                                        }
+                                                                        String categoryName = category.getName();
                                                                         response.setCategoryName(categoryName);
                                                                         response.setCategoryIcon(category.getIcon());
                                                                         response.setCategoryColor(category.getColor());
@@ -814,7 +727,7 @@ public class DashboardService {
          * @throws IllegalArgumentException if userId is null or period &lt;= 0
          */
         @Cacheable(value = "cashflowSankey", key = "#userId + '_' + #period")
-        public CashflowSankeyDto getCashflowSankey(Long userId, int period, SecretKey encryptionKey) {
+        public CashflowSankeyDto getCashflowSankey(Long userId, int period) {
                 if (userId == null) {
                         throw new IllegalArgumentException("User ID cannot be null");
                 }
@@ -826,7 +739,7 @@ public class DashboardService {
 
                 LocalDate endDate = LocalDate.now();
                 LocalDate startDate = endDate.minusDays(period);
-                return buildCashflowSankey(userId, startDate, endDate, period, encryptionKey);
+                return buildCashflowSankey(userId, startDate, endDate, period);
         }
 
         /**
@@ -835,7 +748,7 @@ public class DashboardService {
          * date range requests.
          */
         public CashflowSankeyDto getCashflowSankey(
-                        Long userId, LocalDate startDate, LocalDate endDate, SecretKey encryptionKey) {
+                        Long userId, LocalDate startDate, LocalDate endDate) {
                 if (userId == null) {
                         throw new IllegalArgumentException("User ID cannot be null");
                 }
@@ -843,15 +756,14 @@ public class DashboardService {
                         throw new IllegalArgumentException("Start and end dates cannot be null");
                 }
                 int period = (int) java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
-                return buildCashflowSankey(userId, startDate, endDate, period, encryptionKey);
+                return buildCashflowSankey(userId, startDate, endDate, period);
         }
 
         private CashflowSankeyDto buildCashflowSankey(
                         Long userId,
                         LocalDate startDate,
                         LocalDate endDate,
-                        int period,
-                        SecretKey encryptionKey) {
+                        int period) {
                 List<Transaction> transactions = transactionRepository
                                 .findByUserIdAndDateBetween(userId, startDate, endDate)
                                 .stream()
@@ -920,14 +832,7 @@ public class DashboardService {
                         if (Boolean.TRUE.equals(cat.getIsSystem()))
                                 return cat.getName();
                         if (cat.getName() != null && !cat.getName().isBlank()) {
-                                try {
-                                        return encryptionKey != null
-                                                        ? encryptionService.decrypt(cat.getName(), encryptionKey)
-                                                        : cat.getName();
-                                } catch (Exception e) {
-                                        log.warn("Could not decrypt category name for id={}", cat.getId());
-                                        return cat.getName();
-                                }
+                                return cat.getName();
                         }
                         return "Uncategorized";
                 };
@@ -1275,33 +1180,10 @@ public class DashboardService {
          * @param encryptionKey the encryption key for decryption
          * @return account summary with decrypted data
          */
-        private AccountSummary mapToAccountSummary(Account account, SecretKey encryptionKey) {
-                String decryptedName = null;
-                if (account.getName() != null && !account.getName().isBlank()) {
-                        try {
-                                decryptedName = encryptionService.decrypt(account.getName(), encryptionKey);
-                        } catch (IllegalArgumentException | IllegalStateException e) {
-                                log.warn(
-                                                "Failed to decrypt account name for id={}; using raw value",
-                                                account.getId(),
-                                                e);
-                                decryptedName = account.getName();
-                        }
-                }
-
-                String decryptedDescription = null;
-                if (account.getDescription() != null && !account.getDescription().isBlank()) {
-                        try {
-                                decryptedDescription = encryptionService.decrypt(account.getDescription(),
-                                                encryptionKey);
-                        } catch (IllegalArgumentException | IllegalStateException e) {
-                                log.warn(
-                                                "Failed to decrypt account description for id={}; using raw value",
-                                                account.getId(),
-                                                e);
-                                decryptedDescription = account.getDescription();
-                        }
-                }
+        private AccountSummary mapToAccountSummary(Account account) {
+                // Fields already decrypted by JPA converter
+                String decryptedName = account.getName();
+                String decryptedDescription = account.getDescription();
 
                 return AccountSummary.builder()
                                 .id(account.getId())
@@ -1347,17 +1229,13 @@ public class DashboardService {
          */
         @Cacheable(value = "borrowingCapacity", key = "#userId + '_' + #analysisPeriod")
         public BorrowingCapacity getBorrowingCapacity(
-                        Long userId, int analysisPeriod, SecretKey encryptionKey) {
+                        Long userId, int analysisPeriod) {
                 if (userId == null) {
                         throw new IllegalArgumentException("User ID cannot be null");
                 }
                 if (analysisPeriod <= 0) {
                         throw new IllegalArgumentException("Analysis period must be positive");
                 }
-                if (encryptionKey == null) {
-                        throw new IllegalArgumentException("Encryption key cannot be null");
-                }
-
                 log.debug(
                                 "Calculating borrowing capacity for user {} over {} days", userId, analysisPeriod);
 
@@ -1411,16 +1289,14 @@ public class DashboardService {
                                 .map(
                                                 l -> {
                                                         try {
-                                                                String decryptedPayment = encryptionService.decrypt(
-                                                                                l.getMinimumPayment(), encryptionKey);
                                                                 BigDecimal rawPayment = new BigDecimal(
-                                                                                decryptedPayment);
+                                                                                l.getMinimumPayment());
                                                                 return convertToBase(
                                                                                 rawPayment, l.getCurrency(),
                                                                                 baseCurrency);
                                                         } catch (Exception e) {
                                                                 log.warn(
-                                                                                "Failed to decrypt minimum payment for liability id={}",
+                                                                                "Failed to parse minimum payment for liability id={}",
                                                                                 l.getId(),
                                                                                 e);
                                                                 return BigDecimal.ZERO;
@@ -1492,17 +1368,13 @@ public class DashboardService {
          * range requests.
          */
         public BorrowingCapacity getBorrowingCapacity(
-                        Long userId, LocalDate startDate, LocalDate endDate, SecretKey encryptionKey) {
+                        Long userId, LocalDate startDate, LocalDate endDate) {
                 if (userId == null) {
                         throw new IllegalArgumentException("User ID cannot be null");
                 }
                 if (startDate == null || endDate == null) {
                         throw new IllegalArgumentException("Start and end dates cannot be null");
                 }
-                if (encryptionKey == null) {
-                        throw new IllegalArgumentException("Encryption key cannot be null");
-                }
-
                 int analysisPeriod = (int) java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
                 log.debug(
                                 "Calculating borrowing capacity for user {} from {} to {}",
@@ -1547,15 +1419,13 @@ public class DashboardService {
                                                 l -> {
                                                         try {
                                                                 BigDecimal rawPayment = new BigDecimal(
-                                                                                encryptionService.decrypt(
-                                                                                                l.getMinimumPayment(),
-                                                                                                encryptionKey));
+                                                                                l.getMinimumPayment());
                                                                 return convertToBase(
                                                                                 rawPayment, l.getCurrency(),
                                                                                 baseCurrency);
                                                         } catch (Exception e) {
                                                                 log.warn(
-                                                                                "Failed to decrypt minimum payment for liability id={}",
+                                                                                "Failed to parse minimum payment for liability id={}",
                                                                                 l.getId(),
                                                                                 e);
                                                                 return BigDecimal.ZERO;
@@ -1627,14 +1497,10 @@ public class DashboardService {
          * @throws IllegalArgumentException if userId or encryptionKey is null
          */
         @Cacheable(value = "networthAllocation", key = "#userId")
-        public List<NetWorthAllocation> getNetWorthAllocation(Long userId, SecretKey encryptionKey) {
+        public List<NetWorthAllocation> getNetWorthAllocation(Long userId) {
                 if (userId == null) {
                         throw new IllegalArgumentException("User ID cannot be null");
                 }
-                if (encryptionKey == null) {
-                        throw new IllegalArgumentException("Encryption key cannot be null");
-                }
-
                 log.debug("Calculating net worth allocation for user {}", userId);
 
                 // Get user's base currency
@@ -1710,7 +1576,8 @@ public class DashboardService {
                                 if (liability.getCurrentBalance() != null
                                                 && !liability.getCurrentBalance().isBlank()) {
                                         String decryptedBalance = encryptionService
-                                                        .decrypt(liability.getCurrentBalance(), encryptionKey);
+                                                        .decrypt(liability.getCurrentBalance(),
+                                                                        EncryptionContext.getKey());
                                         balance = new BigDecimal(decryptedBalance);
                                 }
                         } catch (Exception e) {
@@ -1878,14 +1745,10 @@ public class DashboardService {
          * @return EstimatedInterestSummary containing account list and totals
          */
         public EstimatedInterestSummary getEstimatedInterestSummary(
-                        Long userId, String period, SecretKey encryptionKey) {
+                        Long userId, String period) {
                 if (userId == null) {
                         throw new IllegalArgumentException("User ID cannot be null");
                 }
-                if (encryptionKey == null) {
-                        throw new IllegalArgumentException("Encryption key cannot be null");
-                }
-
                 log.debug(
                                 "Calculating estimated interest summary for user {} and period {}", userId, period);
 
@@ -1904,20 +1767,13 @@ public class DashboardService {
 
                 for (Account account : accounts) {
                         if (Boolean.TRUE.equals(account.getIsInterestEnabled())) {
+                                // Name already decrypted by JPA converter
                                 String accountName = account.getName();
-                                try {
-                                        accountName = encryptionService.decrypt(accountName, encryptionKey);
-                                } catch (Exception e) {
-                                        log.warn(
-                                                        "Failed to decrypt account name for account id={}",
-                                                        account.getId(), e);
-                                        accountName = "Account #" + account.getId();
-                                }
 
                                 BigDecimal earned = interestCalculatorService.calculateHistoricalAccumulated(
-                                                account.getId(), userId, period, encryptionKey);
+                                                account.getId(), userId, period);
                                 BigDecimal projected = interestCalculatorService.calculateInterestEstimate(
-                                                account.getId(), userId, "1Y", encryptionKey);
+                                                account.getId(), userId, "1Y");
 
                                 accountInterests.add(
                                                 new AccountInterest(account.getId(), accountName, earned, projected));
@@ -1934,8 +1790,7 @@ public class DashboardService {
                         }
                         try {
                                 BigDecimal interestRate = new BigDecimal(
-                                                encryptionService.decrypt(
-                                                                liability.getInterestRate(), encryptionKey));
+                                                liability.getInterestRate());
                                 if (interestRate.compareTo(BigDecimal.ZERO) <= 0) {
                                         continue;
                                 }
@@ -1943,8 +1798,7 @@ public class DashboardService {
                                 if (liability.getCurrentBalance() != null
                                                 && !liability.getCurrentBalance().isBlank()) {
                                         currentBalance = new BigDecimal(
-                                                        encryptionService.decrypt(
-                                                                        liability.getCurrentBalance(), encryptionKey));
+                                                        liability.getCurrentBalance());
                                 }
                                 BigDecimal annualInterest = currentBalance
                                                 .multiply(
@@ -1962,12 +1816,8 @@ public class DashboardService {
                                                 .setScale(2, RoundingMode.HALF_UP)
                                                 .negate();
 
+                                // Name already decrypted by JPA converter
                                 String liabilityName = liability.getName();
-                                try {
-                                        liabilityName = encryptionService.decrypt(liabilityName, encryptionKey);
-                                } catch (Exception e) {
-                                        liabilityName = "Liability #" + liability.getId();
-                                }
 
                                 accountInterests.add(
                                                 new AccountInterest(
@@ -2011,7 +1861,7 @@ public class DashboardService {
          *         institutions
          */
         public YearlyBalanceResponse getYearlyBalanceVariations(
-                        Long userId, SecretKey encryptionKey) {
+                        Long userId) {
                 // 1. Determine year range from transactions
                 List<Transaction> allTransactions = transactionRepository.findByUserId(userId).stream()
                                 .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
@@ -2143,13 +1993,8 @@ public class DashboardService {
                                 prevBalance = bal;
                         }
 
+                        // Name already decrypted by JPA converter
                         String accountName = account.getName();
-                        try {
-                                accountName = encryptionService.decrypt(account.getName(), encryptionKey);
-                        } catch (Exception e) {
-                                log.warn("Failed to decrypt account name for account {}",
-                                                account.getId());
-                        }
 
                         accountEntries.add(YearlyBalanceResponse.YearlyBalanceEntry.builder()
                                         .id(account.getId())

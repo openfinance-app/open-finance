@@ -26,7 +26,7 @@ export const useGlobalSearch = (query: string, limit: number = 50, enabled: bool
   return useQuery({
     queryKey: SEARCH_KEYS.global(query),
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -34,7 +34,7 @@ export const useGlobalSearch = (query: string, limit: number = 50, enabled: bool
       const response = await apiClient.get<GlobalSearchResponse>('/search', {
         params: { q: query, limit },
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
 
@@ -52,7 +52,7 @@ export const useGlobalSearch = (query: string, limit: number = 50, enabled: bool
 export const useAdvancedSearch = () => {
   return useMutation({
     mutationFn: async (request: AdvancedSearchRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -62,7 +62,7 @@ export const useAdvancedSearch = () => {
         request,
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );

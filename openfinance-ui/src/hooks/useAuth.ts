@@ -12,8 +12,7 @@ import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 
 // Storage keys - keep consistent and avoid magic strings
 const AUTH_TOKEN_KEY = 'auth_token';
-const ENCRYPTION_KEY_KEY = 'encryption_key';
-const ENCRYPTION_KEY_FALLBACK_KEY = 'encryption_key_fallback';
+const ENCRYPTION_SESSION_KEY = 'encryption_session';
 
 /**
  * Hook for user registration
@@ -67,14 +66,11 @@ export function useLogin() {
       const rememberMe = variables.rememberMe || false;
       setAuth(user, data.token, rememberMe);
 
-      // Store encryption key in sessionStorage (more secure than localStorage)
+      // Store encryption session token (opaque — the real key stays on the server)
       try {
-        sessionStorage.setItem(ENCRYPTION_KEY_KEY, data.encryptionKey);
-        if (import.meta.env.DEV) {
-          localStorage.setItem(ENCRYPTION_KEY_FALLBACK_KEY, data.encryptionKey);
-        }
+        sessionStorage.setItem(ENCRYPTION_SESSION_KEY, data.encryptionKey);
       } catch (e) {
-        console.warn('Failed to persist encryption key to storage', e);
+        console.warn('Failed to persist encryption session token to storage', e);
       }
 
       // NOTE: navigation/redirect is intentionally left to the caller so it can
@@ -85,9 +81,8 @@ export function useLogin() {
       // Clear any stale tokens from both storages
       try {
         localStorage.removeItem(AUTH_TOKEN_KEY);
-        localStorage.removeItem(ENCRYPTION_KEY_FALLBACK_KEY);
         sessionStorage.removeItem(AUTH_TOKEN_KEY);
-        sessionStorage.removeItem(ENCRYPTION_KEY_KEY);
+        sessionStorage.removeItem(ENCRYPTION_SESSION_KEY);
       } catch (e) {
         console.warn('Failed to clear stale auth storage', e);
       }
@@ -104,7 +99,10 @@ export function useLogout() {
   const { clearAuth } = useAuthContext();
 
   return useCallback(() => {
-    // Clear auth context (which also clears localStorage)
+    // Invalidate encryption session on the server (best-effort — don't block on failure)
+    apiClient.post('/auth/logout').catch(() => { });
+
+    // Clear auth context (which also clears localStorage/sessionStorage)
     clearAuth();
 
     // Navigate to login

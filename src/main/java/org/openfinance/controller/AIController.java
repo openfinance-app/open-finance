@@ -1,11 +1,8 @@
 package org.openfinance.controller;
 
 import jakarta.validation.Valid;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AIDto;
@@ -21,15 +18,22 @@ import reactor.core.publisher.Flux;
 /**
  * REST controller for AI Assistant interactions.
  *
- * <p>Provides endpoints for chatting with the AI financial advisor, managing conversation history,
+ * <p>
+ * Provides endpoints for chatting with the AI financial advisor, managing
+ * conversation history,
  * and checking service availability.
  *
- * <p><strong>Base Path:</strong> {@code /api/v1/ai}
+ * <p>
+ * <strong>Base Path:</strong> {@code /api/v1/ai}
  *
- * <p><strong>Authentication:</strong> All endpoints require JWT authentication via {@code
+ * <p>
+ * <strong>Authentication:</strong> All endpoints require JWT authentication via
+ * {@code
  * Authorization: Bearer {token}} header.
  *
- * <p><strong>Encryption:</strong> Endpoints require {@code X-Encryption-Key} header for decrypting
+ * <p>
+ * <strong>Encryption:</strong> Endpoints require {@code X-Encryption-Session}
+ * header for decrypting
  * user's financial data to build context.
  *
  * @since Sprint 11 - AI Assistant Integration
@@ -39,9 +43,6 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 @Slf4j
 public class AIController {
-
-    private static final String ENCRYPTION_KEY_HEADER = "X-Encryption-Key";
-
     private final AIService aiService;
 
     /**
@@ -50,8 +51,8 @@ public class AIController {
      * <p><strong>Request Headers:</strong>
      *
      * <ul>
-     *   <li>{@code Authorization: Bearer {jwt_token}}
-     *   <li>{@code X-Encryption-Key: {base64_encoded_key}}
+     * <li>{@code Authorization: Bearer {jwt_token}}
+     * <li>{@code X-Encryption-Session: {base64_encoded_key}}
      * </ul>
      *
      * <p><strong>Request Body:</strong>
@@ -78,35 +79,22 @@ public class AIController {
      * <p><strong>Error Responses:</strong>
      *
      * <ul>
-     *   <li>{@code 400 Bad Request} - Invalid question or missing encryption key
-     *   <li>{@code 401 Unauthorized} - Missing or invalid JWT token
-     *   <li>{@code 404 Not Found} - Conversation ID not found
-     *   <li>{@code 503 Service Unavailable} - Ollama service unavailable
+     * <li>{@code 400 Bad Request} - Invalid question or missing encryption key
+     * <li>{@code 401 Unauthorized} - Missing or invalid JWT token
+     * <li>{@code 404 Not Found} - Conversation ID not found
+     * <li>{@code 503 Service Unavailable} - Ollama service unavailable
      * </ul>
      *
      * @param request Chat request containing question and optional conversation ID
-     * @param encodedKey Base64-encoded encryption key
      * @param authentication Spring Security authentication
      * @return Mono with ChatResponse
      */
     @PostMapping("/chat")
     public ResponseEntity<AIDto.ChatResponse> chat(
             @Valid @RequestBody AIDto.ChatRequest request,
-            @RequestHeader(ENCRYPTION_KEY_HEADER) String encodedKey,
             Authentication authentication) {
 
         User user = (User) authentication.getPrincipal();
-
-        // Decode encryption key
-        SecretKey encryptionKey;
-        try {
-            byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
-            encryptionKey = new SecretKeySpec(decodedKey, "AES");
-        } catch (IllegalArgumentException e) {
-            log.error(
-                    "Invalid encryption key format for user {}: {}", user.getId(), e.getMessage());
-            return ResponseEntity.badRequest().build();
-        }
 
         log.info(
                 "User {} asking AI: {}",
@@ -114,8 +102,7 @@ public class AIController {
                 request.getQuestion().substring(0, Math.min(50, request.getQuestion().length())));
 
         try {
-            AIDto.ChatResponse response =
-                    aiService.askQuestion(user.getId(), request, encryptionKey);
+            AIDto.ChatResponse response = aiService.askQuestion(user.getId(), request);
             return ResponseEntity.ok(response);
         } catch (Exception error) {
             log.error("Error processing AI chat for user {}: {}", user.getId(), error.getMessage());
@@ -126,19 +113,24 @@ public class AIController {
     /**
      * Streams AI response in real-time using Server-Sent Events (SSE).
      *
-     * <p><strong>Recommended for better UX:</strong> Displays response as it's being generated
+     * <p>
+     * <strong>Recommended for better UX:</strong> Displays response as it's being
+     * generated
      * instead of waiting for complete response.
      *
-     * <p><strong>Request Headers:</strong>
+     * <p>
+     * <strong>Request Headers:</strong>
      *
      * <ul>
-     *   <li>{@code Authorization: Bearer {jwt_token}}
-     *   <li>{@code X-Encryption-Key: {base64_encoded_key}}
+     * <li>{@code Authorization: Bearer {jwt_token}}
+     * <li>{@code X-Encryption-Session: {base64_encoded_key}}
      * </ul>
      *
-     * <p><strong>Request Body:</strong> Same as /chat endpoint
+     * <p>
+     * <strong>Request Body:</strong> Same as /chat endpoint
      *
-     * <p><strong>Response:</strong> Server-Sent Events stream with chunks:
+     * <p>
+     * <strong>Response:</strong> Server-Sent Events stream with chunks:
      *
      * <pre>{@code
      * data: Based
@@ -148,29 +140,16 @@ public class AIController {
      * ...
      * }</pre>
      *
-     * @param request Chat request
-     * @param encodedKey Base64-encoded encryption key
+     * @param request        Chat request
      * @param authentication Spring Security authentication
      * @return Flux of response chunks
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> streamChat(
             @Valid @RequestBody AIDto.ChatRequest request,
-            @RequestHeader(ENCRYPTION_KEY_HEADER) String encodedKey,
             Authentication authentication) {
 
         User user = (User) authentication.getPrincipal();
-
-        // Decode encryption key
-        SecretKey encryptionKey;
-        try {
-            byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
-            encryptionKey = new SecretKeySpec(decodedKey, "AES");
-        } catch (IllegalArgumentException e) {
-            log.error(
-                    "Invalid encryption key format for user {}: {}", user.getId(), e.getMessage());
-            return Flux.error(new IllegalArgumentException("Invalid encryption key format"));
-        }
 
         log.info(
                 "User {} streaming AI question: {}",
@@ -178,13 +157,12 @@ public class AIController {
                 request.getQuestion().substring(0, Math.min(50, request.getQuestion().length())));
 
         return aiService
-                .streamQuestion(user.getId(), request, encryptionKey)
+                .streamQuestion(user.getId(), request)
                 .doOnError(
-                        error ->
-                                log.error(
-                                        "Error streaming AI response for user {}: {}",
-                                        user.getId(),
-                                        error.getMessage()));
+                        error -> log.error(
+                                "Error streaming AI response for user {}: {}",
+                                user.getId(),
+                                error.getMessage()));
     }
 
     /**
@@ -193,7 +171,7 @@ public class AIController {
      * <p><strong>Request Headers:</strong>
      *
      * <ul>
-     *   <li>{@code Authorization: Bearer {jwt_token}}
+     * <li>{@code Authorization: Bearer {jwt_token}}
      * </ul>
      *
      * <p><strong>Success Response (HTTP 200 OK):</strong>
@@ -237,7 +215,7 @@ public class AIController {
      * <p><strong>Request Headers:</strong>
      *
      * <ul>
-     *   <li>{@code Authorization: Bearer {jwt_token}}
+     * <li>{@code Authorization: Bearer {jwt_token}}
      * </ul>
      *
      * <p><strong>Success Response (HTTP 200 OK):</strong>
@@ -266,7 +244,7 @@ public class AIController {
      * <p><strong>Error Responses:</strong>
      *
      * <ul>
-     *   <li>{@code 404 Not Found} - Conversation not found or not owned by user
+     * <li>{@code 404 Not Found} - Conversation not found or not owned by user
      * </ul>
      *
      * @param conversationId Conversation ID
@@ -280,28 +258,31 @@ public class AIController {
         User user = (User) authentication.getPrincipal();
         log.debug("Fetching conversation {} for user {}", conversationId, user.getId());
 
-        AIDto.ConversationDetail conversation =
-                aiService.getConversation(user.getId(), conversationId);
+        AIDto.ConversationDetail conversation = aiService.getConversation(user.getId(), conversationId);
         return ResponseEntity.ok(conversation);
     }
 
     /**
      * Deletes a conversation.
      *
-     * <p><strong>Request Headers:</strong>
+     * <p>
+     * <strong>Request Headers:</strong>
      *
      * <ul>
-     *   <li>{@code Authorization: Bearer {jwt_token}}
+     * <li>{@code Authorization: Bearer {jwt_token}}
      * </ul>
      *
-     * <p><strong>Success Response (HTTP 204 No Content):</strong>
+     * <p>
+     * <strong>Success Response (HTTP 204 No Content):</strong>
      *
-     * <p>Empty body, conversation successfully deleted.
+     * <p>
+     * Empty body, conversation successfully deleted.
      *
-     * <p><strong>Error Responses:</strong>
+     * <p>
+     * <strong>Error Responses:</strong>
      *
      * <ul>
-     *   <li>{@code 404 Not Found} - Conversation not found or not owned by user
+     * <li>{@code 404 Not Found} - Conversation not found or not owned by user
      * </ul>
      *
      * @param conversationId Conversation ID to delete
@@ -325,7 +306,7 @@ public class AIController {
      * <p><strong>Request Headers:</strong>
      *
      * <ul>
-     *   <li>{@code Authorization: Bearer {jwt_token}}
+     * <li>{@code Authorization: Bearer {jwt_token}}
      * </ul>
      *
      * <p><strong>Success Response (HTTP 200 OK):</strong>
@@ -336,7 +317,8 @@ public class AIController {
      * }
      * }</pre>
      *
-     * <p>Use this endpoint to check if the AI assistant is operational before sending chat
+     * <p>Use this endpoint to check if the AI assistant is operational before
+     * sending chat
      * requests. Display a warning in UI if unavailable.
      *
      * @return Mono with availability status

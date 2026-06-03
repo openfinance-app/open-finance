@@ -25,7 +25,7 @@ export function useAssets(filters?: AssetFilters) {
   return useQuery<Asset[]>({
     queryKey: ['assets', filters],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -39,7 +39,7 @@ export function useAssets(filters?: AssetFilters) {
 
       const response = await apiClient.get<Asset[]>(url, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -55,7 +55,7 @@ export function useAssetsSearch(filters?: AssetFilters) {
   return useQuery<PaginatedResponse<Asset>>({
     queryKey: ['assets', 'search', filters],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -83,7 +83,7 @@ export function useAssetsSearch(filters?: AssetFilters) {
         `/assets/search?${params.toString()}`,
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );
@@ -101,14 +101,14 @@ export function useAsset(assetId: number | null) {
     queryFn: async () => {
       if (!assetId) throw new Error('Asset ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.get<Asset>(`/assets/${assetId}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -125,14 +125,14 @@ export function useCreateAsset() {
 
   return useMutation<Asset, Error, AssetRequest>({
     mutationFn: async (assetData: AssetRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.post<Asset>('/assets', assetData, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -152,14 +152,14 @@ export function useUpdateAsset() {
 
   return useMutation<Asset, Error, { id: number; data: AssetRequest }>({
     mutationFn: async ({ id, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.put<Asset>(`/assets/${id}`, data, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -180,14 +180,14 @@ export function useDeleteAsset() {
 
   return useMutation<void, Error, number>({
     mutationFn: async (assetId: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       await apiClient.delete(`/assets/${assetId}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
     },

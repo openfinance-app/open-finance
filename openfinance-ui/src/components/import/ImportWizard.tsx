@@ -238,13 +238,13 @@ export function ImportWizard() {
         } catch (err: unknown) {
           // Category already exists — refetch with English names to match QIF category names
           const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-          const encKey = sessionStorage.getItem('encryption_key');
+          const encKey = sessionStorage.getItem('encryption_session');
           const resp = await fetch(
             `${apiClient.defaults.baseURL}/categories`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
-                'X-Encryption-Key': encKey || '',
+                'X-Encryption-Session': encKey || '',
                 'Accept-Language': 'en',
               },
             }

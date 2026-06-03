@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,7 +53,6 @@ import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.PayeeRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
-import org.openfinance.security.EncryptionService;
 import org.openfinance.service.parser.CsvParser;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
@@ -105,15 +103,11 @@ class ImportServiceSkroogeJsonTest {
         @Mock
         private MessageSource messageSource;
         @Mock
-        private EncryptionService encryptionService;
-        @Mock
         private InstitutionRepository institutionRepository;
         @Mock
         private PayeeRepository payeeRepository;
         @Mock
         private CurrencyRepository currencyRepository;
-        @Mock
-        private SecretKey encryptionKey;
 
         private ImportService importService;
         private ObjectMapper objectMapper;
@@ -143,7 +137,6 @@ class ImportServiceSkroogeJsonTest {
                                 netWorthRepository,
                                 aiCategorizationService,
                                 messageSource,
-                                encryptionService,
                                 institutionRepository,
                                 currencyRepository,
                                 payeeRepository);
@@ -252,7 +245,7 @@ class ImportServiceSkroogeJsonTest {
                 when(institutionRepository.findAll()).thenReturn(List.of());
                 when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
                 when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
-                when(accountService.createAccount(eq(USER_ID), any(), eq(encryptionKey)))
+                when(accountService.createAccount(eq(USER_ID), any()))
                                 .thenReturn(
                                                 AccountResponse.builder().id(101L).build(),
                                                 AccountResponse.builder().id(102L).build());
@@ -276,18 +269,18 @@ class ImportServiceSkroogeJsonTest {
                                                         return transaction;
                                                 });
 
-                ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true, encryptionKey);
+                ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true);
 
                 assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
                 assertThat(result.getImportedCount()).isEqualTo(2);
                 assertThat(result.getSkippedCount()).isZero();
                 verify(institutionRepository, times(1)).save(any(Institution.class));
-                verify(accountService, times(2)).createAccount(eq(USER_ID), any(), eq(encryptionKey));
+                verify(accountService, times(2)).createAccount(eq(USER_ID), any());
                 verify(categoryRepository, times(2)).save(any(Category.class));
                 verify(transactionRepository, times(1)).save(any(Transaction.class));
-                verify(transactionSplitService, times(1)).saveSplits(anyLong(), any(), eq(encryptionKey));
+                verify(transactionSplitService, times(1)).saveSplits(anyLong(), any());
                 verify(transactionService, times(1))
-                                .createTransfer(eq(USER_ID), any(TransactionRequest.class), eq(encryptionKey));
+                                .createTransfer(eq(USER_ID), any(TransactionRequest.class));
                 verify(transactionService, times(1))
                                 .syncTransactionFts(
                                                 any(Transaction.class), eq("Local Market"), eq("Weekly groceries"));
@@ -349,7 +342,7 @@ class ImportServiceSkroogeJsonTest {
                                 .thenAnswer(invocation -> invocation.getArgument(0));
                 when(institutionRepository.findAll()).thenReturn(List.of());
                 when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
-                when(accountService.createAccount(eq(USER_ID), any(), eq(encryptionKey)))
+                when(accountService.createAccount(eq(USER_ID), any()))
                                 .thenReturn(AccountResponse.builder().id(103L).build());
                 when(accountRepository.findById(103L)).thenReturn(Optional.of(walletAccount));
                 when(categoryRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
@@ -361,11 +354,11 @@ class ImportServiceSkroogeJsonTest {
                                                         return saved;
                                                 });
 
-                ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true, encryptionKey);
+                ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true);
 
                 ArgumentCaptor<AccountRequest> accountRequestCaptor = ArgumentCaptor.forClass(AccountRequest.class);
                 verify(accountService)
-                                .createAccount(eq(USER_ID), accountRequestCaptor.capture(), eq(encryptionKey));
+                                .createAccount(eq(USER_ID), accountRequestCaptor.capture());
                 assertThat(accountRequestCaptor.getValue().getInstitutionId()).isNull();
                 verify(institutionRepository, times(0)).save(any(Institution.class));
                 assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
@@ -407,7 +400,7 @@ class ImportServiceSkroogeJsonTest {
                 when(institutionRepository.findAll()).thenReturn(List.of());
                 when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
                 when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
-                when(accountService.createAccount(eq(USER_ID), any(), eq(encryptionKey)))
+                when(accountService.createAccount(eq(USER_ID), any()))
                                 .thenReturn(
                                                 AccountResponse.builder().id(101L).build(),
                                                 AccountResponse.builder().id(102L).build());
@@ -432,7 +425,7 @@ class ImportServiceSkroogeJsonTest {
                                                         return saved;
                                                 });
 
-                ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true, encryptionKey);
+                ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true);
 
                 ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
                 verify(transactionRepository).save(transactionCaptor.capture());
@@ -477,7 +470,7 @@ class ImportServiceSkroogeJsonTest {
                 when(institutionRepository.findAll()).thenReturn(List.of());
                 when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
                 when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
-                when(accountService.createAccount(eq(USER_ID), any(), eq(encryptionKey)))
+                when(accountService.createAccount(eq(USER_ID), any()))
                                 .thenReturn(
                                                 AccountResponse.builder().id(101L).build(),
                                                 AccountResponse.builder().id(102L).build());
@@ -495,7 +488,7 @@ class ImportServiceSkroogeJsonTest {
                                                                                 .build()));
                 when(categoryRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
 
-                ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true, encryptionKey);
+                ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true);
 
                 verify(transactionRepository, times(0)).save(any(Transaction.class));
                 assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);

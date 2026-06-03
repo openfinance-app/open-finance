@@ -70,7 +70,7 @@ describe('useAccounts hooks', () => {
 
       expect(mockedApiClient.get).toHaveBeenCalledWith('/accounts', {
         params: { filter: 'active' },
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
       expect(result.current.data).toEqual([mockAccount]);
     });
@@ -84,7 +84,7 @@ describe('useAccounts hooks', () => {
 
       expect(mockedApiClient.get).toHaveBeenCalledWith('/accounts', {
         params: { filter: 'all' },
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
 
@@ -140,7 +140,7 @@ describe('useAccounts hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockedApiClient.get).toHaveBeenCalledWith('/accounts/1', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
       expect(result.current.data).toEqual(mockAccount);
     });
@@ -167,7 +167,7 @@ describe('useAccounts hooks', () => {
 
       expect(mockedApiClient.get).toHaveBeenCalledWith('/accounts/1/balance-history', {
         params: { period: '3M' },
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
 
@@ -197,7 +197,7 @@ describe('useAccounts hooks', () => {
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/accounts',
         expect.any(Object),
-        { headers: { 'X-Encryption-Key': 'test-encryption-key' } }
+        { headers: { 'X-Encryption-Session': 'test-encryption-key' } }
       );
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['accounts'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['dashboard'] });
@@ -220,7 +220,7 @@ describe('useAccounts hooks', () => {
       expect(mockedApiClient.put).toHaveBeenCalledWith(
         '/accounts/1',
         expect.any(Object),
-        { headers: { 'X-Encryption-Key': 'test-encryption-key' } }
+        { headers: { 'X-Encryption-Session': 'test-encryption-key' } }
       );
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['accounts', 1] });
     });
@@ -239,7 +239,7 @@ describe('useAccounts hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockedApiClient.delete).toHaveBeenCalledWith('/accounts/1', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['accounts'] });
     });
@@ -289,7 +289,7 @@ describe('useAccounts hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockedApiClient.delete).toHaveBeenCalledWith('/accounts/1/permanent', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
 
@@ -319,7 +319,7 @@ describe('useAccounts hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockedApiClient.get).toHaveBeenCalledWith('/accounts/1/interest-variations', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
 
@@ -363,7 +363,7 @@ describe('useAccounts hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockedApiClient.delete).toHaveBeenCalledWith('/accounts/1/interest-variations/5', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['accounts', 1, 'interest-variations'] });
     });
@@ -381,7 +381,7 @@ describe('useAccounts hooks', () => {
 
       expect(mockedApiClient.get).toHaveBeenCalledWith('/accounts/1/interest-estimate', {
         params: { period: '1Y' },
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
       expect(result.current.data).toEqual(mockEstimate);
     });

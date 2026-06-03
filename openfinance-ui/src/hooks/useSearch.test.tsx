@@ -76,7 +76,7 @@ describe('useSearch hooks', () => {
       expect(result.current.data).toEqual(mockSearchResponse);
       expect(mockedApiClient.get).toHaveBeenCalledWith('/search', {
         params: { q: 'test', limit: 50 },
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
 
@@ -99,7 +99,7 @@ describe('useSearch hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(mockedApiClient.get).toHaveBeenCalledWith('/search', {
         params: { q: 'test', limit: 10 },
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
 
@@ -142,7 +142,7 @@ describe('useSearch hooks', () => {
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/search/advanced',
         { query: 'rent', entityTypes: ['TRANSACTION'], minAmount: 500 },
-        { headers: { 'X-Encryption-Key': 'test-encryption-key' } },
+        { headers: { 'X-Encryption-Session': 'test-encryption-key' } },
       );
     });
 

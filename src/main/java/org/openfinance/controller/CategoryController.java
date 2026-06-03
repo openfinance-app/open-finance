@@ -40,7 +40,7 @@ import org.springframework.web.bind.annotation.*;
  *
  * <ul>
  *   <li>All endpoints require JWT authentication
- *   <li>Encryption key must be provided via X-Encryption-Key header
+ *   <li>Encryption key must be provided via X-Encryption-Session header
  *   <li>Users can only access their own categories
  *   <li>Category names are encrypted at rest
  *   <li>System categories (default categories) cannot be deleted
@@ -65,9 +65,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 public class CategoryController {
-
-    private static final String ENCRYPTION_KEY_HEADER = "X-Encryption-Key";
-
     private final CategoryService categoryService;
 
     /**
@@ -79,7 +76,7 @@ public class CategoryController {
      * <p><strong>Request Headers:</strong>
      * <ul>
      *   <li>Authorization: Bearer {jwt_token}</li>
-     *   <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>X-Encryption-Session: {base64_encoded_key}</li>
      * </ul>
      *
      * <p><strong>Request Body:</strong>
@@ -109,7 +106,7 @@ public class CategoryController {
      * <p><strong>Request Headers:</strong>
      * <ul>
      *   <li>Authorization: Bearer {jwt_token}</li>
-     *   <li>X-Encryption-Key: {base64_encoded_key}</li>
+     *   <li>X-Encryption-Session: {base64_encoded_key}</li>
      * </ul>
      *
      * <p>Requirement REQ-2.4.2: Create user category</p>
@@ -122,20 +119,12 @@ public class CategoryController {
     @PostMapping
     public ResponseEntity<CategoryResponse> createCategory(
             @Valid @RequestBody CategoryRequest request,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info("Creating new category for user");
-
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
-
         CategoryResponse response =
-                categoryService.createCategory(user.getId(), request, encryptionKey);
+                categoryService.createCategory(user.getId(), request);
 
         log.info(
                 "Category created successfully: id={}, name={}",
@@ -149,7 +138,7 @@ public class CategoryController {
      * Retrieves all categories for the authenticated user.
      *
      * <p>Returns both system-provided categories and the user's custom categories. If the {@code
-     * X-Encryption-Key} header is missing, only system categories will be returned.
+     * X-Encryption-Session} header is missing, only system categories will be returned.
      *
      * @param type optional category type filter (INCOME or EXPENSE)
      * @param encodedKey Base64-encoded encryption key from header
@@ -159,24 +148,18 @@ public class CategoryController {
     @GetMapping
     public ResponseEntity<List<CategoryResponse>> getCategories(
             @RequestParam(required = false) CategoryType type,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.debug("REST request to get all categories for current user. Type filter: {}", type);
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey =
-                (encodedKey != null && !encodedKey.trim().isEmpty())
-                        ? EncryptionUtil.decodeEncryptionKey(encodedKey)
-                        : null;
-
         List<CategoryResponse> categories;
         Locale locale = LocaleContextHolder.getLocale();
 
         if (type != null) {
             categories =
-                    categoryService.getCategoriesByType(user.getId(), type, encryptionKey, locale);
+                    categoryService.getCategoriesByType(user.getId(), type, locale);
         } else {
-            categories = categoryService.getAllCategories(user.getId(), encryptionKey, locale);
+            categories = categoryService.getAllCategories(user.getId(), locale);
         }
 
         return ResponseEntity.ok(categories);
@@ -191,19 +174,13 @@ public class CategoryController {
      */
     @GetMapping("/tree")
     public ResponseEntity<List<CategoryTreeNode>> getCategoryTree(
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.debug("REST request to get category tree for current user");
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey =
-                (encodedKey != null && !encodedKey.trim().isEmpty())
-                        ? EncryptionUtil.decodeEncryptionKey(encodedKey)
-                        : null;
-
         return ResponseEntity.ok(
                 categoryService.getCategoryTree(
-                        user.getId(), encryptionKey, LocaleContextHolder.getLocale()));
+                        user.getId(), LocaleContextHolder.getLocale()));
     }
 
     /**
@@ -217,19 +194,13 @@ public class CategoryController {
     @GetMapping("/{id}")
     public ResponseEntity<CategoryResponse> getCategoryById(
             @PathVariable("id") Long id,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.debug("REST request to get category : {}", id);
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey =
-                (encodedKey != null && !encodedKey.trim().isEmpty())
-                        ? EncryptionUtil.decodeEncryptionKey(encodedKey)
-                        : null;
-
         CategoryResponse response =
                 categoryService.getCategoryById(
-                        user.getId(), id, encryptionKey, LocaleContextHolder.getLocale());
+                        user.getId(), id, LocaleContextHolder.getLocale());
 
         return ResponseEntity.ok(response);
     }
@@ -247,20 +218,12 @@ public class CategoryController {
     public ResponseEntity<CategoryResponse> updateCategory(
             @PathVariable("id") Long categoryId,
             @Valid @RequestBody CategoryRequest request,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info("Updating category: id={}", categoryId);
-
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
-
         CategoryResponse response =
-                categoryService.updateCategory(user.getId(), categoryId, request, encryptionKey);
+                categoryService.updateCategory(user.getId(), categoryId, request);
 
         log.info("Category updated successfully: id={}", categoryId);
 
@@ -277,19 +240,11 @@ public class CategoryController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(
             @PathVariable("id") Long categoryId,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info("Deleting category: id={}", categoryId);
-
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
-
-        categoryService.deleteCategory(user.getId(), categoryId, encryptionKey);
+        categoryService.deleteCategory(user.getId(), categoryId);
 
         log.info("Category deleted successfully: id={}", categoryId);
 

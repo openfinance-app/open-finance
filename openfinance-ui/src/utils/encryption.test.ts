@@ -12,7 +12,7 @@ describe('encryption utils', () => {
     });
 
     it('returns stored key', () => {
-      sessionStorage.setItem('encryption_key', 'test-key-123');
+      sessionStorage.setItem('encryption_session', 'test-key-123');
       expect(getEncryptionKey()).toBe('test-key-123');
     });
   });
@@ -20,21 +20,21 @@ describe('encryption utils', () => {
   describe('setEncryptionKey', () => {
     it('stores the key in sessionStorage', () => {
       setEncryptionKey('my-secret-key');
-      expect(sessionStorage.getItem('encryption_key')).toBe('my-secret-key');
+      expect(sessionStorage.getItem('encryption_session')).toBe('my-secret-key');
     });
 
     it('overwrites existing key', () => {
       setEncryptionKey('old-key');
       setEncryptionKey('new-key');
-      expect(sessionStorage.getItem('encryption_key')).toBe('new-key');
+      expect(sessionStorage.getItem('encryption_session')).toBe('new-key');
     });
   });
 
   describe('clearEncryptionKey', () => {
     it('removes the key from sessionStorage', () => {
-      sessionStorage.setItem('encryption_key', 'test-key');
+      sessionStorage.setItem('encryption_session', 'test-key');
       clearEncryptionKey();
-      expect(sessionStorage.getItem('encryption_key')).toBeNull();
+      expect(sessionStorage.getItem('encryption_session')).toBeNull();
     });
 
     it('does not throw when no key exists', () => {

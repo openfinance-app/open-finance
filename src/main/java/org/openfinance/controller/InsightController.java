@@ -43,7 +43,7 @@ import org.springframework.web.bind.annotation.*;
  *
  * <ul>
  *   <li>All endpoints require JWT authentication
- *   <li>Encryption key required for generate endpoint (X-Encryption-Key header)
+ *   <li>Encryption key required for generate endpoint (X-Encryption-Session header)
  *   <li>Users can only access their own insights
  *   <li>Authorization checks prevent cross-user access
  * </ul>
@@ -67,9 +67,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 public class InsightController {
-
-    private static final String ENCRYPTION_KEY_HEADER = "X-Encryption-Key";
-
     private final InsightService insightService;
 
     /**
@@ -87,7 +84,7 @@ public class InsightController {
      *
      * <ul>
      *   <li>Authorization: Bearer {jwt_token}
-     *   <li>X-Encryption-Key: {base64_encoded_key}
+     *   <li>X-Encryption-Session: {base64_encoded_key}
      * </ul>
      *
      * <p><strong>Success Response (HTTP 201 Created):</strong>
@@ -124,20 +121,12 @@ public class InsightController {
      */
     @PostMapping("/generate")
     public ResponseEntity<List<InsightResponse>> generateInsights(
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info("Generating insights for user");
-
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
-
         List<InsightResponse> insights =
-                insightService.generateInsights(user.getId(), encryptionKey);
+                insightService.generateInsights(user.getId());
 
         log.info("Generated {} insights for user {}", insights.size(), user.getId());
 

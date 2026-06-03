@@ -5,14 +5,18 @@ import java.time.LocalDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.openfinance.converter.EncryptedStringConverter;
 
 /**
  * Entity representing an AI conversation session with message history.
  *
- * <p>Stores conversation messages as JSON text for flexibility in message structure. Each
+ * <p>
+ * Stores conversation messages as JSON text for flexibility in message
+ * structure. Each
  * conversation belongs to a single user and tracks creation/update timestamps.
  *
- * <p><strong>Message Format (JSON):</strong>
+ * <p>
+ * <strong>Message Format (JSON):</strong>
  *
  * <pre>{@code
  * [
@@ -24,12 +28,10 @@ import org.hibernate.annotations.UpdateTimestamp;
  * @since Sprint 11 - AI Assistant Integration
  */
 @Entity
-@Table(
-        name = "ai_conversations",
-        indexes = {
-            @Index(name = "idx_ai_conversation_user_id", columnList = "user_id"),
-            @Index(name = "idx_ai_conversation_created_at", columnList = "created_at DESC")
-        })
+@Table(name = "ai_conversations", indexes = {
+        @Index(name = "idx_ai_conversation_user_id", columnList = "user_id"),
+        @Index(name = "idx_ai_conversation_created_at", columnList = "created_at DESC")
+})
 @Getter
 @Setter
 @Builder
@@ -45,7 +47,8 @@ public class AIConversation {
     /**
      * The user who owns this conversation.
      *
-     * <p>Required field. Conversation is deleted when user is deleted (cascade).
+     * <p>
+     * Required field. Conversation is deleted when user is deleted (cascade).
      */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
@@ -54,10 +57,13 @@ public class AIConversation {
     /**
      * Message history stored as JSON array.
      *
-     * <p>Each message contains: role (user/assistant), content, timestamp. Stored as TEXT to
+     * <p>
+     * Each message contains: role (user/assistant), content, timestamp. Stored as
+     * TEXT to
      * support large conversation histories.
      *
-     * <p><strong>Format:</strong>
+     * <p>
+     * <strong>Format:</strong>
      *
      * <pre>{@code
      * [
@@ -67,10 +73,12 @@ public class AIConversation {
      * }</pre>
      */
     @Column(name = "messages", nullable = false, columnDefinition = "TEXT")
+    @Convert(converter = EncryptedStringConverter.class)
     private String messages;
 
     /** Optional conversation title (auto-generated from first question). */
-    @Column(name = "title", length = 200)
+    @Column(name = "title", length = 512)
+    @Convert(converter = EncryptedStringConverter.class)
     private String title;
 
     /** Timestamp when the conversation was created. */

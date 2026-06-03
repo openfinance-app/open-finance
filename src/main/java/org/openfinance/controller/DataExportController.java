@@ -1,9 +1,6 @@
 package org.openfinance.controller;
 
 import jakarta.validation.Valid;
-import java.util.Base64;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.DataExportRequest;
@@ -18,12 +15,16 @@ import org.springframework.web.bind.annotation.*;
 /**
  * REST controller for data export operations.
  *
- * <p>Provides endpoints for backing up user financial data in JSON or CSV format.
+ * <p>
+ * Provides endpoints for backing up user financial data in JSON or CSV format.
  *
- * <p><strong>Note:</strong> Import functionality is intentionally not implemented. Exported data is
+ * <p>
+ * <strong>Note:</strong> Import functionality is intentionally not implemented.
+ * Exported data is
  * intended for backup, archival, and external analysis purposes only.
  *
- * <p>Requirement: REQ-3.4 - Data Export and Backup
+ * <p>
+ * Requirement: REQ-3.4 - Data Export and Backup
  *
  * @author Open Finance Development Team
  */
@@ -38,13 +39,14 @@ public class DataExportController {
     /**
      * Export all user data.
      *
-     * <p><b>Example Request:</b>
+     * <p>
+     * <b>Example Request:</b>
      *
      * <pre>
      * POST /api/v1/data/export
      * Headers:
      *   Authorization: Bearer {jwt-token}
-     *   X-Encryption-Key: {base64-encoded-key}
+     *   X-Encryption-Session: {base64-encoded-key}
      *
      * Body:
      * {
@@ -62,7 +64,8 @@ public class DataExportController {
      * }
      * </pre>
      *
-     * <p><b>Example Response:</b>
+     * <p>
+     * <b>Example Response:</b>
      *
      * <pre>
      * {
@@ -83,16 +86,14 @@ public class DataExportController {
      * }
      * </pre>
      *
-     * @param request Export request with format and inclusion options
+     * @param request        Export request with format and inclusion options
      * @param authentication Spring Security authentication
-     * @param encryptionKeyHeader Base64-encoded encryption key
      * @return Export response with metadata
      */
     @PostMapping("/export")
     public ResponseEntity<DataExportResponse> exportData(
             @Valid @RequestBody DataExportRequest request,
-            Authentication authentication,
-            @RequestHeader("X-Encryption-Key") String encryptionKeyHeader) {
+            Authentication authentication) {
 
         log.info("Export data request received for format: {}", request.getFormat());
 
@@ -100,18 +101,8 @@ public class DataExportController {
         User user = (User) authentication.getPrincipal();
         Long userId = user.getId();
 
-        // Decode encryption key
-        SecretKey secretKey;
-        try {
-            byte[] keyBytes = Base64.getDecoder().decode(encryptionKeyHeader);
-            secretKey = new SecretKeySpec(keyBytes, "AES");
-        } catch (Exception e) {
-            log.error("Failed to decode encryption key", e);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
         // Perform export
-        DataExportResponse response = dataExportService.exportUserData(userId, request, secretKey);
+        DataExportResponse response = dataExportService.exportUserData(userId, request);
 
         log.info("Export completed for user {}. Export ID: {}", userId, response.getExportId());
 
@@ -121,7 +112,9 @@ public class DataExportController {
     /**
      * Get export statistics for user.
      *
-     * <p>Returns information about the user's exportable data without actually performing the
+     * <p>
+     * Returns information about the user's exportable data without actually
+     * performing the
      * export.
      *
      * @param authentication Spring Security authentication

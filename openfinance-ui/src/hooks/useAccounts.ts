@@ -32,7 +32,7 @@ export function useAccounts(filter: 'all' | 'active' | 'closed' = 'active') {
   return useQuery<Account[]>({
     queryKey: ['accounts', filter],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -40,7 +40,7 @@ export function useAccounts(filter: 'all' | 'active' | 'closed' = 'active') {
       const response = await apiClient.get<Account[]>('/accounts', {
         params: { filter },
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -57,7 +57,7 @@ export function useAccountsSearch(filters?: AccountFilters) {
   return useQuery<PaginatedResponse<Account>>({
     queryKey: ['accounts', 'search', filters],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -84,7 +84,7 @@ export function useAccountsSearch(filters?: AccountFilters) {
         `/accounts/search?${params.toString()}`,
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );
@@ -102,14 +102,14 @@ export function useAccount(accountId: number | null) {
     queryFn: async () => {
       if (!accountId) throw new Error('Account ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.get<Account>(`/accounts/${accountId}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -129,7 +129,7 @@ export function useAccountBalanceHistory(accountId: number | null, period: strin
     queryFn: async () => {
       if (!accountId) throw new Error('Account ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -137,7 +137,7 @@ export function useAccountBalanceHistory(accountId: number | null, period: strin
       const response = await apiClient.get<BalanceHistoryPoint[]>(`/accounts/${accountId}/balance-history`, {
         params: { period },
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -154,14 +154,14 @@ export function useCreateAccount() {
 
   return useMutation<Account, Error, AccountRequest>({
     mutationFn: async (accountData: AccountRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.post<Account>('/accounts', accountData, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -183,14 +183,14 @@ export function useUpdateAccount() {
 
   return useMutation<Account, Error, { id: number; data: AccountRequest }>({
     mutationFn: async ({ id, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.put<Account>(`/accounts/${id}`, data, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -213,14 +213,14 @@ export function useDeleteAccount() {
 
   return useMutation<void, Error, number>({
     mutationFn: async (accountId: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       await apiClient.delete(`/accounts/${accountId}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
     },
@@ -282,14 +282,14 @@ export function usePermanentDeleteAccount() {
 
   return useMutation<void, Error, number>({
     mutationFn: async (accountId: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       await apiClient.delete(`/accounts/${accountId}/permanent`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
     },
@@ -311,14 +311,14 @@ export function useInterestRateVariations(accountId: number | null) {
     queryFn: async () => {
       if (!accountId) throw new Error('Account ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.get<InterestRateVariation[]>(`/accounts/${accountId}/interest-variations`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -335,14 +335,14 @@ export function useCreateVariation() {
 
   return useMutation<InterestRateVariation, Error, { accountId: number; data: InterestRateVariationRequest }>({
     mutationFn: async ({ accountId, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.post<InterestRateVariation>(`/accounts/${accountId}/interest-variations`, data, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -362,14 +362,14 @@ export function useDeleteVariation() {
 
   return useMutation<void, Error, { accountId: number; variationId: number }>({
     mutationFn: async ({ accountId, variationId }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       await apiClient.delete(`/accounts/${accountId}/interest-variations/${variationId}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
     },
@@ -390,7 +390,7 @@ export function useInterestEstimate(accountId: number | null, period: string = '
     queryFn: async () => {
       if (!accountId) throw new Error('Account ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -400,7 +400,7 @@ export function useInterestEstimate(accountId: number | null, period: string = '
         {
           params: { period },
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );

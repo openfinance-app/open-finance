@@ -27,11 +27,11 @@ const mockSession = {
 describe('importService', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        sessionStorage.setItem('encryption_key', MOCK_ENCRYPTION_KEY);
+        sessionStorage.setItem('encryption_session', MOCK_ENCRYPTION_KEY);
     });
 
     afterEach(() => {
-        sessionStorage.removeItem('encryption_key');
+        sessionStorage.removeItem('encryption_session');
     });
 
     describe('startImport', () => {
@@ -45,14 +45,14 @@ describe('importService', () => {
                 '/import/process',
                 request,
                 expect.objectContaining({
-                    headers: expect.objectContaining({ 'X-Encryption-Key': MOCK_ENCRYPTION_KEY }),
+                    headers: expect.objectContaining({ 'X-Encryption-Session': MOCK_ENCRYPTION_KEY }),
                 })
             );
             expect(result).toEqual(mockSession);
         });
 
         it('should throw when encryption key is missing', async () => {
-            sessionStorage.removeItem('encryption_key');
+            sessionStorage.removeItem('encryption_session');
 
             await expect(importService.startImport({} as any)).rejects.toThrow(
                 'Encryption key not found'
@@ -69,14 +69,14 @@ describe('importService', () => {
             expect(mockApiClient.get).toHaveBeenCalledWith(
                 '/import/sessions/1',
                 expect.objectContaining({
-                    headers: expect.objectContaining({ 'X-Encryption-Key': MOCK_ENCRYPTION_KEY }),
+                    headers: expect.objectContaining({ 'X-Encryption-Session': MOCK_ENCRYPTION_KEY }),
                 })
             );
             expect(result).toEqual(mockSession);
         });
 
         it('should throw when encryption key is missing', async () => {
-            sessionStorage.removeItem('encryption_key');
+            sessionStorage.removeItem('encryption_session');
 
             await expect(importService.getSession(1)).rejects.toThrow(
                 'Encryption key not found'
@@ -94,7 +94,7 @@ describe('importService', () => {
             expect(mockApiClient.get).toHaveBeenCalledWith(
                 '/import/sessions/1/review',
                 expect.objectContaining({
-                    headers: expect.objectContaining({ 'X-Encryption-Key': MOCK_ENCRYPTION_KEY }),
+                    headers: expect.objectContaining({ 'X-Encryption-Session': MOCK_ENCRYPTION_KEY }),
                     timeout: 600000,
                 })
             );
@@ -102,7 +102,7 @@ describe('importService', () => {
         });
 
         it('should throw when encryption key is missing', async () => {
-            sessionStorage.removeItem('encryption_key');
+            sessionStorage.removeItem('encryption_session');
 
             await expect(importService.getTransactions(1)).rejects.toThrow(
                 'Encryption key not found'
@@ -121,14 +121,14 @@ describe('importService', () => {
                 '/import/sessions/1/confirm',
                 confirmData,
                 expect.objectContaining({
-                    headers: expect.objectContaining({ 'X-Encryption-Key': MOCK_ENCRYPTION_KEY }),
+                    headers: expect.objectContaining({ 'X-Encryption-Session': MOCK_ENCRYPTION_KEY }),
                 })
             );
             expect(result).toEqual(mockSession);
         });
 
         it('should throw when encryption key is missing', async () => {
-            sessionStorage.removeItem('encryption_key');
+            sessionStorage.removeItem('encryption_session');
 
             await expect(importService.confirmImport(1, {} as any)).rejects.toThrow(
                 'Encryption key not found'
@@ -146,14 +146,14 @@ describe('importService', () => {
                 '/import/sessions/1/cancel',
                 {},
                 expect.objectContaining({
-                    headers: expect.objectContaining({ 'X-Encryption-Key': MOCK_ENCRYPTION_KEY }),
+                    headers: expect.objectContaining({ 'X-Encryption-Session': MOCK_ENCRYPTION_KEY }),
                 })
             );
             expect(result).toEqual(mockSession);
         });
 
         it('should throw when encryption key is missing', async () => {
-            sessionStorage.removeItem('encryption_key');
+            sessionStorage.removeItem('encryption_session');
 
             await expect(importService.cancelImport(1)).rejects.toThrow(
                 'Encryption key not found'
@@ -170,14 +170,14 @@ describe('importService', () => {
             expect(mockApiClient.get).toHaveBeenCalledWith(
                 '/import/sessions',
                 expect.objectContaining({
-                    headers: expect.objectContaining({ 'X-Encryption-Key': MOCK_ENCRYPTION_KEY }),
+                    headers: expect.objectContaining({ 'X-Encryption-Session': MOCK_ENCRYPTION_KEY }),
                 })
             );
             expect(result).toEqual([mockSession]);
         });
 
         it('should throw when encryption key is missing', async () => {
-            sessionStorage.removeItem('encryption_key');
+            sessionStorage.removeItem('encryption_session');
 
             await expect(importService.listSessions()).rejects.toThrow(
                 'Encryption key not found'

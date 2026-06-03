@@ -24,7 +24,7 @@ function createWrapper() {
 describe('useFinanceNews', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    sessionStorage.setItem('encryption_key', 'test-key');
+    sessionStorage.setItem('encryption_session', 'test-key');
   });
 
   it('fetches finance news from API', async () => {

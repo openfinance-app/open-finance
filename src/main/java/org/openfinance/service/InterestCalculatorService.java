@@ -42,11 +42,11 @@ public class InterestCalculatorService {
      */
     @Transactional(readOnly = true)
     public BigDecimal calculateInterestEstimate(
-            Long accountId, Long userId, String period, SecretKey encryptionKey) {
+            Long accountId, Long userId, String period) {
         log.debug(
                 "Calculating interest projection for account {} over period {}", accountId, period);
 
-        AccountResponse account = accountService.getAccountById(accountId, userId, encryptionKey);
+        AccountResponse account = accountService.getAccountById(accountId, userId);
         if (!Boolean.TRUE.equals(account.getIsInterestEnabled())) return BigDecimal.ZERO;
 
         InterestPeriod interestPeriodType = account.getInterestPeriod();
@@ -96,10 +96,10 @@ public class InterestCalculatorService {
      */
     @Transactional(readOnly = true)
     public BigDecimal calculateHistoricalAccumulated(
-            Long accountId, Long userId, String period, SecretKey encryptionKey) {
+            Long accountId, Long userId, String period) {
         log.debug("Calculating historical accumulated interest for account {}", accountId);
 
-        AccountResponse account = accountService.getAccountById(accountId, userId, encryptionKey);
+        AccountResponse account = accountService.getAccountById(accountId, userId);
         if (!Boolean.TRUE.equals(account.getIsInterestEnabled())) return BigDecimal.ZERO;
 
         List<InterestRateVariation> variations =
@@ -107,7 +107,7 @@ public class InterestCalculatorService {
         if (variations.isEmpty()) return BigDecimal.ZERO;
 
         List<BalanceHistoryPoint> history =
-                accountService.getAccountBalanceHistory(accountId, userId, period, encryptionKey);
+                accountService.getAccountBalanceHistory(accountId, userId, period);
         if (history.isEmpty()) return BigDecimal.ZERO;
 
         TreeMap<LocalDate, BigDecimal> dailyBalances = expandToDailyBalances(history);

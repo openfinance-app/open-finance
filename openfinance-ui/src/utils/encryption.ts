@@ -8,7 +8,7 @@
  */
 export function getEncryptionKey(): string | null {
   if (typeof window === 'undefined') return null;
-  return sessionStorage.getItem('encryption_key');
+  return sessionStorage.getItem('encryption_session');
 }
 
 /**
@@ -16,7 +16,7 @@ export function getEncryptionKey(): string | null {
  */
 export function setEncryptionKey(key: string): void {
   if (typeof window === 'undefined') return;
-  sessionStorage.setItem('encryption_key', key);
+  sessionStorage.setItem('encryption_session', key);
 }
 
 /**
@@ -24,5 +24,5 @@ export function setEncryptionKey(key: string): void {
  */
 export function clearEncryptionKey(): void {
   if (typeof window === 'undefined') return;
-  sessionStorage.removeItem('encryption_key');
+  sessionStorage.removeItem('encryption_session');
 }

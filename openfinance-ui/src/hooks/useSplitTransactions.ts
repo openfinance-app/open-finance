@@ -22,7 +22,7 @@ export function useSplitTransactions(transactionId: number | null) {
     queryFn: async () => {
       if (transactionId === null) throw new Error('Transaction ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -31,7 +31,7 @@ export function useSplitTransactions(transactionId: number | null) {
         `/transactions/${transactionId}/splits`,
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         },
       );

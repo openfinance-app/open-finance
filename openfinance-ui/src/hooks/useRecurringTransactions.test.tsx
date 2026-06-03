@@ -84,7 +84,7 @@ describe('useRecurringTransactions hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual([mockRecurringTransaction]);
       expect(mockedApiClient.get).toHaveBeenCalledWith('/recurring-transactions', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
 
@@ -196,7 +196,7 @@ describe('useRecurringTransactions hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual([dueTransaction]);
       expect(mockedApiClient.get).toHaveBeenCalledWith('/recurring-transactions/due', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
   });
@@ -211,7 +211,7 @@ describe('useRecurringTransactions hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockRecurringTransaction);
       expect(mockedApiClient.get).toHaveBeenCalledWith('/recurring-transactions/1', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
 
@@ -315,7 +315,7 @@ describe('useRecurringTransactions hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(mockedApiClient.delete).toHaveBeenCalledWith('/recurring-transactions/1', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
 
@@ -352,7 +352,7 @@ describe('useRecurringTransactions hooks', () => {
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/recurring-transactions/1/pause',
         {},
-        { headers: { 'X-Encryption-Key': 'test-encryption-key' } },
+        { headers: { 'X-Encryption-Session': 'test-encryption-key' } },
       );
     });
   });
@@ -374,7 +374,7 @@ describe('useRecurringTransactions hooks', () => {
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/recurring-transactions/1/resume',
         {},
-        { headers: { 'X-Encryption-Key': 'test-encryption-key' } },
+        { headers: { 'X-Encryption-Session': 'test-encryption-key' } },
       );
     });
   });

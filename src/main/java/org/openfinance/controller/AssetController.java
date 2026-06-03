@@ -54,7 +54,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <ul>
  *   <li>All endpoints require JWT authentication
- *   <li>Encryption key must be provided via X-Encryption-Key header
+ *   <li>Encryption key must be provided via X-Encryption-Session header
  *   <li>Users can only access their own assets
  *   <li>Asset name and notes are encrypted at rest
  * </ul>
@@ -76,9 +76,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Slf4j
 public class AssetController {
-
-    private static final String ENCRYPTION_KEY_HEADER = "X-Encryption-Key";
-
     private final AssetService assetService;
 
     /**
@@ -88,7 +85,7 @@ public class AssetController {
      *
      * <ul>
      *   <li>Authorization: Bearer {jwt_token}
-     *   <li>X-Encryption-Key: {base64_encoded_key}
+     *   <li>X-Encryption-Session: {base64_encoded_key}
      * </ul>
      *
      * <p><strong>Request Body:</strong>
@@ -148,22 +145,14 @@ public class AssetController {
     @PostMapping
     public ResponseEntity<AssetResponse> createAsset(
             @Valid @RequestBody AssetRequest request,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info(
                 "Creating asset for user: type={}, symbol={}",
                 request.getType(),
                 request.getSymbol());
-
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
-
-        AssetResponse response = assetService.createAsset(user.getId(), request, encryptionKey);
+        AssetResponse response = assetService.createAsset(user.getId(), request);
         log.info(
                 "Asset created successfully: id={}, symbol={}",
                 response.getId(),
@@ -178,7 +167,7 @@ public class AssetController {
      *
      * <ul>
      *   <li>Authorization: Bearer {jwt_token}
-     *   <li>X-Encryption-Key: {base64_encoded_key}
+     *   <li>X-Encryption-Session: {base64_encoded_key}
      * </ul>
      *
      * <p><strong>Query Parameters (all optional):</strong>
@@ -207,7 +196,6 @@ public class AssetController {
             @RequestParam(value = "type", required = false) AssetType type,
             @RequestParam(value = "summary", required = false, defaultValue = "false")
                     boolean summary,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info(
@@ -215,18 +203,11 @@ public class AssetController {
                 accountId,
                 type,
                 summary);
-
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
-
         if (summary) {
             // Return lightweight summary projection (TASK-14.1.3)
             List<AssetSummaryResponse> summaries =
-                    assetService.getAssetsSummary(user.getId(), encryptionKey);
+                    assetService.getAssetsSummary(user.getId());
             log.info("Retrieved {} asset summaries for user", summaries.size());
             return ResponseEntity.ok(summaries);
         }
@@ -235,18 +216,18 @@ public class AssetController {
 
         if (accountId != null) {
             // Filter by account
-            assets = assetService.getAssetsByAccountId(accountId, user.getId(), encryptionKey);
+            assets = assetService.getAssetsByAccountId(accountId, user.getId());
             log.info(
                     "Retrieved {} assets for user (filtered by account={})",
                     assets.size(),
                     accountId);
         } else if (type != null) {
             // Filter by type
-            assets = assetService.getAssetsByType(user.getId(), type, encryptionKey);
+            assets = assetService.getAssetsByType(user.getId(), type);
             log.info("Retrieved {} assets for user (filtered by type={})", assets.size(), type);
         } else {
             // No filters - get all assets
-            assets = assetService.getAssetsByUserId(user.getId(), encryptionKey);
+            assets = assetService.getAssetsByUserId(user.getId());
             log.info("Retrieved {} assets for user (no filters)", assets.size());
         }
 
@@ -260,7 +241,7 @@ public class AssetController {
      *
      * <ul>
      *   <li>Authorization: Bearer {jwt_token}
-     *   <li>X-Encryption-Key: {base64_encoded_key}
+     *   <li>X-Encryption-Session: {base64_encoded_key}
      * </ul>
      *
      * <p><strong>Query Parameters:</strong>
@@ -332,7 +313,6 @@ public class AssetController {
             @RequestParam(required = false) BigDecimal valueMax,
             @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
                     Pageable pageable,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info(
@@ -342,14 +322,7 @@ public class AssetController {
                 accountId,
                 pageable.getPageNumber(),
                 pageable.getPageSize());
-
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
-
         // Build search criteria
         AssetSearchCriteria criteria =
                 AssetSearchCriteria.builder()
@@ -366,7 +339,7 @@ public class AssetController {
 
         // Execute search with pagination
         Page<AssetResponse> results =
-                assetService.searchAssets(user.getId(), criteria, pageable, encryptionKey);
+                assetService.searchAssets(user.getId(), criteria, pageable);
 
         log.info(
                 "Search returned {} assets (page {}/{}, total: {})",
@@ -385,7 +358,7 @@ public class AssetController {
      *
      * <ul>
      *   <li>Authorization: Bearer {jwt_token}
-     *   <li>X-Encryption-Key: {base64_encoded_key}
+     *   <li>X-Encryption-Session: {base64_encoded_key}
      * </ul>
      *
      * <p><strong>Success Response:</strong> Same as create asset response
@@ -408,19 +381,11 @@ public class AssetController {
     @GetMapping("/{id}")
     public ResponseEntity<AssetResponse> getAssetById(
             @PathVariable("id") Long assetId,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info("Retrieving asset: id={}", assetId);
-
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
-
-        AssetResponse response = assetService.getAssetById(assetId, user.getId(), encryptionKey);
+        AssetResponse response = assetService.getAssetById(assetId, user.getId());
 
         log.info("Asset retrieved successfully: id={}, symbol={}", assetId, response.getSymbol());
 
@@ -434,7 +399,7 @@ public class AssetController {
      *
      * <ul>
      *   <li>Authorization: Bearer {jwt_token}
-     *   <li>X-Encryption-Key: {base64_encoded_key}
+     *   <li>X-Encryption-Session: {base64_encoded_key}
      * </ul>
      *
      * <p><strong>Request Body:</strong> Same as create asset request
@@ -467,20 +432,12 @@ public class AssetController {
     public ResponseEntity<AssetResponse> updateAsset(
             @PathVariable("id") Long assetId,
             @Valid @RequestBody AssetRequest request,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info("Updating asset: id={}", assetId);
-
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
-
         AssetResponse response =
-                assetService.updateAsset(assetId, user.getId(), request, encryptionKey);
+                assetService.updateAsset(assetId, user.getId(), request);
 
         log.info("Asset updated successfully: id={}, symbol={}", assetId, response.getSymbol());
 
@@ -515,19 +472,11 @@ public class AssetController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAsset(
             @PathVariable("id") Long assetId,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info("Deleting asset: id={}", assetId);
-
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         User user = (User) authentication.getPrincipal();
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
-
-        assetService.deleteAsset(assetId, user.getId(), encryptionKey);
+        assetService.deleteAsset(assetId, user.getId());
 
         log.info("Asset deleted successfully: id={}", assetId);
 

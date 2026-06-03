@@ -74,7 +74,7 @@ describe('useRealEstate hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual([mockProperty]);
       expect(mockedApiClient.get).toHaveBeenCalledWith('/real-estate', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
 
@@ -139,7 +139,7 @@ describe('useRealEstate hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockProperty);
       expect(mockedApiClient.get).toHaveBeenCalledWith('/real-estate/1', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
   });
@@ -212,7 +212,7 @@ describe('useRealEstate hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(mockedApiClient.delete).toHaveBeenCalledWith('/real-estate/1', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
   });
@@ -234,7 +234,7 @@ describe('useRealEstate hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockEquity);
       expect(mockedApiClient.get).toHaveBeenCalledWith('/real-estate/1/equity', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
   });
@@ -256,7 +256,7 @@ describe('useRealEstate hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockROI);
       expect(mockedApiClient.get).toHaveBeenCalledWith('/real-estate/1/roi', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
   });
@@ -277,7 +277,7 @@ describe('useRealEstate hooks', () => {
       expect(mockedApiClient.put).toHaveBeenCalledWith(
         '/real-estate/1/value',
         { currentValue: 380000 },
-        { headers: { 'X-Encryption-Key': 'test-encryption-key' } },
+        { headers: { 'X-Encryption-Session': 'test-encryption-key' } },
       );
     });
 

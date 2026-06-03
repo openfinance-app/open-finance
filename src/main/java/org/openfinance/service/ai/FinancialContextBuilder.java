@@ -20,17 +20,20 @@ import org.springframework.stereotype.Service;
 /**
  * Service for building financial context summaries for AI prompts.
  *
- * <p>Gathers and formats user's financial data into a structured context string that provides the
+ * <p>
+ * Gathers and formats user's financial data into a structured context string
+ * that provides the
  * AI assistant with relevant information to answer questions.
  *
- * <p><strong>Context includes:</strong>
+ * <p>
+ * <strong>Context includes:</strong>
  *
  * <ul>
- *   <li>Net worth summary (assets, liabilities, net worth)
- *   <li>Account balances by type
- *   <li>Recent transactions (last 10)
- *   <li>Budget status (if available)
- *   <li>Asset summary (if available)
+ * <li>Net worth summary (assets, liabilities, net worth)
+ * <li>Account balances by type
+ * <li>Recent transactions (last 10)
+ * <li>Budget status (if available)
+ * <li>Asset summary (if available)
  * </ul>
  *
  * @since Sprint 11 - AI Assistant Integration
@@ -52,7 +55,8 @@ public class FinancialContextBuilder {
     /**
      * Builds a comprehensive financial context summary for the AI assistant.
      *
-     * <p><strong>Example Output:</strong>
+     * <p>
+     * <strong>Example Output:</strong>
      *
      * <pre>{@code
      * === FINANCIAL SUMMARY ===
@@ -70,60 +74,57 @@ public class FinancialContextBuilder {
      * ...
      * }</pre>
      *
-     * @param userId User ID to build context for
+     * @param userId        User ID to build context for
      * @param encryptionKey Encryption key to decrypt sensitive data
      * @return Formatted financial context string
      */
-    public String buildContext(Long userId, SecretKey encryptionKey) {
-        return buildContext(userId, encryptionKey, Locale.ENGLISH);
+    public String buildContext(Long userId) {
+        return buildContext(userId, Locale.ENGLISH);
     }
 
     /**
-     * Builds a comprehensive financial context summary for the AI assistant with localized section
+     * Builds a comprehensive financial context summary for the AI assistant with
+     * localized section
      * headers.
      *
-     * @param userId User ID to build context for
+     * @param userId        User ID to build context for
      * @param encryptionKey Encryption key to decrypt sensitive data
-     * @param locale Locale for section headers
+     * @param locale        Locale for section headers
      * @return Formatted financial context string
      */
-    public String buildContext(Long userId, SecretKey encryptionKey, Locale locale) {
+    public String buildContext(Long userId, Locale locale) {
         log.debug("Building financial context for user ID: {} with locale: {}", userId, locale);
 
         List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
         StringBuilder context = new StringBuilder();
 
         // 1. Net Worth Summary
-        String financialSummaryHeader =
-                messageSource.getMessage(
-                        "ai.context.financial.summary", null, "FINANCIAL SUMMARY", locale);
+        String financialSummaryHeader = messageSource.getMessage(
+                "ai.context.financial.summary", null, "FINANCIAL SUMMARY", locale);
         context.append("=== ").append(financialSummaryHeader).append(" ===\n");
-        appendNetWorthSummary(context, userId, encryptionKey, accounts);
+        appendNetWorthSummary(context, userId, accounts);
         context.append("\n");
 
         // 2. Account Balances
-        String accountsHeader =
-                messageSource.getMessage("ai.context.accounts", null, "ACCOUNTS", locale);
+        String accountsHeader = messageSource.getMessage("ai.context.accounts", null, "ACCOUNTS", locale);
         context.append("=== ").append(accountsHeader).append(" ===\n");
-        appendAccountSummary(context, accounts, encryptionKey);
+        appendAccountSummary(context, accounts);
         context.append("\n");
 
         // 3. Recent Transactions
-        String transactionsHeader =
-                messageSource.getMessage(
-                        "ai.context.recent.transactions",
-                        null,
-                        "RECENT TRANSACTIONS (Last 10)",
-                        locale);
+        String transactionsHeader = messageSource.getMessage(
+                "ai.context.recent.transactions",
+                null,
+                "RECENT TRANSACTIONS (Last 10)",
+                locale);
         context.append("=== ").append(transactionsHeader).append(" ===\n");
-        appendRecentTransactions(context, userId, encryptionKey, locale);
+        appendRecentTransactions(context, userId, locale);
         context.append("\n");
 
         // 4. Budget Status
-        String budgetHeader =
-                messageSource.getMessage("ai.context.budget.status", null, "BUDGET STATUS", locale);
+        String budgetHeader = messageSource.getMessage("ai.context.budget.status", null, "BUDGET STATUS", locale);
         context.append("=== ").append(budgetHeader).append(" ===\n");
-        appendBudgetStatus(context, userId, encryptionKey);
+        appendBudgetStatus(context, userId);
         context.append("\n");
 
         // 5. Asset Summary
@@ -133,10 +134,9 @@ public class FinancialContextBuilder {
         context.append("\n");
 
         // 6. Liability Summary
-        String liabilitiesHeader =
-                messageSource.getMessage("ai.context.liabilities", null, "LIABILITIES", locale);
+        String liabilitiesHeader = messageSource.getMessage("ai.context.liabilities", null, "LIABILITIES", locale);
         context.append("=== ").append(liabilitiesHeader).append(" ===\n");
-        appendLiabilitySummary(context, userId, encryptionKey, accounts);
+        appendLiabilitySummary(context, userId, accounts);
 
         String result = context.toString();
         log.debug("Built financial context: {} characters", result.length());
@@ -146,53 +146,51 @@ public class FinancialContextBuilder {
     /**
      * Builds a minimal context with only net worth and account summary.
      *
-     * <p>Used when quick responses are needed or to reduce token usage.
+     * <p>
+     * Used when quick responses are needed or to reduce token usage.
      *
-     * @param userId User ID
+     * @param userId        User ID
      * @param encryptionKey Encryption key
      * @return Minimal financial context string
      */
-    public String buildMinimalContext(Long userId, SecretKey encryptionKey) {
-        return buildMinimalContext(userId, encryptionKey, Locale.ENGLISH);
+    public String buildMinimalContext(Long userId) {
+        return buildMinimalContext(userId, Locale.ENGLISH);
     }
 
     /**
-     * Builds a minimal context with only net worth and account summary with localized headers.
+     * Builds a minimal context with only net worth and account summary with
+     * localized headers.
      *
-     * @param userId User ID
+     * @param userId        User ID
      * @param encryptionKey Encryption key
-     * @param locale Locale for section headers
+     * @param locale        Locale for section headers
      * @return Minimal financial context string
      */
-    public String buildMinimalContext(Long userId, SecretKey encryptionKey, Locale locale) {
+    public String buildMinimalContext(Long userId, Locale locale) {
         List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
         StringBuilder context = new StringBuilder();
 
-        String financialSummaryHeader =
-                messageSource.getMessage(
-                        "ai.context.financial.summary", null, "FINANCIAL SUMMARY", locale);
+        String financialSummaryHeader = messageSource.getMessage(
+                "ai.context.financial.summary", null, "FINANCIAL SUMMARY", locale);
         context.append("=== ").append(financialSummaryHeader).append(" ===\n");
-        appendNetWorthSummary(context, userId, encryptionKey, accounts);
+        appendNetWorthSummary(context, userId, accounts);
         context.append("\n");
 
-        String accountsHeader =
-                messageSource.getMessage("ai.context.accounts", null, "ACCOUNTS", locale);
+        String accountsHeader = messageSource.getMessage("ai.context.accounts", null, "ACCOUNTS", locale);
         context.append("=== ").append(accountsHeader).append(" ===\n");
-        appendAccountSummary(context, accounts, encryptionKey);
+        appendAccountSummary(context, accounts);
 
         return context.toString();
     }
 
     private void appendNetWorthSummary(
-            StringBuilder sb, Long userId, SecretKey encryptionKey, List<Account> accounts) {
+            StringBuilder sb, Long userId, List<Account> accounts) {
         // Determine base currency from user's first active account (default EUR)
         String baseCurrency = accounts.stream().findFirst().map(Account::getCurrency).orElse("EUR");
 
         try {
-            BigDecimal totalAssets =
-                    netWorthService.calculateTotalAssets(userId, encryptionKey, baseCurrency);
-            BigDecimal totalLiabilities =
-                    netWorthService.calculateTotalLiabilities(userId, encryptionKey, baseCurrency);
+            BigDecimal totalAssets = netWorthService.calculateTotalAssets(userId, baseCurrency);
+            BigDecimal totalLiabilities = netWorthService.calculateTotalLiabilities(userId, baseCurrency);
             BigDecimal netWorth = totalAssets.subtract(totalLiabilities);
 
             sb.append(String.format("Net Worth: %,.2f %s\n", netWorth, baseCurrency));
@@ -205,10 +203,9 @@ public class FinancialContextBuilder {
                     e.getMessage());
             // Fallback: sum raw account balances directly
             try {
-                BigDecimal rawBalance =
-                        accounts.stream()
-                                .map(Account::getBalance)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal rawBalance = accounts.stream()
+                        .map(Account::getBalance)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
                 sb.append(
                         String.format(
                                 "Total Account Balances: %,.2f %s (note: approximate, multi-currency not converted)\n",
@@ -220,7 +217,7 @@ public class FinancialContextBuilder {
     }
 
     private void appendAccountSummary(
-            StringBuilder sb, List<Account> accounts, SecretKey encryptionKey) {
+            StringBuilder sb, List<Account> accounts) {
         try {
 
             if (accounts.isEmpty()) {
@@ -231,7 +228,7 @@ public class FinancialContextBuilder {
             sb.append(String.format("Total: %d accounts\n", accounts.size()));
 
             for (Account account : accounts) {
-                String name = encryptionService.decrypt(account.getName(), encryptionKey);
+                String name = account.getName();
                 BigDecimal balance = account.getBalance();
                 String typeLabel = account.getType().getDisplayName();
                 String currency = account.getCurrency() != null ? account.getCurrency() : "EUR";
@@ -246,31 +243,28 @@ public class FinancialContextBuilder {
     }
 
     private void appendRecentTransactions(
-            StringBuilder sb, Long userId, SecretKey encryptionKey, Locale locale) {
+            StringBuilder sb, Long userId, Locale locale) {
         try {
             // Fetch all user transactions and sort/limit manually
-            List<Transaction> allTransactions =
-                    transactionRepository.findByUserIdAndDateBetween(
-                            userId, LocalDate.now().minusMonths(3), LocalDate.now());
+            List<Transaction> allTransactions = transactionRepository.findByUserIdAndDateBetween(
+                    userId, LocalDate.now().minusMonths(3), LocalDate.now());
 
-            List<Transaction> transactions =
-                    allTransactions.stream()
-                            .filter(t -> !t.getIsDeleted())
-                            .sorted((t1, t2) -> t2.getDate().compareTo(t1.getDate()))
-                            .limit(10)
-                            .collect(Collectors.toList());
+            List<Transaction> transactions = allTransactions.stream()
+                    .filter(t -> !t.getIsDeleted())
+                    .sorted((t1, t2) -> t2.getDate().compareTo(t1.getDate()))
+                    .limit(10)
+                    .collect(Collectors.toList());
 
             if (transactions.isEmpty()) {
                 sb.append("No recent transactions\n");
                 return;
             }
 
-            DateTimeFormatter dateFormatter =
-                    DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale);
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale);
 
             for (Transaction tx : transactions) {
                 String date = tx.getDate().format(dateFormatter);
-                String description = encryptionService.decrypt(tx.getDescription(), encryptionKey);
+                String description = tx.getDescription();
                 BigDecimal amount = tx.getAmount();
                 TransactionType type = tx.getType();
 
@@ -287,19 +281,17 @@ public class FinancialContextBuilder {
         }
     }
 
-    private void appendBudgetStatus(StringBuilder sb, Long userId, SecretKey encryptionKey) {
+    private void appendBudgetStatus(StringBuilder sb, Long userId) {
         try {
             // Fetch all budgets and filter for active ones manually
             List<Budget> allBudgets = budgetRepository.findByUserId(userId);
             LocalDate now = LocalDate.now();
 
-            List<Budget> activeBudgets =
-                    allBudgets.stream()
-                            .filter(
-                                    b ->
-                                            !b.getStartDate().isAfter(now)
-                                                    && !b.getEndDate().isBefore(now))
-                            .collect(Collectors.toList());
+            List<Budget> activeBudgets = allBudgets.stream()
+                    .filter(
+                            b -> !b.getStartDate().isAfter(now)
+                                    && !b.getEndDate().isBefore(now))
+                    .collect(Collectors.toList());
 
             if (activeBudgets.isEmpty()) {
                 sb.append("No active budgets\n");
@@ -309,7 +301,7 @@ public class FinancialContextBuilder {
             sb.append(String.format("Active budgets: %d\n", activeBudgets.size()));
 
             for (Budget budget : activeBudgets) {
-                String amountStr = encryptionService.decrypt(budget.getAmount(), encryptionKey);
+                String amountStr = budget.getAmount();
                 BigDecimal amount = new BigDecimal(amountStr);
 
                 sb.append(
@@ -334,14 +326,12 @@ public class FinancialContextBuilder {
                 return;
             }
 
-            BigDecimal totalValue =
-                    assets.stream()
-                            .map(Asset::getTotalValue)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal totalValue = assets.stream()
+                    .map(Asset::getTotalValue)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             // Determine base currency from first account
-            String baseCurrency =
-                    accounts.stream().findFirst().map(Account::getCurrency).orElse("EUR");
+            String baseCurrency = accounts.stream().findFirst().map(Account::getCurrency).orElse("EUR");
 
             sb.append(
                     String.format(
@@ -353,10 +343,9 @@ public class FinancialContextBuilder {
 
             for (var entry : byType.entrySet()) {
                 int count = entry.getValue().size();
-                BigDecimal typeValue =
-                        entry.getValue().stream()
-                                .map(Asset::getTotalValue)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal typeValue = entry.getValue().stream()
+                        .map(Asset::getTotalValue)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                 sb.append(
                         String.format(
@@ -370,10 +359,9 @@ public class FinancialContextBuilder {
     }
 
     private void appendLiabilitySummary(
-            StringBuilder sb, Long userId, SecretKey encryptionKey, List<Account> accounts) {
+            StringBuilder sb, Long userId, List<Account> accounts) {
         try {
-            List<Liability> liabilities =
-                    liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId);
+            List<Liability> liabilities = liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId);
 
             if (liabilities.isEmpty()) {
                 sb.append("No liabilities\n");
@@ -381,14 +369,12 @@ public class FinancialContextBuilder {
             }
 
             // Determine base currency from first account
-            String baseCurrency =
-                    accounts.stream().findFirst().map(Account::getCurrency).orElse("EUR");
+            String baseCurrency = accounts.stream().findFirst().map(Account::getCurrency).orElse("EUR");
 
             BigDecimal totalBalance = BigDecimal.ZERO;
 
             for (Liability liability : liabilities) {
-                String balanceStr =
-                        encryptionService.decrypt(liability.getCurrentBalance(), encryptionKey);
+                String balanceStr = liability.getCurrentBalance();
                 BigDecimal balance = new BigDecimal(balanceStr);
                 totalBalance = totalBalance.add(balance);
             }
@@ -399,9 +385,8 @@ public class FinancialContextBuilder {
                             liabilities.size(), totalBalance, baseCurrency));
 
             for (Liability liability : liabilities) {
-                String name = encryptionService.decrypt(liability.getName(), encryptionKey);
-                String balanceStr =
-                        encryptionService.decrypt(liability.getCurrentBalance(), encryptionKey);
+                String name = liability.getName();
+                String balanceStr = liability.getCurrentBalance();
                 BigDecimal balance = new BigDecimal(balanceStr);
                 String typeLabel = formatLiabilityType(liability.getType());
 
@@ -416,7 +401,8 @@ public class FinancialContextBuilder {
     }
 
     private String formatLiabilityType(LiabilityType type) {
-        if (type == null) return "Loan";
+        if (type == null)
+            return "Loan";
         return switch (type) {
             case MORTGAGE -> "Mortgage";
             case LOAN -> "Loan";

@@ -11,24 +11,25 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
-import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.DataExportRequest;
 import org.openfinance.dto.DataExportResponse;
 import org.openfinance.entity.*;
 import org.openfinance.repository.*;
-import org.openfinance.security.EncryptionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service for exporting and importing user financial data.
  *
- * <p>Provides comprehensive data backup and migration functionality, allowing users to export all
+ * <p>
+ * Provides comprehensive data backup and migration functionality, allowing
+ * users to export all
  * their financial data in JSON or CSV format.
  *
- * <p>Requirement: REQ-3.4 - Data Export and Backup
+ * <p>
+ * Requirement: REQ-3.4 - Data Export and Backup
  *
  * @author Open Finance Development Team
  */
@@ -44,19 +45,16 @@ public class DataExportService {
     private final BudgetRepository budgetRepository;
     private final CategoryRepository categoryRepository;
     private final RealEstateRepository realEstateRepository;
-    private final EncryptionService encryptionService;
 
     /**
      * Export all user data based on the provided request.
      *
-     * @param userId User ID
+     * @param userId  User ID
      * @param request Export request specifying format and inclusions
-     * @param secretKey Encryption key for decrypting sensitive data
      * @return Export response with metadata and download information
      */
     @Transactional(readOnly = true)
-    public DataExportResponse exportUserData(
-            Long userId, DataExportRequest request, SecretKey secretKey) {
+    public DataExportResponse exportUserData(Long userId, DataExportRequest request) {
         log.info("Starting data export for user {} in format {}", userId, request.getFormat());
 
         // Collect data based on request
@@ -73,7 +71,7 @@ public class DataExportService {
 
         // Export accounts
         if (request.isIncludeAccounts()) {
-            List<Map<String, Object>> accounts = exportAccounts(userId, secretKey);
+            List<Map<String, Object>> accounts = exportAccounts(userId);
             exportData.put("accounts", accounts);
             accountCount = accounts.size();
             log.debug("Exported {} accounts", accountCount);
@@ -81,7 +79,7 @@ public class DataExportService {
 
         // Export categories (needed for transactions)
         if (request.isIncludeCategories()) {
-            List<Map<String, Object>> categories = exportCategories(userId, secretKey);
+            List<Map<String, Object>> categories = exportCategories(userId);
             exportData.put("categories", categories);
             categoryCount = categories.size();
             log.debug("Exported {} categories", categoryCount);
@@ -89,7 +87,7 @@ public class DataExportService {
 
         // Export transactions
         if (request.isIncludeTransactions()) {
-            List<Map<String, Object>> transactions = exportTransactions(userId, request, secretKey);
+            List<Map<String, Object>> transactions = exportTransactions(userId, request);
             exportData.put("transactions", transactions);
             transactionCount = transactions.size();
             log.debug("Exported {} transactions", transactionCount);
@@ -97,7 +95,7 @@ public class DataExportService {
 
         // Export assets
         if (request.isIncludeAssets()) {
-            List<Map<String, Object>> assets = exportAssets(userId, secretKey);
+            List<Map<String, Object>> assets = exportAssets(userId);
             exportData.put("assets", assets);
             assetCount = assets.size();
             log.debug("Exported {} assets", assetCount);
@@ -105,7 +103,7 @@ public class DataExportService {
 
         // Export liabilities
         if (request.isIncludeLiabilities()) {
-            List<Map<String, Object>> liabilities = exportLiabilities(userId, secretKey);
+            List<Map<String, Object>> liabilities = exportLiabilities(userId);
             exportData.put("liabilities", liabilities);
             liabilityCount = liabilities.size();
             log.debug("Exported {} liabilities", liabilityCount);
@@ -113,7 +111,7 @@ public class DataExportService {
 
         // Export budgets
         if (request.isIncludeBudgets()) {
-            List<Map<String, Object>> budgets = exportBudgets(userId, secretKey);
+            List<Map<String, Object>> budgets = exportBudgets(userId);
             exportData.put("budgets", budgets);
             budgetCount = budgets.size();
             log.debug("Exported {} budgets", budgetCount);
@@ -121,7 +119,7 @@ public class DataExportService {
 
         // Export real estate
         if (request.isIncludeRealEstate()) {
-            List<Map<String, Object>> realEstate = exportRealEstate(userId, secretKey);
+            List<Map<String, Object>> realEstate = exportRealEstate(userId);
             exportData.put("realEstate", realEstate);
             realEstateCount = realEstate.size();
             log.debug("Exported {} real estate properties", realEstateCount);
@@ -133,18 +131,16 @@ public class DataExportService {
         try {
             if ("JSON".equalsIgnoreCase(request.getFormat())) {
                 fileContent = generateJsonExport(exportData);
-                filename =
-                        String.format(
-                                "openfinance-export-%s.json",
-                                LocalDateTime.now()
-                                        .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")));
+                filename = String.format(
+                        "openfinance-export-%s.json",
+                        LocalDateTime.now()
+                                .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")));
             } else {
                 fileContent = generateCsvExport(exportData);
-                filename =
-                        String.format(
-                                "openfinance-export-%s.csv",
-                                LocalDateTime.now()
-                                        .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")));
+                filename = String.format(
+                        "openfinance-export-%s.csv",
+                        LocalDateTime.now()
+                                .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")));
             }
         } catch (IOException e) {
             log.error("Failed to generate export file for user {}", userId, e);
@@ -194,21 +190,19 @@ public class DataExportService {
         return metadata;
     }
 
-    /** Export accounts with decrypted data. */
-    private List<Map<String, Object>> exportAccounts(Long userId, SecretKey secretKey) {
+    /** Export accounts. */
+    private List<Map<String, Object>> exportAccounts(Long userId) {
         List<Account> accounts = accountRepository.findByUserId(userId);
         return accounts.stream()
                 .map(
                         account -> {
                             Map<String, Object> data = new LinkedHashMap<>();
                             data.put("id", account.getId());
-                            data.put("name", decryptSafely(account.getName(), secretKey));
+                            data.put("name", account.getName());
                             data.put("type", account.getType().name());
                             data.put("currency", account.getCurrency());
                             data.put("balance", account.getBalance());
-                            data.put(
-                                    "description",
-                                    decryptSafely(account.getDescription(), secretKey));
+                            data.put("description", account.getDescription());
                             data.put("isActive", account.getIsActive());
                             data.put("createdAt", formatDateTime(account.getCreatedAt()));
                             data.put("updatedAt", formatDateTime(account.getUpdatedAt()));
@@ -217,15 +211,15 @@ public class DataExportService {
                 .collect(Collectors.toList());
     }
 
-    /** Export categories with decrypted data. */
-    private List<Map<String, Object>> exportCategories(Long userId, SecretKey secretKey) {
+    /** Export categories. */
+    private List<Map<String, Object>> exportCategories(Long userId) {
         List<Category> categories = categoryRepository.findByUserId(userId);
         return categories.stream()
                 .map(
                         category -> {
                             Map<String, Object> data = new LinkedHashMap<>();
                             data.put("id", category.getId());
-                            data.put("name", decryptSafely(category.getName(), secretKey));
+                            data.put("name", category.getName());
                             data.put("type", category.getType().name());
                             data.put("parentId", category.getParentId());
                             data.put("icon", category.getIcon());
@@ -237,24 +231,22 @@ public class DataExportService {
                 .collect(Collectors.toList());
     }
 
-    /** Export transactions with decrypted data and date filtering. */
+    /** Export transactions with date filtering. */
     private List<Map<String, Object>> exportTransactions(
-            Long userId, DataExportRequest request, SecretKey secretKey) {
+            Long userId, DataExportRequest request) {
         List<Transaction> transactions;
 
         if (request.getStartDate() != null && request.getEndDate() != null) {
-            transactions =
-                    transactionRepository.findByUserIdAndDateBetween(
-                            userId, request.getStartDate(), request.getEndDate());
+            transactions = transactionRepository.findByUserIdAndDateBetween(
+                    userId, request.getStartDate(), request.getEndDate());
         } else {
             transactions = transactionRepository.findByUserId(userId);
         }
 
         if (!request.isIncludeDeleted()) {
-            transactions =
-                    transactions.stream()
-                            .filter(t -> !t.getIsDeleted())
-                            .collect(Collectors.toList());
+            transactions = transactions.stream()
+                    .filter(t -> !t.getIsDeleted())
+                    .collect(Collectors.toList());
         }
 
         return transactions.stream()
@@ -269,10 +261,8 @@ public class DataExportService {
                             data.put("currency", transaction.getCurrency());
                             data.put("categoryId", transaction.getCategoryId());
                             data.put("date", transaction.getDate().toString());
-                            data.put(
-                                    "description",
-                                    decryptSafely(transaction.getDescription(), secretKey));
-                            data.put("notes", decryptSafely(transaction.getNotes(), secretKey));
+                            data.put("description", transaction.getDescription());
+                            data.put("notes", transaction.getNotes());
                             data.put("tags", transaction.getTags());
                             data.put("transferId", transaction.getTransferId());
                             data.put("isReconciled", transaction.getIsReconciled());
@@ -284,8 +274,8 @@ public class DataExportService {
                 .collect(Collectors.toList());
     }
 
-    /** Export assets with decrypted data. */
-    private List<Map<String, Object>> exportAssets(Long userId, SecretKey secretKey) {
+    /** Export assets. */
+    private List<Map<String, Object>> exportAssets(Long userId) {
         List<Asset> assets = assetRepository.findByUserId(userId);
         return assets.stream()
                 .map(
@@ -293,7 +283,7 @@ public class DataExportService {
                             Map<String, Object> data = new LinkedHashMap<>();
                             data.put("id", asset.getId());
                             data.put("accountId", asset.getAccountId());
-                            data.put("name", decryptSafely(asset.getName(), secretKey));
+                            data.put("name", asset.getName());
                             data.put("type", asset.getType().name());
                             data.put("symbol", asset.getSymbol());
                             data.put("quantity", asset.getQuantity());
@@ -305,7 +295,7 @@ public class DataExportService {
                                     asset.getPurchaseDate() != null
                                             ? asset.getPurchaseDate().toString()
                                             : null);
-                            data.put("notes", decryptSafely(asset.getNotes(), secretKey));
+                            data.put("notes", asset.getNotes());
                             data.put("lastUpdated", formatDateTime(asset.getLastUpdated()));
                             data.put("createdAt", formatDateTime(asset.getCreatedAt()));
                             data.put("updatedAt", formatDateTime(asset.getUpdatedAt()));
@@ -314,25 +304,19 @@ public class DataExportService {
                 .collect(Collectors.toList());
     }
 
-    /** Export liabilities with decrypted data. */
-    private List<Map<String, Object>> exportLiabilities(Long userId, SecretKey secretKey) {
+    /** Export liabilities. */
+    private List<Map<String, Object>> exportLiabilities(Long userId) {
         List<Liability> liabilities = liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return liabilities.stream()
                 .map(
                         liability -> {
                             Map<String, Object> data = new LinkedHashMap<>();
                             data.put("id", liability.getId());
-                            data.put("name", decryptSafely(liability.getName(), secretKey));
+                            data.put("name", liability.getName());
                             data.put("type", liability.getType().name());
-                            data.put(
-                                    "principal",
-                                    decryptSafely(liability.getPrincipal(), secretKey));
-                            data.put(
-                                    "currentBalance",
-                                    decryptSafely(liability.getCurrentBalance(), secretKey));
-                            data.put(
-                                    "interestRate",
-                                    decryptSafely(liability.getInterestRate(), secretKey));
+                            data.put("principal", liability.getPrincipal());
+                            data.put("currentBalance", liability.getCurrentBalance());
+                            data.put("interestRate", liability.getInterestRate());
                             data.put(
                                     "startDate",
                                     liability.getStartDate() != null
@@ -343,11 +327,9 @@ public class DataExportService {
                                     liability.getEndDate() != null
                                             ? liability.getEndDate().toString()
                                             : null);
-                            data.put(
-                                    "minimumPayment",
-                                    decryptSafely(liability.getMinimumPayment(), secretKey));
+                            data.put("minimumPayment", liability.getMinimumPayment());
                             data.put("currency", liability.getCurrency());
-                            data.put("notes", decryptSafely(liability.getNotes(), secretKey));
+                            data.put("notes", liability.getNotes());
                             data.put("createdAt", formatDateTime(liability.getCreatedAt()));
                             data.put("updatedAt", formatDateTime(liability.getUpdatedAt()));
                             return data;
@@ -355,8 +337,8 @@ public class DataExportService {
                 .collect(Collectors.toList());
     }
 
-    /** Export budgets with decrypted data. */
-    private List<Map<String, Object>> exportBudgets(Long userId, SecretKey secretKey) {
+    /** Export budgets. */
+    private List<Map<String, Object>> exportBudgets(Long userId) {
         List<Budget> budgets = budgetRepository.findByUserId(userId);
         return budgets.stream()
                 .map(
@@ -364,7 +346,7 @@ public class DataExportService {
                             Map<String, Object> data = new LinkedHashMap<>();
                             data.put("id", budget.getId());
                             data.put("categoryId", budget.getCategoryId());
-                            data.put("amount", decryptSafely(budget.getAmount(), secretKey));
+                            data.put("amount", budget.getAmount());
                             data.put("period", budget.getPeriod().name());
                             data.put(
                                     "startDate",
@@ -384,30 +366,26 @@ public class DataExportService {
                 .collect(Collectors.toList());
     }
 
-    /** Export real estate with decrypted data. */
-    private List<Map<String, Object>> exportRealEstate(Long userId, SecretKey secretKey) {
+    /** Export real estate. */
+    private List<Map<String, Object>> exportRealEstate(Long userId) {
         List<RealEstateProperty> properties = realEstateRepository.findByUserId(userId);
         return properties.stream()
                 .map(
                         property -> {
                             Map<String, Object> data = new LinkedHashMap<>();
                             data.put("id", property.getId());
-                            data.put("name", decryptSafely(property.getName(), secretKey));
+                            data.put("name", property.getName());
                             data.put("type", property.getPropertyType().name());
-                            data.put("address", decryptSafely(property.getAddress(), secretKey));
-                            data.put(
-                                    "purchasePrice",
-                                    decryptSafely(property.getPurchasePrice(), secretKey));
-                            data.put(
-                                    "currentValue",
-                                    decryptSafely(property.getCurrentValue(), secretKey));
+                            data.put("address", property.getAddress());
+                            data.put("purchasePrice", property.getPurchasePrice());
+                            data.put("currentValue", property.getCurrentValue());
                             data.put(
                                     "purchaseDate",
                                     property.getPurchaseDate() != null
                                             ? property.getPurchaseDate().toString()
                                             : null);
                             data.put("currency", property.getCurrency());
-                            data.put("notes", decryptSafely(property.getNotes(), secretKey));
+                            data.put("notes", property.getNotes());
                             data.put("isActive", property.isActive());
                             data.put("createdAt", formatDateTime(property.getCreatedAt()));
                             data.put("updatedAt", formatDateTime(property.getUpdatedAt()));
@@ -426,7 +404,10 @@ public class DataExportService {
         return mapper.writeValueAsBytes(data);
     }
 
-    /** Generate CSV export (simplified format with separate files for each entity type). */
+    /**
+     * Generate CSV export (simplified format with separate files for each entity
+     * type).
+     */
     private byte[] generateCsvExport(Map<String, Object> data) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         OutputStreamWriter writer = new OutputStreamWriter(baos, StandardCharsets.UTF_8);
@@ -480,10 +461,9 @@ public class DataExportService {
         // Write data rows
         for (Object item : items) {
             Map<String, Object> map = (Map<String, Object>) item;
-            String row =
-                    map.values().stream()
-                            .map(v -> v != null ? escapeCsv(v.toString()) : "")
-                            .collect(Collectors.joining(","));
+            String row = map.values().stream()
+                    .map(v -> v != null ? escapeCsv(v.toString()) : "")
+                    .collect(Collectors.joining(","));
             writer.write(row + "\n");
         }
 
@@ -496,19 +476,6 @@ public class DataExportService {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;
-    }
-
-    /** Decrypt a value safely, returning empty string on error. */
-    private String decryptSafely(String encrypted, SecretKey secretKey) {
-        if (encrypted == null || encrypted.isEmpty()) {
-            return "";
-        }
-        try {
-            return encryptionService.decrypt(encrypted, secretKey);
-        } catch (Exception e) {
-            log.warn("Failed to decrypt value: {}", e.getMessage());
-            return "[DECRYPTION_FAILED]";
-        }
     }
 
     /** Format LocalDateTime to ISO string. */

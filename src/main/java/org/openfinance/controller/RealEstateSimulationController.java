@@ -2,14 +2,12 @@ package org.openfinance.controller;
 
 import jakarta.validation.Valid;
 import java.util.List;
-import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.RealEstateSimulationRequest;
 import org.openfinance.dto.RealEstateSimulationResponse;
 import org.openfinance.service.RealEstateSimulationService;
 import org.openfinance.util.ControllerUtil;
-import org.openfinance.util.EncryptionUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -18,7 +16,8 @@ import org.springframework.web.bind.annotation.*;
 /**
  * REST controller for real estate simulation management.
  *
- * <p>Provides endpoints for saving, loading, and managing real estate simulations.
+ * <p>
+ * Provides endpoints for saving, loading, and managing real estate simulations.
  *
  * @author Open-Finance Development Team
  * @version 1.0
@@ -30,28 +29,19 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class RealEstateSimulationController {
 
-    private static final String ENCRYPTION_KEY_HEADER = "X-Encryption-Key";
-
     private final RealEstateSimulationService simulationService;
 
     /** Create a new simulation. */
     @PostMapping
     public ResponseEntity<RealEstateSimulationResponse> createSimulation(
             @Valid @RequestBody RealEstateSimulationRequest request,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info("Creating simulation: type={}", request.getSimulationType());
 
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         Long userId = ControllerUtil.extractUserId(authentication);
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        RealEstateSimulationResponse response =
-                simulationService.createSimulation(userId, request, encryptionKey);
+        RealEstateSimulationResponse response = simulationService.createSimulation(userId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -60,20 +50,14 @@ public class RealEstateSimulationController {
     @GetMapping
     public ResponseEntity<List<RealEstateSimulationResponse>> getSimulations(
             @RequestParam(required = false) String simulationType,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info("Retrieving simulations: type={}", simulationType);
 
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         Long userId = ControllerUtil.extractUserId(authentication);
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        List<RealEstateSimulationResponse> simulations =
-                simulationService.getSimulationsByUserId(userId, simulationType, encryptionKey);
+        List<RealEstateSimulationResponse> simulations = simulationService.getSimulationsByUserId(userId,
+                simulationType);
 
         return ResponseEntity.ok(simulations);
     }
@@ -82,20 +66,13 @@ public class RealEstateSimulationController {
     @GetMapping("/{id}")
     public ResponseEntity<RealEstateSimulationResponse> getSimulationById(
             @PathVariable("id") Long simulationId,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info("Retrieving simulation: id={}", simulationId);
 
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         Long userId = ControllerUtil.extractUserId(authentication);
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        RealEstateSimulationResponse response =
-                simulationService.getSimulationById(simulationId, userId, encryptionKey);
+        RealEstateSimulationResponse response = simulationService.getSimulationById(simulationId, userId);
 
         return ResponseEntity.ok(response);
     }
@@ -105,20 +82,13 @@ public class RealEstateSimulationController {
     public ResponseEntity<RealEstateSimulationResponse> updateSimulation(
             @PathVariable("id") Long simulationId,
             @Valid @RequestBody RealEstateSimulationRequest request,
-            @RequestHeader(value = ENCRYPTION_KEY_HEADER, required = false) String encodedKey,
             Authentication authentication) {
 
         log.info("Updating simulation: id={}", simulationId);
 
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         Long userId = ControllerUtil.extractUserId(authentication);
-        SecretKey encryptionKey = EncryptionUtil.decodeEncryptionKey(encodedKey);
 
-        RealEstateSimulationResponse response =
-                simulationService.updateSimulation(simulationId, userId, request, encryptionKey);
+        RealEstateSimulationResponse response = simulationService.updateSimulation(simulationId, userId, request);
 
         return ResponseEntity.ok(response);
     }

@@ -79,7 +79,7 @@ describe('AuthProvider', () => {
 
     expect(localStorage.getItem('auth_token')).toBeNull();
     expect(localStorage.getItem('auth_user')).toBeNull();
-    expect(sessionStorage.getItem('encryption_key')).toBeNull();
+    expect(sessionStorage.getItem('encryption_session')).toBeNull();
   });
 
   it('should handle invalid stored JSON by clearing storage', async () => {

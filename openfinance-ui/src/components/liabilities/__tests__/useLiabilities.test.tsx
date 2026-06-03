@@ -85,7 +85,7 @@ describe('Liability Hooks', () => {
         '/liabilities/1/breakdown',
         {
           headers: {
-            'X-Encryption-Key': 'test-encryption-key',
+            'X-Encryption-Session': 'test-encryption-key',
           },
         }
       );
@@ -187,7 +187,7 @@ describe('Liability Hooks', () => {
         '/liabilities/1/transactions',
         {
           headers: {
-            'X-Encryption-Key': 'test-encryption-key',
+            'X-Encryption-Session': 'test-encryption-key',
           },
         }
       );

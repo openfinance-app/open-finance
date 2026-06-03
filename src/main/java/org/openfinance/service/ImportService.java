@@ -19,7 +19,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AccountRequest;
@@ -51,7 +50,6 @@ import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.PayeeRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
-import org.openfinance.security.EncryptionService;
 import org.openfinance.service.parser.CsvParser;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
@@ -113,7 +111,6 @@ public class ImportService {
     private final NetWorthRepository netWorthRepository;
     private final AICategorizationService aiCategorizationService;
     private final MessageSource messageSource;
-    private final EncryptionService encryptionService;
     private final InstitutionRepository institutionRepository;
     private final CurrencyRepository currencyRepository;
     private final PayeeRepository payeeRepository;
@@ -569,8 +566,7 @@ public class ImportService {
             Long userId,
             Long accountId,
             Map<String, Long> categoryMappings,
-            boolean skipDuplicates,
-            SecretKey encryptionKey) {
+            boolean skipDuplicates) {
         log.info(
                 "Confirming import for session: {}, accountId={}, skipDuplicates={}",
                 sessionId,
@@ -587,7 +583,7 @@ public class ImportService {
         if ("JSON".equalsIgnoreCase(session.getFileFormat())
                 && hasSkroogeMetadata(session.getMetadata())) {
             return confirmSkroogeImport(
-                    session, userId, categoryMappings, skipDuplicates, encryptionKey);
+                    session, userId, categoryMappings, skipDuplicates);
         }
 
         List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
@@ -598,7 +594,6 @@ public class ImportService {
                     accountId,
                     categoryMappings,
                     skipDuplicates,
-                    encryptionKey,
                     transactions);
         }
 
@@ -658,7 +653,7 @@ public class ImportService {
                 ledgerBalance = ledgerBalance.subtract(transactionNet);
             }
             resolvedAccountId = createAccountForImport(
-                    userId, session, encryptionKey, ledgerBalance, fileCurrency);
+                    userId, session, ledgerBalance, fileCurrency);
         }
         final Long targetAccountId = resolvedAccountId;
 
@@ -739,7 +734,7 @@ public class ImportService {
                         transactionSplitService.validateSplits(
                                 saved.getAmount(), saved.getType(), splitRequests);
                         transactionSplitService.saveSplits(
-                                saved.getId(), splitRequests, encryptionKey);
+                                saved.getId(), splitRequests);
                         log.debug(
                                 "Saved {} split(s) for transaction {}",
                                 splitRequests.size(),
@@ -1430,7 +1425,6 @@ public class ImportService {
     private Long createAccountForImport(
             Long userId,
             ImportSession session,
-            SecretKey encryptionKey,
             BigDecimal initialBalance,
             String currency) {
         String name = session.getSuggestedAccountName();
@@ -1458,7 +1452,7 @@ public class ImportService {
                 .openingDate(LocalDate.now())
                 .build();
 
-        AccountResponse created = accountService.createAccount(userId, accountRequest, encryptionKey);
+        AccountResponse created = accountService.createAccount(userId, accountRequest);
         log.info(
                 "Auto-created account id={} name='{}' for import session {}",
                 created.getId(),
@@ -1517,8 +1511,7 @@ public class ImportService {
             ImportSession session,
             Long userId,
             Map<String, Long> categoryMappings,
-            boolean skipDuplicates,
-            SecretKey encryptionKey) {
+            boolean skipDuplicates) {
         session.setStatus(ImportStatus.IMPORTING);
         importSessionRepository.save(session);
 
@@ -1536,8 +1529,7 @@ public class ImportService {
 
         SkroogeImportMetadata skroogeMetadata = extractSkroogeMetadata(session.getMetadata());
         Map<Long, Long> institutionIdsBySource = ensureInstitutions(skroogeMetadata);
-        Map<Long, Long> accountIdsBySource = ensureAccounts(skroogeMetadata, institutionIdsBySource, userId,
-                encryptionKey);
+        Map<Long, Long> accountIdsBySource = ensureAccounts(skroogeMetadata, institutionIdsBySource, userId);
         Map<Long, Long> categoryIdsBySource = ensureCategories(skroogeMetadata, userId, categoryMappings);
 
         int imported = 0;
@@ -1586,7 +1578,7 @@ public class ImportService {
                                                             TRANSACTION_TAGS_MAX_LENGTH)
                                                     : null)
                             .build();
-                    transactionService.createTransfer(userId, transferRequest, encryptionKey);
+                    transactionService.createTransfer(userId, transferRequest);
                     imported++;
                     continue;
                 }
@@ -1610,7 +1602,7 @@ public class ImportService {
                     transactionSplitService.validateSplits(
                             saved.getAmount(), saved.getType(), splitRequests);
                     transactionSplitService.saveSplits(
-                            saved.getId(), splitRequests, encryptionKey);
+                            saved.getId(), splitRequests);
                 }
                 transactionService.syncTransactionFts(
                         saved, importedTx.getPayee(), importedTx.getMemo());
@@ -1672,7 +1664,6 @@ public class ImportService {
             Long requestedAccountId,
             Map<String, Long> categoryMappings,
             boolean skipDuplicates,
-            SecretKey encryptionKey,
             List<ImportedTransaction> transactions) {
         session.setStatus(ImportStatus.IMPORTING);
         importSessionRepository.save(session);
@@ -1700,8 +1691,7 @@ public class ImportService {
                 : null;
 
         Map<String, ImportedAccountDescriptor> descriptorsByKey = collectImportedAccounts(toImport, fileCurrency);
-        Map<String, Long> accountIdsByKey = ensureImportedAccounts(descriptorsByKey, fallbackAccount, userId,
-                encryptionKey);
+        Map<String, Long> accountIdsByKey = ensureImportedAccounts(descriptorsByKey, fallbackAccount, userId);
 
         Long resolvedFallbackAccountId = initialFallbackAccountId;
         if (resolvedFallbackAccountId == null
@@ -1711,7 +1701,7 @@ public class ImportService {
         }
         if (resolvedFallbackAccountId == null && requiresFallbackAccount(toImport)) {
             resolvedFallbackAccountId = createAccountForImport(
-                    userId, session, encryptionKey, BigDecimal.ZERO, fileCurrency);
+                    userId, session, BigDecimal.ZERO, fileCurrency);
         }
 
         int imported = 0;
@@ -1771,7 +1761,7 @@ public class ImportService {
                                                             TRANSACTION_TAGS_MAX_LENGTH)
                                                     : null)
                             .build();
-                    transactionService.createTransfer(userId, transferRequest, encryptionKey);
+                    transactionService.createTransfer(userId, transferRequest);
                     affectedAccountIds.add(sourceAccountId);
                     affectedAccountIds.add(destinationAccountId);
                     imported++;
@@ -1790,7 +1780,7 @@ public class ImportService {
                             categoryMappings, Map.of());
                     transactionSplitService.validateSplits(
                             saved.getAmount(), saved.getType(), splitRequests);
-                    transactionSplitService.saveSplits(saved.getId(), splitRequests, encryptionKey);
+                    transactionSplitService.saveSplits(saved.getId(), splitRequests);
                 }
                 transactionService.syncTransactionFts(
                         saved, importedTx.getPayee(), importedTx.getMemo());
@@ -1883,12 +1873,11 @@ public class ImportService {
     private Map<Long, Long> ensureAccounts(
             SkroogeImportMetadata metadata,
             Map<Long, Long> institutionIdsBySource,
-            Long userId,
-            SecretKey encryptionKey) {
+            Long userId) {
         Map<Long, Long> accountIdsBySource = new HashMap<>();
         List<Account> existingAccounts = accountRepository.findByUserId(userId);
         for (SkroogeImportMetadata.SkroogeAccount account : metadata.getAccounts()) {
-            Account matchingAccount = findMatchingAccount(existingAccounts, account, encryptionKey);
+            Account matchingAccount = findMatchingAccount(existingAccounts, account);
             if (matchingAccount == null) {
                 AccountRequest accountRequest = AccountRequest.builder()
                         .name(account.getName())
@@ -1913,7 +1902,7 @@ public class ImportService {
                                                 account.getSourceInstitutionId())
                                         : null)
                         .build();
-                AccountResponse created = accountService.createAccount(userId, accountRequest, encryptionKey);
+                AccountResponse created = accountService.createAccount(userId, accountRequest);
                 matchingAccount = accountRepository
                         .findById(created.getId())
                         .orElseThrow(
@@ -1928,14 +1917,12 @@ public class ImportService {
 
     private Account findMatchingAccount(
             List<Account> existingAccounts,
-            SkroogeImportMetadata.SkroogeAccount importedAccount,
-            SecretKey encryptionKey) {
+            SkroogeImportMetadata.SkroogeAccount importedAccount) {
         for (Account existingAccount : existingAccounts) {
             if (matchesImportedAccount(
                     existingAccount,
                     importedAccount.getName(),
-                    importedAccount.getAccountNumber(),
-                    encryptionKey)) {
+                    importedAccount.getAccountNumber())) {
                 return existingAccount;
             }
         }
@@ -2024,8 +2011,7 @@ public class ImportService {
     private Map<String, Long> ensureImportedAccounts(
             Map<String, ImportedAccountDescriptor> descriptorsByKey,
             Account fallbackAccount,
-            Long userId,
-            SecretKey encryptionKey) {
+            Long userId) {
         Map<String, Long> accountIdsByKey = new HashMap<>();
         List<Account> existingAccounts = accountRepository.findByUserId(userId);
         for (ImportedAccountDescriptor descriptor : descriptorsByKey.values()) {
@@ -2033,10 +2019,9 @@ public class ImportService {
                     && matchesImportedAccount(
                             fallbackAccount,
                             descriptor.name(),
-                            descriptor.accountNumber(),
-                            encryptionKey)
+                            descriptor.accountNumber())
                                     ? fallbackAccount
-                                    : findMatchingAccount(existingAccounts, descriptor, encryptionKey);
+                                    : findMatchingAccount(existingAccounts, descriptor);
             if (matchingAccount == null
                     && fallbackAccount != null
                     && descriptorsByKey.size() == 1) {
@@ -2057,7 +2042,7 @@ public class ImportService {
                                         : LocalDate.now())
                         .accountNumber(descriptor.accountNumber())
                         .build();
-                AccountResponse created = accountService.createAccount(userId, accountRequest, encryptionKey);
+                AccountResponse created = accountService.createAccount(userId, accountRequest);
                 matchingAccount = accountRepository
                         .findById(created.getId())
                         .orElseThrow(
@@ -2072,14 +2057,12 @@ public class ImportService {
 
     private Account findMatchingAccount(
             List<Account> existingAccounts,
-            ImportedAccountDescriptor descriptor,
-            SecretKey encryptionKey) {
+            ImportedAccountDescriptor descriptor) {
         for (Account existingAccount : existingAccounts) {
             if (matchesImportedAccount(
                     existingAccount,
                     descriptor.name(),
-                    descriptor.accountNumber(),
-                    encryptionKey)) {
+                    descriptor.accountNumber())) {
                 return existingAccount;
             }
         }
@@ -2089,10 +2072,9 @@ public class ImportService {
     private boolean matchesImportedAccount(
             Account existingAccount,
             String importedName,
-            String importedAccountNumber,
-            SecretKey encryptionKey) {
-        String existingName = decryptQuietly(existingAccount.getName(), encryptionKey);
-        String existingAccountNumber = decryptQuietly(existingAccount.getAccountNumber(), encryptionKey);
+            String importedAccountNumber) {
+        String existingName = existingAccount.getName();
+        String existingAccountNumber = existingAccount.getAccountNumber();
         boolean sameName = existingName != null
                 && importedName != null
                 && existingName.equalsIgnoreCase(importedName);
@@ -2159,15 +2141,8 @@ public class ImportService {
                 String.valueOf(higherAccountId));
     }
 
-    private String decryptQuietly(String encryptedValue, SecretKey encryptionKey) {
-        if (encryptedValue == null || encryptedValue.isBlank()) {
-            return null;
-        }
-        try {
-            return encryptionService.decrypt(encryptedValue, encryptionKey);
-        } catch (Exception ex) {
-            return null;
-        }
+    private String decryptQuietly(String value) {
+        return value;
     }
 
     private Map<Long, Long> ensureCategories(
@@ -2556,8 +2531,11 @@ public class ImportService {
             return null;
         }
         String trimmed = payeeName.trim();
-        // Try to find existing payee visible to this user
-        org.openfinance.entity.Payee existing = payeeRepository.findByNameIgnoreCaseAndUser(trimmed, userId);
+        // Name is encrypted — SQL equality on ciphertext won't match.
+        // Fetch all payees visible to user and match in Java.
+        org.openfinance.entity.Payee existing = payeeRepository.findAllByUser(userId).stream()
+                .filter(p -> p.getName() != null && p.getName().equalsIgnoreCase(trimmed))
+                .findFirst().orElse(null);
         if (existing != null) {
             return existing.getId();
         }

@@ -3,7 +3,6 @@ import i18n from '../i18n';
 
 // API base URL - defaults to backend running on port 8080
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
-const ENCRYPTION_KEY_FALLBACK_KEY = 'encryption_key_fallback';
 
 // Create axios instance with default configuration
 const apiClient = axios.create({
@@ -23,23 +22,11 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Add encryption key from sessionStorage (if not already set in headers)
-    let encryptionKey = sessionStorage.getItem('encryption_key');
+    // Add encryption session token to X-Encryption-Session header
+    const sessionToken = sessionStorage.getItem('encryption_session');
 
-    if (!encryptionKey && import.meta.env.DEV) {
-      const fallbackKey = localStorage.getItem(ENCRYPTION_KEY_FALLBACK_KEY);
-      if (fallbackKey) {
-        encryptionKey = fallbackKey;
-        try {
-          sessionStorage.setItem('encryption_key', fallbackKey);
-        } catch (e) {
-          // ignore storage errors
-        }
-      }
-    }
-
-    if (encryptionKey && config.headers && !config.headers['X-Encryption-Key']) {
-      config.headers['X-Encryption-Key'] = encryptionKey;
+    if (sessionToken && config.headers && !config.headers['X-Encryption-Session']) {
+      config.headers['X-Encryption-Session'] = sessionToken;
     }
 
     // Add Accept-Language header for backend localization (REQ-3.6.1)
@@ -78,7 +65,7 @@ apiClient.interceptors.response.use(
           // Clear stale tokens and send the user back to login.
           try {
             localStorage.removeItem('auth_token');
-            sessionStorage.removeItem('encryption_key');
+            sessionStorage.removeItem('encryption_session');
             sessionStorage.removeItem('session_start_time');
           } catch (e) {
             // ignore storage errors

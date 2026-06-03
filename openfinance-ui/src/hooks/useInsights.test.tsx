@@ -57,7 +57,7 @@ describe('useInsights hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 });
       expect(result.current.data).toEqual([mockInsight]);
       expect(mockedApiClient.get).toHaveBeenCalledWith('/insights/top/3', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
 
@@ -68,7 +68,7 @@ describe('useInsights hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 });
       expect(mockedApiClient.get).toHaveBeenCalledWith('/insights/top/5', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
   });
@@ -83,7 +83,7 @@ describe('useInsights hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 });
       expect(result.current.data).toEqual([mockInsight]);
       expect(mockedApiClient.get).toHaveBeenCalledWith('/insights', {
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
   });

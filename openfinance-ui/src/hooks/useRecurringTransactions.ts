@@ -20,7 +20,7 @@ export function useRecurringTransactions(filters?: RecurringTransactionFilters) 
   return useQuery<RecurringTransaction[]>({
     queryKey: ['recurringTransactions', filters],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -40,7 +40,7 @@ export function useRecurringTransactions(filters?: RecurringTransactionFilters) 
         params.toString() ? `${endpoint}?${params.toString()}` : endpoint,
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );
@@ -58,7 +58,7 @@ export function useRecurringTransactionsPaged(filters: RecurringTransactionFilte
   return useQuery({
     queryKey: ['recurringTransactions', 'paged', filters],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -80,7 +80,7 @@ export function useRecurringTransactionsPaged(filters: RecurringTransactionFilte
         size: number;
       }>(`/recurring-transactions/paged?${params.toString()}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -102,14 +102,14 @@ export function useDueRecurringTransactions() {
   return useQuery<RecurringTransaction[]>({
     queryKey: ['recurringTransactions', 'due'],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.get<RecurringTransaction[]>('/recurring-transactions/due', {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -126,14 +126,14 @@ export function useRecurringTransaction(id: number | null) {
     queryFn: async () => {
       if (!id) throw new Error('Recurring transaction ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.get<RecurringTransaction>(`/recurring-transactions/${id}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -150,14 +150,14 @@ export function useCreateRecurringTransaction() {
 
   return useMutation<RecurringTransaction, Error, RecurringTransactionRequest>({
     mutationFn: async (data: RecurringTransactionRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.post<RecurringTransaction>('/recurring-transactions', data, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -179,14 +179,14 @@ export function useUpdateRecurringTransaction() {
 
   return useMutation<RecurringTransaction, Error, { id: number; data: RecurringTransactionRequest }>({
     mutationFn: async ({ id, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.put<RecurringTransaction>(`/recurring-transactions/${id}`, data, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -206,14 +206,14 @@ export function useDeleteRecurringTransaction() {
 
   return useMutation<void, Error, number>({
     mutationFn: async (id: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       await apiClient.delete(`/recurring-transactions/${id}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
     },
@@ -232,7 +232,7 @@ export function usePauseRecurringTransaction() {
 
   return useMutation<RecurringTransaction, Error, number>({
     mutationFn: async (id: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -242,7 +242,7 @@ export function usePauseRecurringTransaction() {
         {},
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );
@@ -262,7 +262,7 @@ export function useResumeRecurringTransaction() {
 
   return useMutation<RecurringTransaction, Error, number>({
     mutationFn: async (id: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -272,7 +272,7 @@ export function useResumeRecurringTransaction() {
         {},
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );
@@ -292,7 +292,7 @@ export function useProcessRecurringTransactions() {
 
   return useMutation<ProcessingResult, Error, void>({
     mutationFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -302,7 +302,7 @@ export function useProcessRecurringTransactions() {
         {},
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );

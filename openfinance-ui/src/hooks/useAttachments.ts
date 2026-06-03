@@ -74,7 +74,7 @@ export function useUploadAttachment() {
 
   const mutation = useMutation({
     mutationFn: async (request: AttachmentUploadRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found. Please log in again.');
       }
@@ -90,7 +90,7 @@ export function useUploadAttachment() {
       const response = await apiClient.post<Attachment>('/attachments', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
@@ -143,7 +143,7 @@ export function useDownloadAttachment() {
     try {
       setIsDownloading(true);
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found. Please log in again.');
       }
@@ -151,7 +151,7 @@ export function useDownloadAttachment() {
       const response = await apiClient.get(`/attachments/${attachmentId}/download`, {
         responseType: 'blob',
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
 
@@ -187,7 +187,7 @@ export function useDownloadAttachment() {
 export function useFetchAttachmentBlob() {
   return useMutation({
     mutationFn: async (attachmentId: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found. Please log in again.');
       }
@@ -195,7 +195,7 @@ export function useFetchAttachmentBlob() {
       const response = await apiClient.get(`/attachments/${attachmentId}/download`, {
         responseType: 'blob',
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
 

@@ -130,7 +130,7 @@ describe('useAttachments hooks', () => {
         expect.objectContaining({
           headers: expect.objectContaining({
             'Content-Type': 'multipart/form-data',
-            'X-Encryption-Key': 'test-encryption-key',
+            'X-Encryption-Session': 'test-encryption-key',
           }),
         }),
       );
@@ -190,7 +190,7 @@ describe('useAttachments hooks', () => {
 
       expect(mockedApiClient.get).toHaveBeenCalledWith('/attachments/1/download', {
         responseType: 'blob',
-        headers: { 'X-Encryption-Key': 'test-encryption-key' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
       expect(clickSpy).toHaveBeenCalled();
 

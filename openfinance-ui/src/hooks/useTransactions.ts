@@ -64,7 +64,7 @@ export function useTransactions(filters?: TransactionFilters) {
   return useQuery<PaginatedResponse<Transaction>>({
     queryKey: ['transactions', filters],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -99,7 +99,7 @@ export function useTransactions(filters?: TransactionFilters) {
         endpoint,
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );
@@ -117,14 +117,14 @@ export function useTransaction(transactionId: number | null) {
     queryFn: async () => {
       if (!transactionId) throw new Error('Transaction ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.get<Transaction>(`/transactions/${transactionId}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return normalizeTransaction(response.data);
@@ -141,14 +141,14 @@ export function useCreateTransaction() {
 
   return useMutation<Transaction, Error, TransactionRequest>({
     mutationFn: async (transactionData: TransactionRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.post<Transaction>('/transactions', transactionData, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -173,14 +173,14 @@ export function useCreateTransfer() {
 
   return useMutation<Transaction, Error, TransactionRequest>({
     mutationFn: async (transferData: TransactionRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.post<Transaction>('/transactions/transfer', transferData, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -205,14 +205,14 @@ export function useUpdateTransaction() {
 
   return useMutation<Transaction, Error, { id: number; data: TransactionRequest }>({
     mutationFn: async ({ id, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.put<Transaction>(`/transactions/${id}`, data, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -239,14 +239,14 @@ export function useUpdateTransfer() {
 
   return useMutation<Transaction, Error, { transferId: string; data: TransferUpdateRequest }>({
     mutationFn: async ({ transferId, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.put<Transaction>(`/transactions/transfers/${transferId}`, data, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -271,14 +271,14 @@ export function useDeleteTransaction() {
 
   return useMutation<void, Error, number>({
     mutationFn: async (transactionId: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       await apiClient.delete(`/transactions/${transactionId}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
     },
@@ -300,7 +300,7 @@ export function useCategories(type?: 'INCOME' | 'EXPENSE') {
   return useQuery<Category[]>({
     queryKey: ['categories', type],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -308,7 +308,7 @@ export function useCategories(type?: 'INCOME' | 'EXPENSE') {
       const params = type ? `?type=${type}` : '';
       const response = await apiClient.get<Category[]>(`/categories${params}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -324,14 +324,14 @@ export function useCreateCategory() {
 
   return useMutation<Category, Error, Partial<Category>>({
     mutationFn: async (categoryData) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.post<Category>('/categories', categoryData, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -349,14 +349,14 @@ export function useCategoryTree() {
   return useQuery<CategoryTreeNode[]>({
     queryKey: ['categories', 'tree'],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.get<CategoryTreeNode[]>('/categories/tree', {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -373,14 +373,14 @@ export function useDeleteCategory() {
 
   return useMutation<void, Error, number>({
     mutationFn: async (categoryId: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       await apiClient.delete(`/categories/${categoryId}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
     },
@@ -398,14 +398,14 @@ export function useUpdateCategory() {
 
   return useMutation<Category, Error, { id: number; data: Partial<Category> }>({
     mutationFn: async ({ id, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.put<Category>(`/categories/${id}`, data, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;

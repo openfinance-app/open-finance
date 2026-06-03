@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,7 +47,6 @@ import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.PayeeRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
-import org.openfinance.security.EncryptionService;
 import org.openfinance.service.parser.CsvParser;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
@@ -98,15 +96,11 @@ class ImportServiceMultiAccountTest {
         @Mock
         private MessageSource messageSource;
         @Mock
-        private EncryptionService encryptionService;
-        @Mock
         private InstitutionRepository institutionRepository;
         @Mock
         private PayeeRepository payeeRepository;
         @Mock
         private CurrencyRepository currencyRepository;
-        @Mock
-        private SecretKey encryptionKey;
 
         private ImportService importService;
         private ObjectMapper objectMapper;
@@ -136,7 +130,6 @@ class ImportServiceMultiAccountTest {
                                 netWorthRepository,
                                 aiCategorizationService,
                                 messageSource,
-                                encryptionService,
                                 institutionRepository,
                                 currencyRepository,
                                 payeeRepository);
@@ -199,7 +192,7 @@ class ImportServiceMultiAccountTest {
                                 .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
                 when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
                 when(accountService.createAccount(
-                                eq(USER_ID), any(AccountRequest.class), eq(encryptionKey)))
+                                eq(USER_ID), any(AccountRequest.class)))
                                 .thenReturn(
                                                 AccountResponse.builder().id(201L).build(),
                                                 AccountResponse.builder().id(202L).build());
@@ -214,11 +207,11 @@ class ImportServiceMultiAccountTest {
                                                         return transaction;
                                                 });
 
-                ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true, encryptionKey);
+                ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true);
 
                 ArgumentCaptor<AccountRequest> accountRequests = ArgumentCaptor.forClass(AccountRequest.class);
                 verify(accountService, times(2))
-                                .createAccount(eq(USER_ID), accountRequests.capture(), eq(encryptionKey));
+                                .createAccount(eq(USER_ID), accountRequests.capture());
                 assertThat(accountRequests.getAllValues())
                                 .extracting(AccountRequest::getName)
                                 .containsExactly("Checking", "Savings");
@@ -290,20 +283,19 @@ class ImportServiceMultiAccountTest {
                                 .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
                 when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
                 when(accountService.createAccount(
-                                eq(USER_ID), any(AccountRequest.class), eq(encryptionKey)))
+                                eq(USER_ID), any(AccountRequest.class)))
                                 .thenReturn(
                                                 AccountResponse.builder().id(301L).build(),
                                                 AccountResponse.builder().id(302L).build());
                 when(accountRepository.findById(301L)).thenReturn(Optional.of(checkingAccount));
                 when(accountRepository.findById(302L)).thenReturn(Optional.of(savingsAccount));
 
-                ImportSession result = importService.confirmImport(2L, USER_ID, null, Map.of(), true, encryptionKey);
+                ImportSession result = importService.confirmImport(2L, USER_ID, null, Map.of(), true);
 
                 verify(transactionService)
                                 .createTransfer(
                                                 eq(USER_ID),
-                                                argThat(request -> matchesTransfer(request, 301L, 302L)),
-                                                eq(encryptionKey));
+                                                argThat(request -> matchesTransfer(request, 301L, 302L)));
                 verify(transactionRepository, never()).save(any(Transaction.class));
                 verify(accountService, times(2)).recalculateBalance(anyLong(), eq(USER_ID));
                 assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
@@ -364,20 +356,19 @@ class ImportServiceMultiAccountTest {
                                 .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
                 when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
                 when(accountService.createAccount(
-                                eq(USER_ID), any(AccountRequest.class), eq(encryptionKey)))
+                                eq(USER_ID), any(AccountRequest.class)))
                                 .thenReturn(
                                                 AccountResponse.builder().id(401L).build(),
                                                 AccountResponse.builder().id(402L).build());
                 when(accountRepository.findById(401L)).thenReturn(Optional.of(checkingAccount));
                 when(accountRepository.findById(402L)).thenReturn(Optional.of(savingsAccount));
 
-                ImportSession result = importService.confirmImport(3L, USER_ID, null, Map.of(), true, encryptionKey);
+                ImportSession result = importService.confirmImport(3L, USER_ID, null, Map.of(), true);
 
                 verify(transactionService, times(1))
                                 .createTransfer(
                                                 eq(USER_ID),
-                                                argThat(request -> matchesTransfer(request, 401L, 402L)),
-                                                eq(encryptionKey));
+                                                argThat(request -> matchesTransfer(request, 401L, 402L)));
                 verify(transactionRepository, never()).save(any(Transaction.class));
                 assertThat(result.getImportedCount()).isEqualTo(1);
                 assertThat(result.getSkippedCount()).isZero();

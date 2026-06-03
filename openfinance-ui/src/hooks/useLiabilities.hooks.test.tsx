@@ -94,7 +94,7 @@ describe('useLiabilities hooks', () => {
       const { result } = renderHook(() => useCreateLiability(), { wrapper });
       await result.current.mutateAsync({ name: 'New Loan', type: 'LOAN', currentBalance: 10000, currency: 'USD' } as any);
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/liabilities', expect.any(Object), expect.objectContaining({ headers: { 'X-Encryption-Key': 'test-key' } }));
+      expect(mockedApiClient.post).toHaveBeenCalledWith('/liabilities', expect.any(Object), expect.objectContaining({ headers: { 'X-Encryption-Session': 'test-key' } }));
     });
 
     it('throws when encryption key missing', async () => {

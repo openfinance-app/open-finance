@@ -24,6 +24,7 @@ import org.openfinance.entity.SecurityAuditLog.EventType;
 import org.openfinance.entity.User;
 import org.openfinance.exception.AccountLockedException;
 import org.openfinance.repository.UserRepository;
+import org.openfinance.security.EncryptionKeyCache;
 import org.openfinance.security.KeyManagementService;
 import org.openfinance.security.PasswordService;
 import org.springframework.context.MessageSource;
@@ -33,7 +34,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 /**
  * Unit tests for AuthService.
  *
- * <p>Tests user authentication, JWT token generation, and encryption key handling. Updated to cover
+ * <p>
+ * Tests user authentication, JWT token generation, and encryption key handling.
+ * Updated to cover
  * security audit logging and account lockout logic.
  *
  * @author Open-Finance Development Team
@@ -44,182 +47,193 @@ import org.springframework.test.util.ReflectionTestUtils;
 @DisplayName("AuthService Unit Tests")
 class AuthServiceTest {
 
-    @Mock private UserRepository userRepository;
-    @Mock private PasswordService passwordService;
-    @Mock private KeyManagementService keyManagementService;
-    @Mock private JwtService jwtService;
-    @Mock private MessageSource messageSource;
-    @Mock private SecurityAuditService securityAuditService;
-    @Mock private UserLoginStateService userLoginStateService;
+        @Mock
+        private UserRepository userRepository;
+        @Mock
+        private PasswordService passwordService;
+        @Mock
+        private KeyManagementService keyManagementService;
+        @Mock
+        private JwtService jwtService;
+        @Mock
+        private MessageSource messageSource;
+        @Mock
+        private SecurityAuditService securityAuditService;
+        @Mock
+        private UserLoginStateService userLoginStateService;
 
-    @Mock private OperationHistoryService operationHistoryService;
+        @Mock
+        private OperationHistoryService operationHistoryService;
 
-    @InjectMocks private AuthService authService;
+        @Mock
+        private EncryptionKeyCache encryptionKeyCache;
 
-    private User testUser;
-    private LoginRequest loginRequest;
-    private byte[] testSalt;
-    private SecretKey testEncryptionKey;
+        @InjectMocks
+        private AuthService authService;
 
-    @BeforeEach
-    void setUp() {
-        testSalt = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
-        testEncryptionKey = new SecretKeySpec(new byte[32], 0, 32, "AES");
+        private User testUser;
+        private LoginRequest loginRequest;
+        private byte[] testSalt;
+        private SecretKey testEncryptionKey;
 
-        testUser =
-                User.builder()
-                        .id(1L)
-                        .username("john_doe")
-                        .email("john@example.com")
-                        .passwordHash("$2a$10$hashedPassword")
-                        .masterPasswordSalt(Base64.getEncoder().encodeToString(testSalt))
-                        .failedLoginAttempts(0)
-                        .build();
+        @BeforeEach
+        void setUp() {
+                testSalt = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+                testEncryptionKey = new SecretKeySpec(new byte[32], 0, 32, "AES");
 
-        loginRequest =
-                LoginRequest.builder()
-                        .username("john_doe")
-                        .password("Password123!")
-                        .masterPassword("masterPass456")
-                        .build();
+                testUser = User.builder()
+                                .id(1L)
+                                .username("john_doe")
+                                .email("john@example.com")
+                                .passwordHash("$2a$10$hashedPassword")
+                                .masterPasswordSalt(Base64.getEncoder().encodeToString(testSalt))
+                                .failedLoginAttempts(0)
+                                .build();
 
-        ReflectionTestUtils.setField(authService, "maxFailedAttempts", 5);
-        ReflectionTestUtils.setField(authService, "lockoutDurationMinutes", 15);
+                loginRequest = LoginRequest.builder()
+                                .username("john_doe")
+                                .password("Password123!")
+                                .masterPassword("masterPass456")
+                                .build();
 
-        lenient()
-                .when(messageSource.getMessage(anyString(), any(), any()))
-                .thenReturn("Invalid username or password");
-    }
+                ReflectionTestUtils.setField(authService, "maxFailedAttempts", 5);
+                ReflectionTestUtils.setField(authService, "lockoutDurationMinutes", 15);
 
-    @Test
-    @DisplayName("Should successfully authenticate user with valid credentials")
-    void shouldSuccessfullyAuthenticateUserWithValidCredentials() {
-        // Given
-        when(userRepository.findByUsername("john_doe")).thenReturn(Optional.of(testUser));
-        when(passwordService.validatePassword("Password123!", testUser.getPasswordHash()))
-                .thenReturn(true);
-        when(keyManagementService.deriveKey(any(char[].class), eq(testSalt)))
-                .thenReturn(testEncryptionKey);
-        when(jwtService.generateToken(testUser)).thenReturn("jwt.token.here");
+                lenient()
+                                .when(messageSource.getMessage(anyString(), any(), any()))
+                                .thenReturn("Invalid username or password");
+        }
 
-        // When
-        LoginResponse response = authService.login(loginRequest);
+        @Test
+        @DisplayName("Should successfully authenticate user with valid credentials")
+        void shouldSuccessfullyAuthenticateUserWithValidCredentials() {
+                // Given
+                when(userRepository.findByUsername("john_doe")).thenReturn(Optional.of(testUser));
+                when(passwordService.validatePassword("Password123!", testUser.getPasswordHash()))
+                                .thenReturn(true);
+                when(keyManagementService.deriveKey(any(char[].class), eq(testSalt)))
+                                .thenReturn(testEncryptionKey);
+                when(encryptionKeyCache.createSession(eq(1L), eq(testEncryptionKey)))
+                                .thenReturn("session-token-123");
+                when(jwtService.generateToken(testUser)).thenReturn("jwt.token.here");
 
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.getToken()).isEqualTo("jwt.token.here");
-        assertThat(response.getUserId()).isEqualTo(1L);
-        String expectedKey = Base64.getEncoder().encodeToString(testEncryptionKey.getEncoded());
-        assertThat(response.getEncryptionKey()).isEqualTo(expectedKey);
+                // When
+                LoginResponse response = authService.login(loginRequest);
 
-        verify(userLoginStateService).recordLoginSuccess(eq(1L), anyString());
-        verify(securityAuditService)
-                .logEvent(eq(1L), eq("john_doe"), eq(EventType.LOGIN_SUCCESS), any(), isNull());
-    }
+                // Then
+                assertThat(response).isNotNull();
+                assertThat(response.getToken()).isEqualTo("jwt.token.here");
+                assertThat(response.getUserId()).isEqualTo(1L);
+                assertThat(response.getEncryptionKey()).isEqualTo("session-token-123");
 
-    @Test
-    @DisplayName("Should throw BadCredentialsException when username not found and log event")
-    void shouldThrowExceptionWhenUsernameNotFound() {
-        // Given
-        when(userRepository.findByUsername("john_doe")).thenReturn(Optional.empty());
+                verify(userLoginStateService).recordLoginSuccess(eq(1L), anyString());
+                verify(securityAuditService)
+                                .logEvent(eq(1L), eq("john_doe"), eq(EventType.LOGIN_SUCCESS), any(), isNull());
+        }
 
-        // When & Then
-        assertThatThrownBy(() -> authService.login(loginRequest))
-                .isInstanceOf(BadCredentialsException.class);
+        @Test
+        @DisplayName("Should throw BadCredentialsException when username not found and log event")
+        void shouldThrowExceptionWhenUsernameNotFound() {
+                // Given
+                when(userRepository.findByUsername("john_doe")).thenReturn(Optional.empty());
 
-        verify(securityAuditService)
-                .logEvent(
-                        isNull(),
-                        eq("john_doe"),
-                        eq(EventType.LOGIN_FAILURE),
-                        any(),
-                        eq("User not found"));
-        verifyNoInteractions(userLoginStateService);
-    }
+                // When & Then
+                assertThatThrownBy(() -> authService.login(loginRequest))
+                                .isInstanceOf(BadCredentialsException.class);
 
-    @Test
-    @DisplayName("Should throw AccountLockedException when account is locked")
-    void shouldThrowExceptionWhenAccountLocked() {
-        // Given
-        testUser.setLockedUntil(LocalDateTime.now().plusMinutes(10));
-        when(userRepository.findByUsername("john_doe")).thenReturn(Optional.of(testUser));
+                verify(securityAuditService)
+                                .logEvent(
+                                                isNull(),
+                                                eq("john_doe"),
+                                                eq(EventType.LOGIN_FAILURE),
+                                                any(),
+                                                eq("User not found"));
+                verifyNoInteractions(userLoginStateService);
+        }
 
-        // When & Then
-        assertThatThrownBy(() -> authService.login(loginRequest))
-                .isInstanceOf(AccountLockedException.class);
+        @Test
+        @DisplayName("Should throw AccountLockedException when account is locked")
+        void shouldThrowExceptionWhenAccountLocked() {
+                // Given
+                testUser.setLockedUntil(LocalDateTime.now().plusMinutes(10));
+                when(userRepository.findByUsername("john_doe")).thenReturn(Optional.of(testUser));
 
-        verify(securityAuditService)
-                .logEvent(
-                        eq(1L),
-                        eq("john_doe"),
-                        eq(EventType.LOGIN_FAILURE),
-                        any(),
-                        contains("Account locked"));
-        verifyNoInteractions(passwordService);
-        verifyNoInteractions(userLoginStateService);
-    }
+                // When & Then
+                assertThatThrownBy(() -> authService.login(loginRequest))
+                                .isInstanceOf(AccountLockedException.class);
 
-    @Test
-    @DisplayName("Should handle failed login attempt and increment counter")
-    void shouldHandleFailedLoginAttempt() {
-        // Given
-        when(userRepository.findByUsername("john_doe")).thenReturn(Optional.of(testUser));
-        when(passwordService.validatePassword("Password123!", testUser.getPasswordHash()))
-                .thenReturn(false);
-        when(userLoginStateService.recordLoginFailure(1L, 5, 15)).thenReturn(1);
+                verify(securityAuditService)
+                                .logEvent(
+                                                eq(1L),
+                                                eq("john_doe"),
+                                                eq(EventType.LOGIN_FAILURE),
+                                                any(),
+                                                contains("Account locked"));
+                verifyNoInteractions(passwordService);
+                verifyNoInteractions(userLoginStateService);
+        }
 
-        // When & Then
-        assertThatThrownBy(() -> authService.login(loginRequest))
-                .isInstanceOf(BadCredentialsException.class);
+        @Test
+        @DisplayName("Should handle failed login attempt and increment counter")
+        void shouldHandleFailedLoginAttempt() {
+                // Given
+                when(userRepository.findByUsername("john_doe")).thenReturn(Optional.of(testUser));
+                when(passwordService.validatePassword("Password123!", testUser.getPasswordHash()))
+                                .thenReturn(false);
+                when(userLoginStateService.recordLoginFailure(1L, 5, 15)).thenReturn(1);
 
-        verify(userLoginStateService).recordLoginFailure(1L, 5, 15);
-        verify(securityAuditService)
-                .logEvent(
-                        eq(1L),
-                        eq("john_doe"),
-                        eq(EventType.LOGIN_FAILURE),
-                        any(),
-                        contains("Failed attempt 1/5"));
-    }
+                // When & Then
+                assertThatThrownBy(() -> authService.login(loginRequest))
+                                .isInstanceOf(BadCredentialsException.class);
 
-    @Test
-    @DisplayName("Should log ACCOUNT_LOCKED event when lockout threshold reached")
-    void shouldLogLockoutEvent() {
-        // Given
-        when(userRepository.findByUsername("john_doe")).thenReturn(Optional.of(testUser));
-        when(passwordService.validatePassword("Password123!", testUser.getPasswordHash()))
-                .thenReturn(false);
-        when(userLoginStateService.recordLoginFailure(1L, 5, 15)).thenReturn(5);
+                verify(userLoginStateService).recordLoginFailure(1L, 5, 15);
+                verify(securityAuditService)
+                                .logEvent(
+                                                eq(1L),
+                                                eq("john_doe"),
+                                                eq(EventType.LOGIN_FAILURE),
+                                                any(),
+                                                contains("Failed attempt 1/5"));
+        }
 
-        // When & Then
-        assertThatThrownBy(() -> authService.login(loginRequest))
-                .isInstanceOf(BadCredentialsException.class);
+        @Test
+        @DisplayName("Should log ACCOUNT_LOCKED event when lockout threshold reached")
+        void shouldLogLockoutEvent() {
+                // Given
+                when(userRepository.findByUsername("john_doe")).thenReturn(Optional.of(testUser));
+                when(passwordService.validatePassword("Password123!", testUser.getPasswordHash()))
+                                .thenReturn(false);
+                when(userLoginStateService.recordLoginFailure(1L, 5, 15)).thenReturn(5);
 
-        verify(securityAuditService)
-                .logEvent(
-                        eq(1L),
-                        eq("john_doe"),
-                        eq(EventType.ACCOUNT_LOCKED),
-                        any(),
-                        contains("Locked for 15 min"));
-    }
+                // When & Then
+                assertThatThrownBy(() -> authService.login(loginRequest))
+                                .isInstanceOf(BadCredentialsException.class);
 
-    @Test
-    @DisplayName("Should handle master password failure as a failed login attempt")
-    void shouldHandleMasterPasswordFailure() {
-        // Given
-        when(userRepository.findByUsername("john_doe")).thenReturn(Optional.of(testUser));
-        when(passwordService.validatePassword("Password123!", testUser.getPasswordHash()))
-                .thenReturn(true);
-        when(keyManagementService.deriveKey(any(), any()))
-                .thenThrow(new IllegalStateException("Key derivation failed"));
-        when(userLoginStateService.recordLoginFailure(1L, 5, 15)).thenReturn(1);
+                verify(securityAuditService)
+                                .logEvent(
+                                                eq(1L),
+                                                eq("john_doe"),
+                                                eq(EventType.ACCOUNT_LOCKED),
+                                                any(),
+                                                contains("Locked for 15 min"));
+        }
 
-        // When & Then
-        assertThatThrownBy(() -> authService.login(loginRequest))
-                .isInstanceOf(BadCredentialsException.class)
-                .hasMessage("Invalid master password");
+        @Test
+        @DisplayName("Should handle master password failure as a failed login attempt")
+        void shouldHandleMasterPasswordFailure() {
+                // Given
+                when(userRepository.findByUsername("john_doe")).thenReturn(Optional.of(testUser));
+                when(passwordService.validatePassword("Password123!", testUser.getPasswordHash()))
+                                .thenReturn(true);
+                when(keyManagementService.deriveKey(any(), any()))
+                                .thenThrow(new IllegalStateException("Key derivation failed"));
+                when(userLoginStateService.recordLoginFailure(1L, 5, 15)).thenReturn(1);
 
-        verify(userLoginStateService).recordLoginFailure(1L, 5, 15);
-    }
+                // When & Then
+                assertThatThrownBy(() -> authService.login(loginRequest))
+                                .isInstanceOf(BadCredentialsException.class)
+                                .hasMessage("Invalid master password");
+
+                verify(userLoginStateService).recordLoginFailure(1L, 5, 15);
+        }
 }

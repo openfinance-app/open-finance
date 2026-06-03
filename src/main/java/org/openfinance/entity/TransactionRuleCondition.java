@@ -22,16 +22,19 @@ import lombok.Setter;
 /**
  * JPA entity representing a single condition in a {@link TransactionRule}.
  *
- * <p>Conditions are evaluated with AND logic — all conditions in a rule must be satisfied for the
+ * <p>
+ * Conditions are evaluated with AND logic — all conditions in a rule must be
+ * satisfied for the
  * rule to fire against an imported transaction.
  *
- * <p><strong>Requirements:</strong>
+ * <p>
+ * <strong>Requirements:</strong>
  *
  * <ul>
- *   <li>REQ-TR-2.1: Field targeting (DESCRIPTION, AMOUNT, TRANSACTION_TYPE)
- *   <li>REQ-TR-2.2: Operators (CONTAINS, NOT_CONTAINS, EQUALS, etc.)
- *   <li>REQ-TR-2.3: Value stored as string, interpreted per field+operator
- *   <li>REQ-TR-2.4: AND logic between conditions
+ * <li>REQ-TR-2.1: Field targeting (DESCRIPTION, AMOUNT, TRANSACTION_TYPE)
+ * <li>REQ-TR-2.2: Operators (CONTAINS, NOT_CONTAINS, EQUALS, etc.)
+ * <li>REQ-TR-2.3: Value stored as string, interpreted per field+operator
+ * <li>REQ-TR-2.4: AND logic between conditions
  * </ul>
  *
  * @see TransactionRule
@@ -39,9 +42,8 @@ import lombok.Setter;
  * @see RuleConditionOperator
  */
 @Entity
-@Table(
-        name = "transaction_rule_conditions",
-        indexes = {@Index(name = "idx_transaction_rule_conditions_rule", columnList = "rule_id")})
+@Table(name = "transaction_rule_conditions", indexes = {
+        @Index(name = "idx_transaction_rule_conditions_rule", columnList = "rule_id") })
 @Getter
 @Setter
 @Builder
@@ -63,7 +65,10 @@ public class TransactionRuleCondition {
     @Column(name = "rule_id", insertable = false, updatable = false)
     private Long ruleId;
 
-    /** The field of the imported transaction this condition targets. Requirement: REQ-TR-2.1 */
+    /**
+     * The field of the imported transaction this condition targets. Requirement:
+     * REQ-TR-2.1
+     */
     @NotNull(message = "Condition field is required")
     @Enumerated(EnumType.STRING)
     @Column(name = "field", nullable = false, length = 30)
@@ -76,12 +81,14 @@ public class TransactionRuleCondition {
     private RuleConditionOperator operator;
 
     /**
-     * The value to compare against. For string operators: literal substring. For numeric operators:
-     * decimal string (parsed as BigDecimal). For TRANSACTION_TYPE: "INCOME" or "EXPENSE".
+     * The value to compare against. For string operators: literal substring. For
+     * numeric operators:
+     * decimal string (parsed as BigDecimal). For TRANSACTION_TYPE: "INCOME" or
+     * "EXPENSE".
      * Requirement: REQ-TR-2.3
      */
     @NotBlank(message = "Condition value is required")
-    @Column(name = "value", nullable = false)
+    @Column(name = "`value`", nullable = false)
     private String value;
 
     /** Display order of this condition within the rule. */

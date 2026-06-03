@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.openfinance.converter.EncryptedBigDecimalConverter;
+import org.openfinance.converter.EncryptedStringConverter;
 
 /**
  * Entity representing a financial asset (stock, ETF, crypto, etc.) in the
@@ -94,6 +96,7 @@ public class Asset {
     @NotNull(message = "Asset name cannot be null")
     @Size(min = 1, max = 500, message = "Asset name must be between 1 and 500 characters")
     @Column(name = "name", nullable = false, length = 500) // Extra length for encrypted data
+    @Convert(converter = EncryptedStringConverter.class)
     private String name;
 
     /**
@@ -139,7 +142,8 @@ public class Asset {
      */
     @NotNull(message = "Quantity cannot be null")
     @DecimalMin(value = "0.00000001", message = "Quantity must be greater than 0")
-    @Column(name = "quantity", nullable = false, precision = 19, scale = 8)
+    @Column(name = "quantity", nullable = false, length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal quantity;
 
     /**
@@ -149,7 +153,8 @@ public class Asset {
      */
     @NotNull(message = "Purchase price cannot be null")
     @DecimalMin(value = "0.00", message = "Purchase price must be non-negative")
-    @Column(name = "purchase_price", nullable = false, precision = 19, scale = 4)
+    @Column(name = "purchase_price", nullable = false, length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal purchasePrice;
 
     /**
@@ -204,6 +209,7 @@ public class Asset {
      * AssetService handles encryption/decryption transparently.
      */
     @Column(name = "notes", columnDefinition = "TEXT")
+    @Convert(converter = EncryptedStringConverter.class)
     private String notes;
 
     // ===== Physical Asset Fields (for VEHICLE, JEWELRY, COLLECTIBLE, ELECTRONICS,
@@ -223,6 +229,7 @@ public class Asset {
      */
     @Size(max = 500, message = "Serial number must not exceed 500 characters")
     @Column(name = "serial_number", length = 500)
+    @Convert(converter = EncryptedStringConverter.class)
     private String serialNumber;
 
     /**
@@ -235,6 +242,7 @@ public class Asset {
      */
     @Size(max = 500, message = "Brand must not exceed 500 characters")
     @Column(name = "brand", length = 500)
+    @Convert(converter = EncryptedStringConverter.class)
     private String brand;
 
     /**
@@ -247,6 +255,7 @@ public class Asset {
      */
     @Size(max = 500, message = "Model must not exceed 500 characters")
     @Column(name = "model", length = 500)
+    @Convert(converter = EncryptedStringConverter.class)
     private String model;
 
     /**

@@ -7,6 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,212 +27,214 @@ import org.openfinance.repository.TransactionRepository;
 /**
  * Unit tests for PayeeService — focuses on logo auto-fetch integration.
  *
- * <p>Validates that {@link LogoFetchService} is called at the right times in {@code createPayee}
+ * <p>
+ * Validates that {@link LogoFetchService} is called at the right times in
+ * {@code createPayee}
  * and {@code findOrCreatePayee}.
  */
 @ExtendWith(MockitoExtension.class)
 class PayeeServiceTest {
 
-    @Mock private PayeeRepository payeeRepository;
+        @Mock
+        private PayeeRepository payeeRepository;
 
-    @Mock private CategoryRepository categoryRepository;
+        @Mock
+        private CategoryRepository categoryRepository;
 
-    @Mock private TransactionRepository transactionRepository;
+        @Mock
+        private TransactionRepository transactionRepository;
 
-    @Mock private LogoFetchService logoFetchService;
+        @Mock
+        private LogoFetchService logoFetchService;
 
-    @InjectMocks private PayeeService payeeService;
+        @Mock
+        private SearchTokenService searchTokenService;
 
-    private Payee existingPayee;
-    private static final Long USER_ID = 1L;
+        @InjectMocks
+        private PayeeService payeeService;
 
-    @BeforeEach
-    void setUp() {
-        existingPayee =
-                Payee.builder()
-                        .id(1L)
-                        .name("Netflix")
-                        .logo("data:image/png;base64,EXISTING")
-                        .isSystem(false)
-                        .isActive(true)
-                        .userId(USER_ID)
-                        .createdAt(LocalDateTime.now().minusDays(1))
-                        .updatedAt(LocalDateTime.now().minusDays(1))
-                        .build();
-    }
+        private Payee existingPayee;
+        private static final Long USER_ID = 1L;
 
-    // -------------------------------------------------------------------------
-    // createPayee
-    // -------------------------------------------------------------------------
+        @BeforeEach
+        void setUp() {
+                existingPayee = Payee.builder()
+                                .id(1L)
+                                .name("Netflix")
+                                .logo("data:image/png;base64,EXISTING")
+                                .isSystem(false)
+                                .isActive(true)
+                                .userId(USER_ID)
+                                .createdAt(LocalDateTime.now().minusDays(1))
+                                .updatedAt(LocalDateTime.now().minusDays(1))
+                                .build();
+        }
 
-    @Test
-    @DisplayName("createPayee fetches logo when request has no logo")
-    void shouldFetchLogoWhenCreatePayeeHasNoLogo() {
-        // Arrange
-        PayeeRequest request = PayeeRequest.builder().name("Spotify").logo(null).build();
-        when(payeeRepository.existsByNameIgnoreCaseAndUser("Spotify", USER_ID)).thenReturn(false);
+        // -------------------------------------------------------------------------
+        // createPayee
+        // -------------------------------------------------------------------------
 
-        String fetchedLogo = "data:image/png;base64,FETCHED";
-        when(logoFetchService.fetchLogo("Spotify")).thenReturn(Optional.of(fetchedLogo));
+        @Test
+        @DisplayName("createPayee fetches logo when request has no logo")
+        void shouldFetchLogoWhenCreatePayeeHasNoLogo() {
+                // Arrange
+                PayeeRequest request = PayeeRequest.builder().name("Spotify").logo(null).build();
+                when(payeeRepository.findAllByUser(USER_ID)).thenReturn(Collections.emptyList());
 
-        Payee saved =
-                Payee.builder()
-                        .id(2L)
-                        .name("Spotify")
-                        .logo(fetchedLogo)
-                        .isSystem(false)
-                        .isActive(true)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
-        when(payeeRepository.save(any(Payee.class))).thenReturn(saved);
+                String fetchedLogo = "data:image/png;base64,FETCHED";
+                when(logoFetchService.fetchLogo("Spotify")).thenReturn(Optional.of(fetchedLogo));
 
-        // Act
-        PayeeResponse result = payeeService.createPayee(request, USER_ID);
+                Payee saved = Payee.builder()
+                                .id(2L)
+                                .name("Spotify")
+                                .logo(fetchedLogo)
+                                .isSystem(false)
+                                .isActive(true)
+                                .createdAt(LocalDateTime.now())
+                                .updatedAt(LocalDateTime.now())
+                                .build();
+                when(payeeRepository.save(any(Payee.class))).thenReturn(saved);
 
-        // Assert
-        verify(logoFetchService).fetchLogo("Spotify");
-        assertThat(result.getLogo()).isEqualTo(fetchedLogo);
-    }
+                // Act
+                PayeeResponse result = payeeService.createPayee(request, USER_ID);
 
-    @Test
-    @DisplayName("createPayee skips logo fetch when logo is already provided")
-    void shouldNotFetchLogoWhenCreatePayeeHasLogo() {
-        // Arrange
-        PayeeRequest request =
-                PayeeRequest.builder().name("Spotify").logo("data:image/png;base64,MANUAL").build();
-        when(payeeRepository.existsByNameIgnoreCaseAndUser("Spotify", USER_ID)).thenReturn(false);
+                // Assert
+                verify(logoFetchService).fetchLogo("Spotify");
+                assertThat(result.getLogo()).isEqualTo(fetchedLogo);
+        }
 
-        Payee saved =
-                Payee.builder()
-                        .id(2L)
-                        .name("Spotify")
-                        .logo("data:image/png;base64,MANUAL")
-                        .isSystem(false)
-                        .isActive(true)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
-        when(payeeRepository.save(any(Payee.class))).thenReturn(saved);
+        @Test
+        @DisplayName("createPayee skips logo fetch when logo is already provided")
+        void shouldNotFetchLogoWhenCreatePayeeHasLogo() {
+                // Arrange
+                PayeeRequest request = PayeeRequest.builder().name("Spotify").logo("data:image/png;base64,MANUAL")
+                                .build();
+                when(payeeRepository.findAllByUser(USER_ID)).thenReturn(Collections.emptyList());
 
-        // Act
-        payeeService.createPayee(request, USER_ID);
+                Payee saved = Payee.builder()
+                                .id(2L)
+                                .name("Spotify")
+                                .logo("data:image/png;base64,MANUAL")
+                                .isSystem(false)
+                                .isActive(true)
+                                .createdAt(LocalDateTime.now())
+                                .updatedAt(LocalDateTime.now())
+                                .build();
+                when(payeeRepository.save(any(Payee.class))).thenReturn(saved);
 
-        // Assert
-        verify(logoFetchService, never()).fetchLogo(any());
-    }
+                // Act
+                payeeService.createPayee(request, USER_ID);
 
-    @Test
-    @DisplayName("createPayee saves null logo when fetch returns empty")
-    void shouldSaveWithNullLogoWhenFetchFails() {
-        // Arrange
-        PayeeRequest request = PayeeRequest.builder().name("UnknownCorp").logo(null).build();
-        when(payeeRepository.existsByNameIgnoreCaseAndUser("UnknownCorp", USER_ID))
-                .thenReturn(false);
-        when(logoFetchService.fetchLogo("UnknownCorp")).thenReturn(Optional.empty());
+                // Assert
+                verify(logoFetchService, never()).fetchLogo(any());
+        }
 
-        Payee saved =
-                Payee.builder()
-                        .id(3L)
-                        .name("UnknownCorp")
-                        .logo(null)
-                        .isSystem(false)
-                        .isActive(true)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
-        when(payeeRepository.save(any(Payee.class))).thenReturn(saved);
+        @Test
+        @DisplayName("createPayee saves null logo when fetch returns empty")
+        void shouldSaveWithNullLogoWhenFetchFails() {
+                // Arrange
+                PayeeRequest request = PayeeRequest.builder().name("UnknownCorp").logo(null).build();
+                when(payeeRepository.findAllByUser(USER_ID)).thenReturn(Collections.emptyList());
+                when(logoFetchService.fetchLogo("UnknownCorp")).thenReturn(Optional.empty());
 
-        // Act
-        PayeeResponse result = payeeService.createPayee(request, USER_ID);
+                Payee saved = Payee.builder()
+                                .id(3L)
+                                .name("UnknownCorp")
+                                .logo(null)
+                                .isSystem(false)
+                                .isActive(true)
+                                .createdAt(LocalDateTime.now())
+                                .updatedAt(LocalDateTime.now())
+                                .build();
+                when(payeeRepository.save(any(Payee.class))).thenReturn(saved);
 
-        // Assert
-        verify(logoFetchService).fetchLogo("UnknownCorp");
-        assertThat(result.getLogo()).isNull();
-    }
+                // Act
+                PayeeResponse result = payeeService.createPayee(request, USER_ID);
 
-    // -------------------------------------------------------------------------
-    // findOrCreatePayee
-    // -------------------------------------------------------------------------
+                // Assert
+                verify(logoFetchService).fetchLogo("UnknownCorp");
+                assertThat(result.getLogo()).isNull();
+        }
 
-    @Test
-    @DisplayName("findOrCreatePayee fetches logo only for newly created payees")
-    void shouldFetchLogoWhenFindOrCreateCreatesNewPayee() {
-        // Arrange
-        when(payeeRepository.findByNameIgnoreCaseAndUser("Deliveroo", USER_ID))
-                .thenReturn(null); // not found
+        // -------------------------------------------------------------------------
+        // findOrCreatePayee
+        // -------------------------------------------------------------------------
 
-        String fetchedLogo = "data:image/png;base64,FETCHED";
-        when(logoFetchService.fetchLogo("Deliveroo")).thenReturn(Optional.of(fetchedLogo));
+        @Test
+        @DisplayName("findOrCreatePayee fetches logo only for newly created payees")
+        void shouldFetchLogoWhenFindOrCreateCreatesNewPayee() {
+                // Arrange
+                when(payeeRepository.findAllByUser(USER_ID))
+                                .thenReturn(Collections.emptyList()); // not found
 
-        Payee saved =
-                Payee.builder()
-                        .id(5L)
-                        .name("Deliveroo")
-                        .logo(fetchedLogo)
-                        .isSystem(false)
-                        .isActive(true)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
-        when(payeeRepository.save(any(Payee.class))).thenReturn(saved);
+                String fetchedLogo = "data:image/png;base64,FETCHED";
+                when(logoFetchService.fetchLogo("Deliveroo")).thenReturn(Optional.of(fetchedLogo));
 
-        // Act
-        PayeeResponse result = payeeService.findOrCreatePayee("Deliveroo", USER_ID);
+                Payee saved = Payee.builder()
+                                .id(5L)
+                                .name("Deliveroo")
+                                .logo(fetchedLogo)
+                                .isSystem(false)
+                                .isActive(true)
+                                .createdAt(LocalDateTime.now())
+                                .updatedAt(LocalDateTime.now())
+                                .build();
+                when(payeeRepository.save(any(Payee.class))).thenReturn(saved);
 
-        // Assert
-        verify(logoFetchService).fetchLogo("Deliveroo");
-        assertThat(result.getLogo()).isEqualTo(fetchedLogo);
-    }
+                // Act
+                PayeeResponse result = payeeService.findOrCreatePayee("Deliveroo", USER_ID);
 
-    @Test
-    @DisplayName("findOrCreatePayee skips logo fetch when payee already exists")
-    void shouldNotFetchLogoWhenFindOrCreateFindsExistingPayee() {
-        // Arrange
-        when(payeeRepository.findByNameIgnoreCaseAndUser("Netflix", USER_ID))
-                .thenReturn(existingPayee);
+                // Assert
+                verify(logoFetchService).fetchLogo("Deliveroo");
+                assertThat(result.getLogo()).isEqualTo(fetchedLogo);
+        }
 
-        // Act
-        payeeService.findOrCreatePayee("Netflix", USER_ID);
+        @Test
+        @DisplayName("findOrCreatePayee skips logo fetch when payee already exists")
+        void shouldNotFetchLogoWhenFindOrCreateFindsExistingPayee() {
+                // Arrange
+                when(payeeRepository.findAllByUser(USER_ID))
+                                .thenReturn(List.of(existingPayee));
 
-        // Assert
-        verify(logoFetchService, never()).fetchLogo(any());
-    }
+                // Act
+                payeeService.findOrCreatePayee("Netflix", USER_ID);
 
-    @Test
-    @DisplayName("findOrCreatePayee skips logo fetch when reactivating an inactive payee")
-    void shouldNotFetchLogoWhenFindOrCreateReactivatesInactivePayee() {
-        // Arrange
-        Payee inactivePayee =
-                Payee.builder()
-                        .id(1L)
-                        .name("Netflix")
-                        .logo("data:image/png;base64,OLD")
-                        .isSystem(false)
-                        .isActive(false)
-                        .userId(USER_ID)
-                        .createdAt(LocalDateTime.now().minusDays(10))
-                        .updatedAt(LocalDateTime.now().minusDays(10))
-                        .build();
-        when(payeeRepository.findByNameIgnoreCaseAndUser("Netflix", USER_ID))
-                .thenReturn(inactivePayee);
+                // Assert
+                verify(logoFetchService, never()).fetchLogo(any());
+        }
 
-        Payee reactivated =
-                Payee.builder()
-                        .id(1L)
-                        .name("Netflix")
-                        .logo("data:image/png;base64,OLD")
-                        .isSystem(false)
-                        .isActive(true)
-                        .createdAt(inactivePayee.getCreatedAt())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
-        when(payeeRepository.save(any(Payee.class))).thenReturn(reactivated);
+        @Test
+        @DisplayName("findOrCreatePayee skips logo fetch when reactivating an inactive payee")
+        void shouldNotFetchLogoWhenFindOrCreateReactivatesInactivePayee() {
+                // Arrange
+                Payee inactivePayee = Payee.builder()
+                                .id(1L)
+                                .name("Netflix")
+                                .logo("data:image/png;base64,OLD")
+                                .isSystem(false)
+                                .isActive(false)
+                                .userId(USER_ID)
+                                .createdAt(LocalDateTime.now().minusDays(10))
+                                .updatedAt(LocalDateTime.now().minusDays(10))
+                                .build();
+                when(payeeRepository.findAllByUser(USER_ID))
+                                .thenReturn(List.of(inactivePayee));
 
-        // Act
-        payeeService.findOrCreatePayee("Netflix", USER_ID);
+                Payee reactivated = Payee.builder()
+                                .id(1L)
+                                .name("Netflix")
+                                .logo("data:image/png;base64,OLD")
+                                .isSystem(false)
+                                .isActive(true)
+                                .createdAt(inactivePayee.getCreatedAt())
+                                .updatedAt(LocalDateTime.now())
+                                .build();
+                when(payeeRepository.save(any(Payee.class))).thenReturn(reactivated);
 
-        // Assert
-        verify(logoFetchService, never()).fetchLogo(any());
-    }
+                // Act
+                payeeService.findOrCreatePayee("Netflix", USER_ID);
+
+                // Assert
+                verify(logoFetchService, never()).fetchLogo(any());
+        }
 }

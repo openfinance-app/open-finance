@@ -18,22 +18,28 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import java.util.Optional;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import org.openfinance.config.SchedulerProperties;
 import org.openfinance.entity.User;
 import org.openfinance.repository.UserRepository;
+import org.openfinance.security.EncryptionContext;
+import org.openfinance.security.EncryptionKeyCache;
 import org.openfinance.service.UnusualTransactionDetectionService;
 
 /**
  * Unit tests for {@link UnusualTransactionDetectionScheduler}.
  *
- * <p>Covers:
+ * <p>
+ * Covers:
  *
  * <ul>
- *   <li>Startup execution: runs when mode requires it, skipped when not
- *   <li>runDetection: iterates all users, passes correct lookback window
- *   <li>Per-user error isolation: one user failure does not stop processing
- *   <li>Empty user list: no calls to detection service
- *   <li>Default cron constant value
+ * <li>Startup execution: runs when mode requires it, skipped when not
+ * <li>runDetection: iterates all users, passes correct lookback window
+ * <li>Per-user error isolation: one user failure does not stop processing
+ * <li>Empty user list: no calls to detection service
+ * <li>Default cron constant value
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
@@ -41,13 +47,22 @@ import org.openfinance.service.UnusualTransactionDetectionService;
 @DisplayName("UnusualTransactionDetectionScheduler Unit Tests")
 class UnusualTransactionDetectionSchedulerTest {
 
-    @Mock private UnusualTransactionDetectionService detectionService;
+    @Mock
+    private UnusualTransactionDetectionService detectionService;
 
-    @Mock private UserRepository userRepository;
+    @Mock
+    private UserRepository userRepository;
 
-    @Mock private SchedulerProperties schedulerProperties;
+    @Mock
+    private SchedulerProperties schedulerProperties;
 
-    @InjectMocks private UnusualTransactionDetectionScheduler scheduler;
+    @Mock
+    private EncryptionKeyCache encryptionKeyCache;
+
+    @InjectMocks
+    private UnusualTransactionDetectionScheduler scheduler;
+
+    private static final SecretKey TEST_KEY = new SecretKeySpec(new byte[32], "AES");
 
     private SchedulerProperties.SchedulerConfig schedulerConfig;
 
@@ -55,6 +70,7 @@ class UnusualTransactionDetectionSchedulerTest {
     void setUp() {
         schedulerConfig = new SchedulerProperties.SchedulerConfig();
         when(schedulerProperties.getUnusualTransactionDetection()).thenReturn(schedulerConfig);
+        when(encryptionKeyCache.getKey(anyLong())).thenReturn(Optional.of(TEST_KEY));
     }
 
     // ------------------------------------------------------------------
@@ -143,16 +159,13 @@ class UnusualTransactionDetectionSchedulerTest {
             when(userRepository.findAll()).thenReturn(List.of(u1));
             when(detectionService.detectAndPersist(anyLong(), any())).thenReturn(0);
 
-            LocalDateTime before =
-                    LocalDateTime.now()
-                            .minusHours(UnusualTransactionDetectionScheduler.LOOKBACK_HOURS);
+            LocalDateTime before = LocalDateTime.now()
+                    .minusHours(UnusualTransactionDetectionScheduler.LOOKBACK_HOURS);
             scheduler.runDetection();
-            LocalDateTime after =
-                    LocalDateTime.now()
-                            .minusHours(UnusualTransactionDetectionScheduler.LOOKBACK_HOURS);
+            LocalDateTime after = LocalDateTime.now()
+                    .minusHours(UnusualTransactionDetectionScheduler.LOOKBACK_HOURS);
 
-            ArgumentCaptor<LocalDateTime> sinceCaptor =
-                    ArgumentCaptor.forClass(LocalDateTime.class);
+            ArgumentCaptor<LocalDateTime> sinceCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
             verify(detectionService).detectAndPersist(eq(1L), sinceCaptor.capture());
 
             LocalDateTime capturedSince = sinceCaptor.getValue();
@@ -201,6 +214,52 @@ class UnusualTransactionDetectionSchedulerTest {
             scheduler.runDetection();
 
             verify(detectionService, times(1)).detectAndPersist(eq(1L), any());
+        }
+
+        @Test
+        @DisplayName("Skips users without cached encryption keys")
+        void skipsUsersWithoutCachedEncryptionKeys() {
+            User skippedUser = User.builder().id(1L).username("alice").build();
+            User processedUser = User.builder().id(2L).username("bob").build();
+            when(userRepository.findAll()).thenReturn(List.of(skippedUser, processedUser));
+            when(encryptionKeyCache.getKey(1L)).thenReturn(Optional.empty());
+            when(encryptionKeyCache.getKey(2L)).thenReturn(Optional.of(TEST_KEY));
+
+            scheduler.runDetection();
+
+            verify(detectionService, never()).detectAndPersist(eq(1L), any());
+            verify(detectionService).detectAndPersist(eq(2L), any(LocalDateTime.class));
+        }
+
+        @Test
+        @DisplayName("Sets EncryptionContext from cache and clears it after processing")
+        void setsEncryptionContextFromCacheAndClearsItAfterProcessing() {
+            User user = User.builder().id(1L).username("alice").build();
+            when(userRepository.findAll()).thenReturn(List.of(user));
+            when(detectionService.detectAndPersist(eq(1L), any())).thenAnswer(invocation -> {
+                assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY);
+                return 0;
+            });
+
+            scheduler.runDetection();
+
+            assertThat(EncryptionContext.getKey()).isNull();
+            verify(detectionService).detectAndPersist(eq(1L), any(LocalDateTime.class));
+        }
+
+        @Test
+        @DisplayName("Clears EncryptionContext after user processing fails")
+        void clearsEncryptionContextAfterUserProcessingFails() {
+            User user = User.builder().id(1L).username("alice").build();
+            when(userRepository.findAll()).thenReturn(List.of(user));
+            when(detectionService.detectAndPersist(eq(1L), any())).thenAnswer(invocation -> {
+                assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY);
+                throw new RuntimeException("boom");
+            });
+
+            scheduler.runDetection();
+
+            assertThat(EncryptionContext.getKey()).isNull();
         }
     }
 }

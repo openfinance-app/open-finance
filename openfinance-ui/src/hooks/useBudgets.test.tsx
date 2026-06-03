@@ -127,7 +127,7 @@ describe('useBudgetHistory', () => {
 
       expect(mockedApiClient.get).toHaveBeenCalledWith('/budgets/1/history', {
         headers: {
-          'X-Encryption-Key': 'test-encryption-key',
+          'X-Encryption-Session': 'test-encryption-key',
         },
       });
 
@@ -191,7 +191,7 @@ describe('useBudgets', () => {
     mockedApiClient.get.mockResolvedValue({ data: [{ id: 1, name: 'Food' }] });
     const { result } = renderHook(() => useBudgets(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(mockedApiClient.get).toHaveBeenCalledWith('/budgets', expect.objectContaining({ headers: { 'X-Encryption-Key': 'test-key' } }));
+    expect(mockedApiClient.get).toHaveBeenCalledWith('/budgets', expect.objectContaining({ headers: { 'X-Encryption-Session': 'test-key' } }));
   });
 
   it('fetches budgets with period', async () => {

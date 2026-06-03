@@ -106,7 +106,7 @@ export function mockAuthentication() {
   localStorage.setItem('auth_user', JSON.stringify(mockUser));
 
   // Encryption key in sessionStorage (per-session)
-  sessionStorage.setItem('encryption_key', mockEncryptionKey);
+  sessionStorage.setItem('encryption_session', mockEncryptionKey);
 
   return { mockToken, mockEncryptionKey, mockUser };
 }
@@ -117,7 +117,7 @@ export function mockAuthentication() {
 export function clearAuthentication() {
   localStorage.removeItem('auth_token');
   localStorage.removeItem('auth_user');
-  sessionStorage.removeItem('encryption_key');
+  sessionStorage.removeItem('encryption_session');
 }
 
 /**

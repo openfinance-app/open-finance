@@ -54,7 +54,6 @@ import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.PayeeRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
-import org.openfinance.security.EncryptionService;
 import org.openfinance.service.parser.CsvParser;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
@@ -155,9 +154,6 @@ class ImportServiceTest {
         private MessageSource messageSource;
 
         @Mock
-        private EncryptionService encryptionService;
-
-        @Mock
         private InstitutionRepository institutionRepository;
 
         private ImportService importService;
@@ -193,7 +189,6 @@ class ImportServiceTest {
                                 netWorthRepository,
                                 aiCategorizationService,
                                 messageSource,
-                                encryptionService,
                                 institutionRepository,
                                 currencyRepository,
                                 payeeRepository);
@@ -587,8 +582,7 @@ class ImportServiceTest {
                 when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
 
                 // When
-                ImportSession result = importService.confirmImport(1L, USER_ID, ACCOUNT_ID, categoryMappings, true,
-                                null);
+                ImportSession result = importService.confirmImport(1L, USER_ID, ACCOUNT_ID, categoryMappings, true);
 
                 // Then
                 assertThat(result).isNotNull();
@@ -613,7 +607,7 @@ class ImportServiceTest {
                 metadataMap.put("count", testTransactions.size());
 
                 when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
-                when(accountService.createAccount(eq(USER_ID), any(), any())).thenReturn(createdAccount);
+                when(accountService.createAccount(eq(USER_ID), any())).thenReturn(createdAccount);
                 when(accountRepository.findByIdAndUserId(99L, USER_ID))
                                 .thenReturn(Optional.of(testAccount));
                 when(objectMapper.readValue(
@@ -627,11 +621,11 @@ class ImportServiceTest {
                 when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
 
                 // When
-                ImportSession result = importService.confirmImport(1L, USER_ID, null, new HashMap<>(), true, null);
+                ImportSession result = importService.confirmImport(1L, USER_ID, null, new HashMap<>(), true);
 
                 // Then
                 assertThat(result).isNotNull();
-                verify(accountService).createAccount(eq(USER_ID), any(), any());
+                verify(accountService).createAccount(eq(USER_ID), any());
         }
 
         @Test
@@ -644,7 +638,7 @@ class ImportServiceTest {
                 // When & Then
                 assertThatThrownBy(
                                 () -> importService.confirmImport(
-                                                1L, USER_ID, ACCOUNT_ID, new HashMap<>(), true, null))
+                                                1L, USER_ID, ACCOUNT_ID, new HashMap<>(), true))
                                 .isInstanceOf(IllegalStateException.class)
                                 .hasMessageContaining("Session cannot be confirmed");
         }

@@ -94,7 +94,7 @@ describe('useAIChat hooks', () => {
           conversation_id: null,
           include_full_context: true,
         },
-        { headers: { 'X-Encryption-Key': 'test-encryption-key' } },
+        { headers: { 'X-Encryption-Session': 'test-encryption-key' } },
       );
     });
 
@@ -278,6 +278,7 @@ describe('useAIChat hooks', () => {
         onerror: any = null;
         constructor() {
           // Proxy property sets back to the shared instance
+          // eslint-disable-next-line @typescript-eslint/no-this-alias
           const self = this;
           Object.defineProperty(instance, 'onmessage', {
             get: () => self.onmessage,

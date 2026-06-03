@@ -24,7 +24,7 @@ export function useLiabilities(filters?: LiabilityFilters) {
   return useQuery<Liability[]>({
     queryKey: ['liabilities', filters],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -37,7 +37,7 @@ export function useLiabilities(filters?: LiabilityFilters) {
 
       const response = await apiClient.get<Liability[]>(url, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -54,7 +54,7 @@ export function useLiabilitiesPaged(filters: LiabilityFilters = {}) {
   return useQuery({
     queryKey: ['liabilities', 'paged', filters],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -74,7 +74,7 @@ export function useLiabilitiesPaged(filters: LiabilityFilters = {}) {
         size: number;
       }>(`/liabilities/paged?${params.toString()}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -91,14 +91,14 @@ export function useLiability(liabilityId: number | null) {
     queryFn: async () => {
       if (!liabilityId) throw new Error('Liability ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.get<Liability>(`/liabilities/${liabilityId}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -115,14 +115,14 @@ export function useCreateLiability() {
 
   return useMutation<Liability, Error, LiabilityRequest>({
     mutationFn: async (liabilityData: LiabilityRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.post<Liability>('/liabilities', liabilityData, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -144,14 +144,14 @@ export function useUpdateLiability() {
 
   return useMutation<Liability, Error, { id: number; data: LiabilityRequest }>({
     mutationFn: async ({ id, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.put<Liability>(`/liabilities/${id}`, data, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -175,14 +175,14 @@ export function useDeleteLiability() {
 
   return useMutation<void, Error, number>({
     mutationFn: async (liabilityId: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       await apiClient.delete(`/liabilities/${liabilityId}`, {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
     },
@@ -222,7 +222,7 @@ export function useAmortizationSchedule(liability: Liability | null) {
     queryFn: async () => {
       if (!liability) throw new Error('Liability is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -231,7 +231,7 @@ export function useAmortizationSchedule(liability: Liability | null) {
         `/liabilities/${liability.id}/amortization`,
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );
@@ -277,14 +277,14 @@ export function useLiabilityTotals() {
   return useQuery<LiabilityTotals>({
     queryKey: ['liabilities', 'totals'],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
 
       const response = await apiClient.get<LiabilityTotals>('/liabilities/totals', {
         headers: {
-          'X-Encryption-Key': encryptionKey,
+          'X-Encryption-Session': encryptionKey,
         },
       });
       return response.data;
@@ -301,7 +301,7 @@ export function useLiabilityBreakdown(liabilityId: number | null) {
     queryFn: async () => {
       if (!liabilityId) throw new Error('Liability ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -310,7 +310,7 @@ export function useLiabilityBreakdown(liabilityId: number | null) {
         `/liabilities/${liabilityId}/breakdown`,
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );
@@ -329,7 +329,7 @@ export function useLiabilityTransactions(liabilityId: number | null) {
     queryFn: async () => {
       if (!liabilityId) throw new Error('Liability ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_key');
+      const encryptionKey = sessionStorage.getItem('encryption_session');
       if (!encryptionKey) {
         throw new Error('Encryption key not found');
       }
@@ -338,7 +338,7 @@ export function useLiabilityTransactions(liabilityId: number | null) {
         `/liabilities/${liabilityId}/transactions`,
         {
           headers: {
-            'X-Encryption-Key': encryptionKey,
+            'X-Encryption-Session': encryptionKey,
           },
         }
       );

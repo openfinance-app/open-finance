@@ -72,16 +72,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const parsedUser = JSON.parse(storedUser) as User;
           setToken(storedToken);
           setUser(parsedUser);
-
-          if (import.meta.env.DEV) {
-            const sessionKey = sessionStorage.getItem('encryption_key');
-            if (!sessionKey) {
-              const fallbackKey = localStorage.getItem('encryption_key_fallback');
-              if (fallbackKey) {
-                sessionStorage.setItem('encryption_key', fallbackKey);
-              }
-            }
-          }
         }
       } catch (error) {
         console.error('Failed to initialize auth state:', error);
@@ -193,10 +183,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
-      localStorage.removeItem('encryption_key_fallback');
       sessionStorage.removeItem('auth_token');
       sessionStorage.removeItem('auth_user');
-      sessionStorage.removeItem('encryption_key');
+      sessionStorage.removeItem('encryption_session');
       sessionStorage.removeItem('session_start_time');
       setSessionStartTime(null);
     } catch (e) {

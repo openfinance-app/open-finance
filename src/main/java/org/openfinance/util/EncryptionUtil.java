@@ -68,7 +68,7 @@ public final class EncryptionUtil {
      * <pre>{@code
      * @PostMapping
      * public ResponseEntity<Response> create(
-     *         @RequestHeader("X-Encryption-Key") String encodedKey) {
+     *         @RequestHeader("X-Encryption-Session") String encodedKey) {
      *     SecretKey key = EncryptionUtil.decodeEncryptionKey(encodedKey);
      *     // Use key for encryption/decryption
      * }
@@ -81,10 +81,6 @@ public final class EncryptionUtil {
      * @throws IllegalArgumentException if key is null, empty, has invalid format, or invalid length
      */
     public static SecretKey decodeEncryptionKey(String encodedKey) {
-        if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Encryption key header is required");
-        }
-
         // Trim the key to remove any whitespace
         String trimmedKey = encodedKey.trim();
 

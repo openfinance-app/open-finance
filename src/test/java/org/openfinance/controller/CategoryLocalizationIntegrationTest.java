@@ -104,7 +104,7 @@ class CategoryLocalizationIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/categories")
                                 .header("Authorization", "Bearer " + authToken)
-                                .header("X-Encryption-Key", encryptionKeyHeader))
+                                .header("X-Encryption-Session", encryptionKeyHeader))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(
@@ -122,7 +122,7 @@ class CategoryLocalizationIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/categories")
                                 .header("Authorization", "Bearer " + authToken)
-                                .header("X-Encryption-Key", encryptionKeyHeader)
+                                .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "en"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -141,7 +141,7 @@ class CategoryLocalizationIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/categories")
                                 .header("Authorization", "Bearer " + authToken)
-                                .header("X-Encryption-Key", encryptionKeyHeader)
+                                .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -172,7 +172,7 @@ class CategoryLocalizationIntegrationTest {
                 mockMvc.perform(
                                 get("/api/v1/categories")
                                         .header("Authorization", "Bearer " + authToken)
-                                        .header("X-Encryption-Key", encryptionKeyHeader))
+                                        .header("X-Encryption-Session", encryptionKeyHeader))
                         .andExpect(status().isOk())
                         .andReturn()
                         .getResponse()
@@ -194,7 +194,7 @@ class CategoryLocalizationIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/categories/" + systemCategoryId)
                                 .header("Authorization", "Bearer " + authToken)
-                                .header("X-Encryption-Key", encryptionKeyHeader)
+                                .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -207,7 +207,7 @@ class CategoryLocalizationIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/categories/tree")
                                 .header("Authorization", "Bearer " + authToken)
-                                .header("X-Encryption-Key", encryptionKeyHeader)
+                                .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -222,7 +222,7 @@ class CategoryLocalizationIntegrationTest {
                         get("/api/v1/categories")
                                 .param("type", "INCOME")
                                 .header("Authorization", "Bearer " + authToken)
-                                .header("X-Encryption-Key", encryptionKeyHeader)
+                                .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -236,7 +236,7 @@ class CategoryLocalizationIntegrationTest {
                         get("/api/v1/categories")
                                 .param("type", "EXPENSE")
                                 .header("Authorization", "Bearer " + authToken)
-                                .header("X-Encryption-Key", encryptionKeyHeader)
+                                .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -257,7 +257,7 @@ class CategoryLocalizationIntegrationTest {
                 mockMvc.perform(
                                 post("/api/v1/categories")
                                         .header("Authorization", "Bearer " + authToken)
-                                        .header("X-Encryption-Key", encryptionKeyHeader)
+                                        .header("X-Encryption-Session", encryptionKeyHeader)
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(categoryJson))
                         .andExpect(status().isCreated())
@@ -271,7 +271,7 @@ class CategoryLocalizationIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/categories/" + customCategoryId)
                                 .header("Authorization", "Bearer " + authToken)
-                                .header("X-Encryption-Key", encryptionKeyHeader)
+                                .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "en"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -282,7 +282,7 @@ class CategoryLocalizationIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/categories/" + customCategoryId)
                                 .header("Authorization", "Bearer " + authToken)
-                                .header("X-Encryption-Key", encryptionKeyHeader)
+                                .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -296,7 +296,7 @@ class CategoryLocalizationIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/categories")
                                 .header("Authorization", "Bearer " + authToken)
-                                .header("X-Encryption-Key", encryptionKeyHeader)
+                                .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "de"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -313,7 +313,7 @@ class CategoryLocalizationIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/categories")
                                 .header("Authorization", "Bearer " + authToken)
-                                .header("X-Encryption-Key", encryptionKeyHeader)
+                                .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr, en-US;q=0.9, en;q=0.8"))
                 .andDo(print())
                 .andExpect(status().isOk())
