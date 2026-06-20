@@ -33,6 +33,21 @@ vi.mock('@/context/CurrencyDisplayContext', () => ({
   CurrencyDisplayProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+
+// Mock Tooltip
+vi.mock('@/components/ui/Tooltip', () => ({
+  TooltipProvider: ({ children }: any) => <>{children}</>,
+  Tooltip: ({ children }: any) => <>{children}</>,
+  TooltipTrigger: ({ children, asChild }: any) => {
+    return asChild ? children : <span>{children}</span>;
+  },
+  TooltipContent: ({ children, id, className }: any) => (
+    <div role="tooltip" id={id} className={className}>
+      {children}
+    </div>
+  )
+}));
+
 describe('ConvertedAmount', () => {
   const user = userEvent.setup();
 
@@ -61,7 +76,7 @@ describe('ConvertedAmount', () => {
         );
 
         expect(screen.getByText('USD 1.62')).toBeInTheDocument();
-        const element = screen.getByRole('tooltip').parentElement as HTMLElement;
+        const element = screen.getByTestId('converted-amount');
         expect(element).toHaveAttribute('tabIndex', '0');
         expect(element).toHaveAttribute('aria-describedby');
 
@@ -85,7 +100,7 @@ describe('ConvertedAmount', () => {
         );
 
         expect(screen.getByText('USD 1.62')).toBeInTheDocument();
-        const element = screen.getByRole('tooltip').parentElement as HTMLElement;
+        const element = screen.getByTestId('converted-amount');
         expect(element).toHaveAttribute('tabIndex', '0');
 
         const tooltip = screen.getByRole('tooltip');
@@ -106,7 +121,7 @@ describe('ConvertedAmount', () => {
         );
 
         expect(screen.getByText('USD 1000')).toBeInTheDocument();
-        const element = screen.getByRole('tooltip').parentElement as HTMLElement;
+        const element = screen.getByTestId('converted-amount');
         expect(element).toHaveAttribute('tabIndex', '0');
 
         act(() => {
@@ -152,7 +167,7 @@ describe('ConvertedAmount', () => {
         );
 
         expect(screen.getByText('XOF 1000')).toBeInTheDocument();
-        const element = screen.getByRole('tooltip').parentElement as HTMLElement;
+        const element = screen.getByTestId('converted-amount');
         expect(element).toHaveAttribute('tabIndex', '0');
 
         act(() => {
@@ -175,7 +190,7 @@ describe('ConvertedAmount', () => {
         );
 
         expect(screen.getByText('XOF 1000')).toBeInTheDocument();
-        const element = screen.getByRole('tooltip').parentElement as HTMLElement;
+        const element = screen.getByTestId('converted-amount');
         expect(element).toHaveAttribute('tabIndex', '0');
 
         act(() => {
@@ -198,7 +213,7 @@ describe('ConvertedAmount', () => {
         );
 
         expect(screen.getByText('USD 1000')).toBeInTheDocument();
-        const element = screen.getByRole('tooltip').parentElement as HTMLElement;
+        const element = screen.getByTestId('converted-amount');
         expect(element).toHaveAttribute('tabIndex', '0');
 
         act(() => {
@@ -246,7 +261,7 @@ describe('ConvertedAmount', () => {
         expect(screen.getByText('USD 1.62')).toBeInTheDocument();
         expect(screen.getByText('·')).toBeInTheDocument();
         expect(screen.getByText('XOF 1000')).toBeInTheDocument();
-        const element = screen.getByRole('tooltip').parentElement as HTMLElement;
+        const element = screen.getByTestId('converted-amount');
         expect(element).toHaveAttribute('tabIndex', '0');
 
         act(() => {
@@ -272,7 +287,7 @@ describe('ConvertedAmount', () => {
         expect(screen.getByText('USD 1.62')).toBeInTheDocument();
         expect(screen.getByText('·')).toBeInTheDocument();
         expect(screen.getByText('XOF 1000')).toBeInTheDocument();
-        const element = screen.getByText('USD 1.62').closest('[class*="group"]') as HTMLElement;
+        const element = screen.getByTestId('converted-amount');
         expect(element).not.toHaveAttribute('tabIndex');
         expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
       });
@@ -291,7 +306,7 @@ describe('ConvertedAmount', () => {
 
         expect(screen.getByText('USD 1000')).toBeInTheDocument();
         expect(screen.queryByText('·')).not.toBeInTheDocument();
-        const element = screen.getByRole('tooltip').parentElement as HTMLElement;
+        const element = screen.getByTestId('converted-amount');
         expect(element).toHaveAttribute('tabIndex', '0');
 
         act(() => {
@@ -312,7 +327,7 @@ describe('ConvertedAmount', () => {
 
         expect(screen.getByText('USD 1000')).toBeInTheDocument();
         expect(screen.queryByText('·')).not.toBeInTheDocument();
-        const element = screen.getByText('USD 1000').closest('[class*="group"]') as HTMLElement;
+        const element = screen.getByTestId('converted-amount');
         expect(element).not.toHaveAttribute('tabIndex');
         expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
       });
@@ -337,7 +352,7 @@ describe('ConvertedAmount', () => {
       );
 
       expect(screen.getByText('XOF 1000')).toBeInTheDocument();
-      const element = screen.getByRole('tooltip').parentElement as HTMLElement;
+      const element = screen.getByTestId('converted-amount');
       expect(element).toHaveAttribute('tabIndex', '0');
 
       act(() => {
@@ -442,7 +457,7 @@ describe('ConvertedAmount', () => {
 
       );
 
-      expect(screen.getByText('XOF 1000').closest('[class*="group"]')).toHaveClass('custom-class');
+      expect(screen.getByTestId('converted-amount')).toHaveClass('custom-class');
     });
 
     it('should handle inline prop', () => {

@@ -73,6 +73,8 @@ const PRESET_OPTIONS: PeriodOption[] = [
 export interface PeriodSelectorProps {
   /** Currently selected period */
   selectedPeriod: Period;
+  /** Active custom date range, used for initialization */
+  activeDateRange?: DateRange;
   /** Callback when a preset period changes */
   onPeriodChange: (period: Period, days: number | null, dateRange?: DateRange) => void;
   /** Optional className for the wrapper */
@@ -81,9 +83,9 @@ export interface PeriodSelectorProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function PeriodSelector({ selectedPeriod, onPeriodChange, className }: PeriodSelectorProps) {
+export function PeriodSelector({ selectedPeriod, activeDateRange, onPeriodChange, className }: PeriodSelectorProps) {
   const { t, i18n } = useTranslation('common');
-  const [customRange, setCustomRange] = useState<DateRange>(defaultCustomRange);
+  const [customRange, setCustomRange] = useState<DateRange>(() => activeDateRange ?? defaultCustomRange());
   const [customOpen, setCustomOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 

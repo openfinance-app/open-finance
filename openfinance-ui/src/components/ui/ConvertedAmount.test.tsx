@@ -20,6 +20,20 @@ import { useNumberFormat } from '@/context/NumberFormatContext';
 const mockCurrencyDisplay = useCurrencyDisplay as ReturnType<typeof vi.fn>;
 const mockNumberFormat = useNumberFormat as ReturnType<typeof vi.fn>;
 
+
+vi.mock('@/components/ui/Tooltip', () => ({
+  TooltipProvider: ({ children }: any) => <>{children}</>,
+  Tooltip: ({ children }: any) => <>{children}</>,
+  TooltipTrigger: ({ children, asChild }: any) => {
+    return asChild ? children : <span>{children}</span>;
+  },
+  TooltipContent: ({ children, id, className }: any) => (
+    <div role="tooltip" id={id} className={className}>
+      {children}
+    </div>
+  )
+}));
+
 describe('ConvertedAmount', () => {
   beforeEach(() => {
     vi.clearAllMocks();

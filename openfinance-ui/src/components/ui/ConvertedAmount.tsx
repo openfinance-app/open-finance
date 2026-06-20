@@ -37,6 +37,7 @@ import type { AmountDisplayMode } from '@/context/CurrencyDisplayContext';
 import { useNumberFormat } from '@/context/NumberFormatContext';
 import type { NumberFormat } from '@/context/NumberFormatContext';
 import { PrivateAmount } from '@/components/ui/PrivateAmount';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { formatCurrency, formatExchangeRate } from '@/utils/currency';
 import { cn } from '@/lib/utils';
 
@@ -267,8 +268,8 @@ function buildPrimaryDisplay(
  * ConvertedAmount component.
  *
  * Renders a financial amount honouring the user's currency display preference
- * and the privacy visibility toggle. Tooltip is rendered via pure CSS
- * (group-hover / group-focus) — no badge or icon is shown.
+ * and the privacy visibility toggle. Tooltip is rendered via Radix Tooltip
+ * to avoid z-index and overflow clipping issues.
  *
  * Requirement REQ-9.1: No badge/icon rendered in any scenario.
  * Requirement REQ-9.2: CurrencyBadge is not imported or used.
@@ -344,30 +345,37 @@ export function ConvertedAmount({
 
   const hasTooltip = tooltipLines.length > 0;
 
-  return (
+  const content = (
     <span
-      className={cn('relative group/tooltip inline-block', className)}
+      data-testid="converted-amount"
+      className={cn('inline-block', className)}
       tabIndex={hasTooltip ? 0 : undefined}
       aria-describedby={hasTooltip ? tooltipId : undefined}
     >
       {primaryDisplay}
+    </span>
+  );
 
-      {hasTooltip && (
-        <span
+  if (!hasTooltip) {
+    return content;
+  }
+
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {content}
+        </TooltipTrigger>
+        <TooltipContent
           id={tooltipId}
-          role="tooltip"
-          className={cn(
-            'absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1',
-            'rounded bg-surface-elevated text-text-primary text-xs shadow-md border border-border',
-            'opacity-0 group-hover/tooltip:opacity-100 group-focus/tooltip:opacity-100',
-            'pointer-events-none whitespace-nowrap z-50 transition-opacity duration-150'
-          )}
+          className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
+          sideOffset={4}
         >
           {tooltipLines.map((line, i) => (
             <span key={i} className="block">{line}</span>
           ))}
-        </span>
-      )}
-    </span>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

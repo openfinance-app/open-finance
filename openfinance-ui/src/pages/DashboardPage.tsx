@@ -138,14 +138,28 @@ export default function DashboardPage() {
   useDocumentTitle(t('title'));
 
   // ── Period state ────────────────────────────────────────────────────────────
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>('1M');
-  const [periodDays, setPeriodDays] = useState<number>(30);
-  const [historyPeriod, setHistoryPeriod] = useState<number>(90);
-  /**
-   * When the user selects "Custom", this is populated with the chosen range.
-   * For all preset periods it is `undefined` — the hooks fall back to `period` (days).
-   */
-  const [activeDateRange, setActiveDateRange] = useState<DateRange | undefined>(undefined);
+  const [periodState, setPeriodState] = useState<{
+    selectedPeriod: Period;
+    periodDays: number;
+    historyPeriod: number;
+    activeDateRange: DateRange | undefined;
+  }>(() => {
+    const saved = sessionStorage.getItem('dashboard_period');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // ignore
+      }
+    }
+    return {
+      selectedPeriod: '1M',
+      periodDays: 30,
+      historyPeriod: 90,
+      activeDateRange: undefined,
+    };
+  });
+  const { selectedPeriod, periodDays, historyPeriod, activeDateRange } = periodState;
 
   // ── Layout / UI state ───────────────────────────────────────────────────────
   const [isCardMenuOpen, setIsCardMenuOpen] = useState(false);
@@ -205,33 +219,37 @@ export default function DashboardPage() {
 
   // ── Period change handler ───────────────────────────────────────────────────
   const handlePeriodChange = (period: Period, days: number | null, dateRange?: DateRange) => {
-    setSelectedPeriod(period);
-
+    let newState;
     if (period === 'CUSTOM' && dateRange) {
       const customDays = dateRangeToDays(dateRange);
-      setPeriodDays(customDays);
-      setHistoryPeriod(customDays);
-      setActiveDateRange(dateRange);
-      return;
+      newState = {
+        selectedPeriod: period,
+        periodDays: customDays,
+        historyPeriod: customDays,
+        activeDateRange: dateRange,
+      };
+    } else {
+      const cashFlowDays = days ?? 36500;
+      let historyDays: number;
+      switch (period) {
+        case '1D': historyDays = 7; break;
+        case '7D': historyDays = 30; break;
+        case '1M': historyDays = 90; break;
+        case 'YTD': historyDays = days ?? 365; break;
+        case '1Y': historyDays = 365; break;
+        case 'ALL': historyDays = 36500; break;
+        default: historyDays = 365;
+      }
+      newState = {
+        selectedPeriod: period,
+        periodDays: cashFlowDays,
+        historyPeriod: historyDays,
+        activeDateRange: undefined,
+      };
     }
-
-    // Clear custom range when switching back to a preset
-    setActiveDateRange(undefined);
-
-    const cashFlowDays = days ?? 36500;
-    setPeriodDays(cashFlowDays);
-
-    let historyDays: number;
-    switch (period) {
-      case '1D': historyDays = 7; break;
-      case '7D': historyDays = 30; break;
-      case '1M': historyDays = 90; break;
-      case 'YTD': historyDays = days ?? 365; break;
-      case '1Y': historyDays = 365; break;
-      case 'ALL': historyDays = 36500; break;
-      default: historyDays = 365;
-    }
-    setHistoryPeriod(historyDays);
+    
+    setPeriodState(newState);
+    sessionStorage.setItem('dashboard_period', JSON.stringify(newState));
   };
 
   // ── Period label ────────────────────────────────────────────────────────────
@@ -611,7 +629,7 @@ export default function DashboardPage() {
 
       {/* ── Global period selector ────────────────────────────────────────── */}
       <div className="mb-6 flex justify-center">
-        <PeriodSelector selectedPeriod={selectedPeriod} onPeriodChange={handlePeriodChange} />
+        <PeriodSelector selectedPeriod={selectedPeriod} activeDateRange={activeDateRange} onPeriodChange={handlePeriodChange} />
       </div>
 
       {/* ── Cards grid ───────────────────────────────────────────────────── */}
