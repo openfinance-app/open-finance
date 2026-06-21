@@ -16,7 +16,7 @@
     <!-- Project Metadata -->
     <groupId>org.openfinance</groupId>
     <artifactId>open-finance-backend</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.1-SNAPSHOT</version>
     <name>Open-Finance Backend</name>
     <description>Personal wealth management application backend</description>
 
