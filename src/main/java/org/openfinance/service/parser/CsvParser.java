@@ -440,6 +440,9 @@ public class CsvParser {
         if (dateStr == null || dateStr.isEmpty()) {
             return null;
         }
+        if ("0000-00-00".equals(dateStr)) {
+            return LocalDate.of(1970, 1, 1);
+        }
         for (DateTimeFormatter formatter : dateFormats) {
             try {
                 return LocalDate.parse(dateStr, formatter);
