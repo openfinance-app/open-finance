@@ -1059,4 +1059,320 @@ class CsvParserTest {
         assertThat(transactions).hasSize(1);
         assertThat(transactions.get(0).getCurrency()).isNull();
     }
+
+    // ========== Skrooge CSV Export Tests ==========
+
+    @Test
+    @DisplayName("Should map 'unit' column € to EUR currency")
+    void testUnitEuroMapsToEur() throws IOException {
+        String csv =
+                """
+                date;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                2024-01-15;Checking;Shop;Milk;-42.90;€;-42.90;-;Food;1;1;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getCurrency()).isEqualTo("EUR");
+        // For EUR, amount column is used (equals quantity)
+        assertThat(transactions.get(0).getAmount()).isEqualByComparingTo(new BigDecimal("-42.90"));
+    }
+
+    @Test
+    @DisplayName("Should map 'unit' column CFA to XOF and use quantity as amount")
+    void testUnitCfaMapsToXofAndUsesQuantity() throws IOException {
+        String csv =
+                """
+                date;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                2024-05-01;FCFA;Shop;Rice;-2100.00000;CFA;-3.20143;-;Food;1;1;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.getCurrency()).isEqualTo("XOF");
+        // For non-EUR, quantity (native amount) is used, not the EUR-converted amount
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-2100.00000"));
+    }
+
+    @Test
+    @DisplayName("Should map 'unit' column $ to USD and use quantity as amount")
+    void testUnitDollarMapsToUsdAndUsesQuantity() throws IOException {
+        String csv =
+                """
+                date;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                2024-01-15;Polymarket;Bet;Win;100.00;$;92.00;+;Income;1;1;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.getCurrency()).isEqualTo("USD");
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("100.00"));
+    }
+
+    @Test
+    @DisplayName("Should fall back to amount for units longer than 3 characters")
+    void testUnitTooLongFallsBackToAmount() throws IOException {
+        String csv =
+                """
+                date;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                2024-01-15;DOGE;Buy;Coin;198.51;DOGE;13.16;+;Transfer;1;1;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        // DOGE is 4 chars — too long for the DB column; fall back to amount (EUR-converted)
+        assertThat(transactions.get(0).getCurrency()).isNull();
+        assertThat(transactions.get(0).getAmount()).isEqualByComparingTo(new BigDecimal("13.16"));
+    }
+
+    @Test
+    @DisplayName("Should read 'comment' column as memo")
+    void testCommentColumnAsMemo() throws IOException {
+        String csv =
+                """
+                date;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                2024-01-15;Checking;FACTURE CARTE;DU 051022 WECASA;42.90;€;42.90;-;Food;1;1;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getMemo()).isEqualTo("DU 051022 WECASA");
+    }
+
+    @Test
+    @DisplayName("Should read 'mode' column as paymentMethod")
+    void testModeColumnAsPaymentMethod() throws IOException {
+        String csv =
+                """
+                date;account;mode;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                2024-01-15;Checking;Débit;Shop;Milk;-42.90;€;-42.90;-;Food;1;1;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getPaymentMethod()).isEqualTo("Débit");
+    }
+
+    @Test
+    @DisplayName("Should read 'bank' column as institutionName")
+    void testBankColumnAsInstitutionName() throws IOException {
+        String csv =
+                """
+                date;bank;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                2024-01-15;hellobank;Checking;Shop;Milk;-42.90;€;-42.90;-;Food;1;1;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getInstitutionName()).isEqualTo("hellobank");
+    }
+
+    @Test
+    @DisplayName("Should mark 0000-00-00 date as opening balance")
+    void testOpeningBalanceFlag() throws IOException {
+        String csv =
+                """
+                date;bank;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                0000-00-00;hellobank;Checking;;;26949.77;€;26949.77;+;;1;1;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.isOpeningBalance()).isTrue();
+        assertThat(tx.getTransactionDate()).isEqualTo(LocalDate.of(1970, 1, 1));
+    }
+
+    @Test
+    @DisplayName("Should not set openingBalance flag for regular dates")
+    void testRegularDateNotOpeningBalance() throws IOException {
+        String csv =
+                """
+                date;bank;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                2024-01-15;hellobank;Checking;Shop;Milk;-42.90;€;-42.90;-;Food;1;1;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).isOpeningBalance()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should read 'status' column and set clearedStatus to reconciled for Y")
+    void testStatusColumnReconciled() throws IOException {
+        String csv =
+                """
+                date;account;payee;comment;quantity;unit;amount;sign;category;status;id;idtransaction;idgroup
+                2024-01-15;Checking;Shop;Milk;-42.90;€;-42.90;-;Food;Y;1;1;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getClearedStatus()).isEqualTo("reconciled");
+    }
+
+    // ========== Split Transaction Tests ==========
+
+    @Test
+    @DisplayName("Should merge rows sharing the same idtransaction into a split transaction")
+    void testSplitTransactionMerging() throws IOException {
+        String csv =
+                """
+                date;account;mode;payee;comment;quantity;unit;amount;sign;category;status;id;idtransaction;idgroup
+                2024-04-15;00000463202;Débit;FACTURE CARTE;Amazon;-42.90;€;-42.90;-;Dons > Cadeaux;Y;1;100;0
+                2024-04-15;00000463202;Débit;FACTURE CARTE;Amazon;-3.80;€;-3.80;-;Divers > Achat Divers;Y;2;100;0
+                2024-04-15;00000463202;Débit;FACTURE CARTE;Amazon;-15.76;€;-15.76;-;Dons > Cadeaux;Y;3;100;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.isSplitTransaction()).isTrue();
+        assertThat(tx.getSplits()).hasSize(3);
+        // Parent amount = sum of suboperation amounts
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-62.46"));
+        // Split amounts are absolute
+        assertThat(tx.getSplits().get(0).getAmount()).isEqualByComparingTo(new BigDecimal("42.90"));
+        assertThat(tx.getSplits().get(0).getCategory()).isEqualTo("Dons > Cadeaux");
+        assertThat(tx.getSplits().get(1).getCategory()).isEqualTo("Divers > Achat Divers");
+        assertThat(tx.getSplits().get(2).getAmount()).isEqualByComparingTo(new BigDecimal("15.76"));
+    }
+
+    @Test
+    @DisplayName("Should not merge rows with different idtransaction values")
+    void testNoMergeForDifferentIdTransaction() throws IOException {
+        String csv =
+                """
+                date;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                2024-01-15;Checking;Shop;Milk;-42.90;€;-42.90;-;Food;1;100;0
+                2024-01-16;Checking;Shop;Bread;-10.00;€;-10.00;-;Food;2;200;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(2);
+        assertThat(transactions.get(0).isSplitTransaction()).isFalse();
+        assertThat(transactions.get(1).isSplitTransaction()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should pass through single-row idtransaction without splits")
+    void testSingleRowIdTransactionNoSplit() throws IOException {
+        String csv =
+                """
+                date;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                2024-01-15;Checking;Shop;Milk;-42.90;€;-42.90;-;Food;1;100;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).isSplitTransaction()).isFalse();
+        assertThat(transactions.get(0).getSplits()).isEmpty();
+    }
+
+    // ========== Transfer Linking Tests ==========
+
+    @Test
+    @DisplayName("Should link transfer pairs by idgroup")
+    void testTransferLinkingByIdGroup() throws IOException {
+        String csv =
+                """
+                date;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                2023-01-20;00000463202;FACTURE CARTE;Transfer out;-500.00;€;-500.00;-;Transfert;1;100;30
+                2023-01-20;Crowdlending;FACTURE CARTE;Transfer in;500.00;€;500.00;+;Transfert;2;200;30
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(2);
+        ImportedTransaction source =
+                transactions.stream()
+                        .filter(t -> t.getAmount().compareTo(BigDecimal.ZERO) < 0)
+                        .findFirst()
+                        .orElseThrow();
+        ImportedTransaction destination =
+                transactions.stream()
+                        .filter(t -> t.getAmount().compareTo(BigDecimal.ZERO) > 0)
+                        .findFirst()
+                        .orElseThrow();
+
+        assertThat(source.isTransfer()).isTrue();
+        assertThat(source.getToAccountName()).isEqualTo("Crowdlending");
+        assertThat(source.getTransferGroupKey()).isEqualTo("csv:transfer:30");
+
+        assertThat(destination.isTransfer()).isTrue();
+        assertThat(destination.getToAccountName()).isEqualTo("00000463202");
+        assertThat(destination.getTransferGroupKey()).isEqualTo("csv:transfer:30");
+    }
+
+    @Test
+    @DisplayName("Should not link rows with idgroup=0 as transfers")
+    void testNoTransferForZeroIdGroup() throws IOException {
+        String csv =
+                """
+                date;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                2024-01-15;Checking;Shop;Milk;-42.90;€;-42.90;-;Food;1;1;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).isTransfer()).isFalse();
+        assertThat(transactions.get(0).getTransferGroupKey()).isNull();
+    }
+
+    @Test
+    @DisplayName("Should handle Skrooge CSV with semicolon separator and quoted fields")
+    void testSkroogeSemicolonCsvWithQuotedFields() throws IOException {
+        String csv =
+                "\"date\";\"bank\";\"account\";\"mode\";\"payee\";\"comment\";\"quantity\";\"unit\";\"amount\";\"sign\";\"category\";\"status\";\"id\";\"idtransaction\";\"idgroup\"\n"
+                        + "\"2024-01-15\";\"hellobank\";\"00000463202\";\"Débit\";\"FACTURE CARTE\";\"DU 051022 WECASA\";\"-42.90\";\"€\";\"-42.90\";\"-\";\"Divers > Achat Divers\";\"Y\";\"1\";\"1\";\"0\"";
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.getAccountName()).isEqualTo("00000463202");
+        assertThat(tx.getPaymentMethod()).isEqualTo("Débit");
+        assertThat(tx.getPayee()).isEqualTo("FACTURE CARTE");
+        assertThat(tx.getMemo()).isEqualTo("DU 051022 WECASA");
+        assertThat(tx.getCurrency()).isEqualTo("EUR");
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-42.90"));
+        assertThat(tx.getInstitutionName()).isEqualTo("hellobank");
+        assertThat(tx.getClearedStatus()).isEqualTo("reconciled");
+        assertThat(tx.getCategory()).isEqualTo("Divers > Achat Divers");
+    }
+
+    @Test
+    @DisplayName("Should handle opening balance with CFA currency using quantity")
+    void testOpeningBalanceWithCfaCurrency() throws IOException {
+        String csv =
+                """
+                date;bank;account;payee;comment;quantity;unit;amount;sign;category;id;idtransaction;idgroup
+                0000-00-00;Portefeuille;FCFA;;;38180.00000;CFA;58.20506;+;;1;1;0
+                """;
+
+        List<ImportedTransaction> transactions = parseCsv(csv);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.isOpeningBalance()).isTrue();
+        assertThat(tx.getCurrency()).isEqualTo("XOF");
+        // For CFA, quantity (native) is used, not the EUR-converted amount
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("38180.00000"));
+    }
 }

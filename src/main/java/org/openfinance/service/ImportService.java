@@ -36,6 +36,7 @@ import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
 import org.openfinance.entity.Institution;
+import org.openfinance.entity.PaymentMethod;
 import org.openfinance.entity.Transaction;
 // Import TransactionType enum
 import org.openfinance.entity.TransactionType;
@@ -689,6 +690,51 @@ public class ImportService {
                             .filter(tx -> !skipDuplicates || !isDuplicate(tx))
                             .collect(Collectors.toList());
 
+            // Separate opening-balance rows (Skrooge "0000-00-00") — apply to the account's
+            // opening_balance instead of persisting as transactions.
+            List<ImportedTransaction> openingBalanceTxs =
+                    toImport.stream()
+                            .filter(ImportedTransaction::isOpeningBalance)
+                            .collect(Collectors.toList());
+            toImport =
+                    toImport.stream()
+                            .filter(tx -> !tx.isOpeningBalance())
+                            .collect(Collectors.toList());
+            if (!openingBalanceTxs.isEmpty()) {
+                BigDecimal openingDelta =
+                        openingBalanceTxs.stream()
+                                .map(ImportedTransaction::getAmount)
+                                .filter(java.util.Objects::nonNull)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                try {
+                    Account acct =
+                            accountRepository
+                                    .findByIdAndUserId(targetAccountId, userId)
+                                    .orElseThrow(
+                                            () ->
+                                                    new ResourceNotFoundException(
+                                                            "Account not found: "
+                                                                    + targetAccountId));
+                    BigDecimal newOpening =
+                            (acct.getOpeningBalance() != null
+                                            ? acct.getOpeningBalance()
+                                            : BigDecimal.ZERO)
+                                    .add(openingDelta);
+                    acct.setOpeningBalance(newOpening);
+                    accountRepository.save(acct);
+                    log.info(
+                            "Applied {} opening-balance row(s) to account {}: +{}",
+                            openingBalanceTxs.size(),
+                            targetAccountId,
+                            openingDelta);
+                } catch (Exception e) {
+                    log.warn(
+                            "Failed to apply opening balance to account {}: {}",
+                            targetAccountId,
+                            e.getMessage());
+                }
+            }
+
             // Save transactions
             int imported = 0;
             int saveFailed = 0;
@@ -797,9 +843,10 @@ public class ImportService {
             // Update session with results
             int duplicatesSkipped = skipDuplicates ? duplicateTxs.size() : 0;
             session.setImportedCount(imported);
-            session.setDuplicateCount(duplicateTxs.size()); // total detected (not just skipped)
+            session.setDuplicateCount(duplicateTxs.size());
             session.setErrorCount(errorTxs.size());
-            session.setSkippedCount(duplicatesSkipped + errorTxs.size() + saveFailed);
+            session.setSkippedCount(
+                    duplicatesSkipped + errorTxs.size() + saveFailed + openingBalanceTxs.size());
             session.setStatus(ImportStatus.COMPLETED);
             session.setCompletedAt(LocalDateTime.now());
 
@@ -1647,6 +1694,15 @@ public class ImportService {
                         .filter(tx -> !skipDuplicates || !isDuplicate(tx))
                         .collect(Collectors.toList());
 
+        // Separate opening-balance rows (Skrooge "0000-00-00") — they set the account's
+        // opening_balance via the descriptor and must not be persisted as transactions.
+        List<ImportedTransaction> openingBalanceTxs =
+                toImport.stream()
+                        .filter(ImportedTransaction::isOpeningBalance)
+                        .collect(Collectors.toList());
+        toImport =
+                toImport.stream().filter(tx -> !tx.isOpeningBalance()).collect(Collectors.toList());
+
         String fileCurrency = extractFileCurrency(session.getMetadata(), userId);
         final Long initialFallbackAccountId =
                 requestedAccountId != null ? requestedAccountId : session.getAccountId();
@@ -1661,8 +1717,12 @@ public class ImportService {
                                                                 + initialFallbackAccountId))
                         : null;
 
+        // Collect account descriptors from both regular and opening-balance transactions so
+        // that opening_balance and institution metadata are captured for account creation.
+        List<ImportedTransaction> descriptorSource = new ArrayList<>(toImport);
+        descriptorSource.addAll(openingBalanceTxs);
         Map<String, ImportedAccountDescriptor> descriptorsByKey =
-                collectImportedAccounts(toImport, fileCurrency);
+                collectImportedAccounts(descriptorSource, fileCurrency);
         Map<String, Long> accountIdsByKey =
                 ensureImportedAccounts(descriptorsByKey, fallbackAccount, userId);
 
@@ -1730,6 +1790,7 @@ public class ImportService {
                                             truncate(
                                                     importedTx.getPayee(),
                                                     TRANSACTION_PAYEE_MAX_LENGTH))
+                                    .paymentMethod(mapPaymentMethod(importedTx.getPaymentMethod()))
                                     .tags(
                                             importedTx.getTags() != null
                                                             && !importedTx.getTags().isEmpty()
@@ -1855,6 +1916,35 @@ public class ImportService {
         return institutionIdsBySource;
     }
 
+    /**
+     * Resolve an institution by name (case-insensitive), creating it if necessary.
+     *
+     * <p>Used by the CSV import path to link accounts to institutions from the "bank" column.
+     * Returns null when the name is blank or null.
+     *
+     * @param name institution name from the import file
+     * @return institution ID, or null when no name is provided
+     */
+    private Long resolveInstitutionIdByName(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        String trimmed = name.trim();
+        List<Institution> existing = institutionRepository.findAll();
+        Institution match =
+                existing.stream()
+                        .filter(i -> i.getName() != null && i.getName().equalsIgnoreCase(trimmed))
+                        .findFirst()
+                        .orElseGet(
+                                () ->
+                                        institutionRepository.save(
+                                                Institution.builder()
+                                                        .name(trimmed)
+                                                        .isSystem(false)
+                                                        .build()));
+        return match.getId();
+    }
+
     private Map<Long, Long> ensureAccounts(
             SkroogeImportMetadata metadata, Map<Long, Long> institutionIdsBySource, Long userId) {
         Map<Long, Long> accountIdsBySource = new HashMap<>();
@@ -1937,7 +2027,9 @@ public class ImportService {
                     transaction.getCurrency(),
                     transaction.getTransactionDate(),
                     defaultCurrency,
-                    transaction.getQifAccountType());
+                    transaction.getQifAccountType(),
+                    transaction.getInstitutionName(),
+                    transaction.isOpeningBalance() ? transaction.getAmount() : null);
             registerImportedAccountDescriptor(
                     descriptors,
                     transaction.getToAccountName(),
@@ -1945,6 +2037,8 @@ public class ImportService {
                     transaction.getCurrency(),
                     transaction.getTransactionDate(),
                     defaultCurrency,
+                    null,
+                    null,
                     null);
         }
         return descriptors;
@@ -1957,7 +2051,9 @@ public class ImportService {
             String currency,
             LocalDate transactionDate,
             String defaultCurrency,
-            String qifAccountType) {
+            String qifAccountType,
+            String institutionName,
+            BigDecimal openingBalance) {
         String descriptorKey = buildImportedAccountKey(accountName, accountNumber);
         if (descriptorKey == null) {
             return;
@@ -1993,6 +2089,14 @@ public class ImportService {
                 qifAccountType != null
                         ? qifAccountType
                         : existing != null ? existing.qifAccountType() : null;
+        String resolvedInstitution =
+                institutionName != null && !institutionName.isBlank()
+                        ? institutionName.trim()
+                        : existing != null ? existing.institutionName() : null;
+        BigDecimal resolvedOpeningBalance =
+                openingBalance != null
+                        ? openingBalance
+                        : existing != null ? existing.openingBalance() : null;
 
         descriptors.put(
                 descriptorKey,
@@ -2002,7 +2106,9 @@ public class ImportService {
                         resolvedNumber,
                         resolvedCurrency,
                         openingDate,
-                        resolvedQifAccountType));
+                        resolvedQifAccountType,
+                        resolvedInstitution,
+                        resolvedOpeningBalance));
     }
 
     private Map<String, Long> ensureImportedAccounts(
@@ -2026,6 +2132,7 @@ public class ImportService {
                 matchingAccount = fallbackAccount;
             }
             if (matchingAccount == null) {
+                Long institutionId = resolveInstitutionIdByName(descriptor.institutionName());
                 AccountRequest accountRequest =
                         AccountRequest.builder()
                                 .name(descriptor.name())
@@ -2034,12 +2141,16 @@ public class ImportService {
                                         descriptor.currency() != null
                                                 ? descriptor.currency()
                                                 : "USD")
-                                .initialBalance(BigDecimal.ZERO)
+                                .initialBalance(
+                                        descriptor.openingBalance() != null
+                                                ? descriptor.openingBalance()
+                                                : BigDecimal.ZERO)
                                 .openingDate(
                                         descriptor.openingDate() != null
                                                 ? descriptor.openingDate()
                                                 : LocalDate.now())
                                 .accountNumber(descriptor.accountNumber())
+                                .institutionId(institutionId)
                                 .build();
                 AccountResponse created = accountService.createAccount(userId, accountRequest);
                 matchingAccount =
@@ -2527,6 +2638,7 @@ public class ImportService {
                         .type(transactionType)
                         .externalReference(
                                 importedTx.getReferenceNumber()) // Persist for future dedup
+                        .paymentMethod(mapPaymentMethod(importedTx.getPaymentMethod()))
                         .isReconciled("reconciled".equalsIgnoreCase(importedTx.getClearedStatus()))
                         .isDeleted(false);
 
@@ -2707,7 +2819,9 @@ public class ImportService {
             String accountNumber,
             String currency,
             LocalDate openingDate,
-            String qifAccountType) {}
+            String qifAccountType,
+            String institutionName,
+            BigDecimal openingBalance) {}
 
     /**
      * Map a QIF account type string (from !Account T field or !Type directive) to the corresponding
@@ -2733,6 +2847,64 @@ public class ImportService {
                 return AccountType.INVESTMENT;
             default:
                 return AccountType.OTHER;
+        }
+    }
+
+    /**
+     * Map a raw payment-method string from the import file (e.g., Skrooge "mode" column) to a
+     * {@link PaymentMethod} enum value.
+     *
+     * <p>Recognised values (case-insensitive, accent-tolerant):
+     *
+     * <ul>
+     *   <li>"Débit" / "debit" → {@link PaymentMethod#DEBIT_CARD}
+     *   <li>"Crédit" / "credit" → {@link PaymentMethod#CREDIT_CARD}
+     *   <li>"Virement" / "transfer" → {@link PaymentMethod#BANK_TRANSFER}
+     *   <li>"Prélèvement" / "direct debit" → {@link PaymentMethod#DIRECT_DEBIT}
+     *   <li>"Chèque" / "cheque" / "check" → {@link PaymentMethod#CHEQUE}
+     *   <li>"Espèces" / "cash" → {@link PaymentMethod#CASH}
+     *   <li>"Dépôt" / "deposit" → {@link PaymentMethod#DEPOSIT}
+     *   <li>"En ligne" / "online" → {@link PaymentMethod#ONLINE}
+     * </ul>
+     *
+     * @param rawMode raw payment method string, or null
+     * @return mapped PaymentMethod, or null when the input is blank or unrecognised
+     */
+    private PaymentMethod mapPaymentMethod(String rawMode) {
+        if (rawMode == null || rawMode.isBlank()) {
+            return null;
+        }
+        // Normalise: lowercase, strip accents
+        String normalized =
+                java.text.Normalizer.normalize(rawMode, java.text.Normalizer.Form.NFD)
+                        .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                        .trim()
+                        .toLowerCase();
+        switch (normalized) {
+            case "debit":
+                return PaymentMethod.DEBIT_CARD;
+            case "credit":
+                return PaymentMethod.CREDIT_CARD;
+            case "virement":
+            case "transfer":
+                return PaymentMethod.BANK_TRANSFER;
+            case "prelevement":
+            case "direct debit":
+                return PaymentMethod.DIRECT_DEBIT;
+            case "cheque":
+            case "check":
+                return PaymentMethod.CHEQUE;
+            case "especes":
+            case "cash":
+                return PaymentMethod.CASH;
+            case "depot":
+            case "deposit":
+                return PaymentMethod.DEPOSIT;
+            case "en ligne":
+            case "online":
+                return PaymentMethod.ONLINE;
+            default:
+                return null;
         }
     }
 

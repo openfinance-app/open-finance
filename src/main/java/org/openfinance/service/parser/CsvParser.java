@@ -15,6 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -135,7 +136,20 @@ public class CsvParser {
                     "datevaleur",
                     "datecomptable",
                     "sens",
-                    "devise");
+                    "devise",
+                    // Skrooge CSV export columns
+                    "bank",
+                    "mode",
+                    "comment",
+                    "quantity",
+                    "unit",
+                    "sign",
+                    "status",
+                    "tracker",
+                    "bookmarked",
+                    "id",
+                    "idtransaction",
+                    "idgroup");
 
     /**
      * Parse CSV file and extract transactions.
@@ -224,6 +238,12 @@ public class CsvParser {
             }
         }
 
+        // Post-process: merge split suboperations sharing the same idtransaction
+        transactions = mergeSplitTransactions(transactions);
+
+        // Post-process: link transfer pairs sharing the same non-zero idgroup
+        linkTransferTransactions(transactions);
+
         log.info(
                 "CSV parsing complete: {} transactions parsed from {}",
                 transactions.size(),
@@ -295,7 +315,7 @@ public class CsvParser {
                         .sourceFileName(fileName)
                         .rawData(String.join(",", row));
 
-        // Date
+        // Date — detect Skrooge synthetic "0000-00-00" opening-balance marker
         String dateStr =
                 getValue(
                         row,
@@ -306,33 +326,56 @@ public class CsvParser {
                         "dateposted",
                         "datevaleur",
                         "datecomptable");
+        boolean isOpeningBalance = "0000-00-00".equals(dateStr);
         builder.transactionDate(parseDate(dateStr, lineNumber, dateFormats));
+        builder.openingBalance(isOpeningBalance);
 
-        // Amount
-        String amountStr = getValue(row, headerMap, "amount", "transactionamount", "montant");
-        if (amountStr != null) {
-            builder.amount(parseAmount(amountStr, lineNumber));
-        } else {
-            // Check for debit/credit split
-            String debitStr = getValue(row, headerMap, "debit", "withdrawal", "out", "paidout");
-            String creditStr = getValue(row, headerMap, "credit", "deposit", "in", "paidin");
-            boolean foundAmount = false;
+        // Currency — check the "unit" column (Skrooge) before generic "currency" lookups
+        String unit = getValue(row, headerMap, "unit");
+        String mappedCurrency = mapUnitToCurrencyCode(unit);
+        String currency =
+                mappedCurrency != null
+                        ? mappedCurrency
+                        : getValue(row, headerMap, "currency", "curr", "currencycode", "iso");
+        builder.currency(currency);
 
-            if (debitStr != null && !debitStr.isEmpty()) {
-                BigDecimal amount = parseAmount(debitStr, lineNumber);
-                if (amount != null) {
-                    builder.amount(amount.abs().negate()); // Debits are negative
-                    foundAmount = true;
-                }
+        // Amount — when the unit maps to a non-EUR currency, prefer the native "quantity"
+        // column (Skrooge stores EUR-converted amounts in "amount" and native amounts in
+        // "quantity"). For EUR or absent units, fall back to the standard "amount" column.
+        BigDecimal amount = null;
+        if (mappedCurrency != null && !"EUR".equals(mappedCurrency)) {
+            String quantityStr = getValue(row, headerMap, "quantity");
+            if (quantityStr != null) {
+                amount = parseAmount(quantityStr, lineNumber);
             }
+        }
+        if (amount == null) {
+            String amountStr = getValue(row, headerMap, "amount", "transactionamount", "montant");
+            if (amountStr != null) {
+                amount = parseAmount(amountStr, lineNumber);
+            } else {
+                // Check for debit/credit split
+                String debitStr = getValue(row, headerMap, "debit", "withdrawal", "out", "paidout");
+                String creditStr = getValue(row, headerMap, "credit", "deposit", "in", "paidin");
+                boolean foundAmount = false;
 
-            if (!foundAmount && creditStr != null && !creditStr.isEmpty()) {
-                BigDecimal amount = parseAmount(creditStr, lineNumber);
-                if (amount != null) {
-                    builder.amount(amount.abs()); // Credits are positive
+                if (debitStr != null && !debitStr.isEmpty()) {
+                    BigDecimal debitAmount = parseAmount(debitStr, lineNumber);
+                    if (debitAmount != null) {
+                        amount = debitAmount.abs().negate(); // Debits are negative
+                        foundAmount = true;
+                    }
+                }
+
+                if (!foundAmount && creditStr != null && !creditStr.isEmpty()) {
+                    BigDecimal creditAmount = parseAmount(creditStr, lineNumber);
+                    if (creditAmount != null) {
+                        amount = creditAmount.abs(); // Credits are positive
+                    }
                 }
             }
         }
+        builder.amount(amount);
 
         // Payee / Name / Description
         String payee =
@@ -349,7 +392,7 @@ public class CsvParser {
                         "libelle");
         builder.payee(payee);
 
-        // Memo / Notes
+        // Memo / Notes — "comment" is the Skrooge CSV column for detailed descriptions
         String memo =
                 getValue(
                         row,
@@ -359,7 +402,8 @@ public class CsvParser {
                         "referencememo",
                         "details",
                         "note",
-                        "intitule");
+                        "intitule",
+                        "comment");
         // If no separate memo, but we have both Payee and Description, use Description
         // as Memo
         if (memo == null || memo.isEmpty()) {
@@ -398,9 +442,29 @@ public class CsvParser {
         builder.accountName(accountName);
         builder.accountNumber(accountNumber);
 
-        // Currency (ISO code, e.g., USD, EUR, GBP)
-        String currency = getValue(row, headerMap, "currency", "curr", "currencycode", "iso");
-        builder.currency(currency);
+        // Payment Method (Skrooge "mode" column — e.g., "Débit", "Crédit")
+        String mode = getValue(row, headerMap, "mode");
+        builder.paymentMethod(mode);
+
+        // Institution / Bank name (Skrooge "bank" column)
+        String bankName = getValue(row, headerMap, "bank");
+        builder.institutionName(bankName);
+
+        // Reconciliation status (Skrooge "status" column: "Y" = reconciled)
+        String status = getValue(row, headerMap, "status");
+        if ("Y".equalsIgnoreCase(status)) {
+            builder.clearedStatus("reconciled");
+        }
+
+        // Skrooge "idtransaction" groups suboperations (for split-merge post-processing)
+        String idTransaction = getValue(row, headerMap, "idtransaction");
+        builder.sourceOperationId(idTransaction);
+
+        // Skrooge "idgroup" links transfer pairs (non-zero → transfer)
+        String idGroup = getValue(row, headerMap, "idgroup");
+        if (idGroup != null && !"0".equals(idGroup.trim())) {
+            builder.transferGroupKey("csv:transfer:" + idGroup.trim());
+        }
 
         // Tags (comma-separated within the cell, or from dedicated tag/label columns)
         String tagsRaw = getValue(row, headerMap, "tags", "tag", "labels", "label");
@@ -544,6 +608,177 @@ public class CsvParser {
         if (transaction.getTransactionDate() != null
                 && transaction.getTransactionDate().isAfter(LocalDate.now())) {
             transaction.addValidationError("Transaction date cannot be in the future");
+        }
+    }
+
+    /**
+     * Map Skrooge unit symbols/names to ISO 4217 currency codes.
+     *
+     * <p>Returns {@code null} for units that cannot be mapped to a 3-character code (e.g., "DOGE",
+     * "USDT", "B504", "TCALAVI"), causing the caller to fall back to the standard amount column
+     * (EUR-converted) and the account's default currency.
+     *
+     * @param unit raw unit string from the CSV (e.g., "€", "$", "CFA", "BTC")
+     * @return ISO 4217 code, or null when the unit is unrecognised or too long
+     */
+    private String mapUnitToCurrencyCode(String unit) {
+        if (unit == null || unit.isBlank()) {
+            return null;
+        }
+        String trimmed = unit.trim();
+        switch (trimmed) {
+            case "€":
+                return "EUR";
+            case "$":
+                return "USD";
+            case "CFA":
+                return "XOF";
+            default:
+                // Only accept 3-character uppercase codes that fit the DB column (length = 3)
+                String upper = trimmed.toUpperCase(Locale.ROOT);
+                if (upper.length() == 3 && upper.matches("[A-Z]{3}")) {
+                    return upper;
+                }
+                return null;
+        }
+    }
+
+    /**
+     * Merge rows sharing the same {@code sourceOperationId} (Skrooge "idtransaction") into a single
+     * ImportedTransaction with splits.
+     *
+     * <p>When multiple CSV rows share the same idtransaction, they represent suboperations of a
+     * single logical operation. The first row becomes the parent transaction; subsequent rows are
+     * converted to {@link ImportedTransaction.SplitEntry} objects. The parent amount is the sum of
+     * all suboperation amounts.
+     *
+     * <p>Rows without an idtransaction (or with a unique one) are passed through unchanged.
+     *
+     * @param transactions parsed transactions, potentially with duplicate sourceOperationIds
+     * @return merged list with split transactions collapsed into single entries
+     */
+    private List<ImportedTransaction> mergeSplitTransactions(
+            List<ImportedTransaction> transactions) {
+        Map<String, List<ImportedTransaction>> grouped = new LinkedHashMap<>();
+        List<ImportedTransaction> ungrouped = new ArrayList<>();
+
+        for (ImportedTransaction tx : transactions) {
+            String key = tx.getSourceOperationId();
+            if (key == null || key.isBlank() || "0".equals(key.trim())) {
+                ungrouped.add(tx);
+                continue;
+            }
+            grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(tx);
+        }
+
+        List<ImportedTransaction> result = new ArrayList<>(ungrouped);
+        for (List<ImportedTransaction> group : grouped.values()) {
+            if (group.size() == 1) {
+                result.add(group.get(0));
+                continue;
+            }
+
+            ImportedTransaction parent = group.get(0);
+            BigDecimal totalAmount =
+                    group.stream()
+                            .map(ImportedTransaction::getAmount)
+                            .filter(java.util.Objects::nonNull)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            List<ImportedTransaction.SplitEntry> splits = new ArrayList<>();
+            for (ImportedTransaction sub : group) {
+                BigDecimal splitAmount =
+                        sub.getAmount() != null ? sub.getAmount().abs() : BigDecimal.ZERO;
+                splits.add(
+                        ImportedTransaction.SplitEntry.builder()
+                                .category(sub.getCategory())
+                                .memo(sub.getMemo())
+                                .amount(splitAmount)
+                                .build());
+            }
+
+            ImportedTransaction merged =
+                    ImportedTransaction.builder()
+                            .transactionDate(parent.getTransactionDate())
+                            .payee(parent.getPayee())
+                            .originalPayee(parent.getOriginalPayee())
+                            .amount(totalAmount)
+                            .memo(parent.getMemo())
+                            .category(parent.getCategory())
+                            .clearedStatus(parent.getClearedStatus())
+                            .referenceNumber(parent.getReferenceNumber())
+                            .accountName(parent.getAccountName())
+                            .accountNumber(parent.getAccountNumber())
+                            .currency(parent.getCurrency())
+                            .lineNumber(parent.getLineNumber())
+                            .sourceFileName(parent.getSourceFileName())
+                            .rawData(parent.getRawData())
+                            .paymentMethod(parent.getPaymentMethod())
+                            .institutionName(parent.getInstitutionName())
+                            .openingBalance(parent.isOpeningBalance())
+                            .sourceOperationId(parent.getSourceOperationId())
+                            .transferGroupKey(parent.getTransferGroupKey())
+                            .splits(splits)
+                            .build();
+            result.add(merged);
+        }
+
+        return result;
+    }
+
+    /**
+     * Link transfer pairs by their {@code transferGroupKey} (derived from Skrooge "idgroup").
+     *
+     * <p>For each non-null transferGroupKey, exactly two transactions form a transfer pair: one
+     * with a negative amount (source) and one with a positive amount (destination). This method
+     * sets {@code transfer = true} and {@code toAccountName} on both sides so that {@code
+     * ImportService} can create a proper TRANSFER transaction.
+     *
+     * @param transactions parsed (and split-merged) transactions
+     */
+    private void linkTransferTransactions(List<ImportedTransaction> transactions) {
+        Map<String, List<ImportedTransaction>> grouped = new LinkedHashMap<>();
+        for (ImportedTransaction tx : transactions) {
+            String key = tx.getTransferGroupKey();
+            if (key == null || key.isBlank()) {
+                continue;
+            }
+            grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(tx);
+        }
+
+        for (List<ImportedTransaction> group : grouped.values()) {
+            if (group.size() != 2) {
+                continue;
+            }
+            ImportedTransaction first = group.get(0);
+            ImportedTransaction second = group.get(1);
+
+            BigDecimal firstAmount =
+                    first.getAmount() != null ? first.getAmount() : BigDecimal.ZERO;
+            BigDecimal secondAmount =
+                    second.getAmount() != null ? second.getAmount() : BigDecimal.ZERO;
+
+            // Determine source (negative) and destination (positive) by amount sign
+            ImportedTransaction source;
+            ImportedTransaction destination;
+            if (firstAmount.compareTo(BigDecimal.ZERO) < 0
+                    && secondAmount.compareTo(BigDecimal.ZERO) >= 0) {
+                source = first;
+                destination = second;
+            } else if (secondAmount.compareTo(BigDecimal.ZERO) < 0
+                    && firstAmount.compareTo(BigDecimal.ZERO) >= 0) {
+                source = second;
+                destination = first;
+            } else {
+                // Both same sign — cannot determine direction, skip
+                continue;
+            }
+
+            source.setTransfer(true);
+            source.setToAccountName(destination.getAccountName());
+
+            destination.setTransfer(true);
+            destination.setToAccountName(source.getAccountName());
         }
     }
 }

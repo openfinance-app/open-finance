@@ -126,6 +126,37 @@ public class ImportedTransaction {
     @Builder.Default private List<String> tags = new ArrayList<>();
 
     /**
+     * Raw payment method string from the import file (e.g., "Débit", "Crédit", "Virement").
+     *
+     * <p>Mapped to a {@link org.openfinance.entity.PaymentMethod} during import. Null when the
+     * source file does not carry payment-mode information.
+     */
+    private String paymentMethod;
+
+    /**
+     * Institution (bank) name associated with the account, as read from the import file (e.g.,
+     * Skrooge CSV "bank" column). Used to link the account to an institution during import.
+     */
+    private String institutionName;
+
+    /**
+     * Indicates whether this row represents an account opening balance rather than a regular
+     * transaction.
+     *
+     * <p>Skrooge encodes opening balances with the synthetic date {@code 0000-00-00}. When this
+     * flag is true, the transaction should be used to set the account's opening balance instead of
+     * being persisted as a regular transaction.
+     */
+    @Builder.Default private boolean openingBalance = false;
+
+    /**
+     * Source operation ID grouping suboperations into a single logical operation (e.g., Skrooge CSV
+     * "idtransaction" column). Used by the CSV parser to merge split suboperations before returning
+     * the final transaction list. Not persisted.
+     */
+    @JsonIgnore private String sourceOperationId;
+
+    /**
      * Prefixes that mark informational / advisory messages rather than blocking validation errors.
      * Messages with these prefixes are surfaced in the UI review step for transparency but must NOT
      * prevent a transaction from being imported via the {@link #hasErrors()} check.
