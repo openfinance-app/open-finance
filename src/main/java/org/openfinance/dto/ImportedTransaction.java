@@ -60,6 +60,12 @@ public class ImportedTransaction {
     private String accountName;
 
     /**
+     * QIF account type from the !Account T field or !Type directive (e.g., "Bank", "CCard", "Cash",
+     * "Oth A", "Invst"). Used to map to the correct {@code AccountType} during account creation.
+     */
+    private String qifAccountType;
+
+    /**
      * Source account ID from the import format, when available.
      *
      * <p>Used by high-fidelity importers (such as Skrooge JSON) to preserve stable account

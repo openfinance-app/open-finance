@@ -97,7 +97,7 @@ public class QifParser {
      * them).
      */
     private static final List<String> SKIP_TYPES =
-            List.of("memorized", "prices", "bill", "invoice", "tax");
+            List.of("memorized", "prices", "bill", "invoice", "tax", "cat");
 
     /** Tolerance for split-sum validation (±0.01), consistent with TransactionSplitService. */
     private static final BigDecimal SPLIT_SUM_TOLERANCE = new BigDecimal("0.01");
@@ -123,6 +123,8 @@ public class QifParser {
             String currentAccountType = null;
             // Track the current account name from !Account sections
             String currentAccountName = null;
+            // QIF account type from !Account T field (e.g., "Bank", "CCard", "Oth A")
+            String currentQifAccountType = null;
             // When true, the next N line inside an !Account block is the account name
             boolean inAccountBlock = false;
             boolean skipCurrentType = false;
@@ -136,6 +138,10 @@ public class QifParser {
 
             // U field (alternative amount) — used only if T was not provided
             BigDecimal uAmount = null;
+            // Q (quantity) and I (price) for investment transactions — used to compute
+            // amount when T is absent (common in Skrooge Oth A exports)
+            BigDecimal invQuantity = null;
+            BigDecimal invPrice = null;
 
             String line;
             while ((line = reader.readLine()) != null) {
@@ -156,11 +162,14 @@ public class QifParser {
                         currentAccountType = typeValue;
                         String typeLower = typeValue.toLowerCase();
                         skipCurrentType = SKIP_TYPES.stream().anyMatch(typeLower::startsWith);
-                        isInvestmentType = typeLower.equalsIgnoreCase("invst");
+                        isInvestmentType =
+                                typeLower.equalsIgnoreCase("invst")
+                                        || typeLower.equalsIgnoreCase("oth a");
                         inAccountBlock = false;
                         log.debug("Found account type: {}", currentAccountType);
                     } else if (line.equalsIgnoreCase("!Account")) {
                         inAccountBlock = true;
+                        skipCurrentType = false; // !Account ends any prior skip section
                         log.debug("Entering !Account block");
                     } else if (line.toLowerCase().startsWith("!option:")) {
                         log.debug("QIF option directive (ignored): {}", line);
@@ -183,20 +192,29 @@ public class QifParser {
                     if (code == 'N') {
                         currentAccountName = value;
                         log.debug("!Account name: {}", currentAccountName);
+                    } else if (code == 'T') {
+                        currentQifAccountType = value;
+                        log.debug("!Account type: {}", currentQifAccountType);
                     } else if (code == '^') {
                         inAccountBlock = false;
-                        log.debug("Exiting !Account block, account={}", currentAccountName);
+                        log.debug(
+                                "Exiting !Account block, account={}, type={}",
+                                currentAccountName,
+                                currentQifAccountType);
                     }
                     // All other lines inside !Account (T=type, D=description, $=balance…)
                     // are irrelevant for transaction parsing — ignore.
                     continue;
                 }
 
-                // Investment transaction handling — minimal: capture key fields
+                // Investment transaction handling — capture key fields including Q/I for
+                // amount computation when T is absent (common in Skrooge Oth A exports)
                 if (isInvestmentType) {
                     switch (code) {
                         case 'D':
                             if (currentTransaction != null) {
+                                applyInvestmentAmountIfNeeded(
+                                        currentTransaction, uAmount, invQuantity, invPrice);
                                 finalizeSplits(currentTransaction, currentSplits);
                                 transactions.add(
                                         buildTransaction(
@@ -205,13 +223,24 @@ public class QifParser {
                                                 fileName));
                                 currentSplits.clear();
                                 uAmount = null;
+                                invQuantity = null;
+                                invPrice = null;
                             }
                             currentTransaction = ImportedTransaction.builder();
                             if (currentAccountName != null) {
                                 currentTransaction.accountName(currentAccountName);
                             }
+                            String qifType =
+                                    currentQifAccountType != null
+                                            ? currentQifAccountType
+                                            : currentAccountType;
+                            if (qifType != null) {
+                                currentTransaction.qifAccountType(qifType);
+                            }
                             transactionStartLine = lineNumber;
                             uAmount = null;
+                            invQuantity = null;
+                            invPrice = null;
                             LocalDate invDate = parseDate(value, lineNumber);
                             currentTransaction.transactionDate(invDate);
                             break;
@@ -221,14 +250,27 @@ public class QifParser {
                                 if (currentAccountName != null) {
                                     currentTransaction.accountName(currentAccountName);
                                 }
+                                String qifAcctType =
+                                        currentQifAccountType != null
+                                                ? currentQifAccountType
+                                                : currentAccountType;
+                                if (qifAcctType != null) {
+                                    currentTransaction.qifAccountType(qifAcctType);
+                                }
                                 transactionStartLine = lineNumber;
                             }
                             currentTransaction.amount(
                                     parseAmount(value, lineNumber, currentTransaction));
-                            uAmount = null; // T wins over U
+                            uAmount = null; // T wins over U and Q×I
                             break;
                         case 'U': // alternative amount — only set if T not present
                             uAmount = parseAmount(value, lineNumber, null);
+                            break;
+                        case 'Q': // quantity (number of shares/units)
+                            invQuantity = parseAmount(value, lineNumber, null);
+                            break;
+                        case 'I': // price per unit
+                            invPrice = parseAmount(value, lineNumber, null);
                             break;
                         case 'N': // action (Buy, Sell, …)
                             if (currentTransaction != null) {
@@ -245,15 +287,28 @@ public class QifParser {
                                 currentTransaction.memo(value);
                             }
                             break;
-                        case 'P': // first line of payee/description (some exporters use P here)
+                        case 'P': // payee/description — only set if Y (security) hasn't
                             if (currentTransaction != null) {
-                                currentTransaction.payee(value);
+                                ImportedTransaction peek = currentTransaction.build();
+                                if (peek.getPayee() == null || peek.getPayee().isEmpty()) {
+                                    currentTransaction.payee(value);
+                                }
+                            }
+                            break;
+                        case 'L': // category or transfer syntax [AccountName]
+                            if (currentTransaction != null) {
+                                parseCategoryField(value, currentTransaction);
+                            }
+                            break;
+                        case 'C': // cleared status
+                            if (currentTransaction != null) {
+                                currentTransaction.clearedStatus(mapClearedStatus(value));
                             }
                             break;
                         case '^':
                             if (currentTransaction != null) {
-                                // Apply U amount if T was never set
-                                applyUAmountIfNeeded(currentTransaction, uAmount);
+                                applyInvestmentAmountIfNeeded(
+                                        currentTransaction, uAmount, invQuantity, invPrice);
                                 finalizeSplits(currentTransaction, currentSplits);
                                 transactions.add(
                                         buildTransaction(
@@ -263,6 +318,8 @@ public class QifParser {
                                 currentTransaction = null;
                                 currentSplits.clear();
                                 uAmount = null;
+                                invQuantity = null;
+                                invPrice = null;
                             }
                             break;
                         default:
@@ -302,6 +359,13 @@ public class QifParser {
                             currentTransaction = ImportedTransaction.builder();
                             if (currentAccountName != null) {
                                 currentTransaction.accountName(currentAccountName);
+                            }
+                            String qifType =
+                                    currentQifAccountType != null
+                                            ? currentQifAccountType
+                                            : currentAccountType;
+                            if (qifType != null) {
+                                currentTransaction.qifAccountType(qifType);
                             }
                             transactionStartLine = lineNumber;
                             log.warn("Line {}: Transaction started without date 'D'", lineNumber);
@@ -440,7 +504,7 @@ public class QifParser {
 
             // Add last transaction if file doesn't end with '^'
             if (currentTransaction != null) {
-                applyUAmountIfNeeded(currentTransaction, uAmount);
+                applyInvestmentAmountIfNeeded(currentTransaction, uAmount, invQuantity, invPrice);
                 finalizeSplits(currentTransaction, currentSplits);
                 transactions.add(
                         buildTransaction(currentTransaction, transactionStartLine, fileName));
@@ -464,6 +528,33 @@ public class QifParser {
         ImportedTransaction peek = builder.build();
         if (peek.getAmount() == null) {
             builder.amount(uAmount);
+        }
+    }
+
+    /**
+     * Apply amount from U field or Q × I computation when T was never provided. Priority: T
+     * (already set) > U > Q × I.
+     */
+    private void applyInvestmentAmountIfNeeded(
+            ImportedTransaction.ImportedTransactionBuilder builder,
+            BigDecimal uAmount,
+            BigDecimal invQuantity,
+            BigDecimal invPrice) {
+        ImportedTransaction peek = builder.build();
+        if (peek.getAmount() != null) {
+            return; // T was set
+        }
+        if (uAmount != null) {
+            builder.amount(uAmount);
+            return;
+        }
+        if (invQuantity != null && invPrice != null) {
+            try {
+                BigDecimal computed = invQuantity.multiply(invPrice);
+                builder.amount(computed);
+            } catch (ArithmeticException e) {
+                log.debug("Could not compute investment amount from Q × I: {}", e.getMessage());
+            }
         }
     }
 
@@ -658,6 +749,7 @@ public class QifParser {
             case "*":
                 return "cleared";
             case "x":
+            case "r":
                 return "reconciled";
             default:
                 return "uncleared";

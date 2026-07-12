@@ -1,6 +1,7 @@
 package org.openfinance.service.parser;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.within;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -991,6 +992,151 @@ class QifParserTest {
         assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-5000.00"));
         assertThat(tx.getReferenceNumber()).isEqualTo("Buy");
         assertThat(tx.getPayee()).isEqualTo("ACME Corp");
+    }
+
+    @Test
+    @DisplayName("Should parse investment transaction in !Type:Oth A section (Skrooge format)")
+    void testInvestmentInOthASection() throws IOException {
+        String qif =
+                """
+                !Type:Oth A
+                D2024-11-14
+                NBuy
+                YADA
+                PFACTURE CARTE
+                MDébit  DU 131124 MOONPAY*EXODUS
+                CR
+                Q100.6
+                I0.1653551854
+                LTransfert
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.getTransactionDate()).isEqualTo(LocalDate.of(2024, 11, 14));
+        assertThat(tx.getReferenceNumber()).isEqualTo("Buy");
+        assertThat(tx.getPayee()).isEqualTo("ADA");
+        assertThat(tx.getMemo()).contains("MOONPAY");
+        assertThat(tx.hasErrors()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should compute amount from Q × I when T is missing in investment transaction")
+    void testInvestmentAmountFromQuantityTimesPrice() throws IOException {
+        String qif =
+                """
+                !Type:Invst
+                D2024-11-14
+                NBuy
+                YADA
+                Q100.6
+                I0.1653551854
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.getAmount()).isNotNull();
+        assertThat(tx.hasErrors()).isFalse();
+        // 100.6 * 0.1653551854 ≈ 16.631...
+        assertThat(tx.getAmount().doubleValue()).isCloseTo(16.63, within(0.01));
+    }
+
+    @Test
+    @DisplayName(
+            "Should compute amount from Q × I when T is missing in Oth A investment transaction")
+    void testOthAAmountFromQuantityTimesPrice() throws IOException {
+        String qif =
+                """
+                !Type:Oth A
+                D2024-11-14
+                NBuy
+                YADA
+                Q100.6
+                I0.1653551854
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.getAmount()).isNotNull();
+        assertThat(tx.hasErrors()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should handle investment opening balance with Q=0 and I=nan gracefully")
+    void testInvestmentZeroQuantityOpeningBalance() throws IOException {
+        String qif =
+                """
+                !Type:Oth A
+                D2026-07-05
+                NSell
+                YADA
+                CR
+                Q0
+                Inan
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        // I=nan is not a valid number, so amount can't be computed — transaction
+        // should have errors but not crash
+        assertThat(tx.hasErrors()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should parse 'R' cleared status as reconciled")
+    void testReconciledStatusR() throws IOException {
+        String qif =
+                """
+                !Type:Bank
+                D01/15/2024
+                T-45.67
+                PStarbucks
+                CR
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getClearedStatus()).isEqualTo("reconciled");
+    }
+
+    @Test
+    @DisplayName("Should skip !Type:Cat section without generating transaction warnings")
+    void testSkipCatType() throws IOException {
+        String qif =
+                """
+                !Type:Cat
+                NAlimentation
+                E
+                ^
+                NAlimentation:Restaurant
+                E
+                ^
+                !Type:Bank
+                D01/15/2024
+                T-50.00
+                PReal Transaction
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getPayee()).isEqualTo("Real Transaction");
+        assertThat(transactions.get(0).getAmount()).isEqualByComparingTo(new BigDecimal("-50.00"));
     }
 
     // ========== Skip !Type Tests ==========
