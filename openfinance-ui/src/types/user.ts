@@ -16,7 +16,7 @@ export interface User {
 export interface LoginRequest {
   username: string;
   password: string;
-  masterPassword: string;
+  masterPassword?: string;
   rememberMe?: boolean; // Optional: controls localStorage vs sessionStorage
 }
 
@@ -24,7 +24,8 @@ export interface LoginResponse {
   token: string;
   userId: number;
   username: string;
-  encryptionKey: string;
+  encryptionKey?: string | null;
+  encryptionEnabled?: boolean;
   baseCurrency?: string;
   onboardingComplete?: boolean;
 }
@@ -33,7 +34,7 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
-  masterPassword: string;
+  masterPassword?: string;
 }
 
 export interface UpdateProfileRequest {

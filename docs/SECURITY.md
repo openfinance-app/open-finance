@@ -49,6 +49,27 @@ Sensitive database fields (account numbers, notes, attachment content) are encry
 
 AES-GCM provides both **confidentiality** and ciphertext **integrity** — any tampering is detected on decryption.
 
+### Encryption Mode Configuration
+
+Field-level encryption is enabled by default:
+
+```yaml
+application:
+    encryption:
+        enabled: true
+```
+
+Set `application.encryption.enabled=false` before first startup only if the deployment intentionally stores supported fields in plaintext and does not use the master-password/session-key flow.
+
+When encryption is disabled:
+
+- Registration and login do not require a master password
+- Login responses do not include an encryption session token
+- The frontend omits `X-Encryption-Session` headers
+- JPA converters pass field values through without encrypting or decrypting them
+
+> **Unsupported mode switching**: changing `application.encryption.enabled` after users or financial data exist is unsupported. Open-Finance does not migrate existing data between encrypted and plaintext forms, does not validate mixed-mode databases, and does not repair data written under the previous mode.
+
 ### Attachment Encryption
 
 File attachments are encrypted with the same AES-256-GCM scheme before being written to `./attachments/`. The database stores only a reference (path/ID) and encrypted metadata.

@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.AccountSearchCriteria;
@@ -86,6 +87,7 @@ public class AccountService {
     private final org.openfinance.repository.AssetRepository assetRepository;
     private final OperationHistoryService operationHistoryService;
     private final SearchTokenService searchTokenService;
+    private final EncryptionProperties encryptionProperties;
 
     /**
      * Creates a new account for the specified user.
@@ -122,7 +124,8 @@ public class AccountService {
         if (request == null) {
             throw new IllegalArgumentException("Account request cannot be null");
         }
-        if (org.openfinance.security.EncryptionContext.getKey() == null) {
+        if (encryptionProperties.isEnabled()
+                && org.openfinance.security.EncryptionContext.getKey() == null) {
             throw new IllegalArgumentException("Encryption key required for account operations");
         }
         log.debug(
@@ -1324,4 +1327,5 @@ public class AccountService {
             log.warn("Failed to index account {} search tokens: {}", account.getId(), e.getMessage());
         }
     }
+
 }

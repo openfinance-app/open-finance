@@ -99,7 +99,7 @@ describe('useImport hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockSession);
-      expect(mockedImportService.getSession).toHaveBeenCalledWith(1);
+      expect(mockedImportService.getSession).toHaveBeenCalledWith(1, true);
     });
 
     it('should be disabled when session id is null', () => {
@@ -113,44 +113,29 @@ describe('useImport hooks', () => {
     it('should fetch transactions for review', async () => {
       mockedImportService.getTransactions.mockResolvedValue(mockTransactions);
 
-      const { result } = renderHook(
-        () => useImportTransactions(1, 'PARSED'),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useImportTransactions(1, 'PARSED'), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockTransactions);
     });
 
     it('should be disabled when session id is null', () => {
-      const { result } = renderHook(
-        () => useImportTransactions(null),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useImportTransactions(null), { wrapper });
       expect(result.current.fetchStatus).toBe('idle');
     });
 
     it('should be disabled when session is in terminal state', () => {
-      const { result } = renderHook(
-        () => useImportTransactions(1, 'COMPLETED'),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useImportTransactions(1, 'COMPLETED'), { wrapper });
       expect(result.current.fetchStatus).toBe('idle');
     });
 
     it('should be disabled when session status is FAILED', () => {
-      const { result } = renderHook(
-        () => useImportTransactions(1, 'FAILED'),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useImportTransactions(1, 'FAILED'), { wrapper });
       expect(result.current.fetchStatus).toBe('idle');
     });
 
     it('should be disabled when session status is CANCELLED', () => {
-      const { result } = renderHook(
-        () => useImportTransactions(1, 'CANCELLED'),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useImportTransactions(1, 'CANCELLED'), { wrapper });
       expect(result.current.fetchStatus).toBe('idle');
     });
   });
@@ -210,7 +195,7 @@ describe('useImport hooks', () => {
       });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(mockedImportService.updateAccount).toHaveBeenCalledWith(1, 2);
+      expect(mockedImportService.updateAccount).toHaveBeenCalledWith(1, 2, true);
     });
   });
 
@@ -229,7 +214,11 @@ describe('useImport hooks', () => {
       });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(mockedImportService.updateTransactions).toHaveBeenCalledWith(1, mockTransactions);
+      expect(mockedImportService.updateTransactions).toHaveBeenCalledWith(
+        1,
+        mockTransactions,
+        true
+      );
     });
   });
 

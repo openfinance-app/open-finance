@@ -6,13 +6,48 @@ import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import type { AxiosError } from 'axios';
 import apiClient from '@/services/apiClient';
-import type { RegisterRequest, LoginRequest, LoginResponse, User, UpdateProfileRequest, OnboardingRequest, UserSettings } from '@/types/user';
+import type {
+  RegisterRequest,
+  LoginRequest,
+  LoginResponse,
+  User,
+  UpdateProfileRequest,
+  OnboardingRequest,
+  UserSettings,
+} from '@/types/user';
 import { useAuthContext } from '@/context/AuthContext';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
+import { clearStoredEncryptionEnabled, setStoredEncryptionEnabled } from '@/utils/encryption';
 
 // Storage keys - keep consistent and avoid magic strings
 const AUTH_TOKEN_KEY = 'auth_token';
 const ENCRYPTION_SESSION_KEY = 'encryption_session';
+
+interface SanitizedAuthErrorLog {
+  status?: number;
+  code?: string;
+  message?: string;
+}
+
+function sanitizeAuthErrorForLog(error: unknown): SanitizedAuthErrorLog {
+  const axiosError = error as AxiosError | undefined;
+  const errorWithMessage = error as { message?: unknown } | undefined;
+  const logDetails: SanitizedAuthErrorLog = {};
+
+  if (typeof axiosError?.response?.status === 'number') {
+    logDetails.status = axiosError.response.status;
+  }
+
+  if (typeof axiosError?.code === 'string') {
+    logDetails.code = axiosError.code;
+  }
+
+  if (typeof errorWithMessage?.message === 'string') {
+    logDetails.message = errorWithMessage.message;
+  }
+
+  return logDetails;
+}
 
 /**
  * Hook for user registration
@@ -33,9 +68,9 @@ export function useRegister() {
         state: { messageKey: 'register.success' },
       });
     },
-    onError: (error) => {
+    onError: error => {
       // surface error to dev console; UI should read mutation.error
-      console.error('Registration failed:', error?.message ?? error);
+      console.error('Registration failed:', sanitizeAuthErrorForLog(error));
     },
   });
 }
@@ -50,6 +85,14 @@ export function useLogin() {
   return useMutation<LoginResponse, AxiosError, LoginRequest>({
     mutationFn: async (data: LoginRequest): Promise<LoginResponse> => {
       const response = await apiClient.post<LoginResponse>('/auth/login', data);
+      const encryptionEnabled = response.data.encryptionEnabled !== false;
+      if (
+        encryptionEnabled &&
+        (typeof response.data.encryptionKey !== 'string' ||
+          response.data.encryptionKey.length === 0)
+      ) {
+        throw new Error('Encryption session missing from login response');
+      }
       return response.data;
     },
     onSuccess: (data: LoginResponse, variables: LoginRequest) => {
@@ -66,25 +109,33 @@ export function useLogin() {
       const rememberMe = variables.rememberMe || false;
       setAuth(user, data.token, rememberMe);
 
-      // Store encryption session token (opaque — the real key stays on the server)
+      // Store encryption session token only when encryption is enabled.
       try {
-        sessionStorage.setItem(ENCRYPTION_SESSION_KEY, data.encryptionKey);
+        const encryptionEnabled = data.encryptionEnabled !== false;
+        if (encryptionEnabled && typeof data.encryptionKey === 'string') {
+          sessionStorage.setItem(ENCRYPTION_SESSION_KEY, data.encryptionKey);
+          setStoredEncryptionEnabled(true);
+        } else {
+          sessionStorage.removeItem(ENCRYPTION_SESSION_KEY);
+          setStoredEncryptionEnabled(false);
+        }
       } catch (e) {
-        console.warn('Failed to persist encryption session token to storage', e);
+        console.warn('Failed to update encryption session storage', sanitizeAuthErrorForLog(e));
       }
 
       // NOTE: navigation/redirect is intentionally left to the caller so it can
       // redirect back to the original requested location (if any).
     },
-    onError: (error) => {
-      console.error('Login failed:', error?.message ?? error);
+    onError: error => {
+      console.error('Login failed:', sanitizeAuthErrorForLog(error));
       // Clear any stale tokens from both storages
       try {
         localStorage.removeItem(AUTH_TOKEN_KEY);
         sessionStorage.removeItem(AUTH_TOKEN_KEY);
         sessionStorage.removeItem(ENCRYPTION_SESSION_KEY);
+        clearStoredEncryptionEnabled();
       } catch (e) {
-        console.warn('Failed to clear stale auth storage', e);
+        console.warn('Failed to clear stale auth storage', sanitizeAuthErrorForLog(e));
       }
     },
   });
@@ -100,7 +151,7 @@ export function useLogout() {
 
   return useCallback(() => {
     // Invalidate encryption session on the server (best-effort — don't block on failure)
-    apiClient.post('/auth/logout').catch(() => { });
+    apiClient.post('/auth/logout').catch(() => {});
 
     // Clear auth context (which also clears localStorage/sessionStorage)
     clearAuth();
@@ -165,12 +216,13 @@ export function useUpdateProfile() {
       // Update auth context with new user data (preserves token and storage preference)
       if (currentUser) {
         // Check which storage has the token to preserve the "remember me" preference
-        const token = localStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem(AUTH_TOKEN_KEY) || '';
+        const token =
+          localStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem(AUTH_TOKEN_KEY) || '';
         const rememberMe = !!localStorage.getItem(AUTH_TOKEN_KEY); // true if in localStorage
         setAuth(updatedUser, token, rememberMe);
       }
     },
-    onError: (error) => {
+    onError: error => {
       console.error('Profile update failed:', error?.message ?? error);
     },
   });
@@ -198,7 +250,7 @@ export function useUploadProfileImage() {
       // Keep auth context in sync so the avatar updates everywhere immediately
       updateUser({ profileImage: updatedUser.profileImage });
     },
-    onError: (error) => {
+    onError: error => {
       console.error('Profile image upload failed:', error?.message ?? error);
     },
   });
@@ -221,7 +273,7 @@ export function useDeleteProfileImage() {
       queryClient.setQueryData(['profile'], updatedUser);
       updateUser({ profileImage: null });
     },
-    onError: (error) => {
+    onError: error => {
       console.error('Profile image deletion failed:', error?.message ?? error);
     },
   });
@@ -250,7 +302,7 @@ export function useCompleteOnboarding() {
       queryClient.invalidateQueries({ queryKey: ['userSettings'] });
       navigate('/dashboard', { replace: true });
     },
-    onError: (error) => {
+    onError: error => {
       console.error('Onboarding submission failed:', error?.message ?? error);
     },
   });

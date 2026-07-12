@@ -97,6 +97,7 @@ application:
     max-failed-attempts: 5
     lockout-duration-minutes: 15
   encryption:
+    enabled: false
     algorithm: AES/GCM/NoPadding
     key-size: 256
     iv-size: 12

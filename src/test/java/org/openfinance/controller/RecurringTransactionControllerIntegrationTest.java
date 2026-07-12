@@ -332,7 +332,7 @@ class RecurringTransactionControllerIntegrationTest {
                 }
 
                 @Test
-                @DisplayName("Should return 400 when missing encryption key")
+                @DisplayName("Should return 401 when missing encryption session")
                 void shouldReturn400WhenMissingEncryptionKey() throws Exception {
                         // Given
                         RecurringTransactionRequest request = RecurringTransactionRequest.builder()
@@ -352,7 +352,7 @@ class RecurringTransactionControllerIntegrationTest {
                                                         .contentType(MediaType.APPLICATION_JSON)
                                                         .content(objectMapper.writeValueAsString(request)))
                                         .andDo(print())
-                                        .andExpect(status().isBadRequest());
+                                        .andExpect(status().isUnauthorized());
                 }
 
                 @Test

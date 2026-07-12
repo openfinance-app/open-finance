@@ -33,6 +33,8 @@ spring:
       print: default
 application:
   version: 0.1.0
+  encryption:
+    enabled: true
   live-demo:
     enabled: false
   import:

@@ -7,6 +7,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
+import { buildEncryptionHeaders } from '@/utils/encryption';
 import type {
   BudgetRequest,
   BudgetResponse,
@@ -27,16 +28,9 @@ export function useBudgets(period?: BudgetPeriod) {
   return useQuery<BudgetResponse[]>({
     queryKey: ['budgets', period],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const params = period ? `?period=${period}` : '';
       const response = await apiClient.get<BudgetResponse[]>(`/budgets${params}`, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -52,15 +46,8 @@ export function useBudget(budgetId: number | null) {
     queryFn: async () => {
       if (!budgetId) throw new Error('Budget ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.get<BudgetResponse>(`/budgets/${budgetId}`, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -77,17 +64,10 @@ export function useBudgetProgress(budgetId: number | null) {
     queryFn: async () => {
       if (!budgetId) throw new Error('Budget ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.get<BudgetProgressResponse>(
         `/budgets/${budgetId}/progress`,
         {
-          headers: {
-            'X-Encryption-Session': encryptionKey,
-          },
+          headers: buildEncryptionHeaders(),
         }
       );
       return response.data;
@@ -103,18 +83,11 @@ export function useBudgetSummary(period?: BudgetPeriod) {
   return useQuery<BudgetSummaryResponse>({
     queryKey: ['budgets', 'summary', period],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const params = period ? `?period=${period}` : '';
       const response = await apiClient.get<BudgetSummaryResponse>(
         `/budgets/summary${params}`,
         {
-          headers: {
-            'X-Encryption-Session': encryptionKey,
-          },
+          headers: buildEncryptionHeaders(),
         }
       );
       return response.data;
@@ -130,15 +103,8 @@ export function useCreateBudget() {
 
   return useMutation<BudgetResponse, Error, BudgetRequest>({
     mutationFn: async (budgetData: BudgetRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.post<BudgetResponse>('/budgets', budgetData, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -157,15 +123,8 @@ export function useUpdateBudget() {
 
   return useMutation<BudgetResponse, Error, { id: number; data: BudgetRequest }>({
     mutationFn: async ({ id, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.put<BudgetResponse>(`/budgets/${id}`, data, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -210,17 +169,10 @@ export function useBudgetHistory(budgetId: number | null) {
     queryFn: async () => {
       if (!budgetId) throw new Error('Budget ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.get<BudgetHistoryResponse>(
         `/budgets/${budgetId}/history`,
         {
-          headers: {
-            'X-Encryption-Session': encryptionKey,
-          },
+          headers: buildEncryptionHeaders(),
         }
       );
       return response.data;
@@ -238,18 +190,11 @@ export function useBudgetHistory(budgetId: number | null) {
 export function useAnalyzeBudgets() {
   return useMutation<BudgetSuggestion[], Error, BudgetSuggestionRequest>({
     mutationFn: async (request: BudgetSuggestionRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.post<BudgetSuggestion[]>(
         '/budgets/suggestions',
         request,
         {
-          headers: {
-            'X-Encryption-Session': encryptionKey,
-          },
+          headers: buildEncryptionHeaders(),
         }
       );
       return response.data;
@@ -268,18 +213,11 @@ export function useBulkCreateBudgets() {
 
   return useMutation<BudgetBulkCreateResponse, Error, BudgetBulkCreateRequest>({
     mutationFn: async (request: BudgetBulkCreateRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.post<BudgetBulkCreateResponse>(
         '/budgets/bulk',
         request,
         {
-          headers: {
-            'X-Encryption-Session': encryptionKey,
-          },
+          headers: buildEncryptionHeaders(),
         }
       );
       return response.data;

@@ -52,6 +52,7 @@ class FileUploadControllerIntegrationTest {
     @Autowired private DatabaseCleanupService databaseCleanupService;
 
     private String token;
+    private String encKey;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -87,6 +88,7 @@ class FileUploadControllerIntegrationTest {
                         .getContentAsString();
 
         token = objectMapper.readTree(resp).get("token").asText();
+        encKey = objectMapper.readTree(resp).get("encryptionKey").asText();
     }
 
     @Test
@@ -102,7 +104,8 @@ class FileUploadControllerIntegrationTest {
         mockMvc.perform(
                         multipart("/api/v1/import/upload")
                                 .file(file)
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.uploadId").exists())
@@ -128,7 +131,8 @@ class FileUploadControllerIntegrationTest {
         mockMvc.perform(
                         multipart("/api/v1/import/upload")
                                 .file(file)
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.uploadId").exists())
@@ -150,7 +154,8 @@ class FileUploadControllerIntegrationTest {
         mockMvc.perform(
                         multipart("/api/v1/import/upload")
                                 .file(file)
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.uploadId").exists())
@@ -171,7 +176,8 @@ class FileUploadControllerIntegrationTest {
         mockMvc.perform(
                         multipart("/api/v1/import/upload")
                                 .file(file)
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("INVALID"))
@@ -189,7 +195,8 @@ class FileUploadControllerIntegrationTest {
         mockMvc.perform(
                         multipart("/api/v1/import/upload")
                                 .file(file)
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("INVALID"))
@@ -208,7 +215,8 @@ class FileUploadControllerIntegrationTest {
         mockMvc.perform(
                         multipart("/api/v1/import/upload")
                                 .file(file)
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("INVALID"))
@@ -230,7 +238,8 @@ class FileUploadControllerIntegrationTest {
         mockMvc.perform(
                         multipart("/api/v1/import/upload")
                                 .file(file)
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("INVALID"))
@@ -250,7 +259,8 @@ class FileUploadControllerIntegrationTest {
         mockMvc.perform(
                         multipart("/api/v1/import/upload")
                                 .file(file)
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("INVALID"))
@@ -296,7 +306,8 @@ class FileUploadControllerIntegrationTest {
         // When & Then
         mockMvc.perform(
                         multipart("/api/v1/import/upload")
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -314,7 +325,8 @@ class FileUploadControllerIntegrationTest {
         mockMvc.perform(
                         multipart("/api/v1/import/upload")
                                 .file(file)
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));
@@ -333,7 +345,8 @@ class FileUploadControllerIntegrationTest {
         mockMvc.perform(
                         multipart("/api/v1/import/upload")
                                 .file(file)
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fileName").value("transactions.qfx"))
@@ -359,7 +372,8 @@ class FileUploadControllerIntegrationTest {
                 mockMvc.perform(
                                 multipart("/api/v1/import/upload")
                                         .file(file1)
-                                        .header("Authorization", "Bearer " + token))
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Session", encKey))
                         .andExpect(status().isOk())
                         .andReturn()
                         .getResponse()
@@ -373,7 +387,8 @@ class FileUploadControllerIntegrationTest {
                 mockMvc.perform(
                                 multipart("/api/v1/import/upload")
                                         .file(file2)
-                                        .header("Authorization", "Bearer " + token))
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Session", encKey))
                         .andExpect(status().isOk())
                         .andReturn()
                         .getResponse()

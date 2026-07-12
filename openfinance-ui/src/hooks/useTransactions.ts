@@ -1,12 +1,20 @@
 /**
  * Transaction management hooks
  * Task 3.2.18: Create transaction service hooks
- * 
+ *
  * Provides React Query hooks for transaction CRUD operations
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
-import type { Transaction, TransactionRequest, TransactionFilters, Category, TransferUpdateRequest, CategoryTreeNode } from '@/types/transaction';
+import type {
+  Transaction,
+  TransactionRequest,
+  TransactionFilters,
+  Category,
+  TransferUpdateRequest,
+  CategoryTreeNode,
+} from '@/types/transaction';
+import { buildEncryptionHeaders } from '@/utils/encryption';
 
 interface PaginatedResponse<T> {
   content: T[];
@@ -24,8 +32,8 @@ const normalizeTransactionTags = (tags: TransactionTags): string[] | undefined =
   if (typeof tags === 'string') {
     const parsed = tags
       .split(',')
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0);
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
     return parsed.length > 0 ? parsed : undefined;
   }
   return undefined;
@@ -64,11 +72,6 @@ export function useTransactions(filters?: TransactionFilters) {
   return useQuery<PaginatedResponse<Transaction>>({
     queryKey: ['transactions', filters],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const params = new URLSearchParams();
       if (filters?.accountId) params.append('accountId', filters.accountId.toString());
       if (filters?.type) params.append('type', filters.type);
@@ -79,8 +82,10 @@ export function useTransactions(filters?: TransactionFilters) {
       if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
       if (filters?.dateTo) params.append('dateTo', filters.dateTo);
       if (filters?.keyword) params.append('keyword', filters.keyword);
-      if (filters?.minAmount !== undefined) params.append('amountMin', filters.minAmount.toString());
-      if (filters?.maxAmount !== undefined) params.append('amountMax', filters.maxAmount.toString());
+      if (filters?.minAmount !== undefined)
+        params.append('amountMin', filters.minAmount.toString());
+      if (filters?.maxAmount !== undefined)
+        params.append('amountMax', filters.maxAmount.toString());
       if (filters?.page !== undefined) params.append('page', filters.page.toString());
       if (filters?.size) params.append('size', filters.size.toString());
       // Add sorting (default to date descending for newest first)
@@ -98,9 +103,7 @@ export function useTransactions(filters?: TransactionFilters) {
       const response = await apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
         endpoint,
         {
-          headers: {
-            'X-Encryption-Session': encryptionKey,
-          },
+          headers: buildEncryptionHeaders(),
         }
       );
       return normalizeTransactionsResponse(response.data);
@@ -117,15 +120,8 @@ export function useTransaction(transactionId: number | null) {
     queryFn: async () => {
       if (!transactionId) throw new Error('Transaction ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.get<Transaction>(`/transactions/${transactionId}`, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return normalizeTransaction(response.data);
     },
@@ -141,15 +137,8 @@ export function useCreateTransaction() {
 
   return useMutation<Transaction, Error, TransactionRequest>({
     mutationFn: async (transactionData: TransactionRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.post<Transaction>('/transactions', transactionData, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -173,15 +162,8 @@ export function useCreateTransfer() {
 
   return useMutation<Transaction, Error, TransactionRequest>({
     mutationFn: async (transferData: TransactionRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.post<Transaction>('/transactions/transfer', transferData, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -205,15 +187,8 @@ export function useUpdateTransaction() {
 
   return useMutation<Transaction, Error, { id: number; data: TransactionRequest }>({
     mutationFn: async ({ id, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.put<Transaction>(`/transactions/${id}`, data, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -239,16 +214,13 @@ export function useUpdateTransfer() {
 
   return useMutation<Transaction, Error, { transferId: string; data: TransferUpdateRequest }>({
     mutationFn: async ({ transferId, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
-      const response = await apiClient.put<Transaction>(`/transactions/transfers/${transferId}`, data, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
-      });
+      const response = await apiClient.put<Transaction>(
+        `/transactions/transfers/${transferId}`,
+        data,
+        {
+          headers: buildEncryptionHeaders(),
+        }
+      );
       return response.data;
     },
     onSuccess: () => {
@@ -271,15 +243,8 @@ export function useDeleteTransaction() {
 
   return useMutation<void, Error, number>({
     mutationFn: async (transactionId: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       await apiClient.delete(`/transactions/${transactionId}`, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
     },
     onSuccess: () => {
@@ -300,16 +265,9 @@ export function useCategories(type?: 'INCOME' | 'EXPENSE') {
   return useQuery<Category[]>({
     queryKey: ['categories', type],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const params = type ? `?type=${type}` : '';
       const response = await apiClient.get<Category[]>(`/categories${params}`, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -323,16 +281,9 @@ export function useCreateCategory() {
   const queryClient = useQueryClient();
 
   return useMutation<Category, Error, Partial<Category>>({
-    mutationFn: async (categoryData) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
+    mutationFn: async categoryData => {
       const response = await apiClient.post<Category>('/categories', categoryData, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -349,15 +300,8 @@ export function useCategoryTree() {
   return useQuery<CategoryTreeNode[]>({
     queryKey: ['categories', 'tree'],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.get<CategoryTreeNode[]>('/categories/tree', {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -373,15 +317,8 @@ export function useDeleteCategory() {
 
   return useMutation<void, Error, number>({
     mutationFn: async (categoryId: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       await apiClient.delete(`/categories/${categoryId}`, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
     },
     onSuccess: () => {
@@ -398,15 +335,8 @@ export function useUpdateCategory() {
 
   return useMutation<Category, Error, { id: number; data: Partial<Category> }>({
     mutationFn: async ({ id, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.put<Category>(`/categories/${id}`, data, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },

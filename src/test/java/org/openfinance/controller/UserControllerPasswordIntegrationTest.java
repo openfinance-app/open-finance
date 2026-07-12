@@ -46,6 +46,7 @@ class UserControllerPasswordIntegrationTest {
     @Autowired private DatabaseCleanupService databaseCleanupService;
 
     private String jwtToken;
+    private String encryptionSession;
     private UserResponse testUser;
     private static final String TEST_PASSWORD = "TestPassword123!";
     private static final String TEST_MASTER_PASSWORD = "MasterPassword456!";
@@ -87,6 +88,7 @@ class UserControllerPasswordIntegrationTest {
 
         // Extract token from response
         jwtToken = objectMapper.readTree(loginResponse).get("token").asText();
+        encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
     }
 
     @Test
@@ -99,6 +101,7 @@ class UserControllerPasswordIntegrationTest {
         mockMvc.perform(
                         put("/api/v1/users/me/password")
                                 .header("Authorization", "Bearer " + jwtToken)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -116,6 +119,7 @@ class UserControllerPasswordIntegrationTest {
         mockMvc.perform(
                         put("/api/v1/users/me/password")
                                 .header("Authorization", "Bearer " + jwtToken)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -132,6 +136,7 @@ class UserControllerPasswordIntegrationTest {
         mockMvc.perform(
                         put("/api/v1/users/me/password")
                                 .header("Authorization", "Bearer " + jwtToken)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -176,6 +181,7 @@ class UserControllerPasswordIntegrationTest {
         mockMvc.perform(
                         put("/api/v1/users/me/password")
                                 .header("Authorization", "Bearer " + jwtToken)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -191,6 +197,7 @@ class UserControllerPasswordIntegrationTest {
         mockMvc.perform(
                         put("/api/v1/users/me/password")
                                 .header("Authorization", "Bearer " + jwtToken)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -207,6 +214,7 @@ class UserControllerPasswordIntegrationTest {
         mockMvc.perform(
                         put("/api/v1/users/me/password")
                                 .header("Authorization", "Bearer " + jwtToken)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(firstChange)))
                 .andExpect(status().isOk());
@@ -219,6 +227,7 @@ class UserControllerPasswordIntegrationTest {
         mockMvc.perform(
                         put("/api/v1/users/me/password")
                                 .header("Authorization", "Bearer " + jwtToken)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(secondChange)))
                 .andExpect(status().isOk())

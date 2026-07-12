@@ -29,11 +29,7 @@ public class LoginRequest {
     @NotBlank(message = "{login.password.required}")
     private String password;
 
-    /**
-     * Master password used to derive encryption key for user data. Required field that cannot be
-     * blank.
-     */
-    @NotBlank(message = "{login.master.password.required}")
+    /** Master password used to derive encryption key when application encryption is enabled. */
     private String masterPassword;
 
     /**

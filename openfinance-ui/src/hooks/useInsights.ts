@@ -1,12 +1,13 @@
 /**
  * Insight service hooks
  * TASK-11.4.5: Display AI-Powered Insights in Dashboard
- * 
+ *
  * Provides React Query hooks for insight operations
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import type { Insight } from '@/types/insight';
+import { buildEncryptionHeaders } from '@/utils/encryption';
 
 /**
  * Fetch top N insights for dashboard display
@@ -16,15 +17,8 @@ export function useTopInsights(limit: number = 3) {
   return useQuery<Insight[]>({
     queryKey: ['insights', 'top', limit],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-      
       const response = await apiClient.get<Insight[]>(`/insights/top/${limit}`, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -41,15 +35,8 @@ export function useInsights() {
   return useQuery<Insight[]>({
     queryKey: ['insights'],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-      
       const response = await apiClient.get<Insight[]>('/insights', {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -64,21 +51,14 @@ export function useInsights() {
  */
 export function useGenerateInsights() {
   const queryClient = useQueryClient();
-  
+
   return useMutation<Insight[], Error, void>({
     mutationFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-      
       const response = await apiClient.post<Insight[]>(
         '/insights/generate',
         {},
         {
-          headers: {
-            'X-Encryption-Session': encryptionKey,
-          },
+          headers: buildEncryptionHeaders(),
         }
       );
       return response.data;
@@ -96,7 +76,7 @@ export function useGenerateInsights() {
  */
 export function useDismissInsight() {
   const queryClient = useQueryClient();
-  
+
   return useMutation<void, Error, number>({
     mutationFn: async (insightId: number) => {
       await apiClient.post(`/insights/${insightId}/dismiss`);

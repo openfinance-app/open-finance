@@ -8,6 +8,7 @@
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import type { TransactionSplitResponse } from '@/types/transaction';
+import { buildEncryptionHeaders } from '@/utils/encryption';
 
 /**
  * React Query hook that retrieves the split lines for a specific transaction.
@@ -22,17 +23,10 @@ export function useSplitTransactions(transactionId: number | null) {
     queryFn: async () => {
       if (transactionId === null) throw new Error('Transaction ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.get<TransactionSplitResponse[]>(
         `/transactions/${transactionId}/splits`,
         {
-          headers: {
-            'X-Encryption-Session': encryptionKey,
-          },
+          headers: buildEncryptionHeaders(),
         },
       );
 

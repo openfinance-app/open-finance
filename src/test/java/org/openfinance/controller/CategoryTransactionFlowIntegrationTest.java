@@ -189,6 +189,7 @@ class CategoryTransactionFlowIntegrationTest {
                 String resp = mockMvc.perform(
                                 post("/api/v1/payees")
                                                 .header("Authorization", "Bearer " + token)
+                                                .header("X-Encryption-Session", encKey)
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content(objectMapper.writeValueAsString(req)))
                                 .andExpect(status().isCreated())

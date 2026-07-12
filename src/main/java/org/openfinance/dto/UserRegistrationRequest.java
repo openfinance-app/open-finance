@@ -12,8 +12,8 @@ import org.openfinance.validation.ValidPassword;
 /**
  * DTO for user registration request.
  *
- * <p>Contains credentials and personal information needed to create a new user account. All fields
- * are validated using Jakarta Bean Validation annotations.
+ * <p>Contains credentials and personal information needed to create a new user account. Core login
+ * fields are validated using Jakarta Bean Validation annotations.
  *
  * <p><strong>Password Security:</strong>
  *
@@ -63,11 +63,9 @@ public class UserRegistrationRequest {
     @Builder.Default private boolean skipSeeding = false;
 
     /**
-     * Master password for deriving encryption keys. Minimum 8 characters required for security.
-     * Used with PBKDF2 to derive AES-256 key, never stored in database.
+     * Master password for deriving encryption keys. Required only when application encryption is
+     * enabled. Used with PBKDF2 to derive AES-256 key, never stored in database.
      */
-    @NotBlank(message = "{user.master.password.required}")
-    @Size(min = 8, message = "{user.master.password.min}")
     private String masterPassword;
 
     /**

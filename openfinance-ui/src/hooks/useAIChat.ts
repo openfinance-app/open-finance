@@ -1,16 +1,17 @@
 /**
  * AI Chat Hooks
  * Task 11.3.7: Create useAIChat hook
- * 
+ *
  * Provides React Query hooks for AI assistant interactions:
  * - Send chat messages
  * - Stream responses (SSE)
  * - Manage conversations
  * - Check Ollama health
- * 
+ *
  * @since Sprint 11 - AI Assistant Integration
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { resolveEncryptionEnabled, useSecurityConfig } from '@/hooks/useSecurityConfig';
 import apiClient from '@/services/apiClient';
 import type {
   ChatRequest,
@@ -19,6 +20,7 @@ import type {
   ConversationDetail,
   OllamaHealthResponse,
 } from '@/types/ai';
+import { buildEncryptionHeaders, getEncryptionKey } from '@/utils/encryption';
 
 /**
  * Check if Ollama service is available
@@ -40,29 +42,24 @@ export function useOllamaHealth() {
  */
 export function useSendMessage() {
   const queryClient = useQueryClient();
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
 
   return useMutation<ChatResponse, Error, ChatRequest>({
     mutationFn: async (request: ChatRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.post<ChatResponse>('/ai/chat', request, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(encryptionEnabled),
       });
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       // Invalidate conversations list to show new/updated conversation
       queryClient.invalidateQueries({ queryKey: ['ai', 'conversations'] });
 
       // Update specific conversation cache if continuing existing conversation
       if (data.conversation_id) {
         queryClient.invalidateQueries({
-          queryKey: ['ai', 'conversations', data.conversation_id]
+          queryKey: ['ai', 'conversations', data.conversation_id],
         });
       }
     },
@@ -71,10 +68,10 @@ export function useSendMessage() {
 
 /**
  * Stream AI response using Server-Sent Events (SSE)
- * 
+ *
  * Note: This is a manual implementation since React Query doesn't directly
  * support SSE streaming. Use this for real-time response display.
- * 
+ *
  * @param onChunk Callback for each response chunk
  * @param onComplete Callback when stream completes
  * @param onError Callback for errors
@@ -86,11 +83,12 @@ export function useStreamingChat(
   onError: (error: Error) => void
 ) {
   const queryClient = useQueryClient();
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
   let eventSource: EventSource | null = null;
 
   const sendStreamingMessage = async (request: ChatRequest) => {
-    const encryptionKey = sessionStorage.getItem('encryption_session');
-    if (!encryptionKey) {
+    if (encryptionEnabled && !getEncryptionKey()) {
       onError(new Error('Encryption key not found'));
       return;
     }
@@ -118,11 +116,11 @@ export function useStreamingChat(
     // For now, we'll use the standard chat endpoint and simulate streaming on the client
     // TODO: Implement proper SSE with authentication headers
 
-    eventSource.onmessage = (event) => {
+    eventSource.onmessage = event => {
       onChunk(event.data);
     };
 
-    eventSource.onerror = (error) => {
+    eventSource.onerror = error => {
       console.error('SSE Error:', error);
       eventSource?.close();
       onError(new Error('Streaming connection failed'));
@@ -202,7 +200,7 @@ export function useDeleteConversation() {
 
 /**
  * Combined hook for chat workflow
- * 
+ *
  * Provides state management for the entire chat flow:
  * - Send messages
  * - Track conversation

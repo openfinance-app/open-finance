@@ -225,7 +225,7 @@ class LiabilityControllerIntegrationTest {
         }
 
         @Test
-        @DisplayName("POST /api/v1/liabilities - Should fail without encryption key")
+        @DisplayName("POST /api/v1/liabilities - Should fail without encryption session")
         void shouldFailToCreateLiability_WhenNoEncryptionKey() throws Exception {
                 // Given
                 LiabilityRequest request = createValidRequest();
@@ -236,7 +236,7 @@ class LiabilityControllerIntegrationTest {
                                                 .header("Authorization", "Bearer " + token)
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content(objectMapper.writeValueAsString(request)))
-                                .andExpect(status().isCreated());
+                                .andExpect(status().isUnauthorized());
         }
 
         @Test

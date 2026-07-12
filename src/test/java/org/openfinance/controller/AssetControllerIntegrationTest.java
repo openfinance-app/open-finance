@@ -209,7 +209,7 @@ class AssetControllerIntegrationTest {
         }
 
         @Test
-        @DisplayName("POST /api/v1/assets - fail without encryption key")
+        @DisplayName("POST /api/v1/assets - fail without encryption session")
         void shouldReturn400WhenMissingEncryptionKey() throws Exception {
                 AssetRequest req = AssetRequest.builder()
                                 .accountId(accountId)
@@ -228,9 +228,9 @@ class AssetControllerIntegrationTest {
                                                 .header("Authorization", "Bearer " + token)
                                                 // Missing X-Encryption-Session header
                                                 .contentType(MediaType.APPLICATION_JSON)
-                                                .content(objectMapper.writeValueAsString(req)))
+                                .content(objectMapper.writeValueAsString(req)))
                                 .andDo(print())
-                                .andExpect(status().isInternalServerError());
+                                .andExpect(status().isUnauthorized());
         }
 
         @Test

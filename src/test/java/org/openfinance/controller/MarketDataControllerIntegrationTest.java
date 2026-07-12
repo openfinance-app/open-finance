@@ -196,6 +196,7 @@ class MarketDataControllerIntegrationTest {
                 mockMvc.perform(
                                 get("/api/v1/market/quote")
                                                 .header("Authorization", "Bearer " + token)
+                                                .header("X-Encryption-Session", encKey)
                                                 .param("symbol", "AAPL"))
                                 .andDo(print())
                                 .andExpect(status().isOk())
@@ -258,6 +259,7 @@ class MarketDataControllerIntegrationTest {
                 mockMvc.perform(
                                 get("/api/v1/market/search")
                                                 .header("Authorization", "Bearer " + token)
+                                                .header("X-Encryption-Session", encKey)
                                                 .param("q", "apple"))
                                 .andDo(print())
                                 .andExpect(status().isOk())
@@ -313,6 +315,7 @@ class MarketDataControllerIntegrationTest {
                 mockMvc.perform(
                                 get("/api/v1/market/history")
                                                 .header("Authorization", "Bearer " + token)
+                                                .header("X-Encryption-Session", encKey)
                                                 .param("symbol", "AAPL")
                                                 .param("startDate", "2024-01-01")
                                                 .param("endDate", "2024-01-31"))
@@ -346,6 +349,7 @@ class MarketDataControllerIntegrationTest {
                 mockMvc.perform(
                                 get("/api/v1/market/history")
                                                 .header("Authorization", "Bearer " + token)
+                                                .header("X-Encryption-Session", encKey)
                                                 .param("symbol", "AAPL")
                                                 .param("startDate", "2024-02-01")
                                                 .param("endDate", "2024-01-01"))
@@ -386,7 +390,8 @@ class MarketDataControllerIntegrationTest {
                 // When/Then: Update non-existent asset
                 mockMvc.perform(
                                 post("/api/v1/market/assets/{id}/update-price", 999L)
-                                                .header("Authorization", "Bearer " + token))
+                                                .header("Authorization", "Bearer " + token)
+                                                .header("X-Encryption-Session", encKey))
                                 .andExpect(status().isBadRequest());
         }
 

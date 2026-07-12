@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.entity.Account;
@@ -78,12 +79,16 @@ class AccountServiceTest {
         @Mock
         private SearchTokenService searchTokenService;
 
+        @Mock
+        private EncryptionProperties encryptionProperties;
+
         @InjectMocks
         private AccountService accountService;
 
         @BeforeEach
         void setUp() {
                 EncryptionContext.setKey(new SecretKeySpec(new byte[32], "AES"));
+                lenient().when(encryptionProperties.isEnabled()).thenReturn(true);
         }
 
         @AfterEach
@@ -142,6 +147,57 @@ class AccountServiceTest {
                 assertThat(created).isNotNull();
                 assertThat(created.getId()).isEqualTo(10L);
                 assertThat(created.getName()).isEqualTo("My Account");
+                verify(accountRepository).save(any(Account.class));
+        }
+
+        @Test
+        @DisplayName("Should create account without encryption key when encryption is disabled")
+        void shouldCreateAccountWithoutEncryptionKeyWhenEncryptionDisabled() {
+                EncryptionContext.clear();
+                when(encryptionProperties.isEnabled()).thenReturn(false);
+
+                AccountRequest req = AccountRequest.builder()
+                                .name("Cash Wallet")
+                                .type(AccountType.CASH)
+                                .currency("USD")
+                                .initialBalance(new BigDecimal("25.00"))
+                                .description("Plaintext")
+                                .build();
+
+                Account mapped = Account.builder()
+                                .currency("USD")
+                                .type(AccountType.CASH)
+                                .balance(new BigDecimal("25.00"))
+                                .isActive(true)
+                                .build();
+
+                Account saved = Account.builder()
+                                .id(12L)
+                                .userId(1L)
+                                .currency("USD")
+                                .type(AccountType.CASH)
+                                .balance(new BigDecimal("25.00"))
+                                .name("Cash Wallet")
+                                .description("Plaintext")
+                                .isActive(true)
+                                .build();
+
+                AccountResponse response = AccountResponse.builder()
+                                .id(12L)
+                                .type(AccountType.CASH)
+                                .currency("USD")
+                                .balance(new BigDecimal("25.00"))
+                                .isActive(true)
+                                .build();
+
+                when(accountMapper.toEntity(req)).thenReturn(mapped);
+                when(accountRepository.save(any(Account.class))).thenReturn(saved);
+                when(accountMapper.toResponse(saved)).thenReturn(response);
+
+                AccountResponse created = accountService.createAccount(1L, req);
+
+                assertThat(created.getName()).isEqualTo("Cash Wallet");
+                assertThat(created.getDescription()).isEqualTo("Plaintext");
                 verify(accountRepository).save(any(Account.class));
         }
 

@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.stream.Stream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -20,9 +21,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.entity.Attachment;
 import org.openfinance.entity.EntityType;
 import org.openfinance.exception.AttachmentNotFoundException;
@@ -65,8 +66,9 @@ class AttachmentServiceTest {
         @Mock
         private OperationHistoryService operationHistoryService;
 
-        @InjectMocks
         private AttachmentService attachmentService;
+
+        private EncryptionProperties encryptionProperties;
 
         private MultipartFile testFile;
         private Attachment testAttachment;
@@ -79,6 +81,13 @@ class AttachmentServiceTest {
 
         @BeforeEach
         void setUp() throws IOException {
+                encryptionProperties = new EncryptionProperties();
+                encryptionProperties.setEnabled(true);
+                attachmentService = new AttachmentService(
+                                attachmentRepository,
+                                encryptionService,
+                                encryptionProperties);
+
                 // Set encryption context for tests
                 EncryptionContext.setKey(new SecretKeySpec(new byte[32], "AES"));
 
@@ -167,6 +176,38 @@ class AttachmentServiceTest {
                                                                 }
                                                         });
                 }
+        }
+
+        @Test
+        @DisplayName("Should store attachment bytes without encryption when encryption is disabled")
+        void shouldStoreAttachmentBytesWithoutEncryptionWhenEncryptionDisabled() throws Exception {
+                // Given
+                encryptionProperties.setEnabled(false);
+                when(attachmentRepository.save(any(Attachment.class))).thenReturn(testAttachment);
+
+                // When
+                Attachment result = attachmentService.uploadAttachment(
+                                testFile,
+                                TEST_USER_ID,
+                                EntityType.TRANSACTION,
+                                TEST_ENTITY_ID,
+                                "Test receipt");
+
+                // Then
+                assertThat(result).isNotNull();
+                verify(encryptionService, never()).encryptBytes(any(byte[].class), any(SecretKey.class));
+                verify(attachmentRepository).save(any(Attachment.class));
+
+                Path userDirectory = Paths.get(TEST_STORAGE_PATH, TEST_USER_ID.toString(), "TRANSACTION");
+                assertThat(Files.exists(userDirectory)).isTrue();
+                try (Stream<Path> files = Files.list(userDirectory)) {
+                        Path storedFile = files.findFirst().orElseThrow();
+                        assertThat(Files.readAllBytes(storedFile)).isEqualTo(testFile.getBytes());
+
+                        Files.deleteIfExists(storedFile);
+                }
+                Files.deleteIfExists(userDirectory);
+                Files.deleteIfExists(userDirectory.getParent());
         }
 
         @Test
@@ -453,6 +494,31 @@ class AttachmentServiceTest {
                 verify(encryptionService).decryptBytes(any(byte[].class), any());
 
                 // Cleanup
+                Files.deleteIfExists(testFilePath);
+                Files.deleteIfExists(testFilePath.getParent());
+                Files.deleteIfExists(testFilePath.getParent().getParent());
+        }
+
+        @Test
+        @DisplayName("Should return stored attachment bytes without decryption when encryption is disabled")
+        void shouldReturnStoredAttachmentBytesWithoutDecryptionWhenEncryptionDisabled() throws Exception {
+                // Given
+                encryptionProperties.setEnabled(false);
+                Path testFilePath = Paths.get(testAttachment.getFilePath());
+                Files.createDirectories(testFilePath.getParent());
+                byte[] storedContent = "plain-file-content".getBytes();
+                Files.write(testFilePath, storedContent);
+                when(attachmentRepository.findByIdAndUserId(1L, TEST_USER_ID))
+                                .thenReturn(Optional.of(testAttachment));
+
+                // When
+                Resource result = attachmentService.downloadAttachment(1L, TEST_USER_ID);
+
+                // Then
+                assertThat(result).isNotNull();
+                assertThat(result.getInputStream().readAllBytes()).isEqualTo(storedContent);
+                verify(encryptionService, never()).decryptBytes(any(byte[].class), any());
+
                 Files.deleteIfExists(testFilePath);
                 Files.deleteIfExists(testFilePath.getParent());
                 Files.deleteIfExists(testFilePath.getParent().getParent());

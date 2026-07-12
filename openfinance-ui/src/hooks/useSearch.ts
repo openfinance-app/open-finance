@@ -5,6 +5,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState, useCallback } from 'react';
 import apiClient from '@/services/apiClient';
+import { buildEncryptionHeaders } from '@/utils/encryption';
 import type {
   GlobalSearchResponse,
   AdvancedSearchRequest,
@@ -26,16 +27,9 @@ export const useGlobalSearch = (query: string, limit: number = 50, enabled: bool
   return useQuery({
     queryKey: SEARCH_KEYS.global(query),
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.get<GlobalSearchResponse>('/search', {
         params: { q: query, limit },
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
 
       return response.data;
@@ -52,18 +46,11 @@ export const useGlobalSearch = (query: string, limit: number = 50, enabled: bool
 export const useAdvancedSearch = () => {
   return useMutation({
     mutationFn: async (request: AdvancedSearchRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.post<GlobalSearchResponse>(
         '/search/advanced',
         request,
         {
-          headers: {
-            'X-Encryption-Session': encryptionKey,
-          },
+          headers: buildEncryptionHeaders(),
         }
       );
 

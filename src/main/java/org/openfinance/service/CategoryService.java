@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.dto.CategoryRequest;
 import org.openfinance.dto.CategoryResponse;
 import org.openfinance.dto.CategoryTreeNode;
@@ -71,6 +72,7 @@ public class CategoryService {
     private final EncryptionService encryptionService;
     private final MessageSource messageSource;
     private final OperationHistoryService operationHistoryService;
+    private final EncryptionProperties encryptionProperties;
 
     /**
      * Creates a new category for the specified user.
@@ -356,7 +358,7 @@ public class CategoryService {
                 .findByIdAndUserId(categoryId, userId)
                 .orElseThrow(() -> new CategoryNotFoundException(categoryId));
 
-        if (EncryptionContext.getKey() == null && !category.getIsSystem()) {
+        if (!canReadUserCategoryFields() && !category.getIsSystem()) {
             throw new IllegalArgumentException("Encryption key required for user categories");
         }
 
@@ -403,7 +405,7 @@ public class CategoryService {
 
         List<Category> categories = categoryRepository.findByUserId(userId);
 
-        if (EncryptionContext.getKey() == null) {
+        if (!canReadUserCategoryFields()) {
             log.info(
                     "Encryption key missing for user {}; returning only system categories", userId);
             return categories.stream()
@@ -465,7 +467,7 @@ public class CategoryService {
 
         List<Category> categories = categoryRepository.findByUserIdAndType(userId, type);
 
-        if (EncryptionContext.getKey() == null) {
+        if (!canReadUserCategoryFields()) {
             return categories.stream()
                     .filter(Category::getIsSystem)
                     .map(category -> toResponseWithDecryption(category, locale))
@@ -576,7 +578,7 @@ public class CategoryService {
         // Fetch all categories for the user
         final List<Category> categoriesForTree;
 
-        if (EncryptionContext.getKey() == null) {
+        if (!canReadUserCategoryFields()) {
             categoriesForTree = categoryRepository.findByUserId(userId).stream()
                     .filter(Category::getIsSystem)
                     .collect(Collectors.toList());
@@ -826,5 +828,9 @@ public class CategoryService {
         response.setSubcategoryCount(subcategoryCount);
 
         return response;
+    }
+
+    private boolean canReadUserCategoryFields() {
+        return !encryptionProperties.isEnabled() || EncryptionContext.getKey() != null;
     }
 }

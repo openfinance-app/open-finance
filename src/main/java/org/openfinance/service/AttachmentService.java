@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.entity.Attachment;
 import org.openfinance.entity.EntityType;
 import org.openfinance.exception.AttachmentNotFoundException;
@@ -80,6 +81,7 @@ public class AttachmentService {
 
     private final AttachmentRepository attachmentRepository;
     private final EncryptionService encryptionService;
+    private final EncryptionProperties encryptionProperties;
 
     @Value("${application.attachment.storage-path:./attachments}")
     private String storagePath;
@@ -148,12 +150,15 @@ public class AttachmentService {
 
             Path filePath = userDirectory.resolve(uniqueFileName);
 
-            // Encrypt file contents
+            // Store plaintext only when application-layer encryption is explicitly disabled.
             byte[] fileBytes = file.getBytes();
-            byte[] encryptedBytes = encryptionService.encryptBytes(fileBytes, EncryptionContext.getKey());
+            byte[] storedBytes =
+                    encryptionProperties.isEnabled()
+                            ? encryptionService.encryptBytes(fileBytes, EncryptionContext.getKey())
+                            : fileBytes;
 
-            // Write encrypted file to disk
-            Files.write(filePath, encryptedBytes, StandardOpenOption.CREATE_NEW);
+            // Write file bytes to disk
+            Files.write(filePath, storedBytes, StandardOpenOption.CREATE_NEW);
 
             // Create attachment metadata
             Attachment attachment = Attachment.builder()
@@ -228,8 +233,11 @@ public class AttachmentService {
 
             byte[] encryptedBytes = Files.readAllBytes(filePath);
 
-            // Decrypt file contents
-            byte[] decryptedBytes = encryptionService.decryptBytes(encryptedBytes, EncryptionContext.getKey());
+            // Return plaintext bytes directly when encryption is explicitly disabled.
+            byte[] decryptedBytes =
+                    encryptionProperties.isEnabled()
+                            ? encryptionService.decryptBytes(encryptedBytes, EncryptionContext.getKey())
+                            : encryptedBytes;
 
             log.info(
                     "Successfully downloaded attachment {} - {} bytes",

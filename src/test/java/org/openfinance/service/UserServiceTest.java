@@ -15,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.dto.UpdateProfileRequest;
 import org.openfinance.dto.UserRegistrationRequest;
 import org.openfinance.dto.UserResponse;
@@ -46,7 +47,13 @@ class UserServiceTest {
 
     @Mock private KeyManagementService keyManagementService;
 
+    @Mock private EncryptionProperties encryptionProperties;
+
     @Mock private UserMapper userMapper;
+
+    @Mock private CategorySeeder categorySeeder;
+
+    @Mock private PayeeSeeder payeeSeeder;
 
     @Mock private OperationHistoryService operationHistoryService;
 
@@ -58,6 +65,8 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(encryptionProperties.isEnabled()).thenReturn(true);
+
         // Valid registration request
         validRequest =
                 UserRegistrationRequest.builder()
@@ -117,6 +126,70 @@ class UserServiceTest {
         verify(keyManagementService).generateSalt();
         verify(userRepository).save(any(User.class));
         verify(userMapper).toResponse(savedUser);
+    }
+
+    @Test
+    @DisplayName("Should store placeholder salt when encryption disabled")
+    void shouldStorePlaceholderSaltWhenEncryptionDisabled() {
+        // Arrange
+        when(encryptionProperties.isEnabled()).thenReturn(false);
+        validRequest.setMasterPassword(null);
+
+        when(userRepository.existsByUsername(validRequest.getUsername())).thenReturn(false);
+        when(userRepository.existsByEmail(validRequest.getEmail())).thenReturn(false);
+        when(passwordService.hashPassword(validRequest.getPassword()))
+                .thenReturn("$2a$10$hashedPasswordValue");
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(userMapper.toResponse(savedUser)).thenReturn(expectedResponse);
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+
+        // Act
+        userService.registerUser(validRequest);
+
+        // Assert
+        verify(keyManagementService, never()).generateSalt();
+        verify(userRepository).save(userCaptor.capture());
+        User capturedUser = userCaptor.getValue();
+
+        assertThat(capturedUser.getMasterPasswordSalt()).isEqualTo("ENCRYPTION_DISABLED");
+    }
+
+    @Test
+    @DisplayName("Should reject missing master password when encryption enabled")
+    void shouldRejectMissingMasterPasswordWhenEncryptionEnabled() {
+        // Arrange
+        validRequest.setMasterPassword("   ");
+
+        when(userRepository.existsByUsername(validRequest.getUsername())).thenReturn(false);
+        when(userRepository.existsByEmail(validRequest.getEmail())).thenReturn(false);
+
+        // Act & Assert
+        assertThatThrownBy(() -> userService.registerUser(validRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Master password is required when encryption is enabled");
+
+        verify(passwordService, never()).hashPassword(anyString());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should reject too-short master password when encryption enabled")
+    void shouldRejectTooShortMasterPasswordWhenEncryptionEnabled() {
+        // Arrange
+        validRequest.setMasterPassword("short");
+
+        when(userRepository.existsByUsername(validRequest.getUsername())).thenReturn(false);
+        when(userRepository.existsByEmail(validRequest.getEmail())).thenReturn(false);
+
+        // Act & Assert
+        assertThatThrownBy(() -> userService.registerUser(validRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(
+                        "Master password must be at least 8 characters when encryption is enabled");
+
+        verify(passwordService, never()).hashPassword(anyString());
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test

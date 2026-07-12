@@ -52,6 +52,7 @@ public class RssControllerIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
 
     private String validToken;
+    private String encryptionSession;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -85,6 +86,7 @@ public class RssControllerIntegrationTest {
                         .getContentAsString();
 
         validToken = objectMapper.readTree(resp).get("token").asText();
+        encryptionSession = objectMapper.readTree(resp).get("encryptionKey").asText();
     }
 
     @AfterEach
@@ -108,6 +110,7 @@ public class RssControllerIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/rss/finance")
                                 .header("Authorization", "Bearer " + validToken)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .header("Accept-Language", "fr")
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

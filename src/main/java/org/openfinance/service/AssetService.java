@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.dto.AssetRequest;
 import org.openfinance.dto.AssetResponse;
 import org.openfinance.dto.AssetSearchCriteria;
@@ -92,6 +93,7 @@ public class AssetService {
     private final NetWorthRepository netWorthRepository;
     private final OperationHistoryService operationHistoryService;
     private final SearchTokenService searchTokenService;
+    private final EncryptionProperties encryptionProperties;
 
     /**
      * Creates a new asset for the specified user.
@@ -853,7 +855,7 @@ public class AssetService {
         AssetResponse response = assetMapper.toResponse(asset);
 
         // Standardize: if no key, return response with encrypted/null fields
-        if (EncryptionContext.getKey() == null) {
+        if (!canReadSensitiveFields()) {
             return response;
         }
 
@@ -1046,5 +1048,9 @@ public class AssetService {
         } catch (Exception e) {
             log.warn("Failed to index asset {} search tokens: {}", asset.getId(), e.getMessage());
         }
+    }
+
+    private boolean canReadSensitiveFields() {
+        return !encryptionProperties.isEnabled() || EncryptionContext.getKey() != null;
     }
 }

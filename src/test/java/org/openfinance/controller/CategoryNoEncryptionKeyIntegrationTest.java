@@ -27,8 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Integration tests to verify behavior when X-Encryption-Session header is missing. Verifies that
- * system categories are still accessible while user categories are protected.
+ * Integration tests to verify fail-closed behavior when X-Encryption-Session header is missing.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -81,7 +80,7 @@ class CategoryNoEncryptionKeyIntegrationTest {
     }
 
     @Test
-    void shouldReturnOnlySystemCategoriesWhenHeaderMissing() throws Exception {
+    void shouldRejectCategoriesWhenHeaderMissing() throws Exception {
         // Create a user category first (with key)
         CategoryRequest userCat =
                 CategoryRequest.builder().name("Private Stuff").type(CategoryType.EXPENSE).build();
@@ -96,24 +95,19 @@ class CategoryNoEncryptionKeyIntegrationTest {
 
         // Now fetch without X-Encryption-Session
         mockMvc.perform(get("/api/v1/categories").header("Authorization", "Bearer " + authToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(greaterThan(0))))
-                .andExpect(jsonPath("$[*].isSystem", everyItem(is(true))))
-                .andExpect(jsonPath("$[*].name", not(hasItem("Private Stuff"))));
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void shouldReturnOnlySystemTreeWhenHeaderMissing() throws Exception {
+    void shouldRejectCategoryTreeWhenHeaderMissing() throws Exception {
         mockMvc.perform(
                         get("/api/v1/categories/tree")
                                 .header("Authorization", "Bearer " + authToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(greaterThan(0))))
-                .andExpect(jsonPath("$[*].isSystem", everyItem(is(true))));
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void shouldReturn400WhenGettingUserCategoryWithoutHeader() throws Exception {
+    void shouldReturn401WhenGettingUserCategoryWithoutHeader() throws Exception {
         // Create user category
         CategoryRequest userCat =
                 CategoryRequest.builder().name("Hidden").type(CategoryType.EXPENSE).build();
@@ -136,13 +130,11 @@ class CategoryNoEncryptionKeyIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/categories/" + id)
                                 .header("Authorization", "Bearer " + authToken))
-                .andExpect(status().isBadRequest())
-                .andExpect(
-                        jsonPath("$.message").value("Encryption key required for user categories"));
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void shouldReturnSystemCategoryWithoutHeader() throws Exception {
+    void shouldRejectSystemCategoryWithoutHeader() throws Exception {
         // Find a system category ID first
         String listResp =
                 mockMvc.perform(
@@ -160,8 +152,6 @@ class CategoryNoEncryptionKeyIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/categories/" + systemId)
                                 .header("Authorization", "Bearer " + authToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(systemId))
-                .andExpect(jsonPath("$.isSystem").value(true));
+                .andExpect(status().isUnauthorized());
     }
 }

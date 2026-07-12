@@ -6,6 +6,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
+import { buildEncryptionHeaders } from '@/utils/encryption';
 import type {
   Attachment,
   AttachmentUploadRequest,
@@ -74,11 +75,6 @@ export function useUploadAttachment() {
 
   const mutation = useMutation({
     mutationFn: async (request: AttachmentUploadRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found. Please log in again.');
-      }
-
       const formData = new FormData();
       formData.append('file', request.file);
       formData.append('entityType', request.entityType);
@@ -90,7 +86,7 @@ export function useUploadAttachment() {
       const response = await apiClient.post<Attachment>('/attachments', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'X-Encryption-Session': encryptionKey,
+          ...buildEncryptionHeaders(),
         },
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
@@ -143,16 +139,9 @@ export function useDownloadAttachment() {
     try {
       setIsDownloading(true);
 
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found. Please log in again.');
-      }
-
       const response = await apiClient.get(`/attachments/${attachmentId}/download`, {
         responseType: 'blob',
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
 
       // Create blob URL and trigger download
@@ -187,16 +176,9 @@ export function useDownloadAttachment() {
 export function useFetchAttachmentBlob() {
   return useMutation({
     mutationFn: async (attachmentId: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found. Please log in again.');
-      }
-
       const response = await apiClient.get(`/attachments/${attachmentId}/download`, {
         responseType: 'blob',
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
 
       return new Blob([response.data], { type: response.headers['content-type'] });

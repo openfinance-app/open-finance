@@ -1,10 +1,17 @@
 /**
  * Import hooks
  * Task 7.4.13: Create import service hooks
- * 
+ *
  * Provides React Query hooks for import operations
  */
-import { useMutation, useQuery, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseQueryResult,
+  type UseMutationResult,
+} from '@tanstack/react-query';
+import { resolveEncryptionEnabled, useSecurityConfig } from '@/hooks/useSecurityConfig';
 import { importService } from '@/services/importService';
 import type {
   ImportProcessRequest,
@@ -21,7 +28,7 @@ const TERMINAL_STATUSES: ImportSessionStatus[] = ['COMPLETED', 'FAILED', 'CANCEL
 
 /**
  * Start import from uploaded file
- * 
+ *
  * @example
  * const startImport = useStartImport();
  * startImport.mutate({ uploadId: 'abc123', accountId: 1 });
@@ -32,10 +39,12 @@ export function useStartImport(): UseMutationResult<
   ImportProcessRequest
 > {
   const queryClient = useQueryClient();
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
 
   return useMutation<ImportSessionResponse, Error, ImportProcessRequest>({
-    mutationFn: importService.startImport,
-    onSuccess: (data) => {
+    mutationFn: data => importService.startImport(data, encryptionEnabled),
+    onSuccess: data => {
       // Cache the session data
       queryClient.setQueryData(['import-sessions', data.id], data);
       queryClient.invalidateQueries({ queryKey: ['import-sessions'] });
@@ -45,10 +54,10 @@ export function useStartImport(): UseMutationResult<
 
 /**
  * Get import session by ID with optional polling
- * 
+ *
  * @param sessionId - Import session ID
  * @param options - Query options including poll interval
- * 
+ *
  * @example
  * // Poll every 2 seconds while status is pending
  * const { data: session } = useImportSession(sessionId, { pollInterval: 2000 });
@@ -57,15 +66,18 @@ export function useImportSession(
   sessionId: number | null,
   options?: { pollInterval?: number }
 ): UseQueryResult<ImportSessionResponse> {
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
+
   return useQuery<ImportSessionResponse>({
-    queryKey: ['import-sessions', sessionId],
+    queryKey: ['import-sessions', sessionId, encryptionEnabled],
     queryFn: () => {
       if (!sessionId) throw new Error('Session ID is required');
-      return importService.getSession(sessionId);
+      return importService.getSession(sessionId, encryptionEnabled);
     },
     enabled: !!sessionId,
     // Poll if status is PENDING or PARSING
-    refetchInterval: (query) => {
+    refetchInterval: query => {
       const data = query.state.data;
       if (!data) return false;
       const isPending = ['PENDING', 'PARSING', 'IMPORTING'].includes(data.status);
@@ -93,12 +105,14 @@ export function useImportTransactions(
   sessionStatus?: ImportSessionStatus
 ): UseQueryResult<ImportTransactionDTO[]> {
   const isTerminal = !!sessionStatus && TERMINAL_STATUSES.includes(sessionStatus);
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
 
   return useQuery<ImportTransactionDTO[]>({
-    queryKey: ['import-transactions', sessionId],
+    queryKey: ['import-transactions', sessionId, encryptionEnabled],
     queryFn: () => {
       if (!sessionId) throw new Error('Session ID is required');
-      return importService.getTransactions(sessionId);
+      return importService.getTransactions(sessionId, encryptionEnabled);
     },
     // Do not fetch if there is no session yet OR the session is in a terminal
     // state — the backend rejects /review requests for those sessions with 400.
@@ -110,7 +124,7 @@ export function useImportTransactions(
 
 /**
  * Confirm import with category mappings
- * 
+ *
  * @example
  * const confirmImport = useConfirmImport();
  * confirmImport.mutate({
@@ -131,6 +145,8 @@ export function useConfirmImport(): UseMutationResult<
   }
 > {
   const queryClient = useQueryClient();
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
 
   return useMutation<
     ImportSessionResponse,
@@ -143,7 +159,7 @@ export function useConfirmImport(): UseMutationResult<
     }
   >({
     mutationFn: ({ sessionId, ...data }) =>
-      importService.confirmImport(sessionId, data),
+      importService.confirmImport(sessionId, data, encryptionEnabled),
     onSuccess: (data, variables) => {
       // Update session cache — this also causes useImportTransactions to become
       // disabled (session is now COMPLETED/FAILED), so no stale /review refetch.
@@ -170,13 +186,12 @@ export function useUpdateAccount(): UseMutationResult<
   { sessionId: number; accountId: number }
 > {
   const queryClient = useQueryClient();
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
 
-  return useMutation<
-    ImportSessionResponse,
-    Error,
-    { sessionId: number; accountId: number }
-  >({
-    mutationFn: ({ sessionId, accountId }) => importService.updateAccount(sessionId, accountId),
+  return useMutation<ImportSessionResponse, Error, { sessionId: number; accountId: number }>({
+    mutationFn: ({ sessionId, accountId }) =>
+      importService.updateAccount(sessionId, accountId, encryptionEnabled),
     onSuccess: (data, variables) => {
       queryClient.setQueryData(['import-sessions', variables.sessionId], data);
       queryClient.invalidateQueries({ queryKey: ['import-sessions'] });
@@ -193,13 +208,16 @@ export function useUpdateTransactions(): UseMutationResult<
   { sessionId: number; transactions: ImportTransactionDTO[] }
 > {
   const queryClient = useQueryClient();
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
 
   return useMutation<
     ImportSessionResponse,
     Error,
     { sessionId: number; transactions: ImportTransactionDTO[] }
   >({
-    mutationFn: ({ sessionId, transactions }) => importService.updateTransactions(sessionId, transactions),
+    mutationFn: ({ sessionId, transactions }) =>
+      importService.updateTransactions(sessionId, transactions, encryptionEnabled),
     onSuccess: (data, variables) => {
       queryClient.setQueryData(['import-sessions', variables.sessionId], data);
       queryClient.invalidateQueries({ queryKey: ['import-sessions'] });
@@ -210,20 +228,18 @@ export function useUpdateTransactions(): UseMutationResult<
 
 /**
  * Cancel import session
- * 
+ *
  * @example
  * const cancelImport = useCancelImport();
  * cancelImport.mutate(sessionId);
  */
-export function useCancelImport(): UseMutationResult<
-  ImportSessionResponse,
-  Error,
-  number
-> {
+export function useCancelImport(): UseMutationResult<ImportSessionResponse, Error, number> {
   const queryClient = useQueryClient();
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
 
   return useMutation<ImportSessionResponse, Error, number>({
-    mutationFn: importService.cancelImport,
+    mutationFn: sessionId => importService.cancelImport(sessionId, encryptionEnabled),
     onSuccess: (data, sessionId) => {
       // Update session cache
       queryClient.setQueryData(['import-sessions', sessionId], data);
@@ -234,14 +250,17 @@ export function useCancelImport(): UseMutationResult<
 
 /**
  * List all import sessions for current user
- * 
+ *
  * @example
  * const { data: sessions } = useImportSessions();
  */
 export function useImportSessions(): UseQueryResult<ImportSessionResponse[]> {
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
+
   return useQuery<ImportSessionResponse[]>({
-    queryKey: ['import-sessions'],
-    queryFn: importService.listSessions,
+    queryKey: ['import-sessions', encryptionEnabled],
+    queryFn: () => importService.listSessions(encryptionEnabled),
     staleTime: 30 * 1000, // 30 seconds
   });
 }

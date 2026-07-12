@@ -7,7 +7,7 @@ import { z } from 'zod';
  * Password strength requirements:
  * - Minimum 8 characters
  * - At least one uppercase letter
- * - At least one lowercase letter  
+ * - At least one lowercase letter
  * - At least one number
  * - At least one special character
  */
@@ -34,55 +34,83 @@ const masterPasswordSchema = z
 /**
  * Registration form validation schema
  */
-export const registerSchema = z
-  .object({
-    username: z
-      .string()
-      .trim()
-      .min(3, 'validation:username.minLength')
-      .max(50, 'validation:username.maxLength')
-      .regex(/^[a-zA-Z0-9_-]+$/, {
-        message: 'validation:username.pattern',
-      }),
-    email: z
-      .string()
-      .trim()
-      .min(1, 'validation:email.required')
-      .email('validation:email.invalid'),
-    password: passwordSchema,
-    confirmPassword: z
-      .string()
-      .min(1, 'validation:password.confirm'),
+const baseRegisterSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .min(3, 'validation:username.minLength')
+    .max(50, 'validation:username.maxLength')
+    .regex(/^[a-zA-Z0-9_-]+$/, {
+      message: 'validation:username.pattern',
+    }),
+  email: z.string().trim().min(1, 'validation:email.required').email('validation:email.invalid'),
+  password: passwordSchema,
+  confirmPassword: z.string().min(1, 'validation:password.confirm'),
+  baseCurrency: z.string().length(3).optional(),
+});
+
+const enabledRegisterSchema = baseRegisterSchema
+  .extend({
     masterPassword: masterPasswordSchema,
-    confirmMasterPassword: z
-      .string()
-      .min(1, 'validation:masterPassword.confirm'),
-    baseCurrency: z.string().length(3).optional(),
+    confirmMasterPassword: z.string().min(1, 'validation:masterPassword.confirm'),
   })
-  .refine((data) => data.password === data.confirmPassword, {
+  .refine(data => data.password === data.confirmPassword, {
     message: 'validation:password.mismatch',
     path: ['confirmPassword'],
   })
-  .refine((data) => data.masterPassword === data.confirmMasterPassword, {
+  .refine(data => data.masterPassword === data.confirmMasterPassword, {
     message: 'validation:masterPassword.mismatch',
     path: ['confirmMasterPassword'],
   });
 
+const disabledRegisterSchema = baseRegisterSchema
+  .extend({
+    masterPassword: z.string().optional(),
+    confirmMasterPassword: z.string().optional(),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: 'validation:password.mismatch',
+    path: ['confirmPassword'],
+  });
+
+export function createRegisterSchema(encryptionEnabled: true): typeof enabledRegisterSchema;
+export function createRegisterSchema(encryptionEnabled: false): typeof disabledRegisterSchema;
+export function createRegisterSchema(
+  encryptionEnabled: boolean
+): typeof enabledRegisterSchema | typeof disabledRegisterSchema;
+export function createRegisterSchema(encryptionEnabled: boolean) {
+  return encryptionEnabled ? enabledRegisterSchema : disabledRegisterSchema;
+}
+
+export const registerSchema = createRegisterSchema(true);
+
 /**
  * Login form validation schema
  */
-export const loginSchema = z.object({
-  username: z
-    .string()
-    .min(1, 'validation:username.required'),
-  password: z
-    .string()
-    .min(1, 'validation:password.required'),
-  masterPassword: z
-    .string()
-    .min(1, 'validation:masterPassword.required'),
+const enabledLoginSchema = z.object({
+  username: z.string().min(1, 'validation:username.required'),
+  password: z.string().min(1, 'validation:password.required'),
+  masterPassword: z.string().min(1, 'validation:masterPassword.required'),
   rememberMe: z.boolean().default(false),
 });
+
+const disabledLoginSchema = z.object({
+  username: z.string().min(1, 'validation:username.required'),
+  password: z.string().min(1, 'validation:password.required'),
+  masterPassword: z.string().optional(),
+  rememberMe: z.boolean().default(false),
+});
+
+export function createLoginSchema(encryptionEnabled: true): typeof enabledLoginSchema;
+export function createLoginSchema(encryptionEnabled: false): typeof disabledLoginSchema;
+export function createLoginSchema(
+  encryptionEnabled: boolean
+): typeof enabledLoginSchema | typeof disabledLoginSchema;
+export function createLoginSchema(encryptionEnabled: boolean) {
+  return encryptionEnabled ? enabledLoginSchema : disabledLoginSchema;
+}
+
+export const loginSchema = createLoginSchema(true);
 
 /**
  * Profile update form validation schema
@@ -90,18 +118,11 @@ export const loginSchema = z.object({
  */
 export const updateProfileSchema = z
   .object({
-    email: z
-      .string()
-      .trim()
-      .email('validation:email.invalid')
-      .optional()
-      .or(z.literal('')),
-    currentPassword: z
-      .string()
-      .min(1, 'validation:password.required'),
+    email: z.string().trim().email('validation:email.invalid').optional().or(z.literal('')),
+    currentPassword: z.string().min(1, 'validation:password.required'),
   })
   .refine(
-    (data) => {
+    data => {
       // At least email must be provided
       const hasEmail = data.email && data.email.length > 0;
       return hasEmail;
@@ -115,6 +136,10 @@ export const updateProfileSchema = z
 /**
  * TypeScript types inferred from schemas
  */
-export type RegisterFormData = z.infer<typeof registerSchema>;
-export type LoginFormData = z.infer<typeof loginSchema>;
+export type EnabledRegisterFormData = z.infer<typeof enabledRegisterSchema>;
+export type DisabledRegisterFormData = z.infer<typeof disabledRegisterSchema>;
+export type RegisterFormData = EnabledRegisterFormData | DisabledRegisterFormData;
+export type EnabledLoginFormData = z.infer<typeof enabledLoginSchema>;
+export type DisabledLoginFormData = z.infer<typeof disabledLoginSchema>;
+export type LoginFormData = EnabledLoginFormData | DisabledLoginFormData;
 export type UpdateProfileFormData = z.infer<typeof updateProfileSchema>;

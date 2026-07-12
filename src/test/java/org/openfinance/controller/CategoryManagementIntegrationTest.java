@@ -249,7 +249,7 @@ class CategoryManagementIntegrationTest {
         }
 
         /**
-         * POST /api/v1/categories - 400 when encryption key header is missing.
+         * POST /api/v1/categories - 401 when encryption session header is missing.
          * Requirement REQ-2.18
          */
         @Test
@@ -263,9 +263,9 @@ class CategoryManagementIntegrationTest {
                                 post("/api/v1/categories")
                                                 .header("Authorization", "Bearer " + token)
                                                 .contentType(MediaType.APPLICATION_JSON)
-                                                .content(objectMapper.writeValueAsString(req)))
+                                .content(objectMapper.writeValueAsString(req)))
                                 .andDo(print())
-                                .andExpect(status().isCreated());
+                                .andExpect(status().isUnauthorized());
         }
 
         // ── Read ──────────────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.Base64;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.LoginResponse;
 import org.openfinance.entity.SecurityAuditLog.EventType;
@@ -92,6 +93,7 @@ public class AuthService {
     private final SecurityAuditService securityAuditService;
     private final UserLoginStateService userLoginStateService;
     private final EncryptionKeyCache encryptionKeyCache;
+    private final EncryptionProperties encryptionProperties;
 
     /**
      * Maximum failed login attempts before the account is locked. Configurable via
@@ -190,17 +192,51 @@ public class AuthService {
                             "auth.invalid.credentials", null, LocaleContextHolder.getLocale()));
         }
 
+        if (!encryptionProperties.isEnabled()) {
+            String token = jwtService.generateToken(user);
+            String clientIp = resolveClientIp(httpRequest);
+            userLoginStateService.recordLoginSuccess(user.getId(), clientIp);
+            securityAuditService.logEvent(
+                    user.getId(), user.getUsername(), EventType.LOGIN_SUCCESS, httpRequest, null);
+
+            log.info("Login successful for user: {} (ID: {})", user.getUsername(), user.getId());
+
+            return LoginResponse.builder()
+                    .token(token)
+                    .userId(user.getId())
+                    .username(user.getUsername())
+                    .encryptionKey(null)
+                    .encryptionEnabled(false)
+                    .baseCurrency(user.getBaseCurrency() != null ? user.getBaseCurrency() : "USD")
+                    .onboardingComplete(user.isOnboardingComplete())
+                    .build();
+        }
+
+        if (request.getMasterPassword() == null || request.getMasterPassword().isBlank()) {
+            throw new IllegalArgumentException("Master password is required when encryption is enabled");
+        }
+
         // 4. Derive encryption key from master password + salt
         byte[] salt = Base64.getDecoder().decode(user.getMasterPasswordSalt());
         char[] masterPasswordChars = request.getMasterPassword().toCharArray();
 
         SecretKey encryptionKey = null;
+        String sessionToken = null;
         try {
-            encryptionKey = keyManagementService.deriveKey(masterPasswordChars, salt);
+            try {
+                encryptionKey = keyManagementService.deriveKey(masterPasswordChars, salt);
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                log.error(
+                        "Login failed: master password verification error for username '{}': {}",
+                        request.getUsername(),
+                        e.getMessage());
+                handleFailedLogin(user, httpRequest);
+                throw new BadCredentialsException("Invalid master password");
+            }
 
             // 5. Cache the key server-side and generate an opaque session token.
             // The raw AES key never leaves the server.
-            String sessionToken = encryptionKeyCache.createSession(user.getId(), encryptionKey);
+            sessionToken = encryptionKeyCache.createSession(user.getId(), encryptionKey);
 
             // 6. Generate JWT token
             String token = jwtService.generateToken(user);
@@ -218,24 +254,31 @@ public class AuthService {
 
             log.info("Login successful for user: {} (ID: {})", user.getUsername(), user.getId());
 
-            return LoginResponse.builder()
-                    .token(token)
-                    .userId(user.getId())
-                    .username(user.getUsername())
-                    .encryptionKey(sessionToken)
-                    .baseCurrency(user.getBaseCurrency() != null ? user.getBaseCurrency() : "USD")
-                    .onboardingComplete(user.isOnboardingComplete())
-                    .build();
+            LoginResponse response =
+                    LoginResponse.builder()
+                            .token(token)
+                            .userId(user.getId())
+                            .username(user.getUsername())
+                            .encryptionKey(sessionToken)
+                            .encryptionEnabled(true)
+                            .baseCurrency(
+                                    user.getBaseCurrency() != null ? user.getBaseCurrency() : "USD")
+                            .onboardingComplete(user.isOnboardingComplete())
+                            .build();
 
-        } catch (AccountLockedException | BadCredentialsException e) {
+            encryptionKeyCache.cacheKey(user.getId(), encryptionKey);
+
+            return response;
+
+        } catch (RuntimeException | Error e) {
+            if (sessionToken != null) {
+                try {
+                    encryptionKeyCache.invalidateFailedSession(sessionToken);
+                } catch (RuntimeException cleanupError) {
+                    e.addSuppressed(cleanupError);
+                }
+            }
             throw e;
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            log.error(
-                    "Login failed: master password verification error for username '{}': {}",
-                    request.getUsername(),
-                    e.getMessage());
-            handleFailedLogin(user, httpRequest);
-            throw new BadCredentialsException("Invalid master password");
         } finally {
             // Clear sensitive data from memory
             java.util.Arrays.fill(masterPasswordChars, '\0');

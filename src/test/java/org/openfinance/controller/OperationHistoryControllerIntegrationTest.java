@@ -42,6 +42,7 @@ class OperationHistoryControllerIntegrationTest {
     @Autowired private DatabaseCleanupService databaseCleanupService;
 
     private String authToken;
+    private String encryptionSession;
     private Long userId;
 
     @BeforeEach
@@ -81,6 +82,11 @@ class OperationHistoryControllerIntegrationTest {
                         .readTree(loginResult.getResponse().getContentAsString())
                         .get("token")
                         .asText();
+        encryptionSession =
+                objectMapper
+                        .readTree(loginResult.getResponse().getContentAsString())
+                        .get("encryptionKey")
+                        .asText();
 
         userId = userRepository.findByEmail("history-test@example.com").orElseThrow().getId();
     }
@@ -97,7 +103,9 @@ class OperationHistoryControllerIntegrationTest {
                 (String) null,
                 (String) null);
 
-        mockMvc.perform(get("/api/v1/history").header("Authorization", "Bearer " + authToken))
+        mockMvc.perform(get("/api/v1/history")
+                        .header("Authorization", "Bearer " + authToken)
+                        .header("X-Encryption-Session", encryptionSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content[0].entityType").value("ACCOUNT"))
@@ -115,7 +123,8 @@ class OperationHistoryControllerIntegrationTest {
         MvcResult historyResult =
                 mockMvc.perform(
                                 get("/api/v1/history")
-                                        .header("Authorization", "Bearer " + authToken))
+                                        .header("Authorization", "Bearer " + authToken)
+                                        .header("X-Encryption-Session", encryptionSession))
                         .andReturn();
         String content = historyResult.getResponse().getContentAsString();
         Integer historyId = com.jayway.jsonpath.JsonPath.read(content, "$.content[0].id");
@@ -123,7 +132,8 @@ class OperationHistoryControllerIntegrationTest {
         // Undo
         mockMvc.perform(
                         post("/api/v1/history/" + historyId + "/undo")
-                                .header("Authorization", "Bearer " + authToken))
+                                .header("Authorization", "Bearer " + authToken)
+                                .header("X-Encryption-Session", encryptionSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.undoneAt").isNotEmpty())
                 .andExpect(jsonPath("$.redoneAt").isEmpty());
@@ -131,7 +141,8 @@ class OperationHistoryControllerIntegrationTest {
         // Redo
         mockMvc.perform(
                         post("/api/v1/history/" + historyId + "/redo")
-                                .header("Authorization", "Bearer " + authToken))
+                                .header("Authorization", "Bearer " + authToken)
+                                .header("X-Encryption-Session", encryptionSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.undoneAt").isNotEmpty())
                 .andExpect(jsonPath("$.redoneAt").isNotEmpty());
@@ -147,7 +158,8 @@ class OperationHistoryControllerIntegrationTest {
         MvcResult historyResult =
                 mockMvc.perform(
                                 get("/api/v1/history")
-                                        .header("Authorization", "Bearer " + authToken))
+                                        .header("Authorization", "Bearer " + authToken)
+                                        .header("X-Encryption-Session", encryptionSession))
                         .andReturn();
         String content = historyResult.getResponse().getContentAsString();
         Integer historyId = com.jayway.jsonpath.JsonPath.read(content, "$.content[0].id");
@@ -155,7 +167,8 @@ class OperationHistoryControllerIntegrationTest {
         // Attempt Redo before Undo
         mockMvc.perform(
                         post("/api/v1/history/" + historyId + "/redo")
-                                .header("Authorization", "Bearer " + authToken))
+                                .header("Authorization", "Bearer " + authToken)
+                                .header("X-Encryption-Session", encryptionSession))
                 .andExpect(status().is4xxClientError());
     }
 
@@ -183,7 +196,8 @@ class OperationHistoryControllerIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/history")
                                 .param("since", since)
-                                .header("Authorization", "Bearer " + authToken))
+                                .header("Authorization", "Bearer " + authToken)
+                                .header("X-Encryption-Session", encryptionSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(0));
 
@@ -201,13 +215,16 @@ class OperationHistoryControllerIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/history")
                                 .param("since", since)
-                                .header("Authorization", "Bearer " + authToken))
+                                .header("Authorization", "Bearer " + authToken)
+                                .header("X-Encryption-Session", encryptionSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].entityLabel").value("New Entry"));
 
         // Without since filter, both entries are returned
-        mockMvc.perform(get("/api/v1/history").header("Authorization", "Bearer " + authToken))
+        mockMvc.perform(get("/api/v1/history")
+                        .header("Authorization", "Bearer " + authToken)
+                        .header("X-Encryption-Session", encryptionSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(2));
     }

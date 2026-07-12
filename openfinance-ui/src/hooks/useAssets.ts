@@ -1,7 +1,7 @@
 /**
  * Asset management hooks
  * Task 5.2.10: Create asset service hooks
- * 
+ *
  * Provides React Query hooks for asset CRUD operations
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import apiClient from '@/services/apiClient';
 import { formatCurrency } from '@/utils/currency';
 import i18next from 'i18next';
 import type { Asset, AssetRequest, AssetFilters } from '@/types/asset';
+import { buildEncryptionHeaders } from '@/utils/encryption';
 
 interface PaginatedResponse<T> {
   content: T[];
@@ -25,11 +26,6 @@ export function useAssets(filters?: AssetFilters) {
   return useQuery<Asset[]>({
     queryKey: ['assets', filters],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const params = new URLSearchParams();
       if (filters?.accountId) params.append('accountId', filters.accountId.toString());
       if (filters?.type) params.append('type', filters.type);
@@ -38,9 +34,7 @@ export function useAssets(filters?: AssetFilters) {
       const url = queryString ? `/assets?${queryString}` : '/assets';
 
       const response = await apiClient.get<Asset[]>(url, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -55,11 +49,6 @@ export function useAssetsSearch(filters?: AssetFilters) {
   return useQuery<PaginatedResponse<Asset>>({
     queryKey: ['assets', 'search', filters],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const params = new URLSearchParams();
       if (filters?.keyword) params.append('keyword', filters.keyword);
       if (filters?.type) params.append('type', filters.type);
@@ -82,9 +71,7 @@ export function useAssetsSearch(filters?: AssetFilters) {
       const response = await apiClient.get<PaginatedResponse<Asset>>(
         `/assets/search?${params.toString()}`,
         {
-          headers: {
-            'X-Encryption-Session': encryptionKey,
-          },
+          headers: buildEncryptionHeaders(),
         }
       );
       return response.data;
@@ -101,15 +88,8 @@ export function useAsset(assetId: number | null) {
     queryFn: async () => {
       if (!assetId) throw new Error('Asset ID is required');
 
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.get<Asset>(`/assets/${assetId}`, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -125,15 +105,8 @@ export function useCreateAsset() {
 
   return useMutation<Asset, Error, AssetRequest>({
     mutationFn: async (assetData: AssetRequest) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.post<Asset>('/assets', assetData, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -152,15 +125,8 @@ export function useUpdateAsset() {
 
   return useMutation<Asset, Error, { id: number; data: AssetRequest }>({
     mutationFn: async ({ id, data }) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       const response = await apiClient.put<Asset>(`/assets/${id}`, data, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
       return response.data;
     },
@@ -180,15 +146,8 @@ export function useDeleteAsset() {
 
   return useMutation<void, Error, number>({
     mutationFn: async (assetId: number) => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-
       await apiClient.delete(`/assets/${assetId}`, {
-        headers: {
-          'X-Encryption-Session': encryptionKey,
-        },
+        headers: buildEncryptionHeaders(),
       });
     },
     onSuccess: () => {
@@ -206,13 +165,14 @@ export function useDeleteAsset() {
  * @param gainPercentage - gain as a percentage
  * @param currency       - ISO 4217 currency code to display (default 'USD')
  */
-export const formatGainLoss = (unrealizedGain: number, gainPercentage: number, currency = 'USD') => {
+export const formatGainLoss = (
+  unrealizedGain: number,
+  gainPercentage: number,
+  currency = 'USD'
+) => {
   const sign = unrealizedGain >= 0 ? '+' : '';
-  const color = unrealizedGain > 0
-    ? 'text-green-500'
-    : unrealizedGain < 0
-      ? 'text-red-500'
-      : 'text-text-muted';
+  const color =
+    unrealizedGain > 0 ? 'text-green-500' : unrealizedGain < 0 ? 'text-red-500' : 'text-text-muted';
 
   const formatted = `${sign}${formatCurrency(Math.abs(unrealizedGain), currency)} (${sign}${gainPercentage.toFixed(2)}%)`;
 
@@ -235,7 +195,9 @@ export const getAssetTypeName = (type: string): string => {
  * Get badge color variant for asset type
  * Task 9.2.5: Added physical asset types
  */
-export const getAssetTypeBadgeVariant = (type: string): 'default' | 'success' | 'info' | 'warning' => {
+export const getAssetTypeBadgeVariant = (
+  type: string
+): 'default' | 'success' | 'info' | 'warning' => {
   const variantMap: Record<string, 'default' | 'success' | 'info' | 'warning'> = {
     STOCK: 'info',
     ETF: 'info',
@@ -258,7 +220,9 @@ export const getAssetTypeBadgeVariant = (type: string): 'default' | 'success' | 
  * Get condition badge variant
  * Task 9.2.5: Physical asset condition color coding
  */
-export const getConditionBadgeVariant = (condition: string): 'default' | 'success' | 'info' | 'warning' | 'error' => {
+export const getConditionBadgeVariant = (
+  condition: string
+): 'default' | 'success' | 'info' | 'warning' | 'error' => {
   const variantMap: Record<string, 'default' | 'success' | 'info' | 'warning' | 'error'> = {
     NEW: 'success',
     EXCELLENT: 'info',

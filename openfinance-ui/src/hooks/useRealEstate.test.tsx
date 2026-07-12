@@ -14,8 +14,18 @@ import {
   useUpdatePropertyValue,
 } from './useRealEstate';
 import apiClient from '@/services/apiClient';
+import { useSecurityConfig } from '@/hooks/useSecurityConfig';
 
 vi.mock('@/services/apiClient');
+vi.mock('@/hooks/useSecurityConfig', async () => {
+  const actual = await vi.importActual<typeof import('@/hooks/useSecurityConfig')>(
+    '@/hooks/useSecurityConfig'
+  );
+  return {
+    ...actual,
+    useSecurityConfig: vi.fn(),
+  };
+});
 const mockedApiClient = apiClient as any;
 
 vi.mock('@/context/AuthContext', () => ({
@@ -44,6 +54,10 @@ describe('useRealEstate hooks', () => {
     });
     vi.clearAllMocks();
     mockSessionStorage.getItem.mockReturnValue('test-encryption-key');
+    vi.mocked(useSecurityConfig).mockReturnValue({
+      data: { encryptionEnabled: true },
+      isError: false,
+    } as ReturnType<typeof useSecurityConfig>);
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -81,15 +95,14 @@ describe('useRealEstate hooks', () => {
     it('should fetch properties with filters', async () => {
       mockedApiClient.get.mockResolvedValue({ data: [mockProperty] });
 
-      const { result } = renderHook(
-        () => useProperties({ propertyType: 'RESIDENTIAL' }),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useProperties({ propertyType: 'RESIDENTIAL' }), {
+        wrapper,
+      });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(mockedApiClient.get).toHaveBeenCalledWith(
         expect.stringContaining('propertyType=RESIDENTIAL'),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
@@ -100,6 +113,21 @@ describe('useRealEstate hooks', () => {
 
       await waitFor(() => expect(result.current.isError).toBe(true));
       expect(result.current.error?.message).toContain('Encryption key not found');
+    });
+
+    it('should fetch without encryption header when encryption is disabled', async () => {
+      mockSessionStorage.getItem.mockReturnValue(null);
+      vi.mocked(useSecurityConfig).mockReturnValue({
+        data: { encryptionEnabled: false },
+        isError: false,
+      } as ReturnType<typeof useSecurityConfig>);
+      mockedApiClient.get.mockResolvedValue({ data: [mockProperty] });
+
+      const { result } = renderHook(() => useProperties(), { wrapper });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data).toEqual([mockProperty]);
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/real-estate', { headers: {} });
     });
   });
 
@@ -115,16 +143,13 @@ describe('useRealEstate hooks', () => {
       };
       mockedApiClient.get.mockResolvedValue({ data: pagedResponse });
 
-      const { result } = renderHook(
-        () => usePropertiesSearch({ page: 0, size: 20 }),
-        { wrapper },
-      );
+      const { result } = renderHook(() => usePropertiesSearch({ page: 0, size: 20 }), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(pagedResponse);
       expect(mockedApiClient.get).toHaveBeenCalledWith(
         expect.stringContaining('/real-estate/search'),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
   });
@@ -277,7 +302,7 @@ describe('useRealEstate hooks', () => {
       expect(mockedApiClient.put).toHaveBeenCalledWith(
         '/real-estate/1/value',
         { currentValue: 380000 },
-        { headers: { 'X-Encryption-Session': 'test-encryption-key' } },
+        { headers: { 'X-Encryption-Session': 'test-encryption-key' } }
       );
     });
 

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.dto.AssetRequest;
 import org.openfinance.dto.AssetResponse;
 import org.openfinance.entity.Account;
@@ -83,6 +85,9 @@ class AssetServiceTest {
         @Mock
         private SearchTokenService searchTokenService;
 
+        @Mock
+        private EncryptionProperties encryptionProperties;
+
         @InjectMocks
         private AssetService assetService;
 
@@ -92,6 +97,7 @@ class AssetServiceTest {
         void setUp() {
                 purchaseDate = LocalDate.of(2025, 1, 15);
                 EncryptionContext.setKey(new SecretKeySpec(new byte[32], "AES"));
+                lenient().when(encryptionProperties.isEnabled()).thenReturn(true);
         }
 
         @AfterEach
@@ -525,6 +531,34 @@ class AssetServiceTest {
                 assertThat(result.getId()).isEqualTo(1L);
                 assertThat(result.getName()).isEqualTo("Apple Inc.");
                 assertThat(result.getNotes()).isEqualTo("Tech portfolio");
+        }
+
+        @Test
+        @DisplayName("Should get asset plaintext fields without encryption key when encryption is disabled")
+        void shouldGetAssetPlaintextFieldsWithoutEncryptionKeyWhenEncryptionDisabled() {
+                EncryptionContext.clear();
+                when(encryptionProperties.isEnabled()).thenReturn(false);
+                Asset asset = Asset.builder()
+                                .id(1L)
+                                .userId(1L)
+                                .name("Plain Asset")
+                                .type(AssetType.OTHER)
+                                .quantity(BigDecimal.ONE)
+                                .purchasePrice(new BigDecimal("10.00"))
+                                .currentPrice(new BigDecimal("12.00"))
+                                .currency("USD")
+                                .purchaseDate(purchaseDate)
+                                .notes("Plain notes")
+                                .build();
+                AssetResponse response = AssetResponse.builder().id(1L).userId(1L).build();
+
+                when(assetRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(asset));
+                when(assetMapper.toResponse(asset)).thenReturn(response);
+
+                AssetResponse result = assetService.getAssetById(1L, 1L);
+
+                assertThat(result.getName()).isEqualTo("Plain Asset");
+                assertThat(result.getNotes()).isEqualTo("Plain notes");
         }
 
         @Test

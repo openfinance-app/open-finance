@@ -32,13 +32,11 @@ public class LoginResponse {
     /** Username of the authenticated user. */
     private String username;
 
-    /**
-     * Base64-encoded encrypted encryption key. This key is encrypted with the user's master
-     * password and must be decrypted client-side to decrypt sensitive user data.
-     *
-     * <p>Requirement REQ-3.2: Master password-derived encryption key for data protection
-     */
+    /** Opaque encryption session token. Present only when application encryption is enabled. */
     private String encryptionKey;
+
+    /** Whether application-layer encryption is enabled for this login session. */
+    private boolean encryptionEnabled;
 
     /** ISO 4217 base currency code for the authenticated user (e.g., "USD", "EUR"). */
     private String baseCurrency;

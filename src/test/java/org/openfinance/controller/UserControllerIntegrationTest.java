@@ -49,6 +49,7 @@ class UserControllerIntegrationTest {
     @Autowired private DatabaseCleanupService databaseCleanupService;
 
     private String token;
+    private String encryptionSession;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -84,12 +85,15 @@ class UserControllerIntegrationTest {
                         .getContentAsString();
 
         token = objectMapper.readTree(resp).get("token").asText();
+        encryptionSession = objectMapper.readTree(resp).get("encryptionKey").asText();
     }
 
     @Test
     @DisplayName("GET /api/v1/users/me - Should return current user profile")
     void testGetCurrentUser() throws Exception {
-        mockMvc.perform(get("/api/v1/users/me").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/v1/users/me")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Encryption-Session", encryptionSession))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username", is("testuser")))
@@ -112,7 +116,8 @@ class UserControllerIntegrationTest {
     void testGetBaseCurrency() throws Exception {
         mockMvc.perform(
                         get("/api/v1/users/me/base-currency")
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.baseCurrency", is("USD")));
@@ -126,6 +131,7 @@ class UserControllerIntegrationTest {
         mockMvc.perform(
                         put("/api/v1/users/me/base-currency")
                                 .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -136,7 +142,8 @@ class UserControllerIntegrationTest {
         // Verify the change persisted
         mockMvc.perform(
                         get("/api/v1/users/me/base-currency")
-                                .header("Authorization", "Bearer " + token))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.baseCurrency", is("EUR")));
     }
@@ -152,6 +159,7 @@ class UserControllerIntegrationTest {
             mockMvc.perform(
                             put("/api/v1/users/me/base-currency")
                                     .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Session", encryptionSession)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -167,6 +175,7 @@ class UserControllerIntegrationTest {
         mockMvc.perform(
                         put("/api/v1/users/me/base-currency")
                                 .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request2)))
                 .andExpect(status().isBadRequest());
@@ -176,6 +185,7 @@ class UserControllerIntegrationTest {
         mockMvc.perform(
                         put("/api/v1/users/me/base-currency")
                                 .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request3)))
                 .andExpect(status().isBadRequest());
@@ -202,6 +212,7 @@ class UserControllerIntegrationTest {
         mockMvc.perform(
                         put("/api/v1/users/me/base-currency")
                                 .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestJson))
                 .andDo(print())

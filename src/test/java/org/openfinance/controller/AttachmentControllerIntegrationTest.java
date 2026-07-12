@@ -192,7 +192,7 @@ class AttachmentControllerIntegrationTest {
                                                 .param("entityId", "100")
                                                 .header("Authorization", "Bearer " + token))
                                 .andDo(print())
-                                .andExpect(status().isBadRequest());
+                                .andExpect(status().isUnauthorized());
         }
 
         @Test
@@ -293,14 +293,14 @@ class AttachmentControllerIntegrationTest {
         }
 
         @Test
-        @DisplayName("GET /api/v1/attachments/{id}/download - missing encryption key")
+        @DisplayName("GET /api/v1/attachments/{id}/download - missing encryption session")
         void shouldReturn400WhenDownloadMissingEncryptionKey() throws Exception {
                 // When/Then
                 mockMvc.perform(
                                 get("/api/v1/attachments/999/download")
                                                 .header("Authorization", "Bearer " + token))
                                 .andDo(print())
-                                .andExpect(status().isNotFound());
+                                .andExpect(status().isUnauthorized());
         }
 
         @Test
@@ -343,14 +343,16 @@ class AttachmentControllerIntegrationTest {
                 // When - Delete the file
                 mockMvc.perform(
                                 delete("/api/v1/attachments/" + attachmentId)
-                                                .header("Authorization", "Bearer " + token))
+                                                .header("Authorization", "Bearer " + token)
+                                                .header("X-Encryption-Session", encKey))
                                 .andDo(print())
                                 .andExpect(status().isNoContent());
 
                 // Then - Verify file is deleted (404 on GET)
                 mockMvc.perform(
                                 get("/api/v1/attachments/" + attachmentId)
-                                                .header("Authorization", "Bearer " + token))
+                                                .header("Authorization", "Bearer " + token)
+                                                .header("X-Encryption-Session", encKey))
                                 .andExpect(status().isNotFound());
         }
 
@@ -360,7 +362,8 @@ class AttachmentControllerIntegrationTest {
                 // When/Then
                 mockMvc.perform(
                                 delete("/api/v1/attachments/999")
-                                                .header("Authorization", "Bearer " + token))
+                                                .header("Authorization", "Bearer " + token)
+                                                .header("X-Encryption-Session", encKey))
                                 .andDo(print())
                                 .andExpect(status().isNotFound());
         }
@@ -465,7 +468,8 @@ class AttachmentControllerIntegrationTest {
                 mockMvc.perform(
                                 get("/api/v1/attachments")
                                                 .param("entityId", "100")
-                                                .header("Authorization", "Bearer " + token))
+                                                .header("Authorization", "Bearer " + token)
+                                                .header("X-Encryption-Session", encKey))
                                 .andDo(print())
                                 .andExpect(status().isBadRequest());
         }
@@ -474,7 +478,9 @@ class AttachmentControllerIntegrationTest {
         @DisplayName("GET /api/v1/attachments - empty list for new user")
         void shouldReturnEmptyListForNewUser() throws Exception {
                 // When/Then - No files uploaded yet
-                mockMvc.perform(get("/api/v1/attachments").header("Authorization", "Bearer " + token))
+                mockMvc.perform(get("/api/v1/attachments")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                                 .andDo(print())
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$").isArray())
@@ -524,7 +530,9 @@ class AttachmentControllerIntegrationTest {
         @DisplayName("GET /api/v1/attachments/{id} - attachment not found")
         void shouldReturn404WhenGettingNonExistentAttachment() throws Exception {
                 // When/Then
-                mockMvc.perform(get("/api/v1/attachments/999").header("Authorization", "Bearer " + token))
+                mockMvc.perform(get("/api/v1/attachments/999")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                                 .andDo(print())
                                 .andExpect(status().isNotFound());
         }
@@ -559,7 +567,9 @@ class AttachmentControllerIntegrationTest {
                                 .andExpect(status().isCreated());
 
                 // When/Then - Get stats
-                mockMvc.perform(get("/api/v1/attachments/stats").header("Authorization", "Bearer " + token))
+                mockMvc.perform(get("/api/v1/attachments/stats")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                                 .andDo(print())
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.totalAttachments").value(2))
@@ -571,7 +581,9 @@ class AttachmentControllerIntegrationTest {
         @DisplayName("GET /api/v1/attachments/stats - zero stats for new user")
         void shouldReturnZeroStatsForNewUser() throws Exception {
                 // When/Then - No files uploaded
-                mockMvc.perform(get("/api/v1/attachments/stats").header("Authorization", "Bearer " + token))
+                mockMvc.perform(get("/api/v1/attachments/stats")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
                                 .andDo(print())
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.totalAttachments").value(0))
@@ -631,7 +643,8 @@ class AttachmentControllerIntegrationTest {
                 // When/Then - User 2 tries to access User 1's attachment
                 mockMvc.perform(
                                 get("/api/v1/attachments/" + attachmentId)
-                                                .header("Authorization", "Bearer " + token2))
+                                                .header("Authorization", "Bearer " + token2)
+                                                .header("X-Encryption-Session", encKey2))
                                 .andDo(print())
                                 .andExpect(
                                                 status().isNotFound()); // Not found = unauthorized (don't expose
@@ -648,7 +661,8 @@ class AttachmentControllerIntegrationTest {
                 // User 2 tries to delete User 1's attachment
                 mockMvc.perform(
                                 delete("/api/v1/attachments/" + attachmentId)
-                                                .header("Authorization", "Bearer " + token2))
+                                                .header("Authorization", "Bearer " + token2)
+                                                .header("X-Encryption-Session", encKey2))
                                 .andDo(print())
                                 .andExpect(status().isNotFound());
         }

@@ -28,7 +28,16 @@ vi.mock('@/services/apiClient', () => ({
   },
 }));
 
-import { useRegister, useLogin, useLogout, useGetProfile, useUpdateProfile, useUploadProfileImage, useDeleteProfileImage, useCompleteOnboarding } from './useAuth';
+import {
+  useRegister,
+  useLogin,
+  useLogout,
+  useGetProfile,
+  useUpdateProfile,
+  useUploadProfileImage,
+  useDeleteProfileImage,
+  useCompleteOnboarding,
+} from './useAuth';
 import { AuthProvider } from '@/context/AuthContext';
 import { VisibilityProvider } from '@/context/VisibilityContext';
 import { CurrencyDisplayProvider } from '@/context/CurrencyDisplayContext';
@@ -66,7 +75,16 @@ describe('useAuth hooks', () => {
     const TestComponent = () => {
       const mutation = useRegister();
       return (
-        <button onClick={() => mutation.mutateAsync({ username: 'alice', email: 'a@b.c', password: 'P@ssw0rd!', masterPassword: 'MasterP@ss1' } as any)}>
+        <button
+          onClick={() =>
+            mutation.mutateAsync({
+              username: 'alice',
+              email: 'a@b.c',
+              password: 'P@ssw0rd!',
+              masterPassword: 'MasterP@ss1',
+            } as any)
+          }
+        >
           go
         </button>
       );
@@ -78,8 +96,15 @@ describe('useAuth hooks', () => {
     fireEvent.click(getByText('go'));
 
     // Assert: post was called and navigate used
-    await waitFor(() => expect(postMock).toHaveBeenCalledWith('/auth/register', expect.any(Object)));
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/login', expect.objectContaining({ state: expect.any(Object) })));
+    await waitFor(() =>
+      expect(postMock).toHaveBeenCalledWith('/auth/register', expect.any(Object))
+    );
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/login',
+        expect.objectContaining({ state: expect.any(Object) })
+      )
+    );
   });
 
   it('should login, store tokens and navigate to dashboard on success', async () => {
@@ -89,7 +114,15 @@ describe('useAuth hooks', () => {
 
     const TestComponent = () => {
       const mutation = useLogin();
-      return <button onClick={() => mutation.mutateAsync({ username: 'bob', password: 'pw', masterPassword: 'mpw' } as any)}>login</button>;
+      return (
+        <button
+          onClick={() =>
+            mutation.mutateAsync({ username: 'bob', password: 'pw', masterPassword: 'mpw' } as any)
+          }
+        >
+          login
+        </button>
+      );
     };
 
     const { getByText } = renderWithProviders(<TestComponent />);
@@ -99,19 +132,92 @@ describe('useAuth hooks', () => {
 
     // Assert - wait for mutation to complete
     await waitFor(() => expect(postMock).toHaveBeenCalledWith('/auth/login', expect.any(Object)));
-    
+
     // Wait for storage to be updated (setAuth is called in onSuccess)
     // Check both sessionStorage and localStorage as either could be used depending on rememberMe
-    await waitFor(() => {
-      const tokenInLocal = localStorage.getItem('auth_token');
-      const tokenInSession = sessionStorage.getItem('auth_token');
-      expect(tokenInLocal || tokenInSession).toBe('jwt-token');
-    }, { timeout: 5000 });
-    
-    await waitFor(() => {
-      const encKey = sessionStorage.getItem('encryption_session');
-      expect(encKey).toBe('enc-key');
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        const tokenInLocal = localStorage.getItem('auth_token');
+        const tokenInSession = sessionStorage.getItem('auth_token');
+        expect(tokenInLocal || tokenInSession).toBe('jwt-token');
+      },
+      { timeout: 5000 }
+    );
+
+    await waitFor(
+      () => {
+        const encKey = sessionStorage.getItem('encryption_session');
+        expect(encKey).toBe('enc-key');
+      },
+      { timeout: 5000 }
+    );
+  });
+
+  it('should clear a stale encryption session when login response has no encryption key', async () => {
+    sessionStorage.setItem('encryption_session', 'stale-session');
+    const response = {
+      token: 'jwt-token',
+      encryptionKey: null,
+      encryptionEnabled: false,
+      userId: 1,
+      username: 'bob',
+    };
+    postMock.mockResolvedValueOnce({ data: response });
+
+    const TestComponent = () => {
+      const mutation = useLogin();
+      return (
+        <button onClick={() => mutation.mutateAsync({ username: 'bob', password: 'pw' } as any)}>
+          login
+        </button>
+      );
+    };
+
+    const { getByText } = renderWithProviders(<TestComponent />);
+
+    fireEvent.click(getByText('login'));
+
+    await waitFor(() => expect(postMock).toHaveBeenCalledWith('/auth/login', expect.any(Object)));
+    await waitFor(() => expect(sessionStorage.getItem('encryption_session')).toBeNull());
+    expect(localStorage.getItem('encryption_enabled')).toBe('false');
+    expect(sessionStorage.getItem('encryption_enabled')).toBe('false');
+  });
+
+  it('should fail closed when enabled login response omits encryption key', async () => {
+    localStorage.setItem('auth_token', 'stale');
+    sessionStorage.setItem('encryption_session', 'stale');
+    sessionStorage.setItem('encryption_enabled', 'false');
+    const response = {
+      token: 'jwt-token',
+      encryptionKey: null,
+      encryptionEnabled: true,
+      userId: 1,
+      username: 'bob',
+    };
+    postMock.mockResolvedValueOnce({ data: response });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const TestComponent = () => {
+      const mutation = useLogin();
+      return (
+        <button onClick={() => mutation.mutate({ username: 'bob', password: 'pw' } as any)}>
+          login
+        </button>
+      );
+    };
+
+    try {
+      const { getByText } = renderWithProviders(<TestComponent />);
+
+      fireEvent.click(getByText('login'));
+
+      await waitFor(() => expect(postMock).toHaveBeenCalledWith('/auth/login', expect.any(Object)));
+      await waitFor(() => expect(sessionStorage.getItem('encryption_session')).toBeNull());
+      expect(localStorage.getItem('auth_token')).toBeNull();
+      expect(sessionStorage.getItem('encryption_enabled')).toBeNull();
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 
   it('should clear storage on login error', async () => {
@@ -136,6 +242,195 @@ describe('useAuth hooks', () => {
     await waitFor(() => expect(sessionStorage.getItem('encryption_session')).toBeNull());
   });
 
+  it('should not log raw registration error objects containing credentials', async () => {
+    const leakyError = {
+      response: { status: 400 },
+      code: 'ERR_BAD_REQUEST',
+      config: {
+        data: JSON.stringify({
+          username: 'alice',
+          password: 'RegisterPassword1!',
+          masterPassword: 'RegisterMasterPassword1!',
+        }),
+      },
+    };
+    postMock.mockRejectedValueOnce(leakyError);
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const TestComponent = () => {
+      const mutation = useRegister();
+      return (
+        <button
+          onClick={() =>
+            mutation.mutate({
+              username: 'alice',
+              email: 'alice@example.com',
+              password: 'RegisterPassword1!',
+              masterPassword: 'RegisterMasterPassword1!',
+            } as any)
+          }
+        >
+          registerErr
+        </button>
+      );
+    };
+
+    const { getByText } = renderWithProviders(<TestComponent />);
+    fireEvent.click(getByText('registerErr'));
+
+    await waitFor(() => expect(consoleErrorSpy).toHaveBeenCalled());
+    const calls = consoleErrorSpy.mock.calls;
+    expect(calls.some(call => call.includes(leakyError))).toBe(false);
+    const serializedCalls = JSON.stringify(calls);
+    expect(serializedCalls).not.toContain('RegisterPassword1!');
+    expect(serializedCalls).not.toContain('RegisterMasterPassword1!');
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should not log raw login error objects containing credentials', async () => {
+    localStorage.setItem('auth_token', 'stale');
+    sessionStorage.setItem('encryption_session', 'stale');
+    const leakyError = {
+      response: { status: 401 },
+      code: 'ERR_BAD_REQUEST',
+      config: {
+        data: JSON.stringify({
+          username: 'bob',
+          password: 'LoginPassword1!',
+          masterPassword: 'LoginMasterPassword1!',
+        }),
+      },
+    };
+    postMock.mockRejectedValueOnce(leakyError);
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const TestComponent = () => {
+      const mutation = useLogin();
+      return (
+        <button
+          onClick={() =>
+            mutation.mutate({
+              username: 'bob',
+              password: 'LoginPassword1!',
+              masterPassword: 'LoginMasterPassword1!',
+            } as any)
+          }
+        >
+          loginErrObject
+        </button>
+      );
+    };
+
+    const { getByText } = renderWithProviders(<TestComponent />);
+    fireEvent.click(getByText('loginErrObject'));
+
+    await waitFor(() => expect(consoleErrorSpy).toHaveBeenCalled());
+    const calls = consoleErrorSpy.mock.calls;
+    expect(calls.some(call => call.includes(leakyError))).toBe(false);
+    const serializedCalls = JSON.stringify(calls);
+    expect(serializedCalls).not.toContain('LoginPassword1!');
+    expect(serializedCalls).not.toContain('LoginMasterPassword1!');
+    expect(localStorage.getItem('auth_token')).toBeNull();
+    expect(sessionStorage.getItem('encryption_session')).toBeNull();
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should not log raw storage errors when storing encryption session fails', async () => {
+    const leakyStorageError = {
+      message: 'storage failed',
+      password: 'StoragePassword1!',
+      masterPassword: 'StorageMasterPassword1!',
+    };
+    const originalSetItem = Storage.prototype.setItem;
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
+      key: string,
+      value: string
+    ) {
+      if (this === sessionStorage && key === 'encryption_session') {
+        throw leakyStorageError;
+      }
+
+      return originalSetItem.call(this, key, value);
+    });
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const response = { token: 'jwt-token', encryptionKey: 'enc-key', userId: 1, username: 'bob' };
+    postMock.mockResolvedValueOnce({ data: response });
+
+    const TestComponent = () => {
+      const mutation = useLogin();
+      return (
+        <button onClick={() => mutation.mutate({ username: 'bob', password: 'pw' } as any)}>
+          login
+        </button>
+      );
+    };
+
+    try {
+      const { getByText } = renderWithProviders(<TestComponent />);
+      fireEvent.click(getByText('login'));
+
+      await waitFor(() => expect(consoleWarnSpy).toHaveBeenCalled());
+      const calls = consoleWarnSpy.mock.calls;
+      expect(calls.some(call => call.includes(leakyStorageError))).toBe(false);
+      const serializedCalls = JSON.stringify(calls);
+      expect(serializedCalls).not.toContain('StoragePassword1!');
+      expect(serializedCalls).not.toContain('StorageMasterPassword1!');
+    } finally {
+      consoleWarnSpy.mockRestore();
+      setItemSpy.mockRestore();
+    }
+  });
+
+  it('should not log raw storage errors when clearing stale login storage fails', async () => {
+    const leakyStorageError = {
+      message: 'clear failed',
+      password: 'ClearPassword1!',
+      masterPassword: 'ClearMasterPassword1!',
+    };
+    localStorage.setItem('auth_token', 'stale');
+    sessionStorage.setItem('encryption_session', 'stale');
+    const originalRemoveItem = Storage.prototype.removeItem;
+    const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(function (
+      key: string
+    ) {
+      if (this === sessionStorage && key === 'encryption_session') {
+        throw leakyStorageError;
+      }
+
+      return originalRemoveItem.call(this, key);
+    });
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    postMock.mockRejectedValueOnce(new Error('bad creds'));
+
+    const TestComponent = () => {
+      const mutation = useLogin();
+      return (
+        <button onClick={() => mutation.mutate({ username: 'bob', password: 'pw' } as any)}>
+          loginErr
+        </button>
+      );
+    };
+
+    try {
+      const { getByText } = renderWithProviders(<TestComponent />);
+      fireEvent.click(getByText('loginErr'));
+
+      await waitFor(() => expect(consoleWarnSpy).toHaveBeenCalled());
+      const calls = consoleWarnSpy.mock.calls;
+      expect(calls.some(call => call.includes(leakyStorageError))).toBe(false);
+      const serializedCalls = JSON.stringify(calls);
+      expect(serializedCalls).not.toContain('ClearPassword1!');
+      expect(serializedCalls).not.toContain('ClearMasterPassword1!');
+    } finally {
+      consoleWarnSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
+      removeItemSpy.mockRestore();
+    }
+  });
+
   it('useLogout should clear storage and navigate to /login', async () => {
     localStorage.setItem('auth_token', 'x');
     sessionStorage.setItem('encryption_session', 'y');
@@ -158,7 +453,13 @@ describe('useAuth hooks', () => {
   });
 
   it('useGetProfile fetches profile data', async () => {
-    const user = { id: 1, username: 'alice', email: 'a@b.c', baseCurrency: 'EUR', createdAt: '2024-01-01' };
+    const user = {
+      id: 1,
+      username: 'alice',
+      email: 'a@b.c',
+      baseCurrency: 'EUR',
+      createdAt: '2024-01-01',
+    };
     getMock.mockResolvedValueOnce({ data: user });
 
     const TestComponent = () => {
@@ -172,7 +473,13 @@ describe('useAuth hooks', () => {
   });
 
   it('useUpdateProfile updates profile and cache', async () => {
-    const updatedUser = { id: 1, username: 'alice2', email: 'a@b.c', baseCurrency: 'EUR', createdAt: '2024-01-01' };
+    const updatedUser = {
+      id: 1,
+      username: 'alice2',
+      email: 'a@b.c',
+      baseCurrency: 'EUR',
+      createdAt: '2024-01-01',
+    };
     putMock.mockResolvedValueOnce({ data: updatedUser });
 
     const TestComponent = () => {
@@ -191,12 +498,24 @@ describe('useAuth hooks', () => {
 
     const TestComponent = () => {
       const mutation = useUploadProfileImage();
-      return <button onClick={() => mutation.mutate(new File([''], 'avatar.png', { type: 'image/png' }))}>upload</button>;
+      return (
+        <button
+          onClick={() => mutation.mutate(new File([''], 'avatar.png', { type: 'image/png' }))}
+        >
+          upload
+        </button>
+      );
     };
 
     const { getByText } = renderWithProviders(<TestComponent />);
     fireEvent.click(getByText('upload'));
-    await waitFor(() => expect(postMock).toHaveBeenCalledWith('/users/me/profile-image', expect.any(FormData), expect.any(Object)));
+    await waitFor(() =>
+      expect(postMock).toHaveBeenCalledWith(
+        '/users/me/profile-image',
+        expect.any(FormData),
+        expect.any(Object)
+      )
+    );
   });
 
   it('useDeleteProfileImage deletes image', async () => {
@@ -219,12 +538,22 @@ describe('useAuth hooks', () => {
 
     const TestComponent = () => {
       const mutation = useCompleteOnboarding();
-      return <button onClick={() => mutation.mutate({ baseCurrency: 'EUR', amountDisplayMode: 'original' } as any)}>onboard</button>;
+      return (
+        <button
+          onClick={() =>
+            mutation.mutate({ baseCurrency: 'EUR', amountDisplayMode: 'original' } as any)
+          }
+        >
+          onboard
+        </button>
+      );
     };
 
     const { getByText } = renderWithProviders(<TestComponent />);
     fireEvent.click(getByText('onboard'));
-    await waitFor(() => expect(postMock).toHaveBeenCalledWith('/users/me/onboarding', expect.any(Object)));
+    await waitFor(() =>
+      expect(postMock).toHaveBeenCalledWith('/users/me/onboarding', expect.any(Object))
+    );
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true }));
   });
 });

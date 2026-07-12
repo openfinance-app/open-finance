@@ -78,8 +78,7 @@ class ImportControllerTest {
         private static final Long SESSION_ID = 42L;
         private static final Long ACCOUNT_ID = 1L;
 
-        /** A valid base64-encoded 32-byte AES key used in controller tests. */
-        private static final String TEST_ENCRYPTION_KEY = "+Ifn53/WIpprMdk+ToP0VZ4b9PiMeT24/r/U5VLreYM=";
+        private static final String TEST_ENCRYPTION_SESSION = "test-encryption-session";
 
         // ========================================
         // Setup Methods
@@ -88,6 +87,11 @@ class ImportControllerTest {
         @BeforeEach
         void setUp() {
                 // Mock user ID extraction is handled by createAuthentication() helper
+                javax.crypto.SecretKey key = new javax.crypto.spec.SecretKeySpec(new byte[32], "AES");
+                when(encryptionKeyCache.getKeyBySessionToken(TEST_ENCRYPTION_SESSION))
+                                .thenReturn(Optional.of(key));
+                when(encryptionKeyCache.getUserIdBySessionToken(TEST_ENCRYPTION_SESSION))
+                                .thenReturn(Optional.of(USER_ID));
         }
 
         /** Creates an authentication object with a User principal for testing. */
@@ -479,7 +483,7 @@ class ImportControllerTest {
                                 post("/api/v1/import/sessions/{id}/confirm", SESSION_ID)
                                                 .with(csrf())
                                                 .with(authentication(createAuthentication(USER_ID)))
-                                                .header("X-Encryption-Session", TEST_ENCRYPTION_KEY)
+                                                .header("X-Encryption-Session", TEST_ENCRYPTION_SESSION)
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content(objectMapper.writeValueAsString(request)))
                                 .andDo(print())
@@ -515,7 +519,7 @@ class ImportControllerTest {
                                 post("/api/v1/import/sessions/{id}/confirm", SESSION_ID)
                                                 .with(csrf())
                                                 .with(authentication(createAuthentication(USER_ID)))
-                                                .header("X-Encryption-Session", TEST_ENCRYPTION_KEY)
+                                                .header("X-Encryption-Session", TEST_ENCRYPTION_SESSION)
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isOk())
@@ -546,7 +550,7 @@ class ImportControllerTest {
                                 post("/api/v1/import/sessions/{id}/confirm", SESSION_ID)
                                                 .with(csrf())
                                                 .with(authentication(createAuthentication(USER_ID)))
-                                                .header("X-Encryption-Session", TEST_ENCRYPTION_KEY)
+                                                .header("X-Encryption-Session", TEST_ENCRYPTION_SESSION)
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isOk());
@@ -572,7 +576,7 @@ class ImportControllerTest {
                                 post("/api/v1/import/sessions/{id}/confirm", 999L)
                                                 .with(csrf())
                                                 .with(authentication(createAuthentication(USER_ID)))
-                                                .header("X-Encryption-Session", TEST_ENCRYPTION_KEY)
+                                                .header("X-Encryption-Session", TEST_ENCRYPTION_SESSION)
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isNotFound());
@@ -600,7 +604,7 @@ class ImportControllerTest {
                                 post("/api/v1/import/sessions/{id}/confirm", SESSION_ID)
                                                 .with(csrf())
                                                 .with(authentication(createAuthentication(USER_ID)))
-                                                .header("X-Encryption-Session", TEST_ENCRYPTION_KEY)
+                                                .header("X-Encryption-Session", TEST_ENCRYPTION_SESSION)
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isBadRequest());

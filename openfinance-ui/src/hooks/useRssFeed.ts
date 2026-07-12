@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
+import { buildEncryptionHeaders } from '@/utils/encryption';
 
 export interface RssFeedItem {
   title: string;
@@ -17,14 +18,9 @@ export function useFinanceNews(language: string) {
   return useQuery<RssFeedItem[]>({
     queryKey: ['rss', 'finance', language],
     queryFn: async () => {
-      const encryptionKey = sessionStorage.getItem('encryption_session');
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found');
-      }
-      
       const response = await apiClient.get<RssFeedItem[]>('/rss/finance', {
         headers: {
-          'X-Encryption-Session': encryptionKey,
+          ...buildEncryptionHeaders(),
           'Accept-Language': language
         },
       });

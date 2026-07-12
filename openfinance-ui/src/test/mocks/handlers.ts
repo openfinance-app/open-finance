@@ -1,6 +1,6 @@
 /**
  * MSW (Mock Service Worker) Request Handlers
- * 
+ *
  * Defines mock API handlers for testing page-level components
  * and integration tests without hitting the real backend.
  */
@@ -219,12 +219,21 @@ const mockAssets = [
 ];
 
 /**
+ * Request handlers for public runtime config
+ */
+export const configHandlers = [
+  http.get(`${API_BASE_URL}/config/security`, () => {
+    return HttpResponse.json({ encryptionEnabled: true });
+  }),
+];
+
+/**
  * Request handlers for authentication
  */
 export const authHandlers = [
   // Login
   http.post(`${API_BASE_URL}/auth/login`, async ({ request }) => {
-    const body = await request.json() as any;
+    const body = (await request.json()) as any;
     if (body.username === 'testuser' && body.password === 'password123') {
       return HttpResponse.json({
         token: MOCK_TOKEN,
@@ -233,10 +242,7 @@ export const authHandlers = [
         encryptionKey: MOCK_ENCRYPTION_KEY,
       });
     }
-    return HttpResponse.json(
-      { message: 'Invalid credentials' },
-      { status: 401 }
-    );
+    return HttpResponse.json({ message: 'Invalid credentials' }, { status: 401 });
   }),
 
   // Register
@@ -259,7 +265,7 @@ export const authHandlers = [
 
   // Update user settings
   http.put(`${API_BASE_URL}/users/me/settings`, async ({ request }) => {
-    const body = await request.json() as any;
+    const body = (await request.json()) as any;
     return HttpResponse.json({
       ...mockUserSettings,
       ...body,
@@ -295,7 +301,7 @@ export const accountHandlers = [
 
   // Get account by ID
   http.get(`${API_BASE_URL}/accounts/:id`, ({ params }) => {
-    const account = mockAccounts.find((a) => a.id === Number(params.id));
+    const account = mockAccounts.find(a => a.id === Number(params.id));
     if (account) {
       return HttpResponse.json(account);
     }
@@ -304,7 +310,7 @@ export const accountHandlers = [
 
   // Create account
   http.post(`${API_BASE_URL}/accounts`, async ({ request }) => {
-    const body = await request.json() as any;
+    const body = (await request.json()) as any;
     const newAccount = {
       id: mockAccounts.length + 1,
       ...body,
@@ -317,8 +323,8 @@ export const accountHandlers = [
 
   // Update account
   http.put(`${API_BASE_URL}/accounts/:id`, async ({ params, request }) => {
-    const body = await request.json() as any;
-    const account = mockAccounts.find((a) => a.id === Number(params.id));
+    const body = (await request.json()) as any;
+    const account = mockAccounts.find(a => a.id === Number(params.id));
     if (account) {
       const updated = { ...account, ...body };
       return HttpResponse.json(updated);
@@ -328,7 +334,7 @@ export const accountHandlers = [
 
   // Delete account
   http.delete(`${API_BASE_URL}/accounts/:id`, ({ params }) => {
-    const account = mockAccounts.find((a) => a.id === Number(params.id));
+    const account = mockAccounts.find(a => a.id === Number(params.id));
     if (account) {
       return new HttpResponse(null, { status: 204 });
     }
@@ -347,21 +353,16 @@ export const transactionHandlers = [
 
   // Get transaction by ID
   http.get(`${API_BASE_URL}/transactions/:id`, ({ params }) => {
-    const transaction = mockTransactions.content.find(
-      (t) => t.id === Number(params.id)
-    );
+    const transaction = mockTransactions.content.find(t => t.id === Number(params.id));
     if (transaction) {
       return HttpResponse.json(transaction);
     }
-    return HttpResponse.json(
-      { message: 'Transaction not found' },
-      { status: 404 }
-    );
+    return HttpResponse.json({ message: 'Transaction not found' }, { status: 404 });
   }),
 
   // Create transaction
   http.post(`${API_BASE_URL}/transactions`, async ({ request }) => {
-    const body = await request.json() as any;
+    const body = (await request.json()) as any;
     const newTransaction = {
       id: mockTransactions.content.length + 1,
       ...body,
@@ -498,7 +499,7 @@ export const dashboardHandlers = [
     return HttpResponse.json([
       { category: 'Real Estate', value: 200000.0, percentage: 60.0 },
       { category: 'Equities', value: 100000.0, percentage: 30.0 },
-      { category: 'Cash', value: 33333.33, percentage: 10.0 }
+      { category: 'Cash', value: 33333.33, percentage: 10.0 },
     ]);
   }),
 
@@ -509,7 +510,7 @@ export const dashboardHandlers = [
       monthlyIncome: 6000.0,
       monthlyDebtObligations: 1000.0,
       debtToIncomeRatio: 16.67,
-      isHealthy: true
+      isHealthy: true,
     });
   }),
 
@@ -533,7 +534,7 @@ export const dashboardHandlers = [
       if (i === 1 || i === 15) {
         income = 3000; // Salary
       } else if (i % 3 === 0) {
-        expense = 50 + (i * 10); // Groceries etc
+        expense = 50 + i * 10; // Groceries etc
       } else if (i === 5) {
         expense = 1200; // Rent
       }
@@ -541,7 +542,7 @@ export const dashboardHandlers = [
       mockDailyData.push({
         date: dateStr,
         income,
-        expense
+        expense,
       });
     }
 
@@ -551,8 +552,24 @@ export const dashboardHandlers = [
   // Get insights
   http.get(`${API_BASE_URL}/insights/top/3`, () => {
     return HttpResponse.json([
-      { id: 1, type: 'SPENDING_ANOMALY', title: 'High spending in groceries', description: 'You spent 20% more on groceries this month.', priority: 'HIGH', dismissed: false, createdAt: new Date().toISOString() },
-      { id: 2, type: 'SAVINGS_OPPORTUNITY', title: 'Good saving rate', description: 'You saved 30% of your income this month.', priority: 'MEDIUM', dismissed: false, createdAt: new Date().toISOString() },
+      {
+        id: 1,
+        type: 'SPENDING_ANOMALY',
+        title: 'High spending in groceries',
+        description: 'You spent 20% more on groceries this month.',
+        priority: 'HIGH',
+        dismissed: false,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        type: 'SAVINGS_OPPORTUNITY',
+        title: 'Good saving rate',
+        description: 'You saved 30% of your income this month.',
+        priority: 'MEDIUM',
+        dismissed: false,
+        createdAt: new Date().toISOString(),
+      },
     ]);
   }),
 
@@ -663,20 +680,20 @@ export const assetHandlers = [
  */
 export const mockCompoundInterestResult = {
   finalBalance: 20097.57,
-  principal: 10000.00,
-  totalContributions: 2400.00,
+  principal: 10000.0,
+  totalContributions: 2400.0,
   totalInterest: 7697.57,
-  totalInvested: 12400.00,
-  effectiveAnnualRate: 7.2290,
+  totalInvested: 12400.0,
+  effectiveAnnualRate: 7.229,
   yearlyBreakdown: [
     {
       year: 1,
-      startingBalance: 10000.00,
-      contributions: 2400.00,
+      startingBalance: 10000.0,
+      contributions: 2400.0,
       interestEarned: 891.49,
       endingBalance: 13291.49,
       cumulativeInterest: 891.49,
-      cumulativePrincipal: 12400.00,
+      cumulativePrincipal: 12400.0,
     },
   ],
 };
@@ -705,14 +722,14 @@ export const assetSearchHandlers = [
   }),
 
   http.post(`${API_BASE_URL}/assets`, async ({ request }) => {
-    const body = await request.json() as any;
+    const body = (await request.json()) as any;
     const newAsset = { id: mockAssets.length + 1, ...body };
     return HttpResponse.json(newAsset, { status: 201 });
   }),
 
   http.put(`${API_BASE_URL}/assets/:id`, async ({ params, request }) => {
-    const body = await request.json() as any;
-    const asset = mockAssets.find((a) => a.id === Number(params.id));
+    const body = (await request.json()) as any;
+    const asset = mockAssets.find(a => a.id === Number(params.id));
     return HttpResponse.json({ ...asset, ...body });
   }),
 
@@ -721,7 +738,7 @@ export const assetSearchHandlers = [
   }),
 
   http.get(`${API_BASE_URL}/assets/:id`, ({ params }) => {
-    const asset = mockAssets.find((a) => a.id === Number(params.id));
+    const asset = mockAssets.find(a => a.id === Number(params.id));
     if (asset) return HttpResponse.json(asset);
     return HttpResponse.json({ message: 'Asset not found' }, { status: 404 });
   }),
@@ -746,14 +763,14 @@ export const liabilityPagedHandlers = [
   }),
 
   http.post(`${API_BASE_URL}/liabilities`, async ({ request }) => {
-    const body = await request.json() as any;
+    const body = (await request.json()) as any;
     const newLiability = { id: mockLiabilities.length + 1, ...body };
     return HttpResponse.json(newLiability, { status: 201 });
   }),
 
   http.put(`${API_BASE_URL}/liabilities/:id`, async ({ params, request }) => {
-    const body = await request.json() as any;
-    const liability = mockLiabilities.find((l) => l.id === Number(params.id));
+    const body = (await request.json()) as any;
+    const liability = mockLiabilities.find(l => l.id === Number(params.id));
     return HttpResponse.json({ ...liability, ...body });
   }),
 
@@ -823,12 +840,12 @@ export const budgetAlertHandlers = [
   }),
 
   http.post(`${API_BASE_URL}/budgets/alerts`, async ({ request }) => {
-    const body = await request.json() as any;
+    const body = (await request.json()) as any;
     return HttpResponse.json({ id: 'new-alert', ...body }, { status: 201 });
   }),
 
   http.put(`${API_BASE_URL}/budgets/alerts/:id`, async ({ params, request }) => {
-    const body = await request.json() as any;
+    const body = (await request.json()) as any;
     return HttpResponse.json({ id: params.id, ...body });
   }),
 
@@ -896,6 +913,7 @@ export const marketDataHandlers = [
  * All handlers combined
  */
 export const handlers = [
+  ...configHandlers,
   ...authHandlers,
   ...accountHandlers,
   ...transactionHandlers,

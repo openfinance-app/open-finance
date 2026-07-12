@@ -72,6 +72,7 @@ class CategoryLocalizationIntegrationTest {
         registrationRequest.setUsername("testuser");
         registrationRequest.setEmail("test@example.com");
         registrationRequest.setPassword("Password123!");
+        registrationRequest.setMasterPassword("Password123!");
 
         userService.registerUser(registrationRequest);
 

@@ -122,8 +122,10 @@ public class SecurityConfig {
                                                                                 "/api/v1/auth/register",
                                                                                 "/api/v1/auth/login")
                                                                 .permitAll()
-                                                                .requestMatchers("/api/v1/health/**")
-                                                                .permitAll()
+                                                                 .requestMatchers("/api/v1/config/security")
+                                                                 .permitAll()
+                                                                 .requestMatchers("/api/v1/health/**")
+                                                                 .permitAll()
                                                                 .requestMatchers("/api/v1/ai/health")
                                                                 .permitAll()
                                                                 // Requirement TASK-16.2.5: Expose actuator health

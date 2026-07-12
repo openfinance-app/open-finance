@@ -1,12 +1,12 @@
 /**
  * LoginPage - User login form
- * 
+ *
  * Implements TASK-1.3.10:
  * - Form with username, password, master password
  * - Remember me checkbox (optional)
  * - Loading and error states
  * - Dark theme styling (Finary-style)
- * 
+ *
  * Requirements: REQ-2.1.3, REQ-2.1.4 (User Login & Authentication)
  */
 import { useTranslation } from 'react-i18next';
@@ -17,9 +17,13 @@ import { Lock, User, Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { loginSchema, type LoginFormData } from '@/validators/authSchemas';
+import { createLoginSchema, type LoginFormData } from '@/validators/authSchemas';
 import { useLogin } from '@/hooks/useAuth';
+import { resolveEncryptionEnabled, useSecurityConfig } from '@/hooks/useSecurityConfig';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
+
+const passwordRevealButtonClass =
+  'absolute right-0 top-7 h-10 w-10 inline-flex items-center justify-center text-text-muted hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface';
 
 /**
  * LoginPage component
@@ -33,6 +37,9 @@ export default function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const loginMutation = useLogin();
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
+  const loginSchema = createLoginSchema(encryptionEnabled);
 
   // Get success message from navigation state (e.g., after registration).
   // Prefer a translation key (messageKey) so the message renders in the active language;
@@ -74,24 +81,21 @@ export default function LoginPage() {
          * On success navigates to /dashboard; on failure sets loginError state
          * which will cause the error banner to render.
          */
-        submitLogin: async (username: string, password: string, masterPassword: string) => {
+        submitLogin: async (username: string, password: string, masterPassword?: string) => {
           setLoginError(null);
           try {
-            console.log('TEST: Attempting login for:', username);
             const result = await loginMutation.mutateAsync({
               username,
               password,
-              masterPassword,
               rememberMe: false,
+              ...(encryptionEnabled ? { masterPassword: masterPassword ?? '' } : {}),
             });
-            console.log('TEST: Login successful');
             if (!result.onboardingComplete) {
               navigate('/onboarding', { replace: true });
             } else {
               navigate('/dashboard', { replace: true });
             }
           } catch (error: any) {
-            console.error('TEST: Login error:', error);
             const msg =
               error?.response?.data?.message ||
               error?.response?.data?.error ||
@@ -101,9 +105,11 @@ export default function LoginPage() {
           }
         },
       };
-      return () => { delete (window as any).__loginTestHelper; };
+      return () => {
+        delete (window as any).__loginTestHelper;
+      };
     }
-  }, [loginMutation, navigate, setLoginError]);
+  }, [encryptionEnabled, loginMutation, navigate, t]);
 
   /**
    * Handle form submission
@@ -114,14 +120,12 @@ export default function LoginPage() {
     setLoginError(null);
 
     try {
-      console.log('Attempting login for:', data.username);
       const loginResult = await loginMutation.mutateAsync({
         username: data.username,
         password: data.password,
-        masterPassword: data.masterPassword,
         rememberMe: data.rememberMe || false,
+        ...(encryptionEnabled ? { masterPassword: data.masterPassword } : {}),
       });
-      console.log('Login successful');
       // Redirect to onboarding for first-time users; otherwise go to the
       // originally requested page or the dashboard.
       if (!loginResult.onboardingComplete) {
@@ -132,7 +136,6 @@ export default function LoginPage() {
       }
     } catch (error: any) {
       // Extract error message and store in state for display
-      console.error('Login error caught in component:', error);
       const errorMessage =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
@@ -173,12 +176,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-text-primary mb-2">
-            {t('login.title')}
-          </h1>
-          <p className="text-text-secondary">
-            {t('login.subtitle')}
-          </p>
+          <h1 className="text-3xl font-bold text-text-primary mb-2">{t('login.title')}</h1>
+          <p className="text-text-secondary">{t('login.subtitle')}</p>
         </div>
 
         {/* Login Form */}
@@ -237,8 +236,9 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[38px] text-text-muted hover:text-text-primary transition-colors"
+                  className={passwordRevealButtonClass}
                   aria-label={showPassword ? t('login.password.hide') : t('login.password.show')}
+                  aria-pressed={showPassword}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -246,30 +246,46 @@ export default function LoginPage() {
             </div>
 
             {/* Master Password Field */}
-            <div>
-              <div className="relative">
-                <Shield className="absolute left-3 top-10 h-5 w-5 text-primary" aria-hidden="true" />
-                <Input
-                  id="masterPassword"
-                  {...register('masterPassword')}
-                  label={t('login.masterPassword.label')}
-                  type={showMasterPassword ? 'text' : 'password'}
-                  placeholder="••••••••••••"
-                  className="pl-10 pr-10"
-                  error={errors.masterPassword?.message ? t(errors.masterPassword.message) : undefined}
-                  autoComplete="current-password"
-                  helperText={t('login.masterPassword.helper')}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowMasterPassword(!showMasterPassword)}
-                  className="absolute right-3 top-10 text-text-muted hover:text-text-primary transition-colors"
-                  aria-label={showMasterPassword ? t('login.masterPassword.hide') : t('login.masterPassword.show')}
-                >
-                  {showMasterPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
+            {encryptionEnabled && (
+              <div>
+                <div className="relative">
+                  <Shield
+                    className="absolute left-3 top-10 h-5 w-5 text-primary"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    id="masterPassword"
+                    {...register('masterPassword')}
+                    label={t('login.masterPassword.label')}
+                    type={showMasterPassword ? 'text' : 'password'}
+                    placeholder="••••••••••••"
+                    className="pl-10 pr-10"
+                    error={
+                      errors.masterPassword?.message ? t(errors.masterPassword.message) : undefined
+                    }
+                    autoComplete="current-password"
+                    helperText={t('login.masterPassword.helper')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowMasterPassword(!showMasterPassword)}
+                    className={passwordRevealButtonClass}
+                    aria-label={
+                      showMasterPassword
+                        ? t('login.masterPassword.hide')
+                        : t('login.masterPassword.show')
+                    }
+                    aria-pressed={showMasterPassword}
+                  >
+                    {showMasterPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Remember Me Checkbox */}
             <div className="flex items-start space-x-2">
@@ -321,19 +337,19 @@ export default function LoginPage() {
         </div>
 
         {/* Security Notice */}
-        <div className="mt-5 bg-surface-elevated/50 rounded-lg p-4 border border-border/50">
-          <div className="flex gap-3">
-            <Shield className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" aria-hidden="true" />
-            <div>
-              <p className="text-sm text-text-primary font-medium mb-1">
-                {t('login.secureLogin.title')}
-              </p>
-              <p className="text-xs text-text-secondary">
-                {t('login.secureLogin.description')}
-              </p>
+        {encryptionEnabled && (
+          <div className="mt-5 bg-surface-elevated/50 rounded-lg p-4 border border-border/50">
+            <div className="flex gap-3">
+              <Shield className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="text-sm text-text-primary font-medium mb-1">
+                  {t('login.secureLogin.title')}
+                </p>
+                <p className="text-xs text-text-secondary">{t('login.secureLogin.description')}</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

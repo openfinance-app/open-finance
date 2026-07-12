@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.dto.UpdateProfileRequest;
 import org.openfinance.dto.UserRegistrationRequest;
 import org.openfinance.dto.UserResponse;
@@ -50,10 +51,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
+    private static final String ENCRYPTION_DISABLED_SALT = "ENCRYPTION_DISABLED";
 
     private final UserRepository userRepository;
     private final PasswordService passwordService;
     private final KeyManagementService keyManagementService;
+    private final EncryptionProperties encryptionProperties;
     private final UserMapper userMapper;
     private final CategorySeeder categorySeeder;
     private final PayeeSeeder payeeSeeder;
@@ -67,7 +70,7 @@ public class UserService {
      *   <li>Validate username uniqueness
      *   <li>Validate email uniqueness
      *   <li>Hash login password with BCrypt
-     *   <li>Generate unique salt for master password key derivation
+     *   <li>Generate unique salt for master password key derivation when encryption is enabled
      *   <li>Create and persist User entity
      *   <li>Return non-sensitive user information
      * </ol>
@@ -87,7 +90,7 @@ public class UserService {
      *   <li>Username: 3-50 characters, unique
      *   <li>Email: Valid format, unique
      *   <li>Password: Minimum 8 characters
-     *   <li>Master password: Minimum 8 characters
+     *   <li>Master password: Required when application encryption is enabled
      * </ul>
      *
      * @param request registration request with username, email, password, and master password
@@ -112,12 +115,29 @@ public class UserService {
             throw new DuplicateUserException("Email already exists: " + request.getEmail());
         }
 
+        boolean encryptionEnabled = encryptionProperties.isEnabled();
+        if (encryptionEnabled
+                && (request.getMasterPassword() == null
+                        || request.getMasterPassword().isBlank())) {
+            throw new IllegalArgumentException(
+                    "Master password is required when encryption is enabled");
+        }
+        if (encryptionEnabled && request.getMasterPassword().length() < 8) {
+            throw new IllegalArgumentException(
+                    "Master password must be at least 8 characters when encryption is enabled");
+        }
+
         // 3. Hash login password with BCrypt
         String passwordHash = passwordService.hashPassword(request.getPassword());
 
         // 4. Generate unique salt for master password key derivation
-        byte[] saltBytes = keyManagementService.generateSalt();
-        String saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
+        String saltBase64;
+        if (encryptionEnabled) {
+            byte[] saltBytes = keyManagementService.generateSalt();
+            saltBase64 = Base64.getEncoder().encodeToString(saltBytes);
+        } else {
+            saltBase64 = ENCRYPTION_DISABLED_SALT;
+        }
 
         // 5. Create User entity
         User user =

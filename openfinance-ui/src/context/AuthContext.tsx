@@ -1,11 +1,11 @@
 /**
  * AuthContext - Manages global authentication state
- * 
+ *
  * Implements TASK-1.3.12:
  * - Manages authentication state (isAuthenticated, user, token)
  * - Provides login/logout functions
  * - Persists authentication across page reloads
- * 
+ *
  * Requirements: REQ-2.1.3, REQ-2.1.4 (User Authentication)
  */
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
@@ -47,8 +47,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [sessionStartTime, setSessionStartTime] = useState<string | null>(
-    () => sessionStorage.getItem('session_start_time')
+  const [sessionStartTime, setSessionStartTime] = useState<string | null>(() =>
+    sessionStorage.getItem('session_start_time')
   );
 
   /**
@@ -96,7 +96,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(null);
         } else {
           // Logged in on another tab
-          const storedUser = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+          const storedUser =
+            localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
           if (storedUser) {
             setToken(e.newValue);
             setUser(JSON.parse(storedUser) as User);
@@ -152,7 +153,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * a full re-login.
    */
   const updateUser = useCallback((partial: Partial<User>) => {
-    setUser((prev) => {
+    setUser(prev => {
       if (!prev) return prev;
       const updated = { ...prev, ...partial };
 
@@ -186,6 +187,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       sessionStorage.removeItem('auth_token');
       sessionStorage.removeItem('auth_user');
       sessionStorage.removeItem('encryption_session');
+      sessionStorage.removeItem('encryption_enabled');
       sessionStorage.removeItem('session_start_time');
       setSessionStartTime(null);
     } catch (e) {

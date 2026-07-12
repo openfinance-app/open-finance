@@ -248,7 +248,7 @@ class RealEstateControllerIntegrationTest {
         }
 
         @Test
-        @DisplayName("POST /api/v1/real-estate - fail without encryption key")
+        @DisplayName("POST /api/v1/real-estate - fail without encryption session")
         void shouldFailCreateWithoutEncryptionKey() throws Exception {
                 RealEstatePropertyRequest req = RealEstatePropertyRequest.builder()
                                 .name("Test Property")
@@ -266,7 +266,7 @@ class RealEstateControllerIntegrationTest {
                                                 // No X-Encryption-Session header
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content(objectMapper.writeValueAsString(req)))
-                                .andExpect(status().isCreated());
+                                .andExpect(status().isUnauthorized());
         }
 
         @Test
@@ -408,14 +408,14 @@ class RealEstateControllerIntegrationTest {
         }
 
         @Test
-        @DisplayName("GET /api/v1/real-estate/{id} - fail without encryption key")
+        @DisplayName("GET /api/v1/real-estate/{id} - fail without encryption session")
         void shouldFailGetPropertyWithoutEncryptionKey() throws Exception {
                 Long propertyId = createProperty("Test Property", PropertyType.RESIDENTIAL, "500000", "600000", true);
 
                 mockMvc.perform(
                                 get("/api/v1/real-estate/" + propertyId)
                                                 .header("Authorization", "Bearer " + token))
-                                .andExpect(status().isBadRequest());
+                                .andExpect(status().isUnauthorized());
         }
 
         // === UPDATE Tests ===
@@ -509,7 +509,8 @@ class RealEstateControllerIntegrationTest {
         void shouldFailDeleteWithNonExistentId() throws Exception {
                 mockMvc.perform(
                                 delete("/api/v1/real-estate/99999")
-                                                .header("Authorization", "Bearer " + token))
+                                                .header("Authorization", "Bearer " + token)
+                                                .header("X-Encryption-Session", encKey))
                                 .andExpect(status().isNotFound());
         }
 

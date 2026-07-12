@@ -12,8 +12,18 @@ import {
   useAIChat,
 } from './useAIChat';
 import apiClient from '@/services/apiClient';
+import { useSecurityConfig } from '@/hooks/useSecurityConfig';
 
 vi.mock('@/services/apiClient');
+vi.mock('@/hooks/useSecurityConfig', async () => {
+  const actual = await vi.importActual<typeof import('@/hooks/useSecurityConfig')>(
+    '@/hooks/useSecurityConfig'
+  );
+  return {
+    ...actual,
+    useSecurityConfig: vi.fn(),
+  };
+});
 const mockedApiClient = apiClient as any;
 
 const mockSessionStorage = {
@@ -35,6 +45,10 @@ describe('useAIChat hooks', () => {
     });
     vi.clearAllMocks();
     mockSessionStorage.getItem.mockReturnValue('test-encryption-key');
+    vi.mocked(useSecurityConfig).mockReturnValue({
+      data: { encryptionEnabled: true },
+      isError: false,
+    } as ReturnType<typeof useSecurityConfig>);
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -94,7 +108,7 @@ describe('useAIChat hooks', () => {
           conversation_id: null,
           include_full_context: true,
         },
-        { headers: { 'X-Encryption-Session': 'test-encryption-key' } },
+        { headers: { 'X-Encryption-Session': 'test-encryption-key' } }
       );
     });
 
@@ -113,6 +127,41 @@ describe('useAIChat hooks', () => {
 
       await waitFor(() => expect(result.current.isError).toBe(true));
       expect(result.current.error?.message).toContain('Encryption key not found');
+    });
+
+    it('should send without encryption header when encryption is disabled', async () => {
+      mockSessionStorage.getItem.mockReturnValue(null);
+      vi.mocked(useSecurityConfig).mockReturnValue({
+        data: { encryptionEnabled: false },
+        isError: false,
+      } as ReturnType<typeof useSecurityConfig>);
+      const mockResponse = {
+        response: 'Answer',
+        conversation_id: 'conv-disabled',
+        model: 'llama3',
+      };
+      mockedApiClient.post.mockResolvedValue({ data: mockResponse });
+
+      const { result } = renderHook(() => useSendMessage(), { wrapper });
+
+      await act(async () => {
+        result.current.mutate({
+          question: 'Test',
+          conversation_id: null,
+          include_full_context: true,
+        });
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/ai/chat',
+        {
+          question: 'Test',
+          conversation_id: null,
+          include_full_context: true,
+        },
+        { headers: {} }
+      );
     });
 
     it('should invalidate conversations query on success', async () => {
@@ -224,7 +273,11 @@ describe('useAIChat hooks', () => {
     });
 
     it('should send question via askQuestion', async () => {
-      const mockResponse = { response: 'Analysis result', conversation_id: 'conv-new', model: 'llama3' };
+      const mockResponse = {
+        response: 'Analysis result',
+        conversation_id: 'conv-new',
+        model: 'llama3',
+      };
       // First call for health check, subsequent for chat
       mockedApiClient.get.mockResolvedValue({ data: { available: true } });
       mockedApiClient.post.mockResolvedValue({ data: mockResponse });
@@ -247,7 +300,8 @@ describe('useAIChat hooks', () => {
       };
       mockedApiClient.get.mockImplementation((url: string) => {
         if (url.includes('/ai/health')) return Promise.resolve({ data: { available: true } });
-        if (url.includes('/ai/conversations/conv-existing')) return Promise.resolve({ data: mockConversation });
+        if (url.includes('/ai/conversations/conv-existing'))
+          return Promise.resolve({ data: mockConversation });
         return Promise.resolve({ data: {} });
       });
 
@@ -282,12 +336,16 @@ describe('useAIChat hooks', () => {
           const self = this;
           Object.defineProperty(instance, 'onmessage', {
             get: () => self.onmessage,
-            set: (v: any) => { self.onmessage = v; },
+            set: (v: any) => {
+              self.onmessage = v;
+            },
             configurable: true,
           });
           Object.defineProperty(instance, 'onerror', {
             get: () => self.onerror,
-            set: (v: any) => { self.onerror = v; },
+            set: (v: any) => {
+              self.onerror = v;
+            },
             configurable: true,
           });
         }
@@ -311,10 +369,9 @@ describe('useAIChat hooks', () => {
       const onComplete = vi.fn();
       const onError = vi.fn();
 
-      const { result } = renderHook(
-        () => useStreamingChat(onChunk, onComplete, onError),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useStreamingChat(onChunk, onComplete, onError), {
+        wrapper,
+      });
 
       await act(async () => {
         await result.current.sendStreamingMessage({
@@ -333,10 +390,9 @@ describe('useAIChat hooks', () => {
       const onComplete = vi.fn();
       const onError = vi.fn();
 
-      const { result } = renderHook(
-        () => useStreamingChat(onChunk, onComplete, onError),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useStreamingChat(onChunk, onComplete, onError), {
+        wrapper,
+      });
 
       await act(async () => {
         await result.current.sendStreamingMessage({
@@ -358,10 +414,9 @@ describe('useAIChat hooks', () => {
       const onComplete = vi.fn();
       const onError = vi.fn();
 
-      const { result } = renderHook(
-        () => useStreamingChat(onChunk, onComplete, onError),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useStreamingChat(onChunk, onComplete, onError), {
+        wrapper,
+      });
 
       await act(async () => {
         await result.current.sendStreamingMessage({
@@ -385,10 +440,9 @@ describe('useAIChat hooks', () => {
       const onComplete = vi.fn();
       const onError = vi.fn();
 
-      const { result } = renderHook(
-        () => useStreamingChat(onChunk, onComplete, onError),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useStreamingChat(onChunk, onComplete, onError), {
+        wrapper,
+      });
 
       act(() => {
         result.current.sendStreamingMessage({
@@ -398,9 +452,48 @@ describe('useAIChat hooks', () => {
         });
       });
 
-      expect(onError).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Encryption key not found',
-      }));
+      expect(onError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Encryption key not found',
+        })
+      );
+    });
+
+    it('should stream without encryption key when encryption is disabled', async () => {
+      mockSessionStorage.getItem.mockReturnValue(null);
+      vi.mocked(useSecurityConfig).mockReturnValue({
+        data: { encryptionEnabled: false },
+        isError: false,
+      } as ReturnType<typeof useSecurityConfig>);
+      let capturedUrl = '';
+      const instance = mockEventSourceInstance;
+      (globalThis as any).EventSource = class MockEventSource {
+        addEventListener = instance.addEventListener;
+        close = instance.close;
+        onmessage: any = null;
+        onerror: any = null;
+        constructor(url: string) {
+          capturedUrl = url;
+        }
+      };
+      const onChunk = vi.fn();
+      const onComplete = vi.fn();
+      const onError = vi.fn();
+
+      const { result } = renderHook(() => useStreamingChat(onChunk, onComplete, onError), {
+        wrapper,
+      });
+
+      await act(async () => {
+        await result.current.sendStreamingMessage({
+          question: 'Test',
+          conversation_id: null,
+          include_full_context: true,
+        });
+      });
+
+      expect(capturedUrl).toContain('/ai/chat/stream?');
+      expect(onError).not.toHaveBeenCalled();
     });
 
     it('should close EventSource when cancelStream is called', async () => {
@@ -408,10 +501,9 @@ describe('useAIChat hooks', () => {
       const onComplete = vi.fn();
       const onError = vi.fn();
 
-      const { result } = renderHook(
-        () => useStreamingChat(onChunk, onComplete, onError),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useStreamingChat(onChunk, onComplete, onError), {
+        wrapper,
+      });
 
       await act(async () => {
         await result.current.sendStreamingMessage({
@@ -433,10 +525,9 @@ describe('useAIChat hooks', () => {
       const onComplete = vi.fn();
       const onError = vi.fn();
 
-      const { result } = renderHook(
-        () => useStreamingChat(onChunk, onComplete, onError),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useStreamingChat(onChunk, onComplete, onError), {
+        wrapper,
+      });
 
       await act(async () => {
         await result.current.sendStreamingMessage({

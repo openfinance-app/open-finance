@@ -314,13 +314,45 @@ class AuthControllerTest {
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.validationErrors.masterPassword").exists());
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        containsString(
+                                                "Master password is required when encryption is enabled")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/register - Should return 400 when master password is too short")
+    void shouldReturn400WhenMasterPasswordIsTooShort() throws Exception {
+        // Arrange
+        UserRegistrationRequest invalidRequest =
+                UserRegistrationRequest.builder()
+                        .username("john_doe")
+                        .email("john@example.com")
+                        .password("Password123!")
+                        .masterPassword("short")
+                        .build();
+
+        // Act & Assert
+        mockMvc.perform(
+                        post("/api/v1/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        containsString(
+                                                "Master password must be at least 8 characters when encryption is enabled")));
     }
 
     @Test
     @DisplayName("POST /api/v1/auth/register - Should return 400 with multiple validation errors")
     void shouldReturn400WithMultipleValidationErrors() throws Exception {
-        // Arrange - Invalid username, email, password, and master password
+        // Arrange - Invalid username, email, and password. Master password is validated by the
+        // service only when other registration fields are valid.
         UserRegistrationRequest invalidRequest =
                 UserRegistrationRequest.builder()
                         .username("ab")
@@ -339,8 +371,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.validationErrors.username").exists())
                 .andExpect(jsonPath("$.validationErrors.email").exists())
-                .andExpect(jsonPath("$.validationErrors.password").exists())
-                .andExpect(jsonPath("$.validationErrors.masterPassword").exists());
+                .andExpect(jsonPath("$.validationErrors.password").exists());
     }
 
     @Test
@@ -445,7 +476,8 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.userId").isNumber())
                 .andExpect(jsonPath("$.username").value("john_doe"))
                 .andExpect(jsonPath("$.encryptionKey").exists())
-                .andExpect(jsonPath("$.encryptionKey").isNotEmpty());
+                .andExpect(jsonPath("$.encryptionKey").isNotEmpty())
+                .andExpect(jsonPath("$.encryptionEnabled").value(true));
     }
 
     @Test
@@ -604,8 +636,9 @@ class AuthControllerTest {
     @DisplayName("POST /auth/login - should return 400 when master password is missing")
     void shouldReturn400WhenMasterPasswordIsMissingOnLogin() throws Exception {
         // Arrange
+        userService.registerUser(validRequest);
         String requestBody =
-                "{" + "\"username\": \"john_doe\"," + "\"password\": \"password123\"" + "}";
+                "{" + "\"username\": \"john_doe\"," + "\"password\": \"Password123!\"" + "}";
 
         // Act & Assert
         mockMvc.perform(
@@ -616,8 +649,10 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(
-                        jsonPath("$.validationErrors.masterPassword")
-                                .value("Master password is required"));
+                        jsonPath("$.message")
+                                .value(
+                                        containsString(
+                                                "Master password is required when encryption is enabled")));
     }
 
     @Test
@@ -854,9 +889,13 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
+        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         // Act & Assert: Get profile with valid token
-        mockMvc.perform(get("/api/v1/auth/profile").header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        get("/api/v1/auth/profile")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber())
@@ -919,6 +958,7 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
+        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         UpdateProfileRequest updateRequest =
                 UpdateProfileRequest.builder()
@@ -930,6 +970,7 @@ class AuthControllerTest {
         mockMvc.perform(
                         put("/api/v1/auth/profile")
                                 .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andDo(print())
@@ -975,6 +1016,7 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
+        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         UpdateProfileRequest updateRequest =
                 UpdateProfileRequest.builder()
@@ -986,6 +1028,7 @@ class AuthControllerTest {
         mockMvc.perform(
                         put("/api/v1/auth/profile")
                                 .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andDo(print())
@@ -1039,6 +1082,7 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
+        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         UpdateProfileRequest updateRequest =
                 UpdateProfileRequest.builder()
@@ -1051,6 +1095,7 @@ class AuthControllerTest {
         mockMvc.perform(
                         put("/api/v1/auth/profile")
                                 .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andDo(print())
@@ -1104,6 +1149,7 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
+        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         UpdateProfileRequest updateRequest =
                 UpdateProfileRequest.builder()
@@ -1115,6 +1161,7 @@ class AuthControllerTest {
         mockMvc.perform(
                         put("/api/v1/auth/profile")
                                 .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andDo(print())
@@ -1169,6 +1216,7 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
+        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         // Try to update user2's email to user1's email
         UpdateProfileRequest updateRequest =
@@ -1181,6 +1229,7 @@ class AuthControllerTest {
         mockMvc.perform(
                         put("/api/v1/auth/profile")
                                 .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andDo(print())
@@ -1240,6 +1289,7 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
+        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         // Missing currentPassword
         String requestBody = "{\"email\": \"newemail@example.com\"}";
@@ -1248,6 +1298,7 @@ class AuthControllerTest {
         mockMvc.perform(
                         put("/api/v1/auth/profile")
                                 .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody))
                 .andDo(print())
@@ -1289,6 +1340,7 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
+        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         UpdateProfileRequest updateRequest =
                 UpdateProfileRequest.builder()
@@ -1300,6 +1352,7 @@ class AuthControllerTest {
         mockMvc.perform(
                         put("/api/v1/auth/profile")
                                 .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andDo(print())
@@ -1341,6 +1394,7 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
+        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         UpdateProfileRequest updateRequest =
                 UpdateProfileRequest.builder()
@@ -1352,6 +1406,7 @@ class AuthControllerTest {
         mockMvc.perform(
                         put("/api/v1/auth/profile")
                                 .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andDo(print())

@@ -72,6 +72,7 @@ class CurrencyControllerIntegrationTest {
     @Autowired private DatabaseCleanupService databaseCleanupService;
 
     private String userToken;
+    private String userEncKey;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -106,6 +107,7 @@ class CurrencyControllerIntegrationTest {
 
         String userResponse = userResult.getResponse().getContentAsString();
         userToken = objectMapper.readTree(userResponse).get("token").asText();
+        userEncKey = objectMapper.readTree(userResponse).get("encryptionKey").asText();
 
         // Seed test currencies
         seedCurrencies();
@@ -186,7 +188,10 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return all active currencies sorted by code")
     void shouldReturnAllActiveCurrenciesSortedByCode() throws Exception {
-        mockMvc.perform(get("/api/v1/currencies").header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(
+                        get("/api/v1/currencies")
+                                .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -211,7 +216,10 @@ class CurrencyControllerIntegrationTest {
                             currencyRepository.save(c);
                         });
 
-        mockMvc.perform(get("/api/v1/currencies").header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(
+                        get("/api/v1/currencies")
+                                .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -231,7 +239,8 @@ class CurrencyControllerIntegrationTest {
     void shouldReturnAllCurrenciesIncludingInactive() throws Exception {
         mockMvc.perform(
                         get("/api/v1/currencies/all")
-                                .header("Authorization", "Bearer " + userToken))
+                                .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -260,7 +269,8 @@ class CurrencyControllerIntegrationTest {
                                 .param("from", "USD")
                                 .param("to", "EUR")
                                 .param("date", yesterday.toString())
-                                .header("Authorization", "Bearer " + userToken))
+                                .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.baseCurrency").value("USD"))
@@ -280,7 +290,8 @@ class CurrencyControllerIntegrationTest {
                                 .param("from", "USD")
                                 .param("to", "EUR")
                                 .param("date", farPast.toString())
-                                .header("Authorization", "Bearer " + userToken))
+                                .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -296,7 +307,8 @@ class CurrencyControllerIntegrationTest {
                                 .param("from", "USD")
                                 .param("to", "EUR")
                                 .param("date", "invalid-date")
-                                .header("Authorization", "Bearer " + userToken))
+                                .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey))
                 .andDo(print())
                 .andExpect(status().isInternalServerError());
     }
@@ -322,7 +334,8 @@ class CurrencyControllerIntegrationTest {
                         get("/api/v1/currencies/exchange-rates/latest")
                                 .param("from", "USD")
                                 .param("to", "EUR")
-                                .header("Authorization", "Bearer " + userToken))
+                                .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.baseCurrency").value("USD"))
@@ -339,7 +352,8 @@ class CurrencyControllerIntegrationTest {
                         get("/api/v1/currencies/exchange-rates/latest")
                                 .param("from", "USD")
                                 .param("to", "NONEXISTENT")
-                                .header("Authorization", "Bearer " + userToken))
+                                .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
@@ -365,6 +379,7 @@ class CurrencyControllerIntegrationTest {
         mockMvc.perform(
                         post("/api/v1/currencies/convert")
                                 .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -387,6 +402,7 @@ class CurrencyControllerIntegrationTest {
         mockMvc.perform(
                         post("/api/v1/currencies/convert")
                                 .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -406,6 +422,7 @@ class CurrencyControllerIntegrationTest {
         mockMvc.perform(
                         post("/api/v1/currencies/convert")
                                 .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -425,6 +442,7 @@ class CurrencyControllerIntegrationTest {
         mockMvc.perform(
                         post("/api/v1/currencies/convert")
                                 .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -444,6 +462,7 @@ class CurrencyControllerIntegrationTest {
         mockMvc.perform(
                         post("/api/v1/currencies/convert")
                                 .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -472,7 +491,8 @@ class CurrencyControllerIntegrationTest {
         // Expect 403 Forbidden because @PreAuthorize("hasRole('ADMIN')") is now enabled
         mockMvc.perform(
                         post("/api/v1/currencies/exchange-rates/update")
-                                .header("Authorization", "Bearer " + userToken)) // Regular user
+                                .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey)) // Regular user
                 .andDo(print())
                 .andExpect(status().isForbidden());
     }

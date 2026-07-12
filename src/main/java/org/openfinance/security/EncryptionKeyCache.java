@@ -77,7 +77,6 @@ public class EncryptionKeyCache {
 
         sessionTokenCache.put(sessionToken, key);
         sessionTokenUserCache.put(sessionToken, userId);
-        userKeyCache.put(userId, key);
 
         return sessionToken;
     }
@@ -116,11 +115,27 @@ public class EncryptionKeyCache {
     public void invalidateSession(String sessionToken) {
         if (sessionToken != null) {
             sessionTokenCache.invalidate(sessionToken);
-            Long userId = sessionTokenUserCache.getIfPresent(sessionToken);
             sessionTokenUserCache.invalidate(sessionToken);
             // Note: we do NOT evict the userKeyCache entry here because the user
             // may have multiple active sessions (tabs). Scheduled jobs can still use it.
         }
+    }
+
+    /**
+     * Invalidates a session created during a login flow that failed before the client received it.
+     *
+     * <p>This only evicts session-token mappings. Per-user scheduler keys are populated separately
+     * after successful login, so failed sessions must not remove an existing scheduler-visible key.
+     *
+     * @param sessionToken the failed login session token to invalidate
+     */
+    public void invalidateFailedSession(String sessionToken) {
+        if (sessionToken == null) {
+            return;
+        }
+
+        sessionTokenCache.invalidate(sessionToken);
+        sessionTokenUserCache.invalidate(sessionToken);
     }
 
     /**

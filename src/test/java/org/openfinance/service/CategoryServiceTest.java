@@ -29,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.dto.CategoryRequest;
 import org.openfinance.dto.CategoryResponse;
 import org.openfinance.dto.CategoryTreeNode;
@@ -78,6 +79,9 @@ class CategoryServiceTest {
         @Mock
         private OperationHistoryService operationHistoryService;
 
+        @Mock
+        private EncryptionProperties encryptionProperties;
+
         @InjectMocks
         private CategoryService categoryService;
 
@@ -87,6 +91,7 @@ class CategoryServiceTest {
         @BeforeEach
         void setUp() {
                 EncryptionContext.setKey(new SecretKeySpec(new byte[32], "AES"));
+                when(encryptionProperties.isEnabled()).thenReturn(true);
         }
 
         @AfterEach
@@ -503,6 +508,26 @@ class CategoryServiceTest {
         }
 
         @Test
+        @DisplayName("Should get user category without encryption key when encryption is disabled")
+        void shouldGetUserCategoryWithoutEncryptionKeyWhenEncryptionDisabled() {
+                EncryptionContext.clear();
+                when(encryptionProperties.isEnabled()).thenReturn(false);
+                Category category = userCategoryFixture(
+                                CATEGORY_ID, USER_ID, "Plain Groceries", CategoryType.EXPENSE, null);
+                CategoryResponse response = buildResponse(
+                                CATEGORY_ID, "Plain Groceries", CategoryType.EXPENSE, null);
+
+                when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
+                                .thenReturn(Optional.of(category));
+                when(categoryMapper.toResponse(category)).thenReturn(response);
+                when(categoryRepository.countSubcategories(CATEGORY_ID)).thenReturn(0);
+
+                CategoryResponse result = categoryService.getCategoryById(USER_ID, CATEGORY_ID);
+
+                assertThat(result.getName()).isEqualTo("Plain Groceries");
+        }
+
+        @Test
         @DisplayName("Should throw CategoryNotFoundException when category not found by ID")
         void shouldThrowWhenGetByIdNotFound() {
                 // Arrange
@@ -552,6 +577,28 @@ class CategoryServiceTest {
         }
 
         @Test
+        @DisplayName("Should return user categories without encryption key when encryption is disabled")
+        void shouldGetAllCategoriesWithoutEncryptionKeyWhenEncryptionDisabled() {
+                EncryptionContext.clear();
+                when(encryptionProperties.isEnabled()).thenReturn(false);
+                Category userCat = userCategoryFixture(1L, USER_ID, "Plain Groceries", CategoryType.EXPENSE, null);
+                Category sysCat = systemCategoryFixture(2L, USER_ID, "Salary", CategoryType.INCOME);
+                CategoryResponse userResp = buildResponse(1L, "Plain Groceries", CategoryType.EXPENSE, null);
+                CategoryResponse sysResp = buildResponse(2L, "Salary", CategoryType.INCOME, null);
+                sysResp.setIsSystem(true);
+
+                when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(userCat, sysCat));
+                when(categoryMapper.toResponse(userCat)).thenReturn(userResp);
+                when(categoryMapper.toResponse(sysCat)).thenReturn(sysResp);
+                when(categoryRepository.countSubcategories(anyLong())).thenReturn(0);
+
+                List<CategoryResponse> results = categoryService.getAllCategories(USER_ID);
+
+                assertThat(results).extracting(CategoryResponse::getName)
+                                .containsExactly("Plain Groceries", "Salary");
+        }
+
+        @Test
         @DisplayName("Should return empty list when user has no categories")
         void shouldReturnEmptyListWhenNoCategories() {
                 // Arrange
@@ -595,6 +642,25 @@ class CategoryServiceTest {
                 assertThat(results).hasSize(1);
                 assertThat(results.get(0).getType()).isEqualTo(CategoryType.EXPENSE);
                 verify(categoryRepository).findByUserIdAndType(USER_ID, CategoryType.EXPENSE);
+        }
+
+        @Test
+        @DisplayName("Should return typed user categories without encryption key when encryption is disabled")
+        void shouldGetCategoriesByTypeWithoutEncryptionKeyWhenEncryptionDisabled() {
+                EncryptionContext.clear();
+                when(encryptionProperties.isEnabled()).thenReturn(false);
+                Category cat = userCategoryFixture(1L, USER_ID, "Plain Food", CategoryType.EXPENSE, null);
+                CategoryResponse resp = buildResponse(1L, "Plain Food", CategoryType.EXPENSE, null);
+
+                when(categoryRepository.findByUserIdAndType(USER_ID, CategoryType.EXPENSE))
+                                .thenReturn(List.of(cat));
+                when(categoryMapper.toResponse(cat)).thenReturn(resp);
+                when(categoryRepository.countSubcategories(1L)).thenReturn(0);
+
+                List<CategoryResponse> results = categoryService.getCategoriesByType(USER_ID, CategoryType.EXPENSE);
+
+                assertThat(results).hasSize(1);
+                assertThat(results.get(0).getName()).isEqualTo("Plain Food");
         }
 
         @Test
@@ -727,6 +793,23 @@ class CategoryServiceTest {
                 // Assert
                 assertThat(tree).hasSize(1);
                 assertThat(tree.get(0).getName()).isEqualTo("My Category");
+        }
+
+        @Test
+        @DisplayName("Should include user categories in tree without encryption key when encryption is disabled")
+        void shouldIncludeUserCategoriesInTreeWithoutEncryptionKeyWhenEncryptionDisabled() {
+                EncryptionContext.clear();
+                when(encryptionProperties.isEnabled()).thenReturn(false);
+                Category userCat = userCategoryFixture(3L, USER_ID, "Plain Category", CategoryType.INCOME, null);
+
+                when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(userCat));
+                when(transactionRepository.countByCategoryId(3L)).thenReturn(0L);
+                when(transactionRepository.findByCategoryId(3L)).thenReturn(Collections.emptyList());
+
+                List<CategoryTreeNode> tree = categoryService.getCategoryTree(USER_ID);
+
+                assertThat(tree).hasSize(1);
+                assertThat(tree.get(0).getName()).isEqualTo("Plain Category");
         }
 
         @Test

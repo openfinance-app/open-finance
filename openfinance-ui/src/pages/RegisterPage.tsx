@@ -1,12 +1,12 @@
 /**
  * RegisterPage - User registration form
- * 
+ *
  * Implements TASK-1.2.8-1.2.12:
  * - React Hook Form with Zod validation
  * - Password strength indicator
  * - Loading and error states
  * - Dark theme styling (Finary-style)
- * 
+ *
  * Requirements: REQ-2.1.1, REQ-2.1.2 (User Registration)
  */
 import { useTranslation } from 'react-i18next';
@@ -18,9 +18,13 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PasswordStrength } from '@/components/PasswordStrength';
-import { registerSchema, type RegisterFormData } from '@/validators/authSchemas';
+import { createRegisterSchema, type RegisterFormData } from '@/validators/authSchemas';
 import { useRegister } from '@/hooks/useAuth';
+import { resolveEncryptionEnabled, useSecurityConfig } from '@/hooks/useSecurityConfig';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
+
+const passwordRevealButtonClass =
+  'absolute right-0 top-7 h-10 w-10 inline-flex items-center justify-center text-text-muted hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface';
 
 /**
  * RegisterPage component
@@ -31,6 +35,9 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showMasterPassword, setShowMasterPassword] = useState(false);
   const registerMutation = useRegister();
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
+  const registerSchema = createRegisterSchema(encryptionEnabled);
 
   // Initialize react-hook-form with zod validation
   const {
@@ -39,7 +46,7 @@ export default function RegisterPage() {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(registerSchema) as any,
     mode: 'onChange', // Validate on change for immediate feedback on password match
   });
 
@@ -57,11 +64,10 @@ export default function RegisterPage() {
         username: data.username,
         email: data.email,
         password: data.password,
-        masterPassword: data.masterPassword,
+        ...(encryptionEnabled ? { masterPassword: data.masterPassword } : {}),
       });
-    } catch (error) {
+    } catch {
       // Error is handled by the mutation's onError callback
-      console.error('Registration error:', error);
     }
   };
 
@@ -86,12 +92,8 @@ export default function RegisterPage() {
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-text-primary mb-2">
-            {t('register.title')}
-          </h1>
-          <p className="text-text-secondary">
-            {t('register.subtitle')}
-          </p>
+          <h1 className="text-3xl font-bold text-text-primary mb-2">{t('register.title')}</h1>
+          <p className="text-text-secondary">{t('register.subtitle')}</p>
         </div>
 
         {/* Registration Form */}
@@ -151,8 +153,11 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-[38px] text-text-muted hover:text-text-primary transition-colors"
-                    aria-label={showPassword ? t('register.password.hide') : t('register.password.show')}
+                    className={passwordRevealButtonClass}
+                    aria-label={
+                      showPassword ? t('register.password.hide') : t('register.password.show')
+                    }
+                    aria-pressed={showPassword}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -167,54 +172,75 @@ export default function RegisterPage() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 icon={<Lock className="h-5 w-5" />}
-                error={errors.confirmPassword?.message ? t(errors.confirmPassword.message) : undefined}
+                error={
+                  errors.confirmPassword?.message ? t(errors.confirmPassword.message) : undefined
+                }
                 autoComplete="new-password"
               />
             </div>
 
             {/* Master Password Fields */}
-            <div className="pt-4 border-t border-border">
-              <div className="mb-3 text-xs text-text-secondary">
-                {t('register.masterPassword.helper')}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-                <div>
-                  <div className="relative">
-                    <Input
-                      id="masterPassword"
-                      {...register('masterPassword')}
-                      label={t('register.masterPassword.label')}
-                      type={showMasterPassword ? 'text' : 'password'}
-                      placeholder="••••••••••••"
-                      icon={<Shield className="h-5 w-5 text-primary" />}
-                      className="pr-10"
-                      error={errors.masterPassword?.message ? t(errors.masterPassword.message) : undefined}
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowMasterPassword(!showMasterPassword)}
-                      className="absolute right-3 top-[38px] text-text-muted hover:text-text-primary transition-colors"
-                      aria-label={showMasterPassword ? t('register.masterPassword.hide') : t('register.masterPassword.show')}
-                    >
-                      {showMasterPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                  <PasswordStrength password={masterPassword || ''} />
+            {encryptionEnabled && (
+              <div className="pt-4 border-t border-border">
+                <div className="mb-3 text-xs text-text-secondary">
+                  {t('register.masterPassword.helper')}
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                  <div>
+                    <div className="relative">
+                      <Input
+                        id="masterPassword"
+                        {...register('masterPassword')}
+                        label={t('register.masterPassword.label')}
+                        type={showMasterPassword ? 'text' : 'password'}
+                        placeholder="••••••••••••"
+                        icon={<Shield className="h-5 w-5 text-primary" />}
+                        className="pr-10"
+                        error={
+                          errors.masterPassword?.message
+                            ? t(errors.masterPassword.message)
+                            : undefined
+                        }
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowMasterPassword(!showMasterPassword)}
+                        className={passwordRevealButtonClass}
+                        aria-label={
+                          showMasterPassword
+                            ? t('register.masterPassword.hide')
+                            : t('register.masterPassword.show')
+                        }
+                        aria-pressed={showMasterPassword}
+                      >
+                        {showMasterPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                    <PasswordStrength password={masterPassword || ''} />
+                  </div>
 
-                <Input
-                  id="confirmMasterPassword"
-                  {...register('confirmMasterPassword')}
-                  label={t('register.confirmMasterPassword.label')}
-                  type={showMasterPassword ? 'text' : 'password'}
-                  placeholder="••••••••••••"
-                  icon={<Shield className="h-5 w-5 text-primary" />}
-                  error={errors.confirmMasterPassword?.message ? t(errors.confirmMasterPassword.message) : undefined}
-                  autoComplete="new-password"
-                />
+                  <Input
+                    id="confirmMasterPassword"
+                    {...register('confirmMasterPassword')}
+                    label={t('register.confirmMasterPassword.label')}
+                    type={showMasterPassword ? 'text' : 'password'}
+                    placeholder="••••••••••••"
+                    icon={<Shield className="h-5 w-5 text-primary" />}
+                    error={
+                      errors.confirmMasterPassword?.message
+                        ? t(errors.confirmMasterPassword.message)
+                        : undefined
+                    }
+                    autoComplete="new-password"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Submit Button */}
             <Button
@@ -225,7 +251,9 @@ export default function RegisterPage() {
               isLoading={isSubmitting || registerMutation.isPending}
               disabled={isSubmitting || registerMutation.isPending}
             >
-              {isSubmitting || registerMutation.isPending ? t('register.submitting') : t('register.submit')}
+              {isSubmitting || registerMutation.isPending
+                ? t('register.submitting')
+                : t('register.submit')}
             </Button>
 
             {/* Success Message */}
@@ -251,19 +279,21 @@ export default function RegisterPage() {
         </div>
 
         {/* Security Notice */}
-        <div className="mt-5 bg-surface-elevated/50 rounded-lg p-4 border border-border/50">
-          <div className="flex gap-3">
-            <Shield className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm text-text-primary font-medium mb-1">
-                {t('register.securityNote.title')}
-              </p>
-              <p className="text-xs text-text-secondary">
-                {t('register.securityNote.description')}
-              </p>
+        {encryptionEnabled && (
+          <div className="mt-5 bg-surface-elevated/50 rounded-lg p-4 border border-border/50">
+            <div className="flex gap-3">
+              <Shield className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-text-primary font-medium mb-1">
+                  {t('register.securityNote.title')}
+                </p>
+                <p className="text-xs text-text-secondary">
+                  {t('register.securityNote.description')}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

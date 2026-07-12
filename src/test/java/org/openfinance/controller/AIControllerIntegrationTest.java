@@ -158,18 +158,17 @@ class AIControllerIntegrationTest {
         class ChatTests {
 
                 @Test
-                @DisplayName("Should return 500 when encryption key is missing")
+                @DisplayName("Should return 401 when encryption session is missing")
                 void shouldReturn500WhenMissingEncryptionKey() throws Exception {
                         AIDto.ChatRequest request = AIDto.ChatRequest.builder().question("What is my balance?").build();
 
-                        // Missing encryption key header causes internal error
                         mockMvc.perform(
                                         post("/api/v1/ai/chat")
                                                         .header("Authorization", "Bearer " + token)
                                                         .contentType(MediaType.APPLICATION_JSON)
                                                         .content(objectMapper.writeValueAsString(request)))
                                         .andDo(print())
-                                        .andExpect(status().isOk());
+                                        .andExpect(status().isUnauthorized());
                 }
 
                 @Test
@@ -213,7 +212,8 @@ class AIControllerIntegrationTest {
                 void shouldReturnEmptyList() throws Exception {
                         mockMvc.perform(
                                         get("/api/v1/ai/conversations")
-                                                        .header("Authorization", "Bearer " + token))
+                                                        .header("Authorization", "Bearer " + token)
+                                                        .header("X-Encryption-Session", encKey))
                                         .andDo(print())
                                         .andExpect(status().isOk())
                                         .andExpect(jsonPath("$").isArray())
@@ -259,7 +259,8 @@ class AIControllerIntegrationTest {
 
                         mockMvc.perform(
                                         get("/api/v1/ai/conversations")
-                                                        .header("Authorization", "Bearer " + token))
+                                                        .header("Authorization", "Bearer " + token)
+                                                        .header("X-Encryption-Session", encKey))
                                         .andDo(print())
                                         .andExpect(status().isOk())
                                         .andExpect(jsonPath("$").isArray())
@@ -310,7 +311,8 @@ class AIControllerIntegrationTest {
                         // Alice should only see her conversation
                         mockMvc.perform(
                                         get("/api/v1/ai/conversations")
-                                                        .header("Authorization", "Bearer " + token))
+                                                        .header("Authorization", "Bearer " + token)
+                                                        .header("X-Encryption-Session", encKey))
                                         .andDo(print())
                                         .andExpect(status().isOk())
                                         .andExpect(jsonPath("$.length()").value(1))
@@ -348,7 +350,8 @@ class AIControllerIntegrationTest {
 
                         mockMvc.perform(
                                         get("/api/v1/ai/conversations/" + conv.getId())
-                                                        .header("Authorization", "Bearer " + token))
+                                                        .header("Authorization", "Bearer " + token)
+                                                        .header("X-Encryption-Session", encKey))
                                         .andDo(print())
                                         .andExpect(status().isOk())
                                         .andExpect(jsonPath("$.id").value(conv.getId()))
@@ -370,7 +373,8 @@ class AIControllerIntegrationTest {
                 void shouldReturn404WhenNotFound() throws Exception {
                         mockMvc.perform(
                                         get("/api/v1/ai/conversations/99999")
-                                                        .header("Authorization", "Bearer " + token))
+                                                        .header("Authorization", "Bearer " + token)
+                                                        .header("X-Encryption-Session", encKey))
                                         .andDo(print())
                                         .andExpect(status().isNotFound());
                 }
@@ -401,7 +405,8 @@ class AIControllerIntegrationTest {
                         // Alice tries to access Bob's conversation
                         mockMvc.perform(
                                         get("/api/v1/ai/conversations/" + bobConv.getId())
-                                                        .header("Authorization", "Bearer " + token))
+                                                        .header("Authorization", "Bearer " + token)
+                                                        .header("X-Encryption-Session", encKey))
                                         .andDo(print())
                                         .andExpect(status().isNotFound());
                 }
@@ -425,7 +430,8 @@ class AIControllerIntegrationTest {
 
                         mockMvc.perform(
                                         delete("/api/v1/ai/conversations/" + conv.getId())
-                                                        .header("Authorization", "Bearer " + token))
+                                                        .header("Authorization", "Bearer " + token)
+                                                        .header("X-Encryption-Session", encKey))
                                         .andDo(print())
                                         .andExpect(status().isNoContent());
 
@@ -438,7 +444,8 @@ class AIControllerIntegrationTest {
                 void shouldReturn404WhenDeletingNonExistent() throws Exception {
                         mockMvc.perform(
                                         delete("/api/v1/ai/conversations/99999")
-                                                        .header("Authorization", "Bearer " + token))
+                                                        .header("Authorization", "Bearer " + token)
+                                                        .header("X-Encryption-Session", encKey))
                                         .andDo(print())
                                         .andExpect(status().isNotFound());
                 }
@@ -469,7 +476,8 @@ class AIControllerIntegrationTest {
                         // Alice tries to delete Bob's conversation
                         mockMvc.perform(
                                         delete("/api/v1/ai/conversations/" + bobConv.getId())
-                                                        .header("Authorization", "Bearer " + token))
+                                                        .header("Authorization", "Bearer " + token)
+                                                        .header("X-Encryption-Session", encKey))
                                         .andDo(print())
                                         .andExpect(status().isNotFound());
 

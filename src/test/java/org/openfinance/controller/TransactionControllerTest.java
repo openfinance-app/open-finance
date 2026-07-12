@@ -406,32 +406,32 @@ class TransactionControllerTest {
         }
 
         @Test
-        @DisplayName("GET /api/v1/transactions/search - missing encryption key header")
+        @DisplayName("GET /api/v1/transactions/search - missing encryption session header")
         void shouldReturn400WhenMissingEncryptionKey() throws Exception {
                 mockMvc.perform(
                                 get("/api/v1/transactions/search")
                                                 .header("Authorization", "Bearer " + token))
-                                .andExpect(status().isInternalServerError());
+                                .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("GET /api/v1/transactions/search - empty encryption key header")
+        @DisplayName("GET /api/v1/transactions/search - empty encryption session header")
         void shouldReturn400WhenEmptyEncryptionKey() throws Exception {
                 mockMvc.perform(
                                 get("/api/v1/transactions/search")
                                                 .header("Authorization", "Bearer " + token)
                                                 .header("X-Encryption-Session", ""))
-                                .andExpect(status().isInternalServerError());
+                                .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("GET /api/v1/transactions/search - invalid encryption key format")
+        @DisplayName("GET /api/v1/transactions/search - invalid encryption session")
         void shouldReturn400WhenInvalidEncryptionKey() throws Exception {
                 mockMvc.perform(
                                 get("/api/v1/transactions/search")
                                                 .header("Authorization", "Bearer " + token)
                                                 .header("X-Encryption-Session", "invalid-key"))
-                                .andExpect(status().isInternalServerError());
+                                .andExpect(status().isUnauthorized());
         }
 
         @Test
@@ -458,21 +458,21 @@ class TransactionControllerTest {
         }
 
         @Test
-        @DisplayName("GET /api/v1/transactions/{id}/splits - should return 400 when encryption key missing")
+        @DisplayName("GET /api/v1/transactions/{id}/splits - should return 401 when encryption session missing")
         void shouldReturn400WhenEncryptionKeyMissingForSplits() throws Exception {
                 mockMvc.perform(
                                 get("/api/v1/transactions/{id}/splits", transactionId1)
                                                 .header("Authorization", "Bearer " + token))
-                                .andExpect(status().isInternalServerError());
+                                .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("GET /api/v1/transactions/{id}/splits - should return 400 when encryption key empty")
+        @DisplayName("GET /api/v1/transactions/{id}/splits - should return 401 when encryption session empty")
         void shouldReturn400WhenEncryptionKeyEmptyForSplits() throws Exception {
                 mockMvc.perform(
                                 get("/api/v1/transactions/{id}/splits", transactionId1)
                                                 .header("Authorization", "Bearer " + token)
                                                 .header("X-Encryption-Session", ""))
-                                .andExpect(status().isInternalServerError());
+                                .andExpect(status().isUnauthorized());
         }
 }

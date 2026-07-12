@@ -17,21 +17,18 @@ import type {
 } from '../types/dashboard';
 import type { Transaction } from '../types/transaction';
 import type { DateRange } from '../components/ui/PeriodSelector';
+import { buildEncryptionHeaders } from '@/utils/encryption';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const getEncryptionKey = (): string | null =>
-  sessionStorage.getItem('encryption_session');
+const getEncryptionKey = (): string | null => sessionStorage.getItem('encryption_session');
 
 /**
  * Build query params that support either a simple `period` (days) or an
  * explicit `startDate`/`endDate` date-range pair.
  * When a dateRange is supplied it takes precedence over the period number.
  */
-function periodParams(
-  period: number,
-  dateRange?: DateRange,
-): Record<string, string | number> {
+function periodParams(period: number, dateRange?: DateRange): Record<string, string | number> {
   if (dateRange) {
     return { startDate: dateRange.from, endDate: dateRange.to };
   }
@@ -41,27 +38,20 @@ function periodParams(
 // ─── Fetchers ─────────────────────────────────────────────────────────────────
 
 const fetchDashboardSummary = async (): Promise<IDashboardSummary> => {
-  const encryptionKey = getEncryptionKey();
-  if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<IDashboardSummary>('/dashboard', {
-    headers: { 'X-Encryption-Session': encryptionKey },
+    headers: buildEncryptionHeaders(),
   });
   return response.data;
 };
 
 const fetchAccountSummaries = async (): Promise<IAccountSummary[]> => {
-  const encryptionKey = getEncryptionKey();
-  if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<IAccountSummary[]>('/dashboard/accounts', {
-    headers: { 'X-Encryption-Session': encryptionKey },
+    headers: buildEncryptionHeaders(),
   });
   return response.data;
 };
 
-const fetchCashFlow = async (
-  period: number = 30,
-  dateRange?: DateRange,
-): Promise<ICashFlow> => {
+const fetchCashFlow = async (period: number = 30, dateRange?: DateRange): Promise<ICashFlow> => {
   const response = await apiClient.get<ICashFlow>('/dashboard/cashflow', {
     params: periodParams(period, dateRange),
   });
@@ -70,7 +60,7 @@ const fetchCashFlow = async (
 
 const fetchSpendingByCategory = async (
   period: number = 30,
-  dateRange?: DateRange,
+  dateRange?: DateRange
 ): Promise<ISpendingByCategory> => {
   const response = await apiClient.get<ISpendingByCategory>('/dashboard/spending', {
     params: periodParams(period, dateRange),
@@ -80,13 +70,11 @@ const fetchSpendingByCategory = async (
 
 const fetchNetWorthHistory = async (
   period: number = 365,
-  dateRange?: DateRange,
+  dateRange?: DateRange
 ): Promise<INetWorthSummary[]> => {
-  const encryptionKey = getEncryptionKey();
-  if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<INetWorthSummary[]>('/dashboard/networth-history', {
     params: periodParams(period, dateRange),
-    headers: { 'X-Encryption-Session': encryptionKey },
+    headers: buildEncryptionHeaders(),
   });
   return response.data;
 };
@@ -98,20 +86,21 @@ const fetchAssetAllocation = async (): Promise<IAssetAllocation[]> => {
 
 const fetchPortfolioPerformance = async (
   period: number = 30,
-  dateRange?: DateRange,
+  dateRange?: DateRange
 ): Promise<IPortfolioPerformance[]> => {
-  const response = await apiClient.get<IPortfolioPerformance[]>('/dashboard/portfolio-performance', {
-    params: periodParams(period, dateRange),
-  });
+  const response = await apiClient.get<IPortfolioPerformance[]>(
+    '/dashboard/portfolio-performance',
+    {
+      params: periodParams(period, dateRange),
+    }
+  );
   return response.data;
 };
 
 const fetchTransactionsByPeriod = async (
   period: number = 30,
-  dateRange?: DateRange,
+  dateRange?: DateRange
 ): Promise<Transaction[]> => {
-  const encryptionKey = getEncryptionKey();
-  if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const params: Record<string, string | number> = periodParams(period, dateRange);
   // The transactions search endpoint uses dateFrom/dateTo; map startDate/endDate accordingly
   const searchParams: Record<string, string | number> = {};
@@ -120,7 +109,9 @@ const fetchTransactionsByPeriod = async (
     searchParams['endDate'] = params['endDate'];
   } else {
     const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date(Date.now() - period * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const startDate = new Date(Date.now() - period * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0];
     searchParams['dateFrom'] = startDate;
     searchParams['endDate'] = endDate;
   }
@@ -130,8 +121,8 @@ const fetchTransactionsByPeriod = async (
     '/transactions/search',
     {
       params: searchParams,
-      headers: { 'X-Encryption-Session': encryptionKey },
-    },
+      headers: buildEncryptionHeaders(),
+    }
   );
   const data = response.data;
   return Array.isArray(data) ? data : data.content;
@@ -139,22 +130,18 @@ const fetchTransactionsByPeriod = async (
 
 const fetchBorrowingCapacity = async (
   period: number = 90,
-  dateRange?: DateRange,
+  dateRange?: DateRange
 ): Promise<IBorrowingCapacity> => {
-  const encryptionKey = getEncryptionKey();
-  if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<IBorrowingCapacity>('/dashboard/borrowing-capacity', {
     params: periodParams(period, dateRange),
-    headers: { 'X-Encryption-Session': encryptionKey },
+    headers: buildEncryptionHeaders(),
   });
   return response.data;
 };
 
 const fetchNetWorthAllocation = async (): Promise<INetWorthAllocation[]> => {
-  const encryptionKey = getEncryptionKey();
-  if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<INetWorthAllocation[]>('/dashboard/networth-allocation', {
-    headers: { 'X-Encryption-Session': encryptionKey },
+    headers: buildEncryptionHeaders(),
   });
   return response.data;
 };
@@ -168,7 +155,7 @@ const fetchDailyCashFlow = async (year?: number, month?: number): Promise<IDaily
 
 const fetchCashflowSankey = async (
   period: number = 30,
-  dateRange?: DateRange,
+  dateRange?: DateRange
 ): Promise<ICashflowSankey> => {
   const encryptionKey = getEncryptionKey();
   const headers: Record<string, string> = {};
@@ -180,12 +167,12 @@ const fetchCashflowSankey = async (
   return response.data;
 };
 
-const fetchEstimatedInterest = async (period: string = '1Y'): Promise<IEstimatedInterestSummary> => {
-  const encryptionKey = getEncryptionKey();
-  if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
+const fetchEstimatedInterest = async (
+  period: string = '1Y'
+): Promise<IEstimatedInterestSummary> => {
   const response = await apiClient.get<IEstimatedInterestSummary>('/dashboard/estimated-interest', {
     params: { period },
-    headers: { 'X-Encryption-Session': encryptionKey },
+    headers: buildEncryptionHeaders(),
   });
   return response.data;
 };
@@ -306,10 +293,8 @@ export const useTransactionsByPeriod = (period: number = 30, dateRange?: DateRan
 // ─── Yearly Balance Variation ─────────────────────────────────────────────────
 
 const fetchYearlyBalance = async (): Promise<IYearlyBalanceResponse> => {
-  const encryptionKey = getEncryptionKey();
-  if (!encryptionKey) throw new Error('Encryption key not found. Please log in again.');
   const response = await apiClient.get<IYearlyBalanceResponse>('/dashboard/yearly-balance', {
-    headers: { 'X-Encryption-Session': encryptionKey },
+    headers: buildEncryptionHeaders(),
   });
   return response.data;
 };

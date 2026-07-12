@@ -11,7 +11,7 @@ import java.util.Optional;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.openfinance.util.EncryptionUtil;
+import org.openfinance.config.EncryptionProperties;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -39,6 +39,8 @@ public class EncryptionKeyFilter extends OncePerRequestFilter {
 
     private final EncryptionKeyCache encryptionKeyCache;
 
+    private final EncryptionProperties encryptionProperties;
+
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -46,37 +48,84 @@ public class EncryptionKeyFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
-        String sessionToken = request.getHeader(SESSION_HEADER);
-
-        if (sessionToken != null && !sessionToken.isBlank()) {
-            Optional<SecretKey> keyOpt = encryptionKeyCache.getKeyBySessionToken(sessionToken);
-            if (keyOpt.isPresent()) {
-                EncryptionContext.setKey(keyOpt.get());
-            } else if (looksLikeLegacyRawKey(sessionToken)) {
-                SecretKey legacyKey = EncryptionUtil.decodeEncryptionKey(sessionToken);
-                EncryptionContext.setKey(legacyKey);
-
-                Object userIdAttr = request.getAttribute("userId");
-                if (userIdAttr instanceof Long userId) {
-                    encryptionKeyCache.cacheKey(userId, legacyKey);
-                }
-
-                log.debug("Accepted legacy raw encryption key header for backward compatibility");
-            } else {
-                log.warn("Invalid or expired encryption session token");
-            }
-        }
+        EncryptionContext.clear();
 
         try {
+            if (!encryptionProperties.isEnabled()) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            if (isPublicEndpoint(request)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            Long requestUserId = resolveRequestUserId(request);
+            if (requestUserId == null) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            String sessionToken = request.getHeader(SESSION_HEADER);
+            if (sessionToken == null || sessionToken.isBlank()) {
+                rejectMissingSession(response);
+                return;
+            }
+
+            Optional<SecretKey> keyOpt = encryptionKeyCache.getKeyBySessionToken(sessionToken);
+            if (keyOpt.isPresent()) {
+                Optional<Long> sessionUserId = encryptionKeyCache.getUserIdBySessionToken(sessionToken);
+                if (sessionUserId.isEmpty() || !sessionUserId.get().equals(requestUserId)) {
+                    log.warn("Encryption session token does not belong to authenticated user");
+                    rejectInvalidSession(response);
+                    return;
+                }
+                EncryptionContext.setKey(keyOpt.get());
+            } else {
+                log.warn("Invalid or expired encryption session token");
+                rejectInvalidSession(response);
+                return;
+            }
+
             filterChain.doFilter(request, response);
         } finally {
             EncryptionContext.clear();
         }
     }
 
-    private boolean looksLikeLegacyRawKey(String headerValue) {
-        return headerValue.indexOf('=') >= 0
-                || headerValue.indexOf('+') >= 0
-                || headerValue.indexOf('/') >= 0;
+    private Long resolveRequestUserId(HttpServletRequest request) {
+        Object userIdAttr = request.getAttribute("userId");
+        return userIdAttr instanceof Long userId ? userId : null;
     }
+
+    private boolean isPublicEndpoint(HttpServletRequest request) {
+        String path = request.getServletPath();
+        if (path == null || path.isBlank()) {
+            path = request.getRequestURI();
+        }
+        return "/api/v1/auth/register".equals(path)
+                || "/api/v1/auth/login".equals(path)
+                || "/api/v1/config/security".equals(path)
+                || "/api/v1/ai/health".equals(path)
+                || "/api/v1/health".equals(path)
+                || path.startsWith("/api/v1/health/")
+                || "/actuator/health".equals(path)
+                || "/actuator/info".equals(path)
+                || "/swagger-ui.html".equals(path)
+                || path.startsWith("/swagger-ui/")
+                || "/v3/api-docs".equals(path)
+                || path.startsWith("/v3/api-docs/")
+                || path.startsWith("/swagger-resources/")
+                || path.startsWith("/webjars/");
+    }
+
+    private void rejectMissingSession(HttpServletResponse response) throws IOException {
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Encryption session required");
+    }
+
+    private void rejectInvalidSession(HttpServletResponse response) throws IOException {
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired encryption session");
+    }
+
 }

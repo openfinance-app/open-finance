@@ -134,7 +134,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        @DisplayName("POST /api/v1/accounts - missing encryption key header")
+        @DisplayName("POST /api/v1/accounts - missing encryption session header")
         void shouldReturn400WhenMissingEncryptionKey() throws Exception {
                 AccountRequest req = AccountRequest.builder()
                                 .name("Name")
@@ -147,9 +147,9 @@ class AccountControllerIntegrationTest {
                                 post("/api/v1/accounts")
                                                 .header("Authorization", "Bearer " + token)
                                                 .contentType(MediaType.APPLICATION_JSON)
-                                                .content(objectMapper.writeValueAsString(req)))
+                                .content(objectMapper.writeValueAsString(req)))
                                 .andDo(print())
-                                .andExpect(status().isBadRequest());
+                                .andExpect(status().isUnauthorized());
         }
 
         @Test
