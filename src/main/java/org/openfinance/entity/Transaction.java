@@ -168,7 +168,7 @@ public class Transaction {
      * Requirement REQ-2.4.1.1: Amount validation (non-zero)
      */
     @NotNull(message = "Amount is required")
-    @DecimalMin(value = "0.01", message = "Amount must be at least 0.01")
+    @DecimalMin(value = "0.0001", message = "Amount must be at least 0.0001")
     @Digits(integer = 15, fraction = 4, message = "Amount must have at most 15 integer digits and 4 decimal places")
     @Column(name = "amount", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)

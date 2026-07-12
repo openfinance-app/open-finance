@@ -2034,7 +2034,7 @@ public class ImportService {
                     descriptors,
                     transaction.getToAccountName(),
                     null,
-                    transaction.getCurrency(),
+                    null,
                     transaction.getTransactionDate(),
                     defaultCurrency,
                     null,
@@ -2240,6 +2240,11 @@ public class ImportService {
 
     private String buildImportedTransferKey(
             ImportedTransaction transaction, Long sourceAccountId, Long destinationAccountId) {
+        String groupKey = transaction.getTransferGroupKey();
+        if (groupKey != null && !groupKey.isBlank()) {
+            return groupKey;
+        }
+
         long lowerAccountId = Math.min(sourceAccountId, destinationAccountId);
         long higherAccountId = Math.max(sourceAccountId, destinationAccountId);
         return String.join(

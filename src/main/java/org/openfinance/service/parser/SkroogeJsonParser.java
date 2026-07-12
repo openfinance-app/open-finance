@@ -680,7 +680,6 @@ public class SkroogeJsonParser {
             builder.category(category != null ? textValue(category, "t_fullname") : null);
             builder.sourceCategoryId(longValue(subOperation, "r_category_id"));
         } else {
-            BigDecimal unitPrice = resolveUnitPrice(unitId, opDate, unitValuesByUnitId);
             List<ImportedTransaction.SplitEntry> splits =
                     subOperations.stream()
                             .map(
@@ -690,9 +689,13 @@ public class SkroogeJsonParser {
                                                         longValue(subOperation, "r_category_id"));
                                         BigDecimal splitAmount =
                                                 decimalValue(subOperation, "f_value");
-                                        if (unitPrice != null) {
-                                            splitAmount = splitAmount.multiply(unitPrice);
-                                        }
+                                        splitAmount =
+                                                convertToMonetaryAmount(
+                                                        splitAmount,
+                                                        unitId,
+                                                        opDate,
+                                                        unitsById,
+                                                        unitValuesByUnitId);
                                         return ImportedTransaction.SplitEntry.builder()
                                                 .category(
                                                         category != null

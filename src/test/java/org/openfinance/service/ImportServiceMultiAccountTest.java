@@ -374,6 +374,170 @@ class ImportServiceMultiAccountTest {
                 assertThat(result.getSkippedCount()).isZero();
         }
 
+        @Test
+        @DisplayName("Should deduplicate Skrooge transfer entries with different side amounts")
+        void shouldDeduplicateSkroogeTransferEntriesWithDifferentSideAmounts() throws Exception {
+                ImportedTransaction euroOut = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2024, 11, 13))
+                                .payee("MOONPAY")
+                                .memo("Crypto purchase")
+                                .amount(new BigDecimal("-200.56"))
+                                .accountName("Checking Account")
+                                .toAccountName("Crypto SOL")
+                                .transfer(true)
+                                .transferGroupKey("csv:transfer:5")
+                                .category("Transfert")
+                                .referenceNumber("1479")
+                                .currency("EUR")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+                ImportedTransaction solIn = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2024, 11, 13))
+                                .payee("MOONPAY")
+                                .memo("Crypto purchase")
+                                .amount(new BigDecimal("0.96680000"))
+                                .accountName("Crypto SOL")
+                                .toAccountName("Checking Account")
+                                .transfer(true)
+                                .transferGroupKey("csv:transfer:5")
+                                .category("Transfert")
+                                .referenceNumber("1503")
+                                .currency("SOL")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+
+                ImportSession session = buildSession(4L, "CSV", List.of(euroOut, solIn));
+                Account checkingAccount = Account.builder()
+                                .id(501L)
+                                .userId(USER_ID)
+                                .name("enc-checking")
+                                .type(AccountType.CHECKING)
+                                .currency("EUR")
+                                .isActive(true)
+                                .build();
+                Account solAccount = Account.builder()
+                                .id(502L)
+                                .userId(USER_ID)
+                                .name("enc-sol")
+                                .type(AccountType.CHECKING)
+                                .currency("SOL")
+                                .isActive(true)
+                                .build();
+                List<Account> existingAccounts = new ArrayList<>();
+
+                when(importSessionRepository.findById(4L)).thenReturn(Optional.of(session));
+                when(importSessionRepository.save(any(ImportSession.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
+                when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
+                when(accountService.createAccount(eq(USER_ID), any(AccountRequest.class)))
+                                .thenReturn(
+                                                AccountResponse.builder().id(501L).build(),
+                                                AccountResponse.builder().id(502L).build());
+                when(accountRepository.findById(501L)).thenReturn(Optional.of(checkingAccount));
+                when(accountRepository.findById(502L)).thenReturn(Optional.of(solAccount));
+
+                ImportSession result = importService.confirmImport(4L, USER_ID, null, Map.of(), true);
+
+                verify(transactionService, times(1))
+                                .createTransfer(
+                                                eq(USER_ID),
+                                                argThat(
+                                                                request -> request.getAccountId().equals(501L)
+                                                                                && request.getToAccountId()
+                                                                                                .equals(502L)
+                                                                                && request.getAmount()
+                                                                                                .compareTo(
+                                                                                                                new BigDecimal(
+                                                                                                                                "200.5600"))
+                                                                                                == 0));
+                verify(transactionRepository, never()).save(any(Transaction.class));
+                assertThat(result.getImportedCount()).isEqualTo(1);
+                assertThat(result.getSkippedCount()).isZero();
+        }
+
+        @Test
+        @DisplayName("Should preserve source crypto account currency when transfer pair points back to it")
+        void shouldPreserveCryptoAccountCurrencyWhenTransferPairPointsBackToIt() throws Exception {
+                ImportedTransaction bchOut = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2025, 7, 20))
+                                .payee("Transfert")
+                                .amount(new BigDecimal("-1.02000000"))
+                                .accountName("Crypto BCH")
+                                .toAccountName("BTC")
+                                .transfer(true)
+                                .transferGroupKey("csv:transfer:58")
+                                .category("Transfert")
+                                .referenceNumber("2301")
+                                .currency("BCH")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+                ImportedTransaction btcIn = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2025, 7, 20))
+                                .payee("Transfert")
+                                .amount(new BigDecimal("0.00453915"))
+                                .accountName("BTC")
+                                .toAccountName("Crypto BCH")
+                                .transfer(true)
+                                .transferGroupKey("csv:transfer:58")
+                                .category("Transfert")
+                                .referenceNumber("2302")
+                                .currency("BTC")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+
+                ImportSession session = buildSession(5L, "CSV", List.of(bchOut, btcIn));
+                Account bchAccount = Account.builder()
+                                .id(601L)
+                                .userId(USER_ID)
+                                .name("enc-bch")
+                                .type(AccountType.CHECKING)
+                                .currency("BCH")
+                                .isActive(true)
+                                .build();
+                Account btcAccount = Account.builder()
+                                .id(602L)
+                                .userId(USER_ID)
+                                .name("enc-btc")
+                                .type(AccountType.CHECKING)
+                                .currency("BTC")
+                                .isActive(true)
+                                .build();
+                List<Account> existingAccounts = new ArrayList<>();
+
+                when(importSessionRepository.findById(5L)).thenReturn(Optional.of(session));
+                when(importSessionRepository.save(any(ImportSession.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
+                when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
+                when(accountService.createAccount(eq(USER_ID), any(AccountRequest.class)))
+                                .thenReturn(
+                                                AccountResponse.builder().id(601L).build(),
+                                                AccountResponse.builder().id(602L).build());
+                when(accountRepository.findById(601L)).thenReturn(Optional.of(bchAccount));
+                when(accountRepository.findById(602L)).thenReturn(Optional.of(btcAccount));
+
+                ImportSession result = importService.confirmImport(5L, USER_ID, null, Map.of(), true);
+
+                ArgumentCaptor<AccountRequest> accountRequests = ArgumentCaptor.forClass(AccountRequest.class);
+                verify(accountService, times(2)).createAccount(eq(USER_ID), accountRequests.capture());
+                assertThat(accountRequests.getAllValues())
+                                .extracting(AccountRequest::getName)
+                                .containsExactly("Crypto BCH", "BTC");
+                assertThat(accountRequests.getAllValues())
+                                .extracting(AccountRequest::getCurrency)
+                                .containsExactly("BCH", "BTC");
+                verify(transactionService, times(1))
+                                .createTransfer(
+                                                eq(USER_ID),
+                                                argThat(
+                                                                request -> request.getAccountId().equals(601L)
+                                                                                && request.getToAccountId()
+                                                                                                .equals(602L)
+                                                                                && "BCH".equals(
+                                                                                                request.getCurrency())));
+                assertThat(result.getImportedCount()).isEqualTo(1);
+                assertThat(result.getSkippedCount()).isZero();
+        }
+
         private ImportSession buildSession(
                         Long sessionId, String fileFormat, List<ImportedTransaction> transactions)
                         throws Exception {
