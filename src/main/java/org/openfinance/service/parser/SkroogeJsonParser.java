@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +59,8 @@ public class SkroogeJsonParser {
         Map<Long, JsonNode> categoriesById = indexById(root.path("category"));
         Map<Long, JsonNode> payeesById = indexById(root.path("payee"));
         Map<Long, JsonNode> unitsById = indexById(root.path("unit"));
+        Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId =
+                indexUnitValues(root.path("unitvalue"));
         Map<Long, List<JsonNode>> subOperationsByOperationId =
                 groupByLong(root.path("suboperation"), "rd_operation_id");
         Map<Long, List<JsonNode>> operationsByGroupId =
@@ -65,7 +68,7 @@ public class SkroogeJsonParser {
 
         Set<Long> transferOperationIds =
                 detectTransferOperationIds(
-                        operationsByGroupId, subOperationsByOperationId, categoriesById);
+                        operationsByGroupId, subOperationsByOperationId, categoriesById, unitsById);
         Set<Long> referencedAccountIds =
                 collectReferencedAccountIds(
                         root.path("operation"), transferOperationIds, subOperationsByOperationId);
@@ -81,6 +84,7 @@ public class SkroogeJsonParser {
                                 buildAccounts(
                                         accountsById,
                                         unitsById,
+                                        unitValuesByUnitId,
                                         root.path("operation"),
                                         subOperationsByOperationId,
                                         referencedAccountIds))
@@ -113,7 +117,8 @@ public class SkroogeJsonParser {
                                     accountsById,
                                     categoriesById,
                                     payeesById,
-                                    unitsById));
+                                    unitsById,
+                                    unitValuesByUnitId));
                 }
                 continue;
             }
@@ -126,6 +131,7 @@ public class SkroogeJsonParser {
                             categoriesById,
                             payeesById,
                             unitsById,
+                            unitValuesByUnitId,
                             fileName);
             if (transaction != null) {
                 transactions.add(transaction);
@@ -183,10 +189,12 @@ public class SkroogeJsonParser {
     private Set<Long> detectTransferOperationIds(
             Map<Long, List<JsonNode>> operationsByGroupId,
             Map<Long, List<JsonNode>> subOperationsByOperationId,
-            Map<Long, JsonNode> categoriesById) {
+            Map<Long, JsonNode> categoriesById,
+            Map<Long, JsonNode> unitsById) {
         Set<Long> transferOperationIds = new HashSet<>();
         for (Map.Entry<Long, List<JsonNode>> entry : operationsByGroupId.entrySet()) {
-            if (isTransferGroup(entry.getValue(), subOperationsByOperationId, categoriesById)) {
+            if (isTransferGroup(
+                    entry.getValue(), subOperationsByOperationId, categoriesById, unitsById)) {
                 for (JsonNode operation : entry.getValue()) {
                     Long operationId = longValue(operation, "id");
                     if (operationId != null) {
@@ -201,12 +209,15 @@ public class SkroogeJsonParser {
     private boolean isTransferGroup(
             List<JsonNode> operations,
             Map<Long, List<JsonNode>> subOperationsByOperationId,
-            Map<Long, JsonNode> categoriesById) {
+            Map<Long, JsonNode> categoriesById,
+            Map<Long, JsonNode> unitsById) {
         if (operations.size() != 2) {
             return false;
         }
 
         BigDecimal signedTotal = BigDecimal.ZERO;
+        boolean sameUnit = true;
+        Long firstUnitId = null;
         for (JsonNode operation : operations) {
             Long operationId = longValue(operation, "id");
             List<JsonNode> subOperations =
@@ -222,8 +233,21 @@ public class SkroogeJsonParser {
                 return false;
             }
             signedTotal = signedTotal.add(decimalValue(subOperation, "f_value"));
+            Long unitId = longValue(operation, "rc_unit_id");
+            if (firstUnitId == null) {
+                firstUnitId = unitId;
+            } else if (!java.util.Objects.equals(unitId, firstUnitId)) {
+                sameUnit = false;
+            }
         }
 
+        // For same-unit transfers, require f_values to sum to zero.
+        // For cross-unit transfers (e.g., EUR <-> BTC/shares), the f_values are in different
+        // units and won't sum to zero, but if both operations have transfer categories and
+        // are in the same group, it's still a transfer.
+        if (!sameUnit) {
+            return true;
+        }
         return signedTotal.compareTo(BigDecimal.ZERO) == 0;
     }
 
@@ -251,6 +275,12 @@ public class SkroogeJsonParser {
             }
             if (isSyntheticBalanceOperation(
                     operation, subOperationsByOperationId.getOrDefault(operationId, List.of()))) {
+                // Still reference the account for synthetic balance operations so that
+                // accounts whose only operation is an opening balance are not skipped.
+                Long accountId = longValue(operation, "rd_account_id");
+                if (accountId != null) {
+                    referencedAccountIds.add(accountId);
+                }
                 continue;
             }
             if (!transferOperationIds.contains(operationId)
@@ -319,7 +349,7 @@ public class SkroogeJsonParser {
             institutions.add(
                     SkroogeImportMetadata.SkroogeInstitution.builder()
                             .sourceId(bankId)
-                            .name(textValue(bank, "t_name"))
+                            .name(resolveInstitutionName(bank, bankId))
                             .logo(textValue(bank, "t_icon"))
                             .country(null)
                             .build());
@@ -334,6 +364,7 @@ public class SkroogeJsonParser {
     private List<SkroogeImportMetadata.SkroogeAccount> buildAccounts(
             Map<Long, JsonNode> accountsById,
             Map<Long, JsonNode> unitsById,
+            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
             JsonNode operationsNode,
             Map<Long, List<JsonNode>> subOperationsByOperationId,
             Set<Long> referencedAccountIds) {
@@ -349,7 +380,11 @@ public class SkroogeJsonParser {
             List<JsonNode> accountOperations =
                     operationsByAccountId.getOrDefault(accountId, List.of());
             BigDecimal openingBalance =
-                    deriveOpeningBalance(accountOperations, subOperationsByOperationId);
+                    deriveOpeningBalance(
+                            accountOperations,
+                            subOperationsByOperationId,
+                            unitsById,
+                            unitValuesByUnitId);
             LocalDate openingDate = deriveOpeningDate(accountOperations);
             String currency =
                     deriveAccountCurrency(accountOperations, unitsById, subOperationsByOperationId);
@@ -483,7 +518,8 @@ public class SkroogeJsonParser {
             Map<Long, JsonNode> accountsById,
             Map<Long, JsonNode> categoriesById,
             Map<Long, JsonNode> payeesById,
-            Map<Long, JsonNode> unitsById) {
+            Map<Long, JsonNode> unitsById,
+            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId) {
         if (groupedOperations.size() != 2) {
             return List.of();
         }
@@ -499,6 +535,23 @@ public class SkroogeJsonParser {
                         .getOrDefault(longValue(secondOperation, "id"), List.of())
                         .get(0);
 
+        // Fix: determine transfer direction by f_value sign, not by JSON operation order.
+        // The operation with negative f_value is the source (sender), positive is the
+        // destination (receiver). This prevents reversed transfers when the receiving
+        // account's operation happens to appear first in the JSON.
+        BigDecimal firstAmount = decimalValue(firstSubOperation, "f_value");
+        BigDecimal secondAmount = decimalValue(secondSubOperation, "f_value");
+        if (firstAmount.compareTo(BigDecimal.ZERO) > 0
+                && secondAmount.compareTo(BigDecimal.ZERO) < 0) {
+            // First operation is the receiver — swap so source is always first.
+            JsonNode tempOp = firstOperation;
+            firstOperation = secondOperation;
+            secondOperation = tempOp;
+            JsonNode tempSub = firstSubOperation;
+            firstSubOperation = secondSubOperation;
+            secondSubOperation = tempSub;
+        }
+
         ImportedTransaction firstTransaction =
                 buildTransferTransaction(
                         firstOperation,
@@ -506,6 +559,7 @@ public class SkroogeJsonParser {
                         firstSubOperation,
                         payeesById,
                         unitsById,
+                        unitValuesByUnitId,
                         accountsById,
                         categoriesById,
                         groupId);
@@ -516,6 +570,7 @@ public class SkroogeJsonParser {
                         secondSubOperation,
                         payeesById,
                         unitsById,
+                        unitValuesByUnitId,
                         accountsById,
                         categoriesById,
                         groupId);
@@ -529,6 +584,7 @@ public class SkroogeJsonParser {
             JsonNode subOperation,
             Map<Long, JsonNode> payeesById,
             Map<Long, JsonNode> unitsById,
+            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
             Map<Long, JsonNode> accountsById,
             Map<Long, JsonNode> categoriesById,
             Long groupId) {
@@ -538,10 +594,15 @@ public class SkroogeJsonParser {
         JsonNode category = categoriesById.get(longValue(subOperation, "r_category_id"));
 
         BigDecimal signedAmount = decimalValue(subOperation, "f_value");
+        Long unitId = longValue(operation, "rc_unit_id");
+        LocalDate opDate = parseDate(operation);
+        signedAmount =
+                convertToMonetaryAmount(
+                        signedAmount, unitId, opDate, unitsById, unitValuesByUnitId);
         String comment = textValue(operation, "t_comment");
 
         return ImportedTransaction.builder()
-                .transactionDate(parseDate(operation))
+                .transactionDate(opDate)
                 .payee(resolvePayee(payee, comment, textValue(operation, "t_mode")))
                 .originalPayee(payee != null ? textValue(payee, "t_name") : null)
                 .amount(signedAmount)
@@ -552,7 +613,7 @@ public class SkroogeJsonParser {
                 .accountName(account != null ? textValue(account, "t_name") : null)
                 .sourceAccountId(longValue(operation, "rd_account_id"))
                 .accountNumber(account != null ? resolveAccountNumber(account) : null)
-                .currency(resolveCurrencyCode(unitsById.get(longValue(operation, "rc_unit_id"))))
+                .currency(resolveCurrencyCode(unitsById.get(unitId), unitsById))
                 .transfer(true)
                 .transferGroupKey(skroogeTransferReference(groupId))
                 .toAccountName(otherAccount != null ? textValue(otherAccount, "t_name") : null)
@@ -569,6 +630,7 @@ public class SkroogeJsonParser {
             Map<Long, JsonNode> categoriesById,
             Map<Long, JsonNode> payeesById,
             Map<Long, JsonNode> unitsById,
+            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
             String fileName) {
         Long operationId = longValue(operation, "id");
         List<JsonNode> subOperations =
@@ -584,14 +646,22 @@ public class SkroogeJsonParser {
         JsonNode payee = payeesById.get(longValue(operation, "r_payee_id"));
         String comment = textValue(operation, "t_comment");
         String payeeName = resolvePayee(payee, comment, textValue(operation, "t_mode"));
+        Long unitId = longValue(operation, "rc_unit_id");
+        LocalDate opDate = parseDate(operation);
+
         BigDecimal signedAmount =
                 subOperations.stream()
                         .map(node -> decimalValue(node, "f_value"))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        // Convert investment quantities (shares/crypto) to monetary amounts using unit prices.
+        signedAmount =
+                convertToMonetaryAmount(
+                        signedAmount, unitId, opDate, unitsById, unitValuesByUnitId);
+
         ImportedTransaction.ImportedTransactionBuilder builder =
                 ImportedTransaction.builder()
-                        .transactionDate(parseDate(operation))
+                        .transactionDate(opDate)
                         .payee(payeeName)
                         .originalPayee(payee != null ? textValue(payee, "t_name") : null)
                         .amount(signedAmount)
@@ -600,9 +670,7 @@ public class SkroogeJsonParser {
                         .accountName(account != null ? textValue(account, "t_name") : null)
                         .sourceAccountId(longValue(operation, "rd_account_id"))
                         .accountNumber(account != null ? resolveAccountNumber(account) : null)
-                        .currency(
-                                resolveCurrencyCode(
-                                        unitsById.get(longValue(operation, "rc_unit_id"))))
+                        .currency(resolveCurrencyCode(unitsById.get(unitId), unitsById))
                         .clearedStatus(resolveClearedStatus(operation))
                         .sourceFileName(fileName);
 
@@ -612,6 +680,7 @@ public class SkroogeJsonParser {
             builder.category(category != null ? textValue(category, "t_fullname") : null);
             builder.sourceCategoryId(longValue(subOperation, "r_category_id"));
         } else {
+            BigDecimal unitPrice = resolveUnitPrice(unitId, opDate, unitValuesByUnitId);
             List<ImportedTransaction.SplitEntry> splits =
                     subOperations.stream()
                             .map(
@@ -619,6 +688,11 @@ public class SkroogeJsonParser {
                                         JsonNode category =
                                                 categoriesById.get(
                                                         longValue(subOperation, "r_category_id"));
+                                        BigDecimal splitAmount =
+                                                decimalValue(subOperation, "f_value");
+                                        if (unitPrice != null) {
+                                            splitAmount = splitAmount.multiply(unitPrice);
+                                        }
                                         return ImportedTransaction.SplitEntry.builder()
                                                 .category(
                                                         category != null
@@ -627,7 +701,7 @@ public class SkroogeJsonParser {
                                                 .memo(textValue(subOperation, "t_comment"))
                                                 .sourceCategoryId(
                                                         longValue(subOperation, "r_category_id"))
-                                                .amount(decimalValue(subOperation, "f_value").abs())
+                                                .amount(splitAmount.abs())
                                                 .build();
                                     })
                             .collect(Collectors.toList());
@@ -655,7 +729,10 @@ public class SkroogeJsonParser {
     }
 
     private BigDecimal deriveOpeningBalance(
-            List<JsonNode> operations, Map<Long, List<JsonNode>> subOperationsByOperationId) {
+            List<JsonNode> operations,
+            Map<Long, List<JsonNode>> subOperationsByOperationId,
+            Map<Long, JsonNode> unitsById,
+            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId) {
         for (JsonNode operation : operations) {
             if (!SYNTHETIC_DATE.equals(textValue(operation, "d_date"))) {
                 continue;
@@ -663,7 +740,10 @@ public class SkroogeJsonParser {
             List<JsonNode> subOperations =
                     subOperationsByOperationId.getOrDefault(longValue(operation, "id"), List.of());
             if (!subOperations.isEmpty()) {
-                return decimalValue(subOperations.get(0), "f_value");
+                BigDecimal rawValue = decimalValue(subOperations.get(0), "f_value");
+                Long unitId = longValue(operation, "rc_unit_id");
+                return convertToMonetaryAmount(
+                        rawValue, unitId, null, unitsById, unitValuesByUnitId);
             }
         }
         return BigDecimal.ZERO;
@@ -684,7 +764,8 @@ public class SkroogeJsonParser {
         for (JsonNode operation : operations) {
             if (SYNTHETIC_DATE.equals(textValue(operation, "d_date"))) {
                 String syntheticCurrency =
-                        resolveCurrencyCode(unitsById.get(longValue(operation, "rc_unit_id")));
+                        resolveCurrencyCode(
+                                unitsById.get(longValue(operation, "rc_unit_id")), unitsById);
                 if (syntheticCurrency != null) {
                     return syntheticCurrency;
                 }
@@ -700,7 +781,8 @@ public class SkroogeJsonParser {
                 continue;
             }
             String currency =
-                    resolveCurrencyCode(unitsById.get(longValue(operation, "rc_unit_id")));
+                    resolveCurrencyCode(
+                            unitsById.get(longValue(operation, "rc_unit_id")), unitsById);
             if (currency != null) {
                 counts.merge(
                         currency,
@@ -723,18 +805,21 @@ public class SkroogeJsonParser {
             case "C":
                 return AccountType.CHECKING;
             case "S":
+            case "D":
                 return AccountType.SAVINGS;
             case "I":
             case "P":
                 return AccountType.INVESTMENT;
             case "W":
                 return AccountType.CASH;
+            case "L":
+                return AccountType.OTHER;
             default:
                 return AccountType.OTHER;
         }
     }
 
-    private String resolveCurrencyCode(JsonNode unitNode) {
+    private String resolveCurrencyCode(JsonNode unitNode, Map<Long, JsonNode> unitsById) {
         if (unitNode == null || unitNode.isMissingNode()) {
             return null;
         }
@@ -772,6 +857,36 @@ public class SkroogeJsonParser {
             }
         }
 
+        // For share (S) and object/crypto (O) units, resolve to the parent unit's currency.
+        // The parent unit chain eventually reaches a currency unit (type "1" or "2") whose
+        // name/symbol/internet_code encodes an ISO 4217 code.
+        String unitType = textValue(unitNode, "t_type");
+        if ("S".equals(unitType) || "O".equals(unitType)) {
+            Long parentId = longValue(unitNode, "rd_unit_id");
+            if (parentId != null && parentId != 0L) {
+                JsonNode parentUnit = unitsById.get(parentId);
+                if (parentUnit != null) {
+                    String parentCurrency = resolveCurrencyCode(parentUnit, unitsById);
+                    if (parentCurrency != null) {
+                        return parentCurrency;
+                    }
+                }
+            }
+        }
+
+        // For units like USD (type "O") whose internet_code is a pair like "EUR/USD",
+        // also try the left side.
+        if ("O".equals(unitType) && internetCode.contains("/")) {
+            String leftSideCode =
+                    internetCode
+                            .substring(0, internetCode.indexOf('/'))
+                            .trim()
+                            .toUpperCase(Locale.ROOT);
+            if (isSupportedCurrency(leftSideCode)) {
+                return leftSideCode;
+            }
+        }
+
         return null;
     }
 
@@ -785,6 +900,94 @@ public class SkroogeJsonParser {
         } catch (IllegalArgumentException ex) {
             return false;
         }
+    }
+
+    /**
+     * Index unit values by unit ID, mapping each unit to a date-sorted price map. The {@code
+     * f_quantity} field in each unitvalue entry is the conversion factor: 1 unit of the
+     * share/crypto = {@code f_quantity} units of the parent unit.
+     */
+    private Map<Long, TreeMap<LocalDate, BigDecimal>> indexUnitValues(JsonNode unitValuesNode) {
+        Map<Long, TreeMap<LocalDate, BigDecimal>> index = new HashMap<>();
+        for (JsonNode uv : unitValuesNode) {
+            Long unitId = longValue(uv, "rd_unit_id");
+            LocalDate date = parseDate(uv);
+            BigDecimal quantity = decimalValue(uv, "f_quantity");
+            if (unitId != null && date != null && quantity.compareTo(BigDecimal.ZERO) != 0) {
+                index.computeIfAbsent(unitId, k -> new TreeMap<>()).put(date, quantity);
+            }
+        }
+        return index;
+    }
+
+    /** Resolve the unit price (f_quantity) at or before the given date. */
+    private BigDecimal resolveUnitPrice(
+            Long unitId,
+            LocalDate date,
+            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId) {
+        if (unitId == null) {
+            return null;
+        }
+        TreeMap<LocalDate, BigDecimal> prices = unitValuesByUnitId.get(unitId);
+        if (prices == null || prices.isEmpty()) {
+            return null;
+        }
+        if (date == null) {
+            return prices.lastEntry().getValue();
+        }
+        Map.Entry<LocalDate, BigDecimal> entry = prices.floorEntry(date);
+        if (entry == null) {
+            entry = prices.firstEntry();
+        }
+        return entry.getValue();
+    }
+
+    /** Returns true if the unit is a share (S) or object/crypto (O) type. */
+    private boolean isInvestmentUnit(JsonNode unitNode) {
+        if (unitNode == null || unitNode.isMissingNode()) {
+            return false;
+        }
+        String unitType = textValue(unitNode, "t_type");
+        return "S".equals(unitType) || "O".equals(unitType);
+    }
+
+    /**
+     * Convert a raw f_value (which may be a quantity for investment units) to a monetary amount in
+     * the unit's parent currency. For currency units (type "1", "2", "C"), f_value is already the
+     * monetary amount and is returned as-is. For share/object units (type "S", "O"), f_value is
+     * multiplied by the unit price from the unitvalue table.
+     */
+    private BigDecimal convertToMonetaryAmount(
+            BigDecimal rawValue,
+            Long unitId,
+            LocalDate date,
+            Map<Long, JsonNode> unitsById,
+            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId) {
+        if (rawValue == null || unitId == null) {
+            return rawValue;
+        }
+        JsonNode unit = unitsById.get(unitId);
+        if (!isInvestmentUnit(unit)) {
+            return rawValue;
+        }
+        BigDecimal price = resolveUnitPrice(unitId, date, unitValuesByUnitId);
+        if (price == null) {
+            log.warn(
+                    "No unit value found for investment unit {} on {}; using raw f_value as amount",
+                    unitId,
+                    date);
+            return rawValue;
+        }
+        return rawValue.multiply(price);
+    }
+
+    /** Resolve institution name, falling back to a generated name if blank. */
+    private String resolveInstitutionName(JsonNode bank, Long bankId) {
+        String name = textValue(bank, "t_name");
+        if (!name.isBlank()) {
+            return name;
+        }
+        return "Institution " + bankId;
     }
 
     private String resolvePayee(JsonNode payeeNode, String comment, String fallbackMode) {

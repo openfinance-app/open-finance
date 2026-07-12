@@ -1822,11 +1822,15 @@ public class ImportService {
         Map<Long, Long> institutionIdsBySource = new HashMap<>();
         List<Institution> existingInstitutions = institutionRepository.findAll();
         for (SkroogeImportMetadata.SkroogeInstitution institution : metadata.getInstitutions()) {
-            if (institution.getName() == null || institution.getName().isBlank()) {
-                log.warn(
-                        "Skipping Skrooge institution {} because it has no usable name",
+            String rawName = institution.getName();
+            final String institutionName =
+                    (rawName == null || rawName.isBlank())
+                            ? "Institution " + institution.getSourceId()
+                            : rawName;
+            if (rawName == null || rawName.isBlank()) {
+                log.info(
+                        "Using fallback name for Skrooge institution {} (no usable name in export)",
                         institution.getSourceId());
-                continue;
             }
             Institution existing =
                     existingInstitutions.stream()
@@ -1835,14 +1839,13 @@ public class ImportService {
                                             candidate.getName() != null
                                                     && candidate
                                                             .getName()
-                                                            .equalsIgnoreCase(
-                                                                    institution.getName()))
+                                                            .equalsIgnoreCase(institutionName))
                             .findFirst()
                             .orElseGet(
                                     () ->
                                             institutionRepository.save(
                                                     Institution.builder()
-                                                            .name(institution.getName())
+                                                            .name(institutionName)
                                                             .country(institution.getCountry())
                                                             .logo(institution.getLogo())
                                                             .isSystem(false)
@@ -2614,7 +2617,7 @@ public class ImportService {
         }
 
         BigDecimal normalized = amount.abs().setScale(4, RoundingMode.HALF_UP);
-        if (normalized.compareTo(new BigDecimal("0.01")) < 0) {
+        if (normalized.compareTo(new BigDecimal("0.001")) < 0) {
             throw new IllegalArgumentException(
                     "Imported amount is below minimum supported value: " + amount);
         }
