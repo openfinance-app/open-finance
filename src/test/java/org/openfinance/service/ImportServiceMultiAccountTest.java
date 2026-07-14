@@ -378,6 +378,352 @@ class ImportServiceMultiAccountTest {
         }
 
         @Test
+        @DisplayName("Should deduplicate paired QIF transfer entries dated one day apart")
+        void shouldDeduplicatePairedQifTransferEntriesDatedOneDayApart() throws Exception {
+                ImportedTransaction outgoingTransfer = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 1, 26))
+                                .payee("FACTURE CARTE")
+                                .amount(new BigDecimal("-1527.48"))
+                                .accountName("Checking Account")
+                                .toAccountName("Epargne BOA")
+                                .transfer(true)
+                                .category("Transfer")
+                                .currency("EUR")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+                ImportedTransaction incomingTransfer = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 1, 27))
+                                .payee("FACTURE CARTE")
+                                .amount(new BigDecimal("1527.48"))
+                                .accountName("Epargne BOA")
+                                .toAccountName("Checking Account")
+                                .transfer(true)
+                                .category("Transfer")
+                                .currency("XOF")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+
+                ImportSession session =
+                                buildSession(8L, "QIF", List.of(outgoingTransfer, incomingTransfer));
+                Account checkingAccount = Account.builder()
+                                .id(901L)
+                                .userId(USER_ID)
+                                .name("enc-checking")
+                                .type(AccountType.CHECKING)
+                                .currency("EUR")
+                                .isActive(true)
+                                .build();
+                Account savingsAccount = Account.builder()
+                                .id(902L)
+                                .userId(USER_ID)
+                                .name("enc-savings")
+                                .type(AccountType.SAVINGS)
+                                .currency("XOF")
+                                .isActive(true)
+                                .build();
+                List<Account> existingAccounts = new ArrayList<>();
+
+                when(importSessionRepository.findById(8L)).thenReturn(Optional.of(session));
+                when(importSessionRepository.save(any(ImportSession.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
+                when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
+                when(accountService.createAccount(eq(USER_ID), any(AccountRequest.class)))
+                                .thenAnswer(
+                                                invocation -> {
+                                                        AccountRequest request = invocation.getArgument(1);
+                                                        Long id =
+                                                                        "Checking Account".equals(request.getName())
+                                                                                        ? 901L
+                                                                                        : 902L;
+                                                        return AccountResponse.builder().id(id).build();
+                                                });
+                when(accountRepository.findById(901L)).thenReturn(Optional.of(checkingAccount));
+                when(accountRepository.findById(902L)).thenReturn(Optional.of(savingsAccount));
+
+                ImportSession result = importService.confirmImport(8L, USER_ID, null, Map.of(), true);
+
+                verify(transactionService, times(1))
+                                .createTransfer(
+                                                eq(USER_ID),
+                                                argThat(
+                                                                request -> request.getAccountId().equals(901L)
+                                                                                && request.getToAccountId()
+                                                                                                .equals(902L)
+                                                                                && request.getAmount()
+                                                                                                .compareTo(
+                                                                                                                new BigDecimal(
+                                                                                                                                "1527.4800"))
+                                                                                                == 0));
+                assertThat(result.getImportedCount()).isEqualTo(1);
+                assertThat(result.getSkippedCount()).isZero();
+        }
+
+        @Test
+        @DisplayName("Should deduplicate ungrouped QIF transfer sides with different native amounts")
+        void shouldDeduplicateUngroupedQifTransferSidesWithDifferentNativeAmounts()
+                        throws Exception {
+                ImportedTransaction eurOutgoing = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2025, 4, 22))
+                                .payee("Retrait a cotonou (WU)")
+                                .amount(new BigDecimal("-153.55"))
+                                .accountName("Checking Account")
+                                .toAccountName("Porteefeuille FCFA")
+                                .transfer(true)
+                                .category("Transfer")
+                                .currency("EUR")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+                ImportedTransaction xofIncoming = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2025, 4, 22))
+                                .payee("Retrait a cotonou (WU)")
+                                .amount(new BigDecimal("100722.1439"))
+                                .accountName("Porteefeuille FCFA")
+                                .toAccountName("Checking Account")
+                                .transfer(true)
+                                .category("Transfer")
+                                .currency("XOF")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+
+                ImportSession session = buildSession(9L, "QIF", List.of(eurOutgoing, xofIncoming));
+                Account checkingAccount = Account.builder()
+                                .id(1001L)
+                                .userId(USER_ID)
+                                .name("enc-checking")
+                                .type(AccountType.CHECKING)
+                                .currency("EUR")
+                                .isActive(true)
+                                .build();
+                Account fcfaAccount = Account.builder()
+                                .id(1002L)
+                                .userId(USER_ID)
+                                .name("enc-fcfa")
+                                .type(AccountType.CHECKING)
+                                .currency("XOF")
+                                .isActive(true)
+                                .build();
+                List<Account> existingAccounts = new ArrayList<>();
+
+                when(importSessionRepository.findById(9L)).thenReturn(Optional.of(session));
+                when(importSessionRepository.save(any(ImportSession.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
+                when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
+                when(accountService.createAccount(eq(USER_ID), any(AccountRequest.class)))
+                                .thenAnswer(
+                                                invocation -> {
+                                                        AccountRequest request = invocation.getArgument(1);
+                                                        Long id =
+                                                                        "Checking Account".equals(request.getName())
+                                                                                        ? 1001L
+                                                                                        : 1002L;
+                                                        return AccountResponse.builder().id(id).build();
+                                                });
+                when(accountRepository.findById(1001L)).thenReturn(Optional.of(checkingAccount));
+                when(accountRepository.findById(1002L)).thenReturn(Optional.of(fcfaAccount));
+
+                ImportSession result = importService.confirmImport(9L, USER_ID, null, Map.of(), true);
+
+                verify(transactionService, times(1))
+                                .createTransfer(
+                                                eq(USER_ID),
+                                                argThat(
+                                                                request -> request.getAccountId().equals(1001L)
+                                                                                && request.getToAccountId()
+                                                                                                .equals(1002L)
+                                                                                && request.getAmount()
+                                                                                                .compareTo(
+                                                                                                                new BigDecimal(
+                                                                                                                                "153.5500"))
+                                                                                                == 0
+                                                                                && "EUR".equals(
+                                                                                                request.getCurrency())));
+                assertThat(result.getImportedCount()).isEqualTo(1);
+                assertThat(result.getSkippedCount()).isZero();
+        }
+
+        @Test
+        @DisplayName("Should use signed QIF transfer amount to determine transfer direction")
+        void shouldUseSignedQifTransferAmountToDetermineTransferDirection() throws Exception {
+                ImportedTransaction incomingSideFirst = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2024, 1, 8))
+                                .payee("Transfer from Checking")
+                                .memo("Automatic transfer")
+                                .amount(new BigDecimal("500.00"))
+                                .accountName("Savings Account")
+                                .toAccountName("Checking Account")
+                                .transfer(true)
+                                .category("Transfer")
+                                .currency("USD")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+                ImportedTransaction outgoingSideSecond = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2024, 1, 8))
+                                .payee("Transfer to Savings")
+                                .memo("Automatic transfer")
+                                .amount(new BigDecimal("-500.00"))
+                                .accountName("Checking Account")
+                                .toAccountName("Savings Account")
+                                .transfer(true)
+                                .category("Transfer")
+                                .currency("USD")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+
+                ImportSession session =
+                                buildSession(
+                                                6L,
+                                                "QIF",
+                                                List.of(incomingSideFirst, outgoingSideSecond));
+                Account checkingAccount = Account.builder()
+                                .id(701L)
+                                .userId(USER_ID)
+                                .name("enc-checking")
+                                .type(AccountType.CHECKING)
+                                .currency("USD")
+                                .isActive(true)
+                                .build();
+                Account savingsAccount = Account.builder()
+                                .id(702L)
+                                .userId(USER_ID)
+                                .name("enc-savings")
+                                .type(AccountType.SAVINGS)
+                                .currency("USD")
+                                .isActive(true)
+                                .build();
+                List<Account> existingAccounts = new ArrayList<>();
+
+                when(importSessionRepository.findById(6L)).thenReturn(Optional.of(session));
+                when(importSessionRepository.save(any(ImportSession.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
+                when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
+                when(accountService.createAccount(eq(USER_ID), any(AccountRequest.class)))
+                                .thenAnswer(
+                                                invocation -> {
+                                                        AccountRequest request = invocation.getArgument(1);
+                                                        Long id =
+                                                                        "Checking Account".equals(request.getName())
+                                                                                        ? 701L
+                                                                                        : 702L;
+                                                        return AccountResponse.builder().id(id).build();
+                                                });
+                when(accountRepository.findById(701L)).thenReturn(Optional.of(checkingAccount));
+                when(accountRepository.findById(702L)).thenReturn(Optional.of(savingsAccount));
+
+                ImportSession result = importService.confirmImport(6L, USER_ID, null, Map.of(), true);
+
+                verify(transactionService, times(1))
+                                .createTransfer(
+                                                eq(USER_ID),
+                                                argThat(request -> matchesTransfer(request, 701L, 702L)));
+                assertThat(result.getImportedCount()).isEqualTo(1);
+                assertThat(result.getSkippedCount()).isZero();
+        }
+
+        @Test
+        @DisplayName("Should preserve repeated same-day QIF transfers with same amount")
+        void shouldPreserveRepeatedSameDayQifTransfersWithSameAmount() throws Exception {
+                ImportedTransaction firstOutgoing = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 2, 2))
+                                .payee("Transfer one")
+                                .amount(new BigDecimal("-1527.48"))
+                                .accountName("Checking Account")
+                                .toAccountName("Savings Account")
+                                .transfer(true)
+                                .category("Transfer")
+                                .currency("USD")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+                ImportedTransaction secondOutgoing = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 2, 2))
+                                .payee("Transfer two")
+                                .amount(new BigDecimal("-1527.48"))
+                                .accountName("Checking Account")
+                                .toAccountName("Savings Account")
+                                .transfer(true)
+                                .category("Transfer")
+                                .currency("USD")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+                ImportedTransaction firstIncoming = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 2, 2))
+                                .payee("Transfer one")
+                                .amount(new BigDecimal("1527.48"))
+                                .accountName("Savings Account")
+                                .toAccountName("Checking Account")
+                                .transfer(true)
+                                .category("Transfer")
+                                .currency("USD")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+                ImportedTransaction secondIncoming = ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 2, 2))
+                                .payee("Transfer two")
+                                .amount(new BigDecimal("1527.48"))
+                                .accountName("Savings Account")
+                                .toAccountName("Checking Account")
+                                .transfer(true)
+                                .category("Transfer")
+                                .currency("USD")
+                                .validationErrors(new ArrayList<>())
+                                .build();
+
+                ImportSession session =
+                                buildSession(
+                                                7L,
+                                                "QIF",
+                                                List.of(
+                                                                firstOutgoing,
+                                                                secondOutgoing,
+                                                                firstIncoming,
+                                                                secondIncoming));
+                Account checkingAccount = Account.builder()
+                                .id(801L)
+                                .userId(USER_ID)
+                                .name("enc-checking")
+                                .type(AccountType.CHECKING)
+                                .currency("USD")
+                                .isActive(true)
+                                .build();
+                Account savingsAccount = Account.builder()
+                                .id(802L)
+                                .userId(USER_ID)
+                                .name("enc-savings")
+                                .type(AccountType.SAVINGS)
+                                .currency("USD")
+                                .isActive(true)
+                                .build();
+                List<Account> existingAccounts = new ArrayList<>();
+
+                when(importSessionRepository.findById(7L)).thenReturn(Optional.of(session));
+                when(importSessionRepository.save(any(ImportSession.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
+                when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
+                when(accountService.createAccount(eq(USER_ID), any(AccountRequest.class)))
+                                .thenReturn(
+                                                AccountResponse.builder().id(801L).build(),
+                                                AccountResponse.builder().id(802L).build());
+                when(accountRepository.findById(801L)).thenReturn(Optional.of(checkingAccount));
+                when(accountRepository.findById(802L)).thenReturn(Optional.of(savingsAccount));
+
+                ImportSession result = importService.confirmImport(7L, USER_ID, null, Map.of(), true);
+
+                verify(transactionService, times(2))
+                                .createTransfer(
+                                                eq(USER_ID),
+                                                argThat(
+                                                                request -> request.getAccountId().equals(801L)
+                                                                                && request.getToAccountId()
+                                                                                                .equals(802L)
+                                                                                && request.getAmount()
+                                                                                                .compareTo(
+                                                                                                                new BigDecimal(
+                                                                                                                                "1527.4800"))
+                                                                                                == 0));
+                assertThat(result.getImportedCount()).isEqualTo(2);
+                assertThat(result.getSkippedCount()).isZero();
+        }
+
+        @Test
         @DisplayName("Should deduplicate Skrooge transfer entries with different side amounts")
         void shouldDeduplicateSkroogeTransferEntriesWithDifferentSideAmounts() throws Exception {
                 ImportedTransaction euroOut = ImportedTransaction.builder()

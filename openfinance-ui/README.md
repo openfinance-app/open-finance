@@ -160,13 +160,6 @@ The client automatically:
 - **Client State**: Use Zustand stores
 - **Form State**: Use React Hook Form
 
-## Next Steps (Sprint 1)
-
-- [ ] Implement authentication (login/register)
-- [ ] Create AuthContext for auth state
-- [ ] Add ProtectedRoute component
-- [ ] Build account management UI
-- [ ] Implement transaction management
 
 ## Contributing
 

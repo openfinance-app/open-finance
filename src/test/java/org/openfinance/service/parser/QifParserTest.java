@@ -433,6 +433,34 @@ class QifParserTest {
     }
 
     @Test
+    @DisplayName("Should infer missing transaction amount from split totals")
+    void shouldInferMissingTransactionAmountFromSplitTotals() throws IOException {
+        String qif =
+                """
+                !Type:Cash
+                D2026-05-01
+                YCFA
+                PDépenses diverses
+                SDivers:Achat Divers
+                $-2100
+                SAlimentation:Épicerie
+                $-2625
+                SDons:Cadeaux
+                $-10000
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-14725"));
+        assertThat(tx.getCurrency()).isEqualTo("XOF");
+        assertThat(tx.isSplitTransaction()).isTrue();
+        assertThat(tx.hasErrors()).isFalse();
+    }
+
+    @Test
     @DisplayName("Should validate split amounts match transaction amount")
     void testValidateSplitAmountsMatch() throws IOException {
         String qif =
@@ -968,6 +996,122 @@ class QifParserTest {
         assertThat(transactions.get(1).getAccountName()).isEqualTo("Checking Account");
     }
 
+    @Test
+    @DisplayName("Should propagate QIF account type from !Account block to standard transactions")
+    void shouldPropagateQifAccountTypeToStandardTransactions() throws IOException {
+        String qif =
+                """
+                !Account
+                NMobile Money
+                TCCard
+                ^
+                !Type:CCard
+                D2026-04-28
+                T-10.00
+                PPayment
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getAccountName()).isEqualTo("Mobile Money");
+        assertThat(transactions.get(0).getQifAccountType()).isEqualTo("CCard");
+    }
+
+    @Test
+    @DisplayName("Should use standard Skrooge cash quantity as native amount when T is missing")
+    void shouldUseStandardSkroogeCashQuantityAsNativeAmount() throws IOException {
+        String qif =
+                """
+                !Account
+                NEpargne BOA
+                TCash
+                ^
+                !Type:Cash
+                D2026-05-26
+                YCFA
+                PTransfert Momo -> BOA
+                CR
+                Q200000
+                I0.001524490991
+                L[Mobile Money 0197007713]/Transfert
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("200000"));
+        assertThat(tx.getCurrency()).isEqualTo("XOF");
+        assertThat(tx.getQifAccountType()).isEqualTo("Cash");
+        assertThat(tx.hasErrors()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should sign native Skrooge cash quantity from category type")
+    void shouldSignNativeSkroogeCashQuantityFromCategoryType() throws IOException {
+        String qif =
+                """
+                !Type:Cat
+                NDons:Cadeaux
+                E
+                ^
+                !Account
+                NPorteefeuille FCFA
+                TCash
+                ^
+                !Type:Cash
+                D2025-04-22
+                YCFA
+                PDon Willi
+                Q15000
+                I0.001524490991
+                LDons:Cadeaux
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-15000"));
+        assertThat(tx.getCurrency()).isEqualTo("XOF");
+        assertThat(tx.hasErrors()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should skip Skrooge balance snapshot records with only Q+I and no descriptive fields")
+    void shouldSkipSkroogeBalanceSnapshotRecords() throws IOException {
+        String qif =
+                """
+                !Account
+                NPorteefeuille FCFA
+                TCash
+                ^
+                !Type:Cash
+                D2026-07-12
+                YCFA
+                CR
+                Q38180
+                I0.001524490991
+                ^
+                D2025-04-22
+                YCFA
+                PDon Willi
+                Q15000
+                I0.001524490991
+                LDons:Cadeaux
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getPayee()).isEqualTo("Don Willi");
+    }
+
     // ========== Investment Transaction Tests ==========
 
     @Test
@@ -1067,6 +1211,31 @@ class QifParserTest {
         assertThat(transactions).hasSize(1);
         ImportedTransaction tx = transactions.get(0);
         assertThat(tx.getAmount()).isNotNull();
+        assertThat(tx.hasErrors()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should negate inferred investment amount for Sell actions")
+    void shouldNegateInferredInvestmentAmountForSellActions() throws IOException {
+        String qif =
+                """
+                !Type:Oth A
+                D2025-06-18
+                NSell
+                YB504
+                PFrais d’EDD / RC (304€)
+                CR
+                Q0.00135111
+                I225000
+                LDépenses Achat Cogedim:Dépenses  Divers
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-303.99975000"));
         assertThat(tx.hasErrors()).isFalse();
     }
 

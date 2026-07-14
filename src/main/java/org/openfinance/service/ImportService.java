@@ -1785,6 +1785,7 @@ public class ImportService {
             affectedAccountIds.add(resolvedFallbackAccountId);
         }
         Set<String> processedTransferKeys = new java.util.HashSet<>();
+        Map<String, Integer> ungroupedTransferOccurrences = new HashMap<>();
 
         for (ImportedTransaction importedTx : toImport) {
             try {
@@ -1805,19 +1806,30 @@ public class ImportService {
 
                     String transferKey =
                             buildImportedTransferKey(
-                                    importedTx, sourceAccountId, destinationAccountId);
+                                    importedTx,
+                                    sourceAccountId,
+                                    destinationAccountId,
+                                    ungroupedTransferOccurrences);
                     if (!processedTransferKeys.add(transferKey)) {
                         continue;
                     }
 
+                    Long transferSourceAccountId = sourceAccountId;
+                    Long transferDestinationAccountId = destinationAccountId;
+                    if (importedTx.getAmount().signum() > 0) {
+                        transferSourceAccountId = destinationAccountId;
+                        transferDestinationAccountId = sourceAccountId;
+                    }
+
                     TransactionRequest transferRequest =
                             TransactionRequest.builder()
-                                    .accountId(sourceAccountId)
-                                    .toAccountId(destinationAccountId)
+                                    .accountId(transferSourceAccountId)
+                                    .toAccountId(transferDestinationAccountId)
                                     .type(TransactionType.TRANSFER)
                                     .amount(normalizeAmount(importedTx.getAmount()))
                                     .currency(
-                                            resolveTransactionCurrency(importedTx, sourceAccountId))
+                                            resolveTransactionCurrency(
+                                                    importedTx, transferSourceAccountId))
                                     .date(importedTx.getTransactionDate())
                                     .description(
                                             truncate(
@@ -1841,8 +1853,8 @@ public class ImportService {
                                                     : null)
                                     .build();
                     transactionService.createTransfer(userId, transferRequest);
-                    affectedAccountIds.add(sourceAccountId);
-                    affectedAccountIds.add(destinationAccountId);
+                    affectedAccountIds.add(transferSourceAccountId);
+                    affectedAccountIds.add(transferDestinationAccountId);
                     imported++;
                     continue;
                 }
@@ -2292,7 +2304,10 @@ public class ImportService {
     }
 
     private String buildImportedTransferKey(
-            ImportedTransaction transaction, Long sourceAccountId, Long destinationAccountId) {
+            ImportedTransaction transaction,
+            Long sourceAccountId,
+            Long destinationAccountId,
+            Map<String, Integer> ungroupedTransferOccurrences) {
         String groupKey = transaction.getTransferGroupKey();
         if (groupKey != null && !groupKey.isBlank()) {
             return groupKey;
@@ -2300,14 +2315,22 @@ public class ImportService {
 
         long lowerAccountId = Math.min(sourceAccountId, destinationAccountId);
         long higherAccountId = Math.max(sourceAccountId, destinationAccountId);
+        String baseKey =
+                String.join(
+                        "|",
+                        String.valueOf(lowerAccountId),
+                        String.valueOf(higherAccountId));
+        String rawSideKey =
+                String.join(
+                        "|",
+                        baseKey,
+                        String.valueOf(sourceAccountId),
+                        String.valueOf(destinationAccountId));
+        int occurrence = ungroupedTransferOccurrences.merge(rawSideKey, 1, Integer::sum);
         return String.join(
                 "|",
-                transaction.getTransactionDate() != null
-                        ? transaction.getTransactionDate().toString()
-                        : "",
-                normalizeAmount(transaction.getAmount()).toPlainString(),
-                String.valueOf(lowerAccountId),
-                String.valueOf(higherAccountId));
+                baseKey,
+                String.valueOf(occurrence));
     }
 
     private String decryptQuietly(String value) {

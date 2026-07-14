@@ -10,7 +10,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
 import org.springframework.stereotype.Component;
@@ -127,8 +129,11 @@ public class QifParser {
             String currentQifAccountType = null;
             // When true, the next N line inside an !Account block is the account name
             boolean inAccountBlock = false;
+            boolean inCategoryType = false;
             boolean skipCurrentType = false;
             boolean isInvestmentType = false;
+            String currentCategoryName = null;
+            Map<String, Character> categoryTypes = new HashMap<>();
             int lineNumber = 0;
             int transactionStartLine = 0;
 
@@ -161,6 +166,8 @@ public class QifParser {
                         String typeValue = line.substring("!Type:".length()).trim();
                         currentAccountType = typeValue;
                         String typeLower = typeValue.toLowerCase();
+                        inCategoryType = typeLower.startsWith("cat");
+                        currentCategoryName = null;
                         skipCurrentType = SKIP_TYPES.stream().anyMatch(typeLower::startsWith);
                         isInvestmentType =
                                 typeLower.equalsIgnoreCase("invst")
@@ -169,12 +176,25 @@ public class QifParser {
                         log.debug("Found account type: {}", currentAccountType);
                     } else if (line.equalsIgnoreCase("!Account")) {
                         inAccountBlock = true;
+                        inCategoryType = false;
+                        currentCategoryName = null;
                         skipCurrentType = false; // !Account ends any prior skip section
                         log.debug("Entering !Account block");
                     } else if (line.toLowerCase().startsWith("!option:")) {
                         log.debug("QIF option directive (ignored): {}", line);
                     } else {
                         log.debug("Unknown QIF directive (ignored): {}", line);
+                    }
+                    continue;
+                }
+
+                if (inCategoryType) {
+                    if (code == 'N') {
+                        currentCategoryName = value;
+                    } else if ((code == 'E' || code == 'I') && currentCategoryName != null) {
+                        categoryTypes.put(currentCategoryName, code);
+                    } else if (code == '^') {
+                        currentCategoryName = null;
                     }
                     continue;
                 }
@@ -213,8 +233,13 @@ public class QifParser {
                     switch (code) {
                         case 'D':
                             if (currentTransaction != null) {
-                                applyInvestmentAmountIfNeeded(
-                                        currentTransaction, uAmount, invQuantity, invPrice);
+                                applyComputedAmountIfNeeded(
+                                        currentTransaction,
+                                        uAmount,
+                                        invQuantity,
+                                        invPrice,
+                                        true,
+                                        categoryTypes);
                                 finalizeSplits(currentTransaction, currentSplits);
                                 transactions.add(
                                         buildTransaction(
@@ -307,8 +332,13 @@ public class QifParser {
                             break;
                         case '^':
                             if (currentTransaction != null) {
-                                applyInvestmentAmountIfNeeded(
-                                        currentTransaction, uAmount, invQuantity, invPrice);
+                                applyComputedAmountIfNeeded(
+                                        currentTransaction,
+                                        uAmount,
+                                        invQuantity,
+                                        invPrice,
+                                        true,
+                                        categoryTypes);
                                 finalizeSplits(currentTransaction, currentSplits);
                                 transactions.add(
                                         buildTransaction(
@@ -333,20 +363,37 @@ public class QifParser {
                 switch (code) {
                     case 'D': // Date — starts a new transaction
                         if (currentTransaction != null) {
-                            applyUAmountIfNeeded(currentTransaction, uAmount);
+                            applyComputedAmountIfNeeded(
+                                    currentTransaction,
+                                    uAmount,
+                                    invQuantity,
+                                    invPrice,
+                                    false,
+                                    categoryTypes);
                             finalizeSplits(currentTransaction, currentSplits);
                             transactions.add(
                                     buildTransaction(
                                             currentTransaction, transactionStartLine, fileName));
                             currentSplits.clear();
                             uAmount = null;
+                            invQuantity = null;
+                            invPrice = null;
                         }
                         currentTransaction = ImportedTransaction.builder();
                         if (currentAccountName != null) {
                             currentTransaction.accountName(currentAccountName);
                         }
+                        String standardQifType =
+                                currentQifAccountType != null
+                                        ? currentQifAccountType
+                                        : currentAccountType;
+                        if (standardQifType != null) {
+                            currentTransaction.qifAccountType(standardQifType);
+                        }
                         transactionStartLine = lineNumber;
                         uAmount = null;
+                        invQuantity = null;
+                        invPrice = null;
                         LocalDate parsedDate = parseDate(value, lineNumber);
                         currentTransaction.transactionDate(parsedDate);
                         if (parsedDate == null) {
@@ -377,6 +424,23 @@ public class QifParser {
 
                     case 'U': // Alternative amount (newer Quicken) — used only if T absent
                         uAmount = parseAmount(value, lineNumber, null);
+                        break;
+
+                    case 'Y': // Unit/currency marker in Skrooge non-investment QIF records
+                        if (currentTransaction != null) {
+                            String currency = mapQifCurrency(value);
+                            if (currency != null) {
+                                currentTransaction.currency(currency);
+                            }
+                        }
+                        break;
+
+                    case 'Q': // Quantity used with I when T is absent in Skrooge cash exports
+                        invQuantity = parseAmount(value, lineNumber, null);
+                        break;
+
+                    case 'I': // Price/rate used with Q when T is absent in Skrooge cash exports
+                        invPrice = parseAmount(value, lineNumber, null);
                         break;
 
                     case 'P': // Payee
@@ -482,7 +546,13 @@ public class QifParser {
                                 currentSplits.add(currentSplit.build());
                                 currentSplit = null;
                             }
-                            applyUAmountIfNeeded(currentTransaction, uAmount);
+                            applyComputedAmountIfNeeded(
+                                    currentTransaction,
+                                    uAmount,
+                                    invQuantity,
+                                    invPrice,
+                                    false,
+                                    categoryTypes);
                             finalizeSplits(currentTransaction, currentSplits);
                             transactions.add(
                                     buildTransaction(
@@ -490,6 +560,8 @@ public class QifParser {
                             currentTransaction = null;
                             currentSplits.clear();
                             uAmount = null;
+                            invQuantity = null;
+                            invPrice = null;
                         }
                         break;
 
@@ -504,13 +576,20 @@ public class QifParser {
 
             // Add last transaction if file doesn't end with '^'
             if (currentTransaction != null) {
-                applyInvestmentAmountIfNeeded(currentTransaction, uAmount, invQuantity, invPrice);
+                applyComputedAmountIfNeeded(
+                        currentTransaction,
+                        uAmount,
+                        invQuantity,
+                        invPrice,
+                        isInvestmentType,
+                        categoryTypes);
                 finalizeSplits(currentTransaction, currentSplits);
                 transactions.add(
                         buildTransaction(currentTransaction, transactionStartLine, fileName));
             }
         }
 
+        transactions.removeIf(this::isBalanceSnapshot);
         log.info(
                 "QIF parsing complete: {} transactions parsed from {}",
                 transactions.size(),
@@ -535,11 +614,13 @@ public class QifParser {
      * Apply amount from U field or Q × I computation when T was never provided. Priority: T
      * (already set) > U > Q × I.
      */
-    private void applyInvestmentAmountIfNeeded(
+    private void applyComputedAmountIfNeeded(
             ImportedTransaction.ImportedTransactionBuilder builder,
             BigDecimal uAmount,
             BigDecimal invQuantity,
-            BigDecimal invPrice) {
+            BigDecimal invPrice,
+            boolean investmentTransaction,
+            Map<String, Character> categoryTypes) {
         ImportedTransaction peek = builder.build();
         if (peek.getAmount() != null) {
             return; // T was set
@@ -550,12 +631,87 @@ public class QifParser {
         }
         if (invQuantity != null && invPrice != null) {
             try {
-                BigDecimal computed = invQuantity.multiply(invPrice);
+                BigDecimal computed =
+                        !investmentTransaction && peek.getCurrency() != null
+                                ? invQuantity
+                                : invQuantity.multiply(invPrice);
+                if (!investmentTransaction
+                        && !peek.isTransfer()
+                        && isExpenseCategory(peek.getCategory(), categoryTypes)) {
+                    computed = computed.abs().negate();
+                } else if (investmentTransaction && isSellAction(peek.getReferenceNumber())) {
+                    computed = computed.abs().negate();
+                }
                 builder.amount(computed);
+                if (!investmentTransaction
+                        && (peek.getPayee() == null || peek.getPayee().isBlank())
+                        && (peek.getCategory() == null || peek.getCategory().isBlank())
+                        && (peek.getMemo() == null || peek.getMemo().isBlank())
+                        && (peek.getReferenceNumber() == null
+                                || peek.getReferenceNumber().isBlank())
+                        && !peek.isTransfer()
+                        && (peek.getSplits() == null || peek.getSplits().isEmpty())) {
+                    builder.openingBalance(true);
+                }
             } catch (ArithmeticException e) {
                 log.debug("Could not compute investment amount from Q × I: {}", e.getMessage());
             }
         }
+    }
+
+    private boolean isSellAction(String action) {
+        return action != null && action.trim().toLowerCase().startsWith("sell");
+    }
+
+    private boolean isBalanceSnapshot(ImportedTransaction tx) {
+        return tx != null
+                && tx.isOpeningBalance()
+                && (tx.getPayee() == null || tx.getPayee().isBlank())
+                && (tx.getCategory() == null || tx.getCategory().isBlank())
+                && (tx.getMemo() == null || tx.getMemo().isBlank())
+                && (tx.getReferenceNumber() == null || tx.getReferenceNumber().isBlank())
+                && !tx.isTransfer()
+                && (tx.getSplits() == null || tx.getSplits().isEmpty());
+    }
+
+    private boolean isExpenseCategory(String category, Map<String, Character> categoryTypes) {
+        if (category == null || category.isBlank()) {
+            return false;
+        }
+        String candidate = category.trim();
+        while (!candidate.isBlank()) {
+            Character categoryType = categoryTypes.get(candidate);
+            if (categoryType != null) {
+                return categoryType == 'E';
+            }
+            int separator = candidate.lastIndexOf(':');
+            if (separator < 0) {
+                return false;
+            }
+            candidate = candidate.substring(0, separator).trim();
+        }
+        return false;
+    }
+
+    private String mapQifCurrency(String rawUnit) {
+        if (rawUnit == null || rawUnit.isBlank()) {
+            return null;
+        }
+        String trimmed = rawUnit.trim();
+        switch (trimmed) {
+            case "€":
+                return "EUR";
+            case "$":
+                return "USD";
+            case "£":
+                return "GBP";
+            default:
+                break;
+        }
+        if (trimmed.equalsIgnoreCase("CFA") || trimmed.equalsIgnoreCase("XOF")) {
+            return "XOF";
+        }
+        return trimmed.length() == 3 ? trimmed.toUpperCase() : null;
     }
 
     /**
@@ -608,6 +764,15 @@ public class QifParser {
             List<ImportedTransaction.SplitEntry> splits) {
         if (!splits.isEmpty()) {
             transaction.splits(new ArrayList<>(splits));
+            ImportedTransaction peek = transaction.build();
+            if (peek.getAmount() == null) {
+                BigDecimal totalSplitAmount =
+                        splits.stream()
+                                .map(ImportedTransaction.SplitEntry::getAmount)
+                                .filter(amount -> amount != null)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                transaction.amount(totalSplitAmount);
+            }
         }
     }
 
