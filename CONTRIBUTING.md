@@ -23,7 +23,7 @@ The recommended setup uses the pre-configured **DevContainer** — includes Java
 **Requirements**: Docker + VS Code + [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 
 ```bash
-git clone https://github.com/open-finance/open-finance.git
+git clone https://github.com/albilu/open-finance.git
 code open-finance
 # F1 → "Dev Containers: Reopen in Container"
 # Wait ~10 min on first build, then:

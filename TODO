@@ -1,4 +1,21 @@
 TODO:
+
+Considering following skrooge original data:
+skrooge database: @docs/sample/my_export_anonymized.sqlite
+skrooge qif export: @docs/sample/qif/my_export_anonymized.qif
+
+Import into open-finance:
+logs: @docs/sample/qif/application.log
+open-finance database after import: @docs/sample/qif/openfinance_anonymized.db
+
+Account information and balances in openfinance are not correct compared to original data.
+
+Review thoroughly and compare each imported account and transactions to its original and investigate the discrepancies after import.
+
+1- Regex search support
+2- Fix quick start
+3- Dashboard Plugin architrcture
+
 1-create rules from Import view
 
 - Subscription Plan Implementation:
@@ -13,12 +30,3 @@ TODO:
                 - More accurate Financial data (rates, quotes) with external provider.
                 - AI services: OpenAI.
                 - Email notif
-
-Make the encryption feature activatioon toggable.
-property in application.yml to enable/disable
-
-1-When disable master password not asked on the UI and feature is disabled
-2-No need to handle old data encryption/decryption.
-
-enable/disable is applicable from the get go.
-Either user enable encryption from the start or disable it. User can not enabsle/disabled for an existing user

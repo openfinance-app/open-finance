@@ -31,7 +31,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * that the authenticated user ID is available.
  */
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class EncryptionKeyFilter extends OncePerRequestFilter {
 

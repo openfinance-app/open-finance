@@ -18,13 +18,16 @@
 Requires [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/).
 
 ```bash
-git clone https://github.com/open-finance/open-finance.git
+git clone https://github.com/albilu/open-finance.git
 cd open-finance
 
 cp .env.example .env
 
+# Generate a secure JWT signing secret (required, min 32 chars)
+sed -i "s/JWT_SECRET=REPLACE_WITH_A_LONG_RANDOM_SECRET_MIN_32_CHARS/JWT_SECRET=$(openssl rand -base64 48)/" .env
+
 docker compose up -d
-# Open http://localhost:3000
+# Open http://localhost:8080
 ```
 
 _Bug reports and feature requests → [GitHub Issues](https://github.com/open-finance/open-finance/issues)_
@@ -47,7 +50,7 @@ The recommended setup uses the pre-configured **DevContainer** — includes Java
 **Requirements**: Docker + VS Code + [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 
 ```bash
-git clone https://github.com/open-finance/open-finance.git
+git clone https://github.com/albilu/open-finance.git
 code open-finance
 # F1 → "Dev Containers: Reopen in Container"
 

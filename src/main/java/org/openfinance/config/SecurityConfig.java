@@ -5,6 +5,7 @@ package org.openfinance.config;
 import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.openfinance.security.EncryptionKeyCache;
 import org.openfinance.security.EncryptionKeyFilter;
 import org.openfinance.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,7 +63,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
-        private final EncryptionKeyFilter encryptionKeyFilter;
+        private final EncryptionKeyCache encryptionKeyCache;
+        private final EncryptionProperties encryptionProperties;
         private final SecurityHeadersFilter securityHeadersFilter;
 
         /**
@@ -77,6 +79,16 @@ public class SecurityConfig {
          */
         @Value("${application.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
         private String allowedOrigins;
+
+        /**
+         * Creates the encryption key filter bean, registered exclusively in the
+         * security filter chain (not auto-registered as a servlet filter via
+         * {@code @Component}) to avoid double-firing.
+         */
+        @Bean
+        public EncryptionKeyFilter encryptionKeyFilter() {
+                return new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
+        }
 
         /**
          * Configures the security filter chain for HTTP requests.
@@ -166,7 +178,7 @@ public class SecurityConfig {
                                                 jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
                                 // Encryption key filter runs after JWT so that userId is available
-                                .addFilterAfter(encryptionKeyFilter, JwtAuthenticationFilter.class)
+                                .addFilterAfter(encryptionKeyFilter(), JwtAuthenticationFilter.class)
 
                                 // Requirement TASK-15.1.2: Register security headers filter
                                 .addFilterAfter(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class);

@@ -95,14 +95,10 @@ class CategoryManagementIntegrationTest {
         /** Base64-encoded AES encryption key */
         private String encKey;
 
-        /** Account ID for transaction tests */
-        private Long accountId;
-
         @BeforeEach
         void setUp() throws Exception {
                 databaseCleanupService.execute();
 
-                // Register + login
                 UserRegistrationRequest reg = UserRegistrationRequest.builder()
                                 .username("catuser")
                                 .email("catuser@example.com")
@@ -129,27 +125,6 @@ class CategoryManagementIntegrationTest {
 
                 token = objectMapper.readTree(loginResp).get("token").asText();
                 encKey = objectMapper.readTree(loginResp).get("encryptionKey").asText();
-
-                // Create an account (needed for transaction-based tests)
-                AccountRequest accountReq = AccountRequest.builder()
-                                .name("Test Account")
-                                .type(AccountType.CHECKING)
-                                .currency("EUR")
-                                .initialBalance(BigDecimal.ZERO)
-                                .build();
-
-                String accountResp = mockMvc.perform(
-                                post("/api/v1/accounts")
-                                                .header("Authorization", "Bearer " + token)
-                                                .header("X-Encryption-Session", encKey)
-                                                .contentType(MediaType.APPLICATION_JSON)
-                                                .content(objectMapper.writeValueAsString(accountReq)))
-                                .andExpect(status().isCreated())
-                                .andReturn()
-                                .getResponse()
-                                .getContentAsString();
-
-                accountId = objectMapper.readTree(accountResp).get("id").asLong();
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────────
@@ -169,6 +144,7 @@ class CategoryManagementIntegrationTest {
                                                 .header("X-Encryption-Session", encKey)
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content(objectMapper.writeValueAsString(req)))
+                                .andDo(print())
                                 .andExpect(status().isCreated())
                                 .andReturn()
                                 .getResponse()
@@ -530,9 +506,29 @@ class CategoryManagementIntegrationTest {
         void shouldNotDeleteCategoryInUseByTransactions() throws Exception {
                 Long categoryId = createCategory("In Use Category", CategoryType.EXPENSE, null);
 
+                // Create an account for the transaction
+                AccountRequest accountReq = AccountRequest.builder()
+                                .name("Test Account")
+                                .type(AccountType.CHECKING)
+                                .currency("EUR")
+                                .initialBalance(BigDecimal.ZERO)
+                                .build();
+                String accountResp = mockMvc.perform(
+                                post("/api/v1/accounts")
+                                                .header("Authorization", "Bearer " + token)
+                                                .header("X-Encryption-Session", encKey)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(accountReq)))
+                                .andDo(print())
+                                .andExpect(status().isCreated())
+                                .andReturn()
+                                .getResponse()
+                                .getContentAsString();
+                Long acctId = objectMapper.readTree(accountResp).get("id").asLong();
+
                 // Create a transaction using this category
                 TransactionRequest txReq = TransactionRequest.builder()
-                                .accountId(accountId)
+                                .accountId(acctId)
                                 .type(TransactionType.EXPENSE)
                                 .amount(new BigDecimal("25.00"))
                                 .currency("EUR")
