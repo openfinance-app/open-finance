@@ -5,10 +5,10 @@
 
 ![Open Finance Dashboard](docs/wiki/screenshots/hero.png)
 
-[![Backend CI](https://github.com/albilu/open-finance/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/albilu/open-finance/actions/workflows/backend-ci.yml)
-[![Frontend CI](https://github.com/albilu/open-finance/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/albilu/open-finance/actions/workflows/frontend-ci.yml)
-[![Publish Docker Image](https://github.com/albilu/open-finance/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/albilu/open-finance/actions/workflows/docker-publish.yml)
-[![Release](https://img.shields.io/github/v/release/albilu/open-finance)](https://github.com/albilu/open-finance/releases/latest)
+[![Backend CI](https://github.com/openfinance-app/open-finance/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/openfinance-app/open-finance/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/frontend-ci.yml)
+[![Publish Docker Image](https://github.com/openfinance-app/open-finance/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/docker-publish.yml)
+[![Release](https://img.shields.io/github/v/release/albilu/open-finance)](https://github.com/openfinance-app/open-finance/releases/latest)
 [![License: ELv2](https://img.shields.io/badge/License-Elastic_v2-blue.svg)](LICENSE)
 
 ---
@@ -18,7 +18,7 @@
 Requires [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/).
 
 ```bash
-git clone https://github.com/albilu/open-finance.git
+git clone https://github.com/openfinance-app/open-finance.git
 cd open-finance
 
 cp .env.example .env
@@ -50,7 +50,7 @@ The recommended setup uses the pre-configured **DevContainer** — includes Java
 **Requirements**: Docker + VS Code + [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 
 ```bash
-git clone https://github.com/albilu/open-finance.git
+git clone https://github.com/openfinance-app/open-finance.git
 code open-finance
 # F1 → "Dev Containers: Reopen in Container"
 

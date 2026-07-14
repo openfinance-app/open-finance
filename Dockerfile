@@ -59,7 +59,7 @@ USER appuser:appgroup
 
 LABEL org.opencontainers.image.title="Open-Finance"
 LABEL org.opencontainers.image.description="Personal wealth management — Spring Boot + React"
-LABEL org.opencontainers.image.source="https://github.com/albilu/open-finance"
+LABEL org.opencontainers.image.source="https://github.com/openfinance-app/open-finance"
 
 EXPOSE 8080
 

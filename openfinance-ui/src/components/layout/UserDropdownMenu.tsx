@@ -81,7 +81,7 @@ export function UserDropdownMenu() {
       label: t('help'),
       icon: HelpCircle,
       onClick: () => {
-        window.open('https://github.com/albilu/open-finance/wiki', '_blank');
+        window.open('https://github.com/openfinance-app/open-finance/wiki', '_blank');
         setIsOpen(false);
       },
     },
