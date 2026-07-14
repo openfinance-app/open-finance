@@ -29,21 +29,20 @@ public class AIProviderConfig {
     @Value("${application.ai.provider:ollama}")
     private String providerName;
 
-    // ---- Ollama settings (reuses existing keys for backward compatibility) ----
-    @Value(
-            "${application.ai.ollama.base-url:${application.ollama.base-url:http://localhost:11434}}")
+    // ---- Ollama settings ----
+    @Value("${application.ai.ollama.base-url:http://localhost:11434}")
     private String ollamaBaseUrl;
 
-    @Value("${application.ai.ollama.model:${application.ollama.model:qwen2.5:0.5b}}")
+    @Value("${application.ai.ollama.model:qwen2.5:0.5b}")
     private String ollamaModel;
 
-    @Value("${application.ai.ollama.temperature:${application.ollama.temperature:0.7}}")
+    @Value("${application.ai.ollama.temperature:0.7}")
     private double ollamaTemperature;
 
-    @Value("${application.ai.ollama.max-tokens:${application.ollama.max-tokens:2048}}")
+    @Value("${application.ai.ollama.max-tokens:2048}")
     private int ollamaMaxTokens;
 
-    @Value("${application.ai.ollama.timeout-seconds:${application.ollama.timeout-seconds:60}}")
+    @Value("${application.ai.ollama.timeout-seconds:60}")
     private int ollamaTimeout;
 
     @Value("${application.ai.ollama.searxng.base-url:}")

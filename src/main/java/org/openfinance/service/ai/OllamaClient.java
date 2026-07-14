@@ -57,11 +57,11 @@ public class OllamaClient {
      * @param temperature Sampling temperature 0.0-1.0 (default: 0.7)
      */
     public OllamaClient(
-            @Value("${application.ollama.base-url}") String baseUrl,
-            @Value("${application.ollama.model}") String model,
-            @Value("${application.ollama.timeout-seconds}") int timeoutSeconds,
-            @Value("${application.ollama.max-tokens}") int maxTokens,
-            @Value("${application.ollama.temperature}") double temperature) {
+            @Value("${application.ai.ollama.base-url}") String baseUrl,
+            @Value("${application.ai.ollama.model}") String model,
+            @Value("${application.ai.ollama.timeout-seconds}") int timeoutSeconds,
+            @Value("${application.ai.ollama.max-tokens}") int maxTokens,
+            @Value("${application.ai.ollama.temperature}") double temperature) {
         this.model = model;
         this.maxTokens = maxTokens;
         this.temperature = temperature;

@@ -55,7 +55,7 @@ public class AIService {
         private final ObjectMapper objectMapper;
         private final MessageSource messageSource;
 
-        @Value("${application.ollama.max-history-messages:10}")
+        @Value("${application.ai.ollama.max-history-messages:10}")
         private int maxHistoryMessages;
 
         /**

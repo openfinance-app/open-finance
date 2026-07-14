@@ -28,6 +28,8 @@ sed -i "s/JWT_SECRET=REPLACE_WITH_A_LONG_RANDOM_SECRET_MIN_32_CHARS/JWT_SECRET=$
 
 docker compose up -d
 # Open http://localhost:8080
+
+# demo user: demo/demo123 or register a new account
 ```
 
 _Bug reports and feature requests → [GitHub Issues](https://github.com/open-finance/open-finance/issues)_

@@ -15,6 +15,7 @@ Review thoroughly and compare each imported account and transactions to its orig
 1- Regex search support
 2- Fix quick start
 3- Dashboard Plugin architrcture
+4-attachments should be stored in db instead of file system
 
 1-create rules from Import view
 

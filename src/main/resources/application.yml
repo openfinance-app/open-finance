@@ -105,10 +105,8 @@ application:
   market-data:
     refresh-interval: 900000
     cache-ttl: 900
-    yahoo-finance-url: http://localhost:5000
     rate-limit-per-day: 2000
   exchange-rates:
-    ecb-api-url: https://api.exchangerate.host
     base-currency: EUR
     cache-ttl: 86400
   import:
@@ -143,24 +141,16 @@ application:
     unusual-transaction-detection:
       mode: DEFAULT
       interval-hours: 6
-  ollama:
-    base-url: http://localhost:11434
-    # model: qwen2.5:0.5b
-    model: llama3.2:3b
-    timeout-seconds: 600
-    max-tokens: 2048
-    temperature: 0.7
-    max-history-messages: 10
-    max-context-tokens: 8192
   ai:
-    # Active provider: 'ollama' (default) or 'openai'
     provider: ollama
     ollama:
-      base-url: ${application.ollama.base-url}
-      model: ${application.ollama.model}
-      temperature: ${application.ollama.temperature}
-      max-tokens: ${application.ollama.max-tokens}
-      timeout-seconds: ${application.ollama.timeout-seconds}
+      base-url: http://localhost:11434
+      model: llama3.2:3b
+      timeout-seconds: 600
+      max-tokens: 2048
+      temperature: 0.7
+      max-history-messages: 10
+      max-context-tokens: 8192
     openai:
       api-key: ''
       model: gpt-4o-mini
