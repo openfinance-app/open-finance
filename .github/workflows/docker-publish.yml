@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/albilu/open-finance
+  IMAGE_NAME: ghcr.io/openfinance-app/open-finance
 
 jobs:
   build-and-push:

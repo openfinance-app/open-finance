@@ -19,7 +19,7 @@
 
 services:
   app:
-    image: ghcr.io/albilu/open-finance:${OPEN_FINANCE_TAG:-latest}
+    image: ghcr.io/openfinance-app/open-finance:${OPEN_FINANCE_TAG:-latest}
     container_name: open-finance-app
     restart: unless-stopped
     ports:
