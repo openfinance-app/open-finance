@@ -118,6 +118,68 @@ class SkroogeJsonParserTest {
     }
 
     @Test
+    @DisplayName("Should recognize French virement categories as transfers")
+    void shouldRecognizeFrenchVirementCategoriesAsTransfers() throws IOException {
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(
+                                virementTransferJson().getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        List<ImportedTransaction> transfers =
+                result.getTransactions().stream().filter(ImportedTransaction::isTransfer).toList();
+        assertThat(transfers).hasSize(2);
+        assertThat(transfers)
+                .extracting(ImportedTransaction::getTransferGroupKey)
+                .containsOnly("skrooge:transfer-group:777");
+    }
+
+    @Test
+    @DisplayName("Should derive source account balance deltas from Skrooge operation balances")
+    void shouldDeriveSourceAccountBalanceDeltasFromOperationBalances() throws IOException {
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(
+                                operationBalanceDeltaJson().getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        ImportedTransaction fee =
+                result.getTransactions().stream()
+                        .filter(
+                                transaction ->
+                                        "skrooge:operation:3"
+                                                .equals(transaction.getReferenceNumber()))
+                        .findFirst()
+                        .orElseThrow();
+
+        assertThat(fee.getAmount()).isEqualByComparingTo(new BigDecimal("-2.99"));
+        assertThat(fee.getSourceAccountBalanceDelta())
+                .isEqualByComparingTo(new BigDecimal("-1959.50"));
+    }
+
+    @Test
+    @DisplayName("Should not derive source account balance deltas from valuation balances")
+    void shouldNotDeriveSourceAccountBalanceDeltasFromValuationBalances() throws IOException {
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(
+                                operationBalanceWithoutEnteredDeltaJson()
+                                        .getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        ImportedTransaction fee =
+                result.getTransactions().stream()
+                        .filter(
+                                transaction ->
+                                        "skrooge:operation:3"
+                                                .equals(transaction.getReferenceNumber()))
+                        .findFirst()
+                        .orElseThrow();
+
+        assertThat(fee.getSourceAccountBalanceDelta()).isNull();
+    }
+
+    @Test
     @DisplayName("Should convert investment share quantities to monetary amounts using unit prices")
     void shouldConvertInvestmentQuantitiesToMonetaryAmounts() throws IOException {
         SkroogeImportParseResult result =
@@ -137,8 +199,8 @@ class SkroogeJsonParserTest {
     }
 
     @Test
-    @DisplayName("Should detect cross-unit transfers (EUR to share/crypto) as transfers")
-    void shouldDetectCrossUnitTransfersAsTransfers() throws IOException {
+    @DisplayName("Should keep share purchase groups as source operations, not account transfers")
+    void shouldKeepSharePurchaseGroupsAsSourceOperations() throws IOException {
         SkroogeImportParseResult result =
                 parser.parseFile(
                         new ByteArrayInputStream(
@@ -147,9 +209,50 @@ class SkroogeJsonParserTest {
 
         List<ImportedTransaction> transfers =
                 result.getTransactions().stream().filter(ImportedTransaction::isTransfer).toList();
-        assertThat(transfers).hasSize(2);
-        // The EUR side should be the source (negative amount converted to EUR)
-        assertThat(transfers.get(0).getAmount()).isEqualByComparingTo(new BigDecimal("-1000.00"));
+        assertThat(transfers).isEmpty();
+        assertThat(result.getTransactions())
+                .extracting(ImportedTransaction::getAccountName)
+                .containsExactly("Checking", "Investment");
+        List<BigDecimal> amounts =
+                result.getTransactions().stream().map(ImportedTransaction::getAmount).toList();
+        assertThat(amounts.get(0)).isEqualByComparingTo(new BigDecimal("-1000.00"));
+        assertThat(amounts.get(1)).isEqualByComparingTo(new BigDecimal("1000.00"));
+    }
+
+    @Test
+    @DisplayName("Should keep object crypto purchase groups as source operations")
+    void shouldKeepObjectCryptoPurchaseGroupsAsSourceOperations() throws IOException {
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(
+                                objectCryptoPurchaseJson().getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        List<ImportedTransaction> transfers =
+                result.getTransactions().stream().filter(ImportedTransaction::isTransfer).toList();
+        assertThat(transfers).isEmpty();
+        assertThat(result.getTransactions())
+                .extracting(ImportedTransaction::getAccountName)
+                .containsExactly("Checking", "Crypto Wallet");
+        List<BigDecimal> amounts =
+                result.getTransactions().stream().map(ImportedTransaction::getAmount).toList();
+        assertThat(amounts.get(0)).isEqualByComparingTo(new BigDecimal("-1000.00"));
+        assertThat(amounts.get(1)).isEqualByComparingTo(new BigDecimal("1000.00"));
+    }
+
+    @Test
+    @DisplayName("Should ignore zero synthetic balance when deriving account currency")
+    void shouldIgnoreZeroSyntheticBalanceWhenDerivingAccountCurrency() throws IOException {
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(
+                                zeroSyntheticCurrencyJson().getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        assertThat(result.getSkroogeMetadata().getAccounts())
+                .filteredOn(account -> account.getName().equals("Polymarket"))
+                .singleElement()
+                .satisfies(account -> assertThat(account.getCurrency()).isEqualTo("EUR"));
     }
 
     @Test
@@ -198,6 +301,24 @@ class SkroogeJsonParserTest {
                         account ->
                                 assertThat(account.getAccountType())
                                         .isEqualTo(AccountType.SAVINGS));
+    }
+
+    @Test
+    @DisplayName("Should map Skrooge asset account type to investment")
+    void shouldMapAssetAccountTypeToInvestment() throws IOException {
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(
+                                investmentUnitJson().getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        assertThat(result.getSkroogeMetadata().getAccounts())
+                .filteredOn(account -> account.getName().equals("Investment Account"))
+                .singleElement()
+                .satisfies(
+                        account ->
+                                assertThat(account.getAccountType())
+                                        .isEqualTo(AccountType.INVESTMENT));
     }
 
     @Test
@@ -369,6 +490,72 @@ class SkroogeJsonParserTest {
                 """;
     }
 
+    /** Same-currency transfer using Skrooge's French virement category naming. */
+    private String virementTransferJson() {
+        return """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Checking", "t_type": "C", "t_number": "CHK", "t_close": false },
+                    { "id": 20, "rd_bank_id": 1, "t_name": "Savings", "t_type": "S", "t_number": "SAV", "t_close": false }
+                  ],
+                  "category": [{ "id": 200, "rd_category_id": 0, "t_name": "Virements émis", "t_fullname": "Virements émis" }],
+                  "payee": [{ "id": 1, "t_name": "Transfer Desk" }],
+                  "unit": [{ "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 }],
+                  "operation": [
+                    { "id": 2, "rd_account_id": 10, "d_date": "2024-01-12", "i_group_id": 777, "r_payee_id": 1, "t_mode": "Virement", "t_status": "Y", "rc_unit_id": 1 },
+                    { "id": 3, "rd_account_id": 20, "d_date": "2024-01-12", "i_group_id": 777, "r_payee_id": 1, "t_mode": "Virement", "t_status": "Y", "rc_unit_id": 1 }
+                  ],
+                  "suboperation": [
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 200, "f_value": "-200.00" },
+                    { "id": 31, "rd_operation_id": 3, "r_category_id": 200, "f_value": "200.00" }
+                  ],
+                  "unitvalue": [{ "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 }]
+                }
+                """;
+    }
+
+    /** Operation balances expose Skrooge's source balance deltas for fallback imports. */
+    private String operationBalanceDeltaJson() {
+        return """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "FCFA Savings", "t_type": "S", "t_number": "SAV", "t_close": false }
+                  ],
+                  "category": [{ "id": 100, "rd_category_id": 0, "t_name": "Fees", "t_fullname": "Fees" }],
+                  "payee": [{ "id": 1, "t_name": "Bank" }],
+                  "unit": [
+                    { "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 },
+                    { "id": 4, "t_name": "Franc CFA de l'Afrique de l'Ouest (XOF)", "t_symbol": "CFA", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 }
+                  ],
+                  "operation": [
+                    { "id": 1, "rd_account_id": 10, "d_date": "0000-00-00", "i_group_id": 0, "r_payee_id": 0, "t_mode": "", "t_status": "", "rc_unit_id": 4 },
+                    { "id": 2, "rd_account_id": 10, "d_date": "2024-01-01", "i_group_id": 0, "r_payee_id": 1, "t_mode": "Virement", "t_status": "Y", "rc_unit_id": 1 },
+                    { "id": 3, "rd_account_id": 10, "d_date": "2024-01-02", "i_group_id": 0, "r_payee_id": 1, "t_mode": "Débit", "t_status": "Y", "rc_unit_id": 1 }
+                  ],
+                  "suboperation": [
+                    { "id": 11, "rd_operation_id": 1, "r_category_id": 0, "f_value": "4950.00" },
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 100, "f_value": "155.44" },
+                    { "id": 31, "rd_operation_id": 3, "r_category_id": 100, "f_value": "-2.99" }
+                  ],
+                  "operationbalance": [
+                    { "r_operation_id": 1, "f_balance": 7.54623040545, "f_balance_entered": 4950.00 },
+                    { "r_operation_id": 2, "f_balance": 162.98623040545, "f_balance_entered": 5105.44 },
+                    { "r_operation_id": 3, "f_balance": 159.99623040545, "f_balance_entered": 3145.94 }
+                  ],
+                  "unitvalue": [{ "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 }]
+                }
+                """;
+    }
+
+    private String operationBalanceWithoutEnteredDeltaJson() {
+        return operationBalanceDeltaJson()
+                .replace(", \"f_balance_entered\": 4950.00", "")
+                .replace(", \"f_balance_entered\": 5105.44", "")
+                .replace(", \"f_balance_entered\": 3145.94", "");
+    }
+
     /** Investment operation with a share unit (type S) and unitvalue price. */
     private String investmentUnitJson() {
         return """
@@ -425,6 +612,67 @@ class SkroogeJsonParserTest {
                   "unitvalue": [
                     { "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 },
                     { "id": 2, "rd_unit_id": 5, "d_date": "2024-06-01", "f_quantity": 50000 }
+                  ]
+                }
+                """;
+    }
+
+    /** Cross-unit purchase: EUR account sends EUR, crypto account receives object units. */
+    private String objectCryptoPurchaseJson() {
+        return """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Checking", "t_type": "C", "t_number": "CHK", "t_close": false },
+                    { "id": 20, "rd_bank_id": 1, "t_name": "Crypto Wallet", "t_type": "A", "t_number": "", "t_close": false }
+                  ],
+                  "category": [{ "id": 200, "rd_category_id": 0, "t_name": "Transfer", "t_fullname": "Transfer" }],
+                  "payee": [{ "id": 1, "t_name": "Broker" }],
+                  "unit": [
+                    { "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 },
+                    { "id": 5, "t_name": "Solana", "t_symbol": "SOL", "t_internet_code": "SOL/EUR", "t_type": "O", "rd_unit_id": 1 }
+                  ],
+                  "operation": [
+                    { "id": 1, "rd_account_id": 10, "d_date": "2024-06-15", "i_group_id": 43, "r_payee_id": 1, "t_mode": "Buy", "t_status": "Y", "rc_unit_id": 1 },
+                    { "id": 2, "rd_account_id": 20, "d_date": "2024-06-15", "i_group_id": 43, "r_payee_id": 1, "t_mode": "Buy", "t_status": "Y", "rc_unit_id": 5 }
+                  ],
+                  "suboperation": [
+                    { "id": 11, "rd_operation_id": 1, "r_category_id": 200, "f_value": "-1000.00" },
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 200, "f_value": "0.5" }
+                  ],
+                  "unitvalue": [
+                    { "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 },
+                    { "id": 2, "rd_unit_id": 5, "d_date": "2024-06-01", "f_quantity": 2000 }
+                  ]
+                }
+                """;
+    }
+
+    /** Account with zero USD synthetic balance and real EUR activity. */
+    private String zeroSyntheticCurrencyJson() {
+        return """
+                {
+                  "bank": [{ "id": 1, "t_name": "Broker" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Polymarket", "t_type": "I", "t_number": "", "t_close": false }
+                  ],
+                  "category": [{ "id": 100, "rd_category_id": 0, "t_name": "Investment", "t_fullname": "Investment" }],
+                  "payee": [{ "id": 1, "t_name": "Broker" }],
+                  "unit": [
+                    { "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 },
+                    { "id": 2, "t_name": "Dollar américain (USD)", "t_symbol": "$", "t_internet_code": "USD/EUR", "t_type": "O", "rd_unit_id": 1 }
+                  ],
+                  "operation": [
+                    { "id": 1, "rd_account_id": 10, "d_date": "0000-00-00", "i_group_id": 0, "r_payee_id": 0, "t_mode": "", "t_status": "", "rc_unit_id": 2 },
+                    { "id": 2, "rd_account_id": 10, "d_date": "2026-06-24", "i_group_id": 0, "r_payee_id": 1, "t_mode": "Deposit", "t_status": "Y", "rc_unit_id": 1 }
+                  ],
+                  "suboperation": [
+                    { "id": 11, "rd_operation_id": 1, "r_category_id": 0, "f_value": "0" },
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 100, "f_value": "1072.91" }
+                  ],
+                  "unitvalue": [
+                    { "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 },
+                    { "id": 2, "rd_unit_id": 2, "d_date": "2026-06-24", "f_quantity": 0.875274 }
                   ]
                 }
                 """;

@@ -142,6 +142,9 @@ class ImportServiceTest {
         private TransactionService transactionService;
 
         @Mock
+        private ExchangeRateService exchangeRateService;
+
+        @Mock
         private TransactionSplitService transactionSplitService;
 
         @Mock
@@ -182,10 +185,11 @@ class ImportServiceTest {
                                 skroogeJsonParser,
                                 objectMapper,
                                 autoCategorizationService,
-                                accountService,
-                                transactionRuleService,
-                                transactionService,
-                                transactionSplitService,
+                                 accountService,
+                                 transactionRuleService,
+                                 transactionService,
+                                 exchangeRateService,
+                                 transactionSplitService,
                                 netWorthRepository,
                                 aiCategorizationService,
                                 messageSource,

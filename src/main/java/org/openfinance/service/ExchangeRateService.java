@@ -4,8 +4,11 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.MarketQuote;
@@ -110,24 +113,25 @@ public class ExchangeRateService {
             return BigDecimal.ONE;
         }
 
-        // Try direct rate (from → to)
-        Optional<ExchangeRate> directRate = findRate(fromCurrency, toCurrency, date);
-        if (directRate.isPresent()) {
-            BigDecimal rate = directRate.get().getRate();
-            log.debug("Found direct rate: {} → {} = {}", fromCurrency, toCurrency, rate);
-            return rate;
+        Optional<BigDecimal> storedRate = findStoredExchangeRate(fromCurrency, toCurrency, date);
+        if (storedRate.isPresent()) {
+            return storedRate.get();
         }
 
-        // Try inverse rate (to → from) and calculate inverse
-        Optional<ExchangeRate> inverseRate = findRate(toCurrency, fromCurrency, date);
-        if (inverseRate.isPresent()) {
-            BigDecimal rate = inverseRate.get().getInverseRate();
-            log.debug(
-                    "Found inverse rate: {} → {} = {} (calculated from inverse)",
+        if (date != null && date.isBefore(LocalDate.now())) {
+            log.info(
+                    "No historical rate found for {} → {} on {}, attempting historical fetch",
                     fromCurrency,
                     toCurrency,
-                    rate);
-            return rate;
+                    date);
+            int fetched = fetchAndStorePairRateForDate(fromCurrency, toCurrency, date);
+            if (fetched > 0) {
+                Optional<BigDecimal> refetchedRate =
+                        findStoredExchangeRate(fromCurrency, toCurrency, date);
+                if (refetchedRate.isPresent()) {
+                    return refetchedRate.get();
+                }
+            }
         }
 
         // No cached rate found — attempt on-demand fetch from Yahoo Finance.
@@ -142,44 +146,9 @@ public class ExchangeRateService {
                     toCurrency);
             boolean fetched = fetchAndStorePairRate(fromCurrency, toCurrency);
             if (fetched) {
-                // Retry using null (latest) since the fetch stored today's rate
-                Optional<ExchangeRate> refetchedDirect = findRate(fromCurrency, toCurrency, null);
-                if (refetchedDirect.isPresent()) {
-                    BigDecimal rate = refetchedDirect.get().getRate();
-                    log.info(
-                            "On-demand fetch succeeded for {} → {} = {}",
-                            fromCurrency,
-                            toCurrency,
-                            rate);
-                    return rate;
-                }
-                Optional<ExchangeRate> refetchedInverse = findRate(toCurrency, fromCurrency, null);
-                if (refetchedInverse.isPresent()) {
-                    BigDecimal rate = refetchedInverse.get().getInverseRate();
-                    log.info(
-                            "On-demand fetch succeeded (inverse) for {} → {} = {}",
-                            fromCurrency,
-                            toCurrency,
-                            rate);
-                    return rate;
-                }
-                // Cross-pair via USD: fetchAndStorePairRate stores FROM→USD and TO→USD.
-                // Compute: FROM→TO = (FROM→USD) / (TO→USD).
-                // We look for FROM→USD (direct) or USD→FROM (inverse), and same for TO.
-                if (!"USD".equalsIgnoreCase(fromCurrency) && !"USD".equalsIgnoreCase(toCurrency)) {
-                    BigDecimal fromUsd = getRateViaUsd(fromCurrency); // 1 FROM = X USD
-                    BigDecimal toUsd = getRateViaUsd(toCurrency); // 1 TO = X USD
-                    if (fromUsd != null && toUsd != null && toUsd.compareTo(BigDecimal.ZERO) != 0) {
-                        BigDecimal crossRate = fromUsd.divide(toUsd, 8, RoundingMode.HALF_UP);
-                        log.info(
-                                "On-demand cross-rate via USD for {} → {} = {} (fromUsd={}, toUsd={})",
-                                fromCurrency,
-                                toCurrency,
-                                crossRate,
-                                fromUsd,
-                                toUsd);
-                        return crossRate;
-                    }
+                Optional<BigDecimal> refetchedRate = findStoredExchangeRate(fromCurrency, toCurrency, null);
+                if (refetchedRate.isPresent()) {
+                    return refetchedRate.get();
                 }
             }
         }
@@ -357,12 +326,94 @@ public class ExchangeRateService {
 
         log.info("Updating exchange rates for historical date: {}", date);
 
-        // For now, Yahoo Finance quote API doesn't support historical dates
-        // This would require using the chart API with specific date ranges
-        // TODO: Implement historical rate fetching using Yahoo Finance chart API
+        List<Currency> activeCurrencies = currencyRepository.findByIsActiveTrueOrderByCodeAsc();
+        if (activeCurrencies.isEmpty()) {
+            log.warn("No active currencies found, skipping historical update for {}", date);
+            return 0;
+        }
 
-        log.warn("Historical exchange rate fetching not yet implemented");
-        return 0;
+        LocalDate from = date.minusDays(7);
+        List<String> symbols = buildYahooFinanceSymbols(activeCurrencies);
+        return fetchAndStoreHistoricalRates(symbols, from, date);
+    }
+
+    @Transactional
+    @CacheEvict(value = "exchangeRates", allEntries = true)
+    int fetchAndStorePairRateForDate(String fromCurrency, String toCurrency, LocalDate date) {
+        if (date.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException(
+                    "Cannot fetch exchange rates for future date: " + date);
+        }
+
+        LocalDate from = date.minusDays(7);
+        List<String> symbols = new ArrayList<>();
+        addSymbolForCurrency(symbols, fromCurrency);
+        addSymbolForCurrency(symbols, toCurrency);
+        if (symbols.isEmpty()) {
+            log.debug("Both currencies are USD, no historical fetch needed");
+            return 0;
+        }
+
+        log.debug("Historical on-demand fetch: requesting symbols {}", symbols);
+        return fetchAndStoreHistoricalRates(symbols, from, date);
+    }
+
+    private int fetchAndStoreHistoricalRates(List<String> symbols, LocalDate from, LocalDate date) {
+        List<ExchangeRate> newRates = new ArrayList<>();
+
+        for (String symbol : symbols) {
+            try {
+                List<org.openfinance.dto.HistoricalPrice> prices =
+                        marketDataProvider.getHistoricalPrices(symbol, from, date);
+                Optional<org.openfinance.dto.HistoricalPrice> closestPrice =
+                        prices.stream()
+                                .filter(
+                                        price ->
+                                                price.getDate() != null
+                                                        && !price.getDate().isAfter(date))
+                                .filter(
+                                        price ->
+                                                price.getClose() != null
+                                                        && price.getClose()
+                                                                        .compareTo(BigDecimal.ZERO)
+                                                                > 0)
+                                .max(Comparator.comparing(org.openfinance.dto.HistoricalPrice::getDate));
+                if (closestPrice.isEmpty()) {
+                    log.warn("No historical close found for symbol {} on or before {}", symbol, date);
+                    continue;
+                }
+
+                org.openfinance.dto.HistoricalPrice price = closestPrice.get();
+                MarketQuote syntheticQuote =
+                        MarketQuote.builder().symbol(symbol).price(price.getClose()).build();
+                ExchangeRate rate = parseQuoteToExchangeRate(syntheticQuote, price.getDate());
+                if (rate != null) {
+                    newRates.add(rate);
+                }
+            } catch (Exception ex) {
+                log.warn(
+                        "Historical chart fetch failed for symbol {} on {}: {}",
+                        symbol,
+                        date,
+                        ex.getMessage());
+            }
+        }
+
+        List<ExchangeRate> inverseRates = buildInverseRates(newRates);
+        newRates.addAll(inverseRates);
+
+        List<ExchangeRate> ratesToSave = filterExistingRates(newRates);
+        if (ratesToSave.isEmpty()) {
+            log.warn("No new historical exchange rates were fetched for {}", date);
+            return 0;
+        }
+
+        exchangeRateRepository.saveAll(ratesToSave);
+        log.info(
+                "Stored {} historical exchange rates for {} (including inverse rates)",
+                ratesToSave.size(),
+                date);
+        return ratesToSave.size();
     }
 
     /**
@@ -502,12 +553,51 @@ public class ExchangeRateService {
      * @param currencyCode the non-USD currency
      * @return rate in USD, or {@code null} if not available
      */
-    private BigDecimal getRateViaUsd(String currencyCode) {
-        Optional<ExchangeRate> direct = findRate(currencyCode, "USD", null);
+    private Optional<BigDecimal> findStoredExchangeRate(
+            String fromCurrency, String toCurrency, LocalDate date) {
+        Optional<ExchangeRate> directRate = findRate(fromCurrency, toCurrency, date);
+        if (directRate.isPresent()) {
+            BigDecimal rate = directRate.get().getRate();
+            log.debug("Found direct rate: {} → {} = {}", fromCurrency, toCurrency, rate);
+            return Optional.of(rate);
+        }
+
+        Optional<ExchangeRate> inverseRate = findRate(toCurrency, fromCurrency, date);
+        if (inverseRate.isPresent()) {
+            BigDecimal rate = inverseRate.get().getInverseRate();
+            log.debug(
+                    "Found inverse rate: {} → {} = {} (calculated from inverse)",
+                    fromCurrency,
+                    toCurrency,
+                    rate);
+            return Optional.of(rate);
+        }
+
+        if (!"USD".equalsIgnoreCase(fromCurrency) && !"USD".equalsIgnoreCase(toCurrency)) {
+            BigDecimal fromUsd = getRateViaUsd(fromCurrency, date);
+            BigDecimal toUsd = getRateViaUsd(toCurrency, date);
+            if (fromUsd != null && toUsd != null && toUsd.compareTo(BigDecimal.ZERO) != 0) {
+                BigDecimal crossRate = fromUsd.divide(toUsd, 8, RoundingMode.HALF_UP);
+                log.debug(
+                        "Found cross-rate via USD for {} → {} = {} (fromUsd={}, toUsd={})",
+                        fromCurrency,
+                        toCurrency,
+                        crossRate,
+                        fromUsd,
+                        toUsd);
+                return Optional.of(crossRate);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private BigDecimal getRateViaUsd(String currencyCode, LocalDate date) {
+        Optional<ExchangeRate> direct = findRate(currencyCode, "USD", date);
         if (direct.isPresent()) {
             return direct.get().getRate();
         }
-        Optional<ExchangeRate> inverse = findRate("USD", currencyCode, null);
+        Optional<ExchangeRate> inverse = findRate("USD", currencyCode, date);
         if (inverse.isPresent()) {
             return inverse.get().getInverseRate();
         }
@@ -625,6 +715,48 @@ public class ExchangeRateService {
         }
 
         return symbols;
+    }
+
+    private List<ExchangeRate> buildInverseRates(List<ExchangeRate> rates) {
+        return rates.stream()
+                .filter(rate -> rate.getRate() != null && rate.getRate().compareTo(BigDecimal.ZERO) > 0)
+                .map(
+                        rate ->
+                                ExchangeRate.builder()
+                                        .baseCurrency(rate.getTargetCurrency())
+                                        .targetCurrency(rate.getBaseCurrency())
+                                        .rate(
+                                                BigDecimal.ONE.divide(
+                                                        rate.getRate(), 8, RoundingMode.HALF_UP))
+                                        .rateDate(rate.getRateDate())
+                                        .source(rate.getSource())
+                                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private List<ExchangeRate> filterExistingRates(List<ExchangeRate> rates) {
+        Map<String, ExchangeRate> deduplicatedRates =
+                rates.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        rate ->
+                                                rate.getBaseCurrency()
+                                                        + "-"
+                                                        + rate.getTargetCurrency()
+                                                        + "-"
+                                                        + rate.getRateDate(),
+                                        rate -> rate,
+                                        (first, ignored) -> first));
+        return deduplicatedRates.values().stream()
+                .filter(
+                        rate ->
+                                exchangeRateRepository
+                                        .findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                                                rate.getBaseCurrency(),
+                                                rate.getTargetCurrency(),
+                                                rate.getRateDate())
+                                        .isEmpty())
+                .collect(Collectors.toList());
     }
 
     /**

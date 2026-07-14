@@ -88,6 +88,8 @@ class ImportServiceMultiAccountTest {
         @Mock
         private TransactionService transactionService;
         @Mock
+        private ExchangeRateService exchangeRateService;
+        @Mock
         private TransactionSplitService transactionSplitService;
         @Mock
         private NetWorthRepository netWorthRepository;
@@ -123,10 +125,11 @@ class ImportServiceMultiAccountTest {
                                 skroogeJsonParser,
                                 objectMapper,
                                 autoCategorizationService,
-                                accountService,
-                                transactionRuleService,
-                                transactionService,
-                                transactionSplitService,
+                                 accountService,
+                                 transactionRuleService,
+                                 transactionService,
+                                 exchangeRateService,
+                                 transactionSplitService,
                                 netWorthRepository,
                                 aiCategorizationService,
                                 messageSource,

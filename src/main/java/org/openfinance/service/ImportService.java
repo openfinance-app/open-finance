@@ -106,6 +106,7 @@ public class ImportService {
     private final AccountService accountService;
     private final TransactionRuleService transactionRuleService;
     private final TransactionService transactionService;
+    private final ExchangeRateService exchangeRateService;
     private final TransactionSplitService transactionSplitService;
     private final NetWorthRepository netWorthRepository;
     private final AICategorizationService aiCategorizationService;
@@ -1546,6 +1547,10 @@ public class ImportService {
         int saveFailed = 0;
         Set<String> processedTransferGroups = new java.util.HashSet<>();
         Set<Long> affectedAccountIds = new java.util.HashSet<>(accountIdsBySource.values());
+        Map<String, List<ImportedTransaction>> transferTransactionsByGroup =
+                toImport.stream()
+                        .filter(tx -> tx.isTransfer() && tx.getTransferGroupKey() != null)
+                        .collect(Collectors.groupingBy(ImportedTransaction::getTransferGroupKey));
 
         for (ImportedTransaction importedTx : toImport) {
             try {
@@ -1558,38 +1563,16 @@ public class ImportService {
                     Long toAccountId = accountIdsBySource.get(importedTx.getToAccountSourceId());
                     if (fromAccountId == null || toAccountId == null) {
                         throw new IllegalStateException(
-                                "Unable to resolve transfer accounts for "
-                                        + importedTx.getTransferGroupKey());
+                                        "Unable to resolve transfer accounts for "
+                                                + importedTx.getTransferGroupKey());
                     }
-                    TransactionRequest transferRequest =
-                            TransactionRequest.builder()
-                                    .accountId(fromAccountId)
-                                    .toAccountId(toAccountId)
-                                    .type(TransactionType.TRANSFER)
-                                    .amount(normalizeAmount(importedTx.getAmount()))
-                                    .currency(resolveTransactionCurrency(importedTx, fromAccountId))
-                                    .date(importedTx.getTransactionDate())
-                                    .description(
-                                            truncate(
-                                                    importedTx.getPayee(),
-                                                    TRANSACTION_DESCRIPTION_MAX_LENGTH))
-                                    .notes(
-                                            truncate(
-                                                    importedTx.getMemo(),
-                                                    TRANSACTION_NOTES_MAX_LENGTH))
-                                    .payee(
-                                            truncate(
-                                                    importedTx.getPayee(),
-                                                    TRANSACTION_PAYEE_MAX_LENGTH))
-                                    .tags(
-                                            importedTx.getTags() != null
-                                                            && !importedTx.getTags().isEmpty()
-                                                    ? truncate(
-                                                            String.join(",", importedTx.getTags()),
-                                                            TRANSACTION_TAGS_MAX_LENGTH)
-                                                    : null)
-                                    .build();
-                    transactionService.createTransfer(userId, transferRequest);
+                    saveSkroogeTransferTransactions(
+                            transferTransactionsByGroup.get(importedTx.getTransferGroupKey()),
+                            importedTx.getTransferGroupKey(),
+                            accountIdsBySource,
+                            userId,
+                            categoryMappings,
+                            categoryIdsBySource);
                     imported++;
                     continue;
                 }
@@ -1669,6 +1652,64 @@ public class ImportService {
 
         importSessionRepository.save(session);
         return session;
+    }
+
+    private void saveSkroogeTransferTransactions(
+            List<ImportedTransaction> transferTransactions,
+            String transferGroupKey,
+            Map<Long, Long> accountIdsBySource,
+            Long userId,
+            Map<String, Long> categoryMappings,
+            Map<Long, Long> categoryIdsBySource) {
+        if (transferTransactions == null || transferTransactions.isEmpty()) {
+            throw new IllegalStateException("No transfer transactions for " + transferGroupKey);
+        }
+
+        if (transferTransactions.size() != 2) {
+            throw new IllegalStateException("Expected two transfer transactions for " + transferGroupKey);
+        }
+
+        String transferId = java.util.UUID.randomUUID().toString();
+        List<Transaction> transactionsToSave = new ArrayList<>();
+        for (ImportedTransaction transferTransaction : transferTransactions) {
+            Long accountId = accountIdsBySource.get(transferTransaction.getSourceAccountId());
+            Long toAccountId = accountIdsBySource.get(transferTransaction.getToAccountSourceId());
+            if (accountId == null || toAccountId == null) {
+                throw new IllegalStateException(
+                        "Unable to resolve transfer accounts for " + transferGroupKey);
+            }
+
+            Transaction transaction =
+                    convertToTransaction(
+                            transferTransaction,
+                            accountId,
+                            userId,
+                            categoryMappings,
+                            categoryIdsBySource,
+                            false);
+            transaction.setTransferId(transferId);
+            transaction.setToAccountId(toAccountId);
+            transaction.setCategoryId(null);
+            transactionsToSave.add(transaction);
+        }
+
+        List<Transaction> savedTransactions = new ArrayList<>();
+        try {
+            for (Transaction transaction : transactionsToSave) {
+                savedTransactions.add(transactionRepository.save(transaction));
+            }
+        } catch (RuntimeException ex) {
+            if (!savedTransactions.isEmpty()) {
+                transactionRepository.deleteAll(savedTransactions);
+            }
+            throw ex;
+        }
+
+        for (int i = 0; i < savedTransactions.size(); i++) {
+            ImportedTransaction transferTransaction = transferTransactions.get(i);
+            transactionService.syncTransactionFts(
+                    savedTransactions.get(i), transferTransaction.getPayee(), transferTransaction.getMemo());
+        }
     }
 
     private ImportSession confirmImportedAccountImport(
@@ -1986,9 +2027,21 @@ public class ImportService {
                                                         "Account not found: " + created.getId()));
                 existingAccounts.add(matchingAccount);
             }
+            applyImportedAccountActiveState(matchingAccount, account);
             accountIdsBySource.put(account.getSourceId(), matchingAccount.getId());
         }
         return accountIdsBySource;
+    }
+
+    private void applyImportedAccountActiveState(
+            Account matchingAccount, SkroogeImportMetadata.SkroogeAccount importedAccount) {
+        if (matchingAccount == null || importedAccount.getActive() == null) {
+            return;
+        }
+        if (!Objects.equals(matchingAccount.getIsActive(), importedAccount.getActive())) {
+            matchingAccount.setIsActive(importedAccount.getActive());
+            accountRepository.save(matchingAccount);
+        }
     }
 
     private Account findMatchingAccount(
@@ -2420,10 +2473,51 @@ public class ImportService {
     }
 
     private String resolveTransactionCurrency(ImportedTransaction importedTx, Long accountId) {
+        Optional<Account> account = accountRepository.findById(accountId);
+        String accountCurrency = account.map(Account::getCurrency).orElse(null);
+        if (accountCurrency != null && !accountCurrency.isBlank()) {
+            return accountCurrency;
+        }
         if (importedTx.getCurrency() != null && !importedTx.getCurrency().isBlank()) {
             return importedTx.getCurrency();
         }
-        return accountRepository.findById(accountId).map(Account::getCurrency).orElse("USD");
+        return "USD";
+    }
+
+    private BigDecimal resolveSignedAmount(
+            ImportedTransaction importedTx, Long accountId, String transactionCurrency) {
+        BigDecimal signedAmount = importedTx.getAmount();
+        if (signedAmount == null) {
+            return null;
+        }
+        String importedCurrency = importedTx.getCurrency();
+        if (importedCurrency == null
+                || importedCurrency.isBlank()
+                || transactionCurrency == null
+                || transactionCurrency.isBlank()
+                || importedCurrency.equalsIgnoreCase(transactionCurrency)) {
+            return signedAmount;
+        }
+
+        BigDecimal convertedAmount;
+        try {
+            convertedAmount =
+                    exchangeRateService.convert(
+                            signedAmount.abs(),
+                            importedCurrency,
+                            transactionCurrency,
+                            importedTx.getTransactionDate());
+        } catch (RuntimeException ex) {
+            if (importedTx.getSourceAccountBalanceDelta() != null) {
+                log.warn(
+                        "Using source account balance delta for imported transaction {} because historical FX conversion failed: {}",
+                        importedTx.getReferenceNumber(),
+                        ex.getMessage());
+                return importedTx.getSourceAccountBalanceDelta();
+            }
+            throw ex;
+        }
+        return signedAmount.signum() < 0 ? convertedAmount.negate() : convertedAmount;
     }
 
     private String extractFileCurrency(String metadata, Long userId) {
@@ -2607,9 +2701,19 @@ public class ImportService {
             Long userId,
             Map<String, Long> categoryMappings,
             Map<Long, Long> categoryIdsBySource) {
+        return convertToTransaction(
+                importedTx, accountId, userId, categoryMappings, categoryIdsBySource, true);
+    }
+
+    private Transaction convertToTransaction(
+            ImportedTransaction importedTx,
+            Long accountId,
+            Long userId,
+            Map<String, Long> categoryMappings,
+            Map<Long, Long> categoryIdsBySource,
+            boolean mapCategory) {
         // Determine transaction type based on amount
         TransactionType transactionType;
-        BigDecimal amount = normalizeAmount(importedTx.getAmount());
 
         if (importedTx.getAmount().compareTo(BigDecimal.ZERO) >= 0) {
             transactionType = TransactionType.INCOME;
@@ -2619,6 +2723,8 @@ public class ImportService {
 
         // Resolve currency code and link to Currency entity
         String currencyCode = resolveTransactionCurrency(importedTx, accountId);
+        BigDecimal signedAmount = resolveSignedAmount(importedTx, accountId, currencyCode);
+        BigDecimal amount = normalizeAmount(signedAmount);
         Long currencyId =
                 currencyRepository.findByCode(currencyCode).map(c -> c.getId()).orElse(null);
 
@@ -2648,7 +2754,9 @@ public class ImportService {
                         .isDeleted(false);
 
         // Map category
-        if (importedTx.getCategory() != null && !importedTx.getCategory().trim().isEmpty()) {
+        if (mapCategory
+                && importedTx.getCategory() != null
+                && !importedTx.getCategory().trim().isEmpty()) {
             String categoryName = importedTx.getCategory().trim();
             Long categoryId =
                     importedTx.getSourceCategoryId() != null
@@ -2733,11 +2841,12 @@ public class ImportService {
             return null;
         }
 
-        BigDecimal normalized = amount.abs().setScale(4, RoundingMode.HALF_UP);
-        if (normalized.compareTo(new BigDecimal("0.001")) < 0) {
+        BigDecimal absoluteAmount = amount.abs();
+        if (absoluteAmount.compareTo(new BigDecimal("0.0001")) < 0) {
             throw new IllegalArgumentException(
                     "Imported amount is below minimum supported value: " + amount);
         }
+        BigDecimal normalized = absoluteAmount.setScale(4, RoundingMode.HALF_UP);
         int integerDigits = normalized.precision() - normalized.scale();
         if (integerDigits > 15) {
             throw new IllegalArgumentException(

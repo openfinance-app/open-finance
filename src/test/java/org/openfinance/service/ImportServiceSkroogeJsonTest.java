@@ -43,6 +43,7 @@ import org.openfinance.entity.ImportSession.ImportStatus;
 import org.openfinance.entity.Institution;
 import org.openfinance.entity.Payee;
 import org.openfinance.entity.Transaction;
+import org.openfinance.entity.TransactionType;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.CurrencyRepository;
@@ -79,6 +80,7 @@ class ImportServiceSkroogeJsonTest {
     @Mock private AccountService accountService;
     @Mock private TransactionRuleService transactionRuleService;
     @Mock private TransactionService transactionService;
+    @Mock private ExchangeRateService exchangeRateService;
     @Mock private TransactionSplitService transactionSplitService;
     @Mock private NetWorthRepository netWorthRepository;
     @Mock private AICategorizationService aiCategorizationService;
@@ -112,6 +114,7 @@ class ImportServiceSkroogeJsonTest {
                         accountService,
                         transactionRuleService,
                         transactionService,
+                        exchangeRateService,
                         transactionSplitService,
                         netWorthRepository,
                         aiCategorizationService,
@@ -263,10 +266,30 @@ class ImportServiceSkroogeJsonTest {
         verify(institutionRepository, times(2)).save(any(Institution.class));
         verify(accountService, times(2)).createAccount(eq(USER_ID), any());
         verify(categoryRepository, times(2)).save(any(Category.class));
-        verify(transactionRepository, times(1)).save(any(Transaction.class));
+        ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository, times(3)).save(transactionCaptor.capture());
+        List<Transaction> transferTransactions =
+                transactionCaptor.getAllValues().stream()
+                        .filter(transaction -> transaction.getTransferId() != null)
+                        .toList();
+        assertThat(transferTransactions).hasSize(2);
+        assertThat(transferTransactions)
+                .extracting(Transaction::getAmount)
+                .containsExactly(new BigDecimal("200.0000"), new BigDecimal("200.0000"));
+        assertThat(transferTransactions)
+                .extracting(Transaction::getCurrency)
+                .containsExactly("EUR", "EUR");
+        assertThat(transferTransactions)
+                .extracting(Transaction::getAccountId)
+                .containsExactly(101L, 102L);
+        assertThat(transferTransactions)
+                .extracting(Transaction::getToAccountId)
+                .containsExactly(102L, 101L);
+        assertThat(transferTransactions)
+                .extracting(Transaction::getTransferId)
+                .containsOnly(transferTransactions.get(0).getTransferId());
         verify(transactionSplitService, times(1)).saveSplits(anyLong(), any());
-        verify(transactionService, times(1))
-                .createTransfer(eq(USER_ID), any(TransactionRequest.class));
+        verify(transactionService, times(0)).createTransfer(eq(USER_ID), any(TransactionRequest.class));
         verify(transactionService, times(1))
                 .syncTransactionFts(
                         any(Transaction.class), eq("Local Market"), eq("Weekly groceries"));
@@ -353,6 +376,172 @@ class ImportServiceSkroogeJsonTest {
         assertThat(institutionCaptor.getValue().getName()).isEqualTo("Institution 99");
         assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
         assertThat(result.getImportedCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Should preserve Skrooge closed account status when creating accounts")
+    void shouldPreserveSkroogeClosedAccountStatusWhenCreatingAccounts() throws Exception {
+        SkroogeImportMetadata metadata =
+                SkroogeImportMetadata.builder()
+                        .institutions(
+                                List.of(
+                                        SkroogeImportMetadata.SkroogeInstitution.builder()
+                                                .sourceId(1L)
+                                                .name("Demo Bank")
+                                                .build()))
+                        .accounts(
+                                List.of(
+                                        SkroogeImportMetadata.SkroogeAccount.builder()
+                                                .sourceId(30L)
+                                                .sourceInstitutionId(1L)
+                                                .name("Closed Wallet")
+                                                .currency("EUR")
+                                                .accountType(AccountType.CASH)
+                                                .openingBalance(BigDecimal.ZERO)
+                                                .openingDate(LocalDate.of(2024, 1, 1))
+                                                .active(false)
+                                                .build()))
+                        .categories(List.of())
+                        .build();
+
+        ImportedTransaction transaction =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 10))
+                        .payee("Adjustment")
+                        .amount(new BigDecimal("25.00"))
+                        .sourceAccountId(30L)
+                        .accountName("Closed Wallet")
+                        .currency("EUR")
+                        .referenceNumber("skrooge:operation:closed-wallet")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+
+        ImportSession session = buildSession(metadata, List.of(transaction));
+        Institution institution =
+                Institution.builder().id(301L).name("Demo Bank").isSystem(false).build();
+        Account closedWallet =
+                Account.builder()
+                        .id(103L)
+                        .userId(USER_ID)
+                        .name("encrypted-closed-wallet")
+                        .currency("EUR")
+                        .type(AccountType.CASH)
+                        .isActive(true)
+                        .build();
+
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
+        when(importSessionRepository.save(any(ImportSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(accountService.createAccount(eq(USER_ID), any()))
+                .thenReturn(AccountResponse.builder().id(103L).build());
+        when(accountRepository.findById(103L)).thenReturn(Optional.of(closedWallet));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Transaction saved = invocation.getArgument(0);
+                            saved.setId(901L);
+                            return saved;
+                        });
+
+        ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true);
+
+        assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
+        verify(accountRepository)
+                .save(
+                        argThat(
+                                account ->
+                                        account.getId().equals(103L)
+                                                && Boolean.FALSE.equals(account.getIsActive())));
+    }
+
+    @Test
+    @DisplayName("Should convert Skrooge transaction currency to account currency")
+    void shouldConvertSkroogeTransactionCurrencyToAccountCurrency() throws Exception {
+        SkroogeImportMetadata metadata =
+                SkroogeImportMetadata.builder()
+                        .institutions(
+                                List.of(
+                                        SkroogeImportMetadata.SkroogeInstitution.builder()
+                                                .sourceId(1L)
+                                                .name("Demo Bank")
+                                                .build()))
+                        .accounts(
+                                List.of(
+                                        SkroogeImportMetadata.SkroogeAccount.builder()
+                                                .sourceId(30L)
+                                                .sourceInstitutionId(1L)
+                                                .name("XOF Wallet")
+                                                .currency("XOF")
+                                                .accountType(AccountType.CASH)
+                                                .openingBalance(BigDecimal.ZERO)
+                                                .openingDate(LocalDate.of(2024, 1, 1))
+                                                .active(true)
+                                                .build()))
+                        .categories(List.of())
+                        .build();
+
+        ImportedTransaction transaction =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2025, 8, 19))
+                        .payee("Transfer fee")
+                        .amount(new BigDecimal("-2.99"))
+                        .sourceAccountId(30L)
+                        .accountName("XOF Wallet")
+                        .currency("EUR")
+                        .referenceNumber("skrooge:operation:xof-fee")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+
+        ImportSession session = buildSession(metadata, List.of(transaction));
+        Institution institution =
+                Institution.builder().id(301L).name("Demo Bank").isSystem(false).build();
+        Account xofWallet =
+                Account.builder()
+                        .id(103L)
+                        .userId(USER_ID)
+                        .name("encrypted-xof-wallet")
+                        .currency("XOF")
+                        .type(AccountType.CASH)
+                        .isActive(true)
+                        .build();
+
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
+        when(importSessionRepository.save(any(ImportSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(accountService.createAccount(eq(USER_ID), any()))
+                .thenReturn(AccountResponse.builder().id(103L).build());
+        when(accountRepository.findById(103L)).thenReturn(Optional.of(xofWallet));
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(exchangeRateService.convert(
+                        eq(new BigDecimal("2.99")),
+                        eq("EUR"),
+                        eq("XOF"),
+                        eq(LocalDate.of(2025, 8, 19))))
+                .thenReturn(new BigDecimal("1960.12345678"));
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Transaction saved = invocation.getArgument(0);
+                            saved.setId(902L);
+                            return saved;
+                        });
+
+        importService.confirmImport(1L, USER_ID, null, Map.of(), true);
+
+        ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(transactionCaptor.capture());
+        Transaction savedTransaction = transactionCaptor.getValue();
+        assertThat(savedTransaction.getCurrency()).isEqualTo("XOF");
+        assertThat(savedTransaction.getAmount()).isEqualByComparingTo(new BigDecimal("1960.1235"));
+        assertThat(savedTransaction.getType()).isEqualTo(TransactionType.EXPENSE);
     }
 
     @Test
@@ -492,6 +681,232 @@ class ImportServiceSkroogeJsonTest {
         assertThat(result.getSkippedCount()).isEqualTo(1);
     }
 
+    @Test
+    @DisplayName("Should import crypto-scale Skrooge amounts at the supported minimum boundary")
+    void shouldImportCryptoScaleSkroogeAmountAtSupportedMinimumBoundary() throws Exception {
+        SkroogeImportMetadata metadata = buildMetadataWithoutCategories();
+        ImportedTransaction cryptoAmountTransaction =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 16))
+                        .payee("Crypto dust")
+                        .amount(new BigDecimal("0.0001"))
+                        .memo("Small crypto quantity")
+                        .sourceAccountId(10L)
+                        .accountName("Checking")
+                        .currency("EUR")
+                        .referenceNumber("skrooge:operation:crypto-boundary")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+
+        ImportSession session = buildSession(metadata, List.of(cryptoAmountTransaction));
+        Institution institution =
+                Institution.builder().id(301L).name("Demo Bank").isSystem(false).build();
+        Account checkingAccount =
+                Account.builder()
+                        .id(101L)
+                        .userId(USER_ID)
+                        .name("encrypted-checking")
+                        .currency("EUR")
+                        .type(AccountType.CHECKING)
+                        .isActive(true)
+                        .build();
+
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
+        when(importSessionRepository.save(any(ImportSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(accountService.createAccount(eq(USER_ID), any()))
+                .thenReturn(
+                        AccountResponse.builder().id(101L).build(),
+                        AccountResponse.builder().id(102L).build());
+        when(accountRepository.findById(101L)).thenReturn(Optional.of(checkingAccount));
+        when(accountRepository.findById(102L))
+                .thenReturn(
+                        Optional.of(
+                                Account.builder()
+                                        .id(102L)
+                                        .userId(USER_ID)
+                                        .name("encrypted-savings")
+                                        .currency("EUR")
+                                        .type(AccountType.SAVINGS)
+                                        .isActive(true)
+                                        .build()));
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Transaction saved = invocation.getArgument(0);
+                            saved.setId(903L);
+                            return saved;
+                        });
+
+        ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true);
+
+        ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(transactionCaptor.capture());
+        assertThat(transactionCaptor.getValue().getAmount())
+                .isEqualByComparingTo(new BigDecimal("0.0001"));
+        assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
+        assertThat(result.getImportedCount()).isEqualTo(1);
+        assertThat(result.getSkippedCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("Should use Skrooge balance delta when historical exchange rate is unavailable")
+    void shouldUseSkroogeBalanceDeltaWhenHistoricalExchangeRateIsUnavailable() throws Exception {
+        SkroogeImportMetadata metadata = buildFcfaMetadataWithoutCategories();
+        LocalDate transactionDate = LocalDate.of(2025, 8, 19);
+        ImportedTransaction eurFeeTransaction =
+                ImportedTransaction.builder()
+                        .transactionDate(transactionDate)
+                        .payee("Bank fee")
+                        .amount(new BigDecimal("-2.99"))
+                        .sourceAccountBalanceDelta(new BigDecimal("-1959.50"))
+                        .memo("Card fee")
+                        .sourceAccountId(10L)
+                        .accountName("FCFA Savings")
+                        .currency("EUR")
+                        .referenceNumber("skrooge:operation:2249")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+
+        ImportSession session = buildSession(metadata, List.of(eurFeeTransaction));
+        Institution institution =
+                Institution.builder().id(301L).name("Demo Bank").isSystem(false).build();
+        Account fcfaAccount =
+                Account.builder()
+                        .id(101L)
+                        .userId(USER_ID)
+                        .name("encrypted-fcfa-savings")
+                        .currency("XOF")
+                        .type(AccountType.SAVINGS)
+                        .isActive(true)
+                        .build();
+
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
+        when(importSessionRepository.save(any(ImportSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(accountService.createAccount(eq(USER_ID), any()))
+                .thenReturn(AccountResponse.builder().id(101L).build());
+        when(accountRepository.findById(101L)).thenReturn(Optional.of(fcfaAccount));
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(exchangeRateService.convert(
+                        eq(new BigDecimal("2.99")),
+                        eq("EUR"),
+                        eq("XOF"),
+                        eq(transactionDate)))
+                .thenThrow(
+                        new IllegalArgumentException(
+                                "No exchange rate available for EUR → XOF on 2025-08-19"));
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Transaction saved = invocation.getArgument(0);
+                            saved.setId(904L);
+                            return saved;
+                        });
+
+        ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true);
+
+        ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(transactionCaptor.capture());
+        Transaction savedTransaction = transactionCaptor.getValue();
+        assertThat(savedTransaction.getCurrency()).isEqualTo("XOF");
+        assertThat(savedTransaction.getAmount()).isEqualByComparingTo(new BigDecimal("1959.5000"));
+        assertThat(savedTransaction.getType()).isEqualTo(TransactionType.EXPENSE);
+        assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
+        assertThat(result.getImportedCount()).isEqualTo(1);
+        assertThat(result.getSkippedCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("Should not save a partial Skrooge transfer when one paired side is invalid")
+    void shouldNotSavePartialSkroogeTransferWhenOnePairedSideIsInvalid() throws Exception {
+        SkroogeImportMetadata metadata = buildMetadataWithoutCategories();
+        ImportedTransaction transferOut =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 12))
+                        .payee("Transfer Desk")
+                        .amount(new BigDecimal("-200.00"))
+                        .memo("Move to savings")
+                        .sourceAccountId(10L)
+                        .toAccountSourceId(20L)
+                        .accountName("Checking")
+                        .toAccountName("Savings")
+                        .currency("EUR")
+                        .transfer(true)
+                        .transferGroupKey("skrooge:transfer-group:invalid-pair")
+                        .referenceNumber("skrooge:operation:transfer-out")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+        ImportedTransaction invalidTransferIn =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 12))
+                        .payee("Transfer Desk")
+                        .amount(new BigDecimal("0.00001"))
+                        .memo("Invalid dust side")
+                        .sourceAccountId(20L)
+                        .toAccountSourceId(10L)
+                        .accountName("Savings")
+                        .toAccountName("Checking")
+                        .currency("EUR")
+                        .transfer(true)
+                        .transferGroupKey("skrooge:transfer-group:invalid-pair")
+                        .referenceNumber("skrooge:operation:transfer-in")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+
+        ImportSession session = buildSession(metadata, List.of(transferOut, invalidTransferIn));
+        Institution institution =
+                Institution.builder().id(301L).name("Demo Bank").isSystem(false).build();
+        Account checkingAccount =
+                Account.builder()
+                        .id(101L)
+                        .userId(USER_ID)
+                        .name("encrypted-checking")
+                        .currency("EUR")
+                        .type(AccountType.CHECKING)
+                        .isActive(true)
+                        .build();
+        Account savingsAccount =
+                Account.builder()
+                        .id(102L)
+                        .userId(USER_ID)
+                        .name("encrypted-savings")
+                        .currency("EUR")
+                        .type(AccountType.SAVINGS)
+                        .isActive(true)
+                        .build();
+
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
+        when(importSessionRepository.save(any(ImportSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(accountService.createAccount(eq(USER_ID), any()))
+                .thenReturn(
+                        AccountResponse.builder().id(101L).build(),
+                        AccountResponse.builder().id(102L).build());
+        when(accountRepository.findById(101L)).thenReturn(Optional.of(checkingAccount));
+        when(accountRepository.findById(102L)).thenReturn(Optional.of(savingsAccount));
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+
+        ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true);
+
+        verify(transactionRepository, times(0)).save(any(Transaction.class));
+        verify(transactionService, times(0))
+                .syncTransactionFts(any(Transaction.class), any(), any());
+        assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
+        assertThat(result.getImportedCount()).isZero();
+        assertThat(result.getSkippedCount()).isEqualTo(1);
+    }
+
     private ImportSession buildSession(
             SkroogeImportMetadata metadata, List<ImportedTransaction> transactions)
             throws Exception {
@@ -603,6 +1018,32 @@ class ImportServiceSkroogeJsonTest {
                                         .accountType(AccountType.SAVINGS)
                                         .openingBalance(BigDecimal.ZERO)
                                         .openingDate(LocalDate.of(2024, 1, 1))
+                                        .active(true)
+                                        .build()))
+                .categories(List.of())
+                .build();
+    }
+
+    private SkroogeImportMetadata buildFcfaMetadataWithoutCategories() {
+        return SkroogeImportMetadata.builder()
+                .institutions(
+                        List.of(
+                                SkroogeImportMetadata.SkroogeInstitution.builder()
+                                        .sourceId(1L)
+                                        .name("Demo Bank")
+                                        .logo("bank-logo")
+                                        .build()))
+                .accounts(
+                        List.of(
+                                SkroogeImportMetadata.SkroogeAccount.builder()
+                                        .sourceId(10L)
+                                        .sourceInstitutionId(1L)
+                                        .name("FCFA Savings")
+                                        .accountNumber("SAV-FCFA")
+                                        .currency("XOF")
+                                        .accountType(AccountType.SAVINGS)
+                                        .openingBalance(new BigDecimal("4950.00"))
+                                        .openingDate(LocalDate.of(2025, 8, 19))
                                         .active(true)
                                         .build()))
                 .categories(List.of())

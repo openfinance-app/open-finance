@@ -3,10 +3,13 @@ package org.openfinance.controller;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +19,7 @@ import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.UserRegistrationRequest;
 import org.openfinance.entity.Currency;
 import org.openfinance.entity.ExchangeRate;
+import org.openfinance.provider.MarketDataProvider;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.ExchangeRateRepository;
 import org.openfinance.service.OperationHistoryService;
@@ -58,6 +62,8 @@ import org.springframework.test.web.servlet.MvcResult;
 class CurrencyControllerIntegrationTest {
 
     @MockBean private OperationHistoryService operationHistoryService;
+
+    @MockBean private MarketDataProvider marketDataProvider;
 
     @Autowired private MockMvc mockMvc;
 
@@ -114,6 +120,8 @@ class CurrencyControllerIntegrationTest {
 
         // Seed test exchange rates
         seedExchangeRates();
+
+        when(marketDataProvider.getHistoricalPrices(any(), any(), any())).thenReturn(List.of());
     }
 
     private void seedCurrencies() {

@@ -102,6 +102,15 @@ public class ImportedTransaction {
      */
     private String currency;
 
+    /**
+     * Source balance delta derived from the import format's account balance table, when available.
+     *
+     * <p>Skrooge JSON exposes cumulative operation balances; the parser derives this per-operation
+     * delta so imports can preserve source rows even when Open-Finance has no historical FX rate for
+     * the operation currency/account currency pair.
+     */
+    private BigDecimal sourceAccountBalanceDelta;
+
     /** Source category ID from the import format, when available. */
     private Long sourceCategoryId;
 

@@ -13,9 +13,11 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openfinance.dto.HistoricalPrice;
 import org.openfinance.dto.MarketQuote;
 import org.openfinance.entity.Currency;
 import org.openfinance.entity.ExchangeRate;
@@ -444,16 +446,109 @@ class ExchangeRateServiceTest {
     }
 
     @Test
-    @DisplayName("Should accept past dates for historical rate updates")
-    void shouldAcceptPastDatesForHistoricalRateUpdates() {
+    @DisplayName("Should fetch and store historical rates for past dates")
+    void shouldFetchAndStoreHistoricalRatesForPastDates() {
         // Arrange
-        LocalDate pastDate = LocalDate.of(2023, 1, 1);
+        LocalDate pastDate = LocalDate.of(2025, 8, 19);
+        List<Currency> currencies =
+                List.of(
+                        createCurrency("USD", "US Dollar", true),
+                        createCurrency("EUR", "Euro", true),
+                        createCurrency("XOF", "West African CFA franc", true));
+        when(currencyRepository.findByIsActiveTrueOrderByCodeAsc()).thenReturn(currencies);
+        when(marketDataProvider.getHistoricalPrices("EURUSD=X", pastDate.minusDays(7), pastDate))
+                .thenReturn(List.of(createHistoricalPrice("EURUSD=X", pastDate, "1.1700")));
+        when(marketDataProvider.getHistoricalPrices("XOFUSD=X", pastDate.minusDays(7), pastDate))
+                .thenReturn(List.of(createHistoricalPrice("XOFUSD=X", pastDate, "0.0018")));
 
-        // Act & Assert - should not throw
+        // Act
         int result = exchangeRateService.updateExchangeRatesForDate(pastDate);
 
-        // Currently returns 0 as historical fetching is not implemented
-        assertThat(result).isZero();
+        // Assert
+        assertThat(result).isEqualTo(4);
+        ArgumentCaptor<List<ExchangeRate>> ratesCaptor = ArgumentCaptor.forClass(List.class);
+        verify(exchangeRateRepository).saveAll(ratesCaptor.capture());
+        List<ExchangeRate> savedRates = ratesCaptor.getValue();
+        assertThat(savedRates)
+                .extracting(ExchangeRate::getBaseCurrency, ExchangeRate::getTargetCurrency)
+                .containsExactlyInAnyOrder(
+                        org.assertj.core.groups.Tuple.tuple("EUR", "USD"),
+                        org.assertj.core.groups.Tuple.tuple("USD", "EUR"),
+                        org.assertj.core.groups.Tuple.tuple("XOF", "USD"),
+                        org.assertj.core.groups.Tuple.tuple("USD", "XOF"));
+        assertThat(savedRates).allMatch(rate -> pastDate.equals(rate.getRateDate()));
+    }
+
+    @Test
+    @DisplayName("Should fetch historical rates before failing a past-date cross-currency conversion")
+    void shouldFetchHistoricalRatesBeforeFailingPastDateCrossCurrencyConversion() {
+        // Arrange
+        LocalDate date = LocalDate.of(2025, 8, 19);
+        when(currencyRepository.existsByCode("EUR")).thenReturn(true);
+        when(currencyRepository.existsByCode("XOF")).thenReturn(true);
+        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        "EUR", "XOF", date))
+                .thenReturn(Optional.empty());
+        when(exchangeRateRepository
+                        .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
+                                "EUR", "XOF", date))
+                .thenReturn(List.of());
+        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        "XOF", "EUR", date))
+                .thenReturn(Optional.empty());
+        when(exchangeRateRepository
+                        .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
+                                "XOF", "EUR", date))
+                .thenReturn(List.of());
+
+        ExchangeRate eurUsd = createRate("EUR", "USD", new BigDecimal("1.2000"), date);
+        ExchangeRate xofUsd = createRate("XOF", "USD", new BigDecimal("0.0018"), date);
+        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        "EUR", "USD", date))
+                .thenReturn(Optional.empty(), Optional.of(eurUsd));
+        when(exchangeRateRepository
+                        .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
+                                "EUR", "USD", date))
+                .thenReturn(List.of());
+        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        "XOF", "USD", date))
+                .thenReturn(Optional.empty(), Optional.of(xofUsd));
+        when(exchangeRateRepository
+                        .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
+                                "XOF", "USD", date))
+                .thenReturn(List.of());
+        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        "USD", "EUR", date))
+                .thenReturn(Optional.empty());
+        when(exchangeRateRepository
+                        .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
+                                "USD", "EUR", date))
+                .thenReturn(List.of());
+        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        "USD", "XOF", date))
+                .thenReturn(Optional.empty());
+        when(exchangeRateRepository
+                        .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
+                                "USD", "XOF", date))
+                .thenReturn(List.of());
+
+        when(marketDataProvider.getHistoricalPrices("EURUSD=X", date.minusDays(7), date))
+                .thenReturn(List.of(createHistoricalPrice("EURUSD=X", date, "1.2000")));
+        when(marketDataProvider.getHistoricalPrices("XOFUSD=X", date.minusDays(7), date))
+                .thenReturn(List.of(createHistoricalPrice("XOFUSD=X", date, "0.0018")));
+
+        // Act
+        BigDecimal result = exchangeRateService.convert(new BigDecimal("100"), "EUR", "XOF", date);
+
+        // Assert
+        assertThat(result).isEqualByComparingTo("66666.66666700");
+        verify(currencyRepository, never()).findByIsActiveTrueOrderByCodeAsc();
+        ArgumentCaptor<String> symbolCaptor = ArgumentCaptor.forClass(String.class);
+        verify(marketDataProvider, times(2))
+                .getHistoricalPrices(symbolCaptor.capture(), eq(date.minusDays(7)), eq(date));
+        assertThat(symbolCaptor.getAllValues())
+                .containsExactlyInAnyOrder("EURUSD=X", "XOFUSD=X");
+        verifyNoMoreInteractions(marketDataProvider);
     }
 
     // ==================== clearCache() Tests ====================
@@ -489,5 +584,14 @@ class ExchangeRateServiceTest {
         quote.setSymbol(symbol);
         quote.setPrice(BigDecimal.valueOf(price));
         return quote;
+    }
+
+    private HistoricalPrice createHistoricalPrice(String symbol, LocalDate date, String close) {
+        return HistoricalPrice.builder()
+                .symbol(symbol)
+                .date(date)
+                .open(new BigDecimal(close))
+                .close(new BigDecimal(close))
+                .build();
     }
 }
