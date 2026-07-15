@@ -161,8 +161,8 @@ describe('useImport hooks', () => {
       expect(result.current.data).toEqual(completedSession);
     });
 
-    it('should invalidate transactions and accounts queries on success', async () => {
-      mockedImportService.confirmImport.mockResolvedValue({ ...mockSession, status: 'COMPLETED' });
+    it('should invalidate import-sessions query on success', async () => {
+      mockedImportService.confirmImport.mockResolvedValue({ ...mockSession, status: 'IMPORTING' });
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
       const { result } = renderHook(() => useConfirmImport(), { wrapper });
@@ -177,8 +177,13 @@ describe('useImport hooks', () => {
       });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['transactions'] });
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['accounts'] });
+      // Confirmation is now asynchronous: only the import-sessions list is
+      // invalidated here so polling takes over. The transaction/account lists
+      // are refreshed by the wizard once the session poll reports COMPLETED,
+      // because the imported data does not exist yet at confirm time.
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['import-sessions'] });
+      expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ['transactions'] });
+      expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ['accounts'] });
     });
   });
 

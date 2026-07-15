@@ -33,6 +33,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.springframework.beans.factory.ObjectProvider;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.ImportParseResult;
 import org.openfinance.dto.ImportedTransaction;
@@ -133,6 +134,9 @@ class ImportServiceTest {
         private PayeeRepository payeeRepository;
 
         @Mock
+        private ObjectProvider<ImportConfirmationExecutor> importConfirmationExecutor;
+
+        @Mock
         private CurrencyRepository currencyRepository;
 
         @Mock
@@ -185,17 +189,18 @@ class ImportServiceTest {
                                 skroogeJsonParser,
                                 objectMapper,
                                 autoCategorizationService,
-                                 accountService,
-                                 transactionRuleService,
-                                 transactionService,
-                                 exchangeRateService,
-                                 transactionSplitService,
+                                accountService,
+                                transactionRuleService,
+                                transactionService,
+                                exchangeRateService,
+                                transactionSplitService,
                                 netWorthRepository,
                                 aiCategorizationService,
                                 messageSource,
                                 institutionRepository,
                                 currencyRepository,
-                                payeeRepository);
+                                payeeRepository,
+                                importConfirmationExecutor);
 
                 // Setup test account
                 testAccount = Account.builder()

@@ -470,13 +470,10 @@ class ImportControllerTest {
                                 .skipDuplicates(true)
                                 .build();
 
-                ImportSession completedSession = createImportSession(SESSION_ID, ImportStatus.COMPLETED, 50);
-                completedSession.setImportedCount(45);
-                completedSession.setSkippedCount(5);
-                completedSession.setCompletedAt(LocalDateTime.now());
+                ImportSession importingSession = createImportSession(SESSION_ID, ImportStatus.IMPORTING, 50);
 
-                when(importService.confirmImport(any(), any(), any(), any(), anyBoolean()))
-                                .thenReturn(completedSession);
+                when(importService.startConfirmImport(any(), any(), any(), any(), anyBoolean()))
+                                .thenReturn(importingSession);
 
                 // When & Then
                 mockMvc.perform(
@@ -487,14 +484,11 @@ class ImportControllerTest {
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content(objectMapper.writeValueAsString(request)))
                                 .andDo(print())
-                                .andExpect(status().isOk())
+                                .andExpect(status().isAccepted())
                                 .andExpect(jsonPath("$.id").value(SESSION_ID))
-                                .andExpect(jsonPath("$.status").value("COMPLETED"))
-                                .andExpect(jsonPath("$.importedCount").value(45))
-                                .andExpect(jsonPath("$.skippedCount").value(5))
-                                .andExpect(jsonPath("$.completedAt").exists());
+                                .andExpect(jsonPath("$.status").value("IMPORTING"));
 
-                verify(importService).confirmImport(any(), any(), any(), any(), anyBoolean());
+                verify(importService).startConfirmImport(any(), any(), any(), any(), anyBoolean());
         }
 
         @Test
@@ -507,12 +501,10 @@ class ImportControllerTest {
                                 .skipDuplicates(false)
                                 .build();
 
-                ImportSession completedSession = createImportSession(SESSION_ID, ImportStatus.COMPLETED, 50);
-                completedSession.setImportedCount(50);
-                completedSession.setSkippedCount(0);
+                ImportSession importingSession = createImportSession(SESSION_ID, ImportStatus.IMPORTING, 50);
 
-                when(importService.confirmImport(any(), any(), any(), any(), anyBoolean()))
-                                .thenReturn(completedSession);
+                when(importService.startConfirmImport(any(), any(), any(), any(), anyBoolean()))
+                                .thenReturn(importingSession);
 
                 // When & Then
                 mockMvc.perform(
@@ -522,11 +514,10 @@ class ImportControllerTest {
                                                 .header("X-Encryption-Session", TEST_ENCRYPTION_SESSION)
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content(objectMapper.writeValueAsString(request)))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.importedCount").value(50))
-                                .andExpect(jsonPath("$.skippedCount").value(0));
+                                .andExpect(status().isAccepted())
+                                .andExpect(jsonPath("$.status").value("IMPORTING"));
 
-                verify(importService).confirmImport(any(), any(), any(), any(), anyBoolean());
+                verify(importService).startConfirmImport(any(), any(), any(), any(), anyBoolean());
         }
 
         @Test
@@ -540,10 +531,10 @@ class ImportControllerTest {
                                 .skipDuplicates(true)
                                 .build();
 
-                ImportSession completedSession = createImportSession(SESSION_ID, ImportStatus.COMPLETED, 10);
+                ImportSession importingSession = createImportSession(SESSION_ID, ImportStatus.IMPORTING, 10);
 
-                when(importService.confirmImport(any(), any(), any(), any(), anyBoolean()))
-                                .thenReturn(completedSession);
+                when(importService.startConfirmImport(any(), any(), any(), any(), anyBoolean()))
+                                .thenReturn(importingSession);
 
                 // When & Then
                 mockMvc.perform(
@@ -553,9 +544,9 @@ class ImportControllerTest {
                                                 .header("X-Encryption-Session", TEST_ENCRYPTION_SESSION)
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content(objectMapper.writeValueAsString(request)))
-                                .andExpect(status().isOk());
+                                .andExpect(status().isAccepted());
 
-                verify(importService).confirmImport(any(), any(), isNull(), any(), anyBoolean());
+                verify(importService).startConfirmImport(any(), any(), isNull(), any(), anyBoolean());
         }
 
         @Test
@@ -568,7 +559,7 @@ class ImportControllerTest {
                                 .skipDuplicates(true)
                                 .build();
 
-                when(importService.confirmImport(any(), any(), any(), any(), anyBoolean()))
+                when(importService.startConfirmImport(any(), any(), any(), any(), anyBoolean()))
                                 .thenThrow(new ResourceNotFoundException("Import session not found: 999"));
 
                 // When & Then
@@ -581,7 +572,7 @@ class ImportControllerTest {
                                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isNotFound());
 
-                verify(importService).confirmImport(any(), any(), any(), any(), anyBoolean());
+                verify(importService).startConfirmImport(any(), any(), any(), any(), anyBoolean());
         }
 
         @Test
@@ -594,7 +585,7 @@ class ImportControllerTest {
                                 .skipDuplicates(true)
                                 .build();
 
-                when(importService.confirmImport(any(), any(), any(), any(), anyBoolean()))
+                when(importService.startConfirmImport(any(), any(), any(), any(), anyBoolean()))
                                 .thenThrow(
                                                 new IllegalStateException(
                                                                 "Session status is COMPLETED, cannot confirm again"));
@@ -609,7 +600,7 @@ class ImportControllerTest {
                                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isBadRequest());
 
-                verify(importService).confirmImport(any(), any(), any(), any(), anyBoolean());
+                verify(importService).startConfirmImport(any(), any(), any(), any(), anyBoolean());
         }
 
         @Test
@@ -631,7 +622,7 @@ class ImportControllerTest {
                                 .andExpect(status().isUnauthorized());
 
                 verify(importService, never())
-                                .confirmImport(any(), any(), any(), any(), anyBoolean());
+                                .startConfirmImport(any(), any(), any(), any(), anyBoolean());
         }
 
         // ========================================

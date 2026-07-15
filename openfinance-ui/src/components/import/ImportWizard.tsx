@@ -14,6 +14,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useBeforeUnload } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { FileUpload } from './FileUpload';
 import { ImportReview } from './ImportReview';
 import { ImportProgress } from './ImportProgress';
@@ -93,6 +94,7 @@ const STEP_INFO: Record<
 export function ImportWizard() {
   const navigate = useNavigate();
   const { t } = useTranslation('import');
+  const queryClient = useQueryClient();
 
   // ── Wizard state ─────────────────────────────────────────────────────────
   const [currentStep, setCurrentStep] = useState<ImportWizardStep>('upload');
@@ -116,8 +118,7 @@ export function ImportWizard() {
 
   // ── Remote data & mutations ───────────────────────────────────────────────
   const { data: accounts = [] } = useAccounts();
-  const startImport = useStartImport();
-  const { data: session, isLoading: isLoadingSession } = useImportSession(sessionId, {
+  const startImport = useStartImport();  const { data: session, isLoading: isLoadingSession } = useImportSession(sessionId, {
     pollInterval: 2000,
   });
   // Pass session status so the hook disables itself once the session reaches a
@@ -166,6 +167,25 @@ export function ImportWizard() {
       setCurrentStep('progress');
     }
   }, [session, currentStep]);
+
+  // ── Refresh dependent data once the async import actually completes ───────
+  // Confirmation runs asynchronously on the backend, so the imported rows only
+  // exist after polling reports COMPLETED. Invalidate the affected lists once,
+  // when that transition is observed.
+  const importCompletedRef = useRef(false);
+  useEffect(() => {
+    if (session?.status === 'COMPLETED' && !importCompletedRef.current) {
+      importCompletedRef.current = true;
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    }
+    // Reset the guard if a brand-new session begins.
+    if (session?.status && session.status !== 'COMPLETED') {
+      importCompletedRef.current = false;
+    }
+  }, [session?.status, queryClient]);
 
   // ── Prevent accidental navigation when midway ───────────────
   const isMidway = !!sessionId && currentStep !== 'progress';

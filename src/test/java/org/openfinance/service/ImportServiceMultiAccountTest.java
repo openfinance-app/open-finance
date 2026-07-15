@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.springframework.beans.factory.ObjectProvider;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
@@ -103,6 +104,8 @@ class ImportServiceMultiAccountTest {
         private PayeeRepository payeeRepository;
         @Mock
         private CurrencyRepository currencyRepository;
+        @Mock
+        private ObjectProvider<ImportConfirmationExecutor> importConfirmationExecutor;
 
         private ImportService importService;
         private ObjectMapper objectMapper;
@@ -125,17 +128,18 @@ class ImportServiceMultiAccountTest {
                                 skroogeJsonParser,
                                 objectMapper,
                                 autoCategorizationService,
-                                 accountService,
-                                 transactionRuleService,
-                                 transactionService,
-                                 exchangeRateService,
-                                 transactionSplitService,
+                                accountService,
+                                transactionRuleService,
+                                transactionService,
+                                exchangeRateService,
+                                transactionSplitService,
                                 netWorthRepository,
                                 aiCategorizationService,
                                 messageSource,
                                 institutionRepository,
                                 currencyRepository,
-                                payeeRepository);
+                                payeeRepository,
+                                importConfirmationExecutor);
 
                 // Lenient stubs for payee/currency resolution (used by convertToTransaction)
                 lenient()
@@ -403,8 +407,7 @@ class ImportServiceMultiAccountTest {
                                 .validationErrors(new ArrayList<>())
                                 .build();
 
-                ImportSession session =
-                                buildSession(8L, "QIF", List.of(outgoingTransfer, incomingTransfer));
+                ImportSession session = buildSession(8L, "QIF", List.of(outgoingTransfer, incomingTransfer));
                 Account checkingAccount = Account.builder()
                                 .id(901L)
                                 .userId(USER_ID)
@@ -431,10 +434,9 @@ class ImportServiceMultiAccountTest {
                                 .thenAnswer(
                                                 invocation -> {
                                                         AccountRequest request = invocation.getArgument(1);
-                                                        Long id =
-                                                                        "Checking Account".equals(request.getName())
-                                                                                        ? 901L
-                                                                                        : 902L;
+                                                        Long id = "Checking Account".equals(request.getName())
+                                                                        ? 901L
+                                                                        : 902L;
                                                         return AccountResponse.builder().id(id).build();
                                                 });
                 when(accountRepository.findById(901L)).thenReturn(Optional.of(checkingAccount));
@@ -452,8 +454,7 @@ class ImportServiceMultiAccountTest {
                                                                                 && request.getAmount()
                                                                                                 .compareTo(
                                                                                                                 new BigDecimal(
-                                                                                                                                "1527.4800"))
-                                                                                                == 0));
+                                                                                                                                "1527.4800")) == 0));
                 assertThat(result.getImportedCount()).isEqualTo(1);
                 assertThat(result.getSkippedCount()).isZero();
         }
@@ -512,10 +513,9 @@ class ImportServiceMultiAccountTest {
                                 .thenAnswer(
                                                 invocation -> {
                                                         AccountRequest request = invocation.getArgument(1);
-                                                        Long id =
-                                                                        "Checking Account".equals(request.getName())
-                                                                                        ? 1001L
-                                                                                        : 1002L;
+                                                        Long id = "Checking Account".equals(request.getName())
+                                                                        ? 1001L
+                                                                        : 1002L;
                                                         return AccountResponse.builder().id(id).build();
                                                 });
                 when(accountRepository.findById(1001L)).thenReturn(Optional.of(checkingAccount));
@@ -533,8 +533,7 @@ class ImportServiceMultiAccountTest {
                                                                                 && request.getAmount()
                                                                                                 .compareTo(
                                                                                                                 new BigDecimal(
-                                                                                                                                "153.5500"))
-                                                                                                == 0
+                                                                                                                                "153.5500")) == 0
                                                                                 && "EUR".equals(
                                                                                                 request.getCurrency())));
                 assertThat(result.getImportedCount()).isEqualTo(1);
@@ -569,11 +568,10 @@ class ImportServiceMultiAccountTest {
                                 .validationErrors(new ArrayList<>())
                                 .build();
 
-                ImportSession session =
-                                buildSession(
-                                                6L,
-                                                "QIF",
-                                                List.of(incomingSideFirst, outgoingSideSecond));
+                ImportSession session = buildSession(
+                                6L,
+                                "QIF",
+                                List.of(incomingSideFirst, outgoingSideSecond));
                 Account checkingAccount = Account.builder()
                                 .id(701L)
                                 .userId(USER_ID)
@@ -600,10 +598,9 @@ class ImportServiceMultiAccountTest {
                                 .thenAnswer(
                                                 invocation -> {
                                                         AccountRequest request = invocation.getArgument(1);
-                                                        Long id =
-                                                                        "Checking Account".equals(request.getName())
-                                                                                        ? 701L
-                                                                                        : 702L;
+                                                        Long id = "Checking Account".equals(request.getName())
+                                                                        ? 701L
+                                                                        : 702L;
                                                         return AccountResponse.builder().id(id).build();
                                                 });
                 when(accountRepository.findById(701L)).thenReturn(Optional.of(checkingAccount));
@@ -667,15 +664,14 @@ class ImportServiceMultiAccountTest {
                                 .validationErrors(new ArrayList<>())
                                 .build();
 
-                ImportSession session =
-                                buildSession(
-                                                7L,
-                                                "QIF",
-                                                List.of(
-                                                                firstOutgoing,
-                                                                secondOutgoing,
-                                                                firstIncoming,
-                                                                secondIncoming));
+                ImportSession session = buildSession(
+                                7L,
+                                "QIF",
+                                List.of(
+                                                firstOutgoing,
+                                                secondOutgoing,
+                                                firstIncoming,
+                                                secondIncoming));
                 Account checkingAccount = Account.builder()
                                 .id(801L)
                                 .userId(USER_ID)
@@ -717,8 +713,7 @@ class ImportServiceMultiAccountTest {
                                                                                 && request.getAmount()
                                                                                                 .compareTo(
                                                                                                                 new BigDecimal(
-                                                                                                                                "1527.4800"))
-                                                                                                == 0));
+                                                                                                                                "1527.4800")) == 0));
                 assertThat(result.getImportedCount()).isEqualTo(2);
                 assertThat(result.getSkippedCount()).isZero();
         }
@@ -797,8 +792,7 @@ class ImportServiceMultiAccountTest {
                                                                                 && request.getAmount()
                                                                                                 .compareTo(
                                                                                                                 new BigDecimal(
-                                                                                                                                "200.5600"))
-                                                                                                == 0));
+                                                                                                                                "200.5600")) == 0));
                 verify(transactionRepository, never()).save(any(Transaction.class));
                 assertThat(result.getImportedCount()).isEqualTo(1);
                 assertThat(result.getSkippedCount()).isZero();

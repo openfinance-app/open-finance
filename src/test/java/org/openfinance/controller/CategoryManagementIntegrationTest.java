@@ -239,7 +239,7 @@ class CategoryManagementIntegrationTest {
                                 post("/api/v1/categories")
                                                 .header("Authorization", "Bearer " + token)
                                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(req)))
+                                                .content(objectMapper.writeValueAsString(req)))
                                 .andDo(print())
                                 .andExpect(status().isUnauthorized());
         }
@@ -455,10 +455,22 @@ class CategoryManagementIntegrationTest {
                                 .andExpect(status().isOk())
                                 .andExpect(
                                                 jsonPath(
-                                                                "$[?(@.id == " + parentId + ")].subcategories[*].id",
-                                                                org.hamcrest.Matchers.hasItems(
-                                                                                subId1.intValue(), subId2.intValue(),
-                                                                                subId3.intValue())));
+                                                                "$[?(@.id == " + parentId
+                                                                                + ")].subcategories[?(@.id == "
+                                                                                + subId1 + ")].id")
+                                                                .value(subId1.intValue()))
+                                .andExpect(
+                                                jsonPath(
+                                                                "$[?(@.id == " + parentId
+                                                                                + ")].subcategories[?(@.id == "
+                                                                                + subId2 + ")].id")
+                                                                .value(subId2.intValue()))
+                                .andExpect(
+                                                jsonPath(
+                                                                "$[?(@.id == " + parentId
+                                                                                + ")].subcategories[?(@.id == "
+                                                                                + subId3 + ")].id")
+                                                                .value(subId3.intValue()));
         }
 
         /**

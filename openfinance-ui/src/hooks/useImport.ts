@@ -161,18 +161,15 @@ export function useConfirmImport(): UseMutationResult<
     mutationFn: ({ sessionId, ...data }) =>
       importService.confirmImport(sessionId, data, encryptionEnabled),
     onSuccess: (data, variables) => {
-      // Update session cache — this also causes useImportTransactions to become
-      // disabled (session is now COMPLETED/FAILED), so no stale /review refetch.
+      // Confirmation is now asynchronous: the backend returns the session in
+      // IMPORTING status (HTTP 202) and does the heavy work on a background
+      // thread. Update the session cache so polling (useImportSession) takes
+      // over immediately. The transaction/account/dashboard/category lists are
+      // intentionally NOT invalidated here — the imported data does not exist
+      // yet. They are refreshed once the session poll reports COMPLETED (see
+      // ImportWizard's completion effect).
       queryClient.setQueryData(['import-sessions', variables.sessionId], data);
       queryClient.invalidateQueries({ queryKey: ['import-sessions'] });
-      // Do NOT invalidate import-transactions here — the session is now in a
-      // terminal state, and a refetch of /review would return HTTP 400.
-      // Invalidate the broader transaction & account lists so the UI reflects
-      // the newly-imported data.
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
     },
   });
 }

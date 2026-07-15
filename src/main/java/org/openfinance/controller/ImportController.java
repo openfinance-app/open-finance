@@ -471,7 +471,14 @@ public class ImportController {
                                 request.getAccountId(),
                                 request.isSkipDuplicates());
 
-                ImportSession session = importService.confirmImport(
+                // Confirmation runs asynchronously: large imports can take well over a minute,
+                // which
+                // would otherwise exhaust the request timeout and abort the connection. The
+                // session is
+                // returned immediately in IMPORTING status; the client polls GET /sessions/{id}
+                // until
+                // the status becomes COMPLETED or FAILED.
+                ImportSession session = importService.startConfirmImport(
                                 id,
                                 userId,
                                 request.getAccountId(),
@@ -479,11 +486,11 @@ public class ImportController {
                                 request.isSkipDuplicates());
 
                 log.info(
-                                "Import confirmed: {} imported, {} skipped",
-                                session.getImportedCount(),
-                                session.getSkippedCount());
+                                "Import confirmation accepted for session {} (status={})",
+                                session.getId(),
+                                session.getStatus());
 
-                return ResponseEntity.ok(session);
+                return ResponseEntity.accepted().body(session);
         }
 
         /**
