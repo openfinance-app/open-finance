@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -78,6 +79,19 @@ public class SkroogeJsonParser {
                 collectReferencedCategoryIds(
                         subOperationsByOperationId, transferOperationIds, categoriesById);
 
+        // Each account keeps its native Skrooge currency (e.g. XOF); transaction and opening
+        // amounts are converted into that currency using Skrooge's own stored unit rates (pegs),
+        // never live exchange rates, so imported balances match Skrooge exactly.
+        Map<Long, String> accountCurrencyBySourceId =
+                buildAccountCurrencies(
+                        accountsById,
+                        unitsById,
+                        root.path("operation"),
+                        subOperationsByOperationId,
+                        referencedAccountIds);
+        Map<String, BigDecimal> currencyRatesToPrimary =
+                buildCurrencyRatesToPrimary(unitsById, unitValuesByUnitId);
+
         SkroogeImportMetadata metadata =
                 SkroogeImportMetadata.builder()
                         .institutions(
@@ -89,7 +103,9 @@ public class SkroogeJsonParser {
                                         unitValuesByUnitId,
                                         root.path("operation"),
                                         subOperationsByOperationId,
-                                        referencedAccountIds))
+                                        referencedAccountIds,
+                                        accountCurrencyBySourceId,
+                                        currencyRatesToPrimary))
                         .categories(
                                 buildCategories(
                                         categoriesById,
@@ -121,7 +137,9 @@ public class SkroogeJsonParser {
                                     payeesById,
                                     unitsById,
                                     unitValuesByUnitId,
-                                    accountBalanceDeltasByOperationId));
+                                    accountBalanceDeltasByOperationId,
+                                    accountCurrencyBySourceId,
+                                    currencyRatesToPrimary));
                 }
                 continue;
             }
@@ -136,6 +154,8 @@ public class SkroogeJsonParser {
                             unitsById,
                             unitValuesByUnitId,
                             accountBalanceDeltasByOperationId,
+                            accountCurrencyBySourceId,
+                            currencyRatesToPrimary,
                             fileName);
             if (transaction != null) {
                 transactions.add(transaction);
@@ -325,7 +345,8 @@ public class SkroogeJsonParser {
 
         // For same-unit transfers, require f_values to sum to zero. For cross-currency transfers,
         // require one debit and one credit. Share/object groups are handled as source operations so
-        // the imported rows preserve Skrooge's own per-side amounts instead of recreating transfers.
+        // the imported rows preserve Skrooge's own per-side amounts instead of recreating
+        // transfers.
         if (!sameUnit) {
             return firstAmount != null
                     && secondAmount != null
@@ -463,7 +484,9 @@ public class SkroogeJsonParser {
             Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
             JsonNode operationsNode,
             Map<Long, List<JsonNode>> subOperationsByOperationId,
-            Set<Long> referencedAccountIds) {
+            Set<Long> referencedAccountIds,
+            Map<Long, String> accountCurrencyBySourceId,
+            Map<String, BigDecimal> currencyRatesToPrimary) {
         Map<Long, List<JsonNode>> operationsByAccountId =
                 groupByLong(operationsNode, "rd_account_id");
         List<SkroogeImportMetadata.SkroogeAccount> accounts = new ArrayList<>();
@@ -475,15 +498,23 @@ public class SkroogeJsonParser {
             }
             List<JsonNode> accountOperations =
                     operationsByAccountId.getOrDefault(accountId, List.of());
+            // The account keeps its native Skrooge currency (e.g. XOF), so OpenFinance can group
+            // assets by currency and offer base/native display modes.
+            String currency = accountCurrencyBySourceId.get(accountId);
+            if (currency == null) {
+                currency =
+                        deriveAccountCurrency(
+                                accountOperations, unitsById, subOperationsByOperationId);
+            }
             BigDecimal openingBalance =
                     deriveOpeningBalance(
                             accountOperations,
                             subOperationsByOperationId,
                             unitsById,
-                            unitValuesByUnitId);
+                            unitValuesByUnitId,
+                            currency,
+                            currencyRatesToPrimary);
             LocalDate openingDate = deriveOpeningDate(accountOperations);
-            String currency =
-                    deriveAccountCurrency(accountOperations, unitsById, subOperationsByOperationId);
 
             accounts.add(
                     SkroogeImportMetadata.SkroogeAccount.builder()
@@ -616,7 +647,9 @@ public class SkroogeJsonParser {
             Map<Long, JsonNode> payeesById,
             Map<Long, JsonNode> unitsById,
             Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
-            Map<Long, BigDecimal> accountBalanceDeltasByOperationId) {
+            Map<Long, BigDecimal> accountBalanceDeltasByOperationId,
+            Map<Long, String> accountCurrencyBySourceId,
+            Map<String, BigDecimal> currencyRatesToPrimary) {
         if (groupedOperations.size() != 2) {
             return List.of();
         }
@@ -655,12 +688,14 @@ public class SkroogeJsonParser {
                         secondOperation,
                         firstSubOperation,
                         payeesById,
-                         unitsById,
-                         unitValuesByUnitId,
-                         accountsById,
-                         categoriesById,
-                         accountBalanceDeltasByOperationId,
-                         groupId);
+                        unitsById,
+                        unitValuesByUnitId,
+                        accountsById,
+                        categoriesById,
+                        accountBalanceDeltasByOperationId,
+                        accountCurrencyBySourceId,
+                        currencyRatesToPrimary,
+                        groupId);
         ImportedTransaction secondTransaction =
                 buildTransferTransaction(
                         secondOperation,
@@ -668,11 +703,13 @@ public class SkroogeJsonParser {
                         secondSubOperation,
                         payeesById,
                         unitsById,
-                         unitValuesByUnitId,
-                         accountsById,
-                         categoriesById,
-                         accountBalanceDeltasByOperationId,
-                         groupId);
+                        unitValuesByUnitId,
+                        accountsById,
+                        categoriesById,
+                        accountBalanceDeltasByOperationId,
+                        accountCurrencyBySourceId,
+                        currencyRatesToPrimary,
+                        groupId);
 
         return List.of(firstTransaction, secondTransaction);
     }
@@ -687,9 +724,12 @@ public class SkroogeJsonParser {
             Map<Long, JsonNode> accountsById,
             Map<Long, JsonNode> categoriesById,
             Map<Long, BigDecimal> accountBalanceDeltasByOperationId,
+            Map<Long, String> accountCurrencyBySourceId,
+            Map<String, BigDecimal> currencyRatesToPrimary,
             Long groupId) {
         Long operationId = longValue(operation, "id");
-        JsonNode account = accountsById.get(longValue(operation, "rd_account_id"));
+        Long accountSourceId = longValue(operation, "rd_account_id");
+        JsonNode account = accountsById.get(accountSourceId);
         JsonNode otherAccount = accountsById.get(longValue(otherOperation, "rd_account_id"));
         JsonNode payee = payeesById.get(longValue(operation, "r_payee_id"));
         JsonNode category = categoriesById.get(longValue(subOperation, "r_category_id"));
@@ -697,9 +737,17 @@ public class SkroogeJsonParser {
         BigDecimal signedAmount = decimalValue(subOperation, "f_value");
         Long unitId = longValue(operation, "rc_unit_id");
         LocalDate opDate = parseDate(operation);
+        String accountCurrency =
+                resolveAccountCurrency(accountSourceId, unitId, accountCurrencyBySourceId, unitsById);
         signedAmount =
-                convertToMonetaryAmount(
-                        signedAmount, unitId, opDate, unitsById, unitValuesByUnitId);
+                convertToCurrency(
+                        signedAmount,
+                        unitId,
+                        opDate,
+                        accountCurrency,
+                        unitsById,
+                        unitValuesByUnitId,
+                        currencyRatesToPrimary);
         String comment = textValue(operation, "t_comment");
 
         return ImportedTransaction.builder()
@@ -712,11 +760,11 @@ public class SkroogeJsonParser {
                 .sourceCategoryId(longValue(subOperation, "r_category_id"))
                 .referenceNumber(skroogeOperationReference(operation))
                 .accountName(account != null ? textValue(account, "t_name") : null)
-                .sourceAccountId(longValue(operation, "rd_account_id"))
-                 .accountNumber(account != null ? resolveAccountNumber(account) : null)
-                 .currency(resolveCurrencyCode(unitsById.get(unitId), unitsById))
-                 .sourceAccountBalanceDelta(accountBalanceDeltasByOperationId.get(operationId))
-                 .transfer(true)
+                .sourceAccountId(accountSourceId)
+                .accountNumber(account != null ? resolveAccountNumber(account) : null)
+                .currency(accountCurrency)
+                .sourceAccountBalanceDelta(accountBalanceDeltasByOperationId.get(operationId))
+                .transfer(true)
                 .transferGroupKey(skroogeTransferReference(groupId))
                 .toAccountName(otherAccount != null ? textValue(otherAccount, "t_name") : null)
                 .toAccountSourceId(longValue(otherOperation, "rd_account_id"))
@@ -734,6 +782,8 @@ public class SkroogeJsonParser {
             Map<Long, JsonNode> unitsById,
             Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
             Map<Long, BigDecimal> accountBalanceDeltasByOperationId,
+            Map<Long, String> accountCurrencyBySourceId,
+            Map<String, BigDecimal> currencyRatesToPrimary,
             String fileName) {
         Long operationId = longValue(operation, "id");
         List<JsonNode> subOperations =
@@ -745,22 +795,32 @@ public class SkroogeJsonParser {
             return null;
         }
 
-        JsonNode account = accountsById.get(longValue(operation, "rd_account_id"));
+        Long accountSourceId = longValue(operation, "rd_account_id");
+        JsonNode account = accountsById.get(accountSourceId);
         JsonNode payee = payeesById.get(longValue(operation, "r_payee_id"));
         String comment = textValue(operation, "t_comment");
         String payeeName = resolvePayee(payee, comment, textValue(operation, "t_mode"));
         Long unitId = longValue(operation, "rc_unit_id");
         LocalDate opDate = parseDate(operation);
+        String accountCurrency =
+                resolveAccountCurrency(accountSourceId, unitId, accountCurrencyBySourceId, unitsById);
 
         BigDecimal signedAmount =
                 subOperations.stream()
                         .map(node -> decimalValue(node, "f_value"))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Convert investment quantities (shares/crypto) to monetary amounts using unit prices.
+        // Convert the operation into the account's native currency using Skrooge's stored unit
+        // rates (investment quantities via their unit price, foreign currencies via their peg).
         signedAmount =
-                convertToMonetaryAmount(
-                        signedAmount, unitId, opDate, unitsById, unitValuesByUnitId);
+                convertToCurrency(
+                        signedAmount,
+                        unitId,
+                        opDate,
+                        accountCurrency,
+                        unitsById,
+                        unitValuesByUnitId,
+                        currencyRatesToPrimary);
 
         ImportedTransaction.ImportedTransactionBuilder builder =
                 ImportedTransaction.builder()
@@ -771,12 +831,12 @@ public class SkroogeJsonParser {
                         .memo(comment)
                         .referenceNumber(skroogeOperationReference(operation))
                         .accountName(account != null ? textValue(account, "t_name") : null)
-                        .sourceAccountId(longValue(operation, "rd_account_id"))
-                         .accountNumber(account != null ? resolveAccountNumber(account) : null)
-                         .currency(resolveCurrencyCode(unitsById.get(unitId), unitsById))
-                         .sourceAccountBalanceDelta(
-                                 accountBalanceDeltasByOperationId.get(operationId))
-                         .clearedStatus(resolveClearedStatus(operation))
+                        .sourceAccountId(accountSourceId)
+                        .accountNumber(account != null ? resolveAccountNumber(account) : null)
+                        .currency(accountCurrency)
+                        .sourceAccountBalanceDelta(
+                                accountBalanceDeltasByOperationId.get(operationId))
+                        .clearedStatus(resolveClearedStatus(operation))
                         .sourceFileName(fileName);
 
         if (subOperations.size() == 1) {
@@ -795,12 +855,14 @@ public class SkroogeJsonParser {
                                         BigDecimal splitAmount =
                                                 decimalValue(subOperation, "f_value");
                                         splitAmount =
-                                                convertToMonetaryAmount(
+                                                convertToCurrency(
                                                         splitAmount,
                                                         unitId,
                                                         opDate,
+                                                        accountCurrency,
                                                         unitsById,
-                                                        unitValuesByUnitId);
+                                                        unitValuesByUnitId,
+                                                        currencyRatesToPrimary);
                                         return ImportedTransaction.SplitEntry.builder()
                                                 .category(
                                                         category != null
@@ -840,7 +902,9 @@ public class SkroogeJsonParser {
             List<JsonNode> operations,
             Map<Long, List<JsonNode>> subOperationsByOperationId,
             Map<Long, JsonNode> unitsById,
-            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId) {
+            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
+            String accountCurrency,
+            Map<String, BigDecimal> currencyRatesToPrimary) {
         for (JsonNode operation : operations) {
             if (!SYNTHETIC_DATE.equals(textValue(operation, "d_date"))) {
                 continue;
@@ -850,8 +914,14 @@ public class SkroogeJsonParser {
             if (!subOperations.isEmpty()) {
                 BigDecimal rawValue = decimalValue(subOperations.get(0), "f_value");
                 Long unitId = longValue(operation, "rc_unit_id");
-                return convertToMonetaryAmount(
-                        rawValue, unitId, null, unitsById, unitValuesByUnitId);
+                return convertToCurrency(
+                        rawValue,
+                        unitId,
+                        null,
+                        accountCurrency,
+                        unitsById,
+                        unitValuesByUnitId,
+                        currencyRatesToPrimary);
             }
         }
         return BigDecimal.ZERO;
@@ -1083,6 +1153,68 @@ public class SkroogeJsonParser {
         return entry.getValue();
     }
 
+    /**
+     * Resolve the primary/reference currency that a unit's value is converted into. Walks the unit
+     * parent chain up to the primary (type "1") unit. Because {@link #convertToPrimaryCurrency}
+     * converts every non-primary unit into the primary currency, the resulting monetary amount is
+     * always denominated in this currency.
+     */
+    private String resolvePrimaryCurrency(Long unitId, Map<Long, JsonNode> unitsById) {
+        JsonNode unit = unitsById.get(unitId);
+        Set<Long> visited = new HashSet<>();
+        while (unit != null && !unit.isMissingNode()) {
+            if ("1".equals(textValue(unit, "t_type"))) {
+                return resolveCurrencyCode(unit, unitsById);
+            }
+            Long parentId = longValue(unit, "rd_unit_id");
+            if (parentId == null || parentId == 0L || !visited.add(parentId)) {
+                break;
+            }
+            unit = unitsById.get(parentId);
+        }
+        return resolveCurrencyCode(unitsById.get(unitId), unitsById);
+    }
+
+    private BigDecimal convertToPrimaryCurrency(
+            BigDecimal value,
+            Long unitId,
+            LocalDate date,
+            Map<Long, JsonNode> unitsById,
+            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
+            Set<Long> visitedUnitIds) {
+        if (value == null || unitId == null) {
+            return value;
+        }
+        JsonNode unit = unitsById.get(unitId);
+        if (unit == null || unit.isMissingNode()) {
+            return value;
+        }
+        if ("1".equals(textValue(unit, "t_type"))) {
+            return value; // already the primary/reference currency
+        }
+        if (!visitedUnitIds.add(unitId)) {
+            return value; // guard against cyclic parent references
+        }
+        // Investment units (shares/crypto) are valued at the transaction-date price to preserve
+        // historical per-transaction amounts; currency units use the latest exchange rate.
+        LocalDate priceDate = isInvestmentUnit(unit) ? date : null;
+        BigDecimal price = resolveUnitPrice(unitId, priceDate, unitValuesByUnitId);
+        if (price == null) {
+            log.warn(
+                    "No unit value found for unit {}; using raw value {} without conversion",
+                    unitId,
+                    value);
+            return value;
+        }
+        BigDecimal parentValue = value.multiply(price);
+        Long parentId = longValue(unit, "rd_unit_id");
+        if (parentId != null && parentId != 0L && !parentId.equals(unitId)) {
+            return convertToPrimaryCurrency(
+                    parentValue, parentId, date, unitsById, unitValuesByUnitId, visitedUnitIds);
+        }
+        return parentValue;
+    }
+
     /** Returns true if the unit is a share (S) or object/crypto (O) type. */
     private boolean isInvestmentUnit(JsonNode unitNode) {
         if (unitNode == null || unitNode.isMissingNode()) {
@@ -1093,33 +1225,111 @@ public class SkroogeJsonParser {
     }
 
     /**
-     * Convert a raw f_value (which may be a quantity for investment units) to a monetary amount in
-     * the unit's parent currency. For currency units (type "1", "2", "C"), f_value is already the
-     * monetary amount and is returned as-is. For share/object units (type "S", "O"), f_value is
-     * multiplied by the unit price from the unitvalue table.
+     * Determine each referenced account's native Skrooge currency (e.g. XOF). Uses {@link
+     * #deriveAccountCurrency}, which prefers the account's opening-balance unit and otherwise the
+     * most frequently used operation currency.
      */
-    private BigDecimal convertToMonetaryAmount(
+    private Map<Long, String> buildAccountCurrencies(
+            Map<Long, JsonNode> accountsById,
+            Map<Long, JsonNode> unitsById,
+            JsonNode operationsNode,
+            Map<Long, List<JsonNode>> subOperationsByOperationId,
+            Set<Long> referencedAccountIds) {
+        Map<Long, List<JsonNode>> operationsByAccountId =
+                groupByLong(operationsNode, "rd_account_id");
+        Map<Long, String> currencies = new HashMap<>();
+        for (Long accountId : referencedAccountIds) {
+            if (accountsById.get(accountId) == null) {
+                continue;
+            }
+            List<JsonNode> accountOperations =
+                    operationsByAccountId.getOrDefault(accountId, List.of());
+            String currency =
+                    deriveAccountCurrency(accountOperations, unitsById, subOperationsByOperationId);
+            if (currency != null) {
+                currencies.put(accountId, currency);
+            }
+        }
+        return currencies;
+    }
+
+    /**
+     * Build a map of currency code to its exchange rate against the document's primary/reference
+     * currency (type "1"), using Skrooge's own stored unit values. For example {@code XOF ->
+     * 0.001524} means 1 XOF = 0.001524 EUR. The primary currency maps to 1.
+     */
+    private Map<String, BigDecimal> buildCurrencyRatesToPrimary(
+            Map<Long, JsonNode> unitsById,
+            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId) {
+        Map<String, BigDecimal> rates = new HashMap<>();
+        for (JsonNode unit : unitsById.values()) {
+            String type = textValue(unit, "t_type");
+            if (!Set.of("1", "2", "C").contains(type)) {
+                continue;
+            }
+            String code = resolveCurrencyCode(unit, unitsById);
+            if (code == null || rates.containsKey(code)) {
+                continue;
+            }
+            BigDecimal rate =
+                    convertToPrimaryCurrency(
+                            BigDecimal.ONE,
+                            longValue(unit, "id"),
+                            null,
+                            unitsById,
+                            unitValuesByUnitId,
+                            new HashSet<>());
+            if (rate != null && rate.signum() != 0) {
+                rates.put(code, rate);
+            }
+        }
+        return rates;
+    }
+
+    /**
+     * Resolve the native currency an operation should be stored in: the owning account's currency
+     * when known, otherwise the operation unit's own currency (walked up its parent chain).
+     */
+    private String resolveAccountCurrency(
+            Long accountSourceId,
+            Long unitId,
+            Map<Long, String> accountCurrencyBySourceId,
+            Map<Long, JsonNode> unitsById) {
+        String currency = accountCurrencyBySourceId.get(accountSourceId);
+        if (currency != null) {
+            return currency;
+        }
+        return resolvePrimaryCurrency(unitId, unitsById);
+    }
+
+    /**
+     * Convert a raw f_value into the target account currency using Skrooge's stored rates. The value
+     * is first converted to the primary/reference currency (investment units via their unit price,
+     * foreign currencies via their peg), then divided by the target currency's rate to the primary
+     * currency. All conversions use Skrooge's own unit values — never live exchange rates — so
+     * imported balances reproduce Skrooge's figures exactly.
+     */
+    private BigDecimal convertToCurrency(
             BigDecimal rawValue,
             Long unitId,
             LocalDate date,
+            String targetCurrency,
             Map<Long, JsonNode> unitsById,
-            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId) {
-        if (rawValue == null || unitId == null) {
-            return rawValue;
+            Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
+            Map<String, BigDecimal> currencyRatesToPrimary) {
+        BigDecimal primaryAmount =
+                convertToPrimaryCurrency(
+                        rawValue, unitId, date, unitsById, unitValuesByUnitId, new HashSet<>());
+        if (primaryAmount == null || targetCurrency == null) {
+            return primaryAmount;
         }
-        JsonNode unit = unitsById.get(unitId);
-        if (!isInvestmentUnit(unit)) {
-            return rawValue;
+        BigDecimal targetRate = currencyRatesToPrimary.get(targetCurrency);
+        if (targetRate == null
+                || targetRate.signum() == 0
+                || targetRate.compareTo(BigDecimal.ONE) == 0) {
+            return primaryAmount;
         }
-        BigDecimal price = resolveUnitPrice(unitId, date, unitValuesByUnitId);
-        if (price == null) {
-            log.warn(
-                    "No unit value found for investment unit {} on {}; using raw f_value as amount",
-                    unitId,
-                    date);
-            return rawValue;
-        }
-        return rawValue.multiply(price);
+        return primaryAmount.divide(targetRate, 10, RoundingMode.HALF_UP);
     }
 
     /** Resolve institution name, falling back to a generated name if blank. */

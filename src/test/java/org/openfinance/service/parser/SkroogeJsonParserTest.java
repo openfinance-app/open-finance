@@ -199,6 +199,105 @@ class SkroogeJsonParserTest {
     }
 
     @Test
+    @DisplayName("Should value investment units at the historical transaction-date price")
+    void shouldValueInvestmentUnitsAtHistoricalPrice() throws IOException {
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(
+                                historicalInvestmentPriceJson().getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        ImportedTransaction investmentTx =
+                result.getTransactions().stream()
+                        .filter(tx -> !tx.isTransfer())
+                        .findFirst()
+                        .orElseThrow();
+        // The share was bought on 2024-01-10 when the price was 30000 EUR/share, even though a
+        // later 60000 EUR/share price exists. Historical pricing must use the 2024-01-10 price:
+        // 0.10 shares × 30000 = 3000 EUR (NOT 0.10 × 60000 = 6000).
+        assertThat(investmentTx.getAmount()).isEqualByComparingTo(new BigDecimal("3000.00"));
+        assertThat(investmentTx.getCurrency()).isEqualTo("EUR");
+    }
+
+    @Test
+    @DisplayName("Should keep secondary-currency accounts in their native currency (XOF)")
+    void shouldKeepSecondaryCurrencyAccountsNative() throws IOException {
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(
+                                secondaryCurrencyJson().getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        // The account's operations are in XOF (type "2"), so the account is a native XOF account —
+        // OpenFinance supports multi-currency accounts and displays base-currency equivalents.
+        assertThat(result.getSkroogeMetadata().getAccounts())
+                .filteredOn(account -> account.getName().equals("CFA Account"))
+                .singleElement()
+                .satisfies(account -> assertThat(account.getCurrency()).isEqualTo("XOF"));
+
+        ImportedTransaction tx =
+                result.getTransactions().stream()
+                        .filter(t -> !t.isTransfer())
+                        .findFirst()
+                        .orElseThrow();
+        // The XOF amount is kept native (10000 XOF), labelled XOF.
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("10000"));
+        assertThat(tx.getCurrency()).isEqualTo("XOF");
+    }
+
+    @Test
+    @DisplayName("Should value type-C currency-pegged (crypto) units at their latest price")
+    void shouldValueTypeCUnitsAtLatestPrice() throws IOException {
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(
+                                typeCCurrencyUnitJson().getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        // The account's native currency is EUR (its opening balance is in EUR); the Tether (type
+        // "C") operation is converted into EUR at the latest peg.
+        assertThat(result.getSkroogeMetadata().getAccounts())
+                .filteredOn(account -> account.getName().equals("Stablecoin Account"))
+                .singleElement()
+                .satisfies(account -> assertThat(account.getCurrency()).isEqualTo("EUR"));
+
+        ImportedTransaction tx =
+                result.getTransactions().stream()
+                        .filter(t -> !t.isTransfer())
+                        .findFirst()
+                        .orElseThrow();
+        // 100 USDT × 0.90 EUR/USDT = 90.00 EUR.
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("90.00"));
+        assertThat(tx.getCurrency()).isEqualTo("EUR");
+    }
+
+    @Test
+    @DisplayName("Should value a chained share→XOF→EUR unit in the account's native currency (XOF)")
+    void shouldConvertChainedShareInNativeCurrency() throws IOException {
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(
+                                chainedUnitJson().getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        // The share unit is priced in XOF (which is itself pegged to EUR), so the account's native
+        // currency resolves to XOF.
+        assertThat(result.getSkroogeMetadata().getAccounts())
+                .filteredOn(account -> account.getName().equals("Chained Account"))
+                .singleElement()
+                .satisfies(account -> assertThat(account.getCurrency()).isEqualTo("XOF"));
+
+        ImportedTransaction tx =
+                result.getTransactions().stream()
+                        .filter(t -> !t.isTransfer())
+                        .findFirst()
+                        .orElseThrow();
+        // 2 shares × 1000 XOF/share = 2000 XOF; kept native in XOF.
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("2000"));
+        assertThat(tx.getCurrency()).isEqualTo("XOF");
+    }
+
+    @Test
     @DisplayName("Should keep share purchase groups as source operations, not account transfers")
     void shouldKeepSharePurchaseGroupsAsSourceOperations() throws IOException {
         SkroogeImportParseResult result =
@@ -554,6 +653,123 @@ class SkroogeJsonParserTest {
                 .replace(", \"f_balance_entered\": 4950.00", "")
                 .replace(", \"f_balance_entered\": 5105.44", "")
                 .replace(", \"f_balance_entered\": 3145.94", "");
+    }
+
+    /** Investment share priced at two dates; the buy predates the later (higher) price. */
+    private String historicalInvestmentPriceJson() {
+        return """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Investment Account", "t_type": "A", "t_number": "", "t_close": false }
+                  ],
+                  "category": [{ "id": 100, "rd_category_id": 0, "t_name": "Investment", "t_fullname": "Investment" }],
+                  "payee": [{ "id": 1, "t_name": "Broker" }],
+                  "unit": [
+                    { "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 },
+                    { "id": 5, "t_name": "Test Share", "t_symbol": "TST", "t_internet_code": "", "t_type": "S", "rd_unit_id": 1 }
+                  ],
+                  "operation": [
+                    { "id": 2, "rd_account_id": 10, "d_date": "2024-01-10", "i_group_id": 0, "r_payee_id": 1, "t_mode": "Buy", "t_status": "Y", "rc_unit_id": 5 }
+                  ],
+                  "suboperation": [
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 100, "f_value": "0.10" }
+                  ],
+                  "unitvalue": [
+                    { "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 },
+                    { "id": 2, "rd_unit_id": 5, "d_date": "2024-01-01", "f_quantity": 30000 },
+                    { "id": 3, "rd_unit_id": 5, "d_date": "2024-06-01", "f_quantity": 60000 }
+                  ]
+                }
+                """;
+    }
+
+    /** Account holding secondary-currency (type "2") XOF operations in an EUR-primary document. */
+    private String secondaryCurrencyJson() {
+        return """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "CFA Account", "t_type": "C", "t_number": "", "t_close": false }
+                  ],
+                  "category": [{ "id": 100, "rd_category_id": 0, "t_name": "Income", "t_fullname": "Income" }],
+                  "payee": [{ "id": 1, "t_name": "Employer" }],
+                  "unit": [
+                    { "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 },
+                    { "id": 4, "t_name": "Franc CFA (XOF)", "t_symbol": "CFA", "t_internet_code": "XOF/EUR", "t_type": "2", "rd_unit_id": 1 }
+                  ],
+                  "operation": [
+                    { "id": 2, "rd_account_id": 10, "d_date": "2024-06-15", "i_group_id": 0, "r_payee_id": 1, "t_mode": "Deposit", "t_status": "Y", "rc_unit_id": 4 }
+                  ],
+                  "suboperation": [
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 100, "f_value": "10000" }
+                  ],
+                  "unitvalue": [
+                    { "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 },
+                    { "id": 2, "rd_unit_id": 4, "d_date": "2024-06-01", "f_quantity": 0.0015 }
+                  ]
+                }
+                """;
+    }
+
+    /** Account with a type "C" currency-pegged (stablecoin) unit priced in EUR. */
+    private String typeCCurrencyUnitJson() {
+        return """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Stablecoin Account", "t_type": "A", "t_number": "", "t_close": false }
+                  ],
+                  "category": [{ "id": 100, "rd_category_id": 0, "t_name": "Investment", "t_fullname": "Investment" }],
+                  "payee": [{ "id": 1, "t_name": "Exchange" }],
+                  "unit": [
+                    { "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 },
+                    { "id": 6, "t_name": "Tether", "t_symbol": "USDT", "t_internet_code": "USDT-EUR", "t_type": "C", "rd_unit_id": 1 }
+                  ],
+                  "operation": [
+                    { "id": 1, "rd_account_id": 10, "d_date": "0000-00-00", "i_group_id": 0, "r_payee_id": 0, "t_mode": "", "t_status": "", "rc_unit_id": 1 },
+                    { "id": 2, "rd_account_id": 10, "d_date": "2024-06-15", "i_group_id": 0, "r_payee_id": 1, "t_mode": "Buy", "t_status": "Y", "rc_unit_id": 6 }
+                  ],
+                  "suboperation": [
+                    { "id": 11, "rd_operation_id": 1, "r_category_id": 0, "f_value": "10" },
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 100, "f_value": "100" }
+                  ],
+                  "unitvalue": [
+                    { "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 },
+                    { "id": 2, "rd_unit_id": 6, "d_date": "2024-06-01", "f_quantity": 0.90 }
+                  ]
+                }
+                """;
+    }
+
+    /** Share unit priced in a foreign currency (XOF) which is itself priced in EUR (chained). */
+    private String chainedUnitJson() {
+        return """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Chained Account", "t_type": "A", "t_number": "", "t_close": false }
+                  ],
+                  "category": [{ "id": 100, "rd_category_id": 0, "t_name": "Investment", "t_fullname": "Investment" }],
+                  "payee": [{ "id": 1, "t_name": "Broker" }],
+                  "unit": [
+                    { "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 },
+                    { "id": 4, "t_name": "Franc CFA (XOF)", "t_symbol": "CFA", "t_internet_code": "XOF/EUR", "t_type": "2", "rd_unit_id": 1 },
+                    { "id": 12, "t_name": "Local Fund", "t_symbol": "LF", "t_internet_code": "", "t_type": "S", "rd_unit_id": 4 }
+                  ],
+                  "operation": [
+                    { "id": 2, "rd_account_id": 10, "d_date": "2024-06-15", "i_group_id": 0, "r_payee_id": 1, "t_mode": "Buy", "t_status": "Y", "rc_unit_id": 12 }
+                  ],
+                  "suboperation": [
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 100, "f_value": "2" }
+                  ],
+                  "unitvalue": [
+                    { "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 },
+                    { "id": 2, "rd_unit_id": 4, "d_date": "2024-06-01", "f_quantity": 0.0015 },
+                    { "id": 3, "rd_unit_id": 12, "d_date": "2024-06-01", "f_quantity": 1000 }
+                  ]
+                }
+                """;
     }
 
     /** Investment operation with a share unit (type S) and unitvalue price. */
