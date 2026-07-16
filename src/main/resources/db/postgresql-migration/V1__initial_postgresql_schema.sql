@@ -332,7 +332,7 @@ CREATE INDEX idx_exchange_rate_currencies_date ON exchange_rates(base_currency, 
 -- ── 14. payees ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS payees (
     id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name        VARCHAR(100) NOT NULL,
+    name        VARCHAR(512) NOT NULL,
     logo        TEXT,
     category    VARCHAR(50),
     category_id BIGINT REFERENCES categories(id),

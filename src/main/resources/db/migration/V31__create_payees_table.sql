@@ -5,7 +5,7 @@
 -- Create payees table
 CREATE TABLE IF NOT EXISTS payees (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(512) NOT NULL,
     logo TEXT,
     category VARCHAR(50),
     is_system BOOLEAN NOT NULL DEFAULT 0,

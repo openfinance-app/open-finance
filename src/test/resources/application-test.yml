@@ -20,6 +20,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        # Generate DDL column lengths from @Column(length=...) rather than Bean Validation
+        # @Size(max=...). Encrypted columns declare length=512 but carry a @Size on the plaintext
+        # (e.g. Payee.name @Size(max=100)); without this the H2 test schema would shrink those
+        # columns and overflow on encrypted values, diverging from the production schema.
+        validator:
+          apply_to_ddl: false
         id:
           new_generator_mappings: true
           db_structure_naming_strategy: single

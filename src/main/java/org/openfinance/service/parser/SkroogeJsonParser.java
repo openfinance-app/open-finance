@@ -738,7 +738,8 @@ public class SkroogeJsonParser {
         Long unitId = longValue(operation, "rc_unit_id");
         LocalDate opDate = parseDate(operation);
         String accountCurrency =
-                resolveAccountCurrency(accountSourceId, unitId, accountCurrencyBySourceId, unitsById);
+                resolveAccountCurrency(
+                        accountSourceId, unitId, accountCurrencyBySourceId, unitsById);
         signedAmount =
                 convertToCurrency(
                         signedAmount,
@@ -803,7 +804,8 @@ public class SkroogeJsonParser {
         Long unitId = longValue(operation, "rc_unit_id");
         LocalDate opDate = parseDate(operation);
         String accountCurrency =
-                resolveAccountCurrency(accountSourceId, unitId, accountCurrencyBySourceId, unitsById);
+                resolveAccountCurrency(
+                        accountSourceId, unitId, accountCurrencyBySourceId, unitsById);
 
         BigDecimal signedAmount =
                 subOperations.stream()
@@ -1303,11 +1305,11 @@ public class SkroogeJsonParser {
     }
 
     /**
-     * Convert a raw f_value into the target account currency using Skrooge's stored rates. The value
-     * is first converted to the primary/reference currency (investment units via their unit price,
-     * foreign currencies via their peg), then divided by the target currency's rate to the primary
-     * currency. All conversions use Skrooge's own unit values — never live exchange rates — so
-     * imported balances reproduce Skrooge's figures exactly.
+     * Convert a raw f_value into the target account currency using Skrooge's stored rates. The
+     * value is first converted to the primary/reference currency (investment units via their unit
+     * price, foreign currencies via their peg), then divided by the target currency's rate to the
+     * primary currency. All conversions use Skrooge's own unit values — never live exchange rates —
+     * so imported balances reproduce Skrooge's figures exactly.
      */
     private BigDecimal convertToCurrency(
             BigDecimal rawValue,
