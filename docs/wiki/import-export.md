@@ -19,6 +19,10 @@ Open-Finance can import transaction history from the most common bank export for
 | OFX    | `.ofx`    | Open Financial Exchange — most banks      |
 | QFX    | `.qfx`    | Quicken variant of OFX                    |
 | QIF    | `.qif`    | Quicken Interchange Format — older format |
+| CSV    | `.csv`    | Comma-separated values — see headers below |
+| JSON   | `.json`   | JSON array of transaction objects          |
+
+CSV files must include a header row. Supported column names: `date`, `amount`, `payee`, `memo`, `category`, `type`, `referencenumber`. Rows with missing `date` or `amount` are skipped.
 
 ---
 
@@ -55,31 +59,6 @@ The importer automatically flags potential duplicates by matching on:
 - Matching bank reference ID
 
 Flagged duplicates are highlighted in the preview. You can choose to skip them or import them anyway.
-
----
-
-## Export
-
-### CSV / JSON Export
-
-Go to **Export** to download all or a filtered portion of your financial data.
-
-| Option     | Description                                         |
-| ---------- | --------------------------------------------------- |
-| Format     | CSV or JSON                                         |
-| Date range | Optionally limit to a specific period               |
-| Data types | Transactions, accounts, assets, liabilities, or all |
-
-### Report Export (PDF / Excel)
-
-From the **Reports** section, you can generate and download:
-
-- Net-worth report
-- Spending breakdown report
-- Budget summary report
-- Category analysis report
-
-Reports are generated as PDF or Excel files and download directly to your device.
 
 ---
 
