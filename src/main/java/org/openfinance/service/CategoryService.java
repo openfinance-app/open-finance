@@ -27,34 +27,25 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service layer for managing transaction categories.
  *
- * <p>
- * This service handles business logic for category CRUD operations, including:
+ * <p>This service handles business logic for category CRUD operations, including:
  *
  * <ul>
- * <li>Creating new categories with encrypted names (user categories only)
- * <li>Updating existing categories
- * <li>Deleting categories (only if not used and not system category)
- * <li>Retrieving categories with decrypted data
- * <li>Validating parent-child relationships
+ *   <li>Creating new categories with encrypted names (user categories only)
+ *   <li>Updating existing categories
+ *   <li>Deleting categories (only if not used and not system category)
+ *   <li>Retrieving categories with decrypted data
+ *   <li>Validating parent-child relationships
  * </ul>
  *
- * <p>
- * <strong>Security Note:</strong> The {@code name} field is encrypted for
- * user-created
- * categories but NOT for system categories (created by CategorySeeder). The
- * encryption key must be
+ * <p><strong>Security Note:</strong> The {@code name} field is encrypted for user-created
+ * categories but NOT for system categories (created by CategorySeeder). The encryption key must be
  * provided by the caller for user categories.
  *
- * <p>
- * Requirement REQ-2.4: Category Management - CRUD operations for transaction
- * categories
+ * <p>Requirement REQ-2.4: Category Management - CRUD operations for transaction categories
  *
- * <p>
- * Requirement REQ-2.18: Data encryption at rest for sensitive fields
+ * <p>Requirement REQ-2.18: Data encryption at rest for sensitive fields
  *
- * <p>
- * Requirement REQ-3.2: Authorization - Users can only access their own
- * categories
+ * <p>Requirement REQ-3.2: Authorization - Users can only access their own categories
  *
  * @see org.openfinance.entity.Category
  * @see org.openfinance.dto.CategoryRequest
@@ -77,34 +68,27 @@ public class CategoryService {
     /**
      * Creates a new category for the specified user.
      *
-     * <p>
-     * The category name is encrypted before storing in the database (user
-     * categories only). The
+     * <p>The category name is encrypted before storing in the database (user categories only). The
      * encryption key must be derived from the user's master password.
      *
-     * <p>
-     * Validates parent-child relationships:
+     * <p>Validates parent-child relationships:
      *
      * <ul>
-     * <li>Parent must exist and belong to the same user
-     * <li>Parent and child must have the same CategoryType
+     *   <li>Parent must exist and belong to the same user
+     *   <li>Parent and child must have the same CategoryType
      * </ul>
      *
-     * <p>
-     * Requirement REQ-2.4.1: Create new category with encrypted sensitive data
+     * <p>Requirement REQ-2.4.1: Create new category with encrypted sensitive data
      *
-     * @param userId        the ID of the user creating the category
-     * @param request       the category creation request containing category
-     *                      details
+     * @param userId the ID of the user creating the category
+     * @param request the category creation request containing category details
      * @param encryptionKey the AES-256 encryption key for sensitive fields
      * @return the created category with decrypted data
-     * @throws IllegalArgumentException  if userId, request, or encryptionKey is
-     *                                   null
+     * @throws IllegalArgumentException if userId, request, or encryptionKey is null
      * @throws CategoryNotFoundException if parent category does not exist
-     * @throws InvalidCategoryException  if parent-child validation fails
+     * @throws InvalidCategoryException if parent-child validation fails
      */
-    public CategoryResponse createCategory(
-            Long userId, CategoryRequest request) {
+    public CategoryResponse createCategory(Long userId, CategoryRequest request) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -119,11 +103,11 @@ public class CategoryService {
 
         // Validate parent-child relationship if parent is specified
         if (request.getParentId() != null) {
-            validateParentCategory(userId, request.getParentId(), request.getType());
+            validateParentCategory(userId, request.getParentId());
         }
 
-        // Bug #5 fix: prevent duplicate names within the user's categories
-        checkDuplicateName(userId, request.getName(), null);
+        // Bug #5 fix: prevent duplicate names among siblings (same parent)
+        checkDuplicateName(userId, request.getName(), request.getParentId(), null);
 
         // Map request to entity
         Category category = categoryMapper.toEntity(request);
@@ -144,27 +128,21 @@ public class CategoryService {
     /**
      * Updates an existing category.
      *
-     * <p>
-     * Only non-system categories can be updated. System categories (isSystem=true)
-     * are
+     * <p>Only non-system categories can be updated. System categories (isSystem=true) are
      * read-only.
      *
-     * <p>
-     * Requirement REQ-2.4.2: Update category information
+     * <p>Requirement REQ-2.4.2: Update category information
      *
-     * @param userId        the ID of the user updating the category
-     * @param categoryId    the ID of the category to update
-     * @param request       the category update request
+     * @param userId the ID of the user updating the category
+     * @param categoryId the ID of the category to update
+     * @param request the category update request
      * @param encryptionKey the AES-256 encryption key for sensitive fields
      * @return the updated category with decrypted data
-     * @throws CategoryNotFoundException if category does not exist or does not
-     *                                   belong to the user
-     * @throws InvalidCategoryException  if attempting to update a system category
-     *                                   or validation
-     *                                   fails
+     * @throws CategoryNotFoundException if category does not exist or does not belong to the user
+     * @throws InvalidCategoryException if attempting to update a system category or validation
+     *     fails
      */
-    public CategoryResponse updateCategory(
-            Long userId, Long categoryId, CategoryRequest request) {
+    public CategoryResponse updateCategory(Long userId, Long categoryId, CategoryRequest request) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -177,9 +155,10 @@ public class CategoryService {
         log.debug("Updating category: id={}, userId={}", categoryId, userId);
 
         // Fetch existing category
-        Category existingCategory = categoryRepository
-                .findByIdAndUserId(categoryId, userId)
-                .orElseThrow(() -> new CategoryNotFoundException(categoryId));
+        Category existingCategory =
+                categoryRepository
+                        .findByIdAndUserId(categoryId, userId)
+                        .orElseThrow(() -> new CategoryNotFoundException(categoryId));
 
         // Prevent updating system categories
         if (existingCategory.getIsSystem()) {
@@ -189,7 +168,7 @@ public class CategoryService {
         // Validate parent-child relationship if parent is being changed
         if (request.getParentId() != null
                 && !request.getParentId().equals(existingCategory.getParentId())) {
-            validateParentCategory(userId, request.getParentId(), request.getType());
+            validateParentCategory(userId, request.getParentId());
 
             // Prevent circular reference
             if (request.getParentId().equals(categoryId)) {
@@ -197,10 +176,13 @@ public class CategoryService {
             }
         }
 
-        // Bug #5 fix: prevent duplicate names within the user's categories (excluding
-        // self)
+        // Bug #5 fix: prevent duplicate names among siblings (same parent), excluding self
         if (request.getName() != null && !request.getName().isBlank()) {
-            checkDuplicateName(userId, request.getName(), categoryId);
+            Long effectiveParentId =
+                    request.getParentId() != null
+                            ? request.getParentId()
+                            : existingCategory.getParentId();
+            checkDuplicateName(userId, request.getName(), effectiveParentId, categoryId);
         }
 
         // Update fields
@@ -216,21 +198,16 @@ public class CategoryService {
     /**
      * Deletes a category.
      *
-     * <p>
-     * Requirement REQ-2.4.1: Delete category
+     * <p>Requirement REQ-2.4.1: Delete category
      *
-     * <p>
-     * Requirement REQ-2.4.2: Prevent deleting system categories, categories with
-     * subcategories,
+     * <p>Requirement REQ-2.4.2: Prevent deleting system categories, categories with subcategories,
      * or categories used by transactions
      *
-     * @param userId     the ID of the user requesting the deletion
+     * @param userId the ID of the user requesting the deletion
      * @param categoryId the ID of the category to delete
-     * @throws CategoryNotFoundException if category does not exist or does not
-     *                                   belong to the user
-     * @throws InvalidCategoryException  if category cannot be deleted (system
-     *                                   category, has
-     *                                   subcategories, or used by transactions)
+     * @throws CategoryNotFoundException if category does not exist or does not belong to the user
+     * @throws InvalidCategoryException if category cannot be deleted (system category, has
+     *     subcategories, or used by transactions)
      */
     @Transactional
     public void deleteCategory(Long userId, Long categoryId) {
@@ -247,9 +224,10 @@ public class CategoryService {
                 EncryptionContext.getKey() != null);
 
         // Fetch existing category
-        Category category = categoryRepository
-                .findByIdAndUserId(categoryId, userId)
-                .orElseThrow(() -> new CategoryNotFoundException(categoryId));
+        Category category =
+                categoryRepository
+                        .findByIdAndUserId(categoryId, userId)
+                        .orElseThrow(() -> new CategoryNotFoundException(categoryId));
 
         // Prevent deleting system categories
         if (category.getIsSystem()) {
@@ -300,23 +278,18 @@ public class CategoryService {
     }
 
     /**
-     * Retrieves a category by ID for a specific user, decrypting sensitive fields
-     * and localizing
+     * Retrieves a category by ID for a specific user, decrypting sensitive fields and localizing
      * system category names.
      *
-     * <p>
-     * Requirement REQ-2.4.1: Get category by ID
+     * <p>Requirement REQ-2.4.1: Get category by ID
      *
-     * <p>
-     * Requirement REQ-2.18: Data encryption at rest
+     * <p>Requirement REQ-2.18: Data encryption at rest
      *
-     * @param userId        the ID of the user requesting the category
-     * @param categoryId    the ID of the category to retrieve
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param userId the ID of the user requesting the category
+     * @param categoryId the ID of the category to retrieve
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return the category response with decrypted data
-     * @throws CategoryNotFoundException if category does not exist or does not
-     *                                   belong to the user
+     * @throws CategoryNotFoundException if category does not exist or does not belong to the user
      */
     @Transactional(readOnly = true)
     public CategoryResponse getCategoryById(Long userId, Long categoryId) {
@@ -324,22 +297,18 @@ public class CategoryService {
     }
 
     /**
-     * Retrieves a category by ID for a specific user, decrypting sensitive fields
-     * and localizing
+     * Retrieves a category by ID for a specific user, decrypting sensitive fields and localizing
      * system category names.
      *
-     * @param userId        the ID of the user requesting the category
-     * @param categoryId    the ID of the category to retrieve
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
-     * @param locale        the locale for localized category names
+     * @param userId the ID of the user requesting the category
+     * @param categoryId the ID of the category to retrieve
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
+     * @param locale the locale for localized category names
      * @return the category response with decrypted and localized data
-     * @throws CategoryNotFoundException if category does not exist or does not
-     *                                   belong to the user
+     * @throws CategoryNotFoundException if category does not exist or does not belong to the user
      */
     @Transactional(readOnly = true)
-    public CategoryResponse getCategoryById(
-            Long userId, Long categoryId, Locale locale) {
+    public CategoryResponse getCategoryById(Long userId, Long categoryId, Locale locale) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -354,9 +323,10 @@ public class CategoryService {
                 locale,
                 EncryptionContext.getKey() != null);
 
-        Category category = categoryRepository
-                .findByIdAndUserId(categoryId, userId)
-                .orElseThrow(() -> new CategoryNotFoundException(categoryId));
+        Category category =
+                categoryRepository
+                        .findByIdAndUserId(categoryId, userId)
+                        .orElseThrow(() -> new CategoryNotFoundException(categoryId));
 
         if (!canReadUserCategoryFields() && !category.getIsSystem()) {
             throw new IllegalArgumentException("Encryption key required for user categories");
@@ -368,12 +338,10 @@ public class CategoryService {
     /**
      * Retrieves all categories for a user.
      *
-     * <p>
-     * Requirement REQ-2.4.1: List all user categories
+     * <p>Requirement REQ-2.4.1: List all user categories
      *
-     * @param userId        the ID of the user
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param userId the ID of the user
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return list of categories with decrypted data
      */
     @Transactional(readOnly = true)
@@ -384,15 +352,13 @@ public class CategoryService {
     /**
      * Retrieves all categories for a user with localized system category names.
      *
-     * @param userId        the ID of the user
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
-     * @param locale        the locale for localized category names
+     * @param userId the ID of the user
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
+     * @param locale the locale for localized category names
      * @return list of categories with decrypted and localized data
      */
     @Transactional(readOnly = true)
-    public List<CategoryResponse> getAllCategories(
-            Long userId, Locale locale) {
+    public List<CategoryResponse> getAllCategories(Long userId, Locale locale) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -422,30 +388,25 @@ public class CategoryService {
     /**
      * Retrieves categories by type (INCOME or EXPENSE).
      *
-     * <p>
-     * Requirement REQ-2.4.1: Filter categories by type
+     * <p>Requirement REQ-2.4.1: Filter categories by type
      *
-     * @param userId        the ID of the user
-     * @param type          the category type to filter by
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param userId the ID of the user
+     * @param type the category type to filter by
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return list of categories matching the type
      */
     @Transactional(readOnly = true)
-    public List<CategoryResponse> getCategoriesByType(
-            Long userId, CategoryType type) {
+    public List<CategoryResponse> getCategoriesByType(Long userId, CategoryType type) {
         return getCategoriesByType(userId, type, Locale.ENGLISH);
     }
 
     /**
-     * Retrieves categories by type (INCOME or EXPENSE) with localized system
-     * category names.
+     * Retrieves categories by type (INCOME or EXPENSE) with localized system category names.
      *
-     * @param userId        the ID of the user
-     * @param type          the category type to filter by
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
-     * @param locale        the locale for localized category names
+     * @param userId the ID of the user
+     * @param type the category type to filter by
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
+     * @param locale the locale for localized category names
      * @return list of categories matching the type with localized data
      */
     @Transactional(readOnly = true)
@@ -482,12 +443,10 @@ public class CategoryService {
     /**
      * Retrieves all root categories (categories without a parent).
      *
-     * <p>
-     * Requirement REQ-2.4.1: List root categories
+     * <p>Requirement REQ-2.4.1: List root categories
      *
-     * @param userId        the ID of the user
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param userId the ID of the user
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return list of root categories
      */
     @Transactional(readOnly = true)
@@ -507,18 +466,15 @@ public class CategoryService {
     /**
      * Retrieves subcategories of a parent category.
      *
-     * <p>
-     * Requirement REQ-2.4.1: List subcategories
+     * <p>Requirement REQ-2.4.1: List subcategories
      *
-     * @param userId        the ID of the user
-     * @param parentId      the ID of the parent category
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param userId the ID of the user
+     * @param parentId the ID of the parent category
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return list of subcategories
      */
     @Transactional(readOnly = true)
-    public List<CategoryResponse> getSubcategories(
-            Long userId, Long parentId) {
+    public List<CategoryResponse> getSubcategories(Long userId, Long parentId) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -537,19 +493,14 @@ public class CategoryService {
     /**
      * Retrieves hierarchical category tree for a user.
      *
-     * <p>
-     * Returns categories organized in a tree structure with parent categories
-     * containing their
-     * subcategories. This is used by the category management page to display
-     * hierarchical category
+     * <p>Returns categories organized in a tree structure with parent categories containing their
+     * subcategories. This is used by the category management page to display hierarchical category
      * organization.
      *
-     * <p>
-     * Requirements: REQ-CAT-3.1 - Hierarchical category tree display
+     * <p>Requirements: REQ-CAT-3.1 - Hierarchical category tree display
      *
-     * @param userId        the ID of the user
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param userId the ID of the user
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return list of root categories with their subcategories nested
      */
     @Transactional(readOnly = true)
@@ -560,77 +511,77 @@ public class CategoryService {
     /**
      * Retrieves hierarchical category tree for a user with locale-aware names.
      *
-     * @param userId        the ID of the user
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
-     * @param locale        the display locale for resolving system category names
+     * @param userId the ID of the user
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
+     * @param locale the display locale for resolving system category names
      * @return list of root categories with their subcategories nested
      */
     @Transactional(readOnly = true)
-    public List<CategoryTreeNode> getCategoryTree(
-            Long userId, Locale locale) {
+    public List<CategoryTreeNode> getCategoryTree(Long userId, Locale locale) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
         log.debug(
-                "Building category tree for user {}, keyPresent={}", userId, EncryptionContext.getKey() != null);
+                "Building category tree for user {}, keyPresent={}",
+                userId,
+                EncryptionContext.getKey() != null);
 
         // Fetch all categories for the user
         final List<Category> categoriesForTree;
 
         if (!canReadUserCategoryFields()) {
-            categoriesForTree = categoryRepository.findByUserId(userId).stream()
-                    .filter(Category::getIsSystem)
-                    .collect(Collectors.toList());
+            categoriesForTree =
+                    categoryRepository.findByUserId(userId).stream()
+                            .filter(Category::getIsSystem)
+                            .collect(Collectors.toList());
         } else {
             categoriesForTree = categoryRepository.findByUserId(userId);
         }
 
         // Build tree starting from root categories (those without parent)
-        List<CategoryTreeNode> rootNodes = categoriesForTree.stream()
-                .filter(c -> c.getParentId() == null)
-                .sorted(
-                        (c1, c2) -> {
-                            // Sort by type first (INCOME before EXPENSE), then by name
-                            int typeCompare = c1.getType().compareTo(c2.getType());
-                            if (typeCompare != 0)
-                                return typeCompare;
-                            String name1 = c1.getIsSystem()
-                                    ? resolveDisplayName(c1, c1.getName(), locale)
-                                    : decryptName(c1);
-                            String name2 = c2.getIsSystem()
-                                    ? resolveDisplayName(c2, c2.getName(), locale)
-                                    : decryptName(c2);
-                            return name1.compareToIgnoreCase(name2);
-                        })
-                .map(c -> buildTreeNode(c, categoriesForTree, locale))
-                .collect(Collectors.toList());
+        List<CategoryTreeNode> rootNodes =
+                categoriesForTree.stream()
+                        .filter(c -> c.getParentId() == null)
+                        .sorted(
+                                (c1, c2) -> {
+                                    // Sort by type first (INCOME before EXPENSE), then by name
+                                    int typeCompare = c1.getType().compareTo(c2.getType());
+                                    if (typeCompare != 0) return typeCompare;
+                                    String name1 =
+                                            c1.getIsSystem()
+                                                    ? resolveDisplayName(c1, c1.getName(), locale)
+                                                    : decryptName(c1);
+                                    String name2 =
+                                            c2.getIsSystem()
+                                                    ? resolveDisplayName(c2, c2.getName(), locale)
+                                                    : decryptName(c2);
+                                    return name1.compareToIgnoreCase(name2);
+                                })
+                        .map(c -> buildTreeNode(c, categoriesForTree, locale))
+                        .collect(Collectors.toList());
 
         return rootNodes;
     }
 
     /** Recursively builds a tree node from a category entity. */
     private CategoryTreeNode buildTreeNode(
-            Category category,
-            List<Category> allCategories,
-            Locale locale) {
+            Category category, List<Category> allCategories, Locale locale) {
         // Find subcategories
-        List<CategoryTreeNode> children = allCategories.stream()
-                .filter(c -> category.getId().equals(c.getParentId()))
-                .sorted(
-                        (c1, c2) -> {
-                            String plainName1 = c1.getIsSystem()
-                                    ? c1.getName()
-                                    : decryptName(c1);
-                            String plainName2 = c2.getIsSystem()
-                                    ? c2.getName()
-                                    : decryptName(c2);
-                            String name1 = resolveDisplayName(c1, plainName1, locale);
-                            String name2 = resolveDisplayName(c2, plainName2, locale);
-                            return name1.compareToIgnoreCase(name2);
-                        })
-                .map(c -> buildTreeNode(c, allCategories, locale))
-                .collect(Collectors.toList());
+        List<CategoryTreeNode> children =
+                allCategories.stream()
+                        .filter(c -> category.getId().equals(c.getParentId()))
+                        .sorted(
+                                (c1, c2) -> {
+                                    String plainName1 =
+                                            c1.getIsSystem() ? c1.getName() : decryptName(c1);
+                                    String plainName2 =
+                                            c2.getIsSystem() ? c2.getName() : decryptName(c2);
+                                    String name1 = resolveDisplayName(c1, plainName1, locale);
+                                    String name2 = resolveDisplayName(c2, plainName2, locale);
+                                    return name1.compareToIgnoreCase(name2);
+                                })
+                        .map(c -> buildTreeNode(c, allCategories, locale))
+                        .collect(Collectors.toList());
 
         // Get decrypted/localized name
         String plainName = category.getIsSystem() ? category.getName() : decryptName(category);
@@ -641,28 +592,32 @@ public class CategoryService {
 
         // Get total amount (computed in Java — SQL SUM cannot operate on encrypted
         // amounts)
-        List<org.openfinance.entity.Transaction> categoryTransactions = transactionRepository
-                .findByCategoryId(category.getId());
-        java.math.BigDecimal totalAmount = categoryTransactions.stream()
-                .filter(t -> t.getAmount() != null)
-                .map(org.openfinance.entity.Transaction::getAmount)
-                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        List<org.openfinance.entity.Transaction> categoryTransactions =
+                transactionRepository.findByCategoryId(category.getId());
+        java.math.BigDecimal totalAmount =
+                categoryTransactions.stream()
+                        .filter(t -> t.getAmount() != null)
+                        .map(org.openfinance.entity.Transaction::getAmount)
+                        .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
         // Bug #2 fix: roll up child transaction counts and amounts so parent totals
         // include all nested subcategory transactions (not just direct ones)
-        long rollupCount = (transactionCount != null ? transactionCount : 0L)
-                + children.stream()
-                        .mapToLong(
-                                c -> c.getTransactionCount() != null
-                                        ? c.getTransactionCount()
-                                        : 0L)
-                        .sum();
-        BigDecimal rollupAmount = (totalAmount != null ? totalAmount : BigDecimal.ZERO)
-                .add(
-                        children.stream()
-                                .map(CategoryTreeNode::getTotalAmount)
-                                .filter(Objects::nonNull)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        long rollupCount =
+                (transactionCount != null ? transactionCount : 0L)
+                        + children.stream()
+                                .mapToLong(
+                                        c ->
+                                                c.getTransactionCount() != null
+                                                        ? c.getTransactionCount()
+                                                        : 0L)
+                                .sum();
+        BigDecimal rollupAmount =
+                (totalAmount != null ? totalAmount : BigDecimal.ZERO)
+                        .add(
+                                children.stream()
+                                        .map(CategoryTreeNode::getTotalAmount)
+                                        .filter(Objects::nonNull)
+                                        .reduce(BigDecimal.ZERO, BigDecimal::add));
 
         return CategoryTreeNode.builder()
                 .id(category.getId())
@@ -685,31 +640,30 @@ public class CategoryService {
     }
 
     /**
-     * Checks that no other category with the same name (case-insensitive) exists
-     * for the user.
+     * Checks that no sibling category with the same name (case-insensitive) exists for the user
+     * under the same parent.
      *
-     * <p>
-     * Because user-category names are encrypted at rest, this check decrypts all
-     * existing names
+     * <p>Because user-category names are encrypted at rest, this check decrypts all existing names
      * and compares them in-memory. System-category names are stored in plain text.
      *
-     * <p>
-     * Bug #5 fix: prevent duplicate category names.
+     * <p>Uniqueness is scoped to siblings: the same leaf name may appear under different parents
+     * (e.g. "Informatique" and "Loisirs:Informatique").
      *
-     * @param userId        the owning user
+     * @param userId the owning user
      * @param requestedName the plain-text name being requested
-     * @param excludeId     optional ID of the category being updated (to exclude
-     *                      itself from the check)
-     * @param encryptionKey the user's encryption key
-     * @throws InvalidCategoryException if a duplicate name already exists
+     * @param parentId the parent category id the name will live under (may be null for roots)
+     * @param excludeId optional ID of the category being updated (to exclude itself from the check)
+     * @throws InvalidCategoryException if a duplicate sibling name already exists
      */
     private void checkDuplicateName(
-            Long userId, String requestedName, Long excludeId) {
+            Long userId, String requestedName, Long parentId, Long excludeId) {
         String normalised = requestedName.trim().toLowerCase();
         List<Category> existing = categoryRepository.findByUserId(userId);
         for (Category cat : existing) {
-            if (excludeId != null && cat.getId().equals(excludeId))
-                continue;
+            if (excludeId != null && cat.getId().equals(excludeId)) continue;
+            // Uniqueness is scoped to siblings: the same leaf name may appear under
+            // different parents (e.g. "Informatique" and "Loisirs:Informatique").
+            if (!Objects.equals(cat.getParentId(), parentId)) continue;
             String plainName = cat.getIsSystem() ? cat.getName() : decryptName(cat);
             if (plainName != null && plainName.trim().toLowerCase().equals(normalised)) {
                 throw new InvalidCategoryException(
@@ -719,41 +673,32 @@ public class CategoryService {
     }
 
     /**
-     * Validates that a parent category exists, belongs to the user, and has
-     * matching type.
+     * Validates that a parent category exists and belongs to the user.
      *
-     * @param userId    the ID of the user
-     * @param parentId  the ID of the parent category
-     * @param childType the type of the child category
+     * <p>Parent and child are intentionally allowed to have different types (e.g. an EXPENSE parent
+     * with an INCOME child), because imported taxonomies (such as Skrooge) freely mix income and
+     * expense within a single hierarchy.
+     *
+     * @param userId the ID of the user
+     * @param parentId the ID of the parent category
      * @throws CategoryNotFoundException if parent does not exist
-     * @throws InvalidCategoryException  if parent-child validation fails
      */
-    private void validateParentCategory(Long userId, Long parentId, CategoryType childType) {
-        Category parent = categoryRepository
+    private void validateParentCategory(Long userId, Long parentId) {
+        categoryRepository
                 .findByIdAndUserId(parentId, userId)
                 .orElseThrow(() -> new CategoryNotFoundException(parentId));
-
-        // Parent and child must have the same type
-        if (parent.getType() != childType) {
-            throw new InvalidCategoryException(
-                    String.format(
-                            "Parent category type (%s) must match child category type (%s)",
-                            parent.getType(), childType));
-        }
     }
 
     /**
      * Resolves the display name for a category in the requested locale.
      *
-     * <p>
-     * For system categories with a {@code nameKey}, the name is resolved via {@link
-     * MessageSource} with the English name as the fallback. For user-created
-     * categories, the stored
+     * <p>For system categories with a {@code nameKey}, the name is resolved via {@link
+     * MessageSource} with the English name as the fallback. For user-created categories, the stored
      * name (already decrypted by the caller) is returned unchanged.
      *
-     * @param category  the category entity
+     * @param category the category entity
      * @param plainName the already-decrypted (or plain-text system) name
-     * @param locale    the desired display locale
+     * @param locale the desired display locale
      * @return localized display name
      */
     private String resolveDisplayName(Category category, String plainName, Locale locale) {
@@ -768,11 +713,9 @@ public class CategoryService {
     /**
      * Converts a Category entity to CategoryResponse with decryption.
      *
-     * <p>
-     * System categories are NOT encrypted, so decryption is only applied to user
-     * categories.
+     * <p>System categories are NOT encrypted, so decryption is only applied to user categories.
      *
-     * @param category      the category entity
+     * @param category the category entity
      * @param encryptionKey the decryption key
      * @return the response DTO with decrypted data
      */
@@ -781,23 +724,18 @@ public class CategoryService {
     }
 
     /**
-     * Converts a Category entity to CategoryResponse with decryption and
-     * locale-aware name
+     * Converts a Category entity to CategoryResponse with decryption and locale-aware name
      * resolution.
      *
-     * <p>
-     * System categories are NOT encrypted, so decryption is only applied to user
-     * categories.
-     * System category names are resolved via {@link MessageSource} using the given
-     * locale.
+     * <p>System categories are NOT encrypted, so decryption is only applied to user categories.
+     * System category names are resolved via {@link MessageSource} using the given locale.
      *
-     * @param category      the category entity
+     * @param category the category entity
      * @param encryptionKey the decryption key
-     * @param locale        the locale for resolving system category names
+     * @param locale the locale for resolving system category names
      * @return the response DTO with decrypted/localized data
      */
-    private CategoryResponse toResponseWithDecryption(
-            Category category, Locale locale) {
+    private CategoryResponse toResponseWithDecryption(Category category, Locale locale) {
         CategoryResponse response = categoryMapper.toResponse(category);
 
         // Resolve name: system categories use MessageSource; user categories are

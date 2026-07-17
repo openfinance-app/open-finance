@@ -106,8 +106,8 @@ public class ImportedTransaction {
      * Source balance delta derived from the import format's account balance table, when available.
      *
      * <p>Skrooge JSON exposes cumulative operation balances; the parser derives this per-operation
-     * delta so imports can preserve source rows even when Open-Finance has no historical FX rate for
-     * the operation currency/account currency pair.
+     * delta so imports can preserve source rows even when Open-Finance has no historical FX rate
+     * for the operation currency/account currency pair.
      */
     private BigDecimal sourceAccountBalanceDelta;
 
@@ -218,7 +218,7 @@ public class ImportedTransaction {
 
     /** Represents a split entry in a split transaction */
     @Data
-    @Builder
+    @Builder(toBuilder = true)
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SplitEntry {

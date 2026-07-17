@@ -455,7 +455,9 @@ class QifParserTest {
         assertThat(transactions).hasSize(1);
         ImportedTransaction tx = transactions.get(0);
         assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-14725"));
-        assertThat(tx.getCurrency()).isEqualTo("XOF");
+        // No conversion rate is available in this record, so the native split total is kept
+        // as-is and the transaction is left in the home currency (untagged).
+        assertThat(tx.getCurrency()).isNull();
         assertThat(tx.isSplitTransaction()).isTrue();
         assertThat(tx.hasErrors()).isFalse();
     }
@@ -1020,7 +1022,7 @@ class QifParserTest {
     }
 
     @Test
-    @DisplayName("Should use standard Skrooge cash quantity as native amount when T is missing")
+    @DisplayName("Should value Skrooge cash Q\u00d7I in home currency when T is missing")
     void shouldUseStandardSkroogeCashQuantityAsNativeAmount() throws IOException {
         String qif =
                 """
@@ -1043,14 +1045,15 @@ class QifParserTest {
 
         assertThat(transactions).hasSize(1);
         ImportedTransaction tx = transactions.get(0);
-        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("200000"));
-        assertThat(tx.getCurrency()).isEqualTo("XOF");
+        // Q \u00d7 I values the CFA quantity in the home currency (200000 \u00d7 0.001524490991).
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("304.8981982"));
+        assertThat(tx.getCurrency()).isNull();
         assertThat(tx.getQifAccountType()).isEqualTo("Cash");
         assertThat(tx.hasErrors()).isFalse();
     }
 
     @Test
-    @DisplayName("Should sign native Skrooge cash quantity from category type")
+    @DisplayName("Should sign home-currency Skrooge cash Q\u00d7I from category type")
     void shouldSignNativeSkroogeCashQuantityFromCategoryType() throws IOException {
         String qif =
                 """
@@ -1076,14 +1079,62 @@ class QifParserTest {
 
         assertThat(transactions).hasSize(1);
         ImportedTransaction tx = transactions.get(0);
-        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-15000"));
-        assertThat(tx.getCurrency()).isEqualTo("XOF");
+        // Expense category negates the home-currency value (15000 \u00d7 0.001524490991).
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-22.867364865"));
+        assertThat(tx.getCurrency()).isNull();
         assertThat(tx.hasErrors()).isFalse();
     }
 
     @Test
-    @DisplayName("Should skip Skrooge balance snapshot records with only Q+I and no descriptive fields")
-    void shouldSkipSkroogeBalanceSnapshotRecords() throws IOException {
+    @DisplayName(
+            "Should convert Skrooge foreign-unit split amounts using the unit's remembered rate")
+    void shouldConvertForeignUnitSplitAmountsUsingRememberedRate() throws IOException {
+        // Split ($) transactions carry native foreign amounts with no embedded rate. The parser
+        // remembers the per-unit rate from a prior Q/I line for the same unit and reuses it to
+        // value the split total in the home currency, keeping the account single-currency.
+        String qif =
+                """
+                !Account
+                NPorteefeuille FCFA
+                TCash
+                ^
+                !Type:Cash
+                D2025-04-22
+                YCFA
+                PDon Willi
+                Q10000
+                I0.001524490991
+                LDons:Cadeaux
+                ^
+                D2026-05-08
+                YCFA
+                PMarchand
+                SAlimentation:Epicerie
+                $-7715
+                SSante:Pharmacie
+                $-17285
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(2);
+        ImportedTransaction split = transactions.get(1);
+        assertThat(split.isSplitTransaction()).isTrue();
+        assertThat(split.getCurrency()).isNull();
+        // (-7715 - 17285) \u00d7 0.001524490991 = -25000 \u00d7 0.001524490991 = -38.112274775
+        assertThat(split.getAmount()).isEqualByComparingTo(new BigDecimal("-38.112274775"));
+        assertThat(split.getSplits().get(0).getAmount())
+                .isEqualByComparingTo(new BigDecimal("-11.761447995565"));
+        assertThat(split.getSplits().get(1).getAmount())
+                .isEqualByComparingTo(new BigDecimal("-26.350826779435"));
+        assertThat(split.hasErrors()).isFalse();
+    }
+
+    @Test
+    @DisplayName(
+            "Should count Skrooge foreign-unit opening balance records as ordinary transactions")
+    void shouldCountSkroogeForeignOpeningBalanceRecords() throws IOException {
         String qif =
                 """
                 !Account
@@ -1108,8 +1159,14 @@ class QifParserTest {
 
         List<ImportedTransaction> transactions = parseQif(qif);
 
-        assertThat(transactions).hasSize(1);
-        assertThat(transactions.get(0).getPayee()).isEqualTo("Don Willi");
+        // The leading no-payee Q\u00d7I record is Skrooge's opening balance. Home-currency (T)
+        // openings are kept and counted, so this foreign opening is treated identically:
+        // valued as Q \u00d7 I in the home currency and kept as an ordinary transaction.
+        assertThat(transactions).hasSize(2);
+        ImportedTransaction opening = transactions.get(0);
+        assertThat(opening.getPayee()).isNull();
+        assertThat(opening.getAmount()).isEqualByComparingTo(new BigDecimal("58.20506603638"));
+        assertThat(transactions.get(1).getPayee()).isEqualTo("Don Willi");
     }
 
     // ========== Investment Transaction Tests ==========

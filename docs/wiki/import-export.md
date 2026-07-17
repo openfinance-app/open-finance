@@ -14,11 +14,11 @@ Open-Finance can import transaction history from the most common bank export for
 
 ## Supported Import Formats
 
-| Format | Extension | Notes                                     |
-| ------ | --------- | ----------------------------------------- |
-| OFX    | `.ofx`    | Open Financial Exchange — most banks      |
-| QFX    | `.qfx`    | Quicken variant of OFX                    |
-| QIF    | `.qif`    | Quicken Interchange Format — older format |
+| Format | Extension | Notes                                      |
+| ------ | --------- | ------------------------------------------ |
+| OFX    | `.ofx`    | Open Financial Exchange — most banks       |
+| QFX    | `.qfx`    | Quicken variant of OFX                     |
+| QIF    | `.qif`    | Quicken Interchange Format — older format  |
 | CSV    | `.csv`    | Comma-separated values — see headers below |
 | JSON   | `.json`   | JSON array of transaction objects          |
 
@@ -59,6 +59,36 @@ The importer automatically flags potential duplicates by matching on:
 - Matching bank reference ID
 
 Flagged duplicates are highlighted in the preview. You can choose to skip them or import them anyway.
+
+---
+
+## Limitations
+
+### Multi-currency accounts &amp; QIF limitations
+
+Some tools (notably Skrooge) hold **multiple units in a single account** — a foreign currency
+(e.g. XOF/CFA), a crypto asset (BTC, USDT), or a security (shares). Open-Finance keeps one currency
+per account, so these are collapsed to your **home currency** on import.
+
+For QIF specifically, Skrooge repurposes the investment fields to encode this: `Y` is the unit,
+`Q` is the native quantity, and `I` is the per-unit price in your home currency. Open-Finance
+values every such line as `Q × I`, so the imported account matches the balance Skrooge itself
+displays. Opening balances (Skrooge's leading no-payee record) are counted the same way, whether
+they are home-currency or foreign.
+
+**Known limitation — same-currency transfer direction (QIF only).** QIF has no concept of
+currency and stores every `Q` quantity **unsigned**. Open-Finance recovers a transfer's direction
+from the signed side of the pair:
+
+- A transfer between a foreign account and a home-currency account imports correctly, because the
+  home-currency leg carries a signed amount.
+- A transfer between **two same-foreign-currency accounts** (e.g. CFA → CFA) has two identical
+  unsigned legs, so its direction cannot be recovered from the file. Such a transfer may be
+  imported reversed, which flips the sign on **both** affected account balances.
+
+Net worth is unaffected (the two legs cancel out); only the per-account split can be wrong. For
+exact per-account fidelity on multi-currency data, prefer Skrooge's **JSON/SQLite** export, which
+preserves transaction signs.
 
 ---
 

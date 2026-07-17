@@ -147,6 +147,13 @@ public class QifParser {
             // amount when T is absent (common in Skrooge Oth A exports)
             BigDecimal invQuantity = null;
             BigDecimal invPrice = null;
+            // Foreign-unit handling (Skrooge multi-unit exports): the Y field carries the unit
+            // symbol (e.g. "CFA") and the I field carries the per-unit price in the home currency.
+            // We value every foreign line in the home currency (Q × I). Split ($) transactions
+            // carry native amounts with no embedded rate, so we remember the last rate seen per
+            // unit and reuse it to convert those splits. currentForeignUnit is reset per entry.
+            Map<String, BigDecimal> foreignUnitRates = new HashMap<>();
+            String currentForeignUnit = null;
 
             String line;
             while ((line = reader.readLine()) != null) {
@@ -240,7 +247,11 @@ public class QifParser {
                                         invPrice,
                                         true,
                                         categoryTypes);
-                                finalizeSplits(currentTransaction, currentSplits);
+                                finalizeSplits(
+                                        currentTransaction,
+                                        currentSplits,
+                                        currentForeignUnit,
+                                        foreignUnitRates);
                                 transactions.add(
                                         buildTransaction(
                                                 currentTransaction,
@@ -339,7 +350,11 @@ public class QifParser {
                                         invPrice,
                                         true,
                                         categoryTypes);
-                                finalizeSplits(currentTransaction, currentSplits);
+                                finalizeSplits(
+                                        currentTransaction,
+                                        currentSplits,
+                                        currentForeignUnit,
+                                        foreignUnitRates);
                                 transactions.add(
                                         buildTransaction(
                                                 currentTransaction,
@@ -370,7 +385,11 @@ public class QifParser {
                                     invPrice,
                                     false,
                                     categoryTypes);
-                            finalizeSplits(currentTransaction, currentSplits);
+                            finalizeSplits(
+                                    currentTransaction,
+                                    currentSplits,
+                                    currentForeignUnit,
+                                    foreignUnitRates);
                             transactions.add(
                                     buildTransaction(
                                             currentTransaction, transactionStartLine, fileName));
@@ -394,6 +413,7 @@ public class QifParser {
                         uAmount = null;
                         invQuantity = null;
                         invPrice = null;
+                        currentForeignUnit = null;
                         LocalDate parsedDate = parseDate(value, lineNumber);
                         currentTransaction.transactionDate(parsedDate);
                         if (parsedDate == null) {
@@ -426,13 +446,18 @@ public class QifParser {
                         uAmount = parseAmount(value, lineNumber, null);
                         break;
 
-                    case 'Y': // Unit/currency marker in Skrooge non-investment QIF records
-                        if (currentTransaction != null) {
-                            String currency = mapQifCurrency(value);
-                            if (currency != null) {
-                                currentTransaction.currency(currency);
-                            }
-                        }
+                    case 'Y': // Unit marker in Skrooge non-investment QIF records (e.g. CFA).
+                        // Intentionally NOT mapped to a transaction currency: the amount is
+                        // valued in the home currency via Q × I (see applyComputedAmountIfNeeded),
+                        // so tagging a foreign currency here would cause ImportService to convert
+                        // the account's home-currency amounts a second time. QIF has no portable
+                        // currency concept, so the imported account stays single-currency (home).
+                        // We remember the unit so split ($) lines — which carry native amounts and
+                        // no rate — can be converted with the unit's remembered rate. The home
+                        // currency needs no distinction here: home-currency lines carry a plain T
+                        // amount and never a Q/I rate, so no rate is ever recorded for them and
+                        // split conversion is a no-op regardless of the unit symbol.
+                        currentForeignUnit = value.isBlank() ? null : value.trim();
                         break;
 
                     case 'Q': // Quantity used with I when T is absent in Skrooge cash exports
@@ -441,6 +466,9 @@ public class QifParser {
 
                     case 'I': // Price/rate used with Q when T is absent in Skrooge cash exports
                         invPrice = parseAmount(value, lineNumber, null);
+                        if (currentForeignUnit != null && invPrice != null) {
+                            foreignUnitRates.put(currentForeignUnit, invPrice);
+                        }
                         break;
 
                     case 'P': // Payee
@@ -553,7 +581,11 @@ public class QifParser {
                                     invPrice,
                                     false,
                                     categoryTypes);
-                            finalizeSplits(currentTransaction, currentSplits);
+                            finalizeSplits(
+                                    currentTransaction,
+                                    currentSplits,
+                                    currentForeignUnit,
+                                    foreignUnitRates);
                             transactions.add(
                                     buildTransaction(
                                             currentTransaction, transactionStartLine, fileName));
@@ -583,13 +615,13 @@ public class QifParser {
                         invPrice,
                         isInvestmentType,
                         categoryTypes);
-                finalizeSplits(currentTransaction, currentSplits);
+                finalizeSplits(
+                        currentTransaction, currentSplits, currentForeignUnit, foreignUnitRates);
                 transactions.add(
                         buildTransaction(currentTransaction, transactionStartLine, fileName));
             }
         }
 
-        transactions.removeIf(this::isBalanceSnapshot);
         log.info(
                 "QIF parsing complete: {} transactions parsed from {}",
                 transactions.size(),
@@ -631,10 +663,12 @@ public class QifParser {
         }
         if (invQuantity != null && invPrice != null) {
             try {
-                BigDecimal computed =
-                        !investmentTransaction && peek.getCurrency() != null
-                                ? invQuantity
-                                : invQuantity.multiply(invPrice);
+                // Skrooge repurposes the QIF investment fields (Y/Q/I) to represent foreign
+                // currency and crypto/share units: Q is the native quantity and I is the price
+                // per unit expressed in the home currency. The home-currency value is therefore
+                // always Q × I, regardless of account type. This mirrors the balance Skrooge
+                // itself displays and keeps the imported account in a single (home) currency.
+                BigDecimal computed = invQuantity.multiply(invPrice);
                 if (!investmentTransaction
                         && !peek.isTransfer()
                         && isExpenseCategory(peek.getCategory(), categoryTypes)) {
@@ -643,16 +677,11 @@ public class QifParser {
                     computed = computed.abs().negate();
                 }
                 builder.amount(computed);
-                if (!investmentTransaction
-                        && (peek.getPayee() == null || peek.getPayee().isBlank())
-                        && (peek.getCategory() == null || peek.getCategory().isBlank())
-                        && (peek.getMemo() == null || peek.getMemo().isBlank())
-                        && (peek.getReferenceNumber() == null
-                                || peek.getReferenceNumber().isBlank())
-                        && !peek.isTransfer()
-                        && (peek.getSplits() == null || peek.getSplits().isEmpty())) {
-                    builder.openingBalance(true);
-                }
+                // NOTE: Skrooge writes each account's opening balance as a leading no-payee
+                // record. Home-currency (T) openings flow through as ordinary transactions and
+                // are counted in the balance, so foreign-unit (Q×I) openings are intentionally
+                // treated the same way — they are kept and counted rather than dropped, matching
+                // the balance Skrooge itself reports.
             } catch (ArithmeticException e) {
                 log.debug("Could not compute investment amount from Q × I: {}", e.getMessage());
             }
@@ -661,17 +690,6 @@ public class QifParser {
 
     private boolean isSellAction(String action) {
         return action != null && action.trim().toLowerCase().startsWith("sell");
-    }
-
-    private boolean isBalanceSnapshot(ImportedTransaction tx) {
-        return tx != null
-                && tx.isOpeningBalance()
-                && (tx.getPayee() == null || tx.getPayee().isBlank())
-                && (tx.getCategory() == null || tx.getCategory().isBlank())
-                && (tx.getMemo() == null || tx.getMemo().isBlank())
-                && (tx.getReferenceNumber() == null || tx.getReferenceNumber().isBlank())
-                && !tx.isTransfer()
-                && (tx.getSplits() == null || tx.getSplits().isEmpty());
     }
 
     private boolean isExpenseCategory(String category, Map<String, Character> categoryTypes) {
@@ -691,27 +709,6 @@ public class QifParser {
             candidate = candidate.substring(0, separator).trim();
         }
         return false;
-    }
-
-    private String mapQifCurrency(String rawUnit) {
-        if (rawUnit == null || rawUnit.isBlank()) {
-            return null;
-        }
-        String trimmed = rawUnit.trim();
-        switch (trimmed) {
-            case "€":
-                return "EUR";
-            case "$":
-                return "USD";
-            case "£":
-                return "GBP";
-            default:
-                break;
-        }
-        if (trimmed.equalsIgnoreCase("CFA") || trimmed.equalsIgnoreCase("XOF")) {
-            return "XOF";
-        }
-        return trimmed.length() == 3 ? trimmed.toUpperCase() : null;
     }
 
     /**
@@ -761,13 +758,36 @@ public class QifParser {
     /** Finalize split transaction entries and add to transaction builder. */
     private void finalizeSplits(
             ImportedTransaction.ImportedTransactionBuilder transaction,
-            List<ImportedTransaction.SplitEntry> splits) {
+            List<ImportedTransaction.SplitEntry> splits,
+            String foreignUnit,
+            Map<String, BigDecimal> foreignUnitRates) {
         if (!splits.isEmpty()) {
-            transaction.splits(new ArrayList<>(splits));
             ImportedTransaction peek = transaction.build();
-            if (peek.getAmount() == null) {
+            boolean amountFromSplits = peek.getAmount() == null;
+            // Skrooge split ($) lines carry native foreign amounts with no embedded rate.
+            // When the parent amount will be derived from those splits, convert each split to
+            // the home currency using the unit's remembered rate so the account (and its split
+            // breakdown) stay in a single, consistent currency.
+            BigDecimal rate =
+                    amountFromSplits && foreignUnit != null
+                            ? foreignUnitRates.get(foreignUnit)
+                            : null;
+            List<ImportedTransaction.SplitEntry> resolvedSplits = splits;
+            if (rate != null) {
+                resolvedSplits = new ArrayList<>(splits.size());
+                for (ImportedTransaction.SplitEntry split : splits) {
+                    if (split.getAmount() != null) {
+                        resolvedSplits.add(
+                                split.toBuilder().amount(split.getAmount().multiply(rate)).build());
+                    } else {
+                        resolvedSplits.add(split);
+                    }
+                }
+            }
+            transaction.splits(new ArrayList<>(resolvedSplits));
+            if (amountFromSplits) {
                 BigDecimal totalSplitAmount =
-                        splits.stream()
+                        resolvedSplits.stream()
                                 .map(ImportedTransaction.SplitEntry::getAmount)
                                 .filter(amount -> amount != null)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);

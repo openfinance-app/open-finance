@@ -6,16 +6,16 @@ skrooge qif export: @docs/sample/qif/my_export_anonymized.qif
 
 Import into open-finance:
 logs: @docs/sample/qif/application.log
+errors: @docs/sample/qif/errors.log
 open-finance database after import: @docs/sample/qif/openfinance_anonymized.db
 
 Account information and balances in openfinance are not correct compared to original data.
-
 Review thoroughly and compare each imported account and transactions to its original and investigate the discrepancies after import.
 
+Transaction add form should have currency selector and convert to accout currency when storing
 1- Regex search support
-2- Fix quick start
-3- Dashboard Plugin architrcture
 4-attachments should be stored in db instead of file system
+3- Dashboard Plugin architecture
 
 1-create rules from Import view
 
