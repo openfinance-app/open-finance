@@ -20,6 +20,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Extract version from release tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Update pom.xml version
+        run: |
+          mvn versions:set -DnewVersion=${{ steps.version.outputs.VERSION }} -DgenerateBackupPoms=false
+          mvn versions:commit
+
+      - name: Update openfinance-ui/package.json version
+        run: |
+          npm version ${{ steps.version.outputs.VERSION }} --no-git-tag-version --allow-same-version
+        working-directory: openfinance-ui
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
