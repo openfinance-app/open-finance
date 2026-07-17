@@ -24,23 +24,20 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service layer for managing payees.
  *
- * <p>
- * This service handles business logic for payee CRUD operations:
+ * <p>This service handles business logic for payee CRUD operations:
  *
  * <ul>
- * <li>Creating new payees (custom/user-created)
- * <li>Updating existing payees (custom only)
- * <li>Deleting payees (custom only - system payees protected)
- * <li>Retrieving payees with filters
- * <li>Searching payees by name
- * <li>Finding or creating payees automatically for transactions
+ *   <li>Creating new payees (custom/user-created)
+ *   <li>Updating existing payees (custom only)
+ *   <li>Deleting payees (custom only - system payees protected)
+ *   <li>Retrieving payees with filters
+ *   <li>Searching payees by name
+ *   <li>Finding or creating payees automatically for transactions
  * </ul>
  *
- * <p>
- * Requirements: Payee Management Feature
+ * <p>Requirements: Payee Management Feature
  *
- * <p>
- * Requirements: REQ-CAT-5.1 - Payee-to-Category Auto-Fill
+ * <p>Requirements: REQ-CAT-5.1 - Payee-to-Category Auto-Fill
  *
  * @see org.openfinance.entity.Payee
  * @see org.openfinance.dto.PayeeRequest
@@ -68,8 +65,9 @@ public class PayeeService {
     public List<PayeeResponse> getAllPayees(Long userId) {
         log.debug("Fetching all payees for user: {}", userId);
         return payeeRepository.findAllByUser(userId).stream()
-                .sorted(Comparator.comparing(
-                        p -> p.getName() != null ? p.getName().toLowerCase() : ""))
+                .sorted(
+                        Comparator.comparing(
+                                p -> p.getName() != null ? p.getName().toLowerCase() : ""))
                 .map(p -> toResponse(p, null, null))
                 .toList();
     }
@@ -86,8 +84,9 @@ public class PayeeService {
         Map<String, PayeeStatsRecord> statsMap = getPayeeStatsMap(userId);
 
         return payeeRepository.findAllByUser(userId).stream()
-                .sorted(Comparator.comparing(
-                        p -> p.getName() != null ? p.getName().toLowerCase() : ""))
+                .sorted(
+                        Comparator.comparing(
+                                p -> p.getName() != null ? p.getName().toLowerCase() : ""))
                 .map(
                         payee -> {
                             PayeeStatsRecord stats = statsMap.get(payee.getName());
@@ -109,10 +108,10 @@ public class PayeeService {
     public List<PayeeResponse> getActivePayees(Long userId) {
         log.debug("Fetching active payees for user: {}", userId);
         return payeeRepository.findAllActiveByUserOrderBySystemFirst(userId).stream()
-                .sorted(Comparator.comparing(
-                        (Payee p) -> !Boolean.TRUE.equals(p.getIsSystem()))
-                        .thenComparing(
-                                p -> p.getName() != null ? p.getName().toLowerCase() : ""))
+                .sorted(
+                        Comparator.comparing((Payee p) -> !Boolean.TRUE.equals(p.getIsSystem()))
+                                .thenComparing(
+                                        p -> p.getName() != null ? p.getName().toLowerCase() : ""))
                 .map(p -> toResponse(p, null, null))
                 .toList();
     }
@@ -127,7 +126,8 @@ public class PayeeService {
     @Transactional(readOnly = true)
     public PayeeResponse getPayeeById(Long id) {
         log.debug("Fetching payee by id: {}", id);
-        Payee payee = payeeRepository.findById(id).orElseThrow(() -> new PayeeNotFoundException(id));
+        Payee payee =
+                payeeRepository.findById(id).orElseThrow(() -> new PayeeNotFoundException(id));
         return toResponse(payee, null, null);
     }
 
@@ -140,8 +140,9 @@ public class PayeeService {
     public List<PayeeResponse> getSystemPayees() {
         log.debug("Fetching system payees");
         return payeeRepository.findByIsSystemTrueOrderByNameAsc().stream()
-                .sorted(Comparator.comparing(
-                        p -> p.getName() != null ? p.getName().toLowerCase() : ""))
+                .sorted(
+                        Comparator.comparing(
+                                p -> p.getName() != null ? p.getName().toLowerCase() : ""))
                 .map(p -> toResponse(p, null, null))
                 .toList();
     }
@@ -156,8 +157,9 @@ public class PayeeService {
     public List<PayeeResponse> getCustomPayees(Long userId) {
         log.debug("Fetching custom payees for user: {}", userId);
         return payeeRepository.findByIsSystemFalseAndUserIdOrderByNameAsc(userId).stream()
-                .sorted(Comparator.comparing(
-                        p -> p.getName() != null ? p.getName().toLowerCase() : ""))
+                .sorted(
+                        Comparator.comparing(
+                                p -> p.getName() != null ? p.getName().toLowerCase() : ""))
                 .map(p -> toResponse(p, null, null))
                 .toList();
     }
@@ -165,7 +167,7 @@ public class PayeeService {
     /**
      * Search payees by name visible to a specific user.
      *
-     * @param query  the search query
+     * @param query the search query
      * @param userId the authenticated user's ID
      * @return list of matching payees
      */
@@ -176,10 +178,10 @@ public class PayeeService {
         // Fetch all active payees for user and filter in Java.
         String lowerQuery = query.toLowerCase();
         return payeeRepository.findAllActiveByUserOrderBySystemFirst(userId).stream()
-                .filter(p -> p.getName() != null
-                        && p.getName().toLowerCase().contains(lowerQuery))
-                .sorted(Comparator.comparing(
-                        p -> p.getName() != null ? p.getName().toLowerCase() : ""))
+                .filter(p -> p.getName() != null && p.getName().toLowerCase().contains(lowerQuery))
+                .sorted(
+                        Comparator.comparing(
+                                p -> p.getName() != null ? p.getName().toLowerCase() : ""))
                 .map(p -> toResponse(p, null, null))
                 .toList();
     }
@@ -210,7 +212,7 @@ public class PayeeService {
      * Get payees by category ID visible to a specific user.
      *
      * @param categoryId the category ID
-     * @param userId     the authenticated user's ID
+     * @param userId the authenticated user's ID
      * @return list of payees in the category
      */
     @Transactional(readOnly = true)
@@ -226,14 +228,11 @@ public class PayeeService {
     /**
      * Find or create a payee by name for a specific user.
      *
-     * <p>
-     * This method is used when entering transactions. If a payee with the given
-     * name already
-     * exists (case-insensitive) as a system payee or owned by the user, it returns
-     * that payee.
+     * <p>This method is used when entering transactions. If a payee with the given name already
+     * exists (case-insensitive) as a system payee or owned by the user, it returns that payee.
      * Otherwise, it creates a new custom payee for the user.
      *
-     * @param name   the payee name
+     * @param name the payee name
      * @param userId the authenticated user's ID
      * @return the existing or newly created payee
      */
@@ -264,13 +263,14 @@ public class PayeeService {
         // Create new custom payee for the user — attempt to auto-fetch a logo
         String logo = logoFetchService.fetchLogo(trimmedName).orElse(null);
 
-        Payee newPayee = Payee.builder()
-                .name(trimmedName)
-                .logo(logo)
-                .isSystem(false)
-                .isActive(true)
-                .userId(userId)
-                .build();
+        Payee newPayee =
+                Payee.builder()
+                        .name(trimmedName)
+                        .logo(logo)
+                        .isSystem(false)
+                        .isActive(true)
+                        .userId(userId)
+                        .build();
 
         Payee saved = payeeRepository.save(newPayee);
         indexPayeeSearchTokens(saved);
@@ -281,11 +281,10 @@ public class PayeeService {
     /**
      * Create a new custom payee for a specific user.
      *
-     * <p>
-     * User-created payees are marked as non-system and scoped to the creating user.
+     * <p>User-created payees are marked as non-system and scoped to the creating user.
      *
      * @param request the payee request
-     * @param userId  the authenticated user's ID
+     * @param userId the authenticated user's ID
      * @return the created payee
      */
     public PayeeResponse createPayee(PayeeRequest request, Long userId) {
@@ -307,14 +306,15 @@ public class PayeeService {
             logo = logoFetchService.fetchLogo(trimmedName).orElse(null);
         }
 
-        Payee payee = Payee.builder()
-                .name(trimmedName)
-                .logo(logo)
-                .defaultCategory(defaultCategory)
-                .isSystem(false)
-                .isActive(true)
-                .userId(userId)
-                .build();
+        Payee payee =
+                Payee.builder()
+                        .name(trimmedName)
+                        .logo(logo)
+                        .defaultCategory(defaultCategory)
+                        .isSystem(false)
+                        .isActive(true)
+                        .userId(userId)
+                        .build();
 
         Payee saved = payeeRepository.save(payee);
         indexPayeeSearchTokens(saved);
@@ -325,21 +325,20 @@ public class PayeeService {
     /**
      * Update an existing payee.
      *
-     * <p>
-     * Only custom (non-system) payees owned by the user can be updated.
+     * <p>Only custom (non-system) payees owned by the user can be updated.
      *
-     * @param id      the payee ID
+     * @param id the payee ID
      * @param request the update request
-     * @param userId  the authenticated user's ID
+     * @param userId the authenticated user's ID
      * @return the updated payee
      * @throws PayeeNotFoundException if not found
-     * @throws IllegalStateException  if trying to update a system payee or another
-     *                                user's
+     * @throws IllegalStateException if trying to update a system payee or another user's
      */
     public PayeeResponse updatePayee(Long id, PayeeRequest request, Long userId) {
         log.debug("Updating payee id: {} for user: {}", id, userId);
 
-        Payee payee = payeeRepository.findById(id).orElseThrow(() -> new PayeeNotFoundException(id));
+        Payee payee =
+                payeeRepository.findById(id).orElseThrow(() -> new PayeeNotFoundException(id));
 
         // Prevent updating system payees
         if (Boolean.TRUE.equals(payee.getIsSystem())) {
@@ -363,7 +362,8 @@ public class PayeeService {
 
         // Update default category if provided
         if (request.getCategoryId() != null) {
-            Category defaultCategory = categoryRepository.findById(request.getCategoryId()).orElse(null);
+            Category defaultCategory =
+                    categoryRepository.findById(request.getCategoryId()).orElse(null);
             payee.setDefaultCategory(defaultCategory);
         }
 
@@ -376,8 +376,7 @@ public class PayeeService {
     /**
      * Toggle payee active status.
      *
-     * <p>
-     * Used to hide/show system payees without deleting them.
+     * <p>Used to hide/show system payees without deleting them.
      *
      * @param id the payee ID
      * @return the updated payee
@@ -386,7 +385,8 @@ public class PayeeService {
     public PayeeResponse togglePayeeActive(Long id) {
         log.debug("Toggling payee active status id: {}", id);
 
-        Payee payee = payeeRepository.findById(id).orElseThrow(() -> new PayeeNotFoundException(id));
+        Payee payee =
+                payeeRepository.findById(id).orElseThrow(() -> new PayeeNotFoundException(id));
 
         if (!Boolean.TRUE.equals(payee.getIsSystem())) {
             throw new IllegalStateException(
@@ -403,19 +403,18 @@ public class PayeeService {
     /**
      * Delete a payee.
      *
-     * <p>
-     * Only custom (non-system) payees owned by the user can be deleted.
+     * <p>Only custom (non-system) payees owned by the user can be deleted.
      *
-     * @param id     the payee ID
+     * @param id the payee ID
      * @param userId the authenticated user's ID
      * @throws PayeeNotFoundException if not found
-     * @throws IllegalStateException  if trying to delete a system payee or another
-     *                                user's
+     * @throws IllegalStateException if trying to delete a system payee or another user's
      */
     public void deletePayee(Long id, Long userId) {
         log.debug("Deleting payee id: {} for user: {}", id, userId);
 
-        Payee payee = payeeRepository.findById(id).orElseThrow(() -> new PayeeNotFoundException(id));
+        Payee payee =
+                payeeRepository.findById(id).orElseThrow(() -> new PayeeNotFoundException(id));
 
         // Prevent deleting system payees
         if (Boolean.TRUE.equals(payee.getIsSystem())) {
@@ -444,9 +443,8 @@ public class PayeeService {
     }
 
     /**
-     * Find a payee by name (case-insensitive) visible to the given user.
-     * Since name is encrypted, SQL equality won't work — fetch all and filter in
-     * Java.
+     * Find a payee by name (case-insensitive) visible to the given user. Since name is encrypted,
+     * SQL equality won't work — fetch all and filter in Java.
      */
     private Payee findPayeeByNameAndUser(String name, Long userId) {
         return payeeRepository.findAllByUser(userId).stream()
@@ -456,9 +454,8 @@ public class PayeeService {
     }
 
     /**
-     * Check if a payee with the given name exists for this user.
-     * Since name is encrypted, SQL equality won't work — fetch all and filter in
-     * Java.
+     * Check if a payee with the given name exists for this user. Since name is encrypted, SQL
+     * equality won't work — fetch all and filter in Java.
      */
     private boolean existsByNameForUser(String name, Long userId) {
         return payeeRepository.findAllByUser(userId).stream()
@@ -467,42 +464,53 @@ public class PayeeService {
 
     /** Map helper to get statistics for all payees of a user (computed in Java). */
     private Map<String, PayeeStatsRecord> getPayeeStatsMap(Long userId) {
-        if (userId == null)
-            return Collections.emptyMap();
+        if (userId == null) return Collections.emptyMap();
         // SQL GROUP BY on encrypted payee field produces meaningless groups.
         // Fetch all transactions and aggregate in Java.
-        List<Transaction> transactions = transactionRepository.findByUserId(userId).stream()
-                .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()) && t.getPayee() != null)
-                .toList();
+        List<Transaction> transactions =
+                transactionRepository.findByUserId(userId).stream()
+                        .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()) && t.getPayee() != null)
+                        .toList();
         return transactions.stream()
-                .collect(Collectors.groupingBy(
-                        Transaction::getPayee,
-                        Collectors.collectingAndThen(
-                                Collectors.toList(),
-                                txList -> new PayeeStatsRecord(
-                                        txList.get(0).getPayee(),
-                                        (long) txList.size(),
-                                        txList.stream()
-                                                .map(t -> t.getAmount() != null ? t.getAmount() : BigDecimal.ZERO)
-                                                .reduce(BigDecimal.ZERO, BigDecimal::add)))));
+                .collect(
+                        Collectors.groupingBy(
+                                Transaction::getPayee,
+                                Collectors.collectingAndThen(
+                                        Collectors.toList(),
+                                        txList ->
+                                                new PayeeStatsRecord(
+                                                        txList.get(0).getPayee(),
+                                                        (long) txList.size(),
+                                                        txList.stream()
+                                                                .map(
+                                                                        t ->
+                                                                                t.getAmount()
+                                                                                                != null
+                                                                                        ? t
+                                                                                                .getAmount()
+                                                                                        : BigDecimal
+                                                                                                .ZERO)
+                                                                .reduce(
+                                                                        BigDecimal.ZERO,
+                                                                        BigDecimal::add)))));
     }
 
     /** Simple record to hold payee transaction statistics. */
-    private record PayeeStatsRecord(String payee, Long count, BigDecimal total) {
-    }
+    private record PayeeStatsRecord(String payee, Long count, BigDecimal total) {}
 
     /** Convert entity to response DTO. */
     private PayeeResponse toResponse(Payee payee, Long transactionCount, BigDecimal totalAmount) {
-        PayeeResponse.PayeeResponseBuilder builder = PayeeResponse.builder()
-                .id(payee.getId())
-                .name(payee.getName())
-                .logo(payee.getLogo())
-                .isSystem(payee.getIsSystem())
-                .isActive(payee.getIsActive())
-                .createdAt(payee.getCreatedAt())
-                .updatedAt(payee.getUpdatedAt())
-                .transactionCount(transactionCount)
-                .totalAmount(totalAmount);
+        PayeeResponse.PayeeResponseBuilder builder =
+                PayeeResponse.builder()
+                        .id(payee.getId())
+                        .name(payee.getName())
+                        .logo(payee.getLogo())
+                        .isSystem(payee.getIsSystem())
+                        .isActive(payee.getIsActive())
+                        .createdAt(payee.getCreatedAt())
+                        .updatedAt(payee.getUpdatedAt())
+                        .transactionCount(transactionCount)
+                        .totalAmount(totalAmount);
 
         // Include default category info if set
         if (payee.getDefaultCategory() != null) {
@@ -523,8 +531,11 @@ public class PayeeService {
                 return;
             }
             javax.crypto.SecretKey searchKey = searchTokenService.deriveSearchKey(key);
-            searchTokenService.indexEntity(payee.getUserId(), "PAYEE", payee.getId(),
-                    java.util.List.<String[]>of(new String[] { "name", payee.getName() }),
+            searchTokenService.indexEntity(
+                    payee.getUserId(),
+                    "PAYEE",
+                    payee.getId(),
+                    java.util.List.<String[]>of(new String[] {"name", payee.getName()}),
                     searchKey);
         } catch (Exception e) {
             log.warn("Failed to index payee {} search tokens: {}", payee.getId(), e.getMessage());

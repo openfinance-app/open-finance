@@ -103,9 +103,10 @@ class OperationHistoryControllerIntegrationTest {
                 (String) null,
                 (String) null);
 
-        mockMvc.perform(get("/api/v1/history")
-                        .header("Authorization", "Bearer " + authToken)
-                        .header("X-Encryption-Session", encryptionSession))
+        mockMvc.perform(
+                        get("/api/v1/history")
+                                .header("Authorization", "Bearer " + authToken)
+                                .header("X-Encryption-Session", encryptionSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content[0].entityType").value("ACCOUNT"))
@@ -222,9 +223,10 @@ class OperationHistoryControllerIntegrationTest {
                 .andExpect(jsonPath("$.content[0].entityLabel").value("New Entry"));
 
         // Without since filter, both entries are returned
-        mockMvc.perform(get("/api/v1/history")
-                        .header("Authorization", "Bearer " + authToken)
-                        .header("X-Encryption-Session", encryptionSession))
+        mockMvc.perform(
+                        get("/api/v1/history")
+                                .header("Authorization", "Bearer " + authToken)
+                                .header("X-Encryption-Session", encryptionSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(2));
     }

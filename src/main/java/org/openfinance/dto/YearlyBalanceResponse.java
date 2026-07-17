@@ -10,9 +10,7 @@ import lombok.NoArgsConstructor;
 /**
  * DTO representing yearly balance variations for dashboard visualization.
  *
- * <p>
- * Returns year-end balances and year-over-year variation percentages for total
- * net worth,
+ * <p>Returns year-end balances and year-over-year variation percentages for total net worth,
  * individual accounts, and institution groups.
  *
  * @since 1.0.0
@@ -46,6 +44,7 @@ public class YearlyBalanceResponse {
     public static class YearlyDataPoint {
         private int year;
         private BigDecimal amount;
+
         /** Percentage change vs previous year; null for the first year. */
         private BigDecimal variationPercentage;
     }

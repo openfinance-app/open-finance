@@ -44,35 +44,29 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service layer for managing budgets and budget tracking.
  *
- * <p>
- * This service handles business logic for budget CRUD operations, spending
- * calculations, and
+ * <p>This service handles business logic for budget CRUD operations, spending calculations, and
  * progress tracking, including:
  *
  * <ul>
- * <li>Creating new budgets with encrypted amounts
- * <li>Updating existing budgets
- * <li>Deleting budgets
- * <li>Retrieving budgets with decrypted data
- * <li>Calculating budget progress (spent, remaining, percentage)
- * <li>Generating budget summaries
+ *   <li>Creating new budgets with encrypted amounts
+ *   <li>Updating existing budgets
+ *   <li>Deleting budgets
+ *   <li>Retrieving budgets with decrypted data
+ *   <li>Calculating budget progress (spent, remaining, percentage)
+ *   <li>Generating budget summaries
  * </ul>
  *
- * <p>
- * <strong>Security Note:</strong> Budget amounts are encrypted before storing
- * in the database
- * and decrypted when reading. The encryption key must be provided by the
- * caller.
+ * <p><strong>Security Note:</strong> Budget amounts are encrypted before storing in the database
+ * and decrypted when reading. The encryption key must be provided by the caller.
  *
- * <p>
- * <strong>Requirements:</strong>
+ * <p><strong>Requirements:</strong>
  *
  * <ul>
- * <li>REQ-2.9.1.1: Budget creation and management
- * <li>REQ-2.9.1.2: Budget tracking and progress calculation
- * <li>REQ-2.9.1.3: Budget reports and summaries
- * <li>REQ-2.18: Data encryption at rest for sensitive fields
- * <li>REQ-3.2: Authorization - Users can only access their own budgets
+ *   <li>REQ-2.9.1.1: Budget creation and management
+ *   <li>REQ-2.9.1.2: Budget tracking and progress calculation
+ *   <li>REQ-2.9.1.3: Budget reports and summaries
+ *   <li>REQ-2.18: Data encryption at rest for sensitive fields
+ *   <li>REQ-3.2: Authorization - Users can only access their own budgets
  * </ul>
  *
  * @see org.openfinance.entity.Budget
@@ -106,29 +100,24 @@ public class BudgetService {
     /**
      * Creates a new budget for the specified user.
      *
-     * <p>
-     * The budget amount is encrypted before storing in the database. Validates
-     * that:
+     * <p>The budget amount is encrypted before storing in the database. Validates that:
      *
      * <ul>
-     * <li>Category exists and belongs to user
-     * <li>No duplicate budget exists (same category + period)
-     * <li>Date range is valid (endDate >= startDate)
+     *   <li>Category exists and belongs to user
+     *   <li>No duplicate budget exists (same category + period)
+     *   <li>Date range is valid (endDate >= startDate)
      * </ul>
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: Create new budget with encrypted sensitive data
+     * <p>Requirement REQ-2.9.1.1: Create new budget with encrypted sensitive data
      *
-     * @param request       the budget creation request containing budget details
-     * @param userId        the ID of the user creating the budget
+     * @param request the budget creation request containing budget details
+     * @param userId the ID of the user creating the budget
      * @param encryptionKey the AES-256 encryption key for amount encryption
      * @return the created budget with decrypted data
-     * @throws IllegalArgumentException  if validation fails or parameters are null
-     * @throws CategoryNotFoundException if category doesn't exist or doesn't belong
-     *                                   to user
+     * @throws IllegalArgumentException if validation fails or parameters are null
+     * @throws CategoryNotFoundException if category doesn't exist or doesn't belong to user
      */
-    public BudgetResponse createBudget(
-            BudgetRequest request, Long userId) {
+    public BudgetResponse createBudget(BudgetRequest request, Long userId) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -184,31 +173,23 @@ public class BudgetService {
     /**
      * Updates an existing budget.
      *
-     * <p>
-     * Only the budget owner can update the budget. Validates ownership, category
-     * existence, and
+     * <p>Only the budget owner can update the budget. Validates ownership, category existence, and
      * duplicate constraints.
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: Update existing budget
+     * <p>Requirement REQ-2.9.1.1: Update existing budget
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization check - verify budget ownership
+     * <p>Requirement REQ-3.2: Authorization check - verify budget ownership
      *
-     * @param budgetId      the ID of the budget to update
-     * @param request       the budget update request
-     * @param userId        the ID of the user updating the budget (for
-     *                      authorization)
+     * @param budgetId the ID of the budget to update
+     * @param request the budget update request
+     * @param userId the ID of the user updating the budget (for authorization)
      * @param encryptionKey the AES-256 encryption key for amount encryption
      * @return the updated budget with decrypted data
-     * @throws BudgetNotFoundException   if budget not found or doesn't belong to
-     *                                   user
-     * @throws CategoryNotFoundException if category doesn't exist or doesn't belong
-     *                                   to user
-     * @throws IllegalArgumentException  if validation fails or parameters are null
+     * @throws BudgetNotFoundException if budget not found or doesn't belong to user
+     * @throws CategoryNotFoundException if category doesn't exist or doesn't belong to user
+     * @throws IllegalArgumentException if validation fails or parameters are null
      */
-    public BudgetResponse updateBudget(
-            Long budgetId, BudgetRequest request, Long userId) {
+    public BudgetResponse updateBudget(Long budgetId, BudgetRequest request, Long userId) {
         if (budgetId == null) {
             throw new IllegalArgumentException("Budget ID cannot be null");
         }
@@ -221,9 +202,10 @@ public class BudgetService {
         log.debug("Updating budget {}: userId={}", budgetId, userId);
 
         // Fetch budget and verify ownership (Requirement 3.2: Authorization)
-        Budget budget = budgetRepository
-                .findByIdAndUserId(budgetId, userId)
-                .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
+        Budget budget =
+                budgetRepository
+                        .findByIdAndUserId(budgetId, userId)
+                        .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
 
         // Validate category ownership
         Category category = validateCategoryOwnership(request.getCategoryId(), userId);
@@ -264,21 +246,16 @@ public class BudgetService {
     /**
      * Deletes a budget.
      *
-     * <p>
-     * Hard delete - budget is permanently removed from database. Only the budget
-     * owner can
+     * <p>Hard delete - budget is permanently removed from database. Only the budget owner can
      * delete the budget.
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: Delete budget
+     * <p>Requirement REQ-2.9.1.1: Delete budget
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization check - verify budget ownership
+     * <p>Requirement REQ-3.2: Authorization check - verify budget ownership
      *
      * @param budgetId the ID of the budget to delete
-     * @param userId   the ID of the user deleting the budget (for authorization)
-     * @throws BudgetNotFoundException  if budget not found or doesn't belong to
-     *                                  user
+     * @param userId the ID of the user deleting the budget (for authorization)
+     * @throws BudgetNotFoundException if budget not found or doesn't belong to user
      * @throws IllegalArgumentException if budgetId or userId is null
      */
     public void deleteBudget(Long budgetId, Long userId) {
@@ -292,9 +269,10 @@ public class BudgetService {
         log.debug("Deleting budget {}: userId={}", budgetId, userId);
 
         // Fetch budget and verify ownership (Requirement 3.2: Authorization)
-        Budget budget = budgetRepository
-                .findByIdAndUserId(budgetId, userId)
-                .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
+        Budget budget =
+                budgetRepository
+                        .findByIdAndUserId(budgetId, userId)
+                        .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
 
         String label = null;
         BudgetResponse snapshot = null;
@@ -329,22 +307,17 @@ public class BudgetService {
     /**
      * Retrieves a single budget by ID.
      *
-     * <p>
-     * Only the budget owner can retrieve the budget. Amount is decrypted.
+     * <p>Only the budget owner can retrieve the budget. Amount is decrypted.
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: Retrieve budget details
+     * <p>Requirement REQ-2.9.1.1: Retrieve budget details
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization check - verify budget ownership
+     * <p>Requirement REQ-3.2: Authorization check - verify budget ownership
      *
-     * @param budgetId      the ID of the budget to retrieve
-     * @param userId        the ID of the user retrieving the budget (for
-     *                      authorization)
+     * @param budgetId the ID of the budget to retrieve
+     * @param userId the ID of the user retrieving the budget (for authorization)
      * @param encryptionKey the AES-256 encryption key for decrypting amount
      * @return the budget with decrypted data
-     * @throws BudgetNotFoundException  if budget not found or doesn't belong to
-     *                                  user
+     * @throws BudgetNotFoundException if budget not found or doesn't belong to user
      * @throws IllegalArgumentException if any parameter is null
      */
     @Transactional(readOnly = true)
@@ -358,14 +331,16 @@ public class BudgetService {
         log.debug("Retrieving budget {}: userId={}", budgetId, userId);
 
         // Fetch budget and verify ownership (Requirement 3.2: Authorization)
-        Budget budget = budgetRepository
-                .findByIdAndUserId(budgetId, userId)
-                .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
+        Budget budget =
+                budgetRepository
+                        .findByIdAndUserId(budgetId, userId)
+                        .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
 
         // Fetch category for denormalization
-        Category category = categoryRepository
-                .findByIdAndUserId(budget.getCategoryId(), userId)
-                .orElseThrow(() -> new CategoryNotFoundException(budget.getCategoryId()));
+        Category category =
+                categoryRepository
+                        .findByIdAndUserId(budget.getCategoryId(), userId)
+                        .orElseThrow(() -> new CategoryNotFoundException(budget.getCategoryId()));
 
         // Decrypt and return response
         return toResponseWithDecryption(budget, category);
@@ -374,13 +349,11 @@ public class BudgetService {
     /**
      * Retrieves all budgets for a user.
      *
-     * <p>
-     * Returns all budgets regardless of period or status. Amounts are decrypted.
+     * <p>Returns all budgets regardless of period or status. Amounts are decrypted.
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: List all user budgets
+     * <p>Requirement REQ-2.9.1.1: List all user budgets
      *
-     * @param userId        the ID of the user
+     * @param userId the ID of the user
      * @param encryptionKey the AES-256 encryption key for decrypting amounts
      * @return list of budgets with decrypted data (may be empty)
      * @throws IllegalArgumentException if userId or encryptionKey is null
@@ -400,11 +373,13 @@ public class BudgetService {
         return budgets.stream()
                 .map(
                         budget -> {
-                            Category category = categoryRepository
-                                    .findByIdAndUserId(budget.getCategoryId(), userId)
-                                    .orElseThrow(
-                                            () -> new CategoryNotFoundException(
-                                                    budget.getCategoryId()));
+                            Category category =
+                                    categoryRepository
+                                            .findByIdAndUserId(budget.getCategoryId(), userId)
+                                            .orElseThrow(
+                                                    () ->
+                                                            new CategoryNotFoundException(
+                                                                    budget.getCategoryId()));
                             return toResponseWithDecryption(budget, category);
                         })
                 .collect(Collectors.toList());
@@ -413,23 +388,19 @@ public class BudgetService {
     /**
      * Retrieves all budgets for a user filtered by period.
      *
-     * <p>
-     * Returns budgets matching the specified period type (WEEKLY, MONTHLY, etc.).
-     * Amounts are
+     * <p>Returns budgets matching the specified period type (WEEKLY, MONTHLY, etc.). Amounts are
      * decrypted.
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: Filter budgets by period
+     * <p>Requirement REQ-2.9.1.1: Filter budgets by period
      *
-     * @param userId        the ID of the user
-     * @param period        the budget period to filter by
+     * @param userId the ID of the user
+     * @param period the budget period to filter by
      * @param encryptionKey the AES-256 encryption key for decrypting amounts
      * @return list of budgets with decrypted data (may be empty)
      * @throws IllegalArgumentException if any parameter is null
      */
     @Transactional(readOnly = true)
-    public List<BudgetResponse> getBudgetsByPeriod(
-            Long userId, BudgetPeriod period) {
+    public List<BudgetResponse> getBudgetsByPeriod(Long userId, BudgetPeriod period) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -446,11 +417,13 @@ public class BudgetService {
         return budgets.stream()
                 .map(
                         budget -> {
-                            Category category = categoryRepository
-                                    .findByIdAndUserId(budget.getCategoryId(), userId)
-                                    .orElseThrow(
-                                            () -> new CategoryNotFoundException(
-                                                    budget.getCategoryId()));
+                            Category category =
+                                    categoryRepository
+                                            .findByIdAndUserId(budget.getCategoryId(), userId)
+                                            .orElseThrow(
+                                                    () ->
+                                                            new CategoryNotFoundException(
+                                                                    budget.getCategoryId()));
                             return toResponseWithDecryption(budget, category);
                         })
                 .collect(Collectors.toList());
@@ -459,31 +432,27 @@ public class BudgetService {
     /**
      * Calculates budget progress for a specific budget.
      *
-     * <p>
-     * Calculates:
+     * <p>Calculates:
      *
      * <ul>
-     * <li>Amount spent (from transactions in category during budget period)
-     * <li>Remaining amount (budgeted - spent)
-     * <li>Percentage spent ((spent / budgeted) × 100)
-     * <li>Days remaining in period
-     * <li>Status (ON_TRACK, WARNING, EXCEEDED)
+     *   <li>Amount spent (from transactions in category during budget period)
+     *   <li>Remaining amount (budgeted - spent)
+     *   <li>Percentage spent ((spent / budgeted) × 100)
+     *   <li>Days remaining in period
+     *   <li>Status (ON_TRACK, WARNING, EXCEEDED)
      * </ul>
      *
-     * <p>
-     * Requirement REQ-2.9.1.2: Budget tracking with spent/remaining calculations
+     * <p>Requirement REQ-2.9.1.2: Budget tracking with spent/remaining calculations
      *
-     * @param budgetId      the ID of the budget to track
-     * @param userId        the ID of the user (for authorization)
+     * @param budgetId the ID of the budget to track
+     * @param userId the ID of the user (for authorization)
      * @param encryptionKey the AES-256 encryption key for decrypting amounts
      * @return budget progress details
-     * @throws BudgetNotFoundException  if budget not found or doesn't belong to
-     *                                  user
+     * @throws BudgetNotFoundException if budget not found or doesn't belong to user
      * @throws IllegalArgumentException if any parameter is null
      */
     @Transactional(readOnly = true)
-    public BudgetProgressResponse calculateBudgetProgress(
-            Long budgetId, Long userId) {
+    public BudgetProgressResponse calculateBudgetProgress(Long budgetId, Long userId) {
         if (budgetId == null) {
             throw new IllegalArgumentException("Budget ID cannot be null");
         }
@@ -493,21 +462,24 @@ public class BudgetService {
         log.debug("Calculating budget progress for budget {}: userId={}", budgetId, userId);
 
         // Fetch budget and verify ownership
-        Budget budget = budgetRepository
-                .findByIdAndUserId(budgetId, userId)
-                .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
+        Budget budget =
+                budgetRepository
+                        .findByIdAndUserId(budgetId, userId)
+                        .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
 
         // Fetch category
-        Category category = categoryRepository
-                .findByIdAndUserId(budget.getCategoryId(), userId)
-                .orElseThrow(() -> new CategoryNotFoundException(budget.getCategoryId()));
+        Category category =
+                categoryRepository
+                        .findByIdAndUserId(budget.getCategoryId(), userId)
+                        .orElseThrow(() -> new CategoryNotFoundException(budget.getCategoryId()));
 
         // Amount already decrypted by JPA converter
         String decryptedAmount = budget.getAmount();
         BigDecimal budgeted = new BigDecimal(decryptedAmount);
 
         // Calculate spent amount
-        BigDecimal spent = calculateSpentAmount(category, budget.getStartDate(), budget.getEndDate(), userId);
+        BigDecimal spent =
+                calculateSpentAmount(category, budget.getStartDate(), budget.getEndDate(), userId);
 
         // Calculate remaining
         BigDecimal remaining = budgeted.subtract(spent);
@@ -515,9 +487,10 @@ public class BudgetService {
         // Calculate percentage spent
         BigDecimal percentageSpent = BigDecimal.ZERO;
         if (budgeted.compareTo(BigDecimal.ZERO) > 0) {
-            percentageSpent = spent.divide(budgeted, 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100))
-                    .setScale(2, RoundingMode.HALF_UP);
+            percentageSpent =
+                    spent.divide(budgeted, 4, RoundingMode.HALF_UP)
+                            .multiply(BigDecimal.valueOf(100))
+                            .setScale(2, RoundingMode.HALF_UP);
         }
 
         // Calculate days remaining
@@ -550,29 +523,26 @@ public class BudgetService {
     /**
      * Generates a budget summary for all budgets of a specific period.
      *
-     * <p>
-     * Aggregates statistics across all budgets:
+     * <p>Aggregates statistics across all budgets:
      *
      * <ul>
-     * <li>Total budgeted amount
-     * <li>Total spent amount
-     * <li>Total remaining amount
-     * <li>Average percentage spent
-     * <li>Individual budget progress details
+     *   <li>Total budgeted amount
+     *   <li>Total spent amount
+     *   <li>Total remaining amount
+     *   <li>Average percentage spent
+     *   <li>Individual budget progress details
      * </ul>
      *
-     * <p>
-     * Requirement REQ-2.9.1.3: Budget reports with aggregate statistics
+     * <p>Requirement REQ-2.9.1.3: Budget reports with aggregate statistics
      *
-     * @param userId        the ID of the user
-     * @param period        the budget period to summarize
+     * @param userId the ID of the user
+     * @param period the budget period to summarize
      * @param encryptionKey the AES-256 encryption key for decrypting amounts
      * @return budget summary with aggregate statistics
      * @throws IllegalArgumentException if any parameter is null
      */
     @Transactional(readOnly = true)
-    public BudgetSummaryResponse getBudgetSummary(
-            Long userId, BudgetPeriod period) {
+    public BudgetSummaryResponse getBudgetSummary(Long userId, BudgetPeriod period) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -600,50 +570,57 @@ public class BudgetService {
         }
 
         // Calculate progress for each budget
-        List<BudgetProgressResponse> progressList = budgets.stream()
-                .map(
-                        budget -> {
-                            try {
-                                return calculateBudgetProgress(
-                                        budget.getId(), userId);
-                            } catch (Exception e) {
-                                log.error(
-                                        "Error calculating progress for budget {}: {}",
-                                        budget.getId(),
-                                        e.getMessage());
-                                return null;
-                            }
-                        })
-                .filter(progress -> progress != null)
-                .collect(Collectors.toList());
+        List<BudgetProgressResponse> progressList =
+                budgets.stream()
+                        .map(
+                                budget -> {
+                                    try {
+                                        return calculateBudgetProgress(budget.getId(), userId);
+                                    } catch (Exception e) {
+                                        log.error(
+                                                "Error calculating progress for budget {}: {}",
+                                                budget.getId(),
+                                                e.getMessage());
+                                        return null;
+                                    }
+                                })
+                        .filter(progress -> progress != null)
+                        .collect(Collectors.toList());
 
         // Aggregate statistics
-        BigDecimal totalBudgeted = progressList.stream()
-                .map(BudgetProgressResponse::getBudgeted)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalBudgeted =
+                progressList.stream()
+                        .map(BudgetProgressResponse::getBudgeted)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal totalSpent = progressList.stream()
-                .map(BudgetProgressResponse::getSpent)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalSpent =
+                progressList.stream()
+                        .map(BudgetProgressResponse::getSpent)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalRemaining = totalBudgeted.subtract(totalSpent);
 
         BigDecimal averageSpentPercentage = BigDecimal.ZERO;
         if (!progressList.isEmpty()) {
-            BigDecimal sumPercentages = progressList.stream()
-                    .map(BudgetProgressResponse::getPercentageSpent)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            averageSpentPercentage = sumPercentages.divide(
-                    BigDecimal.valueOf(progressList.size()), 2, RoundingMode.HALF_UP);
+            BigDecimal sumPercentages =
+                    progressList.stream()
+                            .map(BudgetProgressResponse::getPercentageSpent)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            averageSpentPercentage =
+                    sumPercentages.divide(
+                            BigDecimal.valueOf(progressList.size()), 2, RoundingMode.HALF_UP);
         }
 
         // Count active budgets (current date within budget period)
         LocalDate today = LocalDate.now();
-        int activeBudgets = (int) budgets.stream()
-                .filter(
-                        b -> !today.isBefore(b.getStartDate())
-                                && !today.isAfter(b.getEndDate()))
-                .count();
+        int activeBudgets =
+                (int)
+                        budgets.stream()
+                                .filter(
+                                        b ->
+                                                !today.isBefore(b.getStartDate())
+                                                        && !today.isAfter(b.getEndDate()))
+                                .count();
 
         // Use currency from first budget (assumes single currency)
         String currency = budgets.get(0).getCurrency();
@@ -671,17 +648,13 @@ public class BudgetService {
     /**
      * Generates a combined budget summary across ALL period types for a user.
      *
-     * <p>
-     * Returns progress for every budget regardless of period type (WEEKLY, MONTHLY,
-     * QUARTERLY,
-     * YEARLY). Used by the Budget UI when no period filter is selected so that
-     * yearly budgets (and
+     * <p>Returns progress for every budget regardless of period type (WEEKLY, MONTHLY, QUARTERLY,
+     * YEARLY). Used by the Budget UI when no period filter is selected so that yearly budgets (and
      * others) are not silently omitted.
      *
-     * <p>
-     * Requirement REQ-2.9.1.3: Budget reports — show all periods
+     * <p>Requirement REQ-2.9.1.3: Budget reports — show all periods
      *
-     * @param userId        the ID of the user
+     * @param userId the ID of the user
      * @param encryptionKey the AES-256 encryption key for decrypting amounts
      * @return budget summary covering all period types
      * @throws IllegalArgumentException if any parameter is null
@@ -709,43 +682,50 @@ public class BudgetService {
                     .build();
         }
 
-        List<BudgetProgressResponse> progressList = budgets.stream()
-                .map(
-                        budget -> {
-                            try {
-                                return calculateBudgetProgress(
-                                        budget.getId(), userId);
-                            } catch (Exception e) {
-                                log.error(
-                                        "Error calculating progress for budget {}: {}",
-                                        budget.getId(),
-                                        e.getMessage());
-                                return null;
-                            }
-                        })
-                .filter(progress -> progress != null)
-                .collect(Collectors.toList());
+        List<BudgetProgressResponse> progressList =
+                budgets.stream()
+                        .map(
+                                budget -> {
+                                    try {
+                                        return calculateBudgetProgress(budget.getId(), userId);
+                                    } catch (Exception e) {
+                                        log.error(
+                                                "Error calculating progress for budget {}: {}",
+                                                budget.getId(),
+                                                e.getMessage());
+                                        return null;
+                                    }
+                                })
+                        .filter(progress -> progress != null)
+                        .collect(Collectors.toList());
 
-        BigDecimal totalBudgeted = progressList.stream()
-                .map(BudgetProgressResponse::getBudgeted)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalSpent = progressList.stream()
-                .map(BudgetProgressResponse::getSpent)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalBudgeted =
+                progressList.stream()
+                        .map(BudgetProgressResponse::getBudgeted)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalSpent =
+                progressList.stream()
+                        .map(BudgetProgressResponse::getSpent)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalRemaining = totalBudgeted.subtract(totalSpent);
         BigDecimal averageSpentPercentage = BigDecimal.ZERO;
         if (!progressList.isEmpty()) {
-            BigDecimal sumPct = progressList.stream()
-                    .map(BudgetProgressResponse::getPercentageSpent)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            averageSpentPercentage = sumPct.divide(BigDecimal.valueOf(progressList.size()), 2, RoundingMode.HALF_UP);
+            BigDecimal sumPct =
+                    progressList.stream()
+                            .map(BudgetProgressResponse::getPercentageSpent)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            averageSpentPercentage =
+                    sumPct.divide(BigDecimal.valueOf(progressList.size()), 2, RoundingMode.HALF_UP);
         }
         LocalDate today = LocalDate.now();
-        int activeBudgets = (int) budgets.stream()
-                .filter(
-                        b -> !today.isBefore(b.getStartDate())
-                                && !today.isAfter(b.getEndDate()))
-                .count();
+        int activeBudgets =
+                (int)
+                        budgets.stream()
+                                .filter(
+                                        b ->
+                                                !today.isBefore(b.getStartDate())
+                                                        && !today.isAfter(b.getEndDate()))
+                                .count();
         String currency = budgets.get(0).getCurrency();
 
         log.debug(
@@ -769,36 +749,30 @@ public class BudgetService {
     /**
      * Returns the spending history for a budget broken down into sub-periods.
      *
-     * <p>
-     * The budget's date range (startDate → endDate) is split into sub-periods
-     * matching the
+     * <p>The budget's date range (startDate → endDate) is split into sub-periods matching the
      * budget's {@link BudgetPeriod}:
      *
      * <ul>
-     * <li>WEEKLY → 7-day windows
-     * <li>MONTHLY → calendar months
-     * <li>QUARTERLY → 3-month windows
-     * <li>YEARLY → 1-year windows (edge case: a multi-year budget)
+     *   <li>WEEKLY → 7-day windows
+     *   <li>MONTHLY → calendar months
+     *   <li>QUARTERLY → 3-month windows
+     *   <li>YEARLY → 1-year windows (edge case: a multi-year budget)
      * </ul>
      *
-     * <p>
-     * For each sub-period, the actual transaction spend is calculated and compared
-     * against the
+     * <p>For each sub-period, the actual transaction spend is calculated and compared against the
      * budget amount, producing a status indicator.
      *
-     * <p>
-     * Requirement REQ-2.9.1.4: Budget history per sub-period
+     * <p>Requirement REQ-2.9.1.4: Budget history per sub-period
      *
-     * @param budgetId      the budget ID
-     * @param userId        the authenticated user's ID
+     * @param budgetId the budget ID
+     * @param userId the authenticated user's ID
      * @param encryptionKey the AES-256 encryption key for decrypting the amount
      * @return full history response with per-period breakdown
-     * @throws BudgetNotFoundException  if the budget doesn't belong to the user
+     * @throws BudgetNotFoundException if the budget doesn't belong to the user
      * @throws IllegalArgumentException if any parameter is null
      */
     @Transactional(readOnly = true)
-    public BudgetHistoryResponse getBudgetHistory(
-            Long budgetId, Long userId) {
+    public BudgetHistoryResponse getBudgetHistory(Long budgetId, Long userId) {
         if (budgetId == null) {
             throw new IllegalArgumentException("Budget ID cannot be null");
         }
@@ -808,13 +782,15 @@ public class BudgetService {
         log.debug("Generating budget history for budget {}: userId={}", budgetId, userId);
 
         // Fetch and verify ownership
-        Budget budget = budgetRepository
-                .findByIdAndUserId(budgetId, userId)
-                .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
+        Budget budget =
+                budgetRepository
+                        .findByIdAndUserId(budgetId, userId)
+                        .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
 
-        Category category = categoryRepository
-                .findByIdAndUserId(budget.getCategoryId(), userId)
-                .orElseThrow(() -> new CategoryNotFoundException(budget.getCategoryId()));
+        Category category =
+                categoryRepository
+                        .findByIdAndUserId(budget.getCategoryId(), userId)
+                        .orElseThrow(() -> new CategoryNotFoundException(budget.getCategoryId()));
 
         // Amount already decrypted by JPA converter
         String decryptedAmount = budget.getAmount();
@@ -823,10 +799,12 @@ public class BudgetService {
         // Build sub-period windows; extend to today for budgets whose fixed end date
         // is in the past so that ongoing monthly/weekly budgets always cover the
         // current period rather than stopping at the original creation-time end date.
-        LocalDate effectiveEndDate = budget.getEndDate().isBefore(LocalDate.now())
-                ? LocalDate.now()
-                : budget.getEndDate();
-        List<LocalDate[]> windows = buildSubPeriodWindows(budget.getPeriod(), budget.getStartDate(), effectiveEndDate);
+        LocalDate effectiveEndDate =
+                budget.getEndDate().isBefore(LocalDate.now())
+                        ? LocalDate.now()
+                        : budget.getEndDate();
+        List<LocalDate[]> windows =
+                buildSubPeriodWindows(budget.getPeriod(), budget.getStartDate(), effectiveEndDate);
 
         BigDecimal totalSpent = BigDecimal.ZERO;
         BigDecimal totalBudgeted = BigDecimal.ZERO;
@@ -840,9 +818,10 @@ public class BudgetService {
             BigDecimal remaining = budgetedPerPeriod.subtract(spent);
             BigDecimal percentage = BigDecimal.ZERO;
             if (budgetedPerPeriod.compareTo(BigDecimal.ZERO) > 0) {
-                percentage = spent.divide(budgetedPerPeriod, 4, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100))
-                        .setScale(2, RoundingMode.HALF_UP);
+                percentage =
+                        spent.divide(budgetedPerPeriod, 4, RoundingMode.HALF_UP)
+                                .multiply(BigDecimal.valueOf(100))
+                                .setScale(2, RoundingMode.HALF_UP);
             }
 
             totalSpent = totalSpent.add(spent);
@@ -882,55 +861,39 @@ public class BudgetService {
     }
 
     /**
-     * Analyses past EXPENSE transactions to generate budget suggestions per
-     * category.
+     * Analyses past EXPENSE transactions to generate budget suggestions per category.
      *
-     * <p>
-     * The method:
+     * <p>The method:
      *
      * <ol>
-     * <li>Determines the analysis window: [{@code today - lookbackMonths},
-     * {@code today}].
-     * <li>Enumerates the EXPENSE categories to analyse — either those in
-     * {@code categoryIds}
-     * (when provided) or all categories returned by {@link
-     * CategoryRepository#findByUserIdAndType}.
-     * <li>For each category, splits the window into sub-periods matching
-     * {@code period} and sums
-     * EXPENSE transactions per sub-period (reuses {@link #calculateSpentAmount}).
-     * <li>Computes the arithmetic average across non-empty sub-periods and rounds
-     * up (ceiling) to
-     * the nearest whole unit.
-     * <li>Sets {@code hasExistingBudget = true} when a budget already exists for
-     * the category +
-     * period combination.
-     * <li>Skips categories with zero transactions in the window.
+     *   <li>Determines the analysis window: [{@code today - lookbackMonths}, {@code today}].
+     *   <li>Enumerates the EXPENSE categories to analyse — either those in {@code categoryIds}
+     *       (when provided) or all categories returned by {@link
+     *       CategoryRepository#findByUserIdAndType}.
+     *   <li>For each category, splits the window into sub-periods matching {@code period} and sums
+     *       EXPENSE transactions per sub-period (reuses {@link #calculateSpentAmount}).
+     *   <li>Computes the arithmetic average across non-empty sub-periods and rounds up (ceiling) to
+     *       the nearest whole unit.
+     *   <li>Sets {@code hasExistingBudget = true} when a budget already exists for the category +
+     *       period combination.
+     *   <li>Skips categories with zero transactions in the window.
      * </ol>
      *
-     * <p>
-     * Requirement REQ-2.9.1.5: Automatic budget creation from transaction history
-     * analysis
+     * <p>Requirement REQ-2.9.1.5: Automatic budget creation from transaction history analysis
      *
-     * @param userId         the authenticated user's ID
-     * @param period         the target budget period (WEEKLY / MONTHLY / QUARTERLY
-     *                       / YEARLY)
+     * @param userId the authenticated user's ID
+     * @param period the target budget period (WEEKLY / MONTHLY / QUARTERLY / YEARLY)
      * @param lookbackMonths number of months to scan (1–24)
-     * @param categoryIds    restrict analysis to these category IDs; pass
-     *                       {@code null} to analyse ALL
-     *                       EXPENSE categories
-     * @param encryptionKey  the AES-256 encryption key (required for the
-     *                       {@code hasExistingBudget}
-     *                       check — not used directly here but enforced for
-     *                       consistency)
+     * @param categoryIds restrict analysis to these category IDs; pass {@code null} to analyse ALL
+     *     EXPENSE categories
+     * @param encryptionKey the AES-256 encryption key (required for the {@code hasExistingBudget}
+     *     check — not used directly here but enforced for consistency)
      * @return ordered list of suggestions (one per qualifying EXPENSE category)
      * @throws IllegalArgumentException if userId, period, or encryptionKey is null
      */
     @Transactional(readOnly = true)
     public List<BudgetSuggestion> analyzeCategorySpending(
-            Long userId,
-            BudgetPeriod period,
-            int lookbackMonths,
-            List<Long> categoryIds) {
+            Long userId, BudgetPeriod period, int lookbackMonths, List<Long> categoryIds) {
 
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -950,13 +913,15 @@ public class BudgetService {
         // Determine which categories to analyse
         List<Category> categories;
         if (categoryIds != null && !categoryIds.isEmpty()) {
-            categories = categoryIds.stream()
-                    .map(
-                            id -> categoryRepository
-                                    .findByIdAndUserId(id, userId)
-                                    .orElse(null))
-                    .filter(c -> c != null && c.getType() == CategoryType.EXPENSE)
-                    .collect(Collectors.toList());
+            categories =
+                    categoryIds.stream()
+                            .map(
+                                    id ->
+                                            categoryRepository
+                                                    .findByIdAndUserId(id, userId)
+                                                    .orElse(null))
+                            .filter(c -> c != null && c.getType() == CategoryType.EXPENSE)
+                            .collect(Collectors.toList());
         } else {
             categories = categoryRepository.findByUserIdAndType(userId, CategoryType.EXPENSE);
         }
@@ -973,31 +938,38 @@ public class BudgetService {
 
             for (LocalDate[] window : windows) {
                 List<Long> catIds = getCategoryAndSubcategoryIds(category);
-                List<Transaction> txList = transactionRepository.findByCategoryIdInAndDateRange(
-                        catIds, window[0], window[1], userId);
+                List<Transaction> txList =
+                        transactionRepository.findByCategoryIdInAndDateRange(
+                                catIds, window[0], window[1], userId);
 
-                BigDecimal windowSpent = txList.stream()
-                        .filter(t -> t.getType() == TransactionType.EXPENSE)
-                        .map(Transaction::getAmount)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal windowSpent =
+                        txList.stream()
+                                .filter(t -> t.getType() == TransactionType.EXPENSE)
+                                .map(Transaction::getAmount)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                int windowTxCount = (int) txList.stream()
-                        .filter(t -> t.getType() == TransactionType.EXPENSE)
-                        .count();
+                int windowTxCount =
+                        (int)
+                                txList.stream()
+                                        .filter(t -> t.getType() == TransactionType.EXPENSE)
+                                        .count();
 
                 // Also include split transaction amounts for these categories
-                List<TransactionSplit> splits = transactionSplitRepository.findByCategoryIdInAndDateRange(
-                        catIds, window[0], window[1], userId);
-                BigDecimal splitSpent = splits.stream()
-                        .filter(s -> s.getAmount() != null)
-                        .map(TransactionSplit::getAmount)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                List<TransactionSplit> splits =
+                        transactionSplitRepository.findByCategoryIdInAndDateRange(
+                                catIds, window[0], window[1], userId);
+                BigDecimal splitSpent =
+                        splits.stream()
+                                .filter(s -> s.getAmount() != null)
+                                .map(TransactionSplit::getAmount)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
                 windowSpent = windowSpent.add(splitSpent);
 
                 // Also include count of split transactions
-                Long splitTxCount = transactionSplitRepository
-                        .countUniqueTransactionsByCategoryIdInAndDateRange(
-                                catIds, window[0], window[1], userId);
+                Long splitTxCount =
+                        transactionSplitRepository
+                                .countUniqueTransactionsByCategoryIdInAndDateRange(
+                                        catIds, window[0], window[1], userId);
                 if (splitTxCount != null) {
                     windowTxCount += splitTxCount.intValue();
                 }
@@ -1015,7 +987,8 @@ public class BudgetService {
             }
 
             // Average per non-empty sub-period, then ceiling-round to nearest whole unit
-            BigDecimal averageSpent = totalSpent.divide(BigDecimal.valueOf(filledWindows), 2, RoundingMode.HALF_UP);
+            BigDecimal averageSpent =
+                    totalSpent.divide(BigDecimal.valueOf(filledWindows), 2, RoundingMode.HALF_UP);
             BigDecimal suggestedAmount = averageSpent.setScale(0, RoundingMode.CEILING);
 
             // Check for existing budget using COUNT-based exists query (REQ-2.9.1.5: flag
@@ -1024,8 +997,9 @@ public class BudgetService {
             // duplicate rows
             // exist in the database; findByUserIdAndCategoryIdAndPeriod would throw
             // IncorrectResultSizeDataAccessException in that case.
-            boolean hasExistingBudget = budgetRepository.existsByUserIdAndCategoryIdAndPeriod(
-                    userId, category.getId(), period);
+            boolean hasExistingBudget =
+                    budgetRepository.existsByUserIdAndCategoryIdAndPeriod(
+                            userId, category.getId(), period);
 
             suggestions.add(
                     BudgetSuggestion.builder()
@@ -1052,31 +1026,25 @@ public class BudgetService {
     /**
      * Bulk-creates multiple budgets in a single transaction-safe operation.
      *
-     * <p>
-     * Each {@link BudgetRequest} in the list is processed independently:
+     * <p>Each {@link BudgetRequest} in the list is processed independently:
      *
      * <ul>
-     * <li>Successful creations are collected into
-     * {@link BudgetBulkCreateResponse#getCreated()}.
-     * <li>{@link IllegalStateException} (duplicate category+period) increments
-     * {@link
-     * BudgetBulkCreateResponse#getSkippedCount()} without surfacing an error.
-     * <li>Any other exception adds a human-readable message to {@link
-     * BudgetBulkCreateResponse#getErrors()}.
+     *   <li>Successful creations are collected into {@link BudgetBulkCreateResponse#getCreated()}.
+     *   <li>{@link IllegalStateException} (duplicate category+period) increments {@link
+     *       BudgetBulkCreateResponse#getSkippedCount()} without surfacing an error.
+     *   <li>Any other exception adds a human-readable message to {@link
+     *       BudgetBulkCreateResponse#getErrors()}.
      * </ul>
      *
-     * <p>
-     * Requirement REQ-2.9.1.5: Bulk budget creation from user-confirmed suggestions
+     * <p>Requirement REQ-2.9.1.5: Bulk budget creation from user-confirmed suggestions
      *
-     * @param userId        the authenticated user's ID
-     * @param requests      the list of budget creation requests to process
+     * @param userId the authenticated user's ID
+     * @param requests the list of budget creation requests to process
      * @param encryptionKey the AES-256 encryption key for encrypting amounts
      * @return response summarising created, skipped, and error counts
-     * @throws IllegalArgumentException if userId, requests, or encryptionKey is
-     *                                  null
+     * @throws IllegalArgumentException if userId, requests, or encryptionKey is null
      */
-    public BudgetBulkCreateResponse bulkCreateBudgets(
-            Long userId, List<BudgetRequest> requests) {
+    public BudgetBulkCreateResponse bulkCreateBudgets(Long userId, List<BudgetRequest> requests) {
 
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -1131,9 +1099,7 @@ public class BudgetService {
 
     // ========== PRIVATE HELPER METHODS ==========
 
-    /**
-     * Recursively collects the ID of the given category and all its subcategories.
-     */
+    /** Recursively collects the ID of the given category and all its subcategories. */
     private List<Long> getCategoryAndSubcategoryIds(Category category) {
         List<Long> ids = new ArrayList<>();
         ids.add(category.getId());
@@ -1146,41 +1112,41 @@ public class BudgetService {
     }
 
     /**
-     * Calculates the total amount spent in a category (and its subcategories)
-     * during a date range.
+     * Calculates the total amount spent in a category (and its subcategories) during a date range.
      *
-     * <p>
-     * Sums all EXPENSE transactions in the specified category (and subcategories)
-     * between
+     * <p>Sums all EXPENSE transactions in the specified category (and subcategories) between
      * startDate and endDate (inclusive).
      *
-     * <p>
-     * Requirement REQ-2.9.1.2: Calculate spent amount from transactions
+     * <p>Requirement REQ-2.9.1.2: Calculate spent amount from transactions
      *
-     * @param category  the root category mapping to transactions
+     * @param category the root category mapping to transactions
      * @param startDate the start date (inclusive)
-     * @param endDate   the end date (inclusive)
-     * @param userId    the user ID (for security/isolation)
+     * @param endDate the end date (inclusive)
+     * @param userId the user ID (for security/isolation)
      * @return total amount spent (always positive or zero)
      */
     private BigDecimal calculateSpentAmount(
             Category category, LocalDate startDate, LocalDate endDate, Long userId) {
         List<Long> categoryIds = getCategoryAndSubcategoryIds(category);
-        List<Transaction> transactions = transactionRepository.findByCategoryIdInAndDateRange(
-                categoryIds, startDate, endDate, userId);
+        List<Transaction> transactions =
+                transactionRepository.findByCategoryIdInAndDateRange(
+                        categoryIds, startDate, endDate, userId);
 
-        BigDecimal mainSpent = transactions.stream()
-                .filter(t -> t.getType() == TransactionType.EXPENSE)
-                .map(Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal mainSpent =
+                transactions.stream()
+                        .filter(t -> t.getType() == TransactionType.EXPENSE)
+                        .map(Transaction::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // REQUIREMENT: Include split transactions that match the category
-        List<TransactionSplit> splits = transactionSplitRepository.findByCategoryIdInAndDateRange(
-                categoryIds, startDate, endDate, userId);
-        BigDecimal splitSpent = splits.stream()
-                .filter(s -> s.getAmount() != null)
-                .map(TransactionSplit::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        List<TransactionSplit> splits =
+                transactionSplitRepository.findByCategoryIdInAndDateRange(
+                        categoryIds, startDate, endDate, userId);
+        BigDecimal splitSpent =
+                splits.stream()
+                        .filter(s -> s.getAmount() != null)
+                        .map(TransactionSplit::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return mainSpent.add(splitSpent);
     }
@@ -1188,17 +1154,15 @@ public class BudgetService {
     /**
      * Determines budget status based on percentage spent.
      *
-     * <p>
-     * Status thresholds:
+     * <p>Status thresholds:
      *
      * <ul>
-     * <li>ON_TRACK: Less than 75% spent (green)
-     * <li>WARNING: 75-100% spent (yellow)
-     * <li>EXCEEDED: Over 100% spent (red)
+     *   <li>ON_TRACK: Less than 75% spent (green)
+     *   <li>WARNING: 75-100% spent (yellow)
+     *   <li>EXCEEDED: Over 100% spent (red)
      * </ul>
      *
-     * <p>
-     * Requirement REQ-2.9.1.2: Visual indicators based on spending thresholds
+     * <p>Requirement REQ-2.9.1.2: Visual indicators based on spending thresholds
      *
      * @param percentageSpent the percentage of budget spent
      * @return status string ("ON_TRACK", "WARNING", or "EXCEEDED")
@@ -1216,46 +1180,43 @@ public class BudgetService {
     /**
      * Validates that a category exists and belongs to the user.
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization - verify category ownership
+     * <p>Requirement REQ-3.2: Authorization - verify category ownership
      *
      * @param categoryId the category ID to validate
-     * @param userId     the user ID
+     * @param userId the user ID
      * @return the Category entity if valid
-     * @throws CategoryNotFoundException if category doesn't exist or doesn't belong
-     *                                   to user
+     * @throws CategoryNotFoundException if category doesn't exist or doesn't belong to user
      */
     private Category validateCategoryOwnership(Long categoryId, Long userId) {
         return categoryRepository
                 .findByIdAndUserId(categoryId, userId)
                 .orElseThrow(
-                        () -> new CategoryNotFoundException(
-                                String.format(
-                                        "Category not found with id: %d for user: %d",
-                                        categoryId, userId)));
+                        () ->
+                                new CategoryNotFoundException(
+                                        String.format(
+                                                "Category not found with id: %d for user: %d",
+                                                categoryId, userId)));
     }
 
     /**
      * Validates that no duplicate budget exists.
      *
-     * <p>
-     * Prevents creating multiple budgets for the same category and period. Excludes
-     * the current
+     * <p>Prevents creating multiple budgets for the same category and period. Excludes the current
      * budget when updating (if excludeBudgetId is provided).
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: Prevent duplicate budgets
+     * <p>Requirement REQ-2.9.1.1: Prevent duplicate budgets
      *
-     * @param categoryId      the category ID
-     * @param period          the budget period
-     * @param userId          the user ID
+     * @param categoryId the category ID
+     * @param period the budget period
+     * @param userId the user ID
      * @param excludeBudgetId the budget ID to exclude (for updates), or null
      * @throws IllegalStateException if duplicate budget exists
      */
     private void validateNoDuplicateBudget(
             Long categoryId, BudgetPeriod period, Long userId, Long excludeBudgetId) {
         // Check if budget exists (repository returns Optional<Budget>)
-        var existingBudget = budgetRepository.findByUserIdAndCategoryIdAndPeriod(userId, categoryId, period);
+        var existingBudget =
+                budgetRepository.findByUserIdAndCategoryIdAndPeriod(userId, categoryId, period);
 
         // If budget exists and it's not the one we're updating, throw error
         if (existingBudget.isPresent()) {
@@ -1268,11 +1229,10 @@ public class BudgetService {
     }
 
     /**
-     * Returns the display name for a category, decrypting if the category is
-     * user-created. System
+     * Returns the display name for a category, decrypting if the category is user-created. System
      * categories have plain-text names; user categories have encrypted names.
      *
-     * @param category      the category entity
+     * @param category the category entity
      * @param encryptionKey the AES-256 encryption key
      * @return the plain-text category name
      */
@@ -1300,13 +1260,12 @@ public class BudgetService {
     /**
      * Helper method to decrypt amount and map Budget to BudgetResponse DTO.
      *
-     * @param budget        the budget entity with encrypted amount
-     * @param category      the category entity for denormalization
+     * @param budget the budget entity with encrypted amount
+     * @param category the category entity for denormalization
      * @param encryptionKey the encryption key for decryption
      * @return the budget response with decrypted amount and category details
      */
-    private BudgetResponse toResponseWithDecryption(
-            Budget budget, Category category) {
+    private BudgetResponse toResponseWithDecryption(Budget budget, Category category) {
         // Amount already decrypted by JPA converter
         String decryptedAmount;
         try {
@@ -1345,17 +1304,14 @@ public class BudgetService {
     }
 
     /**
-     * Splits a budget date range into sub-period windows matching the budget's
-     * period type.
+     * Splits a budget date range into sub-period windows matching the budget's period type.
      *
-     * <p>
-     * Each returned array contains exactly two elements:
-     * {@code [periodStart, periodEnd]}.
+     * <p>Each returned array contains exactly two elements: {@code [periodStart, periodEnd]}.
      * Periods are non-overlapping and cover the entire [startDate, endDate] range.
      *
-     * @param period    the budget period type
+     * @param period the budget period type
      * @param startDate the start of the overall budget range (inclusive)
-     * @param endDate   the end of the overall budget range (inclusive)
+     * @param endDate the end of the overall budget range (inclusive)
      * @return ordered list of sub-period date ranges
      */
     private List<LocalDate[]> buildSubPeriodWindows(
@@ -1391,7 +1347,7 @@ public class BudgetService {
                 windowEnd = endDate;
             }
 
-            windows.add(new LocalDate[] { cursor, windowEnd });
+            windows.add(new LocalDate[] {cursor, windowEnd});
 
             // Advance cursor to next window start
             cursor = windowEnd.plusDays(1);
@@ -1403,12 +1359,11 @@ public class BudgetService {
     /**
      * Produces a human-readable label for a sub-period.
      *
-     * <p>
-     * Examples: "Jan 2024", "Feb 2024", "Week of 01 Jan", "Q1 2024"
+     * <p>Examples: "Jan 2024", "Feb 2024", "Week of 01 Jan", "Q1 2024"
      *
-     * @param period      the budget period type
+     * @param period the budget period type
      * @param periodStart the start of the sub-period
-     * @param periodEnd   the end of the sub-period
+     * @param periodEnd the end of the sub-period
      * @return human-readable label
      */
     private String formatPeriodLabel(
@@ -1430,8 +1385,7 @@ public class BudgetService {
     }
 
     private Long resolveCurrencyId(String currencyCode) {
-        if (currencyCode == null || currencyCode.isBlank())
-            return null;
+        if (currencyCode == null || currencyCode.isBlank()) return null;
         return currencyRepository
                 .findByCode(currencyCode)
                 .map(org.openfinance.entity.Currency::getId)
@@ -1445,8 +1399,11 @@ public class BudgetService {
                 return;
             }
             javax.crypto.SecretKey searchKey = searchTokenService.deriveSearchKey(key);
-            searchTokenService.indexEntity(budget.getUserId(), "BUDGET", budget.getId(),
-                    java.util.List.<String[]>of(new String[] { "notes", notes }),
+            searchTokenService.indexEntity(
+                    budget.getUserId(),
+                    "BUDGET",
+                    budget.getId(),
+                    java.util.List.<String[]>of(new String[] {"notes", notes}),
                     searchKey);
         } catch (Exception e) {
             log.warn("Failed to index budget {} search tokens: {}", budget.getId(), e.getMessage());

@@ -40,44 +40,32 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service layer for managing real estate properties.
  *
- * <p>
- * This service handles business logic for property CRUD operations, including:
+ * <p>This service handles business logic for property CRUD operations, including:
  *
  * <ul>
- * <li>Creating new properties with encrypted sensitive fields
- * <li>Updating existing properties
- * <li>Deleting properties (soft delete via isActive flag)
- * <li>Retrieving properties with decrypted data and calculated fields
- * <li>Property equity calculations (value - mortgage balance)
- * <li>Return on Investment (ROI) calculations
- * <li>Property value estimations
+ *   <li>Creating new properties with encrypted sensitive fields
+ *   <li>Updating existing properties
+ *   <li>Deleting properties (soft delete via isActive flag)
+ *   <li>Retrieving properties with decrypted data and calculated fields
+ *   <li>Property equity calculations (value - mortgage balance)
+ *   <li>Return on Investment (ROI) calculations
+ *   <li>Property value estimations
  * </ul>
  *
- * <p>
- * <strong>Security Note:</strong> The {@code name}, {@code address},
- * {@code purchasePrice},
- * {@code currentValue}, {@code rentalIncome}, {@code notes}, and
- * {@code documents} fields are
- * encrypted before storing in the database and decrypted when reading. The
- * encryption key must be
- * provided by the caller (typically from the user's session after
- * authentication).
+ * <p><strong>Security Note:</strong> The {@code name}, {@code address}, {@code purchasePrice},
+ * {@code currentValue}, {@code rentalIncome}, {@code notes}, and {@code documents} fields are
+ * encrypted before storing in the database and decrypted when reading. The encryption key must be
+ * provided by the caller (typically from the user's session after authentication).
  *
- * <p>
- * Requirement REQ-2.16: Real Estate & Physical Assets - Property management
+ * <p>Requirement REQ-2.16: Real Estate & Physical Assets - Property management
  *
- * <p>
- * Requirement REQ-2.16.1: Track property details (name, type, address, values)
+ * <p>Requirement REQ-2.16.1: Track property details (name, type, address, values)
  *
- * <p>
- * Requirement REQ-2.16.2: Calculate property equity and ROI
+ * <p>Requirement REQ-2.16.2: Calculate property equity and ROI
  *
- * <p>
- * Requirement REQ-2.18: Data encryption at rest for sensitive fields
+ * <p>Requirement REQ-2.18: Data encryption at rest for sensitive fields
  *
- * <p>
- * Requirement REQ-3.2: Authorization - Users can only access their own
- * properties
+ * <p>Requirement REQ-3.2: Authorization - Users can only access their own properties
  *
  * @see org.openfinance.entity.RealEstateProperty
  * @see org.openfinance.dto.RealEstatePropertyRequest
@@ -109,29 +97,21 @@ public class RealEstateService {
     /**
      * Creates a new real estate property for the specified user.
      *
-     * <p>
-     * Sensitive fields (name, address, purchasePrice, currentValue, rentalIncome,
-     * notes,
-     * documents) are encrypted before storing in the database. If a mortgageId is
-     * provided,
+     * <p>Sensitive fields (name, address, purchasePrice, currentValue, rentalIncome, notes,
+     * documents) are encrypted before storing in the database. If a mortgageId is provided,
      * validates that the mortgage exists and belongs to the user.
      *
-     * <p>
-     * Requirement REQ-2.16.1: Create new property with encrypted sensitive data
+     * <p>Requirement REQ-2.16.1: Create new property with encrypted sensitive data
      *
-     * <p>
-     * Requirement REQ-2.16.2: Link property to mortgage (optional)
+     * <p>Requirement REQ-2.16.2: Link property to mortgage (optional)
      *
-     * @param userId        the ID of the user creating the property
-     * @param request       the property creation request containing property
-     *                      details
+     * @param userId the ID of the user creating the property
+     * @param request the property creation request containing property details
      * @param encryptionKey the AES-256 encryption key for sensitive fields
      * @return the created property with decrypted data and calculated fields
-     * @throws IllegalArgumentException   if userId, request, or encryptionKey is
-     *                                    null
-     * @throws LiabilityNotFoundException if mortgageId is provided but mortgage not
-     *                                    found or
-     *                                    doesn't belong to user
+     * @throws IllegalArgumentException if userId, request, or encryptionKey is null
+     * @throws LiabilityNotFoundException if mortgageId is provided but mortgage not found or
+     *     doesn't belong to user
      */
     public RealEstatePropertyResponse createProperty(
             Long userId, RealEstatePropertyRequest request) {
@@ -195,11 +175,13 @@ public class RealEstateService {
         // Reload with mortgage relationship if mortgageId is set (for response
         // population)
         if (savedProperty.getMortgageId() != null) {
-            savedProperty = realEstateRepository
-                    .findByIdAndUserId(savedProperty.getId(), userId)
-                    .orElseThrow(
-                            () -> new IllegalStateException(
-                                    "Property not found after save"));
+            savedProperty =
+                    realEstateRepository
+                            .findByIdAndUserId(savedProperty.getId(), userId)
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalStateException(
+                                                    "Property not found after save"));
         }
 
         // Decrypt and return response with calculated fields
@@ -221,34 +203,25 @@ public class RealEstateService {
     /**
      * Updates an existing real estate property.
      *
-     * <p>
-     * Only the property owner can update the property. Sensitive fields are
-     * re-encrypted if they
+     * <p>Only the property owner can update the property. Sensitive fields are re-encrypted if they
      * have changed. If mortgageId is updated, validates the new mortgage ownership.
      *
-     * <p>
-     * Requirement REQ-2.16.1: Update property details
+     * <p>Requirement REQ-2.16.1: Update property details
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization check - verify property ownership
+     * <p>Requirement REQ-3.2: Authorization check - verify property ownership
      *
-     * @param propertyId    the ID of the property to update
-     * @param userId        the ID of the user updating the property (for
-     *                      authorization)
-     * @param request       the property update request
+     * @param propertyId the ID of the property to update
+     * @param userId the ID of the user updating the property (for authorization)
+     * @param request the property update request
      * @param encryptionKey the AES-256 encryption key for sensitive fields
      * @return the updated property with decrypted data and calculated fields
-     * @throws RealEstatePropertyNotFoundException if property not found or doesn't
-     *                                             belong to user
-     * @throws LiabilityNotFoundException          if mortgageId is provided but
-     *                                             mortgage not found or
-     *                                             doesn't belong to user
-     * @throws IllegalArgumentException            if any parameter is null
+     * @throws RealEstatePropertyNotFoundException if property not found or doesn't belong to user
+     * @throws LiabilityNotFoundException if mortgageId is provided but mortgage not found or
+     *     doesn't belong to user
+     * @throws IllegalArgumentException if any parameter is null
      */
     public RealEstatePropertyResponse updateProperty(
-            Long propertyId,
-            Long userId,
-            RealEstatePropertyRequest request) {
+            Long propertyId, Long userId, RealEstatePropertyRequest request) {
         if (propertyId == null) {
             throw new IllegalArgumentException("Property ID cannot be null");
         }
@@ -265,11 +238,13 @@ public class RealEstateService {
                 request.getPropertyType());
 
         // Fetch property and verify ownership (Requirement 3.2: Authorization)
-        RealEstateProperty property = realEstateRepository
-                .findByIdAndUserId(propertyId, userId)
-                .orElseThrow(
-                        () -> RealEstatePropertyNotFoundException.byIdAndUser(
-                                propertyId, userId));
+        RealEstateProperty property =
+                realEstateRepository
+                        .findByIdAndUserId(propertyId, userId)
+                        .orElseThrow(
+                                () ->
+                                        RealEstatePropertyNotFoundException.byIdAndUser(
+                                                propertyId, userId));
 
         // Capture snapshot before update for history
         RealEstatePropertyResponse beforeSnapshot = toResponseWithDecryption(property);
@@ -299,9 +274,10 @@ public class RealEstateService {
         // Record value history if currentValue changed
         if (request.getCurrentValue() != null) {
             try {
-                BigDecimal oldValue = (oldEncryptedValue != null && !oldEncryptedValue.isBlank())
-                        ? new BigDecimal(oldEncryptedValue)
-                        : null;
+                BigDecimal oldValue =
+                        (oldEncryptedValue != null && !oldEncryptedValue.isBlank())
+                                ? new BigDecimal(oldEncryptedValue)
+                                : null;
                 if (oldValue == null || oldValue.compareTo(request.getCurrentValue()) != 0) {
                     recordValueHistory(updatedProperty, request.getCurrentValue());
                 }
@@ -330,11 +306,12 @@ public class RealEstateService {
 
         log.info("Property updated successfully: id={}, userId={}", propertyId, userId);
         LocalDate newPurchaseDate = updatedProperty.getPurchaseDate();
-        LocalDate cutoff = (oldPurchaseDate != null
-                && (newPurchaseDate == null
-                        || oldPurchaseDate.isBefore(newPurchaseDate)))
-                                ? oldPurchaseDate
-                                : newPurchaseDate;
+        LocalDate cutoff =
+                (oldPurchaseDate != null
+                                && (newPurchaseDate == null
+                                        || oldPurchaseDate.isBefore(newPurchaseDate)))
+                        ? oldPurchaseDate
+                        : newPurchaseDate;
         invalidateSnapshotsFrom(userId, cutoff);
 
         // Decrypt and return response with calculated fields
@@ -356,23 +333,17 @@ public class RealEstateService {
     /**
      * Deletes a property (soft delete by setting isActive = false).
      *
-     * <p>
-     * Only the property owner can delete the property. The property is not
-     * physically removed
+     * <p>Only the property owner can delete the property. The property is not physically removed
      * from the database but marked as inactive for historical tracking.
      *
-     * <p>
-     * Requirement REQ-2.16.1: Delete (deactivate) property
+     * <p>Requirement REQ-2.16.1: Delete (deactivate) property
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization check - verify property ownership
+     * <p>Requirement REQ-3.2: Authorization check - verify property ownership
      *
      * @param propertyId the ID of the property to delete
-     * @param userId     the ID of the user deleting the property (for
-     *                   authorization)
-     * @throws RealEstatePropertyNotFoundException if property not found or doesn't
-     *                                             belong to user
-     * @throws IllegalArgumentException            if propertyId or userId is null
+     * @param userId the ID of the user deleting the property (for authorization)
+     * @throws RealEstatePropertyNotFoundException if property not found or doesn't belong to user
+     * @throws IllegalArgumentException if propertyId or userId is null
      */
     public void deleteProperty(Long propertyId, Long userId) {
         if (propertyId == null) {
@@ -385,11 +356,13 @@ public class RealEstateService {
         log.debug("Deleting property {}: userId={}", propertyId, userId);
 
         // Fetch property and verify ownership
-        RealEstateProperty property = realEstateRepository
-                .findByIdAndUserId(propertyId, userId)
-                .orElseThrow(
-                        () -> RealEstatePropertyNotFoundException.byIdAndUser(
-                                propertyId, userId));
+        RealEstateProperty property =
+                realEstateRepository
+                        .findByIdAndUserId(propertyId, userId)
+                        .orElseThrow(
+                                () ->
+                                        RealEstatePropertyNotFoundException.byIdAndUser(
+                                                propertyId, userId));
 
         RealEstatePropertyResponse snapshot = toResponseWithDecryption(property);
         String label = snapshot.getName();
@@ -430,28 +403,21 @@ public class RealEstateService {
     /**
      * Retrieves a single property by ID with decrypted data and calculated fields.
      *
-     * <p>
-     * Only the property owner can retrieve the property.
+     * <p>Only the property owner can retrieve the property.
      *
-     * <p>
-     * Requirement REQ-2.16.1: Retrieve property details
+     * <p>Requirement REQ-2.16.1: Retrieve property details
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization check - verify property ownership
+     * <p>Requirement REQ-3.2: Authorization check - verify property ownership
      *
-     * @param propertyId    the ID of the property to retrieve
-     * @param userId        the ID of the user retrieving the property (for
-     *                      authorization)
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param propertyId the ID of the property to retrieve
+     * @param userId the ID of the user retrieving the property (for authorization)
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return the property with decrypted data and calculated fields
-     * @throws RealEstatePropertyNotFoundException if property not found or doesn't
-     *                                             belong to user
-     * @throws IllegalArgumentException            if any parameter is null
+     * @throws RealEstatePropertyNotFoundException if property not found or doesn't belong to user
+     * @throws IllegalArgumentException if any parameter is null
      */
     @Transactional(readOnly = true)
-    public RealEstatePropertyResponse getPropertyById(
-            Long propertyId, Long userId) {
+    public RealEstatePropertyResponse getPropertyById(Long propertyId, Long userId) {
         if (propertyId == null) {
             throw new IllegalArgumentException("Property ID cannot be null");
         }
@@ -461,11 +427,13 @@ public class RealEstateService {
         log.debug("Retrieving property {}: userId={}", propertyId, userId);
 
         // Fetch property and verify ownership
-        RealEstateProperty property = realEstateRepository
-                .findByIdAndUserIdWithMortgage(propertyId, userId)
-                .orElseThrow(
-                        () -> RealEstatePropertyNotFoundException.byIdAndUser(
-                                propertyId, userId));
+        RealEstateProperty property =
+                realEstateRepository
+                        .findByIdAndUserIdWithMortgage(propertyId, userId)
+                        .orElseThrow(
+                                () ->
+                                        RealEstatePropertyNotFoundException.byIdAndUser(
+                                                propertyId, userId));
 
         // Decrypt and return response with calculated fields
         return toResponseWithDecryption(property);
@@ -474,26 +442,20 @@ public class RealEstateService {
     /**
      * Retrieves all properties for a user with optional filtering.
      *
-     * <p>
-     * Requirement REQ-2.16.1: List all properties for a user
+     * <p>Requirement REQ-2.16.1: List all properties for a user
      *
-     * <p>
-     * Requirement REQ-3.2: Users can only access their own properties
+     * <p>Requirement REQ-3.2: Users can only access their own properties
      *
-     * @param userId          the ID of the user
-     * @param propertyType    optional property type filter (null = all types)
-     * @param includeInactive whether to include inactive properties (default:
-     *                        false)
-     * @param encryptionKey   the AES-256 encryption key for decrypting sensitive
-     *                        fields
+     * @param userId the ID of the user
+     * @param propertyType optional property type filter (null = all types)
+     * @param includeInactive whether to include inactive properties (default: false)
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return list of properties with decrypted data and calculated fields
      * @throws IllegalArgumentException if userId or encryptionKey is null
      */
     @Transactional(readOnly = true)
     public List<RealEstatePropertyResponse> getPropertiesByUserId(
-            Long userId,
-            PropertyType propertyType,
-            boolean includeInactive) {
+            Long userId, PropertyType propertyType, boolean includeInactive) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -510,8 +472,9 @@ public class RealEstateService {
             if (includeInactive) {
                 properties = realEstateRepository.findByUserIdAndPropertyType(userId, propertyType);
             } else {
-                properties = realEstateRepository.findByUserIdAndPropertyTypeAndIsActive(
-                        userId, propertyType, true);
+                properties =
+                        realEstateRepository.findByUserIdAndPropertyTypeAndIsActive(
+                                userId, propertyType, true);
             }
         } else {
             if (includeInactive) {
@@ -532,44 +495,36 @@ public class RealEstateService {
     /**
      * Searches properties with filters and pagination.
      *
-     * <p>
-     * This method supports dynamic filtering and sorting through the search
-     * criteria. All
+     * <p>This method supports dynamic filtering and sorting through the search criteria. All
      * filtering is done at the database level for efficiency.
      *
-     * <p>
-     * <strong>Supported Filters:</strong>
+     * <p><strong>Supported Filters:</strong>
      *
      * <ul>
-     * <li>keyword - Search in property name or address (case-insensitive)
-     * <li>propertyType - Filter by property type
-     * <li>currency - Filter by currency code
-     * <li>isActive - Filter by active status
-     * <li>hasMortgage - Filter by mortgage presence
-     * <li>purchaseDateFrom - Filter by purchase date >= this date
-     * <li>purchaseDateTo - Filter by purchase date <= this date
-     * <li>valueMin - Filter by minimum current value
-     * <li>valueMax - Filter by maximum current value
-     * <li>priceMin - Filter by minimum purchase price
-     * <li>priceMax - Filter by maximum purchase price
-     * <li>rentalIncomeMin - Filter by minimum rental income
+     *   <li>keyword - Search in property name or address (case-insensitive)
+     *   <li>propertyType - Filter by property type
+     *   <li>currency - Filter by currency code
+     *   <li>isActive - Filter by active status
+     *   <li>hasMortgage - Filter by mortgage presence
+     *   <li>purchaseDateFrom - Filter by purchase date >= this date
+     *   <li>purchaseDateTo - Filter by purchase date <= this date
+     *   <li>valueMin - Filter by minimum current value
+     *   <li>valueMax - Filter by maximum current value
+     *   <li>priceMin - Filter by minimum purchase price
+     *   <li>priceMax - Filter by maximum purchase price
+     *   <li>rentalIncomeMin - Filter by minimum rental income
      * </ul>
      *
-     * @param userId        the ID of the user
-     * @param criteria      the search criteria (all fields optional)
-     * @param pageable      pagination and sorting parameters (page number, size,
-     *                      sort)
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param userId the ID of the user
+     * @param criteria the search criteria (all fields optional)
+     * @param pageable pagination and sorting parameters (page number, size, sort)
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return page of properties matching criteria with decrypted data
-     * @throws IllegalArgumentException if userId, criteria, pageable, or
-     *                                  encryptionKey is null
+     * @throws IllegalArgumentException if userId, criteria, pageable, or encryptionKey is null
      */
     @Transactional(readOnly = true)
     public Page<RealEstatePropertyResponse> searchProperties(
-            Long userId,
-            RealEstateSearchCriteria criteria,
-            Pageable pageable) {
+            Long userId, RealEstateSearchCriteria criteria, Pageable pageable) {
 
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -586,7 +541,8 @@ public class RealEstateService {
                 criteria.getKeyword(),
                 criteria.getPropertyType());
 
-        boolean hasKeyword = criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty();
+        boolean hasKeyword =
+                criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty();
 
         // name, currentValue, purchasePrice and rentalIncome are encrypted at rest.
         // DB-level LIKE / ORDER BY on these fields does not work against plaintext
@@ -594,54 +550,61 @@ public class RealEstateService {
         // When either a keyword filter or a sort on an encrypted field is requested,
         // we fall back to an in-memory approach: fetch all matching rows (non-encrypted
         // filters applied at DB level), decrypt, then filter/sort/paginate in Java.
-        Set<String> encryptedSortFields = Set.of("name", "currentValue", "purchasePrice", "rentalIncome");
-        boolean hasSortOnEncryptedField = pageable.getSort().stream()
-                .anyMatch(order -> encryptedSortFields.contains(order.getProperty()));
+        Set<String> encryptedSortFields =
+                Set.of("name", "currentValue", "purchasePrice", "rentalIncome");
+        boolean hasSortOnEncryptedField =
+                pageable.getSort().stream()
+                        .anyMatch(order -> encryptedSortFields.contains(order.getProperty()));
 
         if (hasKeyword || hasSortOnEncryptedField) {
             // Build criteria without keyword so other non-encrypted filters still apply at
             // DB level
-            RealEstateSearchCriteria criteriaWithoutKeyword = RealEstateSearchCriteria.builder()
-                    .propertyType(criteria.getPropertyType())
-                    .currency(criteria.getCurrency())
-                    .isActive(criteria.getIsActive())
-                    .hasMortgage(criteria.getHasMortgage())
-                    .purchaseDateFrom(criteria.getPurchaseDateFrom())
-                    .purchaseDateTo(criteria.getPurchaseDateTo())
-                    .build();
+            RealEstateSearchCriteria criteriaWithoutKeyword =
+                    RealEstateSearchCriteria.builder()
+                            .propertyType(criteria.getPropertyType())
+                            .currency(criteria.getCurrency())
+                            .isActive(criteria.getIsActive())
+                            .hasMortgage(criteria.getHasMortgage())
+                            .purchaseDateFrom(criteria.getPurchaseDateFrom())
+                            .purchaseDateTo(criteria.getPurchaseDateTo())
+                            .build();
 
-            Specification<RealEstateProperty> specWithoutKeyword = RealEstateSpecification.buildSpecification(userId,
-                    criteriaWithoutKeyword);
+            Specification<RealEstateProperty> specWithoutKeyword =
+                    RealEstateSpecification.buildSpecification(userId, criteriaWithoutKeyword);
             List<RealEstateProperty> allMatching = realEstateRepository.findAll(specWithoutKeyword);
 
             // Decrypt and apply keyword filter in memory
-            final String lowerKeyword = hasKeyword ? criteria.getKeyword().trim().toLowerCase() : null;
-            List<RealEstatePropertyResponse> filtered = allMatching.stream()
-                    .map(property -> toResponseWithDecryption(property))
-                    .filter(
-                            response -> lowerKeyword == null
-                                    || (response.getName() != null
-                                            && response.getName()
-                                                    .toLowerCase()
-                                                    .contains(lowerKeyword))
-                                    || (response.getAddress() != null
-                                            && response.getAddress()
-                                                    .toLowerCase()
-                                                    .contains(lowerKeyword)))
-                    .collect(Collectors.toList());
+            final String lowerKeyword =
+                    hasKeyword ? criteria.getKeyword().trim().toLowerCase() : null;
+            List<RealEstatePropertyResponse> filtered =
+                    allMatching.stream()
+                            .map(property -> toResponseWithDecryption(property))
+                            .filter(
+                                    response ->
+                                            lowerKeyword == null
+                                                    || (response.getName() != null
+                                                            && response.getName()
+                                                                    .toLowerCase()
+                                                                    .contains(lowerKeyword))
+                                                    || (response.getAddress() != null
+                                                            && response.getAddress()
+                                                                    .toLowerCase()
+                                                                    .contains(lowerKeyword)))
+                            .collect(Collectors.toList());
 
             // Apply in-memory sort (handles encrypted sort fields correctly)
             Sort sort = pageable.getSort();
             if (sort.isSorted()) {
                 Comparator<RealEstatePropertyResponse> comparator = null;
                 for (Sort.Order order : sort) {
-                    Comparator<RealEstatePropertyResponse> fieldComp = buildPropertyComparator(order.getProperty());
+                    Comparator<RealEstatePropertyResponse> fieldComp =
+                            buildPropertyComparator(order.getProperty());
                     if (fieldComp != null) {
-                        if (order.isDescending())
-                            fieldComp = fieldComp.reversed();
-                        comparator = comparator == null
-                                ? fieldComp
-                                : comparator.thenComparing(fieldComp);
+                        if (order.isDescending()) fieldComp = fieldComp.reversed();
+                        comparator =
+                                comparator == null
+                                        ? fieldComp
+                                        : comparator.thenComparing(fieldComp);
                     }
                 }
                 if (comparator != null) {
@@ -665,7 +628,8 @@ public class RealEstateService {
         }
 
         // Standard DB-level query (no keyword filter, sort field not encrypted)
-        Specification<RealEstateProperty> spec = RealEstateSpecification.buildSpecification(userId, criteria);
+        Specification<RealEstateProperty> spec =
+                RealEstateSpecification.buildSpecification(userId, criteria);
         Page<RealEstateProperty> propertyPage = realEstateRepository.findAll(spec, pageable);
 
         log.debug(
@@ -678,8 +642,7 @@ public class RealEstateService {
     }
 
     /**
-     * Builds a Comparator for in-memory sorting of RealEstatePropertyResponse by
-     * field name. Used
+     * Builds a Comparator for in-memory sorting of RealEstatePropertyResponse by field name. Used
      * when DB-level ORDER BY is not applicable (encrypted or derived fields).
      */
     private Comparator<RealEstatePropertyResponse> buildPropertyComparator(String field) {
@@ -692,26 +655,34 @@ public class RealEstateService {
                 };
             case "currentValue":
                 return (a, b) -> {
-                    BigDecimal va = a.getCurrentValue() != null ? a.getCurrentValue() : BigDecimal.ZERO;
-                    BigDecimal vb = b.getCurrentValue() != null ? b.getCurrentValue() : BigDecimal.ZERO;
+                    BigDecimal va =
+                            a.getCurrentValue() != null ? a.getCurrentValue() : BigDecimal.ZERO;
+                    BigDecimal vb =
+                            b.getCurrentValue() != null ? b.getCurrentValue() : BigDecimal.ZERO;
                     return va.compareTo(vb);
                 };
             case "purchasePrice":
                 return (a, b) -> {
-                    BigDecimal va = a.getPurchasePrice() != null ? a.getPurchasePrice() : BigDecimal.ZERO;
-                    BigDecimal vb = b.getPurchasePrice() != null ? b.getPurchasePrice() : BigDecimal.ZERO;
+                    BigDecimal va =
+                            a.getPurchasePrice() != null ? a.getPurchasePrice() : BigDecimal.ZERO;
+                    BigDecimal vb =
+                            b.getPurchasePrice() != null ? b.getPurchasePrice() : BigDecimal.ZERO;
                     return va.compareTo(vb);
                 };
             case "purchaseDate":
                 return (a, b) -> {
-                    LocalDate va = a.getPurchaseDate() != null ? a.getPurchaseDate() : LocalDate.MIN;
-                    LocalDate vb = b.getPurchaseDate() != null ? b.getPurchaseDate() : LocalDate.MIN;
+                    LocalDate va =
+                            a.getPurchaseDate() != null ? a.getPurchaseDate() : LocalDate.MIN;
+                    LocalDate vb =
+                            b.getPurchaseDate() != null ? b.getPurchaseDate() : LocalDate.MIN;
                     return va.compareTo(vb);
                 };
             case "rentalIncome":
                 return (a, b) -> {
-                    BigDecimal va = a.getRentalIncome() != null ? a.getRentalIncome() : BigDecimal.ZERO;
-                    BigDecimal vb = b.getRentalIncome() != null ? b.getRentalIncome() : BigDecimal.ZERO;
+                    BigDecimal va =
+                            a.getRentalIncome() != null ? a.getRentalIncome() : BigDecimal.ZERO;
+                    BigDecimal vb =
+                            b.getRentalIncome() != null ? b.getRentalIncome() : BigDecimal.ZERO;
                     return va.compareTo(vb);
                 };
             default:
@@ -722,26 +693,20 @@ public class RealEstateService {
     /**
      * Calculates equity for a property (current value - mortgage balance).
      *
-     * <p>
-     * Equity represents the portion of the property owned outright. If no mortgage
-     * is linked,
+     * <p>Equity represents the portion of the property owned outright. If no mortgage is linked,
      * equity equals the current property value.
      *
-     * <p>
-     * Requirement REQ-2.16.2: Calculate property equity
+     * <p>Requirement REQ-2.16.2: Calculate property equity
      *
-     * @param propertyId    the ID of the property
-     * @param userId        the ID of the user (for authorization)
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param propertyId the ID of the property
+     * @param userId the ID of the user (for authorization)
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return detailed equity breakdown including LTV ratio
-     * @throws RealEstatePropertyNotFoundException if property not found or doesn't
-     *                                             belong to user
-     * @throws IllegalArgumentException            if any parameter is null
+     * @throws RealEstatePropertyNotFoundException if property not found or doesn't belong to user
+     * @throws IllegalArgumentException if any parameter is null
      */
     @Transactional(readOnly = true)
-    public PropertyEquityResponse calculateEquity(
-            Long propertyId, Long userId) {
+    public PropertyEquityResponse calculateEquity(Long propertyId, Long userId) {
         if (propertyId == null) {
             throw new IllegalArgumentException("Property ID cannot be null");
         }
@@ -751,11 +716,13 @@ public class RealEstateService {
         log.debug("Calculating equity for property {}: userId={}", propertyId, userId);
 
         // Fetch property with mortgage
-        RealEstateProperty property = realEstateRepository
-                .findByIdAndUserIdWithMortgage(propertyId, userId)
-                .orElseThrow(
-                        () -> RealEstatePropertyNotFoundException.byIdAndUser(
-                                propertyId, userId));
+        RealEstateProperty property =
+                realEstateRepository
+                        .findByIdAndUserIdWithMortgage(propertyId, userId)
+                        .orElseThrow(
+                                () ->
+                                        RealEstatePropertyNotFoundException.byIdAndUser(
+                                                propertyId, userId));
 
         // Get current value (decrypted by JPA converter)
         BigDecimal currentValue = new BigDecimal(property.getCurrentValue());
@@ -785,15 +752,17 @@ public class RealEstateService {
         BigDecimal loanToValueRatio = BigDecimal.ZERO;
 
         if (currentValue.compareTo(BigDecimal.ZERO) > 0) {
-            equityPercentage = equity.divide(currentValue, SCALE, RoundingMode.HALF_UP)
-                    .multiply(new BigDecimal("100"))
-                    .setScale(2, RoundingMode.HALF_UP);
+            equityPercentage =
+                    equity.divide(currentValue, SCALE, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal("100"))
+                            .setScale(2, RoundingMode.HALF_UP);
 
             if (hasMortgage) {
-                loanToValueRatio = mortgageBalance
-                        .divide(currentValue, SCALE, RoundingMode.HALF_UP)
-                        .multiply(new BigDecimal("100"))
-                        .setScale(2, RoundingMode.HALF_UP);
+                loanToValueRatio =
+                        mortgageBalance
+                                .divide(currentValue, SCALE, RoundingMode.HALF_UP)
+                                .multiply(new BigDecimal("100"))
+                                .setScale(2, RoundingMode.HALF_UP);
             }
         }
 
@@ -820,23 +789,17 @@ public class RealEstateService {
     /**
      * Calculates Return on Investment (ROI) for a property.
      *
-     * <p>
-     * ROI considers both capital appreciation and rental income over the holding
-     * period.
-     * Formula: ((currentValue - purchasePrice + totalRentalIncome) / purchasePrice)
-     * * 100
+     * <p>ROI considers both capital appreciation and rental income over the holding period.
+     * Formula: ((currentValue - purchasePrice + totalRentalIncome) / purchasePrice) * 100
      *
-     * <p>
-     * Requirement REQ-2.16.2: Calculate property ROI
+     * <p>Requirement REQ-2.16.2: Calculate property ROI
      *
-     * @param propertyId    the ID of the property
-     * @param userId        the ID of the user (for authorization)
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param propertyId the ID of the property
+     * @param userId the ID of the user (for authorization)
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return detailed ROI breakdown including appreciation and rental income
-     * @throws RealEstatePropertyNotFoundException if property not found or doesn't
-     *                                             belong to user
-     * @throws IllegalArgumentException            if any parameter is null
+     * @throws RealEstatePropertyNotFoundException if property not found or doesn't belong to user
+     * @throws IllegalArgumentException if any parameter is null
      */
     @Transactional(readOnly = true)
     public PropertyROIResponse calculateROI(Long propertyId, Long userId) {
@@ -849,11 +812,13 @@ public class RealEstateService {
         log.debug("Calculating ROI for property {}: userId={}", propertyId, userId);
 
         // Fetch property
-        RealEstateProperty property = realEstateRepository
-                .findByIdAndUserId(propertyId, userId)
-                .orElseThrow(
-                        () -> RealEstatePropertyNotFoundException.byIdAndUser(
-                                propertyId, userId));
+        RealEstateProperty property =
+                realEstateRepository
+                        .findByIdAndUserId(propertyId, userId)
+                        .orElseThrow(
+                                () ->
+                                        RealEstatePropertyNotFoundException.byIdAndUser(
+                                                propertyId, userId));
 
         // Get fields (decrypted by JPA converter)
         String propertyName = property.getName();
@@ -865,10 +830,11 @@ public class RealEstateService {
         BigDecimal appreciationPercentage = BigDecimal.ZERO;
 
         if (purchasePrice.compareTo(BigDecimal.ZERO) > 0) {
-            appreciationPercentage = appreciation
-                    .divide(purchasePrice, SCALE, RoundingMode.HALF_UP)
-                    .multiply(new BigDecimal("100"))
-                    .setScale(2, RoundingMode.HALF_UP);
+            appreciationPercentage =
+                    appreciation
+                            .divide(purchasePrice, SCALE, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal("100"))
+                            .setScale(2, RoundingMode.HALF_UP);
         }
 
         // Calculate holding period
@@ -895,11 +861,13 @@ public class RealEstateService {
 
             // Calculate annual rental yield
             if (currentValue.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal annualRentalIncome = monthlyRentalIncome.multiply(new BigDecimal(MONTHS_PER_YEAR));
-                rentalYield = annualRentalIncome
-                        .divide(currentValue, SCALE, RoundingMode.HALF_UP)
-                        .multiply(new BigDecimal("100"))
-                        .setScale(2, RoundingMode.HALF_UP);
+                BigDecimal annualRentalIncome =
+                        monthlyRentalIncome.multiply(new BigDecimal(MONTHS_PER_YEAR));
+                rentalYield =
+                        annualRentalIncome
+                                .divide(currentValue, SCALE, RoundingMode.HALF_UP)
+                                .multiply(new BigDecimal("100"))
+                                .setScale(2, RoundingMode.HALF_UP);
             }
         }
 
@@ -913,15 +881,17 @@ public class RealEstateService {
                 totalGain = totalGain.add(totalRentalIncome);
             }
 
-            totalROI = totalGain
-                    .divide(purchasePrice, SCALE, RoundingMode.HALF_UP)
-                    .multiply(new BigDecimal("100"))
-                    .setScale(2, RoundingMode.HALF_UP);
+            totalROI =
+                    totalGain
+                            .divide(purchasePrice, SCALE, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal("100"))
+                            .setScale(2, RoundingMode.HALF_UP);
 
             // Calculate annualized return if property owned for at least 1 year
             if (yearsOwned > 0) {
-                annualizedReturn = totalROI.divide(new BigDecimal(yearsOwned), SCALE, RoundingMode.HALF_UP)
-                        .setScale(2, RoundingMode.HALF_UP);
+                annualizedReturn =
+                        totalROI.divide(new BigDecimal(yearsOwned), SCALE, RoundingMode.HALF_UP)
+                                .setScale(2, RoundingMode.HALF_UP);
             }
         }
 
@@ -951,26 +921,20 @@ public class RealEstateService {
     /**
      * Updates the estimated current value of a property.
      *
-     * <p>
-     * This method allows updating the property's current market value based on new
-     * appraisals,
+     * <p>This method allows updating the property's current market value based on new appraisals,
      * market data, or automated valuation models.
      *
-     * <p>
-     * Requirement REQ-2.16.1: Update property value estimates
+     * <p>Requirement REQ-2.16.1: Update property value estimates
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization check - verify property ownership
+     * <p>Requirement REQ-3.2: Authorization check - verify property ownership
      *
-     * @param propertyId    the ID of the property
-     * @param userId        the ID of the user (for authorization)
-     * @param newValue      the new estimated value
+     * @param propertyId the ID of the property
+     * @param userId the ID of the user (for authorization)
+     * @param newValue the new estimated value
      * @param encryptionKey the AES-256 encryption key for encrypting the new value
      * @return the updated property response with recalculated fields
-     * @throws RealEstatePropertyNotFoundException if property not found or doesn't
-     *                                             belong to user
-     * @throws IllegalArgumentException            if any parameter is null or
-     *                                             newValue is negative
+     * @throws RealEstatePropertyNotFoundException if property not found or doesn't belong to user
+     * @throws IllegalArgumentException if any parameter is null or newValue is negative
      */
     public RealEstatePropertyResponse estimateValue(
             Long propertyId, Long userId, BigDecimal newValue) {
@@ -993,11 +957,13 @@ public class RealEstateService {
                 newValue);
 
         // Fetch property and verify ownership
-        RealEstateProperty property = realEstateRepository
-                .findByIdAndUserId(propertyId, userId)
-                .orElseThrow(
-                        () -> RealEstatePropertyNotFoundException.byIdAndUser(
-                                propertyId, userId));
+        RealEstateProperty property =
+                realEstateRepository
+                        .findByIdAndUserId(propertyId, userId)
+                        .orElseThrow(
+                                () ->
+                                        RealEstatePropertyNotFoundException.byIdAndUser(
+                                                propertyId, userId));
 
         // Update current value (encryption handled by JPA converter)
         property.setCurrentValue(newValue.toString());
@@ -1053,8 +1019,8 @@ public class RealEstateService {
                 // NullValuePropertyMappingStrategy.IGNORE
 
                 // Let's try to just update the price.
-                AssetResponse assetResponse = assetService.getAssetById(
-                        updatedProperty.getAssetId(), userId);
+                AssetResponse assetResponse =
+                        assetService.getAssetById(updatedProperty.getAssetId(), userId);
 
                 AssetRequest partialUpdate = new AssetRequest();
                 partialUpdate.setCurrentPrice(newValue);
@@ -1066,8 +1032,7 @@ public class RealEstateService {
                 partialUpdate.setCurrency(assetResponse.getCurrency());
                 partialUpdate.setPurchaseDate(assetResponse.getPurchaseDate());
 
-                assetService.updateAsset(
-                        updatedProperty.getAssetId(), userId, partialUpdate);
+                assetService.updateAsset(updatedProperty.getAssetId(), userId, partialUpdate);
 
             } catch (Exception e) {
                 log.error(
@@ -1090,21 +1055,20 @@ public class RealEstateService {
     // ========== Private Helper Methods ==========
 
     /**
-     * Inserts a row into {@code real_estate_value_history} recording the property's
-     * value as of
+     * Inserts a row into {@code real_estate_value_history} recording the property's value as of
      * today.
      */
-    private void recordValueHistory(
-            RealEstateProperty property, BigDecimal plainValue) {
+    private void recordValueHistory(RealEstateProperty property, BigDecimal plainValue) {
         try {
-            RealEstateValueHistory entry = RealEstateValueHistory.builder()
-                    .propertyId(property.getId())
-                    .userId(property.getUserId())
-                    .effectiveDate(LocalDate.now())
-                    .recordedValue(plainValue.toString())
-                    .currency(property.getCurrency())
-                    .currencyId(property.getCurrencyId())
-                    .build();
+            RealEstateValueHistory entry =
+                    RealEstateValueHistory.builder()
+                            .propertyId(property.getId())
+                            .userId(property.getUserId())
+                            .effectiveDate(LocalDate.now())
+                            .recordedValue(plainValue.toString())
+                            .currency(property.getCurrency())
+                            .currencyId(property.getCurrencyId())
+                            .build();
             valueHistoryRepository.save(entry);
             log.debug(
                     "Recorded value history for property {}: {} {}",
@@ -1120,13 +1084,11 @@ public class RealEstateService {
     }
 
     /**
-     * Validates that a mortgage (liability) exists and belongs to the specified
-     * user.
+     * Validates that a mortgage (liability) exists and belongs to the specified user.
      *
      * @param mortgageId the liability ID to validate
-     * @param userId     the user ID to check ownership
-     * @throws LiabilityNotFoundException if mortgage not found or doesn't belong to
-     *                                    user
+     * @param userId the user ID to check ownership
+     * @throws LiabilityNotFoundException if mortgage not found or doesn't belong to user
      */
     private void validateMortgageOwnership(Long mortgageId, Long userId) {
         if (!liabilityRepository.existsByIdAndUserId(mortgageId, userId)) {
@@ -1137,13 +1099,11 @@ public class RealEstateService {
     /**
      * Encrypts all sensitive fields of a property entity.
      *
-     * @param property      the entity to encrypt (modified in place)
-     * @param request       the source request with plaintext values
+     * @param property the entity to encrypt (modified in place)
+     * @param request the source request with plaintext values
      * @param encryptionKey the encryption key
      */
-    private void encryptProperty(
-            RealEstateProperty property,
-            RealEstatePropertyRequest request) {
+    private void encryptProperty(RealEstateProperty property, RealEstatePropertyRequest request) {
         property.setName(request.getName());
         property.setAddress(request.getAddress());
         property.setPurchasePrice(request.getPurchasePrice().toString());
@@ -1164,9 +1124,7 @@ public class RealEstateService {
 
     /** Helper to create a linked Asset for a Real Estate property. */
     private void createLinkedAsset(
-            Long userId,
-            RealEstateProperty property,
-            RealEstatePropertyRequest request) {
+            Long userId, RealEstateProperty property, RealEstatePropertyRequest request) {
         AssetRequest assetRequest = new AssetRequest();
         assetRequest.setName(request.getName());
         assetRequest.setType(AssetType.REAL_ESTATE);
@@ -1193,9 +1151,7 @@ public class RealEstateService {
 
     /** Helper to update the linked Asset. */
     private void updateLinkedAsset(
-            Long userId,
-            RealEstateProperty property,
-            RealEstatePropertyRequest request) {
+            Long userId, RealEstateProperty property, RealEstatePropertyRequest request) {
         // We need to fetch the current asset to reuse fields we don't want to change or
         // that are required
         // But for now, let's map what we have.
@@ -1212,16 +1168,14 @@ public class RealEstateService {
     }
 
     /**
-     * Converts a RealEstateProperty entity to a RealEstatePropertyResponse DTO with
-     * decryption and
+     * Converts a RealEstateProperty entity to a RealEstatePropertyResponse DTO with decryption and
      * calculated fields.
      *
-     * @param property      the entity to convert
+     * @param property the entity to convert
      * @param encryptionKey the decryption key
      * @return the response DTO with decrypted data and calculated fields
      */
-    private RealEstatePropertyResponse toResponseWithDecryption(
-            RealEstateProperty property) {
+    private RealEstatePropertyResponse toResponseWithDecryption(RealEstateProperty property) {
         // Map basic fields using MapStruct
         RealEstatePropertyResponse response = realEstateMapper.toResponse(property);
 
@@ -1252,23 +1206,27 @@ public class RealEstateService {
         }
 
         // Calculate derived fields
-        BigDecimal appreciation = currentValue.subtract(purchasePrice).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal appreciation =
+                currentValue.subtract(purchasePrice).setScale(2, RoundingMode.HALF_UP);
         response.setAppreciation(appreciation);
 
         if (purchasePrice.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal appreciationPercentage = appreciation
-                    .divide(purchasePrice, SCALE, RoundingMode.HALF_UP)
-                    .multiply(new BigDecimal("100"))
-                    .setScale(2, RoundingMode.HALF_UP);
+            BigDecimal appreciationPercentage =
+                    appreciation
+                            .divide(purchasePrice, SCALE, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal("100"))
+                            .setScale(2, RoundingMode.HALF_UP);
             response.setAppreciationPercentage(appreciationPercentage);
         }
 
         if (response.getRentalIncome() != null && currentValue.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal annualRentalIncome = response.getRentalIncome().multiply(new BigDecimal(MONTHS_PER_YEAR));
-            BigDecimal rentalYield = annualRentalIncome
-                    .divide(currentValue, SCALE, RoundingMode.HALF_UP)
-                    .multiply(new BigDecimal("100"))
-                    .setScale(2, RoundingMode.HALF_UP);
+            BigDecimal annualRentalIncome =
+                    response.getRentalIncome().multiply(new BigDecimal(MONTHS_PER_YEAR));
+            BigDecimal rentalYield =
+                    annualRentalIncome
+                            .divide(currentValue, SCALE, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal("100"))
+                            .setScale(2, RoundingMode.HALF_UP);
             response.setRentalYield(rentalYield);
         }
 
@@ -1296,9 +1254,10 @@ public class RealEstateService {
             response.setEquity(equity);
 
             if (currentValue.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal equityPercentage = equity.divide(currentValue, SCALE, RoundingMode.HALF_UP)
-                        .multiply(new BigDecimal("100"))
-                        .setScale(2, RoundingMode.HALF_UP);
+                BigDecimal equityPercentage =
+                        equity.divide(currentValue, SCALE, RoundingMode.HALF_UP)
+                                .multiply(new BigDecimal("100"))
+                                .setScale(2, RoundingMode.HALF_UP);
                 response.setEquityPercentage(equityPercentage);
             }
         } else {
@@ -1310,10 +1269,11 @@ public class RealEstateService {
         // Calculate ROI (simplified - just appreciation for now, full calculation in
         // calculateROI method)
         if (purchasePrice.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal roi = appreciation
-                    .divide(purchasePrice, SCALE, RoundingMode.HALF_UP)
-                    .multiply(new BigDecimal("100"))
-                    .setScale(2, RoundingMode.HALF_UP);
+            BigDecimal roi =
+                    appreciation
+                            .divide(purchasePrice, SCALE, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal("100"))
+                            .setScale(2, RoundingMode.HALF_UP);
             response.setRoi(roi);
         }
 
@@ -1325,34 +1285,25 @@ public class RealEstateService {
     }
 
     /**
-     * Populates currency conversion metadata fields on a
-     * RealEstatePropertyResponse.
+     * Populates currency conversion metadata fields on a RealEstatePropertyResponse.
      *
-     * <p>
-     * Fetches the user's base currency from the database, then attempts to convert
-     * the
-     * property's {@code currentValue} to the base currency using
-     * {@link ExchangeRateService}. On
+     * <p>Fetches the user's base currency from the database, then attempts to convert the
+     * property's {@code currentValue} to the base currency using {@link ExchangeRateService}. On
      * failure, falls back to the native amount with {@code isConverted=false}.
      *
-     * <p>
-     * Also performs secondary currency conversion when the user has a secondary
-     * currency
+     * <p>Also performs secondary currency conversion when the user has a secondary currency
      * configured and it differs from the native currency.
      *
-     * <p>
-     * Requirement REQ-3.4: RealEstateService populates conversion fields
+     * <p>Requirement REQ-3.4: RealEstateService populates conversion fields
      *
-     * <p>
-     * Requirement REQ-3.5: Graceful fallback when conversion unavailable
+     * <p>Requirement REQ-3.5: Graceful fallback when conversion unavailable
      *
-     * <p>
-     * Requirement REQ-4.4, REQ-4.5: Secondary conversion logic
+     * <p>Requirement REQ-4.4, REQ-4.5: Secondary conversion logic
      *
-     * @param response       the response DTO to populate
-     * @param userId         the property owner's user ID
+     * @param response the response DTO to populate
+     * @param userId the property owner's user ID
      * @param nativeCurrency the property's native currency code (ISO 4217)
-     * @param nativeValue    the native current value
+     * @param nativeValue the native current value
      */
     private void populateConversionFields(
             RealEstatePropertyResponse response,
@@ -1360,9 +1311,10 @@ public class RealEstateService {
             String nativeCurrency,
             BigDecimal nativeValue) {
         User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
-        String baseCurrency = user != null && user.getBaseCurrency() != null && !user.getBaseCurrency().isBlank()
-                ? user.getBaseCurrency()
-                : "USD";
+        String baseCurrency =
+                user != null && user.getBaseCurrency() != null && !user.getBaseCurrency().isBlank()
+                        ? user.getBaseCurrency()
+                        : "USD";
         String secCurrency = user != null ? user.getSecondaryCurrency() : null;
         response.setBaseCurrency(baseCurrency);
 
@@ -1373,8 +1325,10 @@ public class RealEstateService {
             response.setIsConverted(false);
         } else {
             try {
-                BigDecimal rate = exchangeRateService.getExchangeRate(nativeCurrency, baseCurrency, null);
-                BigDecimal converted = exchangeRateService.convert(nativeValue, nativeCurrency, baseCurrency);
+                BigDecimal rate =
+                        exchangeRateService.getExchangeRate(nativeCurrency, baseCurrency, null);
+                BigDecimal converted =
+                        exchangeRateService.convert(nativeValue, nativeCurrency, baseCurrency);
                 response.setValueInBaseCurrency(converted);
                 response.setExchangeRate(rate);
                 response.setIsConverted(true);
@@ -1397,8 +1351,10 @@ public class RealEstateService {
                 && !nativeCurrency.equals(secCurrency)
                 && nativeValue != null) {
             try {
-                BigDecimal secRate = exchangeRateService.getExchangeRate(nativeCurrency, secCurrency, null);
-                BigDecimal secAmount = exchangeRateService.convert(nativeValue, nativeCurrency, secCurrency);
+                BigDecimal secRate =
+                        exchangeRateService.getExchangeRate(nativeCurrency, secCurrency, null);
+                BigDecimal secAmount =
+                        exchangeRateService.convert(nativeValue, nativeCurrency, secCurrency);
                 response.setValueInSecondaryCurrency(secAmount);
                 response.setSecondaryCurrency(secCurrency);
                 response.setSecondaryExchangeRate(secRate);
@@ -1434,16 +1390,15 @@ public class RealEstateService {
     }
 
     /**
-     * Invalidates net worth snapshots from {@code fromDate} onward (up to today).
-     * Called after any
+     * Invalidates net worth snapshots from {@code fromDate} onward (up to today). Called after any
      * real estate write so the dashboard chart rebuilds affected months.
      */
     private void invalidateSnapshotsFrom(Long userId, LocalDate fromDate) {
-        if (fromDate == null)
-            return;
+        if (fromDate == null) return;
         try {
-            int deleted = netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
-                    userId, fromDate.withDayOfMonth(1), LocalDate.now());
+            int deleted =
+                    netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
+                            userId, fromDate.withDayOfMonth(1), LocalDate.now());
             if (deleted > 0) {
                 log.debug(
                         "Invalidated {} net worth snapshots for user {} (real estate change from {})",
@@ -1461,28 +1416,33 @@ public class RealEstateService {
     }
 
     private Long resolveCurrencyId(String currencyCode) {
-        if (currencyCode == null || currencyCode.isBlank())
-            return null;
+        if (currencyCode == null || currencyCode.isBlank()) return null;
         return currencyRepository
                 .findByCode(currencyCode)
                 .map(org.openfinance.entity.Currency::getId)
                 .orElse(null);
     }
 
-    private void indexPropertySearchTokens(RealEstateProperty property, String name, String address) {
+    private void indexPropertySearchTokens(
+            RealEstateProperty property, String name, String address) {
         try {
             javax.crypto.SecretKey key = org.openfinance.security.EncryptionContext.getKey();
             if (key == null) {
                 return;
             }
             javax.crypto.SecretKey searchKey = searchTokenService.deriveSearchKey(key);
-            searchTokenService.indexEntity(property.getUserId(), "REAL_ESTATE", property.getId(),
+            searchTokenService.indexEntity(
+                    property.getUserId(),
+                    "REAL_ESTATE",
+                    property.getId(),
                     java.util.List.of(
-                            new String[] { "name", name },
-                            new String[] { "address", address }),
+                            new String[] {"name", name}, new String[] {"address", address}),
                     searchKey);
         } catch (Exception e) {
-            log.warn("Failed to index property {} search tokens: {}", property.getId(), e.getMessage());
+            log.warn(
+                    "Failed to index property {} search tokens: {}",
+                    property.getId(),
+                    e.getMessage());
         }
     }
 }

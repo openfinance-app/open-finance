@@ -3,7 +3,6 @@ package org.openfinance.controller;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Locale;
-import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.CategoryRequest;
@@ -12,7 +11,6 @@ import org.openfinance.dto.CategoryTreeNode;
 import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.User;
 import org.openfinance.service.CategoryService;
-import org.openfinance.util.EncryptionUtil;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -118,13 +116,11 @@ public class CategoryController {
      */
     @PostMapping
     public ResponseEntity<CategoryResponse> createCategory(
-            @Valid @RequestBody CategoryRequest request,
-            Authentication authentication) {
+            @Valid @RequestBody CategoryRequest request, Authentication authentication) {
 
         log.info("Creating new category for user");
         User user = (User) authentication.getPrincipal();
-        CategoryResponse response =
-                categoryService.createCategory(user.getId(), request);
+        CategoryResponse response = categoryService.createCategory(user.getId(), request);
 
         log.info(
                 "Category created successfully: id={}, name={}",
@@ -147,8 +143,7 @@ public class CategoryController {
      */
     @GetMapping
     public ResponseEntity<List<CategoryResponse>> getCategories(
-            @RequestParam(required = false) CategoryType type,
-            Authentication authentication) {
+            @RequestParam(required = false) CategoryType type, Authentication authentication) {
 
         log.debug("REST request to get all categories for current user. Type filter: {}", type);
         User user = (User) authentication.getPrincipal();
@@ -156,8 +151,7 @@ public class CategoryController {
         Locale locale = LocaleContextHolder.getLocale();
 
         if (type != null) {
-            categories =
-                    categoryService.getCategoriesByType(user.getId(), type, locale);
+            categories = categoryService.getCategoriesByType(user.getId(), type, locale);
         } else {
             categories = categoryService.getAllCategories(user.getId(), locale);
         }
@@ -173,14 +167,12 @@ public class CategoryController {
      * @return HTTP 200 OK with list of CategoryTreeNode
      */
     @GetMapping("/tree")
-    public ResponseEntity<List<CategoryTreeNode>> getCategoryTree(
-            Authentication authentication) {
+    public ResponseEntity<List<CategoryTreeNode>> getCategoryTree(Authentication authentication) {
 
         log.debug("REST request to get category tree for current user");
         User user = (User) authentication.getPrincipal();
         return ResponseEntity.ok(
-                categoryService.getCategoryTree(
-                        user.getId(), LocaleContextHolder.getLocale()));
+                categoryService.getCategoryTree(user.getId(), LocaleContextHolder.getLocale()));
     }
 
     /**
@@ -193,14 +185,12 @@ public class CategoryController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<CategoryResponse> getCategoryById(
-            @PathVariable("id") Long id,
-            Authentication authentication) {
+            @PathVariable("id") Long id, Authentication authentication) {
 
         log.debug("REST request to get category : {}", id);
         User user = (User) authentication.getPrincipal();
         CategoryResponse response =
-                categoryService.getCategoryById(
-                        user.getId(), id, LocaleContextHolder.getLocale());
+                categoryService.getCategoryById(user.getId(), id, LocaleContextHolder.getLocale());
 
         return ResponseEntity.ok(response);
     }
@@ -239,8 +229,7 @@ public class CategoryController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(
-            @PathVariable("id") Long categoryId,
-            Authentication authentication) {
+            @PathVariable("id") Long categoryId, Authentication authentication) {
 
         log.info("Deleting category: id={}", categoryId);
         User user = (User) authentication.getPrincipal();

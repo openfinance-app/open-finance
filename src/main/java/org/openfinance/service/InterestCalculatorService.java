@@ -6,7 +6,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AccountResponse;
@@ -41,8 +40,7 @@ public class InterestCalculatorService {
      * variation.
      */
     @Transactional(readOnly = true)
-    public BigDecimal calculateInterestEstimate(
-            Long accountId, Long userId, String period) {
+    public BigDecimal calculateInterestEstimate(Long accountId, Long userId, String period) {
         log.debug(
                 "Calculating interest projection for account {} over period {}", accountId, period);
 
@@ -95,8 +93,7 @@ public class InterestCalculatorService {
      * was applicable on each calendar day.
      */
     @Transactional(readOnly = true)
-    public BigDecimal calculateHistoricalAccumulated(
-            Long accountId, Long userId, String period) {
+    public BigDecimal calculateHistoricalAccumulated(Long accountId, Long userId, String period) {
         log.debug("Calculating historical accumulated interest for account {}", accountId);
 
         AccountResponse account = accountService.getAccountById(accountId, userId);

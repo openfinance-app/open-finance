@@ -13,34 +13,30 @@ import org.openfinance.converter.EncryptedStringConverter;
 /**
  * JPA entity representing a single line of a split transaction.
  *
- * <p>
- * A split allows one parent {@link Transaction} to be categorized across
- * multiple categories,
- * each with its own amount. The sum of all split amounts for a given
- * transaction must equal the
+ * <p>A split allows one parent {@link Transaction} to be categorized across multiple categories,
+ * each with its own amount. The sum of all split amounts for a given transaction must equal the
  * parent transaction's total amount (within a ±0.01 tolerance).
  *
- * <p>
- * <strong>Security:</strong> The {@code description} field is encrypted before
- * storage,
+ * <p><strong>Security:</strong> The {@code description} field is encrypted before storage,
  * consistent with the pattern used in {@link Transaction}.
  *
- * <p>
- * <strong>Requirements:</strong>
+ * <p><strong>Requirements:</strong>
  *
  * <ul>
- * <li>REQ-SPL-1.1: Split has categoryId, amount, and optional description
- * <li>REQ-SPL-1.3: Splits stored in dedicated transaction_splits table
- * <li>REQ-SPL-2.7: Cascade delete via FK ON DELETE CASCADE
+ *   <li>REQ-SPL-1.1: Split has categoryId, amount, and optional description
+ *   <li>REQ-SPL-1.3: Splits stored in dedicated transaction_splits table
+ *   <li>REQ-SPL-2.7: Cascade delete via FK ON DELETE CASCADE
  * </ul>
  *
  * @see Transaction
  * @see Category
  */
 @Entity
-@Table(name = "transaction_splits", indexes = {
-        @Index(name = "idx_transaction_splits_transaction_id", columnList = "transaction_id")
-})
+@Table(
+        name = "transaction_splits",
+        indexes = {
+            @Index(name = "idx_transaction_splits_transaction_id", columnList = "transaction_id")
+        })
 @Getter
 @Setter
 @Builder
@@ -58,13 +54,10 @@ public class TransactionSplit {
     /**
      * ID of the parent transaction this split belongs to.
      *
-     * <p>
-     * Foreign key to {@code transactions(id)} with {@code ON DELETE CASCADE} —
-     * splits are
+     * <p>Foreign key to {@code transactions(id)} with {@code ON DELETE CASCADE} — splits are
      * automatically removed when the parent transaction is deleted.
      *
-     * <p>
-     * Requirement REQ-SPL-2.7: Cascade delete
+     * <p>Requirement REQ-SPL-2.7: Cascade delete
      */
     @NotNull(message = "Transaction ID is required")
     @Column(name = "transaction_id", nullable = false)
@@ -73,11 +66,9 @@ public class TransactionSplit {
     /**
      * ID of the category assigned to this split line (nullable).
      *
-     * <p>
-     * Foreign key to {@code categories(id)} with {@code ON DELETE SET NULL}.
+     * <p>Foreign key to {@code categories(id)} with {@code ON DELETE SET NULL}.
      *
-     * <p>
-     * Requirement REQ-SPL-1.1: Split must have a categoryId
+     * <p>Requirement REQ-SPL-1.1: Split must have a categoryId
      */
     @Column(name = "category_id")
     private Long categoryId;
@@ -90,17 +81,17 @@ public class TransactionSplit {
     /**
      * Amount allocated to this split line.
      *
-     * <p>
-     * Must be positive. The sum of all split amounts for a transaction must equal
-     * the parent
+     * <p>Must be positive. The sum of all split amounts for a transaction must equal the parent
      * transaction amount (within ±0.01 tolerance).
      *
-     * <p>
-     * Requirement REQ-SPL-1.1: Amount field; REQ-SPL-1.2: Sum validation
+     * <p>Requirement REQ-SPL-1.1: Amount field; REQ-SPL-1.2: Sum validation
      */
     @NotNull(message = "Split amount is required")
     @DecimalMin(value = "0.01", message = "Split amount must be at least 0.01")
-    @Digits(integer = 15, fraction = 4, message = "Amount must have at most 15 integer digits and 4 decimal places")
+    @Digits(
+            integer = 15,
+            fraction = 4,
+            message = "Amount must have at most 15 integer digits and 4 decimal places")
     @Column(name = "amount", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal amount;
@@ -108,13 +99,10 @@ public class TransactionSplit {
     /**
      * Optional description for this split line (encrypted).
      *
-     * <p>
-     * <strong>Security:</strong> Encrypted before storage; column length is larger
-     * than the
+     * <p><strong>Security:</strong> Encrypted before storage; column length is larger than the
      * logical limit to accommodate AES-256-GCM overhead.
      *
-     * <p>
-     * Requirement REQ-SPL-1.1: Optional description per split
+     * <p>Requirement REQ-SPL-1.1: Optional description per split
      */
     @Column(name = "description", length = 2000)
     @Convert(converter = EncryptedStringConverter.class)
@@ -129,8 +117,7 @@ public class TransactionSplit {
     private LocalDateTime updatedAt;
 
     /**
-     * JPA lifecycle callback – sets {@code createdAt} and {@code updatedAt} before
-     * first persist.
+     * JPA lifecycle callback – sets {@code createdAt} and {@code updatedAt} before first persist.
      */
     @PrePersist
     protected void onCreate() {

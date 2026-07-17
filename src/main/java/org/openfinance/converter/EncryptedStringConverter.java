@@ -10,19 +10,13 @@ import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
 
 /**
- * JPA AttributeConverter that transparently encrypts {@code String} fields on
- * write and decrypts on
+ * JPA AttributeConverter that transparently encrypts {@code String} fields on write and decrypts on
  * read using the per-request key stored in {@link EncryptionContext}.
  *
- * <p>
- * Apply to entity fields via
- * {@code @Convert(converter = EncryptedStringConverter.class)}.
+ * <p>Apply to entity fields via {@code @Convert(converter = EncryptedStringConverter.class)}.
  *
- * <p>
- * If no encryption key is available in the current thread (e.g. during Flyway
- * migrations or
- * anonymous access), the value passes through unmodified. This allows safe
- * startup and migration
+ * <p>If no encryption key is available in the current thread (e.g. during Flyway migrations or
+ * anonymous access), the value passes through unmodified. This allows safe startup and migration
  * scenarios.
  */
 @Converter

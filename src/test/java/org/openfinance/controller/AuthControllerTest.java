@@ -889,7 +889,8 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
-        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
+        String encryptionSession =
+                objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         // Act & Assert: Get profile with valid token
         mockMvc.perform(
@@ -958,7 +959,8 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
-        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
+        String encryptionSession =
+                objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         UpdateProfileRequest updateRequest =
                 UpdateProfileRequest.builder()
@@ -1016,7 +1018,8 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
-        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
+        String encryptionSession =
+                objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         UpdateProfileRequest updateRequest =
                 UpdateProfileRequest.builder()
@@ -1082,7 +1085,8 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
-        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
+        String encryptionSession =
+                objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         UpdateProfileRequest updateRequest =
                 UpdateProfileRequest.builder()
@@ -1149,7 +1153,8 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
-        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
+        String encryptionSession =
+                objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         UpdateProfileRequest updateRequest =
                 UpdateProfileRequest.builder()
@@ -1216,7 +1221,8 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
-        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
+        String encryptionSession =
+                objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         // Try to update user2's email to user1's email
         UpdateProfileRequest updateRequest =
@@ -1289,7 +1295,8 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
-        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
+        String encryptionSession =
+                objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         // Missing currentPassword
         String requestBody = "{\"email\": \"newemail@example.com\"}";
@@ -1340,7 +1347,8 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
-        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
+        String encryptionSession =
+                objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         UpdateProfileRequest updateRequest =
                 UpdateProfileRequest.builder()
@@ -1394,7 +1402,8 @@ class AuthControllerTest {
                         .getContentAsString();
 
         String token = objectMapper.readTree(loginResponse).get("token").asText();
-        String encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
+        String encryptionSession =
+                objectMapper.readTree(loginResponse).get("encryptionKey").asText();
 
         UpdateProfileRequest updateRequest =
                 UpdateProfileRequest.builder()

@@ -22,32 +22,28 @@ import org.springframework.web.bind.annotation.*;
 /**
  * REST controller for managing budget alerts.
  *
- * <p>
- * Provides endpoints for creating, retrieving, updating, and deleting budget
- * alerts. Budget
+ * <p>Provides endpoints for creating, retrieving, updating, and deleting budget alerts. Budget
  * alerts notify users when spending approaches or exceeds budgeted amounts.
  *
- * <p>
- * <strong>Endpoints:</strong>
+ * <p><strong>Endpoints:</strong>
  *
  * <ul>
- * <li>POST /api/v1/budgets/alerts?budgetId={id} - Create alert
- * <li>GET /api/v1/budgets/alerts/{budgetId} - Get alerts for budget
- * <li>GET /api/v1/budgets/alerts/unread - Get unread alerts
- * <li>GET /api/v1/budgets/alerts/unread/count - Get unread count
- * <li>PUT /api/v1/budgets/alerts/{alertId} - Update alert
- * <li>PUT /api/v1/budgets/alerts/{alertId}/read - Mark as read
- * <li>PUT /api/v1/budgets/alerts/read-all - Mark all as read
- * <li>DELETE /api/v1/budgets/alerts/{alertId} - Delete alert
+ *   <li>POST /api/v1/budgets/alerts?budgetId={id} - Create alert
+ *   <li>GET /api/v1/budgets/alerts/{budgetId} - Get alerts for budget
+ *   <li>GET /api/v1/budgets/alerts/unread - Get unread alerts
+ *   <li>GET /api/v1/budgets/alerts/unread/count - Get unread count
+ *   <li>PUT /api/v1/budgets/alerts/{alertId} - Update alert
+ *   <li>PUT /api/v1/budgets/alerts/{alertId}/read - Mark as read
+ *   <li>PUT /api/v1/budgets/alerts/read-all - Mark all as read
+ *   <li>DELETE /api/v1/budgets/alerts/{alertId} - Delete alert
  * </ul>
  *
- * <p>
- * <strong>Requirements:</strong>
+ * <p><strong>Requirements:</strong>
  *
  * <ul>
- * <li>REQ-2.9.4: Budget alert system
- * <li>REQ-2.9.4.1: Alert creation and configuration
- * <li>REQ-2.9.4.2: Alert notifications and tracking
+ *   <li>REQ-2.9.4: Budget alert system
+ *   <li>REQ-2.9.4.1: Alert creation and configuration
+ *   <li>REQ-2.9.4.2: Alert notifications and tracking
  * </ul>
  *
  * @author Open-Finance Development Team
@@ -60,215 +56,207 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class BudgetAlertController {
 
-        private final BudgetAlertService alertService;
-        private final BudgetService budgetService;
-        private final BudgetAlertMapper alertMapper;
+    private final BudgetAlertService alertService;
+    private final BudgetService budgetService;
+    private final BudgetAlertMapper alertMapper;
 
-        /**
-         * Creates a new budget alert.
-         *
-         * <p>
-         * Example: POST /api/v1/budgets/alerts?budgetId=123 Body: {"threshold": 75.00,
-         * "isEnabled":
-         * true}
-         *
-         * @param budgetId       the ID of the budget to monitor
-         * @param request        the alert configuration
-         * @param authentication the authenticated user
-         * @return 201 Created with alert details
-         */
-        @PostMapping
-        public ResponseEntity<BudgetAlertResponse> createAlert(
-                        @RequestParam Long budgetId,
-                        @Valid @RequestBody BudgetAlertRequest request,
-                        Authentication authentication) {
+    /**
+     * Creates a new budget alert.
+     *
+     * <p>Example: POST /api/v1/budgets/alerts?budgetId=123 Body: {"threshold": 75.00, "isEnabled":
+     * true}
+     *
+     * @param budgetId the ID of the budget to monitor
+     * @param request the alert configuration
+     * @param authentication the authenticated user
+     * @return 201 Created with alert details
+     */
+    @PostMapping
+    public ResponseEntity<BudgetAlertResponse> createAlert(
+            @RequestParam Long budgetId,
+            @Valid @RequestBody BudgetAlertRequest request,
+            Authentication authentication) {
 
-                Long userId = ControllerUtil.extractUserId(authentication);
-                log.debug(
-                                "Creating alert for budget {} by user {}: threshold={}%",
-                                budgetId, userId, request.getThreshold());
+        Long userId = ControllerUtil.extractUserId(authentication);
+        log.debug(
+                "Creating alert for budget {} by user {}: threshold={}%",
+                budgetId, userId, request.getThreshold());
 
-                BudgetAlert alert = alertService.createAlert(budgetId, userId, request.getThreshold());
+        BudgetAlert alert = alertService.createAlert(budgetId, userId, request.getThreshold());
 
-                if (request.getIsEnabled() != null && request.getIsEnabled() != alert.isEnabled()) {
-                        alert = alertService.updateAlert(alert.getId(), userId, null, request.getIsEnabled());
-                }
-
-                BudgetAlertResponse response = alertMapper.toResponse(alert);
-
-                log.info(
-                                "Alert created: id={}, budgetId={}, threshold={}%",
-                                alert.getId(), budgetId, request.getThreshold());
-                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        if (request.getIsEnabled() != null && request.getIsEnabled() != alert.isEnabled()) {
+            alert = alertService.updateAlert(alert.getId(), userId, null, request.getIsEnabled());
         }
 
-        /**
-         * Gets all alerts for a specific budget.
-         *
-         * <p>
-         * Example: GET /api/v1/budgets/alerts/123
-         *
-         * @param budgetId       the ID of the budget
-         * @param authentication the authenticated user
-         * @return 200 OK with list of alerts
-         */
-        @GetMapping("/{budgetId}")
-        public ResponseEntity<List<BudgetAlertResponse>> getAlertsByBudget(
-                        @PathVariable Long budgetId,
-                        Authentication authentication) {
+        BudgetAlertResponse response = alertMapper.toResponse(alert);
 
-                Long userId = ControllerUtil.extractUserId(authentication);
-                log.debug("Fetching alerts for budget {} by user {}", budgetId, userId);
+        log.info(
+                "Alert created: id={}, budgetId={}, threshold={}%",
+                alert.getId(), budgetId, request.getThreshold());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 
-                List<BudgetAlert> alerts = alertService.findAlertsByBudget(budgetId, userId);
+    /**
+     * Gets all alerts for a specific budget.
+     *
+     * <p>Example: GET /api/v1/budgets/alerts/123
+     *
+     * @param budgetId the ID of the budget
+     * @param authentication the authenticated user
+     * @return 200 OK with list of alerts
+     */
+    @GetMapping("/{budgetId}")
+    public ResponseEntity<List<BudgetAlertResponse>> getAlertsByBudget(
+            @PathVariable Long budgetId, Authentication authentication) {
 
-                BudgetProgressResponse progress = budgetService.calculateBudgetProgress(budgetId, userId);
+        Long userId = ControllerUtil.extractUserId(authentication);
+        log.debug("Fetching alerts for budget {} by user {}", budgetId, userId);
 
-                List<BudgetAlertResponse> responses = alerts.stream()
-                                .map(
-                                                alert -> alertMapper.toResponseWithProgress(
-                                                                alert, progress.getPercentageSpent()))
-                                .collect(Collectors.toList());
+        List<BudgetAlert> alerts = alertService.findAlertsByBudget(budgetId, userId);
 
-                return ResponseEntity.ok(responses);
-        }
+        BudgetProgressResponse progress = budgetService.calculateBudgetProgress(budgetId, userId);
 
-        /**
-         * Gets all unread alerts for the authenticated user.
-         *
-         * <p>
-         * Example: GET /api/v1/budgets/alerts/unread
-         *
-         * @param authentication the authenticated user
-         * @return 200 OK with list of unread alerts
-         */
-        @GetMapping("/unread")
-        public ResponseEntity<List<BudgetAlertResponse>> getUnreadAlerts(
-                        Authentication authentication) {
-                Long userId = ControllerUtil.extractUserId(authentication);
-                log.debug("Fetching unread alerts for user {}", userId);
+        List<BudgetAlertResponse> responses =
+                alerts.stream()
+                        .map(
+                                alert ->
+                                        alertMapper.toResponseWithProgress(
+                                                alert, progress.getPercentageSpent()))
+                        .collect(Collectors.toList());
 
-                List<BudgetAlert> alerts = alertService.findUnreadAlerts(userId);
-                List<BudgetAlertResponse> responses = alerts.stream().map(alertMapper::toResponse)
-                                .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
+    }
 
-                log.debug("Found {} unread alerts for user {}", responses.size(), userId);
-                return ResponseEntity.ok(responses);
-        }
+    /**
+     * Gets all unread alerts for the authenticated user.
+     *
+     * <p>Example: GET /api/v1/budgets/alerts/unread
+     *
+     * @param authentication the authenticated user
+     * @return 200 OK with list of unread alerts
+     */
+    @GetMapping("/unread")
+    public ResponseEntity<List<BudgetAlertResponse>> getUnreadAlerts(
+            Authentication authentication) {
+        Long userId = ControllerUtil.extractUserId(authentication);
+        log.debug("Fetching unread alerts for user {}", userId);
 
-        /**
-         * Gets count of unread alerts for notification badge.
-         *
-         * <p>
-         * Example: GET /api/v1/budgets/alerts/unread/count
-         *
-         * @param authentication the authenticated user
-         * @return 200 OK with unread count
-         */
-        @GetMapping("/unread/count")
-        public ResponseEntity<Long> getUnreadAlertCount(Authentication authentication) {
-                Long userId = ControllerUtil.extractUserId(authentication);
-                long count = alertService.countUnreadAlerts(userId);
+        List<BudgetAlert> alerts = alertService.findUnreadAlerts(userId);
+        List<BudgetAlertResponse> responses =
+                alerts.stream().map(alertMapper::toResponse).collect(Collectors.toList());
 
-                log.debug("Unread alert count for user {}: {}", userId, count);
-                return ResponseEntity.ok(count);
-        }
+        log.debug("Found {} unread alerts for user {}", responses.size(), userId);
+        return ResponseEntity.ok(responses);
+    }
 
-        /**
-         * Updates an existing budget alert.
-         *
-         * <p>
-         * Example: PUT /api/v1/budgets/alerts/{alertId} Body: {"threshold": 90.00,
-         * "isEnabled":
-         * false}
-         *
-         * @param alertId        the ID of the alert to update
-         * @param request        the update request
-         * @param authentication the authenticated user
-         * @return 200 OK with updated alert
-         */
-        @PutMapping("/{alertId}")
-        public ResponseEntity<BudgetAlertResponse> updateAlert(
-                        @PathVariable UUID alertId,
-                        @Valid @RequestBody BudgetAlertRequest request,
-                        Authentication authentication) {
+    /**
+     * Gets count of unread alerts for notification badge.
+     *
+     * <p>Example: GET /api/v1/budgets/alerts/unread/count
+     *
+     * @param authentication the authenticated user
+     * @return 200 OK with unread count
+     */
+    @GetMapping("/unread/count")
+    public ResponseEntity<Long> getUnreadAlertCount(Authentication authentication) {
+        Long userId = ControllerUtil.extractUserId(authentication);
+        long count = alertService.countUnreadAlerts(userId);
 
-                Long userId = ControllerUtil.extractUserId(authentication);
-                log.debug("Updating alert {} by user {}", alertId, userId);
+        log.debug("Unread alert count for user {}: {}", userId, count);
+        return ResponseEntity.ok(count);
+    }
 
-                BudgetAlert alert = alertService.updateAlert(
-                                alertId, userId, request.getThreshold(), request.getIsEnabled());
-                BudgetAlertResponse response = alertMapper.toResponse(alert);
+    /**
+     * Updates an existing budget alert.
+     *
+     * <p>Example: PUT /api/v1/budgets/alerts/{alertId} Body: {"threshold": 90.00, "isEnabled":
+     * false}
+     *
+     * @param alertId the ID of the alert to update
+     * @param request the update request
+     * @param authentication the authenticated user
+     * @return 200 OK with updated alert
+     */
+    @PutMapping("/{alertId}")
+    public ResponseEntity<BudgetAlertResponse> updateAlert(
+            @PathVariable UUID alertId,
+            @Valid @RequestBody BudgetAlertRequest request,
+            Authentication authentication) {
 
-                log.info(
-                                "Alert updated: id={}, threshold={}%, enabled={}",
-                                alertId, alert.getThreshold(), alert.isEnabled());
-                return ResponseEntity.ok(response);
-        }
+        Long userId = ControllerUtil.extractUserId(authentication);
+        log.debug("Updating alert {} by user {}", alertId, userId);
 
-        /**
-         * Marks an alert as read/acknowledged.
-         *
-         * <p>
-         * Example: PUT /api/v1/budgets/alerts/{alertId}/read
-         *
-         * @param alertId        the ID of the alert
-         * @param authentication the authenticated user
-         * @return 204 No Content
-         */
-        @PutMapping("/{alertId}/read")
-        public ResponseEntity<Void> markAlertAsRead(
-                        @PathVariable UUID alertId, Authentication authentication) {
+        BudgetAlert alert =
+                alertService.updateAlert(
+                        alertId, userId, request.getThreshold(), request.getIsEnabled());
+        BudgetAlertResponse response = alertMapper.toResponse(alert);
 
-                Long userId = ControllerUtil.extractUserId(authentication);
-                log.debug("Marking alert {} as read by user {}", alertId, userId);
+        log.info(
+                "Alert updated: id={}, threshold={}%, enabled={}",
+                alertId, alert.getThreshold(), alert.isEnabled());
+        return ResponseEntity.ok(response);
+    }
 
-                alertService.markAlertAsRead(alertId, userId);
+    /**
+     * Marks an alert as read/acknowledged.
+     *
+     * <p>Example: PUT /api/v1/budgets/alerts/{alertId}/read
+     *
+     * @param alertId the ID of the alert
+     * @param authentication the authenticated user
+     * @return 204 No Content
+     */
+    @PutMapping("/{alertId}/read")
+    public ResponseEntity<Void> markAlertAsRead(
+            @PathVariable UUID alertId, Authentication authentication) {
 
-                log.debug("Alert {} marked as read", alertId);
-                return ResponseEntity.noContent().build();
-        }
+        Long userId = ControllerUtil.extractUserId(authentication);
+        log.debug("Marking alert {} as read by user {}", alertId, userId);
 
-        /**
-         * Marks all alerts as read for the authenticated user.
-         *
-         * <p>
-         * Example: PUT /api/v1/budgets/alerts/read-all
-         *
-         * @param authentication the authenticated user
-         * @return 200 OK with count of alerts marked as read
-         */
-        @PutMapping("/read-all")
-        public ResponseEntity<Integer> markAllAlertsAsRead(Authentication authentication) {
-                Long userId = ControllerUtil.extractUserId(authentication);
-                log.debug("Marking all alerts as read for user {}", userId);
+        alertService.markAlertAsRead(alertId, userId);
 
-                int count = alertService.markAllAlertsAsRead(userId);
+        log.debug("Alert {} marked as read", alertId);
+        return ResponseEntity.noContent().build();
+    }
 
-                log.info("Marked {} alerts as read for user {}", count, userId);
-                return ResponseEntity.ok(count);
-        }
+    /**
+     * Marks all alerts as read for the authenticated user.
+     *
+     * <p>Example: PUT /api/v1/budgets/alerts/read-all
+     *
+     * @param authentication the authenticated user
+     * @return 200 OK with count of alerts marked as read
+     */
+    @PutMapping("/read-all")
+    public ResponseEntity<Integer> markAllAlertsAsRead(Authentication authentication) {
+        Long userId = ControllerUtil.extractUserId(authentication);
+        log.debug("Marking all alerts as read for user {}", userId);
 
-        /**
-         * Deletes a budget alert.
-         *
-         * <p>
-         * Example: DELETE /api/v1/budgets/alerts/{alertId}
-         *
-         * @param alertId        the ID of the alert to delete
-         * @param authentication the authenticated user
-         * @return 204 No Content
-         */
-        @DeleteMapping("/{alertId}")
-        public ResponseEntity<Void> deleteAlert(
-                        @PathVariable UUID alertId, Authentication authentication) {
+        int count = alertService.markAllAlertsAsRead(userId);
 
-                Long userId = ControllerUtil.extractUserId(authentication);
-                log.debug("Deleting alert {} by user {}", alertId, userId);
+        log.info("Marked {} alerts as read for user {}", count, userId);
+        return ResponseEntity.ok(count);
+    }
 
-                alertService.deleteAlert(alertId, userId);
+    /**
+     * Deletes a budget alert.
+     *
+     * <p>Example: DELETE /api/v1/budgets/alerts/{alertId}
+     *
+     * @param alertId the ID of the alert to delete
+     * @param authentication the authenticated user
+     * @return 204 No Content
+     */
+    @DeleteMapping("/{alertId}")
+    public ResponseEntity<Void> deleteAlert(
+            @PathVariable UUID alertId, Authentication authentication) {
 
-                log.info("Alert deleted: id={}", alertId);
-                return ResponseEntity.noContent().build();
-        }
+        Long userId = ControllerUtil.extractUserId(authentication);
+        log.debug("Deleting alert {} by user {}", alertId, userId);
+
+        alertService.deleteAlert(alertId, userId);
+
+        log.info("Alert deleted: id={}", alertId);
+        return ResponseEntity.noContent().build();
+    }
 }

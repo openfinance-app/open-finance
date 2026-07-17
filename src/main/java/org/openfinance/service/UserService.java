@@ -117,8 +117,7 @@ public class UserService {
 
         boolean encryptionEnabled = encryptionProperties.isEnabled();
         if (encryptionEnabled
-                && (request.getMasterPassword() == null
-                        || request.getMasterPassword().isBlank())) {
+                && (request.getMasterPassword() == null || request.getMasterPassword().isBlank())) {
             throw new IllegalArgumentException(
                     "Master password is required when encryption is enabled");
         }

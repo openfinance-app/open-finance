@@ -18,9 +18,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 @DisplayName("EncryptedBigDecimalConverter Tests")
 class EncryptedBigDecimalConverterTest {
 
-    private static final SecretKey TEST_KEY = new SecretKeySpec(
-            "12345678901234567890123456789012".getBytes(StandardCharsets.UTF_8),
-            "AES");
+    private static final SecretKey TEST_KEY =
+            new SecretKeySpec(
+                    "12345678901234567890123456789012".getBytes(StandardCharsets.UTF_8), "AES");
 
     private EncryptedBigDecimalConverter converter;
 

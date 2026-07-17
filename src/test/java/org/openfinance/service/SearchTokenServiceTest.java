@@ -39,9 +39,9 @@ class SearchTokenServiceTest {
                         + ")");
 
         searchTokenService = new SearchTokenService(jdbcTemplate);
-        SecretKey encryptionKey = new SecretKeySpec(
-                "12345678901234567890123456789012".getBytes(StandardCharsets.UTF_8),
-                "AES");
+        SecretKey encryptionKey =
+                new SecretKeySpec(
+                        "12345678901234567890123456789012".getBytes(StandardCharsets.UTF_8), "AES");
         searchKey = searchTokenService.deriveSearchKey(encryptionKey);
     }
 
@@ -74,7 +74,8 @@ class SearchTokenServiceTest {
         searchTokenService.indexField(1L, "ACCOUNT", 101L, "name", "Salary Bonus", searchKey);
         searchTokenService.indexField(1L, "ACCOUNT", 102L, "name", "Salary", searchKey);
 
-        List<Long> results = searchTokenService.search(1L, "ACCOUNT", "salary bonus", searchKey, 10);
+        List<Long> results =
+                searchTokenService.search(1L, "ACCOUNT", "salary bonus", searchKey, 10);
 
         assertThat(results).containsExactly(101L, 102L);
     }

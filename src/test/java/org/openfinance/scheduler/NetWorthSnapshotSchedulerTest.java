@@ -31,17 +31,12 @@ import org.openfinance.service.NetWorthService;
 @DisplayName("NetWorthSnapshotScheduler — Encryption Key Cache Tests")
 class NetWorthSnapshotSchedulerTest {
 
-    @Mock
-    private NetWorthService netWorthService;
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private SchedulerProperties schedulerProperties;
-    @Mock
-    private EncryptionKeyCache encryptionKeyCache;
+    @Mock private NetWorthService netWorthService;
+    @Mock private UserRepository userRepository;
+    @Mock private SchedulerProperties schedulerProperties;
+    @Mock private EncryptionKeyCache encryptionKeyCache;
 
-    @InjectMocks
-    private NetWorthSnapshotScheduler scheduler;
+    @InjectMocks private NetWorthSnapshotScheduler scheduler;
 
     private static final SecretKey TEST_KEY = new SecretKeySpec(new byte[32], "AES");
     private SchedulerProperties.SchedulerConfig schedulerConfig;
@@ -109,10 +104,13 @@ class NetWorthSnapshotSchedulerTest {
         void setsEncryptionContextFromCacheAndClearsItAfterProcessing() {
             User user = User.builder().id(1L).username("alice").baseCurrency("EUR").build();
             when(userRepository.findAll()).thenReturn(List.of(user));
-            doAnswer(invocation -> {
-                assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY);
-                return null;
-            }).when(netWorthService).saveNetWorthSnapshot(eq(1L), any(), anyString());
+            doAnswer(
+                            invocation -> {
+                                assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY);
+                                return null;
+                            })
+                    .when(netWorthService)
+                    .saveNetWorthSnapshot(eq(1L), any(), anyString());
 
             scheduler.createDailyNetWorthSnapshots();
 
@@ -125,10 +123,13 @@ class NetWorthSnapshotSchedulerTest {
         void clearsEncryptionContextAfterUserProcessingFails() {
             User user = User.builder().id(1L).username("alice").baseCurrency("USD").build();
             when(userRepository.findAll()).thenReturn(List.of(user));
-            doAnswer(invocation -> {
-                assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY);
-                throw new RuntimeException("boom");
-            }).when(netWorthService).saveNetWorthSnapshot(eq(1L), any(), anyString());
+            doAnswer(
+                            invocation -> {
+                                assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY);
+                                throw new RuntimeException("boom");
+                            })
+                    .when(netWorthService)
+                    .saveNetWorthSnapshot(eq(1L), any(), anyString());
 
             scheduler.createDailyNetWorthSnapshots();
 
@@ -153,7 +154,8 @@ class NetWorthSnapshotSchedulerTest {
             User user2 = User.builder().id(2L).username("bob").baseCurrency("EUR").build();
             when(userRepository.findAll()).thenReturn(List.of(user1, user2));
             doThrow(new RuntimeException("boom"))
-                    .when(netWorthService).saveNetWorthSnapshot(eq(1L), any(), anyString());
+                    .when(netWorthService)
+                    .saveNetWorthSnapshot(eq(1L), any(), anyString());
 
             scheduler.createDailyNetWorthSnapshots();
 

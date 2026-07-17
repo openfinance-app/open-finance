@@ -10,13 +10,10 @@ import org.springframework.stereotype.Component;
 /**
  * Static holder for the Spring {@link ApplicationContext}.
  *
- * <p>
- * Allows non-Spring-managed objects (such as JPA {@link
- * jakarta.persistence.AttributeConverter} instances created by Hibernate) to
- * look up Spring beans.
+ * <p>Allows non-Spring-managed objects (such as JPA {@link jakarta.persistence.AttributeConverter}
+ * instances created by Hibernate) to look up Spring beans.
  *
- * <p>
- * This is intentionally a narrow bridge — only JPA converters should use it.
+ * <p>This is intentionally a narrow bridge — only JPA converters should use it.
  */
 @Component
 public class SpringContextHolder implements ApplicationContextAware {
@@ -30,8 +27,7 @@ public class SpringContextHolder implements ApplicationContextAware {
     }
 
     /**
-     * Returns the Spring ApplicationContext, or {@code null} if it has not been set
-     * yet (e.g.
+     * Returns the Spring ApplicationContext, or {@code null} if it has not been set yet (e.g.
      * during early startup or in unit tests).
      */
     public static ApplicationContext getContext() {

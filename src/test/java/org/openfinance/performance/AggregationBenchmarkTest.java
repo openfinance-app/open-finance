@@ -39,13 +39,10 @@ import org.springframework.util.StopWatch;
 /**
  * Benchmarks for in-memory aggregation at scale.
  *
- * <p>
- * Verifies that in-memory aggregation (which replaced SQL SUM after encryption)
- * completes within acceptable time for 10K, 50K, and 100K transactions.
+ * <p>Verifies that in-memory aggregation (which replaced SQL SUM after encryption) completes within
+ * acceptable time for 10K, 50K, and 100K transactions.
  *
- * <p>
- * Testing Strategy item 5: "Benchmark aggregation on 10K, 50K, 100K
- * transactions"
+ * <p>Testing Strategy item 5: "Benchmark aggregation on 10K, 50K, 100K transactions"
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -53,36 +50,27 @@ import org.springframework.util.StopWatch;
 @DisplayName("Aggregation Benchmark — In-Memory Sums at Scale")
 class AggregationBenchmarkTest {
 
-    @Mock
-    private NetWorthService netWorthService;
-    @Mock
-    private AccountRepository accountRepository;
-    @Mock
-    private TransactionRepository transactionRepository;
-    @Mock
-    private TransactionMapper transactionMapper;
-    @Mock
-    private EncryptionService encryptionService;
-    @Mock
-    private AssetRepository assetRepository;
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private OperationHistoryService operationHistoryService;
+    @Mock private NetWorthService netWorthService;
+    @Mock private AccountRepository accountRepository;
+    @Mock private TransactionRepository transactionRepository;
+    @Mock private TransactionMapper transactionMapper;
+    @Mock private EncryptionService encryptionService;
+    @Mock private AssetRepository assetRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private OperationHistoryService operationHistoryService;
 
-    @InjectMocks
-    private DashboardService dashboardService;
+    @InjectMocks private DashboardService dashboardService;
 
     private static final Long USER_ID = 1L;
     private static final String[] CATEGORIES = {
-            "Groceries", "Rent", "Utilities", "Transport", "Entertainment",
-            "Healthcare", "Insurance", "Dining", "Shopping", "Subscriptions"
+        "Groceries", "Rent", "Utilities", "Transport", "Entertainment",
+        "Healthcare", "Insurance", "Dining", "Shopping", "Subscriptions"
     };
 
     @BeforeEach
     void setUp() {
-        User mockUser = User.builder()
-                .id(USER_ID).username("benchuser").baseCurrency("USD").build();
+        User mockUser =
+                User.builder().id(USER_ID).username("benchuser").baseCurrency("USD").build();
         lenient().when(userRepository.findById(USER_ID)).thenReturn(Optional.of(mockUser));
     }
 
@@ -148,7 +136,9 @@ class AggregationBenchmarkTest {
         assertThat(result.get("income")).isPositive();
         assertThat(result.get("expenses")).isPositive();
         assertThat(sw.getTotalTimeMillis())
-                .as("getCashFlow(%d txns) took %dms, max %dms", txCount, sw.getTotalTimeMillis(), maxMillis)
+                .as(
+                        "getCashFlow(%d txns) took %dms, max %dms",
+                        txCount, sw.getTotalTimeMillis(), maxMillis)
                 .isLessThan(maxMillis);
     }
 
@@ -164,7 +154,8 @@ class AggregationBenchmarkTest {
 
         assertThat(result).isNotEmpty();
         assertThat(sw.getTotalTimeMillis())
-                .as("getSpendingByCategory(%d txns) took %dms, max %dms",
+                .as(
+                        "getSpendingByCategory(%d txns) took %dms, max %dms",
                         txCount, sw.getTotalTimeMillis(), maxMillis)
                 .isLessThan(maxMillis);
     }
@@ -176,10 +167,11 @@ class AggregationBenchmarkTest {
         for (int i = 0; i < count; i++) {
             TransactionType type = (i % 3 == 0) ? TransactionType.INCOME : TransactionType.EXPENSE;
             String categoryName = CATEGORIES[i % CATEGORIES.length];
-            Category category = Category.builder()
-                    .id((long) (i % CATEGORIES.length) + 1)
-                    .name(categoryName)
-                    .build();
+            Category category =
+                    Category.builder()
+                            .id((long) (i % CATEGORIES.length) + 1)
+                            .name(categoryName)
+                            .build();
 
             transactions.add(
                     Transaction.builder()

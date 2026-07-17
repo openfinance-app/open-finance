@@ -28,22 +28,17 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * REST controller for the Operation History (Undo/Redo) feature.
  *
- * <p>
- * Endpoints:
+ * <p>Endpoints:
  *
  * <ul>
- * <li>GET /api/v1/history — list history for the authenticated user (paged)
- * <li>POST /api/v1/history/{id}/undo — undo a recorded operation
- * <li>POST /api/v1/history/{id}/redo — redo a previously undone operation
+ *   <li>GET /api/v1/history — list history for the authenticated user (paged)
+ *   <li>POST /api/v1/history/{id}/undo — undo a recorded operation
+ *   <li>POST /api/v1/history/{id}/redo — redo a previously undone operation
  * </ul>
  *
- * <p>
- * Undo/Redo for CREATE operations deletes the entity; undo of DELETE restores
- * it from the stored
- * snapshot; undo of UPDATE restores the previous field values. The actual
- * domain restoration is
- * dispatched from this controller to the appropriate service to avoid circular
- * dependencies in the
+ * <p>Undo/Redo for CREATE operations deletes the entity; undo of DELETE restores it from the stored
+ * snapshot; undo of UPDATE restores the previous field values. The actual domain restoration is
+ * dispatched from this controller to the appropriate service to avoid circular dependencies in the
  * service layer.
  */
 @RestController
@@ -63,41 +58,41 @@ public class OperationHistoryController {
     private final org.openfinance.service.BudgetService budgetService;
 
     /**
-     * Returns a page of operation history entries for the authenticated user,
-     * newest first.
+     * Returns a page of operation history entries for the authenticated user, newest first.
      *
      * @param entityType optional filter by entity type
-     * @param since      optional ISO instant; only entries created after this time
-     *                   are returned
-     * @param pageable   pagination params (default: 20 per page, sorted by
-     *                   createdAt DESC)
+     * @param since optional ISO instant; only entries created after this time are returned
+     * @param pageable pagination params (default: 20 per page, sorted by createdAt DESC)
      */
     @GetMapping
     public ResponseEntity<Page<OperationHistoryResponse>> getHistory(
             @RequestParam(required = false) EntityType entityType,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant since,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    Instant since,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+                    Pageable pageable,
             Authentication authentication) {
 
         User user = (User) authentication.getPrincipal();
         log.info("Fetching operation history for user {}", user.getId());
 
-        LocalDateTime sinceLocal = since != null ? LocalDateTime.ofInstant(since, ZoneOffset.UTC) : null;
+        LocalDateTime sinceLocal =
+                since != null ? LocalDateTime.ofInstant(since, ZoneOffset.UTC) : null;
 
-        Page<OperationHistoryResponse> page = historyService.getHistory(user.getId(), entityType, sinceLocal, pageable);
+        Page<OperationHistoryResponse> page =
+                historyService.getHistory(user.getId(), entityType, sinceLocal, pageable);
         return ResponseEntity.ok(page);
     }
 
     /**
      * Undoes the recorded operation identified by {@code historyId}.
      *
-     * <p>
-     * The semantics depend on the original operation type:
+     * <p>The semantics depend on the original operation type:
      *
      * <ul>
-     * <li>CREATE → deletes the entity (soft or hard depending on entity)
-     * <li>UPDATE → restores the entity to its pre-update snapshot
-     * <li>DELETE → re-creates the entity from the stored snapshot
+     *   <li>CREATE → deletes the entity (soft or hard depending on entity)
+     *   <li>UPDATE → restores the entity to its pre-update snapshot
+     *   <li>DELETE → re-creates the entity from the stored snapshot
      * </ul>
      */
     @PostMapping("/{id}/undo")
@@ -174,12 +169,9 @@ public class OperationHistoryController {
     /**
      * Dispatches the undo action to the appropriate domain service.
      *
-     * <p>
-     * For CREATE: soft-deletes the entity (if applicable) using the entity ID. For
-     * UPDATE/DELETE: restoration from snapshot requires the encryption key which is
-     * not available
-     * here; those entries are marked undone but no domain action is taken in phase
-     * 1 — the UI
+     * <p>For CREATE: soft-deletes the entity (if applicable) using the entity ID. For
+     * UPDATE/DELETE: restoration from snapshot requires the encryption key which is not available
+     * here; those entries are marked undone but no domain action is taken in phase 1 — the UI
      * indicates the status.
      */
     private void dispatchUndo(OperationHistory entry, User user) {
@@ -192,8 +184,7 @@ public class OperationHistoryController {
     }
 
     /**
-     * Dispatches the redo action after a CREATE was undone (re-creates nothing —
-     * entity was
+     * Dispatches the redo action after a CREATE was undone (re-creates nothing — entity was
      * deleted). For UPDATE/DELETE, marks the intent only.
      */
     private void dispatchRedo(OperationHistory entry, User user) {

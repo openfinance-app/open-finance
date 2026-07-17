@@ -52,10 +52,13 @@ class EncryptionKeyCacheTest {
     void shouldPreserveExistingSchedulerKeyWhenFailedNewSessionIsInvalidated() {
         EncryptionKeyCache encryptionKeyCache = new EncryptionKeyCache();
         SecretKey existingKey = new SecretKeySpec(new byte[32], "AES");
-        SecretKey failedKey = new SecretKeySpec(new byte[] {
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-        }, "AES");
+        SecretKey failedKey =
+                new SecretKeySpec(
+                        new byte[] {
+                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+                        },
+                        "AES");
         encryptionKeyCache.cacheKey(1L, existingKey);
         String failedToken = encryptionKeyCache.createSession(1L, failedKey);
 

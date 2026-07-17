@@ -16,8 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service for managing real estate simulations.
  *
- * <p>
- * Handles CRUD operations for user simulations with data encryption.
+ * <p>Handles CRUD operations for user simulations with data encryption.
  *
  * @author Open-Finance Development Team
  * @version 1.0
@@ -28,140 +27,145 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class RealEstateSimulationService {
 
-        private final RealEstateSimulationRepository simulationRepository;
+    private final RealEstateSimulationRepository simulationRepository;
 
-        /** Create a new simulation. */
-        @Transactional
-        public RealEstateSimulationResponse createSimulation(
-                        Long userId, RealEstateSimulationRequest request) {
+    /** Create a new simulation. */
+    @Transactional
+    public RealEstateSimulationResponse createSimulation(
+            Long userId, RealEstateSimulationRequest request) {
 
-                log.info(
-                                "Creating simulation for user {}: type={}, name={}",
-                                userId,
-                                request.getSimulationType(),
-                                request.getName());
+        log.info(
+                "Creating simulation for user {}: type={}, name={}",
+                userId,
+                request.getSimulationType(),
+                request.getName());
 
-                // Check for duplicate name
-                if (simulationRepository.existsByUserIdAndName(userId, request.getName())) {
-                        throw new DuplicateSimulationException(
-                                        "Une simulation avec le nom '" + request.getName() + "' existe déjà");
-                }
-
-                RealEstateSimulation simulation = RealEstateSimulation.builder()
-                                .userId(userId)
-                                .name(request.getName())
-                                .simulationType(request.getSimulationType())
-                                .data(request.getData())
-                                .build();
-
-                RealEstateSimulation saved = simulationRepository.save(simulation);
-
-                log.info("Simulation created: id={}", saved.getId());
-
-                return mapToResponse(saved, request.getData()); // Return original data
+        // Check for duplicate name
+        if (simulationRepository.existsByUserIdAndName(userId, request.getName())) {
+            throw new DuplicateSimulationException(
+                    "Une simulation avec le nom '" + request.getName() + "' existe déjà");
         }
 
-        /** Get all simulations for a user. */
-        @Transactional(readOnly = true)
-        public List<RealEstateSimulationResponse> getSimulationsByUserId(
-                        Long userId, String simulationType) {
+        RealEstateSimulation simulation =
+                RealEstateSimulation.builder()
+                        .userId(userId)
+                        .name(request.getName())
+                        .simulationType(request.getSimulationType())
+                        .data(request.getData())
+                        .build();
 
-                log.info("Retrieving simulations for user {}: type={}", userId, simulationType);
+        RealEstateSimulation saved = simulationRepository.save(simulation);
 
-                List<RealEstateSimulation> simulations;
-                if (simulationType != null && !simulationType.isEmpty()) {
-                        simulations = simulationRepository.findByUserIdAndSimulationType(userId, simulationType);
-                } else {
-                        simulations = simulationRepository.findByUserId(userId);
-                }
+        log.info("Simulation created: id={}", saved.getId());
 
-                return simulations.stream()
-                                .map(s -> mapToResponse(s, s.getData()))
-                                .collect(Collectors.toList());
+        return mapToResponse(saved, request.getData()); // Return original data
+    }
+
+    /** Get all simulations for a user. */
+    @Transactional(readOnly = true)
+    public List<RealEstateSimulationResponse> getSimulationsByUserId(
+            Long userId, String simulationType) {
+
+        log.info("Retrieving simulations for user {}: type={}", userId, simulationType);
+
+        List<RealEstateSimulation> simulations;
+        if (simulationType != null && !simulationType.isEmpty()) {
+            simulations =
+                    simulationRepository.findByUserIdAndSimulationType(userId, simulationType);
+        } else {
+            simulations = simulationRepository.findByUserId(userId);
         }
 
-        /** Get a simulation by ID. */
-        @Transactional(readOnly = true)
-        public RealEstateSimulationResponse getSimulationById(
-                        Long simulationId, Long userId) {
+        return simulations.stream()
+                .map(s -> mapToResponse(s, s.getData()))
+                .collect(Collectors.toList());
+    }
 
-                log.info("Retrieving simulation {} for user {}", simulationId, userId);
+    /** Get a simulation by ID. */
+    @Transactional(readOnly = true)
+    public RealEstateSimulationResponse getSimulationById(Long simulationId, Long userId) {
 
-                RealEstateSimulation simulation = simulationRepository
-                                .findByIdAndUserId(simulationId, userId)
-                                .orElseThrow(
-                                                () -> new ResourceNotFoundException(
-                                                                "Simulation not found with id: " + simulationId));
+        log.info("Retrieving simulation {} for user {}", simulationId, userId);
 
-                return mapToResponse(simulation, simulation.getData());
+        RealEstateSimulation simulation =
+                simulationRepository
+                        .findByIdAndUserId(simulationId, userId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Simulation not found with id: " + simulationId));
+
+        return mapToResponse(simulation, simulation.getData());
+    }
+
+    /** Update a simulation. */
+    @Transactional
+    public RealEstateSimulationResponse updateSimulation(
+            Long simulationId, Long userId, RealEstateSimulationRequest request) {
+
+        log.info("Updating simulation {} for user {}", simulationId, userId);
+
+        RealEstateSimulation simulation =
+                simulationRepository
+                        .findByIdAndUserId(simulationId, userId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Simulation not found with id: " + simulationId));
+
+        // Check for duplicate name (excluding current simulation)
+        if (!simulation.getName().equals(request.getName())
+                && simulationRepository.existsByUserIdAndName(userId, request.getName())) {
+            throw new DuplicateSimulationException(
+                    "Une simulation avec le nom '" + request.getName() + "' existe déjà");
         }
 
-        /** Update a simulation. */
-        @Transactional
-        public RealEstateSimulationResponse updateSimulation(
-                        Long simulationId,
-                        Long userId,
-                        RealEstateSimulationRequest request) {
+        simulation.setName(request.getName());
+        simulation.setSimulationType(request.getSimulationType());
+        simulation.setData(request.getData());
 
-                log.info("Updating simulation {} for user {}", simulationId, userId);
+        RealEstateSimulation updated = simulationRepository.save(simulation);
 
-                RealEstateSimulation simulation = simulationRepository
-                                .findByIdAndUserId(simulationId, userId)
-                                .orElseThrow(
-                                                () -> new ResourceNotFoundException(
-                                                                "Simulation not found with id: " + simulationId));
+        log.info("Simulation updated: id={}", updated.getId());
 
-                // Check for duplicate name (excluding current simulation)
-                if (!simulation.getName().equals(request.getName())
-                                && simulationRepository.existsByUserIdAndName(userId, request.getName())) {
-                        throw new DuplicateSimulationException(
-                                        "Une simulation avec le nom '" + request.getName() + "' existe déjà");
-                }
+        return mapToResponse(updated, request.getData());
+    }
 
-                simulation.setName(request.getName());
-                simulation.setSimulationType(request.getSimulationType());
-                simulation.setData(request.getData());
+    /** Delete a simulation. */
+    @Transactional
+    public void deleteSimulation(Long simulationId, Long userId) {
+        log.info("Deleting simulation {} for user {}", simulationId, userId);
 
-                RealEstateSimulation updated = simulationRepository.save(simulation);
+        RealEstateSimulation simulation =
+                simulationRepository
+                        .findByIdAndUserId(simulationId, userId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Simulation not found with id: " + simulationId));
 
-                log.info("Simulation updated: id={}", updated.getId());
+        simulationRepository.delete(simulation);
 
-                return mapToResponse(updated, request.getData());
-        }
+        log.info("Simulation deleted: id={}", simulationId);
+    }
 
-        /** Delete a simulation. */
-        @Transactional
-        public void deleteSimulation(Long simulationId, Long userId) {
-                log.info("Deleting simulation {} for user {}", simulationId, userId);
+    /** Check if simulation name exists. */
+    @Transactional(readOnly = true)
+    public boolean hasSimulationWithName(Long userId, String name) {
+        return simulationRepository.existsByUserIdAndName(userId, name);
+    }
 
-                RealEstateSimulation simulation = simulationRepository
-                                .findByIdAndUserId(simulationId, userId)
-                                .orElseThrow(
-                                                () -> new ResourceNotFoundException(
-                                                                "Simulation not found with id: " + simulationId));
+    /** Map entity to response DTO. */
+    private RealEstateSimulationResponse mapToResponse(
+            RealEstateSimulation simulation, String decryptedData) {
 
-                simulationRepository.delete(simulation);
-
-                log.info("Simulation deleted: id={}", simulationId);
-        }
-
-        /** Check if simulation name exists. */
-        @Transactional(readOnly = true)
-        public boolean hasSimulationWithName(Long userId, String name) {
-                return simulationRepository.existsByUserIdAndName(userId, name);
-        }
-
-        /** Map entity to response DTO. */
-        private RealEstateSimulationResponse mapToResponse(
-                        RealEstateSimulation simulation, String decryptedData) {
-
-                return RealEstateSimulationResponse.builder()
-                                .id(simulation.getId())
-                                .name(simulation.getName())
-                                .simulationType(simulation.getSimulationType())
-                                .data(decryptedData)
-                                .createdAt(simulation.getCreatedAt())
-                                .updatedAt(simulation.getUpdatedAt())
-                                .build();
-        }
+        return RealEstateSimulationResponse.builder()
+                .id(simulation.getId())
+                .name(simulation.getName())
+                .simulationType(simulation.getSimulationType())
+                .data(decryptedData)
+                .createdAt(simulation.getCreatedAt())
+                .updatedAt(simulation.getUpdatedAt())
+                .build();
+    }
 }

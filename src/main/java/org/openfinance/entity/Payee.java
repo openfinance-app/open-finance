@@ -26,21 +26,19 @@ import org.openfinance.converter.EncryptedStringConverter;
 /**
  * Entity representing a payee (merchant, service provider, etc.).
  *
- * <p>
- * Payees are used to categorize and organize transactions. Users can create
- * custom payees or use
- * system-provided defaults. Payees help with transaction search, duplicate
- * detection, and financial
+ * <p>Payees are used to categorize and organize transactions. Users can create custom payees or use
+ * system-provided defaults. Payees help with transaction search, duplicate detection, and financial
  * reporting.
  *
- * <p>
- * Requirements: Payee Management Feature
+ * <p>Requirements: Payee Management Feature
  */
 @Entity
-@Table(name = "payees", indexes = {
-        @Index(name = "idx_payee_is_system", columnList = "is_system"),
-        @Index(name = "idx_payee_name", columnList = "name")
-})
+@Table(
+        name = "payees",
+        indexes = {
+            @Index(name = "idx_payee_is_system", columnList = "is_system"),
+            @Index(name = "idx_payee_name", columnList = "name")
+        })
 @Data
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -59,8 +57,7 @@ public class Payee {
     private String name;
 
     /**
-     * Payee logo stored as base64-encoded string or file path reference. Supports
-     * PNG, JPG, SVG
+     * Payee logo stored as base64-encoded string or file path reference. Supports PNG, JPG, SVG
      * formats. Can be null for payees without logos.
      */
     @Column(name = "logo", columnDefinition = "TEXT")
@@ -69,21 +66,17 @@ public class Payee {
     /**
      * Default category to associate with this payee.
      *
-     * <p>
-     * When a transaction is created with this payee, the category will be
-     * auto-filled from this
+     * <p>When a transaction is created with this payee, the category will be auto-filled from this
      * field (REQ-CAT-5.1).
      *
-     * <p>
-     * Requirements: REQ-CAT-5.1 - Payee-to-Category Auto-Fill
+     * <p>Requirements: REQ-CAT-5.1 - Payee-to-Category Auto-Fill
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category defaultCategory;
 
     /**
-     * Flag indicating if this is a system-provided payee. System payees cannot be
-     * deleted by users
+     * Flag indicating if this is a system-provided payee. System payees cannot be deleted by users
      * but can be hidden.
      */
     @Column(name = "is_system", nullable = false)
@@ -91,16 +84,14 @@ public class Payee {
     private Boolean isSystem = false;
 
     /**
-     * ID of the user who created this payee. Null for system payees (visible to all
-     * users). Custom
+     * ID of the user who created this payee. Null for system payees (visible to all users). Custom
      * payees are only visible to their creator.
      */
     @Column(name = "user_id")
     private Long userId;
 
     /**
-     * Flag indicating if this payee is active/visible. Users can hide system payees
-     * without
+     * Flag indicating if this payee is active/visible. Users can hide system payees without
      * deleting them.
      */
     @Column(name = "is_active", nullable = false)

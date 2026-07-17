@@ -11,27 +11,22 @@ import org.openfinance.converter.EncryptedStringConverter;
 /**
  * JPA entity representing a budget for tracking spending limits.
  *
- * <p>
- * Budgets allow users to set spending limits for specific categories over
- * defined time periods
- * (weekly, monthly, quarterly, yearly). The system tracks actual spending
- * against budgeted amounts
+ * <p>Budgets allow users to set spending limits for specific categories over defined time periods
+ * (weekly, monthly, quarterly, yearly). The system tracks actual spending against budgeted amounts
  * and alerts users when approaching or exceeding limits.
  *
- * <p>
- * <strong>Features:</strong>
+ * <p><strong>Features:</strong>
  *
  * <ul>
- * <li>User-specific budgets (each user has their own budgets)
- * <li>Category-based budgets (one budget per category)
- * <li>Multiple period types (WEEKLY, MONTHLY, QUARTERLY, YEARLY)
- * <li>Rollover support (unused budget carries to next period)
- * <li>Date-range tracking (startDate to endDate)
- * <li>Encrypted amount storage for security
+ *   <li>User-specific budgets (each user has their own budgets)
+ *   <li>Category-based budgets (one budget per category)
+ *   <li>Multiple period types (WEEKLY, MONTHLY, QUARTERLY, YEARLY)
+ *   <li>Rollover support (unused budget carries to next period)
+ *   <li>Date-range tracking (startDate to endDate)
+ *   <li>Encrypted amount storage for security
  * </ul>
  *
- * <p>
- * <strong>Example Use Cases:</strong>
+ * <p><strong>Example Use Cases:</strong>
  *
  * <pre>
  * - Monthly grocery budget: $500/month
@@ -39,12 +34,11 @@ import org.openfinance.converter.EncryptedStringConverter;
  * - Yearly vacation budget: $5,000/year
  * </pre>
  *
- * <p>
- * <strong>Requirements:</strong>
+ * <p><strong>Requirements:</strong>
  *
  * <ul>
- * <li>REQ-2.9.1.1: Budget creation with category, period, amount, rollover
- * <li>REQ-2.9.1.2: Budget tracking and progress calculation
+ *   <li>REQ-2.9.1.1: Budget creation with category, period, amount, rollover
+ *   <li>REQ-2.9.1.2: Budget tracking and progress calculation
  * </ul>
  *
  * @see Category
@@ -54,12 +48,14 @@ import org.openfinance.converter.EncryptedStringConverter;
  * @since 2026-02-02
  */
 @Entity
-@Table(name = "budgets", indexes = {
-        @Index(name = "idx_budget_user_id", columnList = "user_id"),
-        @Index(name = "idx_budget_category_id", columnList = "category_id"),
-        @Index(name = "idx_budget_period", columnList = "period"),
-        @Index(name = "idx_budget_dates", columnList = "start_date, end_date")
-})
+@Table(
+        name = "budgets",
+        indexes = {
+            @Index(name = "idx_budget_user_id", columnList = "user_id"),
+            @Index(name = "idx_budget_category_id", columnList = "category_id"),
+            @Index(name = "idx_budget_period", columnList = "period"),
+            @Index(name = "idx_budget_dates", columnList = "start_date, end_date")
+        })
 @Getter
 @Setter
 @Builder
@@ -78,13 +74,10 @@ public class Budget {
     /**
      * ID of the user who owns this budget.
      *
-     * <p>
-     * Budgets are user-specific - each user has their own budgets. Foreign key
-     * reference to the
+     * <p>Budgets are user-specific - each user has their own budgets. Foreign key reference to the
      * users table.
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: User-specific budgets
+     * <p>Requirement REQ-2.9.1.1: User-specific budgets
      */
     @NotNull(message = "User ID is required")
     @Column(name = "user_id", nullable = false)
@@ -93,13 +86,10 @@ public class Budget {
     /**
      * ID of the category this budget applies to.
      *
-     * <p>
-     * Each budget is associated with one category. Users can create multiple
-     * budgets for the
+     * <p>Each budget is associated with one category. Users can create multiple budgets for the
      * same category if they have different periods.
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: Category-based budgets
+     * <p>Requirement REQ-2.9.1.1: Category-based budgets
      */
     @NotNull(message = "Category ID is required")
     @Column(name = "category_id", nullable = false)
@@ -108,9 +98,7 @@ public class Budget {
     /**
      * Relationship to the category entity.
      *
-     * <p>
-     * Many budgets can reference one category. Uses LAZY loading to avoid
-     * unnecessary database
+     * <p>Many budgets can reference one category. Uses LAZY loading to avoid unnecessary database
      * queries.
      */
     @ManyToOne(fetch = FetchType.LAZY)
@@ -120,21 +108,15 @@ public class Budget {
     /**
      * Budget amount (encrypted for security).
      *
-     * <p>
-     * The spending limit for this budget period. Stored as an encrypted string and
-     * decrypted at
+     * <p>The spending limit for this budget period. Stored as an encrypted string and decrypted at
      * runtime using the user's master password.
      *
-     * <p>
-     * When decrypted, represents a BigDecimal value with precision 19, scale 4
-     * (e.g.,
+     * <p>When decrypted, represents a BigDecimal value with precision 19, scale 4 (e.g.,
      * "1234567890123456.7890").
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: Budget amount tracking
+     * <p>Requirement REQ-2.9.1.1: Budget amount tracking
      *
-     * <p>
-     * Requirement REQ-1.1.1: Encryption of sensitive financial data
+     * <p>Requirement REQ-1.1.1: Encryption of sensitive financial data
      */
     @NotNull(message = "Budget amount is required")
     @Column(name = "amount", nullable = false, length = 512)
@@ -144,13 +126,10 @@ public class Budget {
     /**
      * Currency code in ISO 4217 format (e.g., "USD", "EUR", "GBP").
      *
-     * <p>
-     * Specifies the currency in which the budget amount is denominated. Used for
-     * multi-currency
+     * <p>Specifies the currency in which the budget amount is denominated. Used for multi-currency
      * support and proper amount display.
      *
-     * <p>
-     * Requirement REQ-2.8: Multi-currency support
+     * <p>Requirement REQ-2.8: Multi-currency support
      */
     @NotNull(message = "Currency is required")
     @Size(min = 3, max = 3, message = "Currency must be a 3-letter ISO 4217 code")
@@ -169,18 +148,16 @@ public class Budget {
     /**
      * Budget period type.
      *
-     * <p>
-     * Defines how frequently the budget resets:
+     * <p>Defines how frequently the budget resets:
      *
      * <ul>
-     * <li>WEEKLY - Resets every 7 days
-     * <li>MONTHLY - Resets on 1st of each month
-     * <li>QUARTERLY - Resets every 3 months
-     * <li>YEARLY - Resets on January 1st
+     *   <li>WEEKLY - Resets every 7 days
+     *   <li>MONTHLY - Resets on 1st of each month
+     *   <li>QUARTERLY - Resets every 3 months
+     *   <li>YEARLY - Resets on January 1st
      * </ul>
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: Multiple period types
+     * <p>Requirement REQ-2.9.1.1: Multiple period types
      */
     @NotNull(message = "Budget period is required")
     @Enumerated(EnumType.STRING)
@@ -190,17 +167,12 @@ public class Budget {
     /**
      * Start date of the budget period.
      *
-     * <p>
-     * Defines when this budget becomes active. For ongoing budgets, this represents
-     * the start of
+     * <p>Defines when this budget becomes active. For ongoing budgets, this represents the start of
      * the current period.
      *
-     * <p>
-     * Example: For a monthly budget created on Feb 15, 2026, startDate might be Feb
-     * 1, 2026.
+     * <p>Example: For a monthly budget created on Feb 15, 2026, startDate might be Feb 1, 2026.
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: Budget date range
+     * <p>Requirement REQ-2.9.1.1: Budget date range
      */
     @NotNull(message = "Start date is required")
     @Column(name = "start_date", nullable = false)
@@ -209,17 +181,12 @@ public class Budget {
     /**
      * End date of the budget period.
      *
-     * <p>
-     * Defines when this budget period ends. For ongoing budgets, this represents
-     * the end of the
+     * <p>Defines when this budget period ends. For ongoing budgets, this represents the end of the
      * current period and will be updated when the period rolls over.
      *
-     * <p>
-     * Example: For a monthly budget starting Feb 1, 2026, endDate would be Feb
-     * 28/29, 2026.
+     * <p>Example: For a monthly budget starting Feb 1, 2026, endDate would be Feb 28/29, 2026.
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: Budget date range
+     * <p>Requirement REQ-2.9.1.1: Budget date range
      */
     @NotNull(message = "End date is required")
     @Column(name = "end_date", nullable = false)
@@ -228,18 +195,13 @@ public class Budget {
     /**
      * Rollover flag - whether unused budget carries to next period.
      *
-     * <p>
-     * When true, if the user spends less than the budgeted amount, the remaining
-     * balance is
+     * <p>When true, if the user spends less than the budgeted amount, the remaining balance is
      * added to the next period's budget.
      *
-     * <p>
-     * Example: Monthly budget $500, spent $400, rollover = true Next month's
-     * budget: $500 + $100
+     * <p>Example: Monthly budget $500, spent $400, rollover = true Next month's budget: $500 + $100
      * = $600
      *
-     * <p>
-     * Requirement REQ-2.9.1.1: Rollover support
+     * <p>Requirement REQ-2.9.1.1: Rollover support
      */
     @NotNull(message = "Rollover flag is required")
     @Column(name = "rollover", nullable = false)
@@ -249,9 +211,7 @@ public class Budget {
     /**
      * Optional notes or description for the budget.
      *
-     * <p>
-     * Users can add context or reminders about this budget. For example: "Christmas
-     * shopping",
+     * <p>Users can add context or reminders about this budget. For example: "Christmas shopping",
      * "Summer vacation fund", etc.
      */
     @Size(max = 500, message = "Notes cannot exceed 500 characters")
@@ -262,9 +222,7 @@ public class Budget {
     /**
      * Timestamp when the budget was created.
      *
-     * <p>
-     * Automatically set on entity creation. Used for auditing and ordering budgets
-     * by creation
+     * <p>Automatically set on entity creation. Used for auditing and ordering budgets by creation
      * time.
      */
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -273,9 +231,7 @@ public class Budget {
     /**
      * Timestamp when the budget was last updated.
      *
-     * <p>
-     * Automatically updated on any entity modification. Used for auditing and
-     * tracking changes.
+     * <p>Automatically updated on any entity modification. Used for auditing and tracking changes.
      */
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
@@ -283,8 +239,7 @@ public class Budget {
     /**
      * JPA lifecycle callback to set creation timestamp.
      *
-     * <p>
-     * Called automatically before persisting a new budget entity.
+     * <p>Called automatically before persisting a new budget entity.
      */
     @PrePersist
     protected void onCreate() {
@@ -296,8 +251,7 @@ public class Budget {
     /**
      * JPA lifecycle callback to update modification timestamp.
      *
-     * <p>
-     * Called automatically before updating an existing budget entity.
+     * <p>Called automatically before updating an existing budget entity.
      */
     @PreUpdate
     protected void onUpdate() {

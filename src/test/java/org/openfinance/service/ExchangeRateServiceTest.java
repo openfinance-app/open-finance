@@ -480,7 +480,8 @@ class ExchangeRateServiceTest {
     }
 
     @Test
-    @DisplayName("Should fetch historical rates before failing a past-date cross-currency conversion")
+    @DisplayName(
+            "Should fetch historical rates before failing a past-date cross-currency conversion")
     void shouldFetchHistoricalRatesBeforeFailingPastDateCrossCurrencyConversion() {
         // Arrange
         LocalDate date = LocalDate.of(2025, 8, 19);
@@ -546,8 +547,7 @@ class ExchangeRateServiceTest {
         ArgumentCaptor<String> symbolCaptor = ArgumentCaptor.forClass(String.class);
         verify(marketDataProvider, times(2))
                 .getHistoricalPrices(symbolCaptor.capture(), eq(date.minusDays(7)), eq(date));
-        assertThat(symbolCaptor.getAllValues())
-                .containsExactlyInAnyOrder("EURUSD=X", "XOFUSD=X");
+        assertThat(symbolCaptor.getAllValues()).containsExactlyInAnyOrder("EURUSD=X", "XOFUSD=X");
         verifyNoMoreInteractions(marketDataProvider);
     }
 

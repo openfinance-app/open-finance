@@ -19,17 +19,12 @@ import org.springframework.stereotype.Service;
 /**
  * Generates deterministic, non-reversible search tokens using HMAC-SHA256.
  *
- * <p>
- * Tokens are stored in the {@code search_tokens} table and used for blind-index
- * keyword search on encrypted fields. Each token is an 8-byte (16-hex-char)
- * truncated
- * HMAC — enough to avoid collisions within a user's data while remaining
- * compact.
+ * <p>Tokens are stored in the {@code search_tokens} table and used for blind-index keyword search
+ * on encrypted fields. Each token is an 8-byte (16-hex-char) truncated HMAC — enough to avoid
+ * collisions within a user's data while remaining compact.
  *
- * <p>
- * The search key is derived from the user's encryption key via
- * HMAC("search-key-derivation")
- * so that the search tokens cannot be used to decrypt actual data.
+ * <p>The search key is derived from the user's encryption key via HMAC("search-key-derivation") so
+ * that the search tokens cannot be used to decrypt actual data.
  */
 @Service
 @RequiredArgsConstructor
@@ -43,8 +38,8 @@ public class SearchTokenService {
     private final JdbcTemplate jdbcTemplate;
 
     /**
-     * Derives a search-specific sub-key from the user's encryption key using HMAC.
-     * This ensures search tokens cannot be used to decrypt actual data.
+     * Derives a search-specific sub-key from the user's encryption key using HMAC. This ensures
+     * search tokens cannot be used to decrypt actual data.
      *
      * @param encryptionKey the user's AES-256 encryption key
      * @return a derived SecretKey for HMAC token generation
@@ -53,8 +48,8 @@ public class SearchTokenService {
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
             mac.init(encryptionKey);
-            byte[] derived = mac.doFinal(
-                    SEARCH_KEY_DERIVATION_LABEL.getBytes(StandardCharsets.UTF_8));
+            byte[] derived =
+                    mac.doFinal(SEARCH_KEY_DERIVATION_LABEL.getBytes(StandardCharsets.UTF_8));
             return new SecretKeySpec(derived, HMAC_ALGORITHM);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new IllegalStateException("Failed to derive search key", e);
@@ -64,10 +59,8 @@ public class SearchTokenService {
     /**
      * Generates word-level search tokens from plaintext.
      *
-     * <p>
-     * Process: lowercase → split on non-alphanumeric → remove short words (< 2
-     * chars)
-     * → HMAC each word → truncate to 8 bytes → hex encode.
+     * <p>Process: lowercase → split on non-alphanumeric → remove short words (< 2 chars) → HMAC
+     * each word → truncate to 8 bytes → hex encode.
      *
      * @param plaintext the plaintext to tokenize
      * @param searchKey the derived search key from {@link #deriveSearchKey}
@@ -90,21 +83,20 @@ public class SearchTokenService {
     /**
      * Generates n-gram tokens for substring/prefix search.
      *
-     * <p>
-     * Each word is split into overlapping n-grams (default n=3), then each n-gram
-     * is HMAC'd. This allows partial-word matching at the cost of more tokens per
-     * field.
+     * <p>Each word is split into overlapping n-grams (default n=3), then each n-gram is HMAC'd.
+     * This allows partial-word matching at the cost of more tokens per field.
      *
      * @param plaintext the plaintext to tokenize
      * @param searchKey the derived search key
-     * @param n         the n-gram size (typically 3)
+     * @param n the n-gram size (typically 3)
      * @return set of hex-encoded n-gram token strings
      */
     public Set<String> generateNGramTokens(String plaintext, SecretKey searchKey, int n) {
         if (plaintext == null || plaintext.isBlank()) {
             return Collections.emptySet();
         }
-        String lower = plaintext.toLowerCase().replaceAll("[^a-zA-Z0-9àâäéèêëïîôùûüÿçœæ]+", " ").trim();
+        String lower =
+                plaintext.toLowerCase().replaceAll("[^a-zA-Z0-9àâäéèêëïîôùûüÿçœæ]+", " ").trim();
         Set<String> tokens = new LinkedHashSet<>();
         String[] words = lower.split("\\s+");
         for (String word : words) {
@@ -123,16 +115,15 @@ public class SearchTokenService {
     }
 
     /**
-     * Indexes an entity's field by generating tokens and storing them in the
-     * {@code search_tokens} table. Removes any existing tokens for this
-     * entity/field first.
+     * Indexes an entity's field by generating tokens and storing them in the {@code search_tokens}
+     * table. Removes any existing tokens for this entity/field first.
      *
-     * @param userId     the owning user's ID
+     * @param userId the owning user's ID
      * @param entityType the entity type (e.g., "TRANSACTION", "ACCOUNT")
-     * @param entityId   the entity's ID
-     * @param fieldName  the field being indexed (e.g., "description", "name")
-     * @param plaintext  the plaintext value to tokenize
-     * @param searchKey  the derived search key
+     * @param entityId the entity's ID
+     * @param fieldName the field being indexed (e.g., "description", "name")
+     * @param plaintext the plaintext value to tokenize
+     * @param searchKey the derived search key
      */
     public void indexField(
             Long userId,
@@ -144,7 +135,9 @@ public class SearchTokenService {
         // Remove old tokens for this entity+field
         jdbcTemplate.update(
                 "DELETE FROM search_tokens WHERE entity_type = ? AND entity_id = ? AND field_name = ?",
-                entityType, entityId, fieldName);
+                entityType,
+                entityId,
+                fieldName);
 
         if (plaintext == null || plaintext.isBlank()) {
             return;
@@ -157,9 +150,14 @@ public class SearchTokenService {
 
         // Batch insert
         if (!allTokens.isEmpty()) {
-            List<Object[]> batchArgs = allTokens.stream()
-                    .map(token -> new Object[] { userId, entityType, entityId, fieldName, token })
-                    .toList();
+            List<Object[]> batchArgs =
+                    allTokens.stream()
+                            .map(
+                                    token ->
+                                            new Object[] {
+                                                userId, entityType, entityId, fieldName, token
+                                            })
+                            .toList();
             jdbcTemplate.batchUpdate(
                     "INSERT INTO search_tokens (user_id, entity_type, entity_id, field_name, token) VALUES (?, ?, ?, ?, ?)",
                     batchArgs);
@@ -169,11 +167,11 @@ public class SearchTokenService {
     /**
      * Indexes multiple fields of an entity at once.
      *
-     * @param userId     the owning user's ID
+     * @param userId the owning user's ID
      * @param entityType the entity type
-     * @param entityId   the entity's ID
-     * @param fields     pairs of (fieldName, plaintext)
-     * @param searchKey  the derived search key
+     * @param entityId the entity's ID
+     * @param fields pairs of (fieldName, plaintext)
+     * @param searchKey the derived search key
      */
     public void indexEntity(
             Long userId,
@@ -192,32 +190,28 @@ public class SearchTokenService {
      * Removes all search tokens for an entity (used on delete).
      *
      * @param entityType the entity type
-     * @param entityId   the entity's ID
+     * @param entityId the entity's ID
      */
     public void removeEntity(String entityType, Long entityId) {
         jdbcTemplate.update(
                 "DELETE FROM search_tokens WHERE entity_type = ? AND entity_id = ?",
-                entityType, entityId);
+                entityType,
+                entityId);
     }
 
     /**
-     * Searches for entity IDs matching a query by tokenizing the query and
-     * looking up matching tokens.
+     * Searches for entity IDs matching a query by tokenizing the query and looking up matching
+     * tokens.
      *
-     * @param userId     the user performing the search
+     * @param userId the user performing the search
      * @param entityType the entity type to search (or null for all types)
-     * @param query      the search query
-     * @param searchKey  the derived search key
-     * @param limit      maximum results
-     * @return list of matching entity IDs ordered by relevance (most token matches
-     *         first)
+     * @param query the search query
+     * @param searchKey the derived search key
+     * @param limit maximum results
+     * @return list of matching entity IDs ordered by relevance (most token matches first)
      */
     public List<Long> search(
-            Long userId,
-            String entityType,
-            String query,
-            SecretKey searchKey,
-            int limit) {
+            Long userId, String entityType, String query, SecretKey searchKey, int limit) {
         Set<String> queryTokens = generateSearchTokens(query, searchKey);
         if (queryTokens.isEmpty()) {
             return Collections.emptyList();
@@ -228,13 +222,16 @@ public class SearchTokenService {
         String sql;
         Object[] params;
         if (entityType != null) {
-            sql = "SELECT entity_id, COUNT(DISTINCT token) as matches "
-                    + "FROM search_tokens "
-                    + "WHERE user_id = ? AND entity_type = ? AND token IN (" + placeholders + ") "
-                    + "GROUP BY entity_id "
-                    + "ORDER BY matches DESC "
-                    + "LIMIT ?";
-            Object[] base = { userId, entityType };
+            sql =
+                    "SELECT entity_id, COUNT(DISTINCT token) as matches "
+                            + "FROM search_tokens "
+                            + "WHERE user_id = ? AND entity_type = ? AND token IN ("
+                            + placeholders
+                            + ") "
+                            + "GROUP BY entity_id "
+                            + "ORDER BY matches DESC "
+                            + "LIMIT ?";
+            Object[] base = {userId, entityType};
             params = new Object[base.length + queryTokens.size() + 1];
             System.arraycopy(base, 0, params, 0, base.length);
             int i = base.length;
@@ -243,13 +240,16 @@ public class SearchTokenService {
             }
             params[i] = limit;
         } else {
-            sql = "SELECT entity_id, COUNT(DISTINCT token) as matches "
-                    + "FROM search_tokens "
-                    + "WHERE user_id = ? AND token IN (" + placeholders + ") "
-                    + "GROUP BY entity_type, entity_id "
-                    + "ORDER BY matches DESC "
-                    + "LIMIT ?";
-            Object[] base = { userId };
+            sql =
+                    "SELECT entity_id, COUNT(DISTINCT token) as matches "
+                            + "FROM search_tokens "
+                            + "WHERE user_id = ? AND token IN ("
+                            + placeholders
+                            + ") "
+                            + "GROUP BY entity_type, entity_id "
+                            + "ORDER BY matches DESC "
+                            + "LIMIT ?";
+            Object[] base = {userId};
             params = new Object[base.length + queryTokens.size() + 1];
             params[0] = userId;
             int i = 1;
@@ -265,29 +265,28 @@ public class SearchTokenService {
     /**
      * Searches for entities matching a query, returning entity type + ID pairs.
      *
-     * @param userId    the user performing the search
-     * @param query     the search query
+     * @param userId the user performing the search
+     * @param query the search query
      * @param searchKey the derived search key
-     * @param limit     maximum results
+     * @param limit maximum results
      * @return list of [entityType, entityId] pairs ordered by relevance
      */
-    public List<Object[]> searchAll(
-            Long userId,
-            String query,
-            SecretKey searchKey,
-            int limit) {
+    public List<Object[]> searchAll(Long userId, String query, SecretKey searchKey, int limit) {
         Set<String> queryTokens = generateSearchTokens(query, searchKey);
         if (queryTokens.isEmpty()) {
             return Collections.emptyList();
         }
 
         String placeholders = String.join(",", Collections.nCopies(queryTokens.size(), "?"));
-        String sql = "SELECT entity_type, entity_id, COUNT(DISTINCT token) as matches "
-                + "FROM search_tokens "
-                + "WHERE user_id = ? AND token IN (" + placeholders + ") "
-                + "GROUP BY entity_type, entity_id "
-                + "ORDER BY matches DESC "
-                + "LIMIT ?";
+        String sql =
+                "SELECT entity_type, entity_id, COUNT(DISTINCT token) as matches "
+                        + "FROM search_tokens "
+                        + "WHERE user_id = ? AND token IN ("
+                        + placeholders
+                        + ") "
+                        + "GROUP BY entity_type, entity_id "
+                        + "ORDER BY matches DESC "
+                        + "LIMIT ?";
 
         Object[] params = new Object[1 + queryTokens.size() + 1];
         params[0] = userId;
@@ -299,7 +298,7 @@ public class SearchTokenService {
 
         return jdbcTemplate.query(
                 sql,
-                (rs, rowNum) -> new Object[] { rs.getString("entity_type"), rs.getLong("entity_id") },
+                (rs, rowNum) -> new Object[] {rs.getString("entity_type"), rs.getLong("entity_id")},
                 params);
     }
 
@@ -310,9 +309,7 @@ public class SearchTokenService {
         return queryTokens;
     }
 
-    /**
-     * Computes a truncated HMAC-SHA256 of a word, returned as lowercase hex.
-     */
+    /** Computes a truncated HMAC-SHA256 of a word, returned as lowercase hex. */
     private String hmacToken(String word, SecretKey searchKey) {
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);

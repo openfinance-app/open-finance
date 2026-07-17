@@ -27,54 +27,53 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Slf4j
 public class InterestRateVariationController {
-        private final InterestRateVariationService variationService;
-        private final InterestCalculatorService calculatorService;
+    private final InterestRateVariationService variationService;
+    private final InterestCalculatorService calculatorService;
 
-        @GetMapping("/interest-variations")
-        public ResponseEntity<List<InterestRateVariationResponse>> getVariations(
-                        @PathVariable("accountId") Long accountId,
-                        Authentication authentication) {
-                User user = (User) authentication.getPrincipal();
-                List<InterestRateVariationResponse> responses = variationService.getVariations(accountId, user.getId());
-                return ResponseEntity.ok(responses);
-        }
+    @GetMapping("/interest-variations")
+    public ResponseEntity<List<InterestRateVariationResponse>> getVariations(
+            @PathVariable("accountId") Long accountId, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        List<InterestRateVariationResponse> responses =
+                variationService.getVariations(accountId, user.getId());
+        return ResponseEntity.ok(responses);
+    }
 
-        @PostMapping("/interest-variations")
-        public ResponseEntity<InterestRateVariationResponse> addVariation(
-                        @PathVariable("accountId") Long accountId,
-                        @Valid @RequestBody InterestRateVariationRequest request,
-                        Authentication authentication) {
-                User user = (User) authentication.getPrincipal();
-                InterestRateVariationResponse response = variationService.addVariation(accountId, user.getId(),
-                                request);
-                return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        }
+    @PostMapping("/interest-variations")
+    public ResponseEntity<InterestRateVariationResponse> addVariation(
+            @PathVariable("accountId") Long accountId,
+            @Valid @RequestBody InterestRateVariationRequest request,
+            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        InterestRateVariationResponse response =
+                variationService.addVariation(accountId, user.getId(), request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 
-        @DeleteMapping("/interest-variations/{variationId}")
-        public ResponseEntity<Void> deleteVariation(
-                        @PathVariable("accountId") Long accountId,
-                        @PathVariable("variationId") Long variationId,
-                        Authentication authentication) {
-                User user = (User) authentication.getPrincipal();
-                variationService.deleteVariation(accountId, variationId, user.getId());
-                return ResponseEntity.noContent().build();
-        }
+    @DeleteMapping("/interest-variations/{variationId}")
+    public ResponseEntity<Void> deleteVariation(
+            @PathVariable("accountId") Long accountId,
+            @PathVariable("variationId") Long variationId,
+            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        variationService.deleteVariation(accountId, variationId, user.getId());
+        return ResponseEntity.noContent().build();
+    }
 
-        @GetMapping("/interest-estimate")
-        public ResponseEntity<InterestEstimateResponse> getInterestEstimate(
-                        @PathVariable("accountId") Long accountId,
-                        @RequestParam(value = "period", required = false, defaultValue = "1Y") String period,
-                        Authentication authentication) {
-                User user = (User) authentication.getPrincipal();
-                BigDecimal projected = calculatorService.calculateInterestEstimate(
-                                accountId, user.getId(), period);
-                BigDecimal historical = calculatorService.calculateHistoricalAccumulated(
-                                accountId, user.getId(), period);
-                return ResponseEntity.ok(new InterestEstimateResponse(projected, historical));
-        }
+    @GetMapping("/interest-estimate")
+    public ResponseEntity<InterestEstimateResponse> getInterestEstimate(
+            @PathVariable("accountId") Long accountId,
+            @RequestParam(value = "period", required = false, defaultValue = "1Y") String period,
+            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        BigDecimal projected =
+                calculatorService.calculateInterestEstimate(accountId, user.getId(), period);
+        BigDecimal historical =
+                calculatorService.calculateHistoricalAccumulated(accountId, user.getId(), period);
+        return ResponseEntity.ok(new InterestEstimateResponse(projected, historical));
+    }
 
-        /** DTO returned by the interest-estimate endpoint. */
-        public static record InterestEstimateResponse(
-                        BigDecimal estimate, BigDecimal historicalAccumulated) {
-        }
+    /** DTO returned by the interest-estimate endpoint. */
+    public static record InterestEstimateResponse(
+            BigDecimal estimate, BigDecimal historicalAccumulated) {}
 }

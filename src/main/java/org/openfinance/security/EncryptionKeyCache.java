@@ -15,18 +15,14 @@ import org.springframework.stereotype.Component;
 /**
  * In-memory cache of per-user encryption keys backed by Caffeine.
  *
- * <p>
- * Keys are populated at login and looked up via opaque session tokens.
- * The actual AES key never leaves the server after derivation — clients
- * receive and send only the session token.
+ * <p>Keys are populated at login and looked up via opaque session tokens. The actual AES key never
+ * leaves the server after derivation — clients receive and send only the session token.
  *
- * <p>
- * A secondary userId→key cache allows {@code @Scheduled} jobs to
- * encrypt/decrypt data for recently-active users without an HTTP context.
+ * <p>A secondary userId→key cache allows {@code @Scheduled} jobs to encrypt/decrypt data for
+ * recently-active users without an HTTP context.
  *
- * <p>
- * Users who have not logged in within 24 hours will not have a cached key;
- * scheduled jobs must skip those users gracefully.
+ * <p>Users who have not logged in within 24 hours will not have a cached key; scheduled jobs must
+ * skip those users gracefully.
  */
 @Component
 public class EncryptionKeyCache {
@@ -45,26 +41,29 @@ public class EncryptionKeyCache {
     private static final int SESSION_TOKEN_BYTES = 32; // 256-bit token
 
     public EncryptionKeyCache() {
-        this.userKeyCache = Caffeine.newBuilder()
-                .maximumSize(10_000)
-                .expireAfterWrite(Duration.ofHours(24))
-                .build();
-        this.sessionTokenCache = Caffeine.newBuilder()
-                .maximumSize(50_000)
-                .expireAfterAccess(Duration.ofHours(24))
-                .build();
-        this.sessionTokenUserCache = Caffeine.newBuilder()
-                .maximumSize(50_000)
-                .expireAfterAccess(Duration.ofHours(24))
-                .build();
+        this.userKeyCache =
+                Caffeine.newBuilder()
+                        .maximumSize(10_000)
+                        .expireAfterWrite(Duration.ofHours(24))
+                        .build();
+        this.sessionTokenCache =
+                Caffeine.newBuilder()
+                        .maximumSize(50_000)
+                        .expireAfterAccess(Duration.ofHours(24))
+                        .build();
+        this.sessionTokenUserCache =
+                Caffeine.newBuilder()
+                        .maximumSize(50_000)
+                        .expireAfterAccess(Duration.ofHours(24))
+                        .build();
     }
 
     /**
-     * Creates a new session and returns an opaque session token.
-     * The actual encryption key is stored server-side only.
+     * Creates a new session and returns an opaque session token. The actual encryption key is
+     * stored server-side only.
      *
      * @param userId the authenticated user's ID
-     * @param key    the user's AES-256 encryption key
+     * @param key the user's AES-256 encryption key
      * @return a URL-safe Base64 session token (44 chars)
      */
     public String createSession(Long userId, SecretKey key) {
@@ -139,12 +138,11 @@ public class EncryptionKeyCache {
     }
 
     /**
-     * Stores or refreshes the encryption key for a user (legacy/compatibility).
-     * Called by EncryptionKeyFilter for backward-compatible X-Encryption-Session
-     * header support.
+     * Stores or refreshes the encryption key for a user (legacy/compatibility). Called by
+     * EncryptionKeyFilter for backward-compatible X-Encryption-Session header support.
      *
      * @param userId the authenticated user's ID
-     * @param key    the user's AES-256 encryption key
+     * @param key the user's AES-256 encryption key
      */
     public void cacheKey(Long userId, SecretKey key) {
         if (userId != null && key != null) {

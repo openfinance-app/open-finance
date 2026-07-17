@@ -44,7 +44,8 @@ class EncryptionKeyFilterTest {
     void shouldSkipSessionLookupAndClearStaleContextWhenEncryptionDisabled() throws Exception {
         EncryptionProperties encryptionProperties = new EncryptionProperties();
         encryptionProperties.setEnabled(false);
-        EncryptionKeyFilter filter = new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader(SESSION_HEADER, "stale-session");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -70,7 +71,8 @@ class EncryptionKeyFilterTest {
     void shouldIgnoreEncryptionHeaderWhenNoAuthenticatedUserIsPresent() throws Exception {
         EncryptionProperties encryptionProperties = new EncryptionProperties();
         encryptionProperties.setEnabled(true);
-        EncryptionKeyFilter filter = new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader(SESSION_HEADER, "invalid-session");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -95,7 +97,8 @@ class EncryptionKeyFilterTest {
     void shouldSkipPublicEndpointEvenWhenAuthenticatedUserIsPresent() throws Exception {
         EncryptionProperties encryptionProperties = new EncryptionProperties();
         encryptionProperties.setEnabled(true);
-        EncryptionKeyFilter filter = new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/v1/auth/login");
         request.setAttribute("userId", 1L);
@@ -121,7 +124,8 @@ class EncryptionKeyFilterTest {
     void shouldRejectAuthenticatedRequestWhenEncryptionSessionMissing() throws Exception {
         EncryptionProperties encryptionProperties = new EncryptionProperties();
         encryptionProperties.setEnabled(true);
-        EncryptionKeyFilter filter = new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute("userId", 1L);
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -140,12 +144,14 @@ class EncryptionKeyFilterTest {
     void shouldRejectAuthenticatedRequestWhenEncryptionSessionInvalid() throws Exception {
         EncryptionProperties encryptionProperties = new EncryptionProperties();
         encryptionProperties.setEnabled(true);
-        EncryptionKeyFilter filter = new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute("userId", 1L);
         request.addHeader(SESSION_HEADER, "invalid-session");
         MockHttpServletResponse response = new MockHttpServletResponse();
-        when(encryptionKeyCache.getKeyBySessionToken("invalid-session")).thenReturn(Optional.empty());
+        when(encryptionKeyCache.getKeyBySessionToken("invalid-session"))
+                .thenReturn(Optional.empty());
 
         filter.doFilter(request, response, filterChain);
 
@@ -160,13 +166,15 @@ class EncryptionKeyFilterTest {
     void shouldRejectRawEncryptionKeyHeaderAndClearStaleContext() throws Exception {
         EncryptionProperties encryptionProperties = new EncryptionProperties();
         encryptionProperties.setEnabled(true);
-        EncryptionKeyFilter filter = new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute("userId", 1L);
         request.addHeader(SESSION_HEADER, "+Ifn53/WIpprMdk+ToP0VZ4b9PiMeT24/r/U5VLreYM=");
         MockHttpServletResponse response = new MockHttpServletResponse();
         EncryptionContext.setKey(new SecretKeySpec(new byte[32], "AES"));
-        when(encryptionKeyCache.getKeyBySessionToken("+Ifn53/WIpprMdk+ToP0VZ4b9PiMeT24/r/U5VLreYM="))
+        when(encryptionKeyCache.getKeyBySessionToken(
+                        "+Ifn53/WIpprMdk+ToP0VZ4b9PiMeT24/r/U5VLreYM="))
                 .thenReturn(Optional.empty());
 
         assertThatCode(() -> filter.doFilter(request, response, filterChain))
@@ -174,23 +182,27 @@ class EncryptionKeyFilterTest {
 
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
         assertThat(EncryptionContext.getKey()).isNull();
-        verify(encryptionKeyCache).getKeyBySessionToken("+Ifn53/WIpprMdk+ToP0VZ4b9PiMeT24/r/U5VLreYM=");
+        verify(encryptionKeyCache)
+                .getKeyBySessionToken("+Ifn53/WIpprMdk+ToP0VZ4b9PiMeT24/r/U5VLreYM=");
         verify(filterChain, never()).doFilter(request, response);
     }
 
     @Test
-    @DisplayName("Should set and clear encryption context for valid session when encryption is enabled")
+    @DisplayName(
+            "Should set and clear encryption context for valid session when encryption is enabled")
     void shouldSetAndClearContextForValidSessionWhenEncryptionEnabled() throws Exception {
         EncryptionProperties encryptionProperties = new EncryptionProperties();
         encryptionProperties.setEnabled(true);
-        EncryptionKeyFilter filter = new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute("userId", 1L);
         request.addHeader(SESSION_HEADER, "valid-session");
         MockHttpServletResponse response = new MockHttpServletResponse();
         SecretKey key = new SecretKeySpec(new byte[32], "AES");
         when(encryptionKeyCache.getKeyBySessionToken("valid-session")).thenReturn(Optional.of(key));
-        when(encryptionKeyCache.getUserIdBySessionToken("valid-session")).thenReturn(Optional.of(1L));
+        when(encryptionKeyCache.getUserIdBySessionToken("valid-session"))
+                .thenReturn(Optional.of(1L));
         doAnswer(
                         invocation -> {
                             assertThat(EncryptionContext.getKey()).isSameAs(key);
@@ -212,13 +224,15 @@ class EncryptionKeyFilterTest {
     void shouldRejectEncryptionSessionOwnedByAnotherUser() throws Exception {
         EncryptionProperties encryptionProperties = new EncryptionProperties();
         encryptionProperties.setEnabled(true);
-        EncryptionKeyFilter filter = new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(encryptionKeyCache, encryptionProperties);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute("userId", 1L);
         request.addHeader(SESSION_HEADER, "other-user-session");
         MockHttpServletResponse response = new MockHttpServletResponse();
         SecretKey key = new SecretKeySpec(new byte[32], "AES");
-        when(encryptionKeyCache.getKeyBySessionToken("other-user-session")).thenReturn(Optional.of(key));
+        when(encryptionKeyCache.getKeyBySessionToken("other-user-session"))
+                .thenReturn(Optional.of(key));
         when(encryptionKeyCache.getUserIdBySessionToken("other-user-session"))
                 .thenReturn(Optional.of(2L));
 

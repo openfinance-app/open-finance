@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.BudgetProgressResponse;
@@ -82,8 +81,7 @@ public class BudgetAlertService {
      * @return list of triggered alerts (for notification display)
      * @throws IllegalArgumentException if userId or encryptionKey is null
      */
-    public List<BudgetAlert> checkBudgetAlertsAfterTransaction(
-            Long userId) {
+    public List<BudgetAlert> checkBudgetAlertsAfterTransaction(Long userId) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -110,8 +108,7 @@ public class BudgetAlertService {
             if (!budgetId.equals(currentBudgetId)) {
                 currentBudgetId = budgetId;
                 try {
-                    currentProgress =
-                            budgetService.calculateBudgetProgress(budgetId, userId);
+                    currentProgress = budgetService.calculateBudgetProgress(budgetId, userId);
                 } catch (Exception e) {
                     log.error(
                             "Error fetching budget progress for budget {}: {}",

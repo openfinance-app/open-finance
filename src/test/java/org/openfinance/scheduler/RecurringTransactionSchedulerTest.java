@@ -29,19 +29,15 @@ import org.openfinance.service.RecurringTransactionService;
 @DisplayName("RecurringTransactionScheduler — Encryption Key Cache Tests")
 class RecurringTransactionSchedulerTest {
 
-    @Mock
-    private RecurringTransactionService recurringTransactionService;
-    @Mock
-    private SchedulerProperties schedulerProperties;
-    @Mock
-    private EncryptionKeyCache encryptionKeyCache;
+    @Mock private RecurringTransactionService recurringTransactionService;
+    @Mock private SchedulerProperties schedulerProperties;
+    @Mock private EncryptionKeyCache encryptionKeyCache;
 
-    @InjectMocks
-    private RecurringTransactionScheduler scheduler;
+    @InjectMocks private RecurringTransactionScheduler scheduler;
 
     private static final SecretKey TEST_KEY_1 = new SecretKeySpec(new byte[32], "AES");
-    private static final SecretKey TEST_KEY_2 = new SecretKeySpec(
-            "01234567890123456789012345678901".getBytes(), "AES");
+    private static final SecretKey TEST_KEY_2 =
+            new SecretKeySpec("01234567890123456789012345678901".getBytes(), "AES");
 
     private SchedulerProperties.SchedulerConfig schedulerConfig;
 
@@ -94,8 +90,9 @@ class RecurringTransactionSchedulerTest {
             when(encryptionKeyCache.getKey(1L)).thenReturn(Optional.of(TEST_KEY_1));
             when(encryptionKeyCache.getKey(2L)).thenReturn(Optional.empty());
             when(recurringTransactionService.processRecurringTransactionsForUser(1L))
-                    .thenReturn(new RecurringTransactionService.ProcessingResult(
-                            2, 0, Collections.emptyList()));
+                    .thenReturn(
+                            new RecurringTransactionService.ProcessingResult(
+                                    2, 0, Collections.emptyList()));
 
             scheduler.processRecurringTransactions();
 
@@ -109,11 +106,12 @@ class RecurringTransactionSchedulerTest {
             when(encryptionKeyCache.getCachedUserIds()).thenReturn(Set.of(1L));
             when(encryptionKeyCache.getKey(1L)).thenReturn(Optional.of(TEST_KEY_1));
             when(recurringTransactionService.processRecurringTransactionsForUser(1L))
-                    .thenAnswer(invocation -> {
-                        assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY_1);
-                        return new RecurringTransactionService.ProcessingResult(
-                                1, 0, Collections.emptyList());
-                    });
+                    .thenAnswer(
+                            invocation -> {
+                                assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY_1);
+                                return new RecurringTransactionService.ProcessingResult(
+                                        1, 0, Collections.emptyList());
+                            });
 
             scheduler.processRecurringTransactions();
 
@@ -127,10 +125,11 @@ class RecurringTransactionSchedulerTest {
             when(encryptionKeyCache.getCachedUserIds()).thenReturn(Set.of(1L));
             when(encryptionKeyCache.getKey(1L)).thenReturn(Optional.of(TEST_KEY_1));
             when(recurringTransactionService.processRecurringTransactionsForUser(1L))
-                    .thenAnswer(invocation -> {
-                        assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY_1);
-                        throw new RuntimeException("boom");
-                    });
+                    .thenAnswer(
+                            invocation -> {
+                                assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY_1);
+                                throw new RuntimeException("boom");
+                            });
 
             scheduler.processRecurringTransactions();
 
@@ -145,17 +144,19 @@ class RecurringTransactionSchedulerTest {
             when(encryptionKeyCache.getKey(2L)).thenReturn(Optional.of(TEST_KEY_2));
 
             when(recurringTransactionService.processRecurringTransactionsForUser(1L))
-                    .thenAnswer(invocation -> {
-                        assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY_1);
-                        return new RecurringTransactionService.ProcessingResult(
-                                1, 0, Collections.emptyList());
-                    });
+                    .thenAnswer(
+                            invocation -> {
+                                assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY_1);
+                                return new RecurringTransactionService.ProcessingResult(
+                                        1, 0, Collections.emptyList());
+                            });
             when(recurringTransactionService.processRecurringTransactionsForUser(2L))
-                    .thenAnswer(invocation -> {
-                        assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY_2);
-                        return new RecurringTransactionService.ProcessingResult(
-                                1, 0, Collections.emptyList());
-                    });
+                    .thenAnswer(
+                            invocation -> {
+                                assertThat(EncryptionContext.getKey()).isSameAs(TEST_KEY_2);
+                                return new RecurringTransactionService.ProcessingResult(
+                                        1, 0, Collections.emptyList());
+                            });
 
             scheduler.processRecurringTransactions();
 

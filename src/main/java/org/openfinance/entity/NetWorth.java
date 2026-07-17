@@ -13,31 +13,32 @@ import lombok.Setter;
 import org.openfinance.converter.EncryptedBigDecimalConverter;
 
 /**
- * NetWorth entity representing a snapshot of user's financial position at a
- * specific date.
+ * NetWorth entity representing a snapshot of user's financial position at a specific date.
  *
- * <p>
- * This entity stores daily snapshots of:
+ * <p>This entity stores daily snapshots of:
  *
  * <ul>
- * <li>Total assets value (sum of all account balances)
- * <li>Total liabilities (sum of all debts)
- * <li>Net worth (assets - liabilities)
+ *   <li>Total assets value (sum of all account balances)
+ *   <li>Total liabilities (sum of all debts)
+ *   <li>Net worth (assets - liabilities)
  * </ul>
  *
- * <p>
- * All monetary values are stored in the user's base currency (typically EUR).
+ * <p>All monetary values are stored in the user's base currency (typically EUR).
  *
- * <p>
- * Requirements: REQ-2.5.1, REQ-2.5.2
+ * <p>Requirements: REQ-2.5.1, REQ-2.5.2
  *
  * @author Open-Finance Development Team
  * @since 1.0
  */
 @Entity
-@Table(name = "net_worth", indexes = {
-        @Index(name = "idx_net_worth_user_date", columnList = "user_id, snapshot_date", unique = true)
-})
+@Table(
+        name = "net_worth",
+        indexes = {
+            @Index(
+                    name = "idx_net_worth_user_date",
+                    columnList = "user_id, snapshot_date",
+                    unique = true)
+        })
 @Getter
 @Setter
 @Builder
@@ -50,63 +51,49 @@ public class NetWorth {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * ID of the user this snapshot belongs to. Foreign key reference to users
-     * table.
-     */
+    /** ID of the user this snapshot belongs to. Foreign key reference to users table. */
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    /**
-     * Date of this net worth snapshot. Used for tracking historical net worth
-     * trends.
-     */
+    /** Date of this net worth snapshot. Used for tracking historical net worth trends. */
     @Column(name = "snapshot_date", nullable = false)
     private LocalDate snapshotDate;
 
     /**
-     * Total value of all assets at snapshot date. Includes cash, investments,
-     * property, etc.
+     * Total value of all assets at snapshot date. Includes cash, investments, property, etc.
      * converted to base currency.
      *
-     * <p>
-     * Precision: 19 digits total, 2 decimal places (standard currency precision)
+     * <p>Precision: 19 digits total, 2 decimal places (standard currency precision)
      */
     @Column(name = "total_assets", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal totalAssets;
 
     /**
-     * Total value of all liabilities at snapshot date. Includes loans, mortgages,
-     * credit card debt,
+     * Total value of all liabilities at snapshot date. Includes loans, mortgages, credit card debt,
      * etc.
      *
-     * <p>
-     * Precision: 19 digits total, 2 decimal places
+     * <p>Precision: 19 digits total, 2 decimal places
      */
     @Column(name = "total_liabilities", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal totalLiabilities;
 
     /**
-     * Calculated net worth (totalAssets - totalLiabilities). Can be negative if
-     * liabilities exceed
+     * Calculated net worth (totalAssets - totalLiabilities). Can be negative if liabilities exceed
      * assets.
      *
-     * <p>
-     * Precision: 19 digits total, 2 decimal places
+     * <p>Precision: 19 digits total, 2 decimal places
      */
     @Column(name = "net_worth", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal netWorth;
 
     /**
-     * Currency code for all monetary values in this snapshot. Typically the user's
-     * base currency
+     * Currency code for all monetary values in this snapshot. Typically the user's base currency
      * (e.g., "EUR").
      *
-     * <p>
-     * ISO 4217 currency code (3 characters)
+     * <p>ISO 4217 currency code (3 characters)
      */
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;

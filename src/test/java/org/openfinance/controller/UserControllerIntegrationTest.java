@@ -91,9 +91,10 @@ class UserControllerIntegrationTest {
     @Test
     @DisplayName("GET /api/v1/users/me - Should return current user profile")
     void testGetCurrentUser() throws Exception {
-        mockMvc.perform(get("/api/v1/users/me")
-                        .header("Authorization", "Bearer " + token)
-                        .header("X-Encryption-Session", encryptionSession))
+        mockMvc.perform(
+                        get("/api/v1/users/me")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username", is("testuser")))

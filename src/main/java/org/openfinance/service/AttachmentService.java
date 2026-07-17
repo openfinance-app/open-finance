@@ -30,15 +30,11 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * Service for managing file attachments associated with financial entities.
  *
- * <p>
- * This service handles uploading, downloading, and deleting file attachments
- * for transactions,
- * assets, real estate properties, and liabilities. Files are stored encrypted
- * on the filesystem
+ * <p>This service handles uploading, downloading, and deleting file attachments for transactions,
+ * assets, real estate properties, and liabilities. Files are stored encrypted on the filesystem
  * using AES-256-GCM encryption.
  *
- * <p>
- * <strong>File Storage Organization:</strong>
+ * <p><strong>File Storage Organization:</strong>
  *
  * <pre>
  * attachments/
@@ -54,22 +50,19 @@ import org.springframework.web.multipart.MultipartFile;
  *   │       └── {uuid}.enc
  * </pre>
  *
- * <p>
- * <strong>Security Features:</strong>
+ * <p><strong>Security Features:</strong>
  *
  * <ul>
- * <li>Files encrypted at rest using AES-256-GCM
- * <li>User isolation - users can only access their own attachments
- * <li>File type validation - only allowed MIME types accepted
- * <li>File size limits - maximum 10MB per file
- * <li>Automatic cleanup of orphaned attachments
+ *   <li>Files encrypted at rest using AES-256-GCM
+ *   <li>User isolation - users can only access their own attachments
+ *   <li>File type validation - only allowed MIME types accepted
+ *   <li>File size limits - maximum 10MB per file
+ *   <li>Automatic cleanup of orphaned attachments
  * </ul>
  *
- * <p>
- * Requirement REQ-2.12: File Attachment System
+ * <p>Requirement REQ-2.12: File Attachment System
  *
- * <p>
- * Requirement REQ-3.2: Security - Encryption at rest
+ * <p>Requirement REQ-3.2: Security - Encryption at rest
  *
  * @author Open-Finance Development Team
  * @since Sprint 12
@@ -100,29 +93,24 @@ public class AttachmentService {
     /**
      * Uploads a new file attachment.
      *
-     * <p>
-     * Validates the file, encrypts its contents, stores it on the filesystem, and
-     * creates a
+     * <p>Validates the file, encrypts its contents, stores it on the filesystem, and creates a
      * database record with metadata.
      *
-     * <p>
-     * Requirement REQ-2.12.1: Users can upload files
+     * <p>Requirement REQ-2.12.1: Users can upload files
      *
-     * <p>
-     * Requirement REQ-2.12.5: File size limit of 10MB
+     * <p>Requirement REQ-2.12.5: File size limit of 10MB
      *
-     * <p>
-     * Requirement REQ-2.12.6: File encryption at rest
+     * <p>Requirement REQ-2.12.6: File encryption at rest
      *
-     * @param file          Uploaded file from multipart request
-     * @param userId        ID of the user uploading the file
-     * @param entityType    Type of entity (TRANSACTION, ASSET, etc.)
-     * @param entityId      ID of the entity to attach file to
+     * @param file Uploaded file from multipart request
+     * @param userId ID of the user uploading the file
+     * @param entityType Type of entity (TRANSACTION, ASSET, etc.)
+     * @param entityId ID of the entity to attach file to
      * @param encryptionKey User's encryption key for encrypting file
-     * @param description   Optional description/notes about the file
+     * @param description Optional description/notes about the file
      * @return Created Attachment entity with metadata
      * @throws IllegalArgumentException if file validation fails
-     * @throws FileStorageException     if file storage fails
+     * @throws FileStorageException if file storage fails
      */
     @Transactional
     public Attachment uploadAttachment(
@@ -161,16 +149,17 @@ public class AttachmentService {
             Files.write(filePath, storedBytes, StandardOpenOption.CREATE_NEW);
 
             // Create attachment metadata
-            Attachment attachment = Attachment.builder()
-                    .userId(userId)
-                    .entityType(entityType)
-                    .entityId(entityId)
-                    .fileName(fileName)
-                    .fileType(file.getContentType())
-                    .fileSize(file.getSize())
-                    .filePath(filePath.toString())
-                    .description(description)
-                    .build();
+            Attachment attachment =
+                    Attachment.builder()
+                            .userId(userId)
+                            .entityType(entityType)
+                            .entityId(entityId)
+                            .fileName(fileName)
+                            .fileType(file.getContentType())
+                            .fileSize(file.getSize())
+                            .filePath(filePath.toString())
+                            .description(description)
+                            .build();
 
             Attachment savedAttachment = attachmentRepository.save(attachment);
 
@@ -192,35 +181,33 @@ public class AttachmentService {
     /**
      * Downloads an attachment file.
      *
-     * <p>
-     * Retrieves the encrypted file from filesystem, decrypts it, and returns as a
-     * Spring
+     * <p>Retrieves the encrypted file from filesystem, decrypts it, and returns as a Spring
      * Resource for streaming to the client.
      *
-     * <p>
-     * Requirement REQ-2.12.2: Users can download attachments
+     * <p>Requirement REQ-2.12.2: Users can download attachments
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization - Users can only access their own files
+     * <p>Requirement REQ-3.2: Authorization - Users can only access their own files
      *
-     * @param attachmentId  ID of the attachment to download
-     * @param userId        ID of the user requesting the file (for authorization)
+     * @param attachmentId ID of the attachment to download
+     * @param userId ID of the user requesting the file (for authorization)
      * @param encryptionKey User's encryption key for decrypting file
      * @return Resource containing decrypted file bytes
      * @throws AttachmentNotFoundException if attachment not found or unauthorized
-     * @throws FileStorageException        if file cannot be read or decrypted
+     * @throws FileStorageException if file cannot be read or decrypted
      */
     @Transactional(readOnly = true)
     public Resource downloadAttachment(Long attachmentId, Long userId) {
         log.info("Downloading attachment {} for user {}", attachmentId, userId);
 
         // Retrieve attachment metadata with authorization check
-        Attachment attachment = attachmentRepository
-                .findByIdAndUserId(attachmentId, userId)
-                .orElseThrow(
-                        () -> new AttachmentNotFoundException(
-                                "Attachment not found or you don't have permission to access it: "
-                                        + attachmentId));
+        Attachment attachment =
+                attachmentRepository
+                        .findByIdAndUserId(attachmentId, userId)
+                        .orElseThrow(
+                                () ->
+                                        new AttachmentNotFoundException(
+                                                "Attachment not found or you don't have permission to access it: "
+                                                        + attachmentId));
 
         try {
             // Read encrypted file from disk
@@ -236,7 +223,8 @@ public class AttachmentService {
             // Return plaintext bytes directly when encryption is explicitly disabled.
             byte[] decryptedBytes =
                     encryptionProperties.isEnabled()
-                            ? encryptionService.decryptBytes(encryptedBytes, EncryptionContext.getKey())
+                            ? encryptionService.decryptBytes(
+                                    encryptedBytes, EncryptionContext.getKey())
                             : encryptedBytes;
 
             log.info(
@@ -259,33 +247,31 @@ public class AttachmentService {
     /**
      * Deletes an attachment.
      *
-     * <p>
-     * Removes the attachment record from database and deletes the encrypted file
-     * from the
+     * <p>Removes the attachment record from database and deletes the encrypted file from the
      * filesystem.
      *
-     * <p>
-     * Requirement REQ-2.12.3: Users can delete attachments
+     * <p>Requirement REQ-2.12.3: Users can delete attachments
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization - Users can only delete their own files
+     * <p>Requirement REQ-3.2: Authorization - Users can only delete their own files
      *
      * @param attachmentId ID of the attachment to delete
-     * @param userId       ID of the user requesting deletion (for authorization)
+     * @param userId ID of the user requesting deletion (for authorization)
      * @throws AttachmentNotFoundException if attachment not found or unauthorized
-     * @throws FileStorageException        if file deletion fails
+     * @throws FileStorageException if file deletion fails
      */
     @Transactional
     public void deleteAttachment(Long attachmentId, Long userId) {
         log.info("Deleting attachment {} for user {}", attachmentId, userId);
 
         // Retrieve attachment metadata with authorization check
-        Attachment attachment = attachmentRepository
-                .findByIdAndUserId(attachmentId, userId)
-                .orElseThrow(
-                        () -> new AttachmentNotFoundException(
-                                "Attachment not found or you don't have permission to delete it: "
-                                        + attachmentId));
+        Attachment attachment =
+                attachmentRepository
+                        .findByIdAndUserId(attachmentId, userId)
+                        .orElseThrow(
+                                () ->
+                                        new AttachmentNotFoundException(
+                                                "Attachment not found or you don't have permission to delete it: "
+                                                        + attachmentId));
 
         try {
             // Delete file from disk
@@ -309,16 +295,13 @@ public class AttachmentService {
     /**
      * Lists all attachments for a specific entity.
      *
-     * <p>
-     * Returns attachment metadata (no file contents) for all files attached to the
-     * entity.
+     * <p>Returns attachment metadata (no file contents) for all files attached to the entity.
      *
-     * <p>
-     * Requirement REQ-2.12.4: Users can list attachments for entities
+     * <p>Requirement REQ-2.12.4: Users can list attachments for entities
      *
      * @param entityType Type of entity
-     * @param entityId   ID of the entity
-     * @param userId     ID of the user (for authorization)
+     * @param entityId ID of the entity
+     * @param userId ID of the user (for authorization)
      * @return List of attachments, ordered by upload date descending
      */
     @Transactional(readOnly = true)
@@ -333,16 +316,12 @@ public class AttachmentService {
     /**
      * Gets attachment metadata by ID.
      *
-     * <p>
-     * Returns metadata only (no file contents). Useful for displaying attachment
-     * info.
+     * <p>Returns metadata only (no file contents). Useful for displaying attachment info.
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization - Users can only access their own
-     * attachments
+     * <p>Requirement REQ-3.2: Authorization - Users can only access their own attachments
      *
      * @param attachmentId ID of the attachment
-     * @param userId       ID of the user (for authorization)
+     * @param userId ID of the user (for authorization)
      * @return Attachment metadata
      * @throws AttachmentNotFoundException if attachment not found or unauthorized
      */
@@ -353,16 +332,16 @@ public class AttachmentService {
         return attachmentRepository
                 .findByIdAndUserId(attachmentId, userId)
                 .orElseThrow(
-                        () -> new AttachmentNotFoundException(
-                                "Attachment not found or you don't have permission to access it: "
-                                        + attachmentId));
+                        () ->
+                                new AttachmentNotFoundException(
+                                        "Attachment not found or you don't have permission to access it: "
+                                                + attachmentId));
     }
 
     /**
      * Lists all attachments for a user.
      *
-     * <p>
-     * Returns all attachments owned by the user across all entities.
+     * <p>Returns all attachments owned by the user across all entities.
      *
      * @param userId ID of the user
      * @return List of all user attachments, ordered by upload date descending
@@ -377,8 +356,7 @@ public class AttachmentService {
     /**
      * Counts total attachments for a user.
      *
-     * <p>
-     * Useful for displaying storage statistics.
+     * <p>Useful for displaying storage statistics.
      *
      * @param userId ID of the user
      * @return Total count of attachments
@@ -391,11 +369,9 @@ public class AttachmentService {
     /**
      * Calculates total storage used by user's attachments.
      *
-     * <p>
-     * Sums the file sizes of all user attachments.
+     * <p>Sums the file sizes of all user attachments.
      *
-     * <p>
-     * Requirement REQ-2.12.5: Track storage usage per user
+     * <p>Requirement REQ-2.12.5: Track storage usage per user
      *
      * @param userId ID of the user
      * @return Total storage in bytes
@@ -420,18 +396,14 @@ public class AttachmentService {
     /**
      * Deletes all attachments for a specific entity.
      *
-     * <p>
-     * Used when deleting parent entities (transaction, asset, etc.) to clean up
-     * orphaned
+     * <p>Used when deleting parent entities (transaction, asset, etc.) to clean up orphaned
      * attachments.
      *
-     * <p>
-     * Requirement REQ-2.12.7: Cascade delete attachments when parent entity is
-     * deleted
+     * <p>Requirement REQ-2.12.7: Cascade delete attachments when parent entity is deleted
      *
      * @param entityType Type of entity
-     * @param entityId   ID of the entity
-     * @param userId     ID of the user (for authorization)
+     * @param entityId ID of the entity
+     * @param userId ID of the user (for authorization)
      * @return Number of attachments deleted
      */
     @Transactional
@@ -463,16 +435,12 @@ public class AttachmentService {
     /**
      * Cleans up orphaned attachment files.
      *
-     * <p>
-     * Finds attachment records in database with missing files on disk, and files on
-     * disk with no
+     * <p>Finds attachment records in database with missing files on disk, and files on disk with no
      * database records. Removes orphaned entries.
      *
-     * <p>
-     * This method should be called periodically by a scheduled task.
+     * <p>This method should be called periodically by a scheduled task.
      *
-     * <p>
-     * Requirement REQ-2.12.8: Automatic cleanup of orphaned attachments
+     * <p>Requirement REQ-2.12.8: Automatic cleanup of orphaned attachments
      *
      * @return Number of orphaned attachments cleaned up
      */
@@ -490,7 +458,8 @@ public class AttachmentService {
                 log.warn("Attachment {} has missing file: {}", attachment.getId(), filePath);
 
                 // Only delete if attachment is old enough
-                LocalDateTime cutoffDate = LocalDateTime.now().minus(cleanupOrphanedAfterDays, ChronoUnit.DAYS);
+                LocalDateTime cutoffDate =
+                        LocalDateTime.now().minus(cleanupOrphanedAfterDays, ChronoUnit.DAYS);
                 if (attachment.getUploadedAt().isBefore(cutoffDate)) {
                     attachmentRepository.delete(attachment);
                     cleanedCount++;
@@ -506,14 +475,11 @@ public class AttachmentService {
     /**
      * Validates uploaded file.
      *
-     * <p>
-     * Checks file size, MIME type, and file name.
+     * <p>Checks file size, MIME type, and file name.
      *
-     * <p>
-     * Requirement REQ-2.12.5: File size limit enforcement
+     * <p>Requirement REQ-2.12.5: File size limit enforcement
      *
-     * <p>
-     * Requirement REQ-2.12.6: File type validation
+     * <p>Requirement REQ-2.12.6: File type validation
      *
      * @param file Uploaded file
      * @throws IllegalArgumentException if validation fails

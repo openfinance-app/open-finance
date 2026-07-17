@@ -29,43 +29,33 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 /**
  * Service for user authentication and login operations.
  *
- * <p>
- * Handles user login with dual password system:
+ * <p>Handles user login with dual password system:
  *
  * <ul>
- * <li>Login password: Verified with BCrypt
- * <li>Master password: Derives encryption key for data protection
+ *   <li>Login password: Verified with BCrypt
+ *   <li>Master password: Derives encryption key for data protection
  * </ul>
  *
- * <p>
- * Security hardening (TASK-15.1.7, TASK-15.1.8):
+ * <p>Security hardening (TASK-15.1.7, TASK-15.1.8):
  *
  * <ul>
- * <li>Logs all authentication attempts to the security audit log
- * <li>Locks accounts after {@code application.security.max-failed-attempts}
- * consecutive failures
- * for a configurable lockout duration
- * <li>Tracks IP address and User-Agent on each successful login
+ *   <li>Logs all authentication attempts to the security audit log
+ *   <li>Locks accounts after {@code application.security.max-failed-attempts} consecutive failures
+ *       for a configurable lockout duration
+ *   <li>Tracks IP address and User-Agent on each successful login
  * </ul>
  *
  * <h3>SQLite WAL / SQLITE_BUSY_SNAPSHOT mitigation</h3>
  *
- * <p>
- * {@link #login} runs with {@link Propagation#NOT_SUPPORTED} — no outer
- * transaction is held
- * during the method. All writes to the {@code users} table are delegated to
- * {@link
- * UserLoginStateService}, which opens its own fresh transaction for each write.
- * This ensures the
- * connection used for the {@code UPDATE users} statement never holds a stale
- * WAL read-snapshot,
+ * <p>{@link #login} runs with {@link Propagation#NOT_SUPPORTED} — no outer transaction is held
+ * during the method. All writes to the {@code users} table are delegated to {@link
+ * UserLoginStateService}, which opens its own fresh transaction for each write. This ensures the
+ * connection used for the {@code UPDATE users} statement never holds a stale WAL read-snapshot,
  * eliminating the root cause of {@code SQLITE_BUSY_SNAPSHOT} errors.
  *
- * <p>
- * Requirement REQ-2.1.3: User authentication with JWT token generation
+ * <p>Requirement REQ-2.1.3: User authentication with JWT token generation
  *
- * <p>
- * Requirement REQ-3.2: Security - master password-derived encryption key
+ * <p>Requirement REQ-3.2: Security - master password-derived encryption key
  *
  * @author Open-Finance Development Team
  * @version 2.1
@@ -77,9 +67,7 @@ public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
-    /**
-     * Default maximum consecutive failed login attempts before account is locked.
-     */
+    /** Default maximum consecutive failed login attempts before account is locked. */
     private static final int DEFAULT_MAX_FAILED_ATTEMPTS = 5;
 
     /** Default lockout duration in minutes. */
@@ -96,55 +84,44 @@ public class AuthService {
     private final EncryptionProperties encryptionProperties;
 
     /**
-     * Maximum failed login attempts before the account is locked. Configurable via
-     * {@code
+     * Maximum failed login attempts before the account is locked. Configurable via {@code
      * application.security.max-failed-attempts}.
      */
     @Value("${application.security.max-failed-attempts:" + DEFAULT_MAX_FAILED_ATTEMPTS + "}")
     private int maxFailedAttempts;
 
     /**
-     * Duration in minutes for which an account remains locked after exceeding the
-     * maximum failed
-     * attempts. Configurable via
-     * {@code application.security.lockout-duration-minutes}.
+     * Duration in minutes for which an account remains locked after exceeding the maximum failed
+     * attempts. Configurable via {@code application.security.lockout-duration-minutes}.
      */
     @Value("${application.security.lockout-duration-minutes:" + DEFAULT_LOCKOUT_MINUTES + "}")
     private int lockoutDurationMinutes;
 
     /**
-     * Authenticates a user and generates a JWT token with an encrypted encryption
-     * key.
+     * Authenticates a user and generates a JWT token with an encrypted encryption key.
      *
-     * <p>
-     * <strong>Authentication Process:</strong>
+     * <p><strong>Authentication Process:</strong>
      *
      * <ol>
-     * <li>Find user by username (simple read — no outer transaction)
-     * <li>Check if account is locked (TASK-15.1.8)
-     * <li>Verify login password with BCrypt
-     * <li>On failure: delegate counter/lock update to {@link UserLoginStateService}
-     * (fresh tx)
-     * and log audit event
-     * <li>On success: derive encryption key, generate JWT, delegate user-state
-     * update to {@link
-     * UserLoginStateService} (fresh tx), log audit event
+     *   <li>Find user by username (simple read — no outer transaction)
+     *   <li>Check if account is locked (TASK-15.1.8)
+     *   <li>Verify login password with BCrypt
+     *   <li>On failure: delegate counter/lock update to {@link UserLoginStateService} (fresh tx)
+     *       and log audit event
+     *   <li>On success: derive encryption key, generate JWT, delegate user-state update to {@link
+     *       UserLoginStateService} (fresh tx), log audit event
      * </ol>
      *
-     * <p>
-     * Runs with {@link Propagation#NOT_SUPPORTED} so that no outer JDBC
-     * transaction/WAL snapshot
-     * is held across the method call. Each write ({@code UPDATE users},
-     * {@code INSERT
-     * security_audit_log}) opens and commits its own independent transaction,
-     * preventing {@code
+     * <p>Runs with {@link Propagation#NOT_SUPPORTED} so that no outer JDBC transaction/WAL snapshot
+     * is held across the method call. Each write ({@code UPDATE users}, {@code INSERT
+     * security_audit_log}) opens and commits its own independent transaction, preventing {@code
      * SQLITE_BUSY_SNAPSHOT} errors.
      *
      * @param request login request with username, password, and master password
      * @return LoginResponse with JWT token, user info, and encrypted encryption key
      * @throws BadCredentialsException if username not found or password incorrect
-     * @throws AccountLockedException  if the account is currently locked
-     * @throws IllegalStateException   if key derivation or encryption fails
+     * @throws AccountLockedException if the account is currently locked
+     * @throws IllegalStateException if key derivation or encryption fails
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public LoginResponse login(LoginRequest request) {
@@ -213,7 +190,8 @@ public class AuthService {
         }
 
         if (request.getMasterPassword() == null || request.getMasterPassword().isBlank()) {
-            throw new IllegalArgumentException("Master password is required when encryption is enabled");
+            throw new IllegalArgumentException(
+                    "Master password is required when encryption is enabled");
         }
 
         // 4. Derive encryption key from master password + salt
@@ -289,8 +267,8 @@ public class AuthService {
     }
 
     /**
-     * Invalidates an encryption session token on logout.
-     * The cached encryption key is removed from the session token cache.
+     * Invalidates an encryption session token on logout. The cached encryption key is removed from
+     * the session token cache.
      *
      * @param sessionToken the opaque session token to invalidate
      */
@@ -300,26 +278,22 @@ public class AuthService {
     }
 
     /**
-     * Records a failed login attempt: increments the counter (locking the account
-     * if the threshold
+     * Records a failed login attempt: increments the counter (locking the account if the threshold
      * is reached) and appends security audit events.
      *
-     * <p>
-     * The user-state write is delegated to {@link UserLoginStateService} (fresh
-     * transaction).
-     * Audit events are written outside any transaction via
-     * {@link SecurityAuditService}.
+     * <p>The user-state write is delegated to {@link UserLoginStateService} (fresh transaction).
+     * Audit events are written outside any transaction via {@link SecurityAuditService}.
      *
-     * <p>
-     * Requirement TASK-15.1.8: Account lockout after N failed login attempts.
+     * <p>Requirement TASK-15.1.8: Account lockout after N failed login attempts.
      *
-     * @param user        the user whose counter should be incremented
+     * @param user the user whose counter should be incremented
      * @param httpRequest the current HTTP request for audit logging
      */
     private void handleFailedLogin(User user, HttpServletRequest httpRequest) {
         // Persist the incremented counter (and possible lock) in a fresh transaction
-        int newAttempts = userLoginStateService.recordLoginFailure(
-                user.getId(), maxFailedAttempts, lockoutDurationMinutes);
+        int newAttempts =
+                userLoginStateService.recordLoginFailure(
+                        user.getId(), maxFailedAttempts, lockoutDurationMinutes);
 
         // Requirement TASK-15.1.7: Log each failure (auto-committed, outside any tx)
         securityAuditService.logEvent(
@@ -351,15 +325,15 @@ public class AuthService {
     }
 
     /**
-     * Resolves the current {@link HttpServletRequest} from Spring's
-     * {@link RequestContextHolder}.
+     * Resolves the current {@link HttpServletRequest} from Spring's {@link RequestContextHolder}.
      * Returns {@code null} if no request is in scope (e.g., during tests).
      *
      * @return the current HTTP request, or {@code null}
      */
     private HttpServletRequest resolveHttpRequest() {
         try {
-            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            ServletRequestAttributes attrs =
+                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             return attrs != null ? attrs.getRequest() : null;
         } catch (Exception e) {
             return null;
@@ -367,8 +341,7 @@ public class AuthService {
     }
 
     /**
-     * Extracts the real client IP address from a request, handling reverse-proxy
-     * headers.
+     * Extracts the real client IP address from a request, handling reverse-proxy headers.
      *
      * @param request the HTTP request; may be {@code null}
      * @return the resolved IP address, or {@code "unknown"}

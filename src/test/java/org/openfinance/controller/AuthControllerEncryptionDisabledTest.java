@@ -52,7 +52,8 @@ class AuthControllerEncryptionDisabledTest {
     }
 
     @Test
-    @DisplayName("POST /auth/login - should login without master password when encryption is disabled")
+    @DisplayName(
+            "POST /auth/login - should login without master password when encryption is disabled")
     void shouldLoginWithoutMasterPasswordWhenEncryptionIsDisabled() throws Exception {
         UserRegistrationRequest registrationRequest =
                 UserRegistrationRequest.builder()

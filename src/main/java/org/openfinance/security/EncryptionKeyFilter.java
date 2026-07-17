@@ -13,22 +13,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.config.EncryptionProperties;
 import org.springframework.lang.NonNull;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Servlet filter that resolves the encryption key for the current request.
  *
- * <p>
- * The client sends an opaque session token (obtained at login) in the
- * {@code X-Encryption-Session} header. This filter looks up the real AES key
- * from {@link EncryptionKeyCache} and stores it in {@link EncryptionContext}
- * for the duration of the request. The actual encryption key never transits
- * over the wire after login.
+ * <p>The client sends an opaque session token (obtained at login) in the {@code
+ * X-Encryption-Session} header. This filter looks up the real AES key from {@link
+ * EncryptionKeyCache} and stores it in {@link EncryptionContext} for the duration of the request.
+ * The actual encryption key never transits over the wire after login.
  *
- * <p>
- * Registered in the filter chain after {@link JwtAuthenticationFilter} so
- * that the authenticated user ID is available.
+ * <p>Registered in the filter chain after {@link JwtAuthenticationFilter} so that the authenticated
+ * user ID is available.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -74,7 +70,8 @@ public class EncryptionKeyFilter extends OncePerRequestFilter {
 
             Optional<SecretKey> keyOpt = encryptionKeyCache.getKeyBySessionToken(sessionToken);
             if (keyOpt.isPresent()) {
-                Optional<Long> sessionUserId = encryptionKeyCache.getUserIdBySessionToken(sessionToken);
+                Optional<Long> sessionUserId =
+                        encryptionKeyCache.getUserIdBySessionToken(sessionToken);
                 if (sessionUserId.isEmpty() || !sessionUserId.get().equals(requestUserId)) {
                     log.warn("Encryption session token does not belong to authenticated user");
                     rejectInvalidSession(response);
@@ -124,7 +121,7 @@ public class EncryptionKeyFilter extends OncePerRequestFilter {
     }
 
     private void rejectInvalidSession(HttpServletResponse response) throws IOException {
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired encryption session");
+        response.sendError(
+                HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired encryption session");
     }
-
 }

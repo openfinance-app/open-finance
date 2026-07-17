@@ -146,7 +146,8 @@ public class ExchangeRateService {
                     toCurrency);
             boolean fetched = fetchAndStorePairRate(fromCurrency, toCurrency);
             if (fetched) {
-                Optional<BigDecimal> refetchedRate = findStoredExchangeRate(fromCurrency, toCurrency, null);
+                Optional<BigDecimal> refetchedRate =
+                        findStoredExchangeRate(fromCurrency, toCurrency, null);
                 if (refetchedRate.isPresent()) {
                     return refetchedRate.get();
                 }
@@ -377,9 +378,14 @@ public class ExchangeRateService {
                                                         && price.getClose()
                                                                         .compareTo(BigDecimal.ZERO)
                                                                 > 0)
-                                .max(Comparator.comparing(org.openfinance.dto.HistoricalPrice::getDate));
+                                .max(
+                                        Comparator.comparing(
+                                                org.openfinance.dto.HistoricalPrice::getDate));
                 if (closestPrice.isEmpty()) {
-                    log.warn("No historical close found for symbol {} on or before {}", symbol, date);
+                    log.warn(
+                            "No historical close found for symbol {} on or before {}",
+                            symbol,
+                            date);
                     continue;
                 }
 
@@ -719,7 +725,10 @@ public class ExchangeRateService {
 
     private List<ExchangeRate> buildInverseRates(List<ExchangeRate> rates) {
         return rates.stream()
-                .filter(rate -> rate.getRate() != null && rate.getRate().compareTo(BigDecimal.ZERO) > 0)
+                .filter(
+                        rate ->
+                                rate.getRate() != null
+                                        && rate.getRate().compareTo(BigDecimal.ZERO) > 0)
                 .map(
                         rate ->
                                 ExchangeRate.builder()

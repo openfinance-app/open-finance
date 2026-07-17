@@ -16,8 +16,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * REST controller for real estate simulation management.
  *
- * <p>
- * Provides endpoints for saving, loading, and managing real estate simulations.
+ * <p>Provides endpoints for saving, loading, and managing real estate simulations.
  *
  * @author Open-Finance Development Team
  * @version 1.0
@@ -49,15 +48,14 @@ public class RealEstateSimulationController {
     /** Get all simulations for the authenticated user. */
     @GetMapping
     public ResponseEntity<List<RealEstateSimulationResponse>> getSimulations(
-            @RequestParam(required = false) String simulationType,
-            Authentication authentication) {
+            @RequestParam(required = false) String simulationType, Authentication authentication) {
 
         log.info("Retrieving simulations: type={}", simulationType);
 
         Long userId = ControllerUtil.extractUserId(authentication);
 
-        List<RealEstateSimulationResponse> simulations = simulationService.getSimulationsByUserId(userId,
-                simulationType);
+        List<RealEstateSimulationResponse> simulations =
+                simulationService.getSimulationsByUserId(userId, simulationType);
 
         return ResponseEntity.ok(simulations);
     }
@@ -65,14 +63,14 @@ public class RealEstateSimulationController {
     /** Get a simulation by ID. */
     @GetMapping("/{id}")
     public ResponseEntity<RealEstateSimulationResponse> getSimulationById(
-            @PathVariable("id") Long simulationId,
-            Authentication authentication) {
+            @PathVariable("id") Long simulationId, Authentication authentication) {
 
         log.info("Retrieving simulation: id={}", simulationId);
 
         Long userId = ControllerUtil.extractUserId(authentication);
 
-        RealEstateSimulationResponse response = simulationService.getSimulationById(simulationId, userId);
+        RealEstateSimulationResponse response =
+                simulationService.getSimulationById(simulationId, userId);
 
         return ResponseEntity.ok(response);
     }
@@ -88,7 +86,8 @@ public class RealEstateSimulationController {
 
         Long userId = ControllerUtil.extractUserId(authentication);
 
-        RealEstateSimulationResponse response = simulationService.updateSimulation(simulationId, userId, request);
+        RealEstateSimulationResponse response =
+                simulationService.updateSimulation(simulationId, userId, request);
 
         return ResponseEntity.ok(response);
     }

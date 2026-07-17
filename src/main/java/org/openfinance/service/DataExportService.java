@@ -23,13 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service for exporting and importing user financial data.
  *
- * <p>
- * Provides comprehensive data backup and migration functionality, allowing
- * users to export all
+ * <p>Provides comprehensive data backup and migration functionality, allowing users to export all
  * their financial data in JSON or CSV format.
  *
- * <p>
- * Requirement: REQ-3.4 - Data Export and Backup
+ * <p>Requirement: REQ-3.4 - Data Export and Backup
  *
  * @author Open Finance Development Team
  */
@@ -49,7 +46,7 @@ public class DataExportService {
     /**
      * Export all user data based on the provided request.
      *
-     * @param userId  User ID
+     * @param userId User ID
      * @param request Export request specifying format and inclusions
      * @return Export response with metadata and download information
      */
@@ -131,16 +128,18 @@ public class DataExportService {
         try {
             if ("JSON".equalsIgnoreCase(request.getFormat())) {
                 fileContent = generateJsonExport(exportData);
-                filename = String.format(
-                        "openfinance-export-%s.json",
-                        LocalDateTime.now()
-                                .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")));
+                filename =
+                        String.format(
+                                "openfinance-export-%s.json",
+                                LocalDateTime.now()
+                                        .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")));
             } else {
                 fileContent = generateCsvExport(exportData);
-                filename = String.format(
-                        "openfinance-export-%s.csv",
-                        LocalDateTime.now()
-                                .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")));
+                filename =
+                        String.format(
+                                "openfinance-export-%s.csv",
+                                LocalDateTime.now()
+                                        .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")));
             }
         } catch (IOException e) {
             log.error("Failed to generate export file for user {}", userId, e);
@@ -232,21 +231,22 @@ public class DataExportService {
     }
 
     /** Export transactions with date filtering. */
-    private List<Map<String, Object>> exportTransactions(
-            Long userId, DataExportRequest request) {
+    private List<Map<String, Object>> exportTransactions(Long userId, DataExportRequest request) {
         List<Transaction> transactions;
 
         if (request.getStartDate() != null && request.getEndDate() != null) {
-            transactions = transactionRepository.findByUserIdAndDateBetween(
-                    userId, request.getStartDate(), request.getEndDate());
+            transactions =
+                    transactionRepository.findByUserIdAndDateBetween(
+                            userId, request.getStartDate(), request.getEndDate());
         } else {
             transactions = transactionRepository.findByUserId(userId);
         }
 
         if (!request.isIncludeDeleted()) {
-            transactions = transactions.stream()
-                    .filter(t -> !t.getIsDeleted())
-                    .collect(Collectors.toList());
+            transactions =
+                    transactions.stream()
+                            .filter(t -> !t.getIsDeleted())
+                            .collect(Collectors.toList());
         }
 
         return transactions.stream()
@@ -404,10 +404,7 @@ public class DataExportService {
         return mapper.writeValueAsBytes(data);
     }
 
-    /**
-     * Generate CSV export (simplified format with separate files for each entity
-     * type).
-     */
+    /** Generate CSV export (simplified format with separate files for each entity type). */
     private byte[] generateCsvExport(Map<String, Object> data) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         OutputStreamWriter writer = new OutputStreamWriter(baos, StandardCharsets.UTF_8);
@@ -461,9 +458,10 @@ public class DataExportService {
         // Write data rows
         for (Object item : items) {
             Map<String, Object> map = (Map<String, Object>) item;
-            String row = map.values().stream()
-                    .map(v -> v != null ? escapeCsv(v.toString()) : "")
-                    .collect(Collectors.joining(","));
+            String row =
+                    map.values().stream()
+                            .map(v -> v != null ? escapeCsv(v.toString()) : "")
+                            .collect(Collectors.joining(","));
             writer.write(row + "\n");
         }
 

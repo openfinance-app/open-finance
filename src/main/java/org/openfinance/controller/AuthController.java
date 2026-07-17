@@ -21,31 +21,23 @@ import org.springframework.web.bind.annotation.*;
 /**
  * REST controller for authentication endpoints.
  *
- * <p>
- * Provides endpoints for user registration, login, and authentication-related
- * operations. All
+ * <p>Provides endpoints for user registration, login, and authentication-related operations. All
  * endpoints are prefixed with {@code /api/v1/auth}.
  *
- * <p>
- * <strong>Endpoints:</strong>
+ * <p><strong>Endpoints:</strong>
  *
  * <ul>
- * <li>POST /api/v1/auth/register - Register new user account
- * <li>POST /api/v1/auth/login - Authenticate user and return JWT token
- * <li>GET /api/v1/auth/profile - Get current user profile (requires
- * authentication)
- * <li>PUT /api/v1/auth/profile - Update current user profile (requires
- * authentication)
+ *   <li>POST /api/v1/auth/register - Register new user account
+ *   <li>POST /api/v1/auth/login - Authenticate user and return JWT token
+ *   <li>GET /api/v1/auth/profile - Get current user profile (requires authentication)
+ *   <li>PUT /api/v1/auth/profile - Update current user profile (requires authentication)
  * </ul>
  *
- * <p>
- * Requirement REQ-2.1.1: User registration endpoint
+ * <p>Requirement REQ-2.1.1: User registration endpoint
  *
- * <p>
- * Requirement REQ-2.1.3: User authentication with JWT
+ * <p>Requirement REQ-2.1.3: User authentication with JWT
  *
- * <p>
- * Requirement REQ-2.1.5: User profile management
+ * <p>Requirement REQ-2.1.5: User profile management
  *
  * @see UserService
  * @see UserRegistrationRequest
@@ -93,17 +85,17 @@ public class AuthController {
      * <p><strong>Error Responses:</strong>
      *
      * <ul>
-     * <li>HTTP 400 Bad Request - Validation errors (missing fields, invalid format)
-     * <li>HTTP 409 Conflict - Username or email already exists
-     * <li>HTTP 500 Internal Server Error - Unexpected server error
+     *   <li>HTTP 400 Bad Request - Validation errors (missing fields, invalid format)
+     *   <li>HTTP 409 Conflict - Username or email already exists
+     *   <li>HTTP 500 Internal Server Error - Unexpected server error
      * </ul>
      *
      * <p><strong>Security:</strong>
      *
      * <ul>
-     * <li>Login password is hashed with BCrypt before storage
-     * <li>Master password is used to generate encryption salt (not stored)
-     * <li>Response excludes all sensitive fields
+     *   <li>Login password is hashed with BCrypt before storage
+     *   <li>Master password is used to generate encryption salt (not stored)
+     *   <li>Response excludes all sensitive fields
      * </ul>
      *
      * @param request registration request with user credentials
@@ -148,32 +140,31 @@ public class AuthController {
      * <p><strong>Authentication Flow:</strong>
      *
      * <ol>
-     * <li>Verify username and login password with BCrypt
-     * <li>Derive encryption key from master password
-     * <li>Generate JWT token with 24-hour expiration
-     * <li>Return token and encrypted encryption key
+     *   <li>Verify username and login password with BCrypt
+     *   <li>Derive encryption key from master password
+     *   <li>Generate JWT token with 24-hour expiration
+     *   <li>Return token and encrypted encryption key
      * </ol>
      *
      * <p><strong>Error Responses:</strong>
      *
      * <ul>
-     * <li>HTTP 400 Bad Request - Validation errors (missing fields)
-     * <li>HTTP 401 Unauthorized - Invalid credentials
-     * <li>HTTP 500 Internal Server Error - Unexpected server error
+     *   <li>HTTP 400 Bad Request - Validation errors (missing fields)
+     *   <li>HTTP 401 Unauthorized - Invalid credentials
+     *   <li>HTTP 500 Internal Server Error - Unexpected server error
      * </ul>
      *
      * <p><strong>Security:</strong>
      *
      * <ul>
-     * <li>JWT token expires after 24 hours
-     * <li>Encryption key is encrypted before transport
-     * <li>Client should store token in localStorage and key in sessionStorage
-     * <li>Include token in Authorization header: "Bearer {token}"
+     *   <li>JWT token expires after 24 hours
+     *   <li>Encryption key is encrypted before transport
+     *   <li>Client should store token in localStorage and key in sessionStorage
+     *   <li>Include token in Authorization header: "Bearer {token}"
      * </ul>
      *
      * @param request login request with username, password, and master password
-     * @return HTTP 200 OK with LoginResponse containing JWT token and encrypted
-     * encryption key
+     * @return HTTP 200 OK with LoginResponse containing JWT token and encrypted encryption key
      */
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -187,8 +178,8 @@ public class AuthController {
     }
 
     /**
-     * Logs out the current user by invalidating their encryption session token.
-     * The session token is read from the {@code X-Encryption-Session} header.
+     * Logs out the current user by invalidating their encryption session token. The session token
+     * is read from the {@code X-Encryption-Session} header.
      *
      * @param request the HTTP request containing the session token header
      * @return HTTP 204 No Content on success
@@ -206,8 +197,7 @@ public class AuthController {
     /**
      * Retrieves the current authenticated user's profile.
      *
-     * <p><strong>Authentication Required:</strong> Must include valid JWT token in
-     * Authorization
+     * <p><strong>Authentication Required:</strong> Must include valid JWT token in Authorization
      * header: "Bearer {token}"
      *
      * <p><strong>Success Response (HTTP 200 OK):</strong>
@@ -225,9 +215,9 @@ public class AuthController {
      * <p><strong>Error Responses:</strong>
      *
      * <ul>
-     * <li>HTTP 401 Unauthorized - Missing or invalid JWT token
-     * <li>HTTP 404 Not Found - User not found
-     * <li>HTTP 500 Internal Server Error - Unexpected server error
+     *   <li>HTTP 401 Unauthorized - Missing or invalid JWT token
+     *   <li>HTTP 404 Not Found - User not found
+     *   <li>HTTP 500 Internal Server Error - Unexpected server error
      * </ul>
      *
      * @param authentication Spring Security authentication object (injected)
@@ -248,8 +238,7 @@ public class AuthController {
     /**
      * Updates the current authenticated user's profile.
      *
-     * <p><strong>Authentication Required:</strong> Must include valid JWT token in
-     * Authorization
+     * <p><strong>Authentication Required:</strong> Must include valid JWT token in Authorization
      * header: "Bearer {token}"
      *
      * <p><strong>Request Body:</strong>
@@ -265,10 +254,10 @@ public class AuthController {
      * <p><strong>Update Rules:</strong>
      *
      * <ul>
-     * <li>Current password verification required for all changes
-     * <li>Email must be unique across system
-     * <li>New password must be at least 8 characters
-     * <li>At least one of email or newPassword must be provided
+     *   <li>Current password verification required for all changes
+     *   <li>Email must be unique across system
+     *   <li>New password must be at least 8 characters
+     *   <li>At least one of email or newPassword must be provided
      * </ul>
      *
      * <p><strong>Success Response (HTTP 200 OK):</strong>
@@ -286,26 +275,23 @@ public class AuthController {
      * <p><strong>Error Responses:</strong>
      *
      * <ul>
-     * <li>HTTP 400 Bad Request - Validation errors (invalid email format, password
-     * too short)
-     * <li>HTTP 401 Unauthorized - Missing/invalid JWT token or incorrect current
-     * password
-     * <li>HTTP 404 Not Found - User not found
-     * <li>HTTP 409 Conflict - Email already exists
-     * <li>HTTP 500 Internal Server Error - Unexpected server error
+     *   <li>HTTP 400 Bad Request - Validation errors (invalid email format, password too short)
+     *   <li>HTTP 401 Unauthorized - Missing/invalid JWT token or incorrect current password
+     *   <li>HTTP 404 Not Found - User not found
+     *   <li>HTTP 409 Conflict - Email already exists
+     *   <li>HTTP 500 Internal Server Error - Unexpected server error
      * </ul>
      *
      * <p><strong>Security:</strong>
      *
      * <ul>
-     * <li>Current password is verified with BCrypt
-     * <li>New password is hashed with BCrypt before storage
-     * <li>Response excludes all sensitive fields
+     *   <li>Current password is verified with BCrypt
+     *   <li>New password is hashed with BCrypt before storage
+     *   <li>Response excludes all sensitive fields
      * </ul>
      *
-     * @param request update profile request with optional email/password and
-     * required current
-     * password
+     * @param request update profile request with optional email/password and required current
+     *     password
      * @param authentication Spring Security authentication object (injected)
      * @return HTTP 200 OK with UserResponse containing updated profile data
      */

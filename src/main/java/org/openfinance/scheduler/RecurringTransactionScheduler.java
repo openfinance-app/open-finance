@@ -18,68 +18,53 @@ import org.springframework.stereotype.Component;
 /**
  * Scheduled job for automatically processing due recurring transactions.
  *
- * <p>
- * This scheduler runs daily at midnight to generate actual transactions from
- * recurring
- * transaction templates. It queries all due recurring transactions across all
- * users and creates
+ * <p>This scheduler runs daily at midnight to generate actual transactions from recurring
+ * transaction templates. It queries all due recurring transactions across all users and creates
  * corresponding Transaction entries.
  *
- * <p>
- * <strong>Default Schedule:</strong>
+ * <p><strong>Default Schedule:</strong>
  *
  * <ul>
- * <li>Frequency: Daily at midnight (00:00:00)
- * <li>Cron Expression: {@code 0 0 0 * * ?}
- * <li>Time Zone: System default (UTC recommended for production)
+ *   <li>Frequency: Daily at midnight (00:00:00)
+ *   <li>Cron Expression: {@code 0 0 0 * * ?}
+ *   <li>Time Zone: System default (UTC recommended for production)
  * </ul>
  *
- * <p>
- * <strong>Configurable Frequency</strong> ({@code
+ * <p><strong>Configurable Frequency</strong> ({@code
  * application.scheduled.recurring-transactions.mode}):
  *
  * <ul>
- * <li>{@code DEFAULT} — daily at midnight (built-in default above)
- * <li>{@code STARTUP_ONLY} — once on application startup, no periodic schedule
- * <li>{@code STARTUP_AND_EVERY_X_HOURS} — on startup, then every
- * {@code interval-hours} hours
- * <li>{@code EVERY_HOUR} — once per hour
- * <li>{@code DAILY} — once per day at midnight
+ *   <li>{@code DEFAULT} — daily at midnight (built-in default above)
+ *   <li>{@code STARTUP_ONLY} — once on application startup, no periodic schedule
+ *   <li>{@code STARTUP_AND_EVERY_X_HOURS} — on startup, then every {@code interval-hours} hours
+ *   <li>{@code EVERY_HOUR} — once per hour
+ *   <li>{@code DAILY} — once per day at midnight
  * </ul>
  *
- * <p>
- * <strong>Behavior:</strong>
+ * <p><strong>Behavior:</strong>
  *
  * <ul>
- * <li>Fetches all active recurring transactions where nextOccurrence <= today
- * <li>Creates actual Transaction for each due recurring transaction
- * <li>Updates nextOccurrence date based on frequency (DAILY, WEEKLY, MONTHLY,
- * etc.)
- * <li>Sets isActive=false if endDate has been reached
- * <li>Logs summary statistics (processed count, failed count, errors)
- * <li>Continues processing even if individual transactions fail
+ *   <li>Fetches all active recurring transactions where nextOccurrence <= today
+ *   <li>Creates actual Transaction for each due recurring transaction
+ *   <li>Updates nextOccurrence date based on frequency (DAILY, WEEKLY, MONTHLY, etc.)
+ *   <li>Sets isActive=false if endDate has been reached
+ *   <li>Logs summary statistics (processed count, failed count, errors)
+ *   <li>Continues processing even if individual transactions fail
  * </ul>
  *
- * <p>
- * <strong>Performance:</strong> With 100 users and 500 total recurring
- * transactions, expect
- * ~5-10 seconds execution time. Uses batch processing to handle errors
- * gracefully.
+ * <p><strong>Performance:</strong> With 100 users and 500 total recurring transactions, expect
+ * ~5-10 seconds execution time. Uses batch processing to handle errors gracefully.
  *
- * <p>
- * <strong>Error Handling:</strong> Failures for individual recurring
- * transactions are caught,
- * logged, and reported in the ProcessingResult. The scheduler continues
- * processing remaining
+ * <p><strong>Error Handling:</strong> Failures for individual recurring transactions are caught,
+ * logged, and reported in the ProcessingResult. The scheduler continues processing remaining
  * transactions to ensure maximum reliability.
  *
- * <p>
- * <strong>Requirements:</strong>
+ * <p><strong>Requirements:</strong>
  *
  * <ul>
- * <li>REQ-2.3.6: Recurring transaction management
- * <li>REQ-2.3.6.1: Automatic processing based on frequency
- * <li>REQ-2.3.6.2: End date handling
+ *   <li>REQ-2.3.6: Recurring transaction management
+ *   <li>REQ-2.3.6.1: Automatic processing based on frequency
+ *   <li>REQ-2.3.6.2: End date handling
  * </ul>
  *
  * @author Open-Finance Development Team
@@ -105,8 +90,7 @@ public class RecurringTransactionScheduler implements ApplicationRunner {
     // -----------------------------------------------------------------
 
     /**
-     * Runs recurring transaction processing once on application startup when the
-     * configured mode
+     * Runs recurring transaction processing once on application startup when the configured mode
      * requests it ({@code STARTUP_ONLY} or {@code STARTUP_AND_EVERY_X_HOURS}).
      */
     @Override
@@ -126,43 +110,37 @@ public class RecurringTransactionScheduler implements ApplicationRunner {
     /**
      * Scheduled job to process due recurring transactions daily at midnight.
      *
-     * <p>
-     * Cron expression: {@code 0 0 0 * * ?} translates to:
+     * <p>Cron expression: {@code 0 0 0 * * ?} translates to:
      *
      * <ul>
-     * <li>0 seconds
-     * <li>0 minutes
-     * <li>0 hours (midnight)
-     * <li>Every day of month
-     * <li>Every month
-     * <li>Every day of week (? means no specific value)
+     *   <li>0 seconds
+     *   <li>0 minutes
+     *   <li>0 hours (midnight)
+     *   <li>Every day of month
+     *   <li>Every month
+     *   <li>Every day of week (? means no specific value)
      * </ul>
      *
-     * <p>
-     * <strong>Processing Steps:</strong>
+     * <p><strong>Processing Steps:</strong>
      *
      * <ol>
-     * <li>Query all active recurring transactions with nextOccurrence <= today
-     * <li>For each recurring transaction:
-     * <ul>
-     * <li>Create a new Transaction with the same details
-     * <li>Calculate next occurrence date based on frequency
-     * <li>Update nextOccurrence in recurring transaction
-     * <li>Set isActive=false if endDate has been reached
-     * </ul>
-     * <li>Log summary with processed count, failed count, and error details
+     *   <li>Query all active recurring transactions with nextOccurrence <= today
+     *   <li>For each recurring transaction:
+     *       <ul>
+     *         <li>Create a new Transaction with the same details
+     *         <li>Calculate next occurrence date based on frequency
+     *         <li>Update nextOccurrence in recurring transaction
+     *         <li>Set isActive=false if endDate has been reached
+     *       </ul>
+     *   <li>Log summary with processed count, failed count, and error details
      * </ol>
      *
-     * <p>
-     * The effective cron is resolved once at startup via Spring SpEL from {@link
-     * SchedulerProperties.SchedulerConfig#effectiveCron(String)}. When mode is
-     * {@code STARTUP_ONLY}
-     * the cron resolves to {@code "-"}, which instructs Spring not to schedule any
-     * periodic
+     * <p>The effective cron is resolved once at startup via Spring SpEL from {@link
+     * SchedulerProperties.SchedulerConfig#effectiveCron(String)}. When mode is {@code STARTUP_ONLY}
+     * the cron resolves to {@code "-"}, which instructs Spring not to schedule any periodic
      * execution.
      *
-     * <p>
-     * <strong>Example Log Output:</strong>
+     * <p><strong>Example Log Output:</strong>
      *
      * <pre>{@code
      * INFO  Starting scheduled recurring transaction processing
@@ -170,12 +148,13 @@ public class RecurringTransactionScheduler implements ApplicationRunner {
      * INFO  Recurring transaction processing complete: processed=24, failed=1, duration=3.2s
      * }</pre>
      *
-     * <p>
-     * Requirement REQ-2.3.6: Automatically process recurring transactions daily
+     * <p>Requirement REQ-2.3.6: Automatically process recurring transactions daily
      */
-    @Scheduled(cron = "#{schedulerProperties.recurringTransactions.effectiveCron('"
-            + DEFAULT_CRON
-            + "')}")
+    @Scheduled(
+            cron =
+                    "#{schedulerProperties.recurringTransactions.effectiveCron('"
+                            + DEFAULT_CRON
+                            + "')}")
     public void processRecurringTransactions() {
         LocalDateTime startTime = LocalDateTime.now();
         log.info(
@@ -196,8 +175,8 @@ public class RecurringTransactionScheduler implements ApplicationRunner {
                 }
                 try {
                     EncryptionContext.setKey(keyOpt.get());
-                    RecurringTransactionService.ProcessingResult result = recurringTransactionService
-                            .processRecurringTransactionsForUser(userId);
+                    RecurringTransactionService.ProcessingResult result =
+                            recurringTransactionService.processRecurringTransactionsForUser(userId);
                     totalProcessed += result.getProcessedCount();
                     totalFailed += result.getFailedCount();
 
@@ -235,26 +214,20 @@ public class RecurringTransactionScheduler implements ApplicationRunner {
     // -----------------------------------------------------------------
 
     /**
-     * Manual trigger for processing recurring transactions outside of the scheduled
-     * time.
+     * Manual trigger for processing recurring transactions outside of the scheduled time.
      *
-     * <p>
-     * This method can be called via an admin endpoint for manual processing. Useful
-     * for testing
+     * <p>This method can be called via an admin endpoint for manual processing. Useful for testing
      * or immediate processing when needed.
      *
-     * <p>
-     * <strong>Use Cases:</strong>
+     * <p><strong>Use Cases:</strong>
      *
      * <ul>
-     * <li>Testing recurring transaction processing in development
-     * <li>Recovering from a failed scheduled job
-     * <li>Processing on-demand after system maintenance
+     *   <li>Testing recurring transaction processing in development
+     *   <li>Recovering from a failed scheduled job
+     *   <li>Processing on-demand after system maintenance
      * </ul>
      *
-     * <p>
-     * <strong>Warning:</strong> This method should only be called by administrators
-     * to avoid
+     * <p><strong>Warning:</strong> This method should only be called by administrators to avoid
      * processing recurring transactions multiple times in a single day.
      *
      * @return summary message with processing statistics
@@ -263,14 +236,15 @@ public class RecurringTransactionScheduler implements ApplicationRunner {
         log.info("Manual recurring transaction processing triggered");
 
         try {
-            RecurringTransactionService.ProcessingResult result = recurringTransactionService
-                    .processRecurringTransactions();
+            RecurringTransactionService.ProcessingResult result =
+                    recurringTransactionService.processRecurringTransactions();
 
-            String message = String.format(
-                    "Manual processing completed. Processed: %d, Failed: %d, Errors: %d",
-                    result.getProcessedCount(),
-                    result.getFailedCount(),
-                    result.getErrors().size());
+            String message =
+                    String.format(
+                            "Manual processing completed. Processed: %d, Failed: %d, Errors: %d",
+                            result.getProcessedCount(),
+                            result.getFailedCount(),
+                            result.getErrors().size());
 
             log.info(message);
 

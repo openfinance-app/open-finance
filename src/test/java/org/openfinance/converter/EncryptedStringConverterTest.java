@@ -16,9 +16,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 @DisplayName("EncryptedStringConverter Tests")
 class EncryptedStringConverterTest {
 
-    private static final SecretKey TEST_KEY = new SecretKeySpec(
-            "12345678901234567890123456789012".getBytes(StandardCharsets.UTF_8),
-            "AES");
+    private static final SecretKey TEST_KEY =
+            new SecretKeySpec(
+                    "12345678901234567890123456789012".getBytes(StandardCharsets.UTF_8), "AES");
 
     private EncryptedStringConverter converter;
 

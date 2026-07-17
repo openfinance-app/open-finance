@@ -17,35 +17,28 @@ import org.springframework.web.bind.annotation.*;
 /**
  * REST controller for global search functionality.
  *
- * <p>
- * This controller provides endpoints for searching across all financial
- * entities (transactions,
- * accounts, assets, liabilities, real estate) with both simple and advanced
- * filtering capabilities.
+ * <p>This controller provides endpoints for searching across all financial entities (transactions,
+ * accounts, assets, liabilities, real estate) with both simple and advanced filtering capabilities.
  *
- * <p>
- * <strong>Features:</strong>
+ * <p><strong>Features:</strong>
  *
  * <ul>
- * <li>Simple global search with keyword query
- * <li>Advanced search with filters (amount range, date range, accounts,
- * categories, tags, etc.)
- * <li>Full-text search for transactions using SQLite FTS5
- * <li>Grouped results by entity type with counts
- * <li>Execution time tracking for performance monitoring
+ *   <li>Simple global search with keyword query
+ *   <li>Advanced search with filters (amount range, date range, accounts, categories, tags, etc.)
+ *   <li>Full-text search for transactions using SQLite FTS5
+ *   <li>Grouped results by entity type with counts
+ *   <li>Execution time tracking for performance monitoring
  * </ul>
  *
- * <p>
- * <strong>Security:</strong>
+ * <p><strong>Security:</strong>
  *
  * <ul>
- * <li>All endpoints require JWT authentication
- * <li>X-Encryption-Session header required for decrypting sensitive data
- * <li>Results are automatically filtered by authenticated user
+ *   <li>All endpoints require JWT authentication
+ *   <li>X-Encryption-Session header required for decrypting sensitive data
+ *   <li>Results are automatically filtered by authenticated user
  * </ul>
  *
- * <p>
- * <strong>Example Usage:</strong>
+ * <p><strong>Example Usage:</strong>
  *
  * <pre>
  * // Simple search
@@ -64,11 +57,9 @@ import org.springframework.web.bind.annotation.*;
  * }
  * </pre>
  *
- * <p>
- * Task: TASK-12.4.4
+ * <p>Task: TASK-12.4.4
  *
- * <p>
- * Requirement: REQ-2.3.5 - Global search functionality
+ * <p>Requirement: REQ-2.3.5 - Global search functionality
  *
  * @see SearchService
  * @see GlobalSearchResponse
@@ -86,33 +77,25 @@ public class SearchController {
     /**
      * Performs a simple global search with a keyword query.
      *
-     * <p>
-     * This endpoint searches across all financial entities (transactions, accounts,
-     * assets,
-     * liabilities, real estate) using the provided keyword. For transactions,
-     * full-text search with
+     * <p>This endpoint searches across all financial entities (transactions, accounts, assets,
+     * liabilities, real estate) using the provided keyword. For transactions, full-text search with
      * FTS5 is used. For other entities, LIKE queries on decrypted fields are used.
      *
-     * <p>
-     * <strong>Request Parameters:</strong>
+     * <p><strong>Request Parameters:</strong>
      *
      * <ul>
-     * <li><strong>q</strong> (required) - Search query keyword (1-200 characters)
-     * <li><strong>limit</strong> (optional) - Maximum number of results (default:
-     * 50, max: 100)
+     *   <li><strong>q</strong> (required) - Search query keyword (1-200 characters)
+     *   <li><strong>limit</strong> (optional) - Maximum number of results (default: 50, max: 100)
      * </ul>
      *
-     * <p>
-     * <strong>Headers:</strong>
+     * <p><strong>Headers:</strong>
      *
      * <ul>
-     * <li><strong>Authorization</strong> - Bearer JWT token
-     * <li><strong>X-Encryption-Session</strong> - Base64-encoded AES-256 encryption
-     * key
+     *   <li><strong>Authorization</strong> - Bearer JWT token
+     *   <li><strong>X-Encryption-Session</strong> - Base64-encoded AES-256 encryption key
      * </ul>
      *
-     * <p>
-     * <strong>Example Request:</strong>
+     * <p><strong>Example Request:</strong>
      *
      * <pre>
      * GET /api/v1/search?q=investment&limit=20
@@ -120,8 +103,7 @@ public class SearchController {
      * X-Encryption-Session: SGVsbG9Xb3JsZEhlbGxvV29ybGRIZWxsb1dvcmxkSGVsbG9Xb3JsZA==
      * </pre>
      *
-     * <p>
-     * <strong>Example Response:</strong>
+     * <p><strong>Example Response:</strong>
      *
      * <pre>
      * {
@@ -160,18 +142,20 @@ public class SearchController {
      * }
      * </pre>
      *
-     * @param query               Search query keyword (1-200 characters)
-     * @param limit               Maximum number of results to return (default: 50,
-     *                            max: 100)
+     * @param query Search query keyword (1-200 characters)
+     * @param limit Maximum number of results to return (default: 50, max: 100)
      * @param encryptionKeyHeader Base64-encoded encryption key from request header
-     * @param authentication      Spring Security authentication principal
+     * @param authentication Spring Security authentication principal
      * @return ResponseEntity containing GlobalSearchResponse with grouped results
      * @throws IllegalArgumentException if query is empty or limit is invalid
      */
     @GetMapping
     public ResponseEntity<GlobalSearchResponse> globalSearch(
             @RequestParam("q") String query,
-            @RequestParam(value = "limit", required = false, defaultValue = "50") @Min(value = 1, message = "Limit must be at least 1") @Max(value = 100, message = "Limit cannot exceed 100") Integer limit,
+            @RequestParam(value = "limit", required = false, defaultValue = "50")
+                    @Min(value = 1, message = "Limit must be at least 1")
+                    @Max(value = 100, message = "Limit cannot exceed 100")
+                    Integer limit,
             Authentication authentication) {
 
         // Extract user ID from authenticated principal
@@ -208,29 +192,24 @@ public class SearchController {
     /**
      * Performs an advanced search with filters.
      *
-     * <p>
-     * This endpoint provides advanced filtering capabilities beyond simple keyword
-     * search:
+     * <p>This endpoint provides advanced filtering capabilities beyond simple keyword search:
      *
      * <ul>
-     * <li>Filter by entity types (search only specific entity types)
-     * <li>Filter transactions by account, category, date range, amount range, tags,
-     * reconciliation status, and type
-     * <li>Filter assets by account and amount range
-     * <li>All results are grouped by entity type with counts and execution time
+     *   <li>Filter by entity types (search only specific entity types)
+     *   <li>Filter transactions by account, category, date range, amount range, tags,
+     *       reconciliation status, and type
+     *   <li>Filter assets by account and amount range
+     *   <li>All results are grouped by entity type with counts and execution time
      * </ul>
      *
-     * <p>
-     * <strong>Headers:</strong>
+     * <p><strong>Headers:</strong>
      *
      * <ul>
-     * <li><strong>Authorization</strong> - Bearer JWT token
-     * <li><strong>X-Encryption-Session</strong> - Base64-encoded AES-256 encryption
-     * key
+     *   <li><strong>Authorization</strong> - Bearer JWT token
+     *   <li><strong>X-Encryption-Session</strong> - Base64-encoded AES-256 encryption key
      * </ul>
      *
-     * <p>
-     * <strong>Example Request Body:</strong>
+     * <p><strong>Example Request Body:</strong>
      *
      * <pre>
      * {
@@ -247,8 +226,7 @@ public class SearchController {
      * }
      * </pre>
      *
-     * <p>
-     * <strong>Example Response:</strong>
+     * <p><strong>Example Response:</strong>
      *
      * <pre>
      * {
@@ -283,15 +261,14 @@ public class SearchController {
      * }
      * </pre>
      *
-     * @param request        Advanced search request with query and filters
+     * @param request Advanced search request with query and filters
      * @param authentication Spring Security authentication principal
      * @return ResponseEntity containing GlobalSearchResponse with filtered results
      * @throws IllegalArgumentException if request validation fails
      */
     @PostMapping("/advanced")
     public ResponseEntity<GlobalSearchResponse> advancedSearch(
-            @Valid @RequestBody AdvancedSearchRequest request,
-            Authentication authentication) {
+            @Valid @RequestBody AdvancedSearchRequest request, Authentication authentication) {
 
         // Extract user ID from authenticated principal
         Long userId = ControllerUtil.extractUserId(authentication);

@@ -11,24 +11,16 @@ import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
 
 /**
- * JPA AttributeConverter that transparently encrypts {@link BigDecimal} fields
- * by converting them
- * to their plain string representation, encrypting, and storing the ciphertext.
- * On read, the
+ * JPA AttributeConverter that transparently encrypts {@link BigDecimal} fields by converting them
+ * to their plain string representation, encrypting, and storing the ciphertext. On read, the
  * ciphertext is decrypted and parsed back to {@link BigDecimal}.
  *
- * <p>
- * Apply to entity fields via
- * {@code @Convert(converter = EncryptedBigDecimalConverter.class)}.
- * The database column type should be {@code TEXT} or {@code VARCHAR} (not
- * {@code DECIMAL}) since
+ * <p>Apply to entity fields via {@code @Convert(converter = EncryptedBigDecimalConverter.class)}.
+ * The database column type should be {@code TEXT} or {@code VARCHAR} (not {@code DECIMAL}) since
  * encrypted values are Base64 strings.
  *
- * <p>
- * If no encryption key is available in the current thread, the converter
- * attempts to parse the
- * raw column value directly as a BigDecimal (pass-through for unencrypted
- * data).
+ * <p>If no encryption key is available in the current thread, the converter attempts to parse the
+ * raw column value directly as a BigDecimal (pass-through for unencrypted data).
  */
 @Converter
 public class EncryptedBigDecimalConverter implements AttributeConverter<BigDecimal, String> {

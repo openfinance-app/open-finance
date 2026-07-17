@@ -66,17 +66,15 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service for managing transaction import from files (QIF, OFX, QFX).
  *
- * <p>
- * Import Process Flow:
+ * <p>Import Process Flow:
  *
  * <ol>
- * <li>User uploads file via FileUploadController ΓåÆ FileStorageService
- * <li>User initiates import via startImport(uploadId, accountId)
- * <li>System creates ImportSession with PENDING status
- * <li>System parses file asynchronously ΓåÆ PARSING ΓåÆ PARSED
- * <li>User reviews transactions, maps categories, handles duplicates ΓåÆ
- * REVIEWING
- * <li>User confirms import ΓåÆ IMPORTING ΓåÆ COMPLETED
+ *   <li>User uploads file via FileUploadController ΓåÆ FileStorageService
+ *   <li>User initiates import via startImport(uploadId, accountId)
+ *   <li>System creates ImportSession with PENDING status
+ *   <li>System parses file asynchronously ΓåÆ PARSING ΓåÆ PARSED
+ *   <li>User reviews transactions, maps categories, handles duplicates ΓåÆ REVIEWING
+ *   <li>User confirms import ΓåÆ IMPORTING ΓåÆ COMPLETED
  * </ol>
  *
  * @see ImportSession
@@ -119,24 +117,21 @@ public class ImportService {
     private final PayeeRepository payeeRepository;
 
     /**
-     * Lazily-resolved executor used to run import confirmation on a background
-     * thread. Injected as an
-     * {@link ObjectProvider} to break the construction-time circular dependency
-     * between this service
-     * and {@link ImportConfirmationExecutor} (which depends on this service).
+     * Lazily-resolved executor used to run import confirmation on a background thread. Injected as
+     * an {@link ObjectProvider} to break the construction-time circular dependency between this
+     * service and {@link ImportConfirmationExecutor} (which depends on this service).
      */
     private final ObjectProvider<ImportConfirmationExecutor> importConfirmationExecutor;
 
     /**
      * Start a new import session and parse the uploaded file.
      *
-     * @param uploadId  the UUID of the uploaded file
-     * @param userId    the ID of the user initiating the import
-     * @param accountId the target account ID (can be null if selected during
-     *                  review)
+     * @param uploadId the UUID of the uploaded file
+     * @param userId the ID of the user initiating the import
+     * @param accountId the target account ID (can be null if selected during review)
      * @return the created import session
      * @throws ResourceNotFoundException if upload not found
-     * @throws IllegalArgumentException  if file validation fails
+     * @throws IllegalArgumentException if file validation fails
      */
     @Transactional
     public ImportSession startImport(String uploadId, Long userId, Long accountId) {
@@ -162,20 +157,23 @@ public class ImportService {
 
         // Prefer the original user-visible filename (e.g. "bank_statement.csv") for
         // display purposes and account name derivation; fall back to storage filename
-        String displayFileName = (originalFileName != null && !originalFileName.isBlank())
-                ? originalFileName
-                : storageFileName;
+        String displayFileName =
+                (originalFileName != null && !originalFileName.isBlank())
+                        ? originalFileName
+                        : storageFileName;
 
         // Detect file format from the storage filename (preserves the extension)
         String fileFormat = detectFileFormat(storageFileName, uploadId);
 
         // Validate account if provided
         if (accountId != null) {
-            Account account = accountRepository
-                    .findByIdAndUserId(accountId, userId)
-                    .orElseThrow(
-                            () -> new ResourceNotFoundException(
-                                    "Account not found: " + accountId));
+            Account account =
+                    accountRepository
+                            .findByIdAndUserId(accountId, userId)
+                            .orElseThrow(
+                                    () ->
+                                            new ResourceNotFoundException(
+                                                    "Account not found: " + accountId));
 
             if (!account.getIsActive()) {
                 throw new IllegalArgumentException(
@@ -184,14 +182,15 @@ public class ImportService {
         }
 
         // Create import session
-        ImportSession session = ImportSession.builder()
-                .uploadId(uploadId)
-                .userId(userId)
-                .fileName(displayFileName)
-                .fileFormat(fileFormat)
-                .accountId(accountId)
-                .status(ImportStatus.PENDING)
-                .build();
+        ImportSession session =
+                ImportSession.builder()
+                        .uploadId(uploadId)
+                        .userId(userId)
+                        .fileName(displayFileName)
+                        .fileFormat(fileFormat)
+                        .accountId(accountId)
+                        .status(ImportStatus.PENDING)
+                        .build();
 
         session = importSessionRepository.save(session);
         log.info("Created import session: {}", session.getId());
@@ -204,41 +203,33 @@ public class ImportService {
     }
 
     /**
-     * Parse the uploaded file asynchronously and extract transactions. Updates the
-     * session status
+     * Parse the uploaded file asynchronously and extract transactions. Updates the session status
      * to PARSING ΓåÆ PARSED (or FAILED on error).
      *
-     * <p>
-     * This method runs in a background thread managed by the taskExecutor. The HTTP
-     * request
+     * <p>This method runs in a background thread managed by the taskExecutor. The HTTP request
      * returns immediately with the session ID, and the client should poll GET
      * /api/v1/import/sessions/{id} to check progress.
      *
-     * <p>
-     * <strong>Status Transitions:</strong>
+     * <p><strong>Status Transitions:</strong>
      *
      * <ul>
-     * <li>PENDING ΓåÆ PARSING (when parsing starts)
-     * <li>PARSING ΓåÆ PARSED (on success)
-     * <li>PARSING ΓåÆ FAILED (on error)
+     *   <li>PENDING ΓåÆ PARSING (when parsing starts)
+     *   <li>PARSING ΓåÆ PARSED (on success)
+     *   <li>PARSING ΓåÆ FAILED (on error)
      * </ul>
      *
-     * <p>
-     * <strong>Transaction Management:</strong>
+     * <p><strong>Transaction Management:</strong>
      *
-     * <p>
-     * Note: No @Transactional annotation on this async method. Each repository
-     * operation runs in
+     * <p>Note: No @Transactional annotation on this async method. Each repository operation runs in
      * its own transaction, which is actually desirable because:
      *
      * <ul>
-     * <li>Status updates (PARSING ΓåÆ PARSED/FAILED) are persisted immediately
-     * <li>No risk of long-running transaction holding database locks
-     * <li>Partial commits are acceptable (we want to persist FAILED status)
+     *   <li>Status updates (PARSING ΓåÆ PARSED/FAILED) are persisted immediately
+     *   <li>No risk of long-running transaction holding database locks
+     *   <li>Partial commits are acceptable (we want to persist FAILED status)
      * </ul>
      *
-     * <p>
-     * Requirement REQ-2.5.1.8: Asynchronous file parsing
+     * <p>Requirement REQ-2.5.1.8: Asynchronous file parsing
      *
      * @param sessionId the import session ID
      */
@@ -247,11 +238,13 @@ public class ImportService {
         log.info("Starting async parsing for session: {}", sessionId);
 
         // Fetch session in async context
-        ImportSession session = importSessionRepository
-                .findById(sessionId)
-                .orElseThrow(
-                        () -> new ResourceNotFoundException(
-                                "Import session not found: " + sessionId));
+        ImportSession session =
+                importSessionRepository
+                        .findById(sessionId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Import session not found: " + sessionId));
 
         try {
             // Update status to PARSING
@@ -280,7 +273,8 @@ public class ImportService {
                     break;
                 case "OFX":
                 case "QFX":
-                    ImportParseResult ofxResult = ofxParser.parseFileToResult(fileStream, session.getFileName());
+                    ImportParseResult ofxResult =
+                            ofxParser.parseFileToResult(fileStream, session.getFileName());
                     transactions = ofxResult.getTransactions();
                     if (ofxResult.getLedgerBalance() != null) {
                         ledgerBalance = ofxResult.getLedgerBalance();
@@ -293,8 +287,8 @@ public class ImportService {
                     transactions = csvParser.parseFile(fileStream, session.getFileName());
                     break;
                 case "JSON":
-                    SkroogeImportParseResult skroogeResult = skroogeJsonParser.parseFile(fileStream,
-                            session.getFileName());
+                    SkroogeImportParseResult skroogeResult =
+                            skroogeJsonParser.parseFile(fileStream, session.getFileName());
                     transactions = skroogeResult.getTransactions();
                     if (skroogeResult.getCurrency() != null) {
                         fileCurrency = skroogeResult.getCurrency();
@@ -324,15 +318,19 @@ public class ImportService {
                 if (detectedAccountName != null) {
                     session.setSuggestedAccountName(formatAccountSuggestion(detectedAccountName));
                     // Try to find matching account
-                    List<Account> userAccounts = accountRepository.findByUserId(session.getUserId());
+                    List<Account> userAccounts =
+                            accountRepository.findByUserId(session.getUserId());
                     for (Account acc : userAccounts) {
-                        String normalizedDetected = detectedAccountName.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
-                        String normalizedAccName = acc.getName().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
-                        String normalizedAccNum = acc.getAccountNumber() != null
-                                ? acc.getAccountNumber()
-                                        .replaceAll("[^a-zA-Z0-9]", "")
-                                        .toLowerCase()
-                                : "";
+                        String normalizedDetected =
+                                detectedAccountName.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+                        String normalizedAccName =
+                                acc.getName().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+                        String normalizedAccNum =
+                                acc.getAccountNumber() != null
+                                        ? acc.getAccountNumber()
+                                                .replaceAll("[^a-zA-Z0-9]", "")
+                                                .toLowerCase()
+                                        : "";
 
                         if (normalizedAccName.equals(normalizedDetected)
                                 || normalizedAccNum.equals(normalizedDetected)) {
@@ -396,13 +394,11 @@ public class ImportService {
     }
 
     /**
-     * Get parsed transactions for review. Includes duplicate detection and category
-     * suggestions.
+     * Get parsed transactions for review. Includes duplicate detection and category suggestions.
      *
      * @param sessionId the import session ID
-     * @param userId    the user ID (for authorization)
-     * @return list of imported transactions with duplicate flags and category
-     *         suggestions
+     * @param userId the user ID (for authorization)
+     * @return list of imported transactions with duplicate flags and category suggestions
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<ImportedTransaction> reviewTransactions(Long sessionId, Long userId) {
@@ -431,9 +427,9 @@ public class ImportService {
         String fileCurrency = "USD";
         if (session.getMetadata() != null && !session.getMetadata().trim().isEmpty()) {
             try {
-                Map<String, Object> metadataMap = objectMapper.readValue(
-                        session.getMetadata(), new TypeReference<Map<String, Object>>() {
-                        });
+                Map<String, Object> metadataMap =
+                        objectMapper.readValue(
+                                session.getMetadata(), new TypeReference<Map<String, Object>>() {});
                 if (metadataMap.containsKey("ledgerBalance")) {
                     ledgerBalance = new BigDecimal(metadataMap.get("ledgerBalance").toString());
                 }
@@ -466,7 +462,7 @@ public class ImportService {
      *
      * @param sessionId the import session ID
      * @param accountId the new account ID
-     * @param userId    the user ID (for authorization)
+     * @param userId the user ID (for authorization)
      * @return the updated import session
      */
     @Transactional
@@ -483,11 +479,13 @@ public class ImportService {
                     "Cannot update account. Current status: " + session.getStatus());
         }
 
-        Account account = accountRepository
-                .findByIdAndUserId(accountId, userId)
-                .orElseThrow(
-                        () -> new ResourceNotFoundException(
-                                "Account not found: " + accountId));
+        Account account =
+                accountRepository
+                        .findByIdAndUserId(accountId, userId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Account not found: " + accountId));
 
         if (!account.getIsActive()) {
             throw new IllegalArgumentException("Cannot import to inactive account: " + accountId);
@@ -498,12 +496,11 @@ public class ImportService {
     }
 
     /**
-     * Update the parsed transactions in the session metadata, usually after manual
-     * review/edits.
+     * Update the parsed transactions in the session metadata, usually after manual review/edits.
      *
-     * @param sessionId    the import session ID
+     * @param sessionId the import session ID
      * @param transactions the updated list of imported transactions
-     * @param userId       the user ID (for authorization)
+     * @param userId the user ID (for authorization)
      * @return the updated import session
      */
     @Transactional
@@ -534,9 +531,9 @@ public class ImportService {
         }
         if (session.getMetadata() != null && !session.getMetadata().trim().isEmpty()) {
             try {
-                Map<String, Object> metadataMap = objectMapper.readValue(
-                        session.getMetadata(), new TypeReference<Map<String, Object>>() {
-                        });
+                Map<String, Object> metadataMap =
+                        objectMapper.readValue(
+                                session.getMetadata(), new TypeReference<Map<String, Object>>() {});
                 if (metadataMap.containsKey("ledgerBalance")) {
                     ledgerBalance = new BigDecimal(metadataMap.get("ledgerBalance").toString());
                 }
@@ -561,21 +558,16 @@ public class ImportService {
     /**
      * Begin an import confirmation asynchronously.
      *
-     * <p>
-     * Validates the session, transitions it to {@code IMPORTING} in its own
-     * transaction, and then
-     * hands the heavy work off to a background thread. The HTTP request returns
-     * immediately; the
-     * client polls {@code GET /api/v1/import/sessions/{id}} until the status
-     * becomes {@code
+     * <p>Validates the session, transitions it to {@code IMPORTING} in its own transaction, and
+     * then hands the heavy work off to a background thread. The HTTP request returns immediately;
+     * the client polls {@code GET /api/v1/import/sessions/{id}} until the status becomes {@code
      * COMPLETED} or {@code FAILED}.
      *
-     * @param sessionId        the import session ID
-     * @param userId           the user ID (for authorization)
-     * @param accountId        the target account ID (if null, an account will be
-     *                         auto-created)
+     * @param sessionId the import session ID
+     * @param userId the user ID (for authorization)
+     * @param accountId the target account ID (if null, an account will be auto-created)
      * @param categoryMappings map of imported category names to category IDs
-     * @param skipDuplicates   if true, skip transactions flagged as duplicates
+     * @param skipDuplicates if true, skip transactions flagged as duplicates
      * @return the session in {@code IMPORTING} status
      */
     public ImportSession startConfirmImport(
@@ -592,11 +584,10 @@ public class ImportService {
     }
 
     /**
-     * Validate that a session can be confirmed and transition it to
-     * {@code IMPORTING}.
+     * Validate that a session can be confirmed and transition it to {@code IMPORTING}.
      *
      * @param sessionId the import session ID
-     * @param userId    the owning user ID
+     * @param userId the owning user ID
      * @return the updated session
      * @throws IllegalStateException if the session is not in a confirmable state
      */
@@ -612,11 +603,10 @@ public class ImportService {
     }
 
     /**
-     * Mark an import session as {@code FAILED} with the given error message. Used
-     * by the async
+     * Mark an import session as {@code FAILED} with the given error message. Used by the async
      * executor when confirmation throws.
      *
-     * @param sessionId    the import session ID
+     * @param sessionId the import session ID
      * @param errorMessage the failure detail (truncated to fit the column)
      */
     @Transactional
@@ -635,15 +625,13 @@ public class ImportService {
     /**
      * Confirm import and save transactions to database.
      *
-     * @param sessionId        the import session ID
-     * @param userId           the user ID (for authorization)
-     * @param accountId        the target account ID (if null, an account will be
-     *                         auto-created using the
-     *                         session's suggestedAccountName)
+     * @param sessionId the import session ID
+     * @param userId the user ID (for authorization)
+     * @param accountId the target account ID (if null, an account will be auto-created using the
+     *     session's suggestedAccountName)
      * @param categoryMappings map of imported category names to category IDs
-     * @param skipDuplicates   if true, skip transactions flagged as duplicates
-     * @param encryptionKey    the user's encryption key (used when auto-creating an
-     *                         account)
+     * @param skipDuplicates if true, skip transactions flagged as duplicates
+     * @param encryptionKey the user's encryption key (used when auto-creating an account)
      * @return the updated import session
      */
     @Transactional
@@ -696,10 +684,10 @@ public class ImportService {
             }
             if (session.getMetadata() != null && !session.getMetadata().trim().isEmpty()) {
                 try {
-                    Map<String, Object> metadataMap = objectMapper.readValue(
-                            session.getMetadata(),
-                            new TypeReference<Map<String, Object>>() {
-                            });
+                    Map<String, Object> metadataMap =
+                            objectMapper.readValue(
+                                    session.getMetadata(),
+                                    new TypeReference<Map<String, Object>>() {});
                     if (metadataMap.containsKey("ledgerBalance")) {
                         ledgerBalance = new BigDecimal(metadataMap.get("ledgerBalance").toString());
                     }
@@ -719,31 +707,36 @@ public class ImportService {
             // so that recalculateBalance (openingBalance + income - expenses) =
             // ledgerBalance.
             if (ledgerBalance.compareTo(BigDecimal.ZERO) != 0) {
-                List<ImportedTransaction> parsedTxs = deserializeTransactions(session.getMetadata());
-                BigDecimal transactionNet = parsedTxs.stream()
-                        .filter(tx -> !tx.hasErrors())
-                        .map(
-                                tx -> {
-                                    if (tx.getAmount().compareTo(BigDecimal.ZERO) >= 0) {
-                                        return tx.getAmount().abs(); // INCOME adds
-                                    } else {
-                                        return tx.getAmount()
-                                                .abs()
-                                                .negate(); // EXPENSE subtracts
-                                    }
-                                })
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                List<ImportedTransaction> parsedTxs =
+                        deserializeTransactions(session.getMetadata());
+                BigDecimal transactionNet =
+                        parsedTxs.stream()
+                                .filter(tx -> !tx.hasErrors())
+                                .map(
+                                        tx -> {
+                                            if (tx.getAmount().compareTo(BigDecimal.ZERO) >= 0) {
+                                                return tx.getAmount().abs(); // INCOME adds
+                                            } else {
+                                                return tx.getAmount()
+                                                        .abs()
+                                                        .negate(); // EXPENSE subtracts
+                                            }
+                                        })
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
                 ledgerBalance = ledgerBalance.subtract(transactionNet);
             }
-            resolvedAccountId = createAccountForImport(userId, session, ledgerBalance, fileCurrency);
+            resolvedAccountId =
+                    createAccountForImport(userId, session, ledgerBalance, fileCurrency);
         }
         final Long targetAccountId = resolvedAccountId;
 
-        Account account = accountRepository
-                .findByIdAndUserId(targetAccountId, userId)
-                .orElseThrow(
-                        () -> new ResourceNotFoundException(
-                                "Account not found: " + targetAccountId));
+        Account account =
+                accountRepository
+                        .findByIdAndUserId(targetAccountId, userId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Account not found: " + targetAccountId));
 
         if (!account.getIsActive()) {
             throw new IllegalArgumentException(
@@ -757,46 +750,55 @@ public class ImportService {
 
         try {
             // Separate blocking-error transactions from importable ones
-            List<ImportedTransaction> errorTxs = transactions.stream()
-                    .filter(ImportedTransaction::hasErrors)
-                    .collect(Collectors.toList());
+            List<ImportedTransaction> errorTxs =
+                    transactions.stream()
+                            .filter(ImportedTransaction::hasErrors)
+                            .collect(Collectors.toList());
 
-            List<ImportedTransaction> validTxs = transactions.stream()
-                    .filter(tx -> !tx.hasErrors())
-                    .collect(Collectors.toList());
+            List<ImportedTransaction> validTxs =
+                    transactions.stream()
+                            .filter(tx -> !tx.hasErrors())
+                            .collect(Collectors.toList());
 
             // Among valid transactions, split on duplicate flag
-            List<ImportedTransaction> duplicateTxs = validTxs.stream().filter(this::isDuplicate)
-                    .collect(Collectors.toList());
+            List<ImportedTransaction> duplicateTxs =
+                    validTxs.stream().filter(this::isDuplicate).collect(Collectors.toList());
 
-            List<ImportedTransaction> toImport = validTxs.stream()
-                    .filter(tx -> !skipDuplicates || !isDuplicate(tx))
-                    .collect(Collectors.toList());
+            List<ImportedTransaction> toImport =
+                    validTxs.stream()
+                            .filter(tx -> !skipDuplicates || !isDuplicate(tx))
+                            .collect(Collectors.toList());
 
             // Separate opening-balance rows (Skrooge "0000-00-00") — apply to the account's
             // opening_balance instead of persisting as transactions.
-            List<ImportedTransaction> openingBalanceTxs = toImport.stream()
-                    .filter(ImportedTransaction::isOpeningBalance)
-                    .collect(Collectors.toList());
-            toImport = toImport.stream()
-                    .filter(tx -> !tx.isOpeningBalance())
-                    .collect(Collectors.toList());
+            List<ImportedTransaction> openingBalanceTxs =
+                    toImport.stream()
+                            .filter(ImportedTransaction::isOpeningBalance)
+                            .collect(Collectors.toList());
+            toImport =
+                    toImport.stream()
+                            .filter(tx -> !tx.isOpeningBalance())
+                            .collect(Collectors.toList());
             if (!openingBalanceTxs.isEmpty()) {
-                BigDecimal openingDelta = openingBalanceTxs.stream()
-                        .map(ImportedTransaction::getAmount)
-                        .filter(java.util.Objects::nonNull)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal openingDelta =
+                        openingBalanceTxs.stream()
+                                .map(ImportedTransaction::getAmount)
+                                .filter(java.util.Objects::nonNull)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
                 try {
-                    Account acct = accountRepository
-                            .findByIdAndUserId(targetAccountId, userId)
-                            .orElseThrow(
-                                    () -> new ResourceNotFoundException(
-                                            "Account not found: "
-                                                    + targetAccountId));
-                    BigDecimal newOpening = (acct.getOpeningBalance() != null
-                            ? acct.getOpeningBalance()
-                            : BigDecimal.ZERO)
-                            .add(openingDelta);
+                    Account acct =
+                            accountRepository
+                                    .findByIdAndUserId(targetAccountId, userId)
+                                    .orElseThrow(
+                                            () ->
+                                                    new ResourceNotFoundException(
+                                                            "Account not found: "
+                                                                    + targetAccountId));
+                    BigDecimal newOpening =
+                            (acct.getOpeningBalance() != null
+                                            ? acct.getOpeningBalance()
+                                            : BigDecimal.ZERO)
+                                    .add(openingDelta);
                     acct.setOpeningBalance(newOpening);
                     accountRepository.save(acct);
                     log.info(
@@ -818,42 +820,49 @@ public class ImportService {
 
             for (ImportedTransaction importedTx : toImport) {
                 try {
-                    Transaction transaction = convertToTransaction(
-                            importedTx, targetAccountId, userId, categoryMappings);
+                    Transaction transaction =
+                            convertToTransaction(
+                                    importedTx, targetAccountId, userId, categoryMappings);
                     Transaction saved = transactionRepository.save(transaction);
                     // Save splits if present (REQ-SPL)
                     if (importedTx.isSplitTransaction()) {
-                        List<TransactionSplitRequest> splitRequests = importedTx.getSplits().stream()
-                                .map(
-                                        se -> {
-                                            Long catId = null;
-                                            if (se.getCategory() != null
-                                                    && !se.getCategory().trim().isEmpty()) {
-                                                String catName = se.getCategory().trim();
-                                                Long mapped = categoryMappings != null
-                                                        ? categoryMappings.get(
-                                                                catName)
-                                                        : null;
-                                                if (mapped != null) {
-                                                    catId = mapped;
-                                                } else if (!catName.startsWith("[")) {
-                                                    CategoryType catType = se.getAmount()
-                                                            .compareTo(
-                                                                    BigDecimal.ZERO) >= 0
+                        List<TransactionSplitRequest> splitRequests =
+                                importedTx.getSplits().stream()
+                                        .map(
+                                                se -> {
+                                                    Long catId = null;
+                                                    if (se.getCategory() != null
+                                                            && !se.getCategory().trim().isEmpty()) {
+                                                        String catName = se.getCategory().trim();
+                                                        Long mapped =
+                                                                categoryMappings != null
+                                                                        ? categoryMappings.get(
+                                                                                catName)
+                                                                        : null;
+                                                        if (mapped != null) {
+                                                            catId = mapped;
+                                                        } else if (!catName.startsWith("[")) {
+                                                            CategoryType catType =
+                                                                    se.getAmount()
+                                                                                            .compareTo(
+                                                                                                    BigDecimal
+                                                                                                            .ZERO)
+                                                                                    >= 0
                                                                             ? CategoryType.INCOME
                                                                             : CategoryType.EXPENSE;
-                                                    catId = resolveOrCreateHierarchicalCategory(
-                                                            catName, userId,
-                                                            catType);
-                                                }
-                                            }
-                                            return TransactionSplitRequest.builder()
-                                                    .categoryId(catId)
-                                                    .amount(se.getAmount().abs())
-                                                    .description(se.getMemo())
-                                                    .build();
-                                        })
-                                .collect(Collectors.toList());
+                                                            catId =
+                                                                    resolveOrCreateHierarchicalCategory(
+                                                                            catName, userId,
+                                                                            catType);
+                                                        }
+                                                    }
+                                                    return TransactionSplitRequest.builder()
+                                                            .categoryId(catId)
+                                                            .amount(se.getAmount().abs())
+                                                            .description(se.getMemo())
+                                                            .build();
+                                                })
+                                        .collect(Collectors.toList());
                         transactionSplitService.validateSplits(
                                 saved.getAmount(), saved.getType(), splitRequests);
                         transactionSplitService.saveSplits(saved.getId(), splitRequests);
@@ -967,7 +976,7 @@ public class ImportService {
      * Cancel an import session.
      *
      * @param sessionId the import session ID
-     * @param userId    the user ID (for authorization)
+     * @param userId the user ID (for authorization)
      * @return the cancelled session
      */
     @Transactional
@@ -994,7 +1003,7 @@ public class ImportService {
      * Get import session by ID with user authorization check.
      *
      * @param sessionId the session ID
-     * @param userId    the user ID
+     * @param userId the user ID
      * @return the import session
      */
     @Transactional(readOnly = true)
@@ -1030,11 +1039,13 @@ public class ImportService {
 
     /** Get session and verify user ownership. */
     private ImportSession getSessionForUser(Long sessionId, Long userId) {
-        ImportSession session = importSessionRepository
-                .findById(sessionId)
-                .orElseThrow(
-                        () -> new ResourceNotFoundException(
-                                "Import session not found: " + sessionId));
+        ImportSession session =
+                importSessionRepository
+                        .findById(sessionId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Import session not found: " + sessionId));
 
         if (!session.getUserId().equals(userId)) {
             throw new IllegalArgumentException("User does not have access to this import session");
@@ -1064,96 +1075,62 @@ public class ImportService {
      * Detect duplicate transactions using a tiered strategy:
      *
      * <ol>
-     * <li><strong>Tier 0 ΓÇö Intra-session reference match</strong>: If the
-     * incoming transaction
-     * carries a non-blank {@code referenceNumber}, check whether any
-     * <em>earlier</em>
-     * transaction in the same import batch shares the same reference for the same
-     * account.
-     * This catches the common case of importing the same OFX/QFX file a second time
-     * before
-     * the first import is confirmed.
-     * <li><strong>Tier 1 ΓÇö DB exact reference match</strong>: If the incoming
-     * transaction has a
-     * non-blank {@code referenceNumber}, look for an existing persisted transaction
-     * on the
-     * same account with the same {@code externalReference}. A match is
-     * authoritative ΓÇö no
-     * fuzzy fallback is needed.
-     * <li><strong>Tier 2 ΓÇö Fuzzy date/amount/payee match</strong>: Fall back to
-     * the classic
-     * heuristic: date ┬▒1 day, same absolute amount (using
-     * {@link BigDecimal#compareTo} to
-     * ignore scale), and ΓëÑ85 % payee similarity via Levenshtein distance. Used
-     * for QIF
-     * files and any file where no reference is available.
+     *   <li><strong>Tier 0 ΓÇö Intra-session reference match</strong>: If the incoming transaction
+     *       carries a non-blank {@code referenceNumber}, check whether any <em>earlier</em>
+     *       transaction in the same import batch shares the same reference for the same account.
+     *       This catches the common case of importing the same OFX/QFX file a second time before
+     *       the first import is confirmed.
+     *   <li><strong>Tier 1 ΓÇö DB exact reference match</strong>: If the incoming transaction has a
+     *       non-blank {@code referenceNumber}, look for an existing persisted transaction on the
+     *       same account with the same {@code externalReference}. A match is authoritative ΓÇö no
+     *       fuzzy fallback is needed.
+     *   <li><strong>Tier 2 ΓÇö Fuzzy date/amount/payee match</strong>: Fall back to the classic
+     *       heuristic: date ┬▒1 day, same absolute amount (using {@link BigDecimal#compareTo} to
+     *       ignore scale), and ΓëÑ85 % payee similarity via Levenshtein distance. Used for QIF
+     *       files and any file where no reference is available.
      * </ol>
      *
-     * <p>
-     * When a duplicate is detected the transaction is annotated with a
-     * {@code DUPLICATE:}
-     * validation message <em>and</em> the {@code potentialDuplicate} flag is set to
-     * {@code true} so
+     * <p>When a duplicate is detected the transaction is annotated with a {@code DUPLICATE:}
+     * validation message <em>and</em> the {@code potentialDuplicate} flag is set to {@code true} so
      * that callers can inspect either surface.
      *
      * @param transactions the imported transactions to check
-     * @param accountId    the target account (detection is skipped when
-     *                     {@code null})
-     * @param userId       the user ID (currently reserved for future per-user
-     *                     scoping)
+     * @param accountId the target account (detection is skipped when {@code null})
+     * @param userId the user ID (currently reserved for future per-user scoping)
      */
     /**
      * Detect duplicate transactions using a tiered strategy.
      *
-     * <p>
-     * <strong>Tier 0 and Tier 1 are only active for formats that produce
-     * globally-unique
-     * transaction IDs</strong> (currently OFX/QFX via FITID). QIF {@code N} fields
-     * are cheque
-     * numbers ΓÇö not unique IDs ΓÇö and CSV reference columns are bank-dependent
-     * and unreliable.
-     * Using them as authoritative keys would produce false positives (e.g. two
-     * different
-     * transactions sharing check number "1042") and false negatives (skipping Tier
-     * 2 for a QIF
+     * <p><strong>Tier 0 and Tier 1 are only active for formats that produce globally-unique
+     * transaction IDs</strong> (currently OFX/QFX via FITID). QIF {@code N} fields are cheque
+     * numbers ΓÇö not unique IDs ΓÇö and CSV reference columns are bank-dependent and unreliable.
+     * Using them as authoritative keys would produce false positives (e.g. two different
+     * transactions sharing check number "1042") and false negatives (skipping Tier 2 for a QIF
      * transaction that is in fact a fuzzy duplicate). See {@link
      * #isReferenceAuthoritative(String)}.
      *
      * <ol>
-     * <li><strong>Tier 0 ΓÇö Intra-session reference match</strong> (OFX/QFX only):
-     * If two
-     * transactions in the same import batch share the same {@code referenceNumber}
-     * (FITID),
-     * the second is a definite duplicate. Catches the "import same file twice
-     * before
-     * confirming" case.
-     * <li><strong>Tier 1 ΓÇö DB exact reference match</strong> (OFX/QFX only): If
-     * the incoming
-     * transaction's FITID matches an {@code externalReference} already stored in
-     * the DB for
-     * this account, it is a definite duplicate. No fuzzy fallback is needed.
-     * <li><strong>Tier 2 ΓÇö Fuzzy date/amount/payee match</strong> (all formats):
-     * Date ┬▒1 day,
-     * same absolute amount ({@link BigDecimal#compareTo} to handle scale), and
-     * ΓëÑ85 % payee
-     * similarity via Levenshtein. Always runs for QIF and CSV; also runs for
-     * OFX/QFX
-     * transactions that have no reference number or that survived Tier 0/1.
+     *   <li><strong>Tier 0 ΓÇö Intra-session reference match</strong> (OFX/QFX only): If two
+     *       transactions in the same import batch share the same {@code referenceNumber} (FITID),
+     *       the second is a definite duplicate. Catches the "import same file twice before
+     *       confirming" case.
+     *   <li><strong>Tier 1 ΓÇö DB exact reference match</strong> (OFX/QFX only): If the incoming
+     *       transaction's FITID matches an {@code externalReference} already stored in the DB for
+     *       this account, it is a definite duplicate. No fuzzy fallback is needed.
+     *   <li><strong>Tier 2 ΓÇö Fuzzy date/amount/payee match</strong> (all formats): Date ┬▒1 day,
+     *       same absolute amount ({@link BigDecimal#compareTo} to handle scale), and ΓëÑ85 % payee
+     *       similarity via Levenshtein. Always runs for QIF and CSV; also runs for OFX/QFX
+     *       transactions that have no reference number or that survived Tier 0/1.
      * </ol>
      *
-     * <p>
-     * When a duplicate is detected the {@code DUPLICATE:} message is added to
-     * {@code
-     * validationErrors} <em>and</em> {@code potentialDuplicate} is set to
-     * {@code true}.
+     * <p>When a duplicate is detected the {@code DUPLICATE:} message is added to {@code
+     * validationErrors} <em>and</em> {@code potentialDuplicate} is set to {@code true}.
      *
      * @param transactions the imported transactions to check
-     * @param accountId    the target account (detection is skipped when
-     *                     {@code null})
-     * @param fileFormat   the import file format (e.g. {@code "OFX"},
-     *                     {@code "QIF"}, {@code "CSV"})
-     *                     ΓÇö controls whether Tier 0/1 are active
-     * @param userId       the user ID (reserved for future per-user scoping)
+     * @param accountId the target account (detection is skipped when {@code null})
+     * @param fileFormat the import file format (e.g. {@code "OFX"}, {@code "QIF"}, {@code "CSV"})
+     *     ΓÇö controls whether Tier 0/1 are active
+     * @param userId the user ID (reserved for future per-user scoping)
      */
     private void detectDuplicates(
             List<ImportedTransaction> transactions,
@@ -1170,9 +1147,10 @@ public class ImportService {
 
         // findByAccountId JPQL already filters isDeleted = false ΓÇö no extra stream
         // filter needed
-        List<Transaction> existingTransactions = accountId != null
-                ? transactionRepository.findByAccountId(accountId)
-                : transactionRepository.findByUserId(userId);
+        List<Transaction> existingTransactions =
+                accountId != null
+                        ? transactionRepository.findByAccountId(accountId)
+                        : transactionRepository.findByUserId(userId);
 
         // Only OFX/QFX produces globally-unique FITIDs that are safe for exact-match
         // dedup.
@@ -1211,9 +1189,11 @@ public class ImportService {
                     seenReferenceNumbers.put(ref, i);
 
                     // ΓöÇΓöÇ Tier 1: exact reference match against persisted transactions ΓöÇ
-                    boolean tier1Match = existingTransactions.stream()
-                            .anyMatch(
-                                    existing -> ref.equals(existing.getExternalReference()));
+                    boolean tier1Match =
+                            existingTransactions.stream()
+                                    .anyMatch(
+                                            existing ->
+                                                    ref.equals(existing.getExternalReference()));
                     if (tier1Match) {
                         markDuplicate(
                                 tx,
@@ -1274,47 +1254,35 @@ public class ImportService {
     }
 
     /**
-     * Returns {@code true} when the given file format produces globally-unique
-     * transaction IDs that
-     * are safe to use as authoritative duplicate-detection keys (Tier 0
-     * intra-session and Tier 1 DB
+     * Returns {@code true} when the given file format produces globally-unique transaction IDs that
+     * are safe to use as authoritative duplicate-detection keys (Tier 0 intra-session and Tier 1 DB
      * exact-match).
      *
-     * <p>
-     * Only OFX and QFX qualify: their {@code FITID} field is defined by the OFX
-     * specification to
+     * <p>Only OFX and QFX qualify: their {@code FITID} field is defined by the OFX specification to
      * be unique per financial institution and account.
      *
-     * <p>
-     * QIF {@code N} fields are paper cheque numbers ΓÇö not unique transaction IDs.
-     * CSV
-     * reference columns vary wildly by bank export format and may be absent, a
-     * cheque number, or an
-     * actual unique ID. Neither is safe to use as an authoritative key without
-     * format-specific
+     * <p>QIF {@code N} fields are paper cheque numbers ΓÇö not unique transaction IDs. CSV
+     * reference columns vary wildly by bank export format and may be absent, a cheque number, or an
+     * actual unique ID. Neither is safe to use as an authoritative key without format-specific
      * knowledge.
      *
      * @param fileFormat the import file format string (case-insensitive)
-     * @return {@code true} for OFX/QFX; {@code false} for QIF, CSV and unknown
-     *         formats
+     * @return {@code true} for OFX/QFX; {@code false} for QIF, CSV and unknown formats
      */
     private boolean isReferenceAuthoritative(String fileFormat) {
         return "OFX".equalsIgnoreCase(fileFormat) || "QFX".equalsIgnoreCase(fileFormat);
     }
 
     /**
-     * Format a raw account identifier (e.g. a long bank account number) into a
-     * friendlier display
-     * name. Long numeric IDs are shortened to show only the last 4 digits (e.g.
-     * "00011234567890189"
+     * Format a raw account identifier (e.g. a long bank account number) into a friendlier display
+     * name. Long numeric IDs are shortened to show only the last 4 digits (e.g. "00011234567890189"
      * ΓåÆ "Account ΓÇóΓÇóΓÇó0189").
      *
      * @param rawId the raw account identifier from the imported file
      * @return a human-readable account name suggestion
      */
     private String formatAccountSuggestion(String rawId) {
-        if (rawId == null || rawId.isBlank())
-            return rawId;
+        if (rawId == null || rawId.isBlank()) return rawId;
         // If it's a long numeric string (looks like a bank account number), abbreviate
         if (rawId.replaceAll("[^0-9]", "").length() >= 9
                 && rawId.replaceAll("[^0-9]", "").equals(rawId.replaceAll("\\s", ""))) {
@@ -1325,12 +1293,10 @@ public class ImportService {
     }
 
     /**
-     * Mark an imported transaction as a potential duplicate by adding the supplied
-     * {@code
-     * DUPLICATE:} message to its validation errors and setting the
-     * {@code potentialDuplicate} flag.
+     * Mark an imported transaction as a potential duplicate by adding the supplied {@code
+     * DUPLICATE:} message to its validation errors and setting the {@code potentialDuplicate} flag.
      *
-     * @param tx      the transaction to mark
+     * @param tx the transaction to mark
      * @param message the {@code DUPLICATE:} message to record
      */
     private void markDuplicate(ImportedTransaction tx, String message) {
@@ -1339,15 +1305,13 @@ public class ImportService {
     }
 
     /**
-     * Check if two payee strings are similar using Levenshtein distance algorithm.
-     * Considers payees
+     * Check if two payee strings are similar using Levenshtein distance algorithm. Considers payees
      * similar if they have 85%+ similarity ratio.
      *
      * @param payee1 first payee string
      * @param payee2 second payee string
      * @return true if payees are similar (85%+ match), false otherwise
-     *         <p>
-     *         Requirement: REQ-2.10.4 (Duplicate transaction detection)
+     *     <p>Requirement: REQ-2.10.4 (Duplicate transaction detection)
      */
     private boolean isPayeeSimilar(String payee1, String payee2) {
         boolean empty1 = payee1 == null || payee1.isBlank();
@@ -1379,16 +1343,13 @@ public class ImportService {
     }
 
     /**
-     * Suggest categories for imported transactions using intelligent matching. -
-     * Exact match on
-     * category name (case-insensitive) - Fuzzy match with 80%+ similarity - Marks
-     * unknown
+     * Suggest categories for imported transactions using intelligent matching. - Exact match on
+     * category name (case-insensitive) - Fuzzy match with 80%+ similarity - Marks unknown
      * categories for user review/creation
      *
      * @param transactions list of imported transactions
-     * @param userId       the user ID
-     *                     <p>
-     *                     Requirement: REQ-2.10.3 (Category mapping during import)
+     * @param userId the user ID
+     *     <p>Requirement: REQ-2.10.3 (Category mapping during import)
      */
     private void suggestCategories(List<ImportedTransaction> transactions, Long userId) {
         // Requirement REQ-TR-4.1: Apply transaction rules BEFORE auto-categorization.
@@ -1431,13 +1392,14 @@ public class ImportService {
             // File-supplied categories (e.g. QIF L-field, OFX category) are explicit
             // user assignments from the source system and should take precedence over
             // history-based guessing.
-            boolean hasFileCategory = tx.getCategory() != null && !tx.getCategory().trim().isEmpty();
+            boolean hasFileCategory =
+                    tx.getCategory() != null && !tx.getCategory().trim().isEmpty();
 
             if (!hasFileCategory) {
                 // 2. Try Auto-Categorization based on user history (only when no
                 // file-supplied category)
-                Optional<AutoCategorizationService.Prediction> predictionOpt = autoCategorizationService
-                        .predictCategoryAndPayee(tx, userId);
+                Optional<AutoCategorizationService.Prediction> predictionOpt =
+                        autoCategorizationService.predictCategoryAndPayee(tx, userId);
 
                 if (predictionOpt.isPresent()) {
                     AutoCategorizationService.Prediction prediction = predictionOpt.get();
@@ -1483,7 +1445,8 @@ public class ImportService {
 
             for (Category cat : userCategories) {
                 String displayName = resolveDisplayName(cat, locale);
-                double similarity = calculateStringSimilarity(normalizedCategory, displayName.toLowerCase());
+                double similarity =
+                        calculateStringSimilarity(normalizedCategory, displayName.toLowerCase());
                 if (similarity > bestSimilarity && similarity >= 0.80) {
                     bestSimilarity = similarity;
                     bestMatch = cat;
@@ -1520,8 +1483,7 @@ public class ImportService {
     }
 
     /**
-     * Resolve the display name for a category in the given locale. System
-     * categories use their
+     * Resolve the display name for a category in the given locale. System categories use their
      * nameKey for i18n; user categories use their stored name.
      */
     private String resolveDisplayName(Category category, Locale locale) {
@@ -1535,17 +1497,15 @@ public class ImportService {
     }
 
     /**
-     * Auto-create an account for import when none was selected by the user. Uses
-     * the session's
-     * suggestedAccountName as the account name, falling back to the session's
-     * fileName (without
+     * Auto-create an account for import when none was selected by the user. Uses the session's
+     * suggestedAccountName as the account name, falling back to the session's fileName (without
      * extension) if none is available.
      *
-     * @param userId         the user ID
-     * @param session        the import session
-     * @param encryptionKey  the user's encryption key
+     * @param userId the user ID
+     * @param session the import session
+     * @param encryptionKey the user's encryption key
      * @param initialBalance the starting balance derived from the imported file
-     * @param currency       the currency derived from the imported file
+     * @param currency the currency derived from the imported file
      * @return the ID of the newly created account
      */
     private Long createAccountForImport(
@@ -1567,13 +1527,14 @@ public class ImportService {
                 session.getId(),
                 userId);
 
-        AccountRequest accountRequest = AccountRequest.builder()
-                .name(name.trim())
-                .type(AccountType.CHECKING)
-                .currency(currency != null ? currency : "USD")
-                .initialBalance(initialBalance != null ? initialBalance : BigDecimal.ZERO)
-                .openingDate(LocalDate.now())
-                .build();
+        AccountRequest accountRequest =
+                AccountRequest.builder()
+                        .name(name.trim())
+                        .type(AccountType.CHECKING)
+                        .currency(currency != null ? currency : "USD")
+                        .initialBalance(initialBalance != null ? initialBalance : BigDecimal.ZERO)
+                        .openingDate(LocalDate.now())
+                        .build();
 
         AccountResponse created = accountService.createAccount(userId, accountRequest);
         log.info(
@@ -1585,14 +1546,13 @@ public class ImportService {
     }
 
     /**
-     * Create a new category for the user during import. Determines category type
-     * (INCOME/EXPENSE)
+     * Create a new category for the user during import. Determines category type (INCOME/EXPENSE)
      * based on transaction amount.
      *
-     * @param categoryName    the name of the category to create
-     * @param userId          the user ID
+     * @param categoryName the name of the category to create
+     * @param userId the user ID
      * @param transactionType the transaction type (INCOME or EXPENSE)
-     * @param encryptionKey   the user's encryption key
+     * @param encryptionKey the user's encryption key
      * @return the created Category entity
      */
     @SuppressWarnings("unused")
@@ -1608,19 +1568,21 @@ public class ImportService {
                 transactionType);
 
         // Determine category type
-        CategoryType categoryType = (transactionType == TransactionType.INCOME)
-                ? CategoryType.INCOME
-                : CategoryType.EXPENSE;
+        CategoryType categoryType =
+                (transactionType == TransactionType.INCOME)
+                        ? CategoryType.INCOME
+                        : CategoryType.EXPENSE;
 
         // Create category using builder pattern
-        Category category = Category.builder()
-                .userId(userId)
-                .name(categoryName)
-                .type(categoryType)
-                .isSystem(false)
-                .icon("tag") // Default icon
-                .color("#6B7280") // Default gray color
-                .build();
+        Category category =
+                Category.builder()
+                        .userId(userId)
+                        .name(categoryName)
+                        .type(categoryType)
+                        .isSystem(false)
+                        .icon("tag") // Default icon
+                        .color("#6B7280") // Default gray color
+                        .build();
 
         return categoryRepository.save(category);
     }
@@ -1639,29 +1601,34 @@ public class ImportService {
         importSessionRepository.save(session);
 
         List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
-        List<ImportedTransaction> errorTxs = transactions.stream()
-                .filter(ImportedTransaction::hasErrors)
-                .collect(Collectors.toList());
-        List<ImportedTransaction> validTxs = transactions.stream().filter(tx -> !tx.hasErrors())
-                .collect(Collectors.toList());
-        List<ImportedTransaction> duplicateTxs = validTxs.stream().filter(this::isDuplicate)
-                .collect(Collectors.toList());
-        List<ImportedTransaction> toImport = validTxs.stream()
-                .filter(tx -> !skipDuplicates || !isDuplicate(tx))
-                .collect(Collectors.toList());
+        List<ImportedTransaction> errorTxs =
+                transactions.stream()
+                        .filter(ImportedTransaction::hasErrors)
+                        .collect(Collectors.toList());
+        List<ImportedTransaction> validTxs =
+                transactions.stream().filter(tx -> !tx.hasErrors()).collect(Collectors.toList());
+        List<ImportedTransaction> duplicateTxs =
+                validTxs.stream().filter(this::isDuplicate).collect(Collectors.toList());
+        List<ImportedTransaction> toImport =
+                validTxs.stream()
+                        .filter(tx -> !skipDuplicates || !isDuplicate(tx))
+                        .collect(Collectors.toList());
 
         SkroogeImportMetadata skroogeMetadata = extractSkroogeMetadata(session.getMetadata());
         Map<Long, Long> institutionIdsBySource = ensureInstitutions(skroogeMetadata);
-        Map<Long, Long> accountIdsBySource = ensureAccounts(skroogeMetadata, institutionIdsBySource, userId);
-        Map<Long, Long> categoryIdsBySource = ensureCategories(skroogeMetadata, userId, categoryMappings);
+        Map<Long, Long> accountIdsBySource =
+                ensureAccounts(skroogeMetadata, institutionIdsBySource, userId);
+        Map<Long, Long> categoryIdsBySource =
+                ensureCategories(skroogeMetadata, userId, categoryMappings);
 
         int imported = 0;
         int saveFailed = 0;
         Set<String> processedTransferGroups = new java.util.HashSet<>();
         Set<Long> affectedAccountIds = new java.util.HashSet<>(accountIdsBySource.values());
-        Map<String, List<ImportedTransaction>> transferTransactionsByGroup = toImport.stream()
-                .filter(tx -> tx.isTransfer() && tx.getTransferGroupKey() != null)
-                .collect(Collectors.groupingBy(ImportedTransaction::getTransferGroupKey));
+        Map<String, List<ImportedTransaction>> transferTransactionsByGroup =
+                toImport.stream()
+                        .filter(tx -> tx.isTransfer() && tx.getTransferGroupKey() != null)
+                        .collect(Collectors.groupingBy(ImportedTransaction::getTransferGroupKey));
 
         for (ImportedTransaction importedTx : toImport) {
             try {
@@ -1694,16 +1661,18 @@ public class ImportService {
                             "Unable to resolve account for source account "
                                     + importedTx.getSourceAccountId());
                 }
-                Transaction transaction = convertToTransaction(
-                        importedTx,
-                        accountId,
-                        userId,
-                        categoryMappings,
-                        categoryIdsBySource);
+                Transaction transaction =
+                        convertToTransaction(
+                                importedTx,
+                                accountId,
+                                userId,
+                                categoryMappings,
+                                categoryIdsBySource);
                 Transaction saved = transactionRepository.save(transaction);
                 if (importedTx.isSplitTransaction()) {
-                    List<TransactionSplitRequest> splitRequests = buildSplitRequests(
-                            importedTx, userId, categoryMappings, categoryIdsBySource);
+                    List<TransactionSplitRequest> splitRequests =
+                            buildSplitRequests(
+                                    importedTx, userId, categoryMappings, categoryIdsBySource);
                     transactionSplitService.validateSplits(
                             saved.getAmount(), saved.getType(), splitRequests);
                     transactionSplitService.saveSplits(saved.getId(), splitRequests);
@@ -1749,8 +1718,9 @@ public class ImportService {
                     .filter(date -> date != null)
                     .reduce((left, right) -> left.isAfter(right) ? left : right)
                     .ifPresent(
-                            maxDate -> netWorthRepository.deleteByUserIdAndSnapshotDateBefore(
-                                    userId, maxDate));
+                            maxDate ->
+                                    netWorthRepository.deleteByUserIdAndSnapshotDateBefore(
+                                            userId, maxDate));
         } catch (Exception ex) {
             log.warn(
                     "Failed to invalidate net worth snapshots after Skrooge import for user {}: {}",
@@ -1774,7 +1744,8 @@ public class ImportService {
         }
 
         if (transferTransactions.size() != 2) {
-            throw new IllegalStateException("Expected two transfer transactions for " + transferGroupKey);
+            throw new IllegalStateException(
+                    "Expected two transfer transactions for " + transferGroupKey);
         }
 
         String transferId = java.util.UUID.randomUUID().toString();
@@ -1787,13 +1758,14 @@ public class ImportService {
                         "Unable to resolve transfer accounts for " + transferGroupKey);
             }
 
-            Transaction transaction = convertToTransaction(
-                    transferTransaction,
-                    accountId,
-                    userId,
-                    categoryMappings,
-                    categoryIdsBySource,
-                    false);
+            Transaction transaction =
+                    convertToTransaction(
+                            transferTransaction,
+                            accountId,
+                            userId,
+                            categoryMappings,
+                            categoryIdsBySource,
+                            false);
             transaction.setTransferId(transferId);
             transaction.setToAccountId(toAccountId);
             transaction.setCategoryId(null);
@@ -1815,7 +1787,9 @@ public class ImportService {
         for (int i = 0; i < savedTransactions.size(); i++) {
             ImportedTransaction transferTransaction = transferTransactions.get(i);
             transactionService.syncTransactionFts(
-                    savedTransactions.get(i), transferTransaction.getPayee(), transferTransaction.getMemo());
+                    savedTransactions.get(i),
+                    transferTransaction.getPayee(),
+                    transferTransaction.getMemo());
         }
     }
 
@@ -1829,34 +1803,41 @@ public class ImportService {
         session.setStatus(ImportStatus.IMPORTING);
         importSessionRepository.save(session);
 
-        List<ImportedTransaction> errorTxs = transactions.stream()
-                .filter(ImportedTransaction::hasErrors)
-                .collect(Collectors.toList());
-        List<ImportedTransaction> validTxs = transactions.stream().filter(tx -> !tx.hasErrors())
-                .collect(Collectors.toList());
-        List<ImportedTransaction> duplicateTxs = validTxs.stream().filter(this::isDuplicate)
-                .collect(Collectors.toList());
-        List<ImportedTransaction> toImport = validTxs.stream()
-                .filter(tx -> !skipDuplicates || !isDuplicate(tx))
-                .collect(Collectors.toList());
+        List<ImportedTransaction> errorTxs =
+                transactions.stream()
+                        .filter(ImportedTransaction::hasErrors)
+                        .collect(Collectors.toList());
+        List<ImportedTransaction> validTxs =
+                transactions.stream().filter(tx -> !tx.hasErrors()).collect(Collectors.toList());
+        List<ImportedTransaction> duplicateTxs =
+                validTxs.stream().filter(this::isDuplicate).collect(Collectors.toList());
+        List<ImportedTransaction> toImport =
+                validTxs.stream()
+                        .filter(tx -> !skipDuplicates || !isDuplicate(tx))
+                        .collect(Collectors.toList());
 
         // Separate opening-balance rows (Skrooge "0000-00-00") — they set the account's
         // opening_balance via the descriptor and must not be persisted as transactions.
-        List<ImportedTransaction> openingBalanceTxs = toImport.stream()
-                .filter(ImportedTransaction::isOpeningBalance)
-                .collect(Collectors.toList());
-        toImport = toImport.stream().filter(tx -> !tx.isOpeningBalance()).collect(Collectors.toList());
+        List<ImportedTransaction> openingBalanceTxs =
+                toImport.stream()
+                        .filter(ImportedTransaction::isOpeningBalance)
+                        .collect(Collectors.toList());
+        toImport =
+                toImport.stream().filter(tx -> !tx.isOpeningBalance()).collect(Collectors.toList());
 
         String fileCurrency = extractFileCurrency(session.getMetadata(), userId);
-        final Long initialFallbackAccountId = requestedAccountId != null ? requestedAccountId : session.getAccountId();
-        Account fallbackAccount = initialFallbackAccountId != null
-                ? accountRepository
-                        .findByIdAndUserId(initialFallbackAccountId, userId)
-                        .orElseThrow(
-                                () -> new ResourceNotFoundException(
-                                        "Account not found: "
-                                                + initialFallbackAccountId))
-                : null;
+        final Long initialFallbackAccountId =
+                requestedAccountId != null ? requestedAccountId : session.getAccountId();
+        Account fallbackAccount =
+                initialFallbackAccountId != null
+                        ? accountRepository
+                                .findByIdAndUserId(initialFallbackAccountId, userId)
+                                .orElseThrow(
+                                        () ->
+                                                new ResourceNotFoundException(
+                                                        "Account not found: "
+                                                                + initialFallbackAccountId))
+                        : null;
 
         // Collect account descriptors from both regular and opening-balance
         // transactions so
@@ -1864,9 +1845,10 @@ public class ImportService {
         // creation.
         List<ImportedTransaction> descriptorSource = new ArrayList<>(toImport);
         descriptorSource.addAll(openingBalanceTxs);
-        Map<String, ImportedAccountDescriptor> descriptorsByKey = collectImportedAccounts(descriptorSource,
-                fileCurrency);
-        Map<String, Long> accountIdsByKey = ensureImportedAccounts(descriptorsByKey, fallbackAccount, userId);
+        Map<String, ImportedAccountDescriptor> descriptorsByKey =
+                collectImportedAccounts(descriptorSource, fileCurrency);
+        Map<String, Long> accountIdsByKey =
+                ensureImportedAccounts(descriptorsByKey, fallbackAccount, userId);
 
         Long resolvedFallbackAccountId = initialFallbackAccountId;
         if (resolvedFallbackAccountId == null
@@ -1875,7 +1857,8 @@ public class ImportService {
             resolvedFallbackAccountId = accountIdsByKey.values().iterator().next();
         }
         if (resolvedFallbackAccountId == null && requiresFallbackAccount(toImport)) {
-            resolvedFallbackAccountId = createAccountForImport(userId, session, BigDecimal.ZERO, fileCurrency);
+            resolvedFallbackAccountId =
+                    createAccountForImport(userId, session, BigDecimal.ZERO, fileCurrency);
         }
 
         int imported = 0;
@@ -1889,24 +1872,27 @@ public class ImportService {
 
         for (ImportedTransaction importedTx : toImport) {
             try {
-                Long sourceAccountId = resolveImportedAccountId(
-                        importedTx, accountIdsByKey, resolvedFallbackAccountId);
+                Long sourceAccountId =
+                        resolveImportedAccountId(
+                                importedTx, accountIdsByKey, resolvedFallbackAccountId);
 
                 if (importedTx.isTransfer()
                         && importedTx.getToAccountName() != null
                         && !importedTx.getToAccountName().isBlank()) {
-                    Long destinationAccountId = resolveImportedDestinationAccountId(
-                            importedTx, accountIdsByKey, resolvedFallbackAccountId);
+                    Long destinationAccountId =
+                            resolveImportedDestinationAccountId(
+                                    importedTx, accountIdsByKey, resolvedFallbackAccountId);
                     if (sourceAccountId == null || destinationAccountId == null) {
                         throw new IllegalStateException(
                                 "Unable to resolve transfer accounts for imported transaction");
                     }
 
-                    String transferKey = buildImportedTransferKey(
-                            importedTx,
-                            sourceAccountId,
-                            destinationAccountId,
-                            ungroupedTransferOccurrences);
+                    String transferKey =
+                            buildImportedTransferKey(
+                                    importedTx,
+                                    sourceAccountId,
+                                    destinationAccountId,
+                                    ungroupedTransferOccurrences);
                     if (!processedTransferKeys.add(transferKey)) {
                         continue;
                     }
@@ -1918,36 +1904,37 @@ public class ImportService {
                         transferDestinationAccountId = sourceAccountId;
                     }
 
-                    TransactionRequest transferRequest = TransactionRequest.builder()
-                            .accountId(transferSourceAccountId)
-                            .toAccountId(transferDestinationAccountId)
-                            .type(TransactionType.TRANSFER)
-                            .amount(normalizeAmount(importedTx.getAmount()))
-                            .currency(
-                                    resolveTransactionCurrency(
-                                            importedTx, transferSourceAccountId))
-                            .date(importedTx.getTransactionDate())
-                            .description(
-                                    truncate(
-                                            importedTx.getPayee(),
-                                            TRANSACTION_DESCRIPTION_MAX_LENGTH))
-                            .notes(
-                                    truncate(
-                                            importedTx.getMemo(),
-                                            TRANSACTION_NOTES_MAX_LENGTH))
-                            .payee(
-                                    truncate(
-                                            importedTx.getPayee(),
-                                            TRANSACTION_PAYEE_MAX_LENGTH))
-                            .paymentMethod(mapPaymentMethod(importedTx.getPaymentMethod()))
-                            .tags(
-                                    importedTx.getTags() != null
-                                            && !importedTx.getTags().isEmpty()
+                    TransactionRequest transferRequest =
+                            TransactionRequest.builder()
+                                    .accountId(transferSourceAccountId)
+                                    .toAccountId(transferDestinationAccountId)
+                                    .type(TransactionType.TRANSFER)
+                                    .amount(normalizeAmount(importedTx.getAmount()))
+                                    .currency(
+                                            resolveTransactionCurrency(
+                                                    importedTx, transferSourceAccountId))
+                                    .date(importedTx.getTransactionDate())
+                                    .description(
+                                            truncate(
+                                                    importedTx.getPayee(),
+                                                    TRANSACTION_DESCRIPTION_MAX_LENGTH))
+                                    .notes(
+                                            truncate(
+                                                    importedTx.getMemo(),
+                                                    TRANSACTION_NOTES_MAX_LENGTH))
+                                    .payee(
+                                            truncate(
+                                                    importedTx.getPayee(),
+                                                    TRANSACTION_PAYEE_MAX_LENGTH))
+                                    .paymentMethod(mapPaymentMethod(importedTx.getPaymentMethod()))
+                                    .tags(
+                                            importedTx.getTags() != null
+                                                            && !importedTx.getTags().isEmpty()
                                                     ? truncate(
                                                             String.join(",", importedTx.getTags()),
                                                             TRANSACTION_TAGS_MAX_LENGTH)
                                                     : null)
-                            .build();
+                                    .build();
                     transactionService.createTransfer(userId, transferRequest);
                     affectedAccountIds.add(transferSourceAccountId);
                     affectedAccountIds.add(transferDestinationAccountId);
@@ -1960,11 +1947,12 @@ public class ImportService {
                             "Unable to resolve account for imported transaction");
                 }
 
-                Transaction transaction = convertToTransaction(importedTx, sourceAccountId, userId, categoryMappings);
+                Transaction transaction =
+                        convertToTransaction(importedTx, sourceAccountId, userId, categoryMappings);
                 Transaction saved = transactionRepository.save(transaction);
                 if (importedTx.isSplitTransaction()) {
-                    List<TransactionSplitRequest> splitRequests = buildSplitRequests(importedTx, userId,
-                            categoryMappings, Map.of());
+                    List<TransactionSplitRequest> splitRequests =
+                            buildSplitRequests(importedTx, userId, categoryMappings, Map.of());
                     transactionSplitService.validateSplits(
                             saved.getAmount(), saved.getType(), splitRequests);
                     transactionSplitService.saveSplits(saved.getId(), splitRequests);
@@ -2013,8 +2001,9 @@ public class ImportService {
                     .filter(date -> date != null)
                     .reduce((left, right) -> left.isAfter(right) ? left : right)
                     .ifPresent(
-                            maxDate -> netWorthRepository.deleteByUserIdAndSnapshotDateBefore(
-                                    userId, maxDate));
+                            maxDate ->
+                                    netWorthRepository.deleteByUserIdAndSnapshotDateBefore(
+                                            userId, maxDate));
         } catch (Exception ex) {
             log.warn(
                     "Failed to invalidate net worth snapshots after multi-account import for user {}: {}",
@@ -2031,29 +2020,33 @@ public class ImportService {
         List<Institution> existingInstitutions = institutionRepository.findAll();
         for (SkroogeImportMetadata.SkroogeInstitution institution : metadata.getInstitutions()) {
             String rawName = institution.getName();
-            final String institutionName = (rawName == null || rawName.isBlank())
-                    ? "Institution " + institution.getSourceId()
-                    : rawName;
+            final String institutionName =
+                    (rawName == null || rawName.isBlank())
+                            ? "Institution " + institution.getSourceId()
+                            : rawName;
             if (rawName == null || rawName.isBlank()) {
                 log.info(
                         "Using fallback name for Skrooge institution {} (no usable name in export)",
                         institution.getSourceId());
             }
-            Institution existing = existingInstitutions.stream()
-                    .filter(
-                            candidate -> candidate.getName() != null
-                                    && candidate
-                                            .getName()
-                                            .equalsIgnoreCase(institutionName))
-                    .findFirst()
-                    .orElseGet(
-                            () -> institutionRepository.save(
-                                    Institution.builder()
-                                            .name(institutionName)
-                                            .country(institution.getCountry())
-                                            .logo(institution.getLogo())
-                                            .isSystem(false)
-                                            .build()));
+            Institution existing =
+                    existingInstitutions.stream()
+                            .filter(
+                                    candidate ->
+                                            candidate.getName() != null
+                                                    && candidate
+                                                            .getName()
+                                                            .equalsIgnoreCase(institutionName))
+                            .findFirst()
+                            .orElseGet(
+                                    () ->
+                                            institutionRepository.save(
+                                                    Institution.builder()
+                                                            .name(institutionName)
+                                                            .country(institution.getCountry())
+                                                            .logo(institution.getLogo())
+                                                            .isSystem(false)
+                                                            .build()));
             institutionIdsBySource.put(institution.getSourceId(), existing.getId());
         }
         return institutionIdsBySource;
@@ -2062,9 +2055,7 @@ public class ImportService {
     /**
      * Resolve an institution by name (case-insensitive), creating it if necessary.
      *
-     * <p>
-     * Used by the CSV import path to link accounts to institutions from the "bank"
-     * column.
+     * <p>Used by the CSV import path to link accounts to institutions from the "bank" column.
      * Returns null when the name is blank or null.
      *
      * @param name institution name from the import file
@@ -2076,15 +2067,17 @@ public class ImportService {
         }
         String trimmed = name.trim();
         List<Institution> existing = institutionRepository.findAll();
-        Institution match = existing.stream()
-                .filter(i -> i.getName() != null && i.getName().equalsIgnoreCase(trimmed))
-                .findFirst()
-                .orElseGet(
-                        () -> institutionRepository.save(
-                                Institution.builder()
-                                        .name(trimmed)
-                                        .isSystem(false)
-                                        .build()));
+        Institution match =
+                existing.stream()
+                        .filter(i -> i.getName() != null && i.getName().equalsIgnoreCase(trimmed))
+                        .findFirst()
+                        .orElseGet(
+                                () ->
+                                        institutionRepository.save(
+                                                Institution.builder()
+                                                        .name(trimmed)
+                                                        .isSystem(false)
+                                                        .build()));
         return match.getId();
     }
 
@@ -2095,35 +2088,38 @@ public class ImportService {
         for (SkroogeImportMetadata.SkroogeAccount account : metadata.getAccounts()) {
             Account matchingAccount = findMatchingAccount(existingAccounts, account);
             if (matchingAccount == null) {
-                AccountRequest accountRequest = AccountRequest.builder()
-                        .name(account.getName())
-                        .type(
-                                account.getAccountType() != null
-                                        ? account.getAccountType()
-                                        : AccountType.OTHER)
-                        .currency(
-                                account.getCurrency() != null
-                                        ? account.getCurrency()
-                                        : "USD")
-                        .initialBalance(
-                                account.getOpeningBalance() != null
-                                        ? account.getOpeningBalance()
-                                        : BigDecimal.ZERO)
-                        .openingDate(account.getOpeningDate())
-                        .description(account.getDescription())
-                        .accountNumber(account.getAccountNumber())
-                        .institutionId(
-                                account.getSourceInstitutionId() != null
-                                        ? institutionIdsBySource.get(
-                                                account.getSourceInstitutionId())
-                                        : null)
-                        .build();
+                AccountRequest accountRequest =
+                        AccountRequest.builder()
+                                .name(account.getName())
+                                .type(
+                                        account.getAccountType() != null
+                                                ? account.getAccountType()
+                                                : AccountType.OTHER)
+                                .currency(
+                                        account.getCurrency() != null
+                                                ? account.getCurrency()
+                                                : "USD")
+                                .initialBalance(
+                                        account.getOpeningBalance() != null
+                                                ? account.getOpeningBalance()
+                                                : BigDecimal.ZERO)
+                                .openingDate(account.getOpeningDate())
+                                .description(account.getDescription())
+                                .accountNumber(account.getAccountNumber())
+                                .institutionId(
+                                        account.getSourceInstitutionId() != null
+                                                ? institutionIdsBySource.get(
+                                                        account.getSourceInstitutionId())
+                                                : null)
+                                .build();
                 AccountResponse created = accountService.createAccount(userId, accountRequest);
-                matchingAccount = accountRepository
-                        .findById(created.getId())
-                        .orElseThrow(
-                                () -> new ResourceNotFoundException(
-                                        "Account not found: " + created.getId()));
+                matchingAccount =
+                        accountRepository
+                                .findById(created.getId())
+                                .orElseThrow(
+                                        () ->
+                                                new ResourceNotFoundException(
+                                                        "Account not found: " + created.getId()));
                 existingAccounts.add(matchingAccount);
             }
             applyImportedAccountActiveState(matchingAccount, account);
@@ -2212,36 +2208,43 @@ public class ImportService {
         }
 
         ImportedAccountDescriptor existing = descriptors.get(descriptorKey);
-        String resolvedName = accountName != null && !accountName.isBlank()
-                ? accountName.trim()
-                : existing != null && existing.name() != null
-                        ? existing.name()
-                        : formatAccountSuggestion(accountNumber);
-        String resolvedNumber = accountNumber != null && !accountNumber.isBlank()
-                ? accountNumber.trim()
-                : existing != null ? existing.accountNumber() : null;
-        String resolvedCurrency = currency != null && !currency.isBlank()
-                ? currency.trim()
-                : existing != null && existing.currency() != null
-                        ? existing.currency()
-                        : defaultCurrency;
-        LocalDate openingDate = existing != null && existing.openingDate() != null
-                ? existing.openingDate()
-                : transactionDate;
+        String resolvedName =
+                accountName != null && !accountName.isBlank()
+                        ? accountName.trim()
+                        : existing != null && existing.name() != null
+                                ? existing.name()
+                                : formatAccountSuggestion(accountNumber);
+        String resolvedNumber =
+                accountNumber != null && !accountNumber.isBlank()
+                        ? accountNumber.trim()
+                        : existing != null ? existing.accountNumber() : null;
+        String resolvedCurrency =
+                currency != null && !currency.isBlank()
+                        ? currency.trim()
+                        : existing != null && existing.currency() != null
+                                ? existing.currency()
+                                : defaultCurrency;
+        LocalDate openingDate =
+                existing != null && existing.openingDate() != null
+                        ? existing.openingDate()
+                        : transactionDate;
         if (openingDate != null
                 && transactionDate != null
                 && transactionDate.isBefore(openingDate)) {
             openingDate = transactionDate;
         }
-        String resolvedQifAccountType = qifAccountType != null
-                ? qifAccountType
-                : existing != null ? existing.qifAccountType() : null;
-        String resolvedInstitution = institutionName != null && !institutionName.isBlank()
-                ? institutionName.trim()
-                : existing != null ? existing.institutionName() : null;
-        BigDecimal resolvedOpeningBalance = openingBalance != null
-                ? openingBalance
-                : existing != null ? existing.openingBalance() : null;
+        String resolvedQifAccountType =
+                qifAccountType != null
+                        ? qifAccountType
+                        : existing != null ? existing.qifAccountType() : null;
+        String resolvedInstitution =
+                institutionName != null && !institutionName.isBlank()
+                        ? institutionName.trim()
+                        : existing != null ? existing.institutionName() : null;
+        BigDecimal resolvedOpeningBalance =
+                openingBalance != null
+                        ? openingBalance
+                        : existing != null ? existing.openingBalance() : null;
 
         descriptors.put(
                 descriptorKey,
@@ -2263,13 +2266,14 @@ public class ImportService {
         Map<String, Long> accountIdsByKey = new HashMap<>();
         List<Account> existingAccounts = accountRepository.findByUserId(userId);
         for (ImportedAccountDescriptor descriptor : descriptorsByKey.values()) {
-            Account matchingAccount = fallbackAccount != null
-                    && matchesImportedAccount(
-                            fallbackAccount,
-                            descriptor.name(),
-                            descriptor.accountNumber())
-                                    ? fallbackAccount
-                                    : findMatchingAccount(existingAccounts, descriptor);
+            Account matchingAccount =
+                    fallbackAccount != null
+                                    && matchesImportedAccount(
+                                            fallbackAccount,
+                                            descriptor.name(),
+                                            descriptor.accountNumber())
+                            ? fallbackAccount
+                            : findMatchingAccount(existingAccounts, descriptor);
             if (matchingAccount == null
                     && fallbackAccount != null
                     && descriptorsByKey.size() == 1) {
@@ -2277,30 +2281,33 @@ public class ImportService {
             }
             if (matchingAccount == null) {
                 Long institutionId = resolveInstitutionIdByName(descriptor.institutionName());
-                AccountRequest accountRequest = AccountRequest.builder()
-                        .name(descriptor.name())
-                        .type(mapQifAccountType(descriptor.qifAccountType()))
-                        .currency(
-                                descriptor.currency() != null
-                                        ? descriptor.currency()
-                                        : "USD")
-                        .initialBalance(
-                                descriptor.openingBalance() != null
-                                        ? descriptor.openingBalance()
-                                        : BigDecimal.ZERO)
-                        .openingDate(
-                                descriptor.openingDate() != null
-                                        ? descriptor.openingDate()
-                                        : LocalDate.now())
-                        .accountNumber(descriptor.accountNumber())
-                        .institutionId(institutionId)
-                        .build();
+                AccountRequest accountRequest =
+                        AccountRequest.builder()
+                                .name(descriptor.name())
+                                .type(mapQifAccountType(descriptor.qifAccountType()))
+                                .currency(
+                                        descriptor.currency() != null
+                                                ? descriptor.currency()
+                                                : "USD")
+                                .initialBalance(
+                                        descriptor.openingBalance() != null
+                                                ? descriptor.openingBalance()
+                                                : BigDecimal.ZERO)
+                                .openingDate(
+                                        descriptor.openingDate() != null
+                                                ? descriptor.openingDate()
+                                                : LocalDate.now())
+                                .accountNumber(descriptor.accountNumber())
+                                .institutionId(institutionId)
+                                .build();
                 AccountResponse created = accountService.createAccount(userId, accountRequest);
-                matchingAccount = accountRepository
-                        .findById(created.getId())
-                        .orElseThrow(
-                                () -> new ResourceNotFoundException(
-                                        "Account not found: " + created.getId()));
+                matchingAccount =
+                        accountRepository
+                                .findById(created.getId())
+                                .orElseThrow(
+                                        () ->
+                                                new ResourceNotFoundException(
+                                                        "Account not found: " + created.getId()));
                 existingAccounts.add(matchingAccount);
             }
             accountIdsByKey.put(descriptor.key(), matchingAccount.getId());
@@ -2323,13 +2330,15 @@ public class ImportService {
             Account existingAccount, String importedName, String importedAccountNumber) {
         String existingName = existingAccount.getName();
         String existingAccountNumber = existingAccount.getAccountNumber();
-        boolean sameName = existingName != null
-                && importedName != null
-                && existingName.equalsIgnoreCase(importedName);
-        boolean sameNumber = importedAccountNumber != null
-                && !importedAccountNumber.isBlank()
-                && existingAccountNumber != null
-                && existingAccountNumber.equalsIgnoreCase(importedAccountNumber);
+        boolean sameName =
+                existingName != null
+                        && importedName != null
+                        && existingName.equalsIgnoreCase(importedName);
+        boolean sameNumber =
+                importedAccountNumber != null
+                        && !importedAccountNumber.isBlank()
+                        && existingAccountNumber != null
+                        && existingAccountNumber.equalsIgnoreCase(importedAccountNumber);
         return sameName || sameNumber;
     }
 
@@ -2347,7 +2356,8 @@ public class ImportService {
             ImportedTransaction importedTx,
             Map<String, Long> accountIdsByKey,
             Long fallbackAccountId) {
-        String descriptorKey = buildImportedAccountKey(importedTx.getAccountName(), importedTx.getAccountNumber());
+        String descriptorKey =
+                buildImportedAccountKey(importedTx.getAccountName(), importedTx.getAccountNumber());
         if (descriptorKey != null && accountIdsByKey.containsKey(descriptorKey)) {
             return accountIdsByKey.get(descriptorKey);
         }
@@ -2368,11 +2378,12 @@ public class ImportService {
     private boolean requiresFallbackAccount(List<ImportedTransaction> transactions) {
         return transactions.stream()
                 .anyMatch(
-                        transaction -> !transaction.isTransfer()
-                                && (transaction.getAccountName() == null
-                                        || transaction.getAccountName().isBlank())
-                                && (transaction.getAccountNumber() == null
-                                        || transaction.getAccountNumber().isBlank()));
+                        transaction ->
+                                !transaction.isTransfer()
+                                        && (transaction.getAccountName() == null
+                                                || transaction.getAccountName().isBlank())
+                                        && (transaction.getAccountNumber() == null
+                                                || transaction.getAccountNumber().isBlank()));
     }
 
     private String buildImportedTransferKey(
@@ -2387,20 +2398,16 @@ public class ImportService {
 
         long lowerAccountId = Math.min(sourceAccountId, destinationAccountId);
         long higherAccountId = Math.max(sourceAccountId, destinationAccountId);
-        String baseKey = String.join(
-                "|",
-                String.valueOf(lowerAccountId),
-                String.valueOf(higherAccountId));
-        String rawSideKey = String.join(
-                "|",
-                baseKey,
-                String.valueOf(sourceAccountId),
-                String.valueOf(destinationAccountId));
+        String baseKey =
+                String.join("|", String.valueOf(lowerAccountId), String.valueOf(higherAccountId));
+        String rawSideKey =
+                String.join(
+                        "|",
+                        baseKey,
+                        String.valueOf(sourceAccountId),
+                        String.valueOf(destinationAccountId));
         int occurrence = ungroupedTransferOccurrences.merge(rawSideKey, 1, Integer::sum);
-        return String.join(
-                "|",
-                baseKey,
-                String.valueOf(occurrence));
+        return String.join("|", baseKey, String.valueOf(occurrence));
     }
 
     private String decryptQuietly(String value) {
@@ -2414,7 +2421,8 @@ public class ImportService {
         Map<Long, String> existingPathsById = buildCategoryPaths(existingCategories);
 
         for (SkroogeImportMetadata.SkroogeCategory category : metadata.getCategories()) {
-            Long mappedId = categoryMappings != null ? categoryMappings.get(category.getFullName()) : null;
+            Long mappedId =
+                    categoryMappings != null ? categoryMappings.get(category.getFullName()) : null;
             if (mappedId == null && categoryMappings != null) {
                 mappedId = categoryMappings.get(category.getName());
             }
@@ -2423,32 +2431,38 @@ public class ImportService {
                 continue;
             }
 
-            Long parentId = category.getParentSourceId() != null
-                    ? categoryIdsBySource.get(category.getParentSourceId())
-                    : null;
-            Category matchingCategory = existingCategories.stream()
-                    .filter(
-                            existingCategory -> existingCategory.getType() == category.getType())
-                    .filter(
-                            existingCategory -> Objects.equals(
-                                    existingCategory.getParentId(), parentId))
-                    .filter(
-                            existingCategory -> category.getName()
-                                    .equalsIgnoreCase(existingCategory.getName()))
-                    .findFirst()
-                    .orElse(null);
+            Long parentId =
+                    category.getParentSourceId() != null
+                            ? categoryIdsBySource.get(category.getParentSourceId())
+                            : null;
+            Category matchingCategory =
+                    existingCategories.stream()
+                            .filter(
+                                    existingCategory ->
+                                            existingCategory.getType() == category.getType())
+                            .filter(
+                                    existingCategory ->
+                                            Objects.equals(
+                                                    existingCategory.getParentId(), parentId))
+                            .filter(
+                                    existingCategory ->
+                                            category.getName()
+                                                    .equalsIgnoreCase(existingCategory.getName()))
+                            .findFirst()
+                            .orElse(null);
 
             if (matchingCategory == null) {
-                matchingCategory = categoryRepository.save(
-                        Category.builder()
-                                .userId(userId)
-                                .name(category.getName())
-                                .type(category.getType())
-                                .parentId(parentId)
-                                .isSystem(false)
-                                .icon("tag")
-                                .color("#6B7280")
-                                .build());
+                matchingCategory =
+                        categoryRepository.save(
+                                Category.builder()
+                                        .userId(userId)
+                                        .name(category.getName())
+                                        .type(category.getType())
+                                        .parentId(parentId)
+                                        .isSystem(false)
+                                        .icon("tag")
+                                        .color("#6B7280")
+                                        .build());
                 existingCategories.add(matchingCategory);
                 existingPathsById.put(matchingCategory.getId(), category.getFullName());
             }
@@ -2459,8 +2473,9 @@ public class ImportService {
     }
 
     private Map<Long, String> buildCategoryPaths(List<Category> categories) {
-        Map<Long, Category> categoriesById = categories.stream()
-                .collect(Collectors.toMap(Category::getId, category -> category));
+        Map<Long, Category> categoriesById =
+                categories.stream()
+                        .collect(Collectors.toMap(Category::getId, category -> category));
         Map<Long, String> pathsById = new HashMap<>();
         for (Category category : categories) {
             pathsById.put(category.getId(), buildCategoryPath(category, categoriesById));
@@ -2473,9 +2488,10 @@ public class ImportService {
         Category current = category;
         while (current != null) {
             segments.add(0, current.getName());
-            current = current.getParentId() != null
-                    ? categoriesById.get(current.getParentId())
-                    : null;
+            current =
+                    current.getParentId() != null
+                            ? categoriesById.get(current.getParentId())
+                            : null;
         }
         return String.join(":", segments);
     }
@@ -2488,10 +2504,11 @@ public class ImportService {
         return importedTx.getSplits().stream()
                 .map(
                         splitEntry -> {
-                            Long categoryId = splitEntry.getSourceCategoryId() != null
-                                    ? categoryIdsBySource.get(
-                                            splitEntry.getSourceCategoryId())
-                                    : null;
+                            Long categoryId =
+                                    splitEntry.getSourceCategoryId() != null
+                                            ? categoryIdsBySource.get(
+                                                    splitEntry.getSourceCategoryId())
+                                            : null;
                             if (categoryId == null
                                     && splitEntry.getCategory() != null
                                     && categoryMappings != null) {
@@ -2500,11 +2517,13 @@ public class ImportService {
                             if (categoryId == null && splitEntry.getCategory() != null) {
                                 String catName = splitEntry.getCategory().trim();
                                 if (!catName.isEmpty() && !catName.startsWith("[")) {
-                                    CategoryType catType = splitEntry.getAmount().compareTo(BigDecimal.ZERO) >= 0
-                                            ? CategoryType.INCOME
-                                            : CategoryType.EXPENSE;
-                                    categoryId = resolveOrCreateHierarchicalCategory(
-                                            catName, userId, catType);
+                                    CategoryType catType =
+                                            splitEntry.getAmount().compareTo(BigDecimal.ZERO) >= 0
+                                                    ? CategoryType.INCOME
+                                                    : CategoryType.EXPENSE;
+                                    categoryId =
+                                            resolveOrCreateHierarchicalCategory(
+                                                    catName, userId, catType);
                                 }
                             }
                             return TransactionSplitRequest.builder()
@@ -2546,8 +2565,7 @@ public class ImportService {
             return new HashMap<>();
         }
         try {
-            return objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {
-            });
+            return objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {});
         } catch (JsonProcessingException ex) {
             log.warn("Failed to read import metadata: {}", ex.getMessage());
             return new HashMap<>();
@@ -2583,11 +2601,12 @@ public class ImportService {
 
         BigDecimal convertedAmount;
         try {
-            convertedAmount = exchangeRateService.convert(
-                    signedAmount.abs(),
-                    importedCurrency,
-                    transactionCurrency,
-                    importedTx.getTransactionDate());
+            convertedAmount =
+                    exchangeRateService.convert(
+                            signedAmount.abs(),
+                            importedCurrency,
+                            transactionCurrency,
+                            importedTx.getTransactionDate());
         } catch (RuntimeException ex) {
             if (importedTx.getSourceAccountBalanceDelta() != null) {
                 log.warn(
@@ -2615,23 +2634,20 @@ public class ImportService {
     }
 
     /**
-     * Resolve a hierarchical category path (e.g., "Income:Salary") to a category
-     * ID.
+     * Resolve a hierarchical category path (e.g., "Income:Salary") to a category ID.
      *
-     * <p>
-     * Resolution order:
+     * <p>Resolution order:
      *
      * <ol>
-     * <li>Exact match on full path name (e.g., "Income:Salary")
-     * <li>Match child name under matching parent (parent "Income", child "Salary")
-     * <li>Match leaf name only (e.g., "Salary")
-     * <li>Create parent and child categories if no match found
+     *   <li>Exact match on full path name (e.g., "Income:Salary")
+     *   <li>Match child name under matching parent (parent "Income", child "Salary")
+     *   <li>Match leaf name only (e.g., "Salary")
+     *   <li>Create parent and child categories if no match found
      * </ol>
      *
-     * @param categoryPath full category path from import file (e.g.,
-     *                     "Income:Salary")
-     * @param userId       the user who owns the categories
-     * @param type         INCOME or EXPENSE for newly created categories
+     * @param categoryPath full category path from import file (e.g., "Income:Salary")
+     * @param userId the user who owns the categories
+     * @param type INCOME or EXPENSE for newly created categories
      * @return the resolved or created category ID, or null if path is blank
      */
     private Long resolveOrCreateHierarchicalCategory(
@@ -2643,9 +2659,10 @@ public class ImportService {
         List<Category> userCategories = categoryRepository.findByUserId(userId);
 
         // 1. Try exact match on full path name
-        Optional<Category> exactMatch = userCategories.stream()
-                .filter(c -> c.getName().equalsIgnoreCase(categoryPath))
-                .findFirst();
+        Optional<Category> exactMatch =
+                userCategories.stream()
+                        .filter(c -> c.getName().equalsIgnoreCase(categoryPath))
+                        .findFirst();
         if (exactMatch.isPresent()) {
             log.debug(
                     "Category '{}' matched exactly to ID={}",
@@ -2661,21 +2678,25 @@ public class ImportService {
             String childName = segments[segments.length - 1].trim();
 
             // Try to find child with a matching parent
-            Optional<Category> hierarchicalMatch = userCategories.stream()
-                    .filter(
-                            c -> c.getName().equalsIgnoreCase(childName)
-                                    && c.getParentId() != null)
-                    .filter(
-                            c -> userCategories.stream()
-                                    .anyMatch(
-                                            p -> p.getId()
-                                                    .equals(
-                                                            c
-                                                                    .getParentId())
-                                                    && p.getName()
-                                                            .equalsIgnoreCase(
-                                                                    parentName)))
-                    .findFirst();
+            Optional<Category> hierarchicalMatch =
+                    userCategories.stream()
+                            .filter(
+                                    c ->
+                                            c.getName().equalsIgnoreCase(childName)
+                                                    && c.getParentId() != null)
+                            .filter(
+                                    c ->
+                                            userCategories.stream()
+                                                    .anyMatch(
+                                                            p ->
+                                                                    p.getId()
+                                                                                    .equals(
+                                                                                            c
+                                                                                                    .getParentId())
+                                                                            && p.getName()
+                                                                                    .equalsIgnoreCase(
+                                                                                            parentName)))
+                            .findFirst();
             if (hierarchicalMatch.isPresent()) {
                 log.debug(
                         "Category '{}' matched hierarchically (parent '{}', child '{}') to ID={}",
@@ -2687,9 +2708,10 @@ public class ImportService {
             }
 
             // Try just the leaf name
-            Optional<Category> leafMatch = userCategories.stream()
-                    .filter(c -> c.getName().equalsIgnoreCase(childName))
-                    .findFirst();
+            Optional<Category> leafMatch =
+                    userCategories.stream()
+                            .filter(c -> c.getName().equalsIgnoreCase(childName))
+                            .findFirst();
             if (leafMatch.isPresent()) {
                 log.debug(
                         "Category '{}' matched by leaf name '{}' to ID={}",
@@ -2700,36 +2722,40 @@ public class ImportService {
             }
 
             // No match — create parent (if not existing) and child
-            Category parent = userCategories.stream()
-                    .filter(
-                            c -> c.getName().equalsIgnoreCase(parentName)
-                                    && c.getParentId() == null)
-                    .findFirst()
-                    .orElseGet(
-                            () -> {
-                                Category newParent = categoryRepository.save(
-                                        Category.builder()
-                                                .userId(userId)
-                                                .name(parentName)
-                                                .type(type)
-                                                .isSystem(false)
-                                                .build());
-                                log.info(
-                                        "Created parent category '{}' (ID={}) for user {}",
-                                        parentName,
-                                        newParent.getId(),
-                                        userId);
-                                return newParent;
-                            });
+            Category parent =
+                    userCategories.stream()
+                            .filter(
+                                    c ->
+                                            c.getName().equalsIgnoreCase(parentName)
+                                                    && c.getParentId() == null)
+                            .findFirst()
+                            .orElseGet(
+                                    () -> {
+                                        Category newParent =
+                                                categoryRepository.save(
+                                                        Category.builder()
+                                                                .userId(userId)
+                                                                .name(parentName)
+                                                                .type(type)
+                                                                .isSystem(false)
+                                                                .build());
+                                        log.info(
+                                                "Created parent category '{}' (ID={}) for user {}",
+                                                parentName,
+                                                newParent.getId(),
+                                                userId);
+                                        return newParent;
+                                    });
 
-            Category child = categoryRepository.save(
-                    Category.builder()
-                            .userId(userId)
-                            .name(childName)
-                            .parentId(parent.getId())
-                            .type(type)
-                            .isSystem(false)
-                            .build());
+            Category child =
+                    categoryRepository.save(
+                            Category.builder()
+                                    .userId(userId)
+                                    .name(childName)
+                                    .parentId(parent.getId())
+                                    .type(type)
+                                    .isSystem(false)
+                                    .build());
             log.info(
                     "Created child category '{}' under parent '{}' (ID={}) for user {}",
                     childName,
@@ -2740,13 +2766,14 @@ public class ImportService {
         }
 
         // Non-hierarchical: no exact match was found, create as root category
-        Category newCategory = categoryRepository.save(
-                Category.builder()
-                        .userId(userId)
-                        .name(categoryPath)
-                        .type(type)
-                        .isSystem(false)
-                        .build());
+        Category newCategory =
+                categoryRepository.save(
+                        Category.builder()
+                                .userId(userId)
+                                .name(categoryPath)
+                                .type(type)
+                                .isSystem(false)
+                                .build());
         log.info(
                 "Created root category '{}' (ID={}) for user {}",
                 categoryPath,
@@ -2756,12 +2783,9 @@ public class ImportService {
     }
 
     /**
-     * Convert ImportedTransaction to Transaction entity. The
-     * {@code referenceNumber} from the
-     * imported file is persisted as {@code externalReference} so that future
-     * imports can perform
-     * fast, authoritative duplicate detection (Tier 1 in
-     * {@link #detectDuplicates}).
+     * Convert ImportedTransaction to Transaction entity. The {@code referenceNumber} from the
+     * imported file is persisted as {@code externalReference} so that future imports can perform
+     * fast, authoritative duplicate detection (Tier 1 in {@link #detectDuplicates}).
      */
     private Transaction convertToTransaction(
             ImportedTransaction importedTx,
@@ -2801,40 +2825,43 @@ public class ImportService {
         String currencyCode = resolveTransactionCurrency(importedTx, accountId);
         BigDecimal signedAmount = resolveSignedAmount(importedTx, accountId, currencyCode);
         BigDecimal amount = normalizeAmount(signedAmount);
-        Long currencyId = currencyRepository.findByCode(currencyCode).map(c -> c.getId()).orElse(null);
+        Long currencyId =
+                currencyRepository.findByCode(currencyCode).map(c -> c.getId()).orElse(null);
 
         // Resolve or create Payee entity
         String payeeName = truncate(importedTx.getPayee(), TRANSACTION_PAYEE_MAX_LENGTH);
         Long payeeId = resolveOrCreatePayeeId(payeeName, userId);
 
         // Build transaction using builder pattern
-        Transaction.TransactionBuilder builder = Transaction.builder()
-                .userId(userId)
-                .accountId(accountId)
-                .date(importedTx.getTransactionDate())
-                .amount(amount)
-                .currency(currencyCode)
-                .currencyId(currencyId)
-                .description(
-                        truncate(importedTx.getPayee(), TRANSACTION_DESCRIPTION_MAX_LENGTH))
-                .notes(truncate(importedTx.getMemo(), TRANSACTION_NOTES_MAX_LENGTH))
-                .payee(payeeName)
-                .payeeId(payeeId)
-                .type(transactionType)
-                .externalReference(
-                        importedTx.getReferenceNumber()) // Persist for future dedup
-                .paymentMethod(mapPaymentMethod(importedTx.getPaymentMethod()))
-                .isReconciled("reconciled".equalsIgnoreCase(importedTx.getClearedStatus()))
-                .isDeleted(false);
+        Transaction.TransactionBuilder builder =
+                Transaction.builder()
+                        .userId(userId)
+                        .accountId(accountId)
+                        .date(importedTx.getTransactionDate())
+                        .amount(amount)
+                        .currency(currencyCode)
+                        .currencyId(currencyId)
+                        .description(
+                                truncate(importedTx.getPayee(), TRANSACTION_DESCRIPTION_MAX_LENGTH))
+                        .notes(truncate(importedTx.getMemo(), TRANSACTION_NOTES_MAX_LENGTH))
+                        .payee(payeeName)
+                        .payeeId(payeeId)
+                        .type(transactionType)
+                        .externalReference(
+                                importedTx.getReferenceNumber()) // Persist for future dedup
+                        .paymentMethod(mapPaymentMethod(importedTx.getPaymentMethod()))
+                        .isReconciled("reconciled".equalsIgnoreCase(importedTx.getClearedStatus()))
+                        .isDeleted(false);
 
         // Map category
         if (mapCategory
                 && importedTx.getCategory() != null
                 && !importedTx.getCategory().trim().isEmpty()) {
             String categoryName = importedTx.getCategory().trim();
-            Long categoryId = importedTx.getSourceCategoryId() != null
-                    ? categoryIdsBySource.get(importedTx.getSourceCategoryId())
-                    : null;
+            Long categoryId =
+                    importedTx.getSourceCategoryId() != null
+                            ? categoryIdsBySource.get(importedTx.getSourceCategoryId())
+                            : null;
             if (categoryId == null) {
                 categoryId = categoryMappings != null ? categoryMappings.get(categoryName) : null;
             }
@@ -2849,10 +2876,12 @@ public class ImportService {
                 // Resolve hierarchical category (e.g., "Income:Salary" → parent "Income", child
                 // "Salary")
                 // Skip transfer categories (bracket syntax like "[Savings Account]")
-                CategoryType catType = transactionType == TransactionType.INCOME
-                        ? CategoryType.INCOME
-                        : CategoryType.EXPENSE;
-                Long resolvedId = resolveOrCreateHierarchicalCategory(categoryName, userId, catType);
+                CategoryType catType =
+                        transactionType == TransactionType.INCOME
+                                ? CategoryType.INCOME
+                                : CategoryType.EXPENSE;
+                Long resolvedId =
+                        resolveOrCreateHierarchicalCategory(categoryName, userId, catType);
                 if (resolvedId != null) {
                     builder.categoryId(resolvedId);
                 }
@@ -2878,8 +2907,7 @@ public class ImportService {
     }
 
     /**
-     * Resolve an existing Payee by name (case-insensitive) or create a new one.
-     * Returns the payee
+     * Resolve an existing Payee by name (case-insensitive) or create a new one. Returns the payee
      * ID, or null if the payee name is blank.
      */
     private Long resolveOrCreatePayeeId(String payeeName, Long userId) {
@@ -2889,20 +2917,22 @@ public class ImportService {
         String trimmed = payeeName.trim();
         // Name is encrypted — SQL equality on ciphertext won't match.
         // Fetch all payees visible to user and match in Java.
-        org.openfinance.entity.Payee existing = payeeRepository.findAllByUser(userId).stream()
-                .filter(p -> p.getName() != null && p.getName().equalsIgnoreCase(trimmed))
-                .findFirst()
-                .orElse(null);
+        org.openfinance.entity.Payee existing =
+                payeeRepository.findAllByUser(userId).stream()
+                        .filter(p -> p.getName() != null && p.getName().equalsIgnoreCase(trimmed))
+                        .findFirst()
+                        .orElse(null);
         if (existing != null) {
             return existing.getId();
         }
         // Create a new user-scoped payee
-        org.openfinance.entity.Payee newPayee = org.openfinance.entity.Payee.builder()
-                .name(trimmed)
-                .userId(userId)
-                .isSystem(false)
-                .isActive(true)
-                .build();
+        org.openfinance.entity.Payee newPayee =
+                org.openfinance.entity.Payee.builder()
+                        .name(trimmed)
+                        .userId(userId)
+                        .isSystem(false)
+                        .isActive(true)
+                        .build();
         return payeeRepository.save(newPayee).getId();
     }
 
@@ -2926,13 +2956,12 @@ public class ImportService {
     }
 
     /**
-     * Serialize transactions to JSON string for metadata storage. Uses Jackson
-     * ObjectMapper for
+     * Serialize transactions to JSON string for metadata storage. Uses Jackson ObjectMapper for
      * proper JSON serialization.
      *
-     * @param transactions  list of imported transactions
+     * @param transactions list of imported transactions
      * @param ledgerBalance starting balance from the file
-     * @param fileCurrency  currency from the file
+     * @param fileCurrency currency from the file
      * @return JSON string representation
      */
     private String serializeTransactions(
@@ -2966,8 +2995,7 @@ public class ImportService {
     }
 
     /**
-     * Deserialize transactions from JSON metadata. Uses Jackson ObjectMapper for
-     * proper JSON
+     * Deserialize transactions from JSON metadata. Uses Jackson ObjectMapper for proper JSON
      * deserialization.
      *
      * @param metadata JSON string containing transactions
@@ -2980,9 +3008,8 @@ public class ImportService {
         }
 
         try {
-            Map<String, Object> metadataMap = objectMapper.readValue(metadata,
-                    new TypeReference<Map<String, Object>>() {
-                    });
+            Map<String, Object> metadataMap =
+                    objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {});
 
             if (!metadataMap.containsKey("transactions")) {
                 log.warn("Metadata does not contain transactions field");
@@ -2992,8 +3019,7 @@ public class ImportService {
             // Deserialize transactions list
             Object transactionsObj = metadataMap.get("transactions");
             return objectMapper.convertValue(
-                    transactionsObj, new TypeReference<List<ImportedTransaction>>() {
-                    });
+                    transactionsObj, new TypeReference<List<ImportedTransaction>>() {});
 
         } catch (JsonProcessingException e) {
             log.error("Error deserializing transactions: {}", e.getMessage(), e);
@@ -3009,17 +3035,13 @@ public class ImportService {
             LocalDate openingDate,
             String qifAccountType,
             String institutionName,
-            BigDecimal openingBalance) {
-    }
+            BigDecimal openingBalance) {}
 
     /**
-     * Map a QIF account type string (from !Account T field or !Type directive) to
-     * the corresponding
+     * Map a QIF account type string (from !Account T field or !Type directive) to the corresponding
      * {@link AccountType}.
      *
-     * <p>
-     * QIF types: Bank → CHECKING, CCard → CREDIT_CARD, Cash → CASH, Oth A / Invst →
-     * INVESTMENT.
+     * <p>QIF types: Bank → CHECKING, CCard → CREDIT_CARD, Cash → CASH, Oth A / Invst → INVESTMENT.
      * Unknown or null types default to CHECKING.
      */
     private AccountType mapQifAccountType(String qifAccountType) {
@@ -3043,22 +3065,20 @@ public class ImportService {
     }
 
     /**
-     * Map a raw payment-method string from the import file (e.g., Skrooge "mode"
-     * column) to a
+     * Map a raw payment-method string from the import file (e.g., Skrooge "mode" column) to a
      * {@link PaymentMethod} enum value.
      *
-     * <p>
-     * Recognised values (case-insensitive, accent-tolerant):
+     * <p>Recognised values (case-insensitive, accent-tolerant):
      *
      * <ul>
-     * <li>"Débit" / "debit" → {@link PaymentMethod#DEBIT_CARD}
-     * <li>"Crédit" / "credit" → {@link PaymentMethod#CREDIT_CARD}
-     * <li>"Virement" / "transfer" → {@link PaymentMethod#BANK_TRANSFER}
-     * <li>"Prélèvement" / "direct debit" → {@link PaymentMethod#DIRECT_DEBIT}
-     * <li>"Chèque" / "cheque" / "check" → {@link PaymentMethod#CHEQUE}
-     * <li>"Espèces" / "cash" → {@link PaymentMethod#CASH}
-     * <li>"Dépôt" / "deposit" → {@link PaymentMethod#DEPOSIT}
-     * <li>"En ligne" / "online" → {@link PaymentMethod#ONLINE}
+     *   <li>"Débit" / "debit" → {@link PaymentMethod#DEBIT_CARD}
+     *   <li>"Crédit" / "credit" → {@link PaymentMethod#CREDIT_CARD}
+     *   <li>"Virement" / "transfer" → {@link PaymentMethod#BANK_TRANSFER}
+     *   <li>"Prélèvement" / "direct debit" → {@link PaymentMethod#DIRECT_DEBIT}
+     *   <li>"Chèque" / "cheque" / "check" → {@link PaymentMethod#CHEQUE}
+     *   <li>"Espèces" / "cash" → {@link PaymentMethod#CASH}
+     *   <li>"Dépôt" / "deposit" → {@link PaymentMethod#DEPOSIT}
+     *   <li>"En ligne" / "online" → {@link PaymentMethod#ONLINE}
      * </ul>
      *
      * @param rawMode raw payment method string, or null
@@ -3069,10 +3089,11 @@ public class ImportService {
             return null;
         }
         // Normalise: lowercase, strip accents
-        String normalized = java.text.Normalizer.normalize(rawMode, java.text.Normalizer.Form.NFD)
-                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
-                .trim()
-                .toLowerCase();
+        String normalized =
+                java.text.Normalizer.normalize(rawMode, java.text.Normalizer.Form.NFD)
+                        .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                        .trim()
+                        .toLowerCase();
         switch (normalized) {
             case "debit":
                 return PaymentMethod.DEBIT_CARD;
@@ -3102,8 +3123,7 @@ public class ImportService {
     }
 
     /**
-     * Calculate similarity between two strings using Levenshtein distance. Returns
-     * similarity ratio
+     * Calculate similarity between two strings using Levenshtein distance. Returns similarity ratio
      * from 0.0 (completely different) to 1.0 (identical).
      *
      * @param s1 first string
@@ -3135,10 +3155,8 @@ public class ImportService {
     }
 
     /**
-     * Calculate Levenshtein distance between two strings. The Levenshtein distance
-     * is the minimum
-     * number of single-character edits (insertions, deletions, or substitutions)
-     * required to change
+     * Calculate Levenshtein distance between two strings. The Levenshtein distance is the minimum
+     * number of single-character edits (insertions, deletions, or substitutions) required to change
      * one string into the other.
      *
      * @param s1 first string

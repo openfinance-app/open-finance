@@ -39,39 +39,29 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service layer for managing investment assets.
  *
- * <p>
- * This service handles business logic for asset CRUD operations, including:
+ * <p>This service handles business logic for asset CRUD operations, including:
  *
  * <ul>
- * <li>Creating new assets with encrypted sensitive fields (name, notes)
- * <li>Updating existing assets (including price updates)
- * <li>Deleting assets
- * <li>Retrieving assets with decrypted data and calculated fields
- * <li>Portfolio analytics (total value, cost, gains by type/currency)
+ *   <li>Creating new assets with encrypted sensitive fields (name, notes)
+ *   <li>Updating existing assets (including price updates)
+ *   <li>Deleting assets
+ *   <li>Retrieving assets with decrypted data and calculated fields
+ *   <li>Portfolio analytics (total value, cost, gains by type/currency)
  * </ul>
  *
- * <p>
- * <strong>Security Note:</strong> The {@code name} and {@code notes} fields are
- * encrypted before
- * storing in the database and decrypted when reading. The encryption key must
- * be provided by the
+ * <p><strong>Security Note:</strong> The {@code name} and {@code notes} fields are encrypted before
+ * storing in the database and decrypted when reading. The encryption key must be provided by the
  * caller (typically from the user's session after authentication).
  *
- * <p>
- * Requirement REQ-2.6: Asset Management - CRUD operations for financial assets
+ * <p>Requirement REQ-2.6: Asset Management - CRUD operations for financial assets
  *
- * <p>
- * Requirement REQ-2.6.2: Track asset details (name, type, quantity, prices)
+ * <p>Requirement REQ-2.6.2: Track asset details (name, type, quantity, prices)
  *
- * <p>
- * Requirement REQ-2.6.3: Calculate and display portfolio values and
- * gains/losses
+ * <p>Requirement REQ-2.6.3: Calculate and display portfolio values and gains/losses
  *
- * <p>
- * Requirement REQ-2.18: Data encryption at rest for sensitive fields
+ * <p>Requirement REQ-2.18: Data encryption at rest for sensitive fields
  *
- * <p>
- * Requirement REQ-3.2: Authorization - Users can only access their own assets
+ * <p>Requirement REQ-3.2: Authorization - Users can only access their own assets
  *
  * @see org.openfinance.entity.Asset
  * @see org.openfinance.dto.AssetRequest
@@ -98,25 +88,20 @@ public class AssetService {
     /**
      * Creates a new asset for the specified user.
      *
-     * <p>
-     * The asset name and notes are encrypted before storing in the database. If an
-     * accountId is
+     * <p>The asset name and notes are encrypted before storing in the database. If an accountId is
      * provided, validates that the account exists and belongs to the user.
      *
-     * <p>
-     * Requirement REQ-2.6.1: Create new asset with encrypted sensitive data
+     * <p>Requirement REQ-2.6.1: Create new asset with encrypted sensitive data
      *
-     * <p>
-     * Requirement REQ-2.6.2: Link asset to an account (optional)
+     * <p>Requirement REQ-2.6.2: Link asset to an account (optional)
      *
-     * @param userId        the ID of the user creating the asset
-     * @param request       the asset creation request containing asset details
+     * @param userId the ID of the user creating the asset
+     * @param request the asset creation request containing asset details
      * @param encryptionKey the AES-256 encryption key for sensitive fields
      * @return the created asset with decrypted data and calculated fields
      * @throws IllegalArgumentException if userId, request, or encryptionKey is null
-     * @throws AccountNotFoundException if accountId is provided but account not
-     *                                  found or doesn't
-     *                                  belong to user
+     * @throws AccountNotFoundException if accountId is provided but account not found or doesn't
+     *     belong to user
      */
     public AssetResponse createAsset(Long userId, AssetRequest request) {
         if (userId == null) {
@@ -166,9 +151,10 @@ public class AssetService {
 
         // Manually load account if accountId is present (for accountName in response)
         if (savedAsset.getAccountId() != null) {
-            Account account = accountRepository
-                    .findByIdAndUserId(savedAsset.getAccountId(), userId)
-                    .orElse(null); // Account might have been deleted, so don't fail
+            Account account =
+                    accountRepository
+                            .findByIdAndUserId(savedAsset.getAccountId(), userId)
+                            .orElse(null); // Account might have been deleted, so don't fail
             savedAsset.setAccount(account);
         }
 
@@ -191,36 +177,27 @@ public class AssetService {
     /**
      * Updates an existing asset.
      *
-     * <p>
-     * Only the asset owner can update the asset. Sensitive fields are re-encrypted
-     * if they have
-     * changed. If the currentPrice is updated, the lastUpdated timestamp is
-     * automatically set to
+     * <p>Only the asset owner can update the asset. Sensitive fields are re-encrypted if they have
+     * changed. If the currentPrice is updated, the lastUpdated timestamp is automatically set to
      * the current time.
      *
-     * <p>
-     * Requirement REQ-2.6.2: Update asset details
+     * <p>Requirement REQ-2.6.2: Update asset details
      *
-     * <p>
-     * Requirement REQ-2.6.4: Update current price and track last updated time
+     * <p>Requirement REQ-2.6.4: Update current price and track last updated time
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization check - verify asset ownership
+     * <p>Requirement REQ-3.2: Authorization check - verify asset ownership
      *
-     * @param assetId       the ID of the asset to update
-     * @param userId        the ID of the user updating the asset (for
-     *                      authorization)
-     * @param request       the asset update request
+     * @param assetId the ID of the asset to update
+     * @param userId the ID of the user updating the asset (for authorization)
+     * @param request the asset update request
      * @param encryptionKey the AES-256 encryption key for sensitive fields
      * @return the updated asset with decrypted data and calculated fields
-     * @throws AssetNotFoundException   if asset not found or doesn't belong to user
-     * @throws AccountNotFoundException if accountId is provided but account not
-     *                                  found or doesn't
-     *                                  belong to user
+     * @throws AssetNotFoundException if asset not found or doesn't belong to user
+     * @throws AccountNotFoundException if accountId is provided but account not found or doesn't
+     *     belong to user
      * @throws IllegalArgumentException if any parameter is null
      */
-    public AssetResponse updateAsset(
-            Long assetId, Long userId, AssetRequest request) {
+    public AssetResponse updateAsset(Long assetId, Long userId, AssetRequest request) {
         log.debug("Updating asset {}: userId={}", assetId, userId);
 
         if (assetId == null) {
@@ -233,9 +210,10 @@ public class AssetService {
             throw new IllegalArgumentException("Asset request cannot be null");
         }
         // Fetch asset and verify ownership (Requirement 3.2: Authorization)
-        Asset asset = assetRepository
-                .findByIdAndUserId(assetId, userId)
-                .orElseThrow(() -> AssetNotFoundException.byIdAndUser(assetId, userId));
+        Asset asset =
+                assetRepository
+                        .findByIdAndUserId(assetId, userId)
+                        .orElseThrow(() -> AssetNotFoundException.byIdAndUser(assetId, userId));
 
         // Capture snapshot before update for history
         AssetResponse beforeAssetSnapshot = toResponseWithDecryption(asset);
@@ -307,11 +285,12 @@ public class AssetService {
         log.info("Asset updated successfully: id={}, userId={}", assetId, userId);
         // Invalidate snapshots from the earliest affected purchase date onward
         LocalDate newPurchaseDate = updatedAsset.getPurchaseDate();
-        LocalDate cutoff = (oldPurchaseDate != null
-                && (newPurchaseDate == null
-                        || oldPurchaseDate.isBefore(newPurchaseDate)))
-                                ? oldPurchaseDate
-                                : newPurchaseDate;
+        LocalDate cutoff =
+                (oldPurchaseDate != null
+                                && (newPurchaseDate == null
+                                        || oldPurchaseDate.isBefore(newPurchaseDate)))
+                        ? oldPurchaseDate
+                        : newPurchaseDate;
         invalidateSnapshotsFrom(userId, cutoff);
 
         // Decrypt and return response with calculated fields
@@ -333,22 +312,17 @@ public class AssetService {
     /**
      * Deletes an asset.
      *
-     * <p>
-     * This is a hard delete, removing the asset from the database entirely. Only
-     * the asset owner
+     * <p>This is a hard delete, removing the asset from the database entirely. Only the asset owner
      * can delete the asset.
      *
-     * <p>
-     * Requirement REQ-2.6.2: Delete asset
+     * <p>Requirement REQ-2.6.2: Delete asset
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization check - verify asset ownership
+     * <p>Requirement REQ-3.2: Authorization check - verify asset ownership
      *
-     * @param assetId       the ID of the asset to delete
-     * @param userId        the ID of the user deleting the asset (for
-     *                      authorization)
+     * @param assetId the ID of the asset to delete
+     * @param userId the ID of the user deleting the asset (for authorization)
      * @param encryptionKey the user's encryption key (for history snapshot)
-     * @throws AssetNotFoundException   if asset not found or doesn't belong to user
+     * @throws AssetNotFoundException if asset not found or doesn't belong to user
      * @throws IllegalArgumentException if any parameter is null
      */
     public void deleteAsset(Long assetId, Long userId) {
@@ -366,9 +340,10 @@ public class AssetService {
         }
 
         // Fetch asset and verify ownership (Requirement 3.2: Authorization)
-        Asset asset = assetRepository
-                .findByIdAndUserId(assetId, userId)
-                .orElseThrow(() -> AssetNotFoundException.byIdAndUser(assetId, userId));
+        Asset asset =
+                assetRepository
+                        .findByIdAndUserId(assetId, userId)
+                        .orElseThrow(() -> AssetNotFoundException.byIdAndUser(assetId, userId));
 
         // Capture snapshot before delete for history (only if key provided)
         AssetResponse beforeDeleteSnapshot = null;
@@ -404,27 +379,20 @@ public class AssetService {
     /**
      * Retrieves a single asset by ID.
      *
-     * <p>
-     * Only the asset owner can retrieve the asset. Sensitive fields are decrypted
-     * and calculated
+     * <p>Only the asset owner can retrieve the asset. Sensitive fields are decrypted and calculated
      * fields (total value, gains) are populated.
      *
-     * <p>
-     * Requirement REQ-2.6.1: Retrieve asset details
+     * <p>Requirement REQ-2.6.1: Retrieve asset details
      *
-     * <p>
-     * Requirement REQ-2.6.3: Display calculated fields (value, gains)
+     * <p>Requirement REQ-2.6.3: Display calculated fields (value, gains)
      *
-     * <p>
-     * Requirement REQ-3.2: Authorization check - verify asset ownership
+     * <p>Requirement REQ-3.2: Authorization check - verify asset ownership
      *
-     * @param assetId       the ID of the asset to retrieve
-     * @param userId        the ID of the user retrieving the asset (for
-     *                      authorization)
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param assetId the ID of the asset to retrieve
+     * @param userId the ID of the user retrieving the asset (for authorization)
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return the asset with decrypted data and calculated fields
-     * @throws AssetNotFoundException   if asset not found or doesn't belong to user
+     * @throws AssetNotFoundException if asset not found or doesn't belong to user
      * @throws IllegalArgumentException if any parameter is null
      */
     @Transactional(readOnly = true)
@@ -438,9 +406,10 @@ public class AssetService {
             throw new IllegalArgumentException("User ID cannot be null");
         }
         // Fetch asset and verify ownership (Requirement 3.2: Authorization)
-        Asset asset = assetRepository
-                .findByIdAndUserId(assetId, userId)
-                .orElseThrow(() -> AssetNotFoundException.byIdAndUser(assetId, userId));
+        Asset asset =
+                assetRepository
+                        .findByIdAndUserId(assetId, userId)
+                        .orElseThrow(() -> AssetNotFoundException.byIdAndUser(assetId, userId));
 
         // Decrypt and return response with calculated fields
         return toResponseWithDecryption(asset);
@@ -449,20 +418,15 @@ public class AssetService {
     /**
      * Retrieves all assets for a user.
      *
-     * <p>
-     * Returns all assets with decrypted data and calculated fields.
+     * <p>Returns all assets with decrypted data and calculated fields.
      *
-     * <p>
-     * Requirement REQ-2.6.1: List all user assets
+     * <p>Requirement REQ-2.6.1: List all user assets
      *
-     * <p>
-     * Requirement REQ-2.6.3: Display portfolio values
+     * <p>Requirement REQ-2.6.3: Display portfolio values
      *
-     * @param userId        the ID of the user
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
-     * @return list of assets with decrypted data and calculated fields (may be
-     *         empty)
+     * @param userId the ID of the user
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
+     * @return list of assets with decrypted data and calculated fields (may be empty)
      * @throws IllegalArgumentException if userId or encryptionKey is null
      */
     @Transactional(readOnly = true)
@@ -486,35 +450,29 @@ public class AssetService {
     /**
      * Searches assets with filters and pagination.
      *
-     * <p>
-     * This method supports dynamic filtering and sorting through the search
-     * criteria. All
+     * <p>This method supports dynamic filtering and sorting through the search criteria. All
      * filtering is done at the database level for efficiency.
      *
-     * <p>
-     * <strong>Supported Filters:</strong>
+     * <p><strong>Supported Filters:</strong>
      *
      * <ul>
-     * <li>keyword - Search in asset name (case-insensitive)
-     * <li>type - Filter by asset type
-     * <li>accountId - Filter by account ID
-     * <li>currency - Filter by currency code
-     * <li>symbol - Filter by ticker symbol
-     * <li>purchaseDateFrom - Filter by purchase date >= this date
-     * <li>purchaseDateTo - Filter by purchase date <= this date
-     * <li>valueMin - Filter by minimum total value
-     * <li>valueMax - Filter by maximum total value
+     *   <li>keyword - Search in asset name (case-insensitive)
+     *   <li>type - Filter by asset type
+     *   <li>accountId - Filter by account ID
+     *   <li>currency - Filter by currency code
+     *   <li>symbol - Filter by ticker symbol
+     *   <li>purchaseDateFrom - Filter by purchase date >= this date
+     *   <li>purchaseDateTo - Filter by purchase date <= this date
+     *   <li>valueMin - Filter by minimum total value
+     *   <li>valueMax - Filter by maximum total value
      * </ul>
      *
-     * @param userId        the ID of the user
-     * @param criteria      the search criteria (all fields optional)
-     * @param pageable      pagination and sorting parameters (page number, size,
-     *                      sort)
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param userId the ID of the user
+     * @param criteria the search criteria (all fields optional)
+     * @param pageable pagination and sorting parameters (page number, size, sort)
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return page of assets matching criteria with decrypted data
-     * @throws IllegalArgumentException if userId, criteria, pageable, or
-     *                                  encryptionKey is null
+     * @throws IllegalArgumentException if userId, criteria, pageable, or encryptionKey is null
      */
     @Transactional(readOnly = true)
     public Page<AssetResponse> searchAssets(
@@ -536,36 +494,40 @@ public class AssetService {
                 criteria.getType(),
                 criteria.getAccountId());
 
-        boolean hasKeyword = criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty();
+        boolean hasKeyword =
+                criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty();
 
         if (hasKeyword) {
             // Since the name field is encrypted at rest, LIKE queries on the DB cannot
             // match decrypted keywords. Fetch all assets matching non-keyword criteria,
             // decrypt them, then filter by keyword in memory before applying pagination.
-            AssetSearchCriteria criteriaWithoutKeyword = AssetSearchCriteria.builder()
-                    .type(criteria.getType())
-                    .accountId(criteria.getAccountId())
-                    .currency(criteria.getCurrency())
-                    .symbol(criteria.getSymbol())
-                    .purchaseDateFrom(criteria.getPurchaseDateFrom())
-                    .purchaseDateTo(criteria.getPurchaseDateTo())
-                    .valueMin(criteria.getValueMin())
-                    .valueMax(criteria.getValueMax())
-                    .build();
+            AssetSearchCriteria criteriaWithoutKeyword =
+                    AssetSearchCriteria.builder()
+                            .type(criteria.getType())
+                            .accountId(criteria.getAccountId())
+                            .currency(criteria.getCurrency())
+                            .symbol(criteria.getSymbol())
+                            .purchaseDateFrom(criteria.getPurchaseDateFrom())
+                            .purchaseDateTo(criteria.getPurchaseDateTo())
+                            .valueMin(criteria.getValueMin())
+                            .valueMax(criteria.getValueMax())
+                            .build();
 
-            Specification<Asset> specWithoutKeyword = AssetSpecification.buildSpecification(userId,
-                    criteriaWithoutKeyword);
+            Specification<Asset> specWithoutKeyword =
+                    AssetSpecification.buildSpecification(userId, criteriaWithoutKeyword);
             List<Asset> allMatching = assetRepository.findAll(specWithoutKeyword);
 
             String lowerKeyword = criteria.getKeyword().trim().toLowerCase();
-            List<AssetResponse> filtered = allMatching.stream()
-                    .map(asset -> toResponseWithDecryption(asset))
-                    .filter(
-                            response -> response.getName() != null
-                                    && response.getName()
-                                            .toLowerCase()
-                                            .contains(lowerKeyword))
-                    .collect(Collectors.toList());
+            List<AssetResponse> filtered =
+                    allMatching.stream()
+                            .map(asset -> toResponseWithDecryption(asset))
+                            .filter(
+                                    response ->
+                                            response.getName() != null
+                                                    && response.getName()
+                                                            .toLowerCase()
+                                                            .contains(lowerKeyword))
+                            .collect(Collectors.toList());
 
             // Apply sorting from pageable
             // (already returned in natural order from DB; client can re-sort)
@@ -604,25 +566,19 @@ public class AssetService {
     /**
      * Retrieves all assets for a specific account.
      *
-     * <p>
-     * Returns all assets linked to the specified account with decrypted data.
+     * <p>Returns all assets linked to the specified account with decrypted data.
      *
-     * <p>
-     * Requirement REQ-2.6.2: Retrieve assets by account
+     * <p>Requirement REQ-2.6.2: Retrieve assets by account
      *
-     * @param accountId     the ID of the account
-     * @param userId        the ID of the user (for authorization)
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
-     * @return list of assets with decrypted data and calculated fields (may be
-     *         empty)
-     * @throws AccountNotFoundException if account not found or doesn't belong to
-     *                                  user
+     * @param accountId the ID of the account
+     * @param userId the ID of the user (for authorization)
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
+     * @return list of assets with decrypted data and calculated fields (may be empty)
+     * @throws AccountNotFoundException if account not found or doesn't belong to user
      * @throws IllegalArgumentException if any parameter is null
      */
     @Transactional(readOnly = true)
-    public List<AssetResponse> getAssetsByAccountId(
-            Long accountId, Long userId) {
+    public List<AssetResponse> getAssetsByAccountId(Long accountId, Long userId) {
         log.debug("Retrieving assets for account {}: userId={}", accountId, userId);
 
         if (accountId == null) {
@@ -648,22 +604,18 @@ public class AssetService {
     /**
      * Retrieves all assets of a specific type for a user.
      *
-     * <p>
-     * Useful for filtering portfolio by asset type (stocks, crypto, bonds, etc.).
+     * <p>Useful for filtering portfolio by asset type (stocks, crypto, bonds, etc.).
      *
-     * <p>
-     * Requirement REQ-2.6.3: Filter assets by type
+     * <p>Requirement REQ-2.6.3: Filter assets by type
      *
-     * @param userId        the ID of the user
-     * @param type          the asset type to filter by
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive
-     *                      fields
+     * @param userId the ID of the user
+     * @param type the asset type to filter by
+     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
      * @return list of assets of the specified type (may be empty)
      * @throws IllegalArgumentException if any parameter is null
      */
     @Transactional(readOnly = true)
-    public List<AssetResponse> getAssetsByType(
-            Long userId, AssetType type) {
+    public List<AssetResponse> getAssetsByType(Long userId, AssetType type) {
         log.debug("Retrieving assets of type {} for user {}", type, userId);
 
         if (userId == null) {
@@ -686,16 +638,12 @@ public class AssetService {
     /**
      * Calculates total portfolio value grouped by currency.
      *
-     * <p>
-     * Returns a map of currency code to total value in that currency. Iterates
-     * through all
+     * <p>Returns a map of currency code to total value in that currency. Iterates through all
      * assets to identify unique currencies and calculate totals.
      *
-     * <p>
-     * Requirement REQ-2.6.3: Calculate total portfolio value
+     * <p>Requirement REQ-2.6.3: Calculate total portfolio value
      *
-     * <p>
-     * Requirement REQ-2.8: Multi-currency support
+     * <p>Requirement REQ-2.8: Multi-currency support
      *
      * @param userId the ID of the user
      * @return map of currency code to total asset value (may be empty)
@@ -713,14 +661,15 @@ public class AssetService {
         List<Asset> assets = assetRepository.findByUserId(userId);
 
         // Group by currency and sum values
-        Map<String, BigDecimal> valuesByCurrency = assets.stream()
-                .collect(
-                        Collectors.groupingBy(
-                                Asset::getCurrency,
-                                Collectors.reducing(
-                                        BigDecimal.ZERO,
-                                        Asset::getTotalValue,
-                                        BigDecimal::add)));
+        Map<String, BigDecimal> valuesByCurrency =
+                assets.stream()
+                        .collect(
+                                Collectors.groupingBy(
+                                        Asset::getCurrency,
+                                        Collectors.reducing(
+                                                BigDecimal.ZERO,
+                                                Asset::getTotalValue,
+                                                BigDecimal::add)));
 
         log.debug("Total asset value for user {}: {}", userId, valuesByCurrency);
 
@@ -730,13 +679,10 @@ public class AssetService {
     /**
      * Calculates total portfolio cost basis grouped by currency.
      *
-     * <p>
-     * Returns a map of currency code to total cost basis in that currency. Iterates
-     * through all
+     * <p>Returns a map of currency code to total cost basis in that currency. Iterates through all
      * assets to identify unique currencies and calculate totals.
      *
-     * <p>
-     * Requirement REQ-2.6.3: Calculate total cost basis
+     * <p>Requirement REQ-2.6.3: Calculate total cost basis
      *
      * @param userId the ID of the user
      * @return map of currency code to total cost basis (may be empty)
@@ -754,14 +700,15 @@ public class AssetService {
         List<Asset> assets = assetRepository.findByUserId(userId);
 
         // Group by currency and sum costs
-        Map<String, BigDecimal> costsByCurrency = assets.stream()
-                .collect(
-                        Collectors.groupingBy(
-                                Asset::getCurrency,
-                                Collectors.reducing(
-                                        BigDecimal.ZERO,
-                                        Asset::getTotalCost,
-                                        BigDecimal::add)));
+        Map<String, BigDecimal> costsByCurrency =
+                assets.stream()
+                        .collect(
+                                Collectors.groupingBy(
+                                        Asset::getCurrency,
+                                        Collectors.reducing(
+                                                BigDecimal.ZERO,
+                                                Asset::getTotalCost,
+                                                BigDecimal::add)));
 
         log.debug("Total cost basis for user {}: {}", userId, costsByCurrency);
 
@@ -771,20 +718,14 @@ public class AssetService {
     /**
      * Returns a lightweight summary list of assets for the given user.
      *
-     * <p>
-     * This method is optimised for high-volume list use-cases where only the most
-     * essential
-     * asset fields are required. It maps results to the smaller
-     * {@link AssetSummaryResponse}
-     * projection, avoiding the full currency-conversion metadata, calculated
-     * portfolio fields, and
-     * physical-asset field resolution that {@link #toResponseWithDecryption}
-     * performs.
+     * <p>This method is optimised for high-volume list use-cases where only the most essential
+     * asset fields are required. It maps results to the smaller {@link AssetSummaryResponse}
+     * projection, avoiding the full currency-conversion metadata, calculated portfolio fields, and
+     * physical-asset field resolution that {@link #toResponseWithDecryption} performs.
      *
-     * <p>
-     * Requirement TASK-14.1.3: Sparse fieldsets / summary projection.
+     * <p>Requirement TASK-14.1.3: Sparse fieldsets / summary projection.
      *
-     * @param userId        the ID of the user
+     * @param userId the ID of the user
      * @param encryptionKey the AES-256 encryption key for decrypting asset names
      * @return list of lightweight asset summaries (may be empty)
      * @throws IllegalArgumentException if userId or encryptionKey is null
@@ -805,9 +746,10 @@ public class AssetService {
                         asset -> {
                             // Name already decrypted by JPA converter
                             String decryptedName = asset.getName();
-                            BigDecimal totalValue = (asset.getQuantity() != null && asset.getCurrentPrice() != null)
-                                    ? asset.getQuantity().multiply(asset.getCurrentPrice())
-                                    : null;
+                            BigDecimal totalValue =
+                                    (asset.getQuantity() != null && asset.getCurrentPrice() != null)
+                                            ? asset.getQuantity().multiply(asset.getCurrentPrice())
+                                            : null;
                             return AssetSummaryResponse.builder()
                                     .id(asset.getId())
                                     .name(decryptedName)
@@ -826,9 +768,8 @@ public class AssetService {
      * Validates that the specified account exists and belongs to the user.
      *
      * @param accountId the account ID to validate
-     * @param userId    the user ID to check ownership
-     * @throws AccountNotFoundException if account not found or doesn't belong to
-     *                                  user
+     * @param userId the user ID to check ownership
+     * @throws AccountNotFoundException if account not found or doesn't belong to user
      */
     private void validateAccountOwnership(Long accountId, Long userId) {
         accountRepository
@@ -839,14 +780,11 @@ public class AssetService {
     /**
      * Helper method to decrypt sensitive fields and map to response DTO.
      *
-     * <p>
-     * The AssetMapper automatically populates calculated fields (totalValue,
-     * totalCost,
-     * unrealizedGain, gainPercentage, holdingDays, depreciatedValue,
-     * conditionAdjustedValue,
+     * <p>The AssetMapper automatically populates calculated fields (totalValue, totalCost,
+     * unrealizedGain, gainPercentage, holdingDays, depreciatedValue, conditionAdjustedValue,
      * isPhysical, isWarrantyValid) via its @AfterMapping method.
      *
-     * @param asset         the asset entity with encrypted fields
+     * @param asset the asset entity with encrypted fields
      * @param encryptionKey the encryption key for decryption
      * @return the asset response with decrypted fields and calculated values
      */
@@ -891,34 +829,25 @@ public class AssetService {
     /**
      * Populates currency conversion metadata fields on an AssetResponse.
      *
-     * <p>
-     * Fetches the user's base currency from the database, then attempts to convert
-     * the asset's
-     * {@code totalValue} to the base currency using {@link ExchangeRateService}. On
-     * failure, falls
+     * <p>Fetches the user's base currency from the database, then attempts to convert the asset's
+     * {@code totalValue} to the base currency using {@link ExchangeRateService}. On failure, falls
      * back to the native amount with {@code isConverted=false}.
      *
-     * <p>
-     * Also performs secondary currency conversion when the user has a secondary
-     * currency
+     * <p>Also performs secondary currency conversion when the user has a secondary currency
      * configured and it differs from the native currency.
      *
-     * <p>
-     * Requirement REQ-3.2: AssetService populates conversion fields
+     * <p>Requirement REQ-3.2: AssetService populates conversion fields
      *
-     * <p>
-     * Requirement REQ-3.5: Graceful fallback when conversion unavailable
+     * <p>Requirement REQ-3.5: Graceful fallback when conversion unavailable
      *
-     * <p>
-     * Requirement REQ-3.6: isConverted semantics
+     * <p>Requirement REQ-3.6: isConverted semantics
      *
-     * <p>
-     * Requirement REQ-4.2, REQ-4.5: Secondary conversion logic
+     * <p>Requirement REQ-4.2, REQ-4.5: Secondary conversion logic
      *
-     * @param response       the response DTO to populate
-     * @param userId         the asset owner's user ID
+     * @param response the response DTO to populate
+     * @param userId the asset owner's user ID
      * @param nativeCurrency the asset's native currency code (ISO 4217)
-     * @param nativeValue    the native total value
+     * @param nativeValue the native total value
      */
     private void populateConversionFields(
             AssetResponse response,
@@ -926,9 +855,10 @@ public class AssetService {
             String nativeCurrency,
             java.math.BigDecimal nativeValue) {
         User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
-        String baseCurrency = user != null && user.getBaseCurrency() != null && !user.getBaseCurrency().isBlank()
-                ? user.getBaseCurrency()
-                : "USD";
+        String baseCurrency =
+                user != null && user.getBaseCurrency() != null && !user.getBaseCurrency().isBlank()
+                        ? user.getBaseCurrency()
+                        : "USD";
         String secCurrency = user != null ? user.getSecondaryCurrency() : null;
         response.setBaseCurrency(baseCurrency);
 
@@ -939,8 +869,10 @@ public class AssetService {
             response.setIsConverted(false);
         } else {
             try {
-                java.math.BigDecimal rate = exchangeRateService.getExchangeRate(nativeCurrency, baseCurrency, null);
-                java.math.BigDecimal converted = exchangeRateService.convert(nativeValue, nativeCurrency, baseCurrency);
+                java.math.BigDecimal rate =
+                        exchangeRateService.getExchangeRate(nativeCurrency, baseCurrency, null);
+                java.math.BigDecimal converted =
+                        exchangeRateService.convert(nativeValue, nativeCurrency, baseCurrency);
                 response.setValueInBaseCurrency(converted);
                 response.setExchangeRate(rate);
                 response.setIsConverted(true);
@@ -963,8 +895,10 @@ public class AssetService {
                 && !nativeCurrency.equals(secCurrency)
                 && nativeValue != null) {
             try {
-                java.math.BigDecimal secRate = exchangeRateService.getExchangeRate(nativeCurrency, secCurrency, null);
-                java.math.BigDecimal secAmount = exchangeRateService.convert(nativeValue, nativeCurrency, secCurrency);
+                java.math.BigDecimal secRate =
+                        exchangeRateService.getExchangeRate(nativeCurrency, secCurrency, null);
+                java.math.BigDecimal secAmount =
+                        exchangeRateService.convert(nativeValue, nativeCurrency, secCurrency);
                 response.setValueInSecondaryCurrency(secAmount);
                 response.setSecondaryCurrency(secCurrency);
                 response.setSecondaryExchangeRate(secRate);
@@ -1000,16 +934,15 @@ public class AssetService {
     }
 
     /**
-     * Invalidates net worth snapshots from {@code fromDate} onward (up to today).
-     * Called after any
+     * Invalidates net worth snapshots from {@code fromDate} onward (up to today). Called after any
      * asset write so the dashboard chart rebuilds affected months.
      */
     private void invalidateSnapshotsFrom(Long userId, LocalDate fromDate) {
-        if (fromDate == null)
-            return;
+        if (fromDate == null) return;
         try {
-            int deleted = netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
-                    userId, fromDate.withDayOfMonth(1), LocalDate.now());
+            int deleted =
+                    netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
+                            userId, fromDate.withDayOfMonth(1), LocalDate.now());
             if (deleted > 0) {
                 log.debug(
                         "Invalidated {} net worth snapshots for user {} (asset change from {})",
@@ -1027,8 +960,7 @@ public class AssetService {
     }
 
     private Long resolveCurrencyId(String currencyCode) {
-        if (currencyCode == null || currencyCode.isBlank())
-            return null;
+        if (currencyCode == null || currencyCode.isBlank()) return null;
         return currencyRepository
                 .findByCode(currencyCode)
                 .map(org.openfinance.entity.Currency::getId)
@@ -1042,8 +974,11 @@ public class AssetService {
                 return;
             }
             SecretKey searchKey = searchTokenService.deriveSearchKey(key);
-            searchTokenService.indexEntity(asset.getUserId(), "ASSET", asset.getId(),
-                    java.util.List.<String[]>of(new String[] { "name", name }),
+            searchTokenService.indexEntity(
+                    asset.getUserId(),
+                    "ASSET",
+                    asset.getId(),
+                    java.util.List.<String[]>of(new String[] {"name", name}),
                     searchKey);
         } catch (Exception e) {
             log.warn("Failed to index asset {} search tokens: {}", asset.getId(), e.getMessage());

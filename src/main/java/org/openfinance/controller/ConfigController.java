@@ -1,11 +1,11 @@
 package org.openfinance.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.openfinance.config.EncryptionProperties;
+import org.openfinance.dto.SecurityConfigResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.openfinance.config.EncryptionProperties;
-import org.openfinance.dto.SecurityConfigResponse;
 
 /** Exposes public runtime configuration required by the unauthenticated UI. */
 @RestController

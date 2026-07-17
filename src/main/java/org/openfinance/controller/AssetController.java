@@ -4,7 +4,6 @@ import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AssetRequest;
@@ -14,7 +13,6 @@ import org.openfinance.dto.AssetSummaryResponse;
 import org.openfinance.entity.AssetType;
 import org.openfinance.entity.User;
 import org.openfinance.service.AssetService;
-import org.openfinance.util.EncryptionUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -29,7 +27,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -144,8 +141,7 @@ public class AssetController {
      */
     @PostMapping
     public ResponseEntity<AssetResponse> createAsset(
-            @Valid @RequestBody AssetRequest request,
-            Authentication authentication) {
+            @Valid @RequestBody AssetRequest request, Authentication authentication) {
 
         log.info(
                 "Creating asset for user: type={}, symbol={}",
@@ -206,8 +202,7 @@ public class AssetController {
         User user = (User) authentication.getPrincipal();
         if (summary) {
             // Return lightweight summary projection (TASK-14.1.3)
-            List<AssetSummaryResponse> summaries =
-                    assetService.getAssetsSummary(user.getId());
+            List<AssetSummaryResponse> summaries = assetService.getAssetsSummary(user.getId());
             log.info("Retrieved {} asset summaries for user", summaries.size());
             return ResponseEntity.ok(summaries);
         }
@@ -338,8 +333,7 @@ public class AssetController {
                         .build();
 
         // Execute search with pagination
-        Page<AssetResponse> results =
-                assetService.searchAssets(user.getId(), criteria, pageable);
+        Page<AssetResponse> results = assetService.searchAssets(user.getId(), criteria, pageable);
 
         log.info(
                 "Search returned {} assets (page {}/{}, total: {})",
@@ -380,8 +374,7 @@ public class AssetController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<AssetResponse> getAssetById(
-            @PathVariable("id") Long assetId,
-            Authentication authentication) {
+            @PathVariable("id") Long assetId, Authentication authentication) {
 
         log.info("Retrieving asset: id={}", assetId);
         User user = (User) authentication.getPrincipal();
@@ -436,8 +429,7 @@ public class AssetController {
 
         log.info("Updating asset: id={}", assetId);
         User user = (User) authentication.getPrincipal();
-        AssetResponse response =
-                assetService.updateAsset(assetId, user.getId(), request);
+        AssetResponse response = assetService.updateAsset(assetId, user.getId(), request);
 
         log.info("Asset updated successfully: id={}, symbol={}", assetId, response.getSymbol());
 
@@ -471,8 +463,7 @@ public class AssetController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAsset(
-            @PathVariable("id") Long assetId,
-            Authentication authentication) {
+            @PathVariable("id") Long assetId, Authentication authentication) {
 
         log.info("Deleting asset: id={}", assetId);
         User user = (User) authentication.getPrincipal();

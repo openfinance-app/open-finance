@@ -3,13 +3,11 @@ package org.openfinance.controller;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
-import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.InsightResponse;
 import org.openfinance.entity.User;
 import org.openfinance.service.InsightService;
-import org.openfinance.util.EncryptionUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -120,13 +118,11 @@ public class InsightController {
      * @throws IllegalArgumentException if encryption key is missing or invalid
      */
     @PostMapping("/generate")
-    public ResponseEntity<List<InsightResponse>> generateInsights(
-            Authentication authentication) {
+    public ResponseEntity<List<InsightResponse>> generateInsights(Authentication authentication) {
 
         log.info("Generating insights for user");
         User user = (User) authentication.getPrincipal();
-        List<InsightResponse> insights =
-                insightService.generateInsights(user.getId());
+        List<InsightResponse> insights = insightService.generateInsights(user.getId());
 
         log.info("Generated {} insights for user {}", insights.size(), user.getId());
 
