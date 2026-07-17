@@ -4,7 +4,9 @@
  * 
  * Provides React Query hooks for file upload operations
  */
+import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import type { AxiosProgressEvent } from 'axios';
 import apiClient from '@/services/apiClient';
 import type { FileUploadResponse, FileUploadError } from '@/types/import';
 
@@ -58,13 +60,14 @@ export function useFileUpload() {
 
 /**
  * Upload a file with progress tracking
- * 
- * Note: Axios progress tracking is not fully supported in all browsers.
- * This is a placeholder for future enhancement.
- * 
+ *
+ * Tracks upload progress via Axios `onUploadProgress` and exposes the current
+ * completion percentage (0-100). The progress resets to 0 when a new upload
+ * starts and reaches 100 once the request body has been fully sent.
+ *
  * @example
  * const { uploadFileWithProgress, uploadProgress } = useFileUploadWithProgress();
- * 
+ *
  * uploadFileWithProgress.mutate(file, {
  *   onSuccess: (data) => {
  *     console.log('Upload complete:', data.uploadId);
@@ -72,10 +75,47 @@ export function useFileUpload() {
  * });
  */
 export function useFileUploadWithProgress() {
-  const uploadMutation = useFileUpload();
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const uploadMutation = useMutation<FileUploadResponse, FileUploadError, File>({
+    mutationFn: async (file: File) => {
+      setUploadProgress(0);
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await apiClient.post<FileUploadResponse>(
+        '/import/upload',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress: (event: AxiosProgressEvent) => {
+            if (event.total) {
+              setUploadProgress(Math.round((event.loaded * 100) / event.total));
+            }
+          },
+        }
+      );
+
+      if (response.data.status === 'INVALID' || response.data.status === 'ERROR') {
+        throw {
+          message: response.data.message,
+          status: response.status,
+        } as FileUploadError;
+      }
+
+      setUploadProgress(100);
+      return response.data;
+    },
+    onError: () => {
+      setUploadProgress(0);
+    },
+  });
 
   return {
     uploadFileWithProgress: uploadMutation,
-    uploadProgress: 0, // TODO: Implement progress tracking with Axios onUploadProgress
+    uploadProgress,
   };
 }

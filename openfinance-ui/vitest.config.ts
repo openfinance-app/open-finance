@@ -7,6 +7,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    // Default 5s per-test timeout is too tight for heavy integration renders
+    // (e.g. DashboardPage) when the full suite runs in parallel and CPU is
+    // contended, causing sporadic "Test timed out in 5000ms" flakes.
+    testTimeout: 15000,
     pool: 'vmThreads',
     execArgv: ['--experimental-require-module'],
     setupFiles: ['./src/test/globals-polyfill.ts', './src/test/setup.ts'],
