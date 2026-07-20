@@ -23,7 +23,7 @@ interface LoanCalculatorProps {
 }
 
 export function LoanCalculator({ className }: LoanCalculatorProps) {
-  const { t } = useTranslation('tools');
+  const { t, i18n } = useTranslation('tools');
   const { baseCurrency } = useAuthContext();
   const { input, result, updateInput, resetInputs, calculate } = useLoanCalculator();
   const { format: formatCurrency } = useFormatCurrency();
@@ -190,7 +190,7 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     />
                     <YAxis
                       tickFormatter={(val) =>
-                        new Intl.NumberFormat('en-US', {
+                        new Intl.NumberFormat(i18n.language, {
                           notation: 'compact',
                           compactDisplay: 'short',
                         }).format(val)

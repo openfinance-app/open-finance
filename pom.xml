@@ -39,6 +39,13 @@
         <spotbugs.version>4.8.3.0</spotbugs.version>
         <dependency-check.version>9.0.9</dependency-check.version>
         <langchain4j.version>1.0.0-beta2</langchain4j.version>
+        <!--
+            The check-line-counts.sh script requires a POSIX shell and only runs on Linux CI.
+            It is skipped by default so that Windows and macOS developers never need
+            -Dexec.skip=true on the command line. The linux-checks profile below re-enables
+            it automatically when os.name == "Linux".
+        -->
+        <check-line-counts.skip>true</check-line-counts.skip>
     </properties>
 
     <!-- Dependency Management -->
@@ -455,6 +462,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
+                            <skip>${check-line-counts.skip}</skip>
                             <executable>${project.basedir}/scripts/check-line-counts.sh</executable>
                             <successCodes>
                                 <successCode>0</successCode>
@@ -472,6 +480,24 @@
          Requirement REQ-1.4: Production build packaging
          ======================================================================= -->
     <profiles>
+        <!--
+            Enable the check-line-counts.sh script on Linux only.
+            Maven activates this profile automatically when os.name == "Linux", so the
+            script runs in CI (Linux runners) but is skipped on Windows and macOS without
+            any extra command-line flags.
+        -->
+        <profile>
+            <id>linux-checks</id>
+            <activation>
+                <os>
+                    <name>Linux</name>
+                </os>
+            </activation>
+            <properties>
+                <check-line-counts.skip>false</check-line-counts.skip>
+            </properties>
+        </profile>
+
         <!-- Production profile: activated by -Pprod or CI environment -->
         <profile>
             <id>prod</id>

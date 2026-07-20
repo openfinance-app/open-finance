@@ -7,6 +7,8 @@
  * These helpers remain for backward-compat and simple use-cases.
  */
 
+import { DEFAULT_CURRENCY } from './currency';
+
 /**
  * Format currency with proper thousand separators.
  * Uses fr-FR style as the display default (space thousands, comma decimal).
@@ -17,8 +19,8 @@ export interface FormatOptions {
 }
 
 export function formatCurrency(amount: number, currency?: string, options?: FormatOptions): string {
-  // Default to EUR if currency not provided
-  const actualCurrency = currency ?? 'EUR';
+  // Default to the app default currency if none provided
+  const actualCurrency = currency ?? DEFAULT_CURRENCY;
   const formatter = new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: actualCurrency,

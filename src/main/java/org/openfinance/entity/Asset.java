@@ -140,11 +140,14 @@ public class Asset {
      * Current market price per unit in the specified currency. Updated by market data integration
      * or manually by user.
      *
+     * <p>Stored with precision 19, scale 8 (matching {@link #quantity}) so sub-cent crypto prices
+     * (e.g. tokens priced well below 0.0001) are not truncated.
+     *
      * <p>Requirement REQ-2.6.4: Track current price for portfolio valuation
      */
     @NotNull(message = "Current price cannot be null")
     @DecimalMin(value = "0.00", message = "Current price must be non-negative")
-    @Column(name = "current_price", nullable = false, precision = 19, scale = 4)
+    @Column(name = "current_price", nullable = false, precision = 19, scale = 8)
     private BigDecimal currentPrice;
 
     /**

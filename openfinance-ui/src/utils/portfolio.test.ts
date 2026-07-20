@@ -140,9 +140,9 @@ describe('formatCurrency', () => {
     expect(result).toBe('$1,234.56');
   });
 
-  it('defaults to USD', () => {
+  it('defaults to the app default currency (EUR)', () => {
     const result = formatCurrency(100);
-    expect(result).toContain('$');
+    expect(result).toContain('€');
   });
 });
 

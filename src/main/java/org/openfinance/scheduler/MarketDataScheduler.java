@@ -25,9 +25,13 @@ import org.springframework.stereotype.Component;
  * <ul>
  *   <li>Frequency: Every hour (0 minutes past the hour)
  *   <li>Days: Monday - Friday
- *   <li>Hours: 9:00 AM - 4:00 PM Eastern Time
- *   <li>Time Zone: America/New_York (ET/EDT)
+ *   <li>Hours: 9:00 AM - 4:00 PM Eastern Time (default; configurable)
+ *   <li>Time Zone: America/New_York (ET/EDT) (default; configurable)
  * </ul>
+ *
+ * <p><strong>Configurable Market Hours</strong> ({@code application.scheduled.market-hours.*}): the
+ * {@code DEFAULT}-mode guard window ({@code zone}, {@code open-hour}, {@code close-hour}) can be
+ * overridden to support half-day sessions or non-US exchanges. Exchange holidays are not modeled.
  *
  * <p><strong>Configurable Frequency</strong> ({@code application.scheduled.market-data.mode}):
  *
@@ -116,9 +120,10 @@ public class MarketDataScheduler implements ApplicationRunner {
      */
     @Scheduled(
             cron = "#{schedulerProperties.marketData.effectiveCron('" + DEFAULT_CRON + "')}",
-            zone = DEFAULT_ZONE)
+            zone = "${application.scheduled.market-hours.zone:" + DEFAULT_ZONE + "}")
     public void updateAssetPrices() {
-        LocalDateTime startTime = LocalDateTime.now(ZoneId.of(DEFAULT_ZONE));
+        LocalDateTime startTime =
+                LocalDateTime.now(ZoneId.of(schedulerProperties.getMarketHours().getZone()));
         log.info(
                 "Starting scheduled asset price update at {} (mode={})",
                 startTime,
@@ -157,7 +162,8 @@ public class MarketDataScheduler implements ApplicationRunner {
                 }
             }
 
-            LocalDateTime endTime = LocalDateTime.now(ZoneId.of(DEFAULT_ZONE));
+            LocalDateTime endTime =
+                    LocalDateTime.now(ZoneId.of(schedulerProperties.getMarketHours().getZone()));
             long durationSeconds = java.time.Duration.between(startTime, endTime).getSeconds();
 
             log.info(
@@ -218,17 +224,18 @@ public class MarketDataScheduler implements ApplicationRunner {
     // -----------------------------------------------------------------
 
     /**
-     * Returns {@code true} if {@code time} falls within US market hours (Monday–Friday, 9 AM–4 PM
-     * ET). Used only in {@code DEFAULT} mode.
+     * Returns {@code true} if {@code time} falls on a weekday within the configured market-hours
+     * window (Monday–Friday, {@code openHour}–{@code closeHour} inclusive). Used only in {@code
+     * DEFAULT} mode.
      *
-     * <p>Market hours: Monday-Friday, 9:30 AM - 4:00 PM ET
+     * <p>The window is configurable via {@code application.scheduled.market-hours.*}; the defaults
+     * ({@code 9}–{@code 16} in {@code America/New_York}) preserve the original US-market behavior.
+     * Package-private for unit testing.
      *
-     * <p>Note: This method uses 9 AM - 4 PM to provide a buffer around market hours.
-     *
-     * @param time the time to check (in ET/EDT timezone)
-     * @return true if within market hours, false otherwise
+     * @param time the time to check, already expressed in the configured zone
+     * @return true if within the configured market-hours window, false otherwise
      */
-    private boolean isMarketHours(LocalDateTime time) {
+    boolean isMarketHours(LocalDateTime time) {
         DayOfWeek dayOfWeek = time.getDayOfWeek();
         int hour = time.getHour();
 
@@ -236,7 +243,9 @@ public class MarketDataScheduler implements ApplicationRunner {
                 dayOfWeek.getValue() >= DayOfWeek.MONDAY.getValue()
                         && dayOfWeek.getValue() <= DayOfWeek.FRIDAY.getValue();
 
-        boolean isDuringHours = hour >= 9 && hour <= 16;
+        SchedulerProperties.MarketHoursConfig marketHours = schedulerProperties.getMarketHours();
+        boolean isDuringHours =
+                hour >= marketHours.getOpenHour() && hour <= marketHours.getCloseHour();
 
         return isWeekday && isDuringHours;
     }

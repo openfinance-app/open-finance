@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import apiClient from '../services/apiClient';
 import type { Asset } from '../types/asset';
 import type { Transaction } from '../types/transaction';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 
 interface UserFinancialData {
     totalSavings: number;
@@ -88,8 +89,8 @@ export const useUserFinancialData = (): UseUserFinancialDataReturn => {
                 averageMonthlyExpenses = totalExpenses / monthsDiff;
             }
 
-            // Determine currency (use first asset's currency or default to EUR)
-            const currency = assets.length > 0 ? assets[0].currency : 'EUR';
+            // Determine currency (use first asset's currency or the app default)
+            const currency = assets.length > 0 ? assets[0].currency : DEFAULT_CURRENCY;
 
             setData({
                 totalSavings,

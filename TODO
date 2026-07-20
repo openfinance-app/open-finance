@@ -16,63 +16,6 @@ The `inferCategoryTypes()` method uses hardcoded French/English/Italian/Spanish 
 
 When `internet_code` contains a `/` (like `SOL/EUR`), the method checks the **left side** for direct-currency detection. This correctly avoids treating crypto units as currencies. Per the LESSONS_LEARNED.md, this was a deliberate fix for the sample file's unit structure.
 
-### **`QifParser.SPLIT_SUM_TOLERANCE = 0.01`** (line 105) — fixed scale fine for fiat but wrong for crypto-scale splits (project allows ≥0.0001 crypto amounts per LESSONS_LEARNED).
-
-must match TransactionSplitService's tolerance or parser/service validation diverges
-
-### 🔴 MarketDataScheduler.java
-
-- `DEFAULT_ZONE = "America/New_York"` at line 68 — timezone for market-hours check. Not configurable.
-- `hour >= 9 && hour <= 16` at line 239 — hardcoded market hours. Doesn't support half-day trading, holidays, or non-US exchanges.
-
-### 🔴 BudgetPeriod.java
-
-- `WEEKLY(7)`, `MONTHLY(30)`, `QUARTERLY(90)`, `YEARLY(365)` — approximate day counts that **don't account for variable month lengths**. Budget calculations drift over time.
-
-### 🟡 Monetary precision
-
-- `@Column(precision = 19, scale = 2)` on `BigDecimal` fields — 2 decimal places works for most fiat but truncates crypto (need scale=8+).
-- Some fields use `scale = 4` (inconsistency).
-
-### 🔴 QueryPlanAnalyzer.java
-
-- **Literal user IDs `1`** in SQL: `WHERE user_id = 1`
-- **Literal types** `'STOCK'`, literal currencies `'USD'`, `'EUR'`
-- All hardcoded for one specific test/sample user. These are intended as diagnostic queries but will produce wrong results for real users.
-
-### 🟡 LoggingAspect.java
-
-- `WARN_THRESHOLD = 1000` — different from PerformanceMonitoringAspect's 500ms. Inconsistent.
-
-### Default currency `'EUR'` — 7+ files, inconsistent
-
-`'EUR'` is hardcoded as a fallback default in multiple utilities, while `portfolio.ts` uses `'USD'`.
-
-| File                                                           | Line(s)                             | Value                                                           |
-| -------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------- |
-| `utils/currency.ts`                                            | 57, 67, 83, 104, 118, 223, 299, 386 | `'EUR'`                                                         |
-| `utils/financialCalculations.ts`                               | 212                                 | `'EUR'`                                                         |
-| `utils/format.ts`                                              | 21                                  | `'EUR'`                                                         |
-| `utils/formatPrivateCurrency.tsx`                              | 26, 54                              | `'EUR'`                                                         |
-| `utils/portfolio.ts`                                           | 124                                 | `'USD'`                                                         |
-| `hooks/useUserFinancialData.ts`                                | 92                                  | `'EUR'`                                                         |
-| `context/AuthContext.tsx`                                      | 201                                 | `'USD'` (auth context default)                                  |
-| `services/calculatorApi.ts`                                    | 29–30                               | passes `'EUR'` as fallback                                      |
-| `components/real-estate-tools/ResultsPanel/EvolutionChart.tsx` | 104, 128                            | `'EUR'` in chart formatters (actual bug — ignores baseCurrency) |
-
-**Fix:** Define `export const DEFAULT_CURRENCY = 'EUR'` in one place (e.g. `utils/currency.ts`) and import everywhere. Use user settings `baseCurrency` instead of hardcoded fallback.
-
----
-
-### Hardcoded locale `'en-US'` in date/currency formatting
-
-| File                                              | Line(s)  | Component                      |
-| ------------------------------------------------- | -------- | ------------------------------ |
-| `components/liabilities/AmortizationSchedule.tsx` | 241, 326 | `Intl.DateTimeFormat('en-US')` |
-| `components/loan-calculator/LoanCalculator.tsx`   | 193, 196 | `Intl.NumberFormat('en-US')`   |
-
-**Fix:** Use `i18n.language` or resolved locale from context instead of `'en-US'`.
-
 1- Regex search support
 4-attachments should be stored in db instead of file system
 3- Dashboard Plugin architecture

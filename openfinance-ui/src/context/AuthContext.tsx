@@ -11,6 +11,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from '@/types/user';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 
 interface AuthContextType {
   /** Current authenticated user, null if not authenticated */
@@ -198,7 +199,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value: AuthContextType = useMemo(
     () => ({
       user,
-      baseCurrency: user?.baseCurrency || 'USD', // Extract base currency from user or default to USD
+      baseCurrency: user?.baseCurrency || DEFAULT_CURRENCY, // From user, else app default currency
       isAuthenticated: !!user && !!token,
       isLoading,
       token,

@@ -19,6 +19,7 @@ import org.openfinance.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.TestPropertySource;
 
 /**
@@ -47,6 +48,8 @@ class AssetRepositoryTest {
     @Autowired private UserRepository userRepository;
 
     @Autowired private AccountRepository accountRepository;
+
+    @Autowired private TestEntityManager entityManager;
 
     private User testUser;
     private User otherUser;
@@ -476,6 +479,41 @@ class AssetRepositoryTest {
 
         // Then
         assertThat(savedAsset.getQuantity()).isEqualByComparingTo(new BigDecimal("0.12345678"));
+    }
+
+    @Test
+    @DisplayName("Should retain 8-decimal precision for a sub-cent crypto current price")
+    void shouldRetainHighPrecisionCurrentPrice() {
+        // A sub-cent crypto price (e.g. SHIB) needing 8 decimals. At the old DECIMAL(19,4) this
+        // rounds to 0.0001 and loses precision; at DECIMAL(19,8) it is stored exactly.
+        BigDecimal preciseCryptoPrice = new BigDecimal("0.00012345");
+        Asset cryptoAsset =
+                Asset.builder()
+                        .userId(testUser.getId())
+                        .name("Shiba Inu")
+                        .type(AssetType.CRYPTO)
+                        .symbol("SHIB")
+                        .quantity(new BigDecimal("1000000.00"))
+                        .purchasePrice(new BigDecimal("0.00001000"))
+                        .currentPrice(preciseCryptoPrice)
+                        .currency("USD")
+                        .purchaseDate(LocalDate.now())
+                        .build();
+
+        Asset saved = assetRepository.saveAndFlush(cryptoAsset);
+
+        // Read the raw DECIMAL column directly so the assertion reflects the stored DB precision
+        // (independent of the in-memory BigDecimal, entity caching, and field encryption).
+        BigDecimal stored =
+                (BigDecimal)
+                        entityManager
+                                .getEntityManager()
+                                .createNativeQuery(
+                                        "SELECT current_price FROM assets WHERE id = :id")
+                                .setParameter("id", saved.getId())
+                                .getSingleResult();
+
+        assertThat(stored).isEqualByComparingTo(preciseCryptoPrice);
     }
 
     @Test

@@ -126,6 +126,12 @@ application:
     #   STARTUP_AND_EVERY_X_HOURS - run on startup then every interval-hours hours
     #   EVERY_HOUR                - run once per hour (top of the hour)
     #   DAILY                     - run once per day at midnight
+    # Market-hours window for the market-data scheduler's DEFAULT-mode guard.
+    # Configurable for half-day sessions or non-US exchanges (holidays are not modeled).
+    market-hours:
+      zone: America/New_York
+      open-hour: 9
+      close-hour: 16
     market-data:
       mode: DEFAULT
       interval-hours: 6       # used only when mode is STARTUP_AND_EVERY_X_HOURS

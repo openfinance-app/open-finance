@@ -17,6 +17,7 @@ import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.util.SplitValidationConstants;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -54,9 +55,6 @@ import org.springframework.util.CollectionUtils;
 @Slf4j
 public class TransactionSplitService {
 
-    /** Tolerance for floating-point comparison of split sums (±0.01). */
-    private static final BigDecimal SPLIT_SUM_TOLERANCE = new BigDecimal("0.01");
-
     private final TransactionSplitRepository splitRepository;
     private final CategoryRepository categoryRepository;
     private final EncryptionService encryptionService;
@@ -73,8 +71,8 @@ public class TransactionSplitService {
      * <ol>
      *   <li>Splits are only allowed for INCOME and EXPENSE transactions.
      *   <li>If splits are provided, there must be at least 2 entries.
-     *   <li>The sum of all split amounts must equal {@code totalAmount} within ±{@value
-     *       #SPLIT_SUM_TOLERANCE}.
+     *   <li>The sum of all split amounts must equal {@code totalAmount} within the shared tolerance
+     *       {@link org.openfinance.util.SplitValidationConstants#SPLIT_SUM_TOLERANCE} (±0.01).
      * </ol>
      *
      * @param totalAmount the parent transaction amount
@@ -116,7 +114,7 @@ public class TransactionSplitService {
         BigDecimal expected = totalAmount.setScale(4, RoundingMode.HALF_UP);
         BigDecimal difference = expected.subtract(splitSum).abs();
 
-        if (difference.compareTo(SPLIT_SUM_TOLERANCE) > 0) {
+        if (difference.compareTo(SplitValidationConstants.SPLIT_SUM_TOLERANCE) > 0) {
             throw new InvalidTransactionException(
                     String.format(
                             "Split amounts sum to %s but parent transaction amount is %s "
@@ -124,7 +122,7 @@ public class TransactionSplitService {
                             splitSum.stripTrailingZeros(),
                             expected,
                             difference,
-                            SPLIT_SUM_TOLERANCE));
+                            SplitValidationConstants.SPLIT_SUM_TOLERANCE));
         }
 
         log.debug(

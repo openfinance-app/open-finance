@@ -6,7 +6,7 @@
  */
 import { useNumberFormat } from '@/context/NumberFormatContext';
 import { PrivateAmount } from '@/components/ui/PrivateAmount';
-import { formatCurrency, type FormatCurrencyOptions } from './currency';
+import { DEFAULT_CURRENCY, formatCurrency, type FormatCurrencyOptions } from './currency';
 
 /**
  * Hook-based private currency formatter that respects the user's number format.
@@ -23,7 +23,7 @@ export function usePrivateCurrencyFormatter() {
 
   const formatPrivate = (
     amount: number,
-    currencyCode: string = 'EUR',
+    currencyCode: string = DEFAULT_CURRENCY,
     options: FormatCurrencyOptions = {}
   ) => {
     const formatted = formatCurrency(amount, currencyCode, { numberFormat, ...options });
@@ -51,7 +51,7 @@ export function usePrivateCurrencyFormatter() {
  */
 export function formatPrivateCurrency(
   amount: number,
-  currencyCode: string = 'EUR',
+  currencyCode: string = DEFAULT_CURRENCY,
   options: FormatCurrencyOptions = {}
 ) {
   const formatted = formatCurrency(amount, currencyCode, options);

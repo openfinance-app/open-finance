@@ -20,7 +20,7 @@ type FilterOption = 'all' | '12' | '24';
 
 export function AmortizationSchedule({ schedule, onClose }: AmortizationScheduleProps) {
   const { format: formatCurrency } = useFormatCurrency();
-  const { t } = useTranslation('liabilities');
+  const { t, i18n } = useTranslation('liabilities');
   const { t: tc } = useTranslation('common');
   const [filterOption, setFilterOption] = useState<FilterOption>('all');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -238,7 +238,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                     {payment.paymentNumber}
                   </td>
                   <td className="py-3 px-4 text-sm text-text-secondary">
-                    {new Date(payment.paymentDate).toLocaleDateString('en-US', {
+                    {new Date(payment.paymentDate).toLocaleDateString(i18n.language, {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric'
@@ -323,7 +323,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                     {t('amortization.paymentNumber', { number: payment.paymentNumber })}
                   </div>
                   <div className="text-xs text-text-secondary">
-                    {new Date(payment.paymentDate).toLocaleDateString('en-US', {
+                    {new Date(payment.paymentDate).toLocaleDateString(i18n.language, {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric'

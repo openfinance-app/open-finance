@@ -15,6 +15,7 @@ import java.util.Locale;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
+import org.openfinance.util.SplitValidationConstants;
 import org.springframework.stereotype.Component;
 
 /**
@@ -102,9 +103,6 @@ public class QifParser {
      */
     private static final List<String> SKIP_TYPES =
             List.of("memorized", "prices", "bill", "invoice", "tax");
-
-    /** Tolerance for split-sum validation (±0.01), consistent with TransactionSplitService. */
-    private static final BigDecimal SPLIT_SUM_TOLERANCE = new BigDecimal("0.01");
 
     /**
      * Parse QIF file and extract transactions using the default parsing context.
@@ -777,7 +775,7 @@ public class QifParser {
                 // rounding differences (e.g. three-way splits of non-divisible amounts).
                 BigDecimal difference =
                         totalSplitAmount.abs().subtract(transaction.getAmount().abs()).abs();
-                if (difference.compareTo(SPLIT_SUM_TOLERANCE) > 0) {
+                if (difference.compareTo(SplitValidationConstants.SPLIT_SUM_TOLERANCE) > 0) {
                     transaction.addValidationError(
                             ImportParseSupport.message(
                                     "import.validation.split.mismatch",

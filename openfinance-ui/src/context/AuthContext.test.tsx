@@ -5,13 +5,14 @@ import { AuthProvider, useAuthContext } from './AuthContext';
 import { VisibilityProvider } from './VisibilityContext';
 
 function Consumer() {
-  const { user, isAuthenticated, isLoading, token, sessionStartTime, setAuth, clearAuth } = useAuthContext();
+  const { user, isAuthenticated, isLoading, token, sessionStartTime, baseCurrency, setAuth, clearAuth } = useAuthContext();
   return (
     <div>
       <div>loading:{String(isLoading)}</div>
       <div>auth:{String(isAuthenticated)}</div>
       <div>user:{user ? user.username : 'null'}</div>
       <div>token:{token ?? 'null'}</div>
+      <div>baseCurrency:{baseCurrency}</div>
       <div>sessionStartTime:{sessionStartTime ?? 'null'}</div>
       <button onClick={() => setAuth({ id: 2, username: 'bob', email: '', createdAt: new Date().toISOString() } as any, 'tkn', true)}>set</button>
       <button onClick={() => clearAuth()}>clear</button>
@@ -38,6 +39,19 @@ describe('AuthProvider', () => {
     expect(screen.getByText(/auth:false/)).toBeTruthy();
     expect(screen.getByText(/user:null/)).toBeTruthy();
     expect(screen.getByText(/token:null/)).toBeTruthy();
+  });
+
+  it('should default baseCurrency to EUR when unauthenticated', async () => {
+    render(
+      <VisibilityProvider>
+        <AuthProvider>
+          <Consumer />
+        </AuthProvider>
+      </VisibilityProvider>
+    );
+
+    await waitFor(() => expect(screen.getByText(/loading:false/)).toBeTruthy());
+    expect(screen.getByText(/baseCurrency:EUR/)).toBeTruthy();
   });
 
   it('setAuth should update context and persist to localStorage', async () => {

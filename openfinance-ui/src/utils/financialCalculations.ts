@@ -5,6 +5,8 @@
  * Used for client-side calculations and validation
  */
 
+import { DEFAULT_CURRENCY } from './currency';
+
 /**
  * Calculate future value with monthly contributions
  * FV = PV × (1 + r)^n + PMT × ((1 + r)^n - 1) / r
@@ -203,13 +205,13 @@ export function calculatePassiveIncome(
  * 
  * @param value Value to format
  * @param locale Currency locale (default 'en-US')
- * @param currency Currency code (default 'EUR')
+ * @param currency Currency code (default: app DEFAULT_CURRENCY)
  * @returns Formatted currency string
  */
 export function formatCurrency(
   value: number,
   locale: string = 'en-US',
-  currency: string = 'EUR'
+  currency: string = DEFAULT_CURRENCY
 ): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',

@@ -36,6 +36,16 @@ export const CURRENCIES = [
 export type CurrencyCode = typeof CURRENCIES[number]['code'];
 
 /**
+ * Application-wide default/fallback currency (ISO 4217).
+ *
+ * Single source of truth for the currency used when neither an explicit currency nor the user's
+ * `baseCurrency` is available. Set to EUR to match the backend's default base currency
+ * (`application.exchange-rates.base-currency`). Wherever a React context is available, prefer the
+ * authenticated user's `baseCurrency` (via `useAuthContext()`) over this constant.
+ */
+export const DEFAULT_CURRENCY = 'EUR';
+
+/**
  * Currencies that use zero decimal places
  */
 const ZERO_DECIMAL_CURRENCIES = ['JPY', 'KRW', 'VND', 'CLP', 'ISK'];
@@ -54,7 +64,7 @@ const SYMBOL_AFTER_CURRENCIES = ['CHF', 'SEK', 'NOK', 'DKK'];
  * Get currency symbol from code
  */
 export function getCurrencySymbol(code: string | null | undefined): string {
-  code = code || 'EUR';
+  code = code || DEFAULT_CURRENCY;
   const currency = CURRENCIES.find(c => c.code === code);
   return currency?.symbol ?? code;
 }
@@ -64,7 +74,7 @@ export function getCurrencySymbol(code: string | null | undefined): string {
  * In React components, prefer `useCurrencyName()` for a localised name.
  */
 export function getCurrencyName(code: string | null | undefined): string {
-  code = code || 'EUR';
+  code = code || DEFAULT_CURRENCY;
   const currency = CURRENCIES.find(c => c.code === code);
   return currency?.name ?? code;
 }
@@ -80,7 +90,7 @@ export function getCurrencyName(code: string | null | undefined): string {
 export function useCurrencyName(): (code: string | null | undefined) => string {
   const { t } = useTranslation('common');
   return (code: string | null | undefined) => {
-    const resolvedCode = code || 'EUR';
+    const resolvedCode = code || DEFAULT_CURRENCY;
     const fallback = getCurrencyName(resolvedCode);
     return t(`currency.${resolvedCode}`, { defaultValue: fallback });
   };
@@ -101,7 +111,7 @@ export function isValidCurrency(code: string | null | undefined): boolean {
  * @returns Number of decimal places (0 for JPY, 8 for crypto, 2 for most)
  */
 export function getCurrencyDecimals(currencyCode: string | null | undefined): number {
-  currencyCode = currencyCode || 'EUR';
+  currencyCode = currencyCode || DEFAULT_CURRENCY;
   if (ZERO_DECIMAL_CURRENCIES.includes(currencyCode.toUpperCase())) {
     return 0;
   }
@@ -115,7 +125,7 @@ export function getCurrencyDecimals(currencyCode: string | null | undefined): nu
  * Check if a currency is a cryptocurrency
  */
 export function isCryptoCurrency(currencyCode: string | null | undefined): boolean {
-  currencyCode = currencyCode || 'EUR';
+  currencyCode = currencyCode || DEFAULT_CURRENCY;
   return CRYPTO_CURRENCIES.includes(currencyCode.toUpperCase());
 }
 
@@ -217,10 +227,10 @@ export function applyNumberFormat(formattedEnUS: string, fmt: NumberFormat | und
  */
 export function formatCurrency(
   amount: number,
-  currencyCode: string | null | undefined = 'EUR',
+  currencyCode: string | null | undefined = DEFAULT_CURRENCY,
   options: FormatCurrencyOptions = {}
 ): string {
-  currencyCode = currencyCode || 'EUR';
+  currencyCode = currencyCode || DEFAULT_CURRENCY;
   const {
     compact = false,
     showSymbol = true,
@@ -293,10 +303,10 @@ export function formatCurrency(
  */
 export function formatCurrencyCompact(
   amount: number,
-  currencyCode: string | null | undefined = 'EUR',
+  currencyCode: string | null | undefined = DEFAULT_CURRENCY,
   options: { showSymbol?: boolean; decimals?: number; numberFormat?: NumberFormat } = {}
 ): string {
-  currencyCode = currencyCode || 'EUR';
+  currencyCode = currencyCode || DEFAULT_CURRENCY;
   const { showSymbol = true, decimals = 1, numberFormat } = options;
 
   // Handle invalid numbers
@@ -380,10 +390,10 @@ export function parseCurrency(value: string): number | null {
  */
 export function formatCurrencyWithColor(
   amount: number,
-  currencyCode: string | null | undefined = 'EUR',
+  currencyCode: string | null | undefined = DEFAULT_CURRENCY,
   options: FormatCurrencyOptions = {}
 ): { formatted: string; className: string } {
-  currencyCode = currencyCode || 'EUR';
+  currencyCode = currencyCode || DEFAULT_CURRENCY;
   const formatted = formatCurrency(amount, currencyCode, {
     ...options,
     showPositiveSign: true,

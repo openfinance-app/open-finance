@@ -8,6 +8,7 @@ import React from 'react';
 import { renderWithProviders } from '@/test/test-utils';
 import { AmortizationSchedule } from '../AmortizationSchedule';
 import type { AmortizationSchedule as AmortizationScheduleType } from '@/types/liability';
+import i18n from '@/test/i18n-test';
 
 // Mock VisibilityContext
 vi.mock('@/context/VisibilityContext', () => ({
@@ -246,6 +247,19 @@ describe('AmortizationSchedule', () => {
         fireEvent.click(closeBtn);
         expect(onClose).toHaveBeenCalled();
       }
+    });
+  });
+
+  describe('Locale-aware dates', () => {
+    it('formats payment dates with the active i18n locale, not a hardcoded en-US', () => {
+      const spy = vi.spyOn(Date.prototype, 'toLocaleDateString');
+      renderWithProviders(<AmortizationSchedule schedule={mockSchedule} />);
+
+      const locales = spy.mock.calls.map(call => call[0]);
+      expect(locales.length).toBeGreaterThan(0);
+      expect(locales).toContain(i18n.language);
+      expect(locales).not.toContain('en-US');
+      spy.mockRestore();
     });
   });
 });

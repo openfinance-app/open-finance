@@ -21,6 +21,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class LoggingAspect {
 
+    /**
+     * Execution time (in milliseconds) above which a method call is logged at WARN as slow. Kept
+     * consistent with {@code PerformanceMonitoringAspect.WARN_THRESHOLD_MS} and the Hibernate
+     * slow-query threshold so a single notion of "slow" applies across the application.
+     */
+    static final long SLOW_EXECUTION_THRESHOLD_MS = 500;
+
     /** Pointcut for all methods in service layer */
     @Pointcut("within(org.openfinance.service..*)")
     public void serviceMethods() {}
@@ -94,7 +101,7 @@ public class LoggingAspect {
             }
 
             // Log slow methods
-            if (executionTime > 1000) {
+            if (isSlowExecution(executionTime)) {
                 log.warn(
                         "[{}] SLOW: {}.{}() took {} ms",
                         layer,
@@ -120,6 +127,16 @@ public class LoggingAspect {
 
             throw ex;
         }
+    }
+
+    /**
+     * Whether a method's execution time should be reported as slow. Package-private for testing.
+     *
+     * @param executionTimeMs measured execution time in milliseconds
+     * @return true if the execution should be logged at WARN as slow
+     */
+    boolean isSlowExecution(long executionTimeMs) {
+        return executionTimeMs > SLOW_EXECUTION_THRESHOLD_MS;
     }
 
     /**

@@ -42,6 +42,7 @@ public class SchedulerProperties {
     private SchedulerConfig recurringTransactions = new SchedulerConfig();
     private SchedulerConfig netWorthSnapshot = new SchedulerConfig();
     private SchedulerConfig unusualTransactionDetection = new SchedulerConfig();
+    private MarketHoursConfig marketHours = new MarketHoursConfig();
 
     // --- Getters & Setters ---
 
@@ -83,6 +84,14 @@ public class SchedulerProperties {
 
     public void setUnusualTransactionDetection(SchedulerConfig unusualTransactionDetection) {
         this.unusualTransactionDetection = unusualTransactionDetection;
+    }
+
+    public MarketHoursConfig getMarketHours() {
+        return marketHours;
+    }
+
+    public void setMarketHours(MarketHoursConfig marketHours) {
+        this.marketHours = marketHours;
     }
 
     // -------------------------------------------------------------------------
@@ -143,6 +152,60 @@ public class SchedulerProperties {
         public boolean isRunOnStartup() {
             return mode == SchedulingMode.STARTUP_ONLY
                     || mode == SchedulingMode.STARTUP_AND_EVERY_X_HOURS;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+
+    /**
+     * Market-hours window applied by the market-data scheduler's {@code DEFAULT}-mode guard.
+     *
+     * <p>Configurable via {@code application.scheduled.market-hours.*} so half-day sessions, non-US
+     * exchanges, or custom trading windows can be supported without code changes. This is a simple
+     * daily {@code [openHour, closeHour]} window (both inclusive) evaluated in a single time zone;
+     * it does not model exchange holidays.
+     */
+    public static class MarketHoursConfig {
+
+        /** IANA time-zone id used to evaluate the market-hours window. Defaults to US Eastern. */
+        private String zone = "America/New_York";
+
+        /** First hour of the trading window (0-23, inclusive). Defaults to 9 (9 AM). */
+        private int openHour = 9;
+
+        /** Last hour of the trading window (0-23, inclusive). Defaults to 16 (4 PM). */
+        private int closeHour = 16;
+
+        public String getZone() {
+            return zone;
+        }
+
+        public void setZone(String zone) {
+            this.zone = zone;
+        }
+
+        public int getOpenHour() {
+            return openHour;
+        }
+
+        public void setOpenHour(int openHour) {
+            this.openHour = validateHour(openHour, "openHour");
+        }
+
+        public int getCloseHour() {
+            return closeHour;
+        }
+
+        public void setCloseHour(int closeHour) {
+            this.closeHour = validateHour(closeHour, "closeHour");
+        }
+
+        private static int validateHour(int hour, String field) {
+            if (hour < 0 || hour > 23) {
+                throw new IllegalArgumentException(
+                        field + " must be between 0 and 23, got: " + hour);
+            }
+            return hour;
         }
     }
 

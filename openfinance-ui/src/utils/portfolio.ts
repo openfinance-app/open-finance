@@ -3,6 +3,7 @@
  * Task 5.4: Portfolio metrics and calculations
  */
 import type { Asset } from '@/types/asset';
+import { DEFAULT_CURRENCY } from './currency';
 
 export interface PortfolioMetrics {
   totalValue: number;
@@ -121,7 +122,7 @@ export const getTopPerformers = (
 /**
  * Format currency value
  */
-export const formatCurrency = (value: number, currency: string = 'USD'): string => {
+export const formatCurrency = (value: number, currency: string = DEFAULT_CURRENCY): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
