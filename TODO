@@ -1,24 +1,21 @@
 TODO:
 
-3-Transaction add/edit form should have currency selector to allow user to pick transaction amount currency. see similar in Account, Assets forms
-rate highlight should be displayed, this should convert in account currency when saving and take also into account split transactions amount
-
-1-Review of the codebase for hardcoded values, magic numbers, and other issues that may cause bugs or inconsistencies.
-Specifically things like: hardcoded currency, hardcoded locale, hardcoded timezone, hardcoded market hours, hardcoded user IDs, hardcoded types, hardcoded currencies, inconsistent monetary precision, and other similar issues.
-
 ## SkroogeJsonParser — Generally Solid
 
 ### 1. **Keyword-based category type inference** (lines 663-684)
 
-The `inferCategoryTypes()` method uses hardcoded French/English/Italian/Spanish keywords to determine Income vs Expense. While comprehensive, this is language-biased. A user with categories named in a different language (e.g., Japanese, Russian, Arabic) would see those categories default to `EXPENSE`. This is a reasonable trade-off but worth noting.
+The `inferCategoryTypes()` method uses hardcoded French/English/Italian/Spanish keywords to determine Income vs Expense. While comprehensive, this is language-biased. A user with categories named in a different language (e.g., Japanese, Russian, Arabic) would see those categories default to `EXPENSE`. How to solve this?.
 
-### 2. **`isDirectCurrencyUnit()` for `SOL/EUR` pairs** (lines 1150-1170)
+### 2. Their are a lot of hardcoded strings in the SkroogeJsonParser: GENERIC_PAYEES,TRANSFER_CATEGORY_KEYWORDS,INCOME_CATEGORY_KEYWORDS.
 
-When `internet_code` contains a `/` (like `SOL/EUR`), the method checks the **left side** for direct-currency detection. This correctly avoids treating crypto units as currencies. Per the LESSONS_LEARNED.md, this was a deliberate fix for the sample file's unit structure.
+What is the rational and is this OK? Otherwise propose appropriate solution.
 
-1- Regex search support
+1-Is the currently implemented exchange rate service/provider handled cryptocurrencies? If not, You should implement a solution to support crypto currencies as well.
+2-Transaction add/edit form should have currency selector to allow user to pick transaction amount currency. see similar in Account, Assets forms
+rate highlight should be displayed, this should convert in account currency when saving and take also into account split transactions amount
+3- Regex search support
 4-attachments should be stored in db instead of file system
-3- Dashboard Plugin architecture
+5- Dashboard Plugin architecture
 
 1-create rules from Import view
 
