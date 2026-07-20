@@ -35,15 +35,73 @@ import org.springframework.stereotype.Component;
 public class SkroogeJsonParser {
 
     private static final String SYNTHETIC_DATE = "0000-00-00";
+
+    /**
+     * Skrooge unit types that identify account-transfer-capable units: "1" = primary currency, "2"
+     * = secondary currency, "C" = cryptocurrency.
+     */
+    private static final Set<String> CURRENCY_UNIT_TYPES = Set.of("1", "2", "C");
+
+    /**
+     * Generic bank-statement payee labels (accent-normalised, upper-case) that carry no merchant
+     * information — the operation comment is a better payee than these. Covers the common
+     * French/English/German/Spanish labels found in Skrooge exports.
+     */
     private static final Set<String> GENERIC_PAYEES =
             Set.of(
+                    // French
                     "FACTURE CARTE",
                     "PRLV SEPA",
                     "VIR SEPA RECU",
                     "RETRAIT DAB",
+                    "CARTE BANCAIRE",
+                    // English
                     "CR",
                     "DEBIT",
-                    "CREDIT");
+                    "CREDIT",
+                    "CARD PAYMENT",
+                    "DIRECT DEBIT",
+                    "SEPA DIRECT DEBIT",
+                    "BANK TRANSFER",
+                    "WITHDRAWAL",
+                    // German
+                    "LASTSCHRIFT",
+                    "DAUERAUFTRAG",
+                    "GELDAUTOMAT",
+                    // Spanish
+                    "ADEUDO",
+                    "TRANSFERENCIA");
+
+    /**
+     * Accent-normalised substrings identifying a transfer category, across the languages Skrooge is
+     * commonly used in (fr/en/de/es/it/pt).
+     */
+    private static final List<String> TRANSFER_CATEGORY_KEYWORDS =
+            List.of(
+                    "transfer", // English (French "transfert" matches as prefix)
+                    "virement", // French
+                    "uberweisung", // German (normalised from "Überweisung")
+                    "transferencia", // Spanish / Portuguese
+                    "trasferimento"); // Italian
+
+    /**
+     * Accent-normalised substrings suggesting an income category when no signed total is available
+     * to infer the type from.
+     */
+    private static final List<String> INCOME_CATEGORY_KEYWORDS =
+            List.of(
+                    "revenu", // French "revenu(s)"
+                    "salaire", // French
+                    "inter", // "intérêts" (fr) and "interest" (en) — shared prefix
+                    "cadeaux recus", // French "cadeaux reçus" (normalised)
+                    "revente",
+                    "plus-values",
+                    "income",
+                    "salary",
+                    "dividend",
+                    "gift",
+                    "refund",
+                    "capital gain");
 
     private final ObjectMapper objectMapper;
 
@@ -139,7 +197,8 @@ public class SkroogeJsonParser {
                                     unitValuesByUnitId,
                                     accountBalanceDeltasByOperationId,
                                     accountCurrencyBySourceId,
-                                    currencyRatesToPrimary));
+                                    currencyRatesToPrimary,
+                                    fileName));
                 }
                 continue;
             }
@@ -162,12 +221,14 @@ public class SkroogeJsonParser {
             }
         }
 
+        // Default to the document's own primary/reference currency (the type "1" unit) rather
+        // than a hardcoded code — the file format declares its reference unit.
         String defaultCurrency =
                 metadata.getAccounts().stream()
                         .map(SkroogeImportMetadata.SkroogeAccount::getCurrency)
                         .filter(Objects::nonNull)
                         .findFirst()
-                        .orElse("USD");
+                        .orElseGet(() -> resolvePrimaryCurrencyCode(unitsById));
 
         log.info("Parsed {} Skrooge JSON transactions from {}", transactions.size(), fileName);
         return SkroogeImportParseResult.builder()
@@ -360,7 +421,7 @@ public class SkroogeJsonParser {
             return false;
         }
         String unitType = textValue(unitNode, "t_type");
-        if (Set.of("1", "2", "C").contains(unitType)) {
+        if (CURRENCY_UNIT_TYPES.contains(unitType)) {
             return true;
         }
         return isDirectCurrencyUnit(unitNode);
@@ -370,14 +431,15 @@ public class SkroogeJsonParser {
         if (categoryNode == null || categoryNode.isMissingNode()) {
             return false;
         }
-        String fullName = textValue(categoryNode, "t_fullname").toLowerCase(Locale.ROOT);
-        String name = textValue(categoryNode, "t_name").toLowerCase(Locale.ROOT);
-        return fullName.contains("transfert")
-                || fullName.contains("transfer")
-                || fullName.contains("virement")
-                || name.contains("transfert")
-                || name.contains("transfer")
-                || name.contains("virement");
+        String fullName = normalizeKeyword(textValue(categoryNode, "t_fullname"));
+        String name = normalizeKeyword(textValue(categoryNode, "t_name"));
+        return containsAny(fullName, TRANSFER_CATEGORY_KEYWORDS)
+                || containsAny(name, TRANSFER_CATEGORY_KEYWORDS);
+    }
+
+    /** Lower-case, accent-stripped form used for language-insensitive keyword matching. */
+    private String normalizeKeyword(String text) {
+        return ImportParseSupport.stripAccents(text).toLowerCase(Locale.ROOT);
     }
 
     private Set<Long> collectReferencedAccountIds(
@@ -611,16 +673,8 @@ public class SkroogeJsonParser {
                 continue;
             }
 
-            String fullName = textValue(entry.getValue(), "t_fullname").toLowerCase(Locale.ROOT);
-            if (containsAny(
-                    fullName,
-                    List.of(
-                            "revenu",
-                            "salaire",
-                            "intér",
-                            "cadeaux reçus",
-                            "revente",
-                            "plus-values"))) {
+            String fullName = normalizeKeyword(textValue(entry.getValue(), "t_fullname"));
+            if (containsAny(fullName, INCOME_CATEGORY_KEYWORDS)) {
                 types.put(categoryId, CategoryType.INCOME);
             } else {
                 types.put(categoryId, CategoryType.EXPENSE);
@@ -649,7 +703,8 @@ public class SkroogeJsonParser {
             Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
             Map<Long, BigDecimal> accountBalanceDeltasByOperationId,
             Map<Long, String> accountCurrencyBySourceId,
-            Map<String, BigDecimal> currencyRatesToPrimary) {
+            Map<String, BigDecimal> currencyRatesToPrimary,
+            String fileName) {
         if (groupedOperations.size() != 2) {
             return List.of();
         }
@@ -695,7 +750,8 @@ public class SkroogeJsonParser {
                         accountBalanceDeltasByOperationId,
                         accountCurrencyBySourceId,
                         currencyRatesToPrimary,
-                        groupId);
+                        groupId,
+                        fileName);
         ImportedTransaction secondTransaction =
                 buildTransferTransaction(
                         secondOperation,
@@ -709,7 +765,8 @@ public class SkroogeJsonParser {
                         accountBalanceDeltasByOperationId,
                         accountCurrencyBySourceId,
                         currencyRatesToPrimary,
-                        groupId);
+                        groupId,
+                        fileName);
 
         return List.of(firstTransaction, secondTransaction);
     }
@@ -726,7 +783,8 @@ public class SkroogeJsonParser {
             Map<Long, BigDecimal> accountBalanceDeltasByOperationId,
             Map<Long, String> accountCurrencyBySourceId,
             Map<String, BigDecimal> currencyRatesToPrimary,
-            Long groupId) {
+            Long groupId,
+            String fileName) {
         Long operationId = longValue(operation, "id");
         Long accountSourceId = longValue(operation, "rd_account_id");
         JsonNode account = accountsById.get(accountSourceId);
@@ -770,7 +828,7 @@ public class SkroogeJsonParser {
                 .toAccountName(otherAccount != null ? textValue(otherAccount, "t_name") : null)
                 .toAccountSourceId(longValue(otherOperation, "rd_account_id"))
                 .clearedStatus(resolveClearedStatus(operation))
-                .sourceFileName("skrooge-json")
+                .sourceFileName(fileName)
                 .build();
     }
 
@@ -984,6 +1042,19 @@ public class SkroogeJsonParser {
         return counts.entrySet().stream()
                 .max(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey)
+                .orElseGet(() -> resolvePrimaryCurrencyCode(unitsById));
+    }
+
+    /**
+     * The document's primary/reference currency code (resolved from the type "1" unit, per the
+     * Skrooge format). Falls back to "USD" only when the file declares no primary unit at all.
+     */
+    private String resolvePrimaryCurrencyCode(Map<Long, JsonNode> unitsById) {
+        return unitsById.values().stream()
+                .filter(unit -> "1".equals(textValue(unit, "t_type")))
+                .map(unit -> resolveCurrencyCode(unit, unitsById))
+                .filter(Objects::nonNull)
+                .findFirst()
                 .orElse("USD");
     }
 
@@ -1025,15 +1096,10 @@ public class SkroogeJsonParser {
             }
         }
 
-        String symbol = textValue(unitNode, "t_symbol");
-        if ("€".equals(symbol)) {
-            return "EUR";
-        }
-        if ("$".equals(symbol)) {
-            return "USD";
-        }
-        if ("CFA".equalsIgnoreCase(symbol)) {
-            return "XOF";
+        String symbolCode =
+                ImportParseSupport.currencyCodeForSymbol(textValue(unitNode, "t_symbol"));
+        if (symbolCode != null) {
+            return symbolCode;
         }
 
         String internetCode = textValue(unitNode, "t_internet_code");
@@ -1092,7 +1158,7 @@ public class SkroogeJsonParser {
             return true;
         }
         String symbol = textValue(unitNode, "t_symbol");
-        if ("€".equals(symbol) || "$".equals(symbol) || "CFA".equalsIgnoreCase(symbol)) {
+        if (ImportParseSupport.currencyCodeForSymbol(symbol) != null) {
             return true;
         }
         String internetCode = textValue(unitNode, "t_internet_code");
@@ -1266,7 +1332,7 @@ public class SkroogeJsonParser {
         Map<String, BigDecimal> rates = new HashMap<>();
         for (JsonNode unit : unitsById.values()) {
             String type = textValue(unit, "t_type");
-            if (!Set.of("1", "2", "C").contains(type)) {
+            if (!CURRENCY_UNIT_TYPES.contains(type)) {
                 continue;
             }
             String code = resolveCurrencyCode(unit, unitsById);
@@ -1345,7 +1411,8 @@ public class SkroogeJsonParser {
 
     private String resolvePayee(JsonNode payeeNode, String comment, String fallbackMode) {
         String payeeName = payeeNode != null ? textValue(payeeNode, "t_name") : "";
-        if (!payeeName.isBlank() && !GENERIC_PAYEES.contains(payeeName.toUpperCase(Locale.ROOT))) {
+        if (!payeeName.isBlank()
+                && !GENERIC_PAYEES.contains(normalizeKeyword(payeeName).toUpperCase(Locale.ROOT))) {
             return payeeName;
         }
         if (!comment.isBlank()) {

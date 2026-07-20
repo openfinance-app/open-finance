@@ -11,6 +11,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
@@ -61,12 +62,11 @@ import org.xml.sax.InputSource;
 @Component
 public class OfxParser {
 
-    /** Date/time formats used in OFX files. */
+    /** Date/time formats used in OFX files (spec-mandated yyyyMMdd-based representations). */
     private static final DateTimeFormatter[] DATE_FORMATS = {
         DateTimeFormatter.ofPattern("yyyyMMddHHmmss"), // 20240115120000
         DateTimeFormatter.ofPattern("yyyyMMdd"), // 20240115
         DateTimeFormatter.ofPattern("yyyyMMddHHmmss.SSS"), // with milliseconds
-        DateTimeFormatter.ofPattern("yyyy-MM-dd") // ISO (XML variant)
     };
 
     /** Detects OFX SGML 1.x header. */
@@ -82,7 +82,7 @@ public class OfxParser {
     // -------------------------------------------------------------------------
 
     /**
-     * Parse OFX/QFX file and extract transactions.
+     * Parse OFX/QFX file and extract transactions using the default parsing context.
      *
      * @param inputStream Input stream of OFX/QFX file content
      * @param fileName Original file name for error reporting
@@ -90,6 +90,21 @@ public class OfxParser {
      * @throws IOException if file reading fails
      */
     public ImportParseResult parseFileToResult(InputStream inputStream, String fileName)
+            throws IOException {
+        return parseFileToResult(inputStream, fileName, ImportParseContext.defaults());
+    }
+
+    /**
+     * Parse OFX/QFX file and extract transactions.
+     *
+     * @param inputStream Input stream of OFX/QFX file content
+     * @param fileName Original file name for error reporting
+     * @param context user-specific parsing preferences (validation message locale)
+     * @return List of imported transactions with validation errors
+     * @throws IOException if file reading fails
+     */
+    public ImportParseResult parseFileToResult(
+            InputStream inputStream, String fileName, ImportParseContext context)
             throws IOException {
         log.info("Starting OFX/QFX file parsing: {}", fileName);
 
@@ -106,10 +121,10 @@ public class OfxParser {
 
         if (isSGML) {
             log.debug("Detected OFX SGML format (OFX 1.x)");
-            return parseSGML(fileContent, fileName);
+            return parseSGML(fileContent, fileName, context.locale());
         } else {
             log.debug("Detected OFX XML format (OFX 2.x)");
-            return parseXML(fileContent, fileName);
+            return parseXML(fileContent, fileName, context.locale());
         }
     }
 
@@ -147,14 +162,15 @@ public class OfxParser {
     // SGML parsing
     // -------------------------------------------------------------------------
 
-    private ImportParseResult parseSGML(String content, String fileName) throws IOException {
+    private ImportParseResult parseSGML(String content, String fileName, Locale locale)
+            throws IOException {
         log.debug("Converting SGML to XML for parsing");
 
         // If content contains an XML declaration, it is actually OFX 2.x XML wrapped in
         // an SGML-style header — delegate to the XML path directly.
         if (content.contains("<?xml")) {
             log.debug("XML declaration found inside SGML header — delegating to XML parser");
-            return parseXML(content, fileName);
+            return parseXML(content, fileName, locale);
         }
 
         int ofxStart = content.indexOf("<OFX>");
@@ -164,12 +180,12 @@ public class OfxParser {
         if (ofxStart == -1) {
             // Some SGML files omit the OFXHEADER block but still use SGML tags
             log.warn("No <OFX> tag found in content - attempting XML parse as fallback");
-            return parseXML(content, fileName);
+            return parseXML(content, fileName, locale);
         }
 
         String ofxContent = content.substring(ofxStart);
         String xmlContent = convertSGMLToXML(ofxContent);
-        return parseXMLContent(xmlContent, fileName);
+        return parseXMLContent(xmlContent, fileName, locale);
     }
 
     /**
@@ -254,7 +270,8 @@ public class OfxParser {
     // XML parsing
     // -------------------------------------------------------------------------
 
-    private ImportParseResult parseXML(String content, String fileName) throws IOException {
+    private ImportParseResult parseXML(String content, String fileName, Locale locale)
+            throws IOException {
         int xmlStart = content.indexOf("<?xml");
         if (xmlStart == -1) {
             xmlStart = content.indexOf("<OFX");
@@ -265,10 +282,10 @@ public class OfxParser {
         if (xmlStart > 0) {
             content = content.substring(xmlStart);
         }
-        return parseXMLContent(content, fileName);
+        return parseXMLContent(content, fileName, locale);
     }
 
-    private ImportParseResult parseXMLContent(String xmlContent, String fileName)
+    private ImportParseResult parseXMLContent(String xmlContent, String fileName, Locale locale)
             throws IOException {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -310,7 +327,8 @@ public class OfxParser {
                 for (int j = 0; j < stmtTrnList.getLength(); j++) {
                     Element el = (Element) stmtTrnList.item(j);
                     ImportedTransaction txn =
-                            parseTransaction(el, fileName, ++index, accountId, statementCurrency);
+                            parseTransaction(
+                                    el, fileName, ++index, accountId, statementCurrency, locale);
                     if (txn != null) {
                         transactions.add(txn);
                     }
@@ -331,7 +349,8 @@ public class OfxParser {
                 for (int j = 0; j < stmtTrnList.getLength(); j++) {
                     Element el = (Element) stmtTrnList.item(j);
                     ImportedTransaction txn =
-                            parseTransaction(el, fileName, ++index, accountId, statementCurrency);
+                            parseTransaction(
+                                    el, fileName, ++index, accountId, statementCurrency, locale);
                     if (txn != null) {
                         transactions.add(txn);
                     }
@@ -341,11 +360,8 @@ public class OfxParser {
             NodeList invStmtRsList = doc.getElementsByTagName("INVSTMTRS");
             for (int i = 0; i < invStmtRsList.getLength(); i++) {
                 Element invStmtRs = (Element) invStmtRsList.item(i);
+                // Per spec, INVACCTFROM/ACCTID identifies the investment account
                 String accountId = extractAccountId(invStmtRs, "INVACCTFROM");
-                if ((accountId == null || accountId.isEmpty())
-                        && getElementText(invStmtRs, "BROKERID") != null) {
-                    accountId = getElementText(invStmtRs, "BROKERID");
-                }
                 String statementCurrency = extractStatementCurrency(invStmtRs);
                 if (fileCurrency == null
                         && statementCurrency != null
@@ -354,7 +370,7 @@ public class OfxParser {
                 }
                 index =
                         parseInvestmentTransactions(
-                                invStmtRs, fileName, accountId, transactions, index);
+                                invStmtRs, fileName, accountId, transactions, index, locale);
             }
 
             log.info(
@@ -363,7 +379,9 @@ public class OfxParser {
                     fileName);
             return org.openfinance.dto.ImportParseResult.builder()
                     .transactions(transactions)
-                    .ledgerBalance(ledgerBalance != null ? ledgerBalance : BigDecimal.ZERO)
+                    // Leave the ledger balance null when the file declares none — a missing
+                    // balance must not be indistinguishable from a real zero balance.
+                    .ledgerBalance(ledgerBalance)
                     .currency(fileCurrency)
                     .build();
 
@@ -382,7 +400,8 @@ public class OfxParser {
             String fileName,
             int lineNumber,
             String globalAccountId,
-            String globalCurrency) {
+            String globalCurrency,
+            Locale locale) {
         ImportedTransaction.ImportedTransactionBuilder builder = ImportedTransaction.builder();
 
         builder.sourceFileName(fileName);
@@ -423,29 +442,16 @@ public class OfxParser {
             builder.referenceNumber(fitId);
         }
 
-        // NAME — payee
+        // NAME — payee, MEMO — memo. Per the OFX spec these are distinct fields and are
+        // kept separate; no locale-specific concatenation is applied.
         String name = getElementText(stmtTrn, "NAME");
-
-        // MEMO
         String memo = getElementText(stmtTrn, "MEMO");
 
-        // Use MEMO as part of payee if present, as French OFX files often put the real
-        // merchant in MEMO
-        if (memo != null && !memo.trim().isEmpty()) {
-            if (name != null && !name.trim().isEmpty()) {
-                builder.payee(name.trim() + " - " + memo.trim());
-            } else {
-                builder.payee(memo.trim());
-            }
-        } else {
-            builder.payee(name);
-        }
-
-        // TRNTYPE — append to memo for visibility
-        String trnType = getElementText(stmtTrn, "TRNTYPE");
-        if (trnType != null && !trnType.isEmpty()) {
-            String base = (memo != null && !memo.isEmpty()) ? memo + " " : "";
-            memo = base + "[" + trnType + "]";
+        if (name != null && !name.trim().isEmpty()) {
+            builder.payee(name.trim());
+        } else if (memo != null && !memo.trim().isEmpty()) {
+            // Some institutions omit NAME — fall back to MEMO so the payee stays usable
+            builder.payee(memo.trim());
         }
         builder.memo(memo);
 
@@ -462,7 +468,7 @@ public class OfxParser {
         }
 
         ImportedTransaction transaction = builder.build();
-        validateTransaction(transaction);
+        validateTransaction(transaction, locale);
         return transaction;
     }
 
@@ -485,13 +491,14 @@ public class OfxParser {
             String fileName,
             String accountId,
             List<ImportedTransaction> transactions,
-            int index) {
-        // All investment aggregate types that may contain an INVTRAN sub-element
+            int index,
+            Locale locale) {
+        // All investment aggregate types that may contain an INVTRAN sub-element (OFX 2.x)
         String[] invTranTypes = {
             "BUYMF", "BUYSTOCK", "BUYDEBT", "BUYOPT", "BUYOTHER",
             "SELLMF", "SELLSTOCK", "SELLDEBT", "SELLOPT", "SELLOTHER",
             "REINVEST", "INCOME", "INVEXPENSE", "JRNLFUND", "JRNLSEC",
-            "MARGININTEREST", "TRANSFER", "CLOSUREOPT"
+            "MARGININTEREST", "TRANSFER", "CLOSUREOPT", "RETOFCAP", "SPLIT"
         };
 
         for (String typeName : invTranTypes) {
@@ -499,7 +506,8 @@ public class OfxParser {
             for (int i = 0; i < nodes.getLength(); i++) {
                 Element el = (Element) nodes.item(i);
                 ImportedTransaction txn =
-                        parseInvestmentTransaction(el, typeName, fileName, ++index, accountId);
+                        parseInvestmentTransaction(
+                                el, typeName, fileName, ++index, accountId, locale);
                 if (txn != null) {
                     transactions.add(txn);
                 }
@@ -513,7 +521,8 @@ public class OfxParser {
             String typeName,
             String fileName,
             int lineNumber,
-            String globalAccountId) {
+            String globalAccountId,
+            Locale locale) {
         ImportedTransaction.ImportedTransactionBuilder builder = ImportedTransaction.builder();
         builder.sourceFileName(fileName);
         builder.lineNumber(lineNumber);
@@ -584,8 +593,8 @@ public class OfxParser {
         builder.payee(secId != null && !secId.isEmpty() ? secId : memo);
         builder.memo(memo);
 
-        // Tag the transaction type for categorisation hints
-        builder.category("[" + typeName + "]");
+        // No synthetic category: the investment aggregate type (BUYMF, …) is not a
+        // user category and must not be invented as one.
 
         // Currency
         String currency = getElementText(invEl, "CURRENCY");
@@ -597,7 +606,7 @@ public class OfxParser {
         }
 
         ImportedTransaction transaction = builder.build();
-        validateTransaction(transaction);
+        validateTransaction(transaction, locale);
         return transaction;
     }
 
@@ -624,7 +633,12 @@ public class OfxParser {
     }
 
     private String extractStatementCurrency(Element statement) {
-        String currency = getElementText(statement, "CURDEF");
+        // CURDEF is a direct child of the statement aggregate per spec — prefer it over any
+        // CURRENCY/CURSYM nested deeper (e.g. inside investment positions or transactions).
+        String currency = getDirectChildText(statement, "CURDEF");
+        if (currency == null || currency.isEmpty()) {
+            currency = getElementText(statement, "CURDEF");
+        }
         if (currency == null || currency.isEmpty()) {
             currency = getElementText(statement, "CURRENCY");
         }
@@ -634,9 +648,31 @@ public class OfxParser {
         return currency;
     }
 
+    /** Text content of the first direct child element with the given tag name, or null. */
+    private String getDirectChildText(Element parent, String tagName) {
+        NodeList children = parent.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() == Node.ELEMENT_NODE && tagName.equals(child.getNodeName())) {
+                String text = child.getTextContent();
+                return text != null ? text.trim() : null;
+            }
+        }
+        return null;
+    }
+
     private LocalDate parseDate(String dateStr) {
         if (dateStr == null || dateStr.isEmpty()) {
             return null;
+        }
+        // OFX 2.x (XML) files may carry ISO dates — try that representation first
+        String trimmed = dateStr.trim();
+        if (trimmed.matches("\\d{4}-\\d{2}-\\d{2}.*")) {
+            try {
+                return LocalDate.parse(trimmed.substring(0, 10));
+            } catch (DateTimeParseException e) {
+                // fall through to the digit-based formats
+            }
         }
         // Remove timezone offset (e.g., [0:GMT])
         dateStr = dateStr.replaceAll("\\[.*\\]", "").trim();
@@ -668,18 +704,22 @@ public class OfxParser {
         }
     }
 
-    private void validateTransaction(ImportedTransaction transaction) {
+    private void validateTransaction(ImportedTransaction transaction, Locale locale) {
         if (transaction.getTransactionDate() == null) {
-            transaction.addValidationError("Transaction date is required");
+            transaction.addValidationError(
+                    ImportParseSupport.message("import.validation.date.required", locale));
         }
         if (transaction.getAmount() == null) {
-            transaction.addValidationError("Transaction amount is required");
+            transaction.addValidationError(
+                    ImportParseSupport.message("import.validation.amount.required", locale));
         } else if (transaction.getAmount().compareTo(BigDecimal.ZERO) == 0) {
-            transaction.addValidationError("Transaction amount cannot be zero");
+            transaction.addValidationError(
+                    ImportParseSupport.message("import.validation.amount.zero", locale));
         }
         if (transaction.getTransactionDate() != null
                 && transaction.getTransactionDate().isAfter(LocalDate.now())) {
-            transaction.addValidationError("Transaction date cannot be in the future");
+            transaction.addValidationError(
+                    ImportParseSupport.message("import.validation.date.future", locale));
         }
         if (transaction.getReferenceNumber() == null
                 || transaction.getReferenceNumber().isEmpty()) {

@@ -133,6 +133,7 @@ See `.github/workflows/backend-ci.yml` and `frontend-ci.yml` for environment det
 - Key naming: dot notation — e.g., `category.income.salary`, `error.validation.required`.
 - Adding translations: add English key → add French key → run `mvn -Dtest=MessageKeyCoverageTest test`.
 - Controllers: use `LocaleContextHolder.getLocale()`; services accept a `Locale` parameter.
+- Import parsers (`service/parser/`) run async without a request locale: they accept an `ImportParseContext` (built by `ImportService` from `UserSettings`) for message locale and CSV date-order preference. Format conventions always win over user preference (QIF = MM/DD).
 - DTOs: use message keys (e.g., `nameKey`) instead of hardcoded strings.
 - French `date-fns` locale uses typographic apostrophe (U+2019); use `String.fromCharCode(8217)` in test assertions.
 

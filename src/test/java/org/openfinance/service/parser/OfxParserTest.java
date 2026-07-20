@@ -31,7 +31,12 @@ class OfxParserTest {
     private List<ImportedTransaction> parseOfx(String content) throws IOException {
         InputStream inputStream =
                 new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
-        return parser.parseFileToResult(inputStream, "test.ofx").getTransactions();
+        // Pin an English context so validation-message assertions are locale-independent
+        return parser.parseFileToResult(
+                        inputStream,
+                        "test.ofx",
+                        new ImportParseContext(java.util.Locale.ENGLISH, true))
+                .getTransactions();
     }
 
     private String readFixture(String resourcePath) throws IOException {
@@ -116,8 +121,8 @@ class OfxParserTest {
         ImportedTransaction tx = transactions.get(0);
         assertThat(tx.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 15));
         assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-45.67"));
-        assertThat(tx.getPayee()).isEqualTo("STARBUCKS - Coffee purchase");
-        assertThat(tx.getMemo()).contains("DEBIT");
+        assertThat(tx.getPayee()).isEqualTo("STARBUCKS");
+        assertThat(tx.getMemo()).isEqualTo("Coffee purchase");
         assertThat(tx.getReferenceNumber()).isEqualTo("202401150001");
         assertThat(tx.hasErrors()).isFalse();
     }
@@ -171,12 +176,12 @@ class OfxParserTest {
         ImportedTransaction tx1 = transactions.get(0);
         assertThat(tx1.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 15));
         assertThat(tx1.getAmount()).isEqualByComparingTo(new BigDecimal("-45.67"));
-        assertThat(tx1.getPayee()).isEqualTo("STARBUCKS - Coffee purchase");
+        assertThat(tx1.getPayee()).isEqualTo("STARBUCKS");
 
         ImportedTransaction tx2 = transactions.get(1);
         assertThat(tx2.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 16));
         assertThat(tx2.getAmount()).isEqualByComparingTo(new BigDecimal("1500.00"));
-        assertThat(tx2.getPayee()).isEqualTo("PAYROLL DEPOSIT - Salary");
+        assertThat(tx2.getPayee()).isEqualTo("PAYROLL DEPOSIT");
 
         ImportedTransaction tx3 = transactions.get(2);
         assertThat(tx3.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 17));
@@ -300,13 +305,13 @@ class OfxParserTest {
         ImportedTransaction tx1 = transactions.get(0);
         assertThat(tx1.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 15));
         assertThat(tx1.getAmount()).isEqualByComparingTo(new BigDecimal("-89.99"));
-        assertThat(tx1.getPayee()).isEqualTo("AMAZON.COM - Online purchase");
+        assertThat(tx1.getPayee()).isEqualTo("AMAZON.COM");
         assertThat(tx1.getReferenceNumber()).isEqualTo("CC202401150001");
 
         ImportedTransaction tx2 = transactions.get(1);
         assertThat(tx2.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 20));
         assertThat(tx2.getAmount()).isEqualByComparingTo(new BigDecimal("50.00"));
-        assertThat(tx2.getPayee()).isEqualTo("REFUND - AMAZON.COM - Return credit");
+        assertThat(tx2.getPayee()).isEqualTo("REFUND - AMAZON.COM");
     }
 
     @Test
@@ -439,7 +444,7 @@ class OfxParserTest {
         ImportedTransaction tx = transactions.get(0);
         assertThat(tx.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 15));
         assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-45.67"));
-        assertThat(tx.getPayee()).isEqualTo("STARBUCKS - Coffee purchase");
+        assertThat(tx.getPayee()).isEqualTo("STARBUCKS");
         assertThat(tx.hasErrors()).isFalse();
     }
 
@@ -507,7 +512,7 @@ class OfxParserTest {
         assertThat(transactions).hasSize(1);
         ImportedTransaction tx = transactions.get(0);
         assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-89.99"));
-        assertThat(tx.getPayee()).isEqualTo("AMAZON.COM - Online purchase");
+        assertThat(tx.getPayee()).isEqualTo("AMAZON.COM");
     }
 
     // ========================================
@@ -848,16 +853,17 @@ class OfxParserTest {
         List<ImportedTransaction> transactions = parseOfx(ofx);
 
         assertThat(transactions).hasSize(5);
-        assertThat(transactions.get(0).getMemo()).contains("DEBIT");
-        assertThat(transactions.get(1).getMemo()).contains("CREDIT");
-        assertThat(transactions.get(2).getMemo()).contains("INT");
-        assertThat(transactions.get(3).getMemo()).contains("DIV");
-        assertThat(transactions.get(4).getMemo()).contains("FEE");
+        // TRNTYPE is a structured field per spec — it must not leak into the memo
+        assertThat(transactions.get(0).getMemo()).isNull();
+        assertThat(transactions.get(1).getMemo()).isNull();
+        assertThat(transactions.get(2).getMemo()).isNull();
+        assertThat(transactions.get(3).getMemo()).isNull();
+        assertThat(transactions.get(4).getMemo()).isNull();
     }
 
     @Test
-    @DisplayName("Should append transaction type to memo")
-    void testAppendTransactionTypeToMemo() throws IOException {
+    @DisplayName("Should keep MEMO verbatim without appending the transaction type")
+    void testMemoNotPollutedWithTransactionType() throws IOException {
         String ofx =
                 """
                 OFXHEADER:100
@@ -884,9 +890,7 @@ class OfxParserTest {
         List<ImportedTransaction> transactions = parseOfx(ofx);
 
         assertThat(transactions).hasSize(1);
-        String memo = transactions.get(0).getMemo();
-        assertThat(memo).contains("Purchase");
-        assertThat(memo).contains("DEBIT");
+        assertThat(transactions.get(0).getMemo()).isEqualTo("Purchase");
     }
 
     // ========================================
@@ -1289,18 +1293,18 @@ class OfxParserTest {
         ImportedTransaction tx1 = transactions.get(0);
         assertThat(tx1.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 1));
         assertThat(tx1.getAmount()).isEqualByComparingTo(new BigDecimal("2500.00"));
-        assertThat(tx1.getPayee()).isEqualTo("PAYROLL DEPOSIT - Direct Deposit Salary");
+        assertThat(tx1.getPayee()).isEqualTo("PAYROLL DEPOSIT");
         assertThat(tx1.hasErrors()).isFalse();
 
         // Verify check transaction
         ImportedTransaction tx2 = transactions.get(1);
         assertThat(tx2.getReferenceNumber()).isEqualTo("2456");
-        assertThat(tx2.getPayee()).isEqualTo("LANDLORD INC - Rent January");
+        assertThat(tx2.getPayee()).isEqualTo("LANDLORD INC");
         assertThat(tx2.getAmount()).isEqualByComparingTo(new BigDecimal("-1200.00"));
 
         // Verify grocery transaction
         ImportedTransaction tx3 = transactions.get(2);
-        assertThat(tx3.getPayee()).isEqualTo("SAFEWAY STORE #1234 - GROCERIES");
+        assertThat(tx3.getPayee()).isEqualTo("SAFEWAY STORE #1234");
         assertThat(tx3.getAmount()).isEqualByComparingTo(new BigDecimal("-85.43"));
 
         // Verify all transactions are valid
@@ -1398,13 +1402,13 @@ class OfxParserTest {
         ImportedTransaction tx1 = transactions.get(0);
         assertThat(tx1.getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 3));
         assertThat(tx1.getAmount()).isEqualByComparingTo(new BigDecimal("-89.99"));
-        assertThat(tx1.getPayee()).isEqualTo("AMAZON.COM - AMZN Marketplace Purchase");
+        assertThat(tx1.getPayee()).isEqualTo("AMAZON.COM");
         assertThat(tx1.hasErrors()).isFalse();
 
         // Verify return credit
         ImportedTransaction tx4 = transactions.get(3);
         assertThat(tx4.getAmount()).isEqualByComparingTo(new BigDecimal("89.99"));
-        assertThat(tx4.getPayee()).isEqualTo("AMAZON.COM - RETURN CREDIT");
+        assertThat(tx4.getPayee()).isEqualTo("AMAZON.COM");
 
         // Verify all transactions are valid
         assertThat(transactions).allMatch(tx -> !tx.hasErrors());
@@ -1550,7 +1554,8 @@ class OfxParserTest {
 
         assertThat(transactions).hasSize(1);
         ImportedTransaction tx = transactions.get(0);
-        assertThat(tx.getCategory()).isEqualTo("[BUYMF]");
+        // The investment aggregate type must not be invented as a category
+        assertThat(tx.getCategory()).isNull();
         assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-5000.00"));
     }
 
@@ -1627,5 +1632,141 @@ class OfxParserTest {
         assertThat(transactions).hasSize(1);
         assertThat(transactions.get(0).getPayee()).isEqualTo("FALLBACK TEST");
         assertThat(transactions.get(0).getAmount()).isEqualByComparingTo(new BigDecimal("200.00"));
+    }
+
+    @Test
+    @DisplayName("Should use MEMO as payee when NAME is absent")
+    void testMemoUsedAsPayeeWhenNameAbsent() throws IOException {
+        String ofx =
+                """
+                OFXHEADER:100
+                DATA:OFXSGML
+                <OFX>
+                <BANKMSGSRSV1>
+                <STMTTRNRS>
+                <STMTRS>
+                <BANKTRANLIST>
+                <STMTTRN>
+                <DTPOSTED>20240115
+                <TRNAMT>-50.00
+                <MEMO>ONLY MEMO PRESENT
+                </STMTTRN>
+                </BANKTRANLIST>
+                </STMTRS>
+                </STMTTRNRS>
+                </BANKMSGSRSV1>
+                </OFX>
+                """;
+
+        List<ImportedTransaction> transactions = parseOfx(ofx);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getPayee()).isEqualTo("ONLY MEMO PRESENT");
+        assertThat(transactions.get(0).getMemo()).isEqualTo("ONLY MEMO PRESENT");
+    }
+
+    @Test
+    @DisplayName("Should parse ISO date (OFX 2.x XML variant)")
+    void testParseIsoDate() throws IOException {
+        String ofx =
+                """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <OFX>
+                <BANKMSGSRSV1>
+                <STMTTRNRS>
+                <STMTRS>
+                <BANKTRANLIST>
+                <STMTTRN>
+                <DTPOSTED>2024-01-15</DTPOSTED>
+                <TRNAMT>-50.00</TRNAMT>
+                <NAME>ISO DATE</NAME>
+                </STMTTRN>
+                </BANKTRANLIST>
+                </STMTRS>
+                </STMTTRNRS>
+                </BANKMSGSRSV1>
+                </OFX>
+                """;
+
+        List<ImportedTransaction> transactions = parseOfx(ofx);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getTransactionDate()).isEqualTo(LocalDate.of(2024, 1, 15));
+        assertThat(transactions.get(0).hasErrors()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should parse RETOFCAP and SPLIT investment aggregates")
+    void testRetofcapAndSplitInvestmentTypes() throws IOException {
+        String ofx =
+                """
+                OFXHEADER:100
+                DATA:OFXSGML
+                <OFX>
+                <INVSTMTMSGSRSV1>
+                <INVSTMTTRNRS>
+                <INVSTMTRS>
+                <INVTRANLIST>
+                <RETOFCAP>
+                <INVTRAN>
+                <FITID>ROC001
+                <DTTRADE>20240310120000
+                </INVTRAN>
+                <SECID>
+                <UNIQUEID>FUND123
+                </SECID>
+                <TOTAL>250.00
+                </RETOFCAP>
+                <SPLIT>
+                <INVTRAN>
+                <FITID>SPL001
+                <DTTRADE>20240311120000
+                </INVTRAN>
+                <SECID>
+                <UNIQUEID>STOCK456
+                </SECID>
+                </SPLIT>
+                </INVTRANLIST>
+                </INVSTMTRS>
+                </INVSTMTTRNRS>
+                </INVSTMTMSGSRSV1>
+                </OFX>
+                """;
+
+        List<ImportedTransaction> transactions = parseOfx(ofx);
+
+        assertThat(transactions).hasSize(2);
+        assertThat(transactions.get(0).getReferenceNumber()).isEqualTo("ROC001");
+        assertThat(transactions.get(0).getAmount()).isEqualByComparingTo(new BigDecimal("250.00"));
+        assertThat(transactions.get(1).getReferenceNumber()).isEqualTo("SPL001");
+    }
+
+    @Test
+    @DisplayName("Should return null ledger balance when the file declares none")
+    void testNullLedgerBalanceWhenAbsent() throws IOException {
+        String ofx =
+                """
+                OFXHEADER:100
+                DATA:OFXSGML
+                <OFX>
+                <BANKMSGSRSV1>
+                <STMTTRNRS>
+                <STMTRS>
+                <BANKTRANLIST>
+                <STMTTRN>
+                <DTPOSTED>20240115
+                <TRNAMT>-50.00
+                <NAME>TEST
+                </STMTTRN>
+                </BANKTRANLIST>
+                </STMTRS>
+                </STMTTRNRS>
+                </BANKMSGSRSV1>
+                </OFX>
+                """;
+
+        InputStream inputStream = new ByteArrayInputStream(ofx.getBytes(StandardCharsets.UTF_8));
+
+        assertThat(parser.parseFileToResult(inputStream, "test.ofx").getLedgerBalance()).isNull();
     }
 }

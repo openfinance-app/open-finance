@@ -39,19 +39,19 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * Deterministic end-to-end test for the Skrooge QIF import flow. Drives the real {@link
- * ImportService} pipeline (store file → async parse → {@code confirmImport} → account creation →
- * transaction persistence → balance recalculation) against a small synthetic QIF export and asserts
- * the persisted account balances, currencies, and transaction count.
+ * Deterministic end-to-end test for the QIF import flow. Drives the real {@link ImportService}
+ * pipeline (store file → async parse → {@code confirmImport} → account creation → transaction
+ * persistence → balance recalculation) against a small spec-compliant QIF export and asserts the
+ * persisted account balances, currencies, and transaction count.
  *
  * <p>Unlike the parser-level regression test, this exercises the full {@code ImportService} +
  * {@code AccountService} path that produces the balance a user actually sees, including:
  *
  * <ul>
  *   <li>EUR accounts with plain {@code T} amounts (opening balance, expense, intra-EUR transfer).
- *   <li>A CFA foreign-currency account with {@code Q×I} valuation (opening + income).
- *   <li>An investment (Oth A) account with {@code Q×I} share valuation and an unresolvable opening
- *       ({@code Q0}/{@code Inan}) that produces a validation error and is correctly excluded.
+ *   <li>An investment (!Type:Invst) account with {@code Q×I} share valuation and an unresolvable
+ *       opening ({@code Q0}/{@code Inan}) that produces a validation error and is correctly
+ *       excluded.
  *   <li>Transfer deduplication: both legs of the EUR→EUR transfer are present; only the first is
  *       processed and the second is skipped via the canonical-key dedup guard.
  * </ul>
@@ -59,12 +59,8 @@ import org.springframework.test.context.ActiveProfiles;
  * <p>{@link ExchangeRateService} is mocked so the flow is hermetic and offline (production fetches
  * live FX rates when creating foreign-currency accounts).
  *
- * <p>QIF openings (T-based or Q×I-based) are persisted as regular transactions in the QIF path —
- * there is no separate {@code opening_balance} field mechanism as in the Skrooge JSON path.
- *
- * <p><b>Known QIF limitation (not exercised here):</b> same-currency (CFA↔CFA) transfers cannot
- * have their direction recovered from unsigned {@code Q} values. This synthetic fixture avoids
- * same-currency transfers; see docs/wiki/import-export.md for the full discussion.
+ * <p>QIF openings (T-based) are persisted as regular transactions in the QIF path — there is no
+ * separate {@code opening_balance} field mechanism as in the Skrooge JSON path.
  */
 @SpringBootTest
 @Import(TestDatabaseConfig.class)
@@ -166,13 +162,11 @@ class QifImportFlowE2ETest {
         //      Savings:   T+200 transfer-in  (INCOME, created as the other half of
         //                 the Checking→Savings createTransfer call; the Savings-side
         //                 QIF leg is deduplicated and skipped)                         = 1 row
-        //      CFA Wallet: Q6000×0.0015=9.00 opening (INCOME)
-        //                 + Q10000×0.0015=15.00 salary income (INCOME)                = 2 rows
-        //      Crypto:    Q0/Inan opening → validation error → excluded
-        //                 + Q0.01×50000=500.00 buy (INCOME)                           = 1 row
+        //      Brokerage: Q0/Inan opening → validation error → excluded
+        //                 + Q0.01×50000=500.00 buy (INCOME)                             = 1 row
         //
-        //    Total = 7 rows.
-        assertThat(transactionRepository.countByUserId(userId)).isEqualTo(7L);
+        //    Total = 5 rows.
+        assertThat(transactionRepository.countByUserId(userId)).isEqualTo(5L);
 
         // 4. Assert each account's persisted currency and balance.
         Map<String, Account> byName = new LinkedHashMap<>();
@@ -187,11 +181,8 @@ class QifImportFlowE2ETest {
         expected.put("Checking", new ExpectedAccount("750.00", "EUR"));
         // Receives the +200 transfer created by Checking's leg; Savings' own QIF leg is skipped.
         expected.put("Savings", new ExpectedAccount("200.00", "EUR"));
-        // Q×I: 6000×0.0015 (opening) + 10000×0.0015 (salary) = 9.00 + 15.00 = 24.00 EUR.
-        // Account currency is home currency (EUR) — QIF collapses all foreign units to Q×I.
-        expected.put("CFA Wallet", new ExpectedAccount("24.00", "EUR"));
-        // Q×I: 0.01 shares × 50000 EUR/share = 500.00 EUR.
-        expected.put("Crypto", new ExpectedAccount("500.00", "EUR"));
+        // Q×I: 0.01 shares × 50000 EUR/share = 500.00 EUR (spec-conformant !Type:Invst).
+        expected.put("Brokerage", new ExpectedAccount("500.00", "EUR"));
 
         assertThat(byName.keySet())
                 .as("persisted account names")
@@ -225,20 +216,15 @@ class QifImportFlowE2ETest {
     }
 
     /**
-     * Minimal but representative Skrooge-style QIF covering all parser paths:
+     * Minimal but representative spec-compliant QIF covering the parser paths:
      *
      * <ul>
      *   <li>EUR Bank account: T-based opening, expense, and outgoing transfer.
      *   <li>EUR Bank account (Savings): T-based incoming transfer (both legs present; ImportService
      *       deduplicates and processes only the Checking leg).
-     *   <li>CFA Cash account: foreign-unit opening ({@code Q×I}, now counted after the Cause-2 fix)
-     *       and a CFA income transaction.
-     *   <li>Investment (Oth A) account: unresolvable opening ({@code Q=0, I=nan} → error) and a
-     *       valid share purchase ({@code Q×I}).
+     *   <li>Investment (!Type:Invst) account: unresolvable opening ({@code Q=0, I=nan} → error) and
+     *       a valid share purchase ({@code Q×I}).
      * </ul>
-     *
-     * <p>No same-currency (CFA↔CFA) transfers are included — direction recovery is not possible
-     * from unsigned QIF {@code Q} values and is documented as a known limitation.
      */
     private String syntheticQif() {
         return """
@@ -281,38 +267,20 @@ class QifImportFlowE2ETest {
                 L[Checking]
                 ^
                 !Account
-                NCFA Wallet
-                TCash
+                NBrokerage
+                TInvst
                 D
                 ^
-                !Type:Cash
+                !Type:Invst
                 D2026-07-12
-                YCFA
-                CR
-                Q6000
-                I0.001500000000
-                ^
-                D2024-01-15
-                YCFA
-                PMarket
-                CR
-                Q10000
-                I0.001500000000
-                LSalary
-                ^
-                !Account
-                NCrypto
-                TOth A
-                D
-                ^
-                !Type:Oth A
-                D2026-07-12
+                NTST
                 YTST
                 CR
                 Q0
                 Inan
                 ^
                 D2024-06-15
+                NBuy
                 YTST
                 PBroker
                 CR

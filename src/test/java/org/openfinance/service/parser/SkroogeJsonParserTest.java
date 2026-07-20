@@ -437,6 +437,185 @@ class SkroogeJsonParserTest {
                                 assertThat(institution.getName()).isEqualTo("Institution 6"));
     }
 
+    @Test
+    @DisplayName("Should recognize German Überweisung categories as transfers")
+    void shouldRecognizeGermanUeberweisungCategoriesAsTransfers() throws IOException {
+        String json =
+                """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Girokonto", "t_type": "C", "t_number": "CHK", "t_close": false },
+                    { "id": 20, "rd_bank_id": 1, "t_name": "Sparkonto", "t_type": "S", "t_number": "SAV", "t_close": false }
+                  ],
+                  "category": [{ "id": 200, "rd_category_id": 0, "t_name": "Überweisungen", "t_fullname": "Überweisungen" }],
+                  "payee": [{ "id": 1, "t_name": "Transfer Desk" }],
+                  "unit": [{ "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 }],
+                  "operation": [
+                    { "id": 2, "rd_account_id": 10, "d_date": "2024-01-12", "i_group_id": 555, "r_payee_id": 1, "t_mode": "Überweisung", "t_status": "Y", "rc_unit_id": 1 },
+                    { "id": 3, "rd_account_id": 20, "d_date": "2024-01-12", "i_group_id": 555, "r_payee_id": 1, "t_mode": "Überweisung", "t_status": "Y", "rc_unit_id": 1 }
+                  ],
+                  "suboperation": [
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 200, "f_value": "-200.00" },
+                    { "id": 31, "rd_operation_id": 3, "r_category_id": 200, "f_value": "200.00" }
+                  ],
+                  "unitvalue": [{ "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 }]
+                }
+                """;
+
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        List<ImportedTransaction> transfers =
+                result.getTransactions().stream().filter(ImportedTransaction::isTransfer).toList();
+        assertThat(transfers).hasSize(2);
+        assertThat(transfers)
+                .extracting(ImportedTransaction::getTransferGroupKey)
+                .containsOnly("skrooge:transfer-group:555");
+    }
+
+    @Test
+    @DisplayName("Should prefer the comment over a generic English bank payee label")
+    void shouldPreferCommentOverGenericEnglishPayee() throws IOException {
+        String json =
+                """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Checking", "t_type": "C", "t_number": "CHK", "t_close": false }
+                  ],
+                  "category": [{ "id": 100, "rd_category_id": 0, "t_name": "Media", "t_fullname": "Media" }],
+                  "payee": [{ "id": 1, "t_name": "DIRECT DEBIT" }],
+                  "unit": [{ "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 }],
+                  "operation": [
+                    { "id": 2, "rd_account_id": 10, "d_date": "2024-01-10", "i_group_id": 0, "r_payee_id": 1, "t_mode": "DD", "t_status": "Y", "t_comment": "NETFLIX SUBSCRIPTION", "rc_unit_id": 1 }
+                  ],
+                  "suboperation": [
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 100, "f_value": "-15.99" }
+                  ],
+                  "unitvalue": [{ "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 }]
+                }
+                """;
+
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        assertThat(result.getTransactions()).hasSize(1);
+        ImportedTransaction tx = result.getTransactions().get(0);
+        assertThat(tx.getPayee()).isEqualTo("NETFLIX SUBSCRIPTION");
+        assertThat(tx.getOriginalPayee()).isEqualTo("DIRECT DEBIT");
+    }
+
+    @Test
+    @DisplayName("Should classify English income category names as INCOME")
+    void shouldClassifyEnglishIncomeCategoryNames() throws IOException {
+        String json =
+                """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Checking", "t_type": "C", "t_number": "CHK", "t_close": false }
+                  ],
+                  "category": [
+                    { "id": 100, "rd_category_id": 0, "t_name": "Salary", "t_fullname": "Salary" },
+                    { "id": 101, "rd_category_id": 0, "t_name": "Interest income", "t_fullname": "Interest income" }
+                  ],
+                  "payee": [{ "id": 1, "t_name": "Employer" }],
+                  "unit": [{ "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 }],
+                  "operation": [],
+                  "suboperation": [],
+                  "unitvalue": [{ "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 }]
+                }
+                """;
+
+        // Categories with no operations at all (zero totals) fall back to name-based inference;
+        // reference them via a synthetic-balance operation so the account/category are included.
+        String jsonWithRef =
+                json.replace(
+                                "\"operation\": []",
+                                """
+                        "operation": [
+                          { "id": 1, "rd_account_id": 10, "d_date": "0000-00-00", "i_group_id": 0, "r_payee_id": 0, "t_mode": "", "t_status": "", "rc_unit_id": 1 },
+                          { "id": 2, "rd_account_id": 10, "d_date": "2024-01-10", "i_group_id": 0, "r_payee_id": 1, "t_mode": "T", "t_status": "Y", "rc_unit_id": 1 }
+                        ]""")
+                        .replace(
+                                "\"suboperation\": []",
+                                """
+                                "suboperation": [
+                                  { "id": 11, "rd_operation_id": 1, "r_category_id": 0, "f_value": "0" },
+                                  { "id": 21, "rd_operation_id": 2, "r_category_id": 101, "f_value": "0" }
+                                ]""");
+
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(jsonWithRef.getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        assertThat(result.getSkroogeMetadata().getCategories())
+                .filteredOn(category -> category.getName().equals("Interest income"))
+                .singleElement()
+                .satisfies(
+                        category ->
+                                assertThat(category.getType())
+                                        .isEqualTo(org.openfinance.entity.CategoryType.INCOME));
+    }
+
+    @Test
+    @DisplayName("Should fall back to the file's primary unit currency instead of USD")
+    void shouldFallbackToFilePrimaryCurrency() throws IOException {
+        String json =
+                """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Checking", "t_type": "C", "t_number": "CHK", "t_close": false }
+                  ],
+                  "category": [{ "id": 100, "rd_category_id": 0, "t_name": "Misc", "t_fullname": "Misc" }],
+                  "payee": [{ "id": 1, "t_name": "Store" }],
+                  "unit": [
+                    { "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 },
+                    { "id": 2, "t_name": "Unresolvable unit", "t_symbol": "", "t_internet_code": "", "t_type": "O", "rd_unit_id": 0 }
+                  ],
+                  "operation": [
+                    { "id": 2, "rd_account_id": 10, "d_date": "2024-01-10", "i_group_id": 0, "r_payee_id": 1, "t_mode": "T", "t_status": "Y", "rc_unit_id": 2 }
+                  ],
+                  "suboperation": [
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 100, "f_value": "-10.00" }
+                  ],
+                  "unitvalue": [{ "id": 1, "rd_unit_id": 2, "d_date": "1999-01-01", "f_quantity": 1 }]
+                }
+                """;
+
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        // The operation unit resolves to no currency; the account must fall back to the
+        // file's primary (type "1") currency — EUR — not a hardcoded USD.
+        assertThat(result.getSkroogeMetadata().getAccounts())
+                .singleElement()
+                .satisfies(account -> assertThat(account.getCurrency()).isEqualTo("EUR"));
+        assertThat(result.getCurrency()).isEqualTo("EUR");
+    }
+
+    @Test
+    @DisplayName("Should use the real file name on transfer transactions")
+    void shouldUseRealFileNameOnTransferTransactions() throws IOException {
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(
+                                virementTransferJson().getBytes(StandardCharsets.UTF_8)),
+                        "real-export.json");
+
+        assertThat(result.getTransactions())
+                .allMatch(tx -> "real-export.json".equals(tx.getSourceFileName()));
+    }
+
     private String sampleSkroogeJson() {
         return """
                 {

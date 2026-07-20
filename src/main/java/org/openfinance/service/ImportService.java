@@ -41,6 +41,7 @@ import org.openfinance.entity.Transaction;
 // Import TransactionType enum
 import org.openfinance.entity.TransactionType;
 import org.openfinance.entity.User;
+import org.openfinance.entity.UserSettings;
 import org.openfinance.exception.ResourceNotFoundException;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.CategoryRepository;
@@ -51,7 +52,9 @@ import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.PayeeRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
+import org.openfinance.repository.UserSettingsRepository;
 import org.openfinance.service.parser.CsvParser;
+import org.openfinance.service.parser.ImportParseContext;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
 import org.openfinance.service.parser.SkroogeJsonParser;
@@ -122,6 +125,8 @@ public class ImportService {
      * service and {@link ImportConfirmationExecutor} (which depends on this service).
      */
     private final ObjectProvider<ImportConfirmationExecutor> importConfirmationExecutor;
+
+    private final UserSettingsRepository userSettingsRepository;
 
     /**
      * Start a new import session and parse the uploaded file.
@@ -267,14 +272,20 @@ public class ImportService {
                 log.warn("Could not fetch user base currency, defaulting to USD", e);
             }
 
+            // Capture the user's parsing preferences (date ordering, message locale) up front —
+            // this method runs on a background thread where the request locale is unavailable.
+            ImportParseContext parseContext = buildParseContext(session.getUserId());
+
             switch (session.getFileFormat().toUpperCase()) {
                 case "QIF":
-                    transactions = qifParser.parseFile(fileStream, session.getFileName());
+                    transactions =
+                            qifParser.parseFile(fileStream, session.getFileName(), parseContext);
                     break;
                 case "OFX":
                 case "QFX":
                     ImportParseResult ofxResult =
-                            ofxParser.parseFileToResult(fileStream, session.getFileName());
+                            ofxParser.parseFileToResult(
+                                    fileStream, session.getFileName(), parseContext);
                     transactions = ofxResult.getTransactions();
                     if (ofxResult.getLedgerBalance() != null) {
                         ledgerBalance = ofxResult.getLedgerBalance();
@@ -284,7 +295,8 @@ public class ImportService {
                     }
                     break;
                 case "CSV":
-                    transactions = csvParser.parseFile(fileStream, session.getFileName());
+                    transactions =
+                            csvParser.parseFile(fileStream, session.getFileName(), parseContext);
                     break;
                 case "JSON":
                     SkroogeImportParseResult skroogeResult =
@@ -391,6 +403,22 @@ public class ImportService {
             session.setErrorMessage("Unexpected error: " + e.getMessage());
             importSessionRepository.save(session);
         }
+    }
+
+    /**
+     * Build the parsing context (date ordering, message locale) from the user's settings. Falls
+     * back to locale-derived defaults when the user has no settings or they cannot be loaded.
+     */
+    private ImportParseContext buildParseContext(Long userId) {
+        try {
+            UserSettings settings = userSettingsRepository.findByUserId(userId).orElse(null);
+            if (settings != null) {
+                return ImportParseContext.from(settings);
+            }
+        } catch (Exception e) {
+            log.warn("Could not load settings for user {}; using parse defaults", userId, e);
+        }
+        return ImportParseContext.defaults();
     }
 
     /**

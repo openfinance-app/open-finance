@@ -47,6 +47,7 @@ import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.PayeeRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
+import org.openfinance.repository.UserSettingsRepository;
 import org.openfinance.service.parser.CsvParser;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
@@ -82,6 +83,8 @@ class ImportServiceMultiAccountTest {
     @Mock private InstitutionRepository institutionRepository;
     @Mock private PayeeRepository payeeRepository;
     @Mock private CurrencyRepository currencyRepository;
+
+    @Mock private UserSettingsRepository userSettingsRepository;
     @Mock private ObjectProvider<ImportConfirmationExecutor> importConfirmationExecutor;
 
     private ImportService importService;
@@ -117,7 +120,8 @@ class ImportServiceMultiAccountTest {
                         institutionRepository,
                         currencyRepository,
                         payeeRepository,
-                        importConfirmationExecutor);
+                        importConfirmationExecutor,
+                        userSettingsRepository);
 
         // Lenient stubs for payee/currency resolution (used by convertToTransaction)
         lenient()

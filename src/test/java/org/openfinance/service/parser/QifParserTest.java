@@ -310,13 +310,14 @@ class QifParserTest {
         List<ImportedTransaction> transactions = parseQif(qif);
 
         ImportedTransaction tx = transactions.get(0);
-        assertThat(tx.getCategory()).isEqualTo("Transfer");
+        // Transfer semantics live in the transfer flag and target account — no synthetic category
+        assertThat(tx.getCategory()).isNull();
         assertThat(tx.getToAccountName()).isEqualTo("Savings Account");
         assertThat(tx.isTransfer()).isTrue();
     }
 
     @Test
-    @DisplayName("Should detect Skrooge transfer syntax with class suffix")
+    @DisplayName("Should detect transfer syntax with class suffix (L[Account]/Class)")
     void testParseTransferTransactionWithClassSuffix() throws IOException {
         String qif =
                 """
@@ -331,7 +332,7 @@ class QifParserTest {
         List<ImportedTransaction> transactions = parseQif(qif);
 
         ImportedTransaction tx = transactions.get(0);
-        assertThat(tx.getCategory()).isEqualTo("Transfer");
+        assertThat(tx.getCategory()).isNull();
         assertThat(tx.getToAccountName()).isEqualTo("00000463202");
         assertThat(tx.isTransfer()).isTrue();
         assertThat(tx.getTags()).contains("Transfert");
@@ -439,7 +440,6 @@ class QifParserTest {
                 """
                 !Type:Cash
                 D2026-05-01
-                YCFA
                 PDépenses diverses
                 SDivers:Achat Divers
                 $-2100
@@ -455,9 +455,6 @@ class QifParserTest {
         assertThat(transactions).hasSize(1);
         ImportedTransaction tx = transactions.get(0);
         assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-14725"));
-        // No conversion rate is available in this record, so the native split total is kept
-        // as-is and the transaction is left in the home currency (untagged).
-        assertThat(tx.getCurrency()).isNull();
         assertThat(tx.isSplitTransaction()).isTrue();
         assertThat(tx.hasErrors()).isFalse();
     }
@@ -858,7 +855,7 @@ class QifParserTest {
         assertThat(transactions.get(3).getCategory()).isEqualTo("Income:Salary");
 
         // Verify transfer
-        assertThat(transactions.get(4).getCategory()).isEqualTo("Transfer");
+        assertThat(transactions.get(4).getCategory()).isNull();
         assertThat(transactions.get(4).getToAccountName()).isEqualTo("Savings Account");
 
         // All should be valid
@@ -894,7 +891,7 @@ class QifParserTest {
     }
 
     @Test
-    @DisplayName("Should parse extracted Skrooge QIF sample fixture")
+    @DisplayName("Should parse extracted QIF sample fixture with transfers and splits")
     void testParseExtractedSkroogeQifFixture() throws IOException {
         List<ImportedTransaction> transactions = parseQifFixture("samples/skrooge_extracted.qif");
 
@@ -923,7 +920,7 @@ class QifParserTest {
         ImportedTransaction transfer = transactions.get(2);
         assertThat(transfer.getAccountName()).isEqualTo("00035387058");
         assertThat(transfer.isTransfer()).isTrue();
-        assertThat(transfer.getCategory()).isEqualTo("Transfer");
+        assertThat(transfer.getCategory()).isNull();
         assertThat(transfer.getToAccountName()).isEqualTo("00000463202");
         assertThat(transfer.getTags()).contains("Transfert");
         assertThat(transfer.hasErrors()).isFalse();
@@ -1021,154 +1018,6 @@ class QifParserTest {
         assertThat(transactions.get(0).getQifAccountType()).isEqualTo("CCard");
     }
 
-    @Test
-    @DisplayName("Should value Skrooge cash Q\u00d7I in home currency when T is missing")
-    void shouldUseStandardSkroogeCashQuantityAsNativeAmount() throws IOException {
-        String qif =
-                """
-                !Account
-                NEpargne BOA
-                TCash
-                ^
-                !Type:Cash
-                D2026-05-26
-                YCFA
-                PTransfert Momo -> BOA
-                CR
-                Q200000
-                I0.001524490991
-                L[Mobile Money 0197007713]/Transfert
-                ^
-                """;
-
-        List<ImportedTransaction> transactions = parseQif(qif);
-
-        assertThat(transactions).hasSize(1);
-        ImportedTransaction tx = transactions.get(0);
-        // Q \u00d7 I values the CFA quantity in the home currency (200000 \u00d7 0.001524490991).
-        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("304.8981982"));
-        assertThat(tx.getCurrency()).isNull();
-        assertThat(tx.getQifAccountType()).isEqualTo("Cash");
-        assertThat(tx.hasErrors()).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should sign home-currency Skrooge cash Q\u00d7I from category type")
-    void shouldSignNativeSkroogeCashQuantityFromCategoryType() throws IOException {
-        String qif =
-                """
-                !Type:Cat
-                NDons:Cadeaux
-                E
-                ^
-                !Account
-                NPorteefeuille FCFA
-                TCash
-                ^
-                !Type:Cash
-                D2025-04-22
-                YCFA
-                PDon Willi
-                Q15000
-                I0.001524490991
-                LDons:Cadeaux
-                ^
-                """;
-
-        List<ImportedTransaction> transactions = parseQif(qif);
-
-        assertThat(transactions).hasSize(1);
-        ImportedTransaction tx = transactions.get(0);
-        // Expense category negates the home-currency value (15000 \u00d7 0.001524490991).
-        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-22.867364865"));
-        assertThat(tx.getCurrency()).isNull();
-        assertThat(tx.hasErrors()).isFalse();
-    }
-
-    @Test
-    @DisplayName(
-            "Should convert Skrooge foreign-unit split amounts using the unit's remembered rate")
-    void shouldConvertForeignUnitSplitAmountsUsingRememberedRate() throws IOException {
-        // Split ($) transactions carry native foreign amounts with no embedded rate. The parser
-        // remembers the per-unit rate from a prior Q/I line for the same unit and reuses it to
-        // value the split total in the home currency, keeping the account single-currency.
-        String qif =
-                """
-                !Account
-                NPorteefeuille FCFA
-                TCash
-                ^
-                !Type:Cash
-                D2025-04-22
-                YCFA
-                PDon Willi
-                Q10000
-                I0.001524490991
-                LDons:Cadeaux
-                ^
-                D2026-05-08
-                YCFA
-                PMarchand
-                SAlimentation:Epicerie
-                $-7715
-                SSante:Pharmacie
-                $-17285
-                ^
-                """;
-
-        List<ImportedTransaction> transactions = parseQif(qif);
-
-        assertThat(transactions).hasSize(2);
-        ImportedTransaction split = transactions.get(1);
-        assertThat(split.isSplitTransaction()).isTrue();
-        assertThat(split.getCurrency()).isNull();
-        // (-7715 - 17285) \u00d7 0.001524490991 = -25000 \u00d7 0.001524490991 = -38.112274775
-        assertThat(split.getAmount()).isEqualByComparingTo(new BigDecimal("-38.112274775"));
-        assertThat(split.getSplits().get(0).getAmount())
-                .isEqualByComparingTo(new BigDecimal("-11.761447995565"));
-        assertThat(split.getSplits().get(1).getAmount())
-                .isEqualByComparingTo(new BigDecimal("-26.350826779435"));
-        assertThat(split.hasErrors()).isFalse();
-    }
-
-    @Test
-    @DisplayName(
-            "Should count Skrooge foreign-unit opening balance records as ordinary transactions")
-    void shouldCountSkroogeForeignOpeningBalanceRecords() throws IOException {
-        String qif =
-                """
-                !Account
-                NPorteefeuille FCFA
-                TCash
-                ^
-                !Type:Cash
-                D2026-07-12
-                YCFA
-                CR
-                Q38180
-                I0.001524490991
-                ^
-                D2025-04-22
-                YCFA
-                PDon Willi
-                Q15000
-                I0.001524490991
-                LDons:Cadeaux
-                ^
-                """;
-
-        List<ImportedTransaction> transactions = parseQif(qif);
-
-        // The leading no-payee Q\u00d7I record is Skrooge's opening balance. Home-currency (T)
-        // openings are kept and counted, so this foreign opening is treated identically:
-        // valued as Q \u00d7 I in the home currency and kept as an ordinary transaction.
-        assertThat(transactions).hasSize(2);
-        ImportedTransaction opening = transactions.get(0);
-        assertThat(opening.getPayee()).isNull();
-        assertThat(opening.getAmount()).isEqualByComparingTo(new BigDecimal("58.20506603638"));
-        assertThat(transactions.get(1).getPayee()).isEqualTo("Don Willi");
-    }
-
     // ========== Investment Transaction Tests ==========
 
     @Test
@@ -1196,35 +1045,6 @@ class QifParserTest {
     }
 
     @Test
-    @DisplayName("Should parse investment transaction in !Type:Oth A section (Skrooge format)")
-    void testInvestmentInOthASection() throws IOException {
-        String qif =
-                """
-                !Type:Oth A
-                D2024-11-14
-                NBuy
-                YADA
-                PFACTURE CARTE
-                MDébit  DU 131124 MOONPAY*EXODUS
-                CR
-                Q100.6
-                I0.1653551854
-                LTransfert
-                ^
-                """;
-
-        List<ImportedTransaction> transactions = parseQif(qif);
-
-        assertThat(transactions).hasSize(1);
-        ImportedTransaction tx = transactions.get(0);
-        assertThat(tx.getTransactionDate()).isEqualTo(LocalDate.of(2024, 11, 14));
-        assertThat(tx.getReferenceNumber()).isEqualTo("Buy");
-        assertThat(tx.getPayee()).isEqualTo("ADA");
-        assertThat(tx.getMemo()).contains("MOONPAY");
-        assertThat(tx.hasErrors()).isFalse();
-    }
-
-    @Test
     @DisplayName("Should compute amount from Q × I when T is missing in investment transaction")
     void testInvestmentAmountFromQuantityTimesPrice() throws IOException {
         String qif =
@@ -1249,34 +1069,11 @@ class QifParserTest {
     }
 
     @Test
-    @DisplayName(
-            "Should compute amount from Q × I when T is missing in Oth A investment transaction")
-    void testOthAAmountFromQuantityTimesPrice() throws IOException {
-        String qif =
-                """
-                !Type:Oth A
-                D2024-11-14
-                NBuy
-                YADA
-                Q100.6
-                I0.1653551854
-                ^
-                """;
-
-        List<ImportedTransaction> transactions = parseQif(qif);
-
-        assertThat(transactions).hasSize(1);
-        ImportedTransaction tx = transactions.get(0);
-        assertThat(tx.getAmount()).isNotNull();
-        assertThat(tx.hasErrors()).isFalse();
-    }
-
-    @Test
     @DisplayName("Should negate inferred investment amount for Sell actions")
     void shouldNegateInferredInvestmentAmountForSellActions() throws IOException {
         String qif =
                 """
-                !Type:Oth A
+                !Type:Invst
                 D2025-06-18
                 NSell
                 YB504
@@ -1284,7 +1081,6 @@ class QifParserTest {
                 CR
                 Q0.00135111
                 I225000
-                LDépenses Achat Cogedim:Dépenses  Divers
                 ^
                 """;
 
@@ -1301,7 +1097,7 @@ class QifParserTest {
     void testInvestmentZeroQuantityOpeningBalance() throws IOException {
         String qif =
                 """
-                !Type:Oth A
+                !Type:Invst
                 D2026-07-05
                 NSell
                 YADA
@@ -1565,7 +1361,134 @@ class QifParserTest {
     private List<ImportedTransaction> parseQif(String qifContent) throws IOException {
         InputStream inputStream =
                 new ByteArrayInputStream(qifContent.getBytes(StandardCharsets.UTF_8));
-        return parser.parseFile(inputStream, "test.qif");
+        // Pin an English context so validation-message assertions are locale-independent
+        return parser.parseFile(
+                inputStream, "test.qif", new ImportParseContext(java.util.Locale.ENGLISH, true));
+    }
+
+    // ========== Convention & Legacy Format Tests ==========
+
+    @Test
+    @DisplayName("Should parse European comma-decimal amount without thousands separator")
+    void testCommaDecimalAmount() throws IOException {
+        String qif =
+                """
+                !Type:Bank
+                D01/15/2024
+                T1234,56
+                PEuropean Export
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getAmount()).isEqualByComparingTo(new BigDecimal("1234.56"));
+    }
+
+    @Test
+    @DisplayName("Should parse European thousands-separated comma-decimal amount")
+    void testEuropeanThousandsAndCommaDecimalAmount() throws IOException {
+        String qif =
+                """
+                !Type:Bank
+                D01/15/2024
+                T-1.234,56
+                PEuropean Export
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getAmount())
+                .isEqualByComparingTo(new BigDecimal("-1234.56"));
+    }
+
+    @Test
+    @DisplayName("Should parse apostrophe-notation year (01/15'00)")
+    void testApostropheYearNotation() throws IOException {
+        String qif =
+                """
+                !Type:Bank
+                D01/15'00
+                T-50.00
+                PLegacy
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getTransactionDate()).isEqualTo(LocalDate.of(2000, 1, 15));
+        assertThat(transactions.get(0).hasErrors()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should parse space-padded apostrophe date (1/ 6'01)")
+    void testSpacePaddedApostropheDate() throws IOException {
+        String qif =
+                """
+                !Type:Bank
+                D1/ 6'01
+                T-50.00
+                PLegacy
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getTransactionDate()).isEqualTo(LocalDate.of(2001, 1, 6));
+        assertThat(transactions.get(0).hasErrors()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should resolve legacy two-digit year into the past via sliding pivot")
+    void testTwoDigitYearPivotKeepsLegacyDateInPast() throws IOException {
+        String qif =
+                """
+                !Type:Bank
+                D01/15/95
+                T-50.00
+                PLegacy
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getTransactionDate()).isEqualTo(LocalDate.of(1995, 1, 15));
+        // The resolved date must not trip the future-date validation
+        assertThat(transactions.get(0).getValidationErrors())
+                .noneMatch(error -> error.contains("future"));
+    }
+
+    @Test
+    @DisplayName("Should decode windows-1252 encoded Quicken export")
+    void testWindows1252Charset() throws IOException {
+        // "Débit €" encoded in windows-1252 (é = 0xE9, € = 0x80)
+        byte[] cp1252Bytes;
+        {
+            String text = "!Type:Bank\nD01/15/2024\nT-50.00\nPCaf\u00E9 \u20AC\n^\n";
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            for (char c : text.toCharArray()) {
+                if (c == '\u00E9') {
+                    out.write(0xE9);
+                } else if (c == '\u20AC') {
+                    out.write(0x80);
+                } else {
+                    out.write((byte) c);
+                }
+            }
+            cp1252Bytes = out.toByteArray();
+        }
+
+        List<ImportedTransaction> transactions =
+                parser.parseFile(new ByteArrayInputStream(cp1252Bytes), "legacy.qif");
+
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).getPayee()).isEqualTo("Caf\u00E9 \u20AC");
     }
 
     private List<ImportedTransaction> parseQifFixture(String resourcePath) throws IOException {

@@ -23,7 +23,7 @@ import org.openfinance.dto.SkroogeImportParseResult;
 
 /**
  * End-to-end regression test that parses the real anonymized Skrooge export shipped under {@code
- * docs/sample/json/my_export_anonymized.json} and asserts that:
+ * docs/sample/json/export_anonymized.json} and asserts that:
  *
  * <ul>
  *   <li>the total number of imported (non-synthetic) transactions matches Skrooge, and
@@ -41,7 +41,7 @@ import org.openfinance.dto.SkroogeImportParseResult;
 class SkroogeJsonImportRegressionTest {
 
     private static final Path SAMPLE_FILE =
-            Path.of("docs", "sample", "json", "my_export_anonymized.json");
+            Path.of("docs", "sample", "json", "export_anonymized.json");
 
     /** Total number of non-synthetic operations imported from the sample export. */
     private static final int EXPECTED_TRANSACTION_COUNT = 2827;
@@ -65,7 +65,7 @@ class SkroogeJsonImportRegressionTest {
 
         SkroogeImportParseResult result;
         try (InputStream in = Files.newInputStream(SAMPLE_FILE)) {
-            result = parser.parseFile(in, "my_export_anonymized.json");
+            result = parser.parseFile(in, "export_anonymized.json");
         }
 
         // 1. Transaction count matches Skrooge (34 synthetic opening-balance rows are excluded).

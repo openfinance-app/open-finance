@@ -54,6 +54,7 @@ import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.PayeeRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
+import org.openfinance.repository.UserSettingsRepository;
 import org.openfinance.service.parser.CsvParser;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
@@ -136,6 +137,8 @@ class ImportServiceTest {
 
     @Mock private InstitutionRepository institutionRepository;
 
+    @Mock private UserSettingsRepository userSettingsRepository;
+
     private ImportService importService;
 
     private static final Long USER_ID = 123L;
@@ -174,7 +177,8 @@ class ImportServiceTest {
                         institutionRepository,
                         currencyRepository,
                         payeeRepository,
-                        importConfirmationExecutor);
+                        importConfirmationExecutor,
+                        userSettingsRepository);
 
         // Setup test account
         testAccount =
@@ -249,7 +253,8 @@ class ImportServiceTest {
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
         when(fileStorageService.getFileContent(UPLOAD_ID))
                 .thenReturn(new ByteArrayInputStream("QIF content".getBytes()));
-        when(qifParser.parseFile(any(InputStream.class), anyString())).thenReturn(testTransactions);
+        when(qifParser.parseFile(any(InputStream.class), anyString(), any()))
+                .thenReturn(testTransactions);
         when(objectMapper.writeValueAsString(any()))
                 .thenReturn("{\"transactions\":[],\"count\":2}");
 
@@ -285,7 +290,8 @@ class ImportServiceTest {
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
         when(fileStorageService.getFileContent(UPLOAD_ID))
                 .thenReturn(new ByteArrayInputStream("QIF content".getBytes()));
-        when(qifParser.parseFile(any(InputStream.class), anyString())).thenReturn(testTransactions);
+        when(qifParser.parseFile(any(InputStream.class), anyString(), any()))
+                .thenReturn(testTransactions);
         when(objectMapper.writeValueAsString(any()))
                 .thenReturn("{\"transactions\":[],\"count\":2}");
 
@@ -384,7 +390,7 @@ class ImportServiceTest {
                         .ledgerBalance(BigDecimal.ZERO)
                         .currency("USD")
                         .build();
-        when(ofxParser.parseFileToResult(any(InputStream.class), anyString()))
+        when(ofxParser.parseFileToResult(any(InputStream.class), anyString(), any()))
                 .thenReturn(ofxResult);
         when(objectMapper.writeValueAsString(any()))
                 .thenReturn("{\"transactions\":[],\"count\":2}");
@@ -410,7 +416,7 @@ class ImportServiceTest {
 
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
         when(fileStorageService.getFileContent(UPLOAD_ID)).thenReturn(mockStream);
-        when(qifParser.parseFile(any(InputStream.class), eq(FILE_NAME)))
+        when(qifParser.parseFile(any(InputStream.class), eq(FILE_NAME), any()))
                 .thenReturn(testTransactions);
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"transactions\":[]}");
         when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
@@ -420,7 +426,7 @@ class ImportServiceTest {
 
         // Then
         verify(importSessionRepository, atLeast(2)).save(any(ImportSession.class));
-        verify(qifParser).parseFile(any(InputStream.class), eq(FILE_NAME));
+        verify(qifParser).parseFile(any(InputStream.class), eq(FILE_NAME), any());
         verify(objectMapper).writeValueAsString(any());
     }
 
@@ -440,7 +446,7 @@ class ImportServiceTest {
                         .ledgerBalance(BigDecimal.ZERO)
                         .currency("USD")
                         .build();
-        when(ofxParser.parseFileToResult(any(InputStream.class), anyString()))
+        when(ofxParser.parseFileToResult(any(InputStream.class), anyString(), any()))
                 .thenReturn(ofxResult);
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"transactions\":[]}");
         when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
@@ -449,7 +455,7 @@ class ImportServiceTest {
         importService.parseFileAsync(1L);
 
         // Then
-        verify(ofxParser).parseFileToResult(any(InputStream.class), anyString());
+        verify(ofxParser).parseFileToResult(any(InputStream.class), anyString(), any());
     }
 
     @Test
@@ -463,7 +469,8 @@ class ImportServiceTest {
 
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
         when(fileStorageService.getFileContent(UPLOAD_ID)).thenReturn(mockStream);
-        when(csvParser.parseFile(any(InputStream.class), anyString())).thenReturn(testTransactions);
+        when(csvParser.parseFile(any(InputStream.class), anyString(), any()))
+                .thenReturn(testTransactions);
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"transactions\":[]}");
         when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
 
@@ -471,7 +478,7 @@ class ImportServiceTest {
         importService.parseFileAsync(1L);
 
         // Then
-        verify(csvParser).parseFile(any(InputStream.class), anyString());
+        verify(csvParser).parseFile(any(InputStream.class), anyString(), any());
     }
 
     // ========================================

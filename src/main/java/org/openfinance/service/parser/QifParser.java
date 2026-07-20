@@ -3,15 +3,15 @@ package org.openfinance.service.parser;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
@@ -27,14 +27,22 @@ import org.springframework.stereotype.Component;
  * separated by '^' (end-of-entry marker) - File sections start with !Type: header (e.g.,
  * !Type:Bank, !Type:CCard)
  *
- * <p>Supported Field Codes: - D = Date (formats: MM/DD/YYYY, DD/MM/YYYY, MM/DD/YY, DD/MM/YY, and
- * variants with - or . separators) - T = Amount (negative for expenses, positive for income) - U =
- * Amount (duplicate of T, used in newer Quicken versions - fallback if T absent) - P =
- * Payee/Description - M = Memo/Notes - L = Category (may contain class suffix after '/' and/or
- * transfer syntax [AccountName]) - N = Check/Reference number - C = Cleared status (c/cleared,
- * *=cleared, X=reconciled) - A = Address (multiple lines, ignored) - S = Split category - E = Split
- * memo - $ = Split amount - % = Split percentage (recorded but not validated) - F = Reimbursable
- * flag (ignored) - ^ = End of entry
+ * <p>Supported Field Codes: - D = Date. The QIF convention is US-style MM/DD/YYYY (Quicken is a US
+ * product and its documentation uses month-first), so month-first formats are tried first;
+ * international day-first variants are still accepted when unambiguous. Two-digit years (including
+ * the apostrophe notation 01/15'00) are resolved with a sliding pivot so legacy 19xx dates stay in
+ * the past - T = Amount (negative for expenses, positive for income) - U = Amount (duplicate of T,
+ * used in newer Quicken versions - fallback if T absent) - P = Payee/Description - M = Memo/Notes -
+ * L = Category (may contain class suffix after '/' and/or transfer syntax [AccountName]) - N =
+ * Check/Reference number - C = Cleared status (c/cleared, *=cleared, X=reconciled) - A = Address
+ * (multiple lines, ignored) - S = Split category - E = Split memo - $ = Split amount - % = Split
+ * percentage (recorded but not validated) - F = Reimbursable flag (ignored) - ^ = End of entry
+ *
+ * <p>Investment Field Codes (!Type:Invst only, per QIF specification): - N = Action (Buy, Sell,
+ * ShrsIn, ShrsOut, Div, Interest, etc.) - Y = Security name - I = Price per share - Q = Quantity
+ * (number of shares) - T = Total amount - P = Payee/Description - M = Memo - L = Category or
+ * transfer syntax [AccountName] - C = Cleared status - $ = Amount transferred (cash leg) - ^ = End
+ * of entry
  *
  * <p>!Type directives handled: - Bank, CCard, Cash, Oth A, Oth L, Oth S - standard transaction
  * parsing - Invst - investment transactions (parsed with key fields: N/action, Y/security, I/price,
@@ -65,31 +73,25 @@ import org.springframework.stereotype.Component;
 public class QifParser {
 
     /**
-     * Date formats to try when parsing dates from QIF files. Includes variants with '/', '-', and
-     * '.' separators. Order matters — try most specific / common formats first.
+     * Date formats to try when parsing dates from QIF files, in QIF-convention order: month-first
+     * (US Quicken convention) before day-first (international Quicken variants). Two-digit years
+     * are expanded to four digits via a sliding pivot before parsing, so only 4-digit-year formats
+     * are needed here.
      */
     private static final DateTimeFormatter[] DATE_FORMATS = {
-        DateTimeFormatter.ofPattern("MM/dd/yyyy"), // US with 4-digit year
+        DateTimeFormatter.ofPattern("MM/dd/yyyy"), // US convention with 4-digit year
         DateTimeFormatter.ofPattern("dd/MM/yyyy"), // International with 4-digit year
         DateTimeFormatter.ofPattern("yyyy-MM-dd"), // ISO format
-        DateTimeFormatter.ofPattern("MM/dd/yy"), // US with 2-digit year
-        DateTimeFormatter.ofPattern("dd/MM/yy"), // International with 2-digit year
         DateTimeFormatter.ofPattern("M/d/yyyy"), // US no leading zeros
         DateTimeFormatter.ofPattern("d/M/yyyy"), // International no leading zeros
-        DateTimeFormatter.ofPattern("M/d/yy"), // US 2-digit year no leading zeros
-        DateTimeFormatter.ofPattern("d/M/yy"), // International 2-digit year no leading zeros
         // Dash-separated variants
         DateTimeFormatter.ofPattern("MM-dd-yyyy"),
         DateTimeFormatter.ofPattern("dd-MM-yyyy"),
-        DateTimeFormatter.ofPattern("MM-dd-yy"),
-        DateTimeFormatter.ofPattern("dd-MM-yy"),
         DateTimeFormatter.ofPattern("M-d-yyyy"),
         DateTimeFormatter.ofPattern("d-M-yyyy"),
         // Dot-separated variants
         DateTimeFormatter.ofPattern("MM.dd.yyyy"),
         DateTimeFormatter.ofPattern("dd.MM.yyyy"),
-        DateTimeFormatter.ofPattern("MM.dd.yy"),
-        DateTimeFormatter.ofPattern("dd.MM.yy"),
         DateTimeFormatter.ofPattern("M.d.yyyy"),
         DateTimeFormatter.ofPattern("d.M.yyyy"),
     };
@@ -99,13 +101,13 @@ public class QifParser {
      * them).
      */
     private static final List<String> SKIP_TYPES =
-            List.of("memorized", "prices", "bill", "invoice", "tax", "cat");
+            List.of("memorized", "prices", "bill", "invoice", "tax");
 
     /** Tolerance for split-sum validation (±0.01), consistent with TransactionSplitService. */
     private static final BigDecimal SPLIT_SUM_TOLERANCE = new BigDecimal("0.01");
 
     /**
-     * Parse QIF file and extract transactions.
+     * Parse QIF file and extract transactions using the default parsing context.
      *
      * @param inputStream Input stream of QIF file content
      * @param fileName Original file name for error reporting
@@ -114,12 +116,29 @@ public class QifParser {
      */
     public List<ImportedTransaction> parseFile(InputStream inputStream, String fileName)
             throws IOException {
+        return parseFile(inputStream, fileName, ImportParseContext.defaults());
+    }
+
+    /**
+     * Parse QIF file and extract transactions.
+     *
+     * @param inputStream Input stream of QIF file content
+     * @param fileName Original file name for error reporting
+     * @param context user-specific parsing preferences (validation message locale)
+     * @return List of imported transactions with validation errors
+     * @throws IOException if file reading fails
+     */
+    public List<ImportedTransaction> parseFile(
+            InputStream inputStream, String fileName, ImportParseContext context)
+            throws IOException {
         log.info("Starting QIF file parsing: {}", fileName);
 
         List<ImportedTransaction> transactions = new ArrayList<>();
 
-        try (BufferedReader reader =
-                new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+        // Decode once, honouring BOM and legacy single-byte (windows-1252) Quicken exports
+        String content = ImportParseSupport.decode(inputStream.readAllBytes());
+
+        try (BufferedReader reader = new BufferedReader(new StringReader(content))) {
 
             ImportedTransaction.ImportedTransactionBuilder currentTransaction = null;
             String currentAccountType = null;
@@ -144,16 +163,9 @@ public class QifParser {
             // U field (alternative amount) — used only if T was not provided
             BigDecimal uAmount = null;
             // Q (quantity) and I (price) for investment transactions — used to compute
-            // amount when T is absent (common in Skrooge Oth A exports)
+            // amount when T is absent (spec-conformant !Type:Invst records).
             BigDecimal invQuantity = null;
             BigDecimal invPrice = null;
-            // Foreign-unit handling (Skrooge multi-unit exports): the Y field carries the unit
-            // symbol (e.g. "CFA") and the I field carries the per-unit price in the home currency.
-            // We value every foreign line in the home currency (Q × I). Split ($) transactions
-            // carry native amounts with no embedded rate, so we remember the last rate seen per
-            // unit and reuse it to convert those splits. currentForeignUnit is reset per entry.
-            Map<String, BigDecimal> foreignUnitRates = new HashMap<>();
-            String currentForeignUnit = null;
 
             String line;
             while ((line = reader.readLine()) != null) {
@@ -172,13 +184,11 @@ public class QifParser {
                     if (line.startsWith("!Type:")) {
                         String typeValue = line.substring("!Type:".length()).trim();
                         currentAccountType = typeValue;
-                        String typeLower = typeValue.toLowerCase();
+                        String typeLower = typeValue.toLowerCase(Locale.ROOT);
                         inCategoryType = typeLower.startsWith("cat");
                         currentCategoryName = null;
                         skipCurrentType = SKIP_TYPES.stream().anyMatch(typeLower::startsWith);
-                        isInvestmentType =
-                                typeLower.equalsIgnoreCase("invst")
-                                        || typeLower.equalsIgnoreCase("oth a");
+                        isInvestmentType = typeLower.equals("invst");
                         inAccountBlock = false;
                         log.debug("Found account type: {}", currentAccountType);
                     } else if (line.equalsIgnoreCase("!Account")) {
@@ -187,7 +197,7 @@ public class QifParser {
                         currentCategoryName = null;
                         skipCurrentType = false; // !Account ends any prior skip section
                         log.debug("Entering !Account block");
-                    } else if (line.toLowerCase().startsWith("!option:")) {
+                    } else if (line.toLowerCase(Locale.ROOT).startsWith("!option:")) {
                         log.debug("QIF option directive (ignored): {}", line);
                     } else {
                         log.debug("Unknown QIF directive (ignored): {}", line);
@@ -235,7 +245,7 @@ public class QifParser {
                 }
 
                 // Investment transaction handling — capture key fields including Q/I for
-                // amount computation when T is absent (common in Skrooge Oth A exports)
+                // amount computation when T is absent (spec-conformant !Type:Invst records)
                 if (isInvestmentType) {
                     switch (code) {
                         case 'D':
@@ -247,16 +257,13 @@ public class QifParser {
                                         invPrice,
                                         true,
                                         categoryTypes);
-                                finalizeSplits(
-                                        currentTransaction,
-                                        currentSplits,
-                                        currentForeignUnit,
-                                        foreignUnitRates);
+                                finalizeSplits(currentTransaction, currentSplits);
                                 transactions.add(
                                         buildTransaction(
                                                 currentTransaction,
                                                 transactionStartLine,
-                                                fileName));
+                                                fileName,
+                                                context.locale()));
                                 currentSplits.clear();
                                 uAmount = null;
                                 invQuantity = null;
@@ -341,6 +348,17 @@ public class QifParser {
                                 currentTransaction.clearedStatus(mapClearedStatus(value));
                             }
                             break;
+                        case '$': // amount transferred (cash leg) — stored as a single split
+                            if (currentTransaction != null) {
+                                BigDecimal transferAmount = parseAmount(value, lineNumber, null);
+                                if (transferAmount != null) {
+                                    currentSplits.add(
+                                            ImportedTransaction.SplitEntry.builder()
+                                                    .amount(transferAmount)
+                                                    .build());
+                                }
+                            }
+                            break;
                         case '^':
                             if (currentTransaction != null) {
                                 applyComputedAmountIfNeeded(
@@ -350,16 +368,13 @@ public class QifParser {
                                         invPrice,
                                         true,
                                         categoryTypes);
-                                finalizeSplits(
-                                        currentTransaction,
-                                        currentSplits,
-                                        currentForeignUnit,
-                                        foreignUnitRates);
+                                finalizeSplits(currentTransaction, currentSplits);
                                 transactions.add(
                                         buildTransaction(
                                                 currentTransaction,
                                                 transactionStartLine,
-                                                fileName));
+                                                fileName,
+                                                context.locale()));
                                 currentTransaction = null;
                                 currentSplits.clear();
                                 uAmount = null;
@@ -385,14 +400,13 @@ public class QifParser {
                                     invPrice,
                                     false,
                                     categoryTypes);
-                            finalizeSplits(
-                                    currentTransaction,
-                                    currentSplits,
-                                    currentForeignUnit,
-                                    foreignUnitRates);
+                            finalizeSplits(currentTransaction, currentSplits);
                             transactions.add(
                                     buildTransaction(
-                                            currentTransaction, transactionStartLine, fileName));
+                                            currentTransaction,
+                                            transactionStartLine,
+                                            fileName,
+                                            context.locale()));
                             currentSplits.clear();
                             uAmount = null;
                             invQuantity = null;
@@ -413,7 +427,6 @@ public class QifParser {
                         uAmount = null;
                         invQuantity = null;
                         invPrice = null;
-                        currentForeignUnit = null;
                         LocalDate parsedDate = parseDate(value, lineNumber);
                         currentTransaction.transactionDate(parsedDate);
                         if (parsedDate == null) {
@@ -444,31 +457,6 @@ public class QifParser {
 
                     case 'U': // Alternative amount (newer Quicken) — used only if T absent
                         uAmount = parseAmount(value, lineNumber, null);
-                        break;
-
-                    case 'Y': // Unit marker in Skrooge non-investment QIF records (e.g. CFA).
-                        // Intentionally NOT mapped to a transaction currency: the amount is
-                        // valued in the home currency via Q × I (see applyComputedAmountIfNeeded),
-                        // so tagging a foreign currency here would cause ImportService to convert
-                        // the account's home-currency amounts a second time. QIF has no portable
-                        // currency concept, so the imported account stays single-currency (home).
-                        // We remember the unit so split ($) lines — which carry native amounts and
-                        // no rate — can be converted with the unit's remembered rate. The home
-                        // currency needs no distinction here: home-currency lines carry a plain T
-                        // amount and never a Q/I rate, so no rate is ever recorded for them and
-                        // split conversion is a no-op regardless of the unit symbol.
-                        currentForeignUnit = value.isBlank() ? null : value.trim();
-                        break;
-
-                    case 'Q': // Quantity used with I when T is absent in Skrooge cash exports
-                        invQuantity = parseAmount(value, lineNumber, null);
-                        break;
-
-                    case 'I': // Price/rate used with Q when T is absent in Skrooge cash exports
-                        invPrice = parseAmount(value, lineNumber, null);
-                        if (currentForeignUnit != null && invPrice != null) {
-                            foreignUnitRates.put(currentForeignUnit, invPrice);
-                        }
                         break;
 
                     case 'P': // Payee
@@ -581,14 +569,13 @@ public class QifParser {
                                     invPrice,
                                     false,
                                     categoryTypes);
-                            finalizeSplits(
-                                    currentTransaction,
-                                    currentSplits,
-                                    currentForeignUnit,
-                                    foreignUnitRates);
+                            finalizeSplits(currentTransaction, currentSplits);
                             transactions.add(
                                     buildTransaction(
-                                            currentTransaction, transactionStartLine, fileName));
+                                            currentTransaction,
+                                            transactionStartLine,
+                                            fileName,
+                                            context.locale()));
                             currentTransaction = null;
                             currentSplits.clear();
                             uAmount = null;
@@ -615,10 +602,13 @@ public class QifParser {
                         invPrice,
                         isInvestmentType,
                         categoryTypes);
-                finalizeSplits(
-                        currentTransaction, currentSplits, currentForeignUnit, foreignUnitRates);
+                finalizeSplits(currentTransaction, currentSplits);
                 transactions.add(
-                        buildTransaction(currentTransaction, transactionStartLine, fileName));
+                        buildTransaction(
+                                currentTransaction,
+                                transactionStartLine,
+                                fileName,
+                                context.locale()));
             }
         }
 
@@ -629,22 +619,10 @@ public class QifParser {
         return transactions;
     }
 
-    /** Apply U-field amount to the builder when T was never provided. */
-    private void applyUAmountIfNeeded(
-            ImportedTransaction.ImportedTransactionBuilder builder, BigDecimal uAmount) {
-        if (uAmount == null) {
-            return;
-        }
-        // Peek: if amount is already set via T, skip
-        ImportedTransaction peek = builder.build();
-        if (peek.getAmount() == null) {
-            builder.amount(uAmount);
-        }
-    }
-
     /**
      * Apply amount from U field or Q × I computation when T was never provided. Priority: T
-     * (already set) > U > Q × I.
+     * (already set) > U > Q × I. The Q × I path is spec-conformant for !Type:Invst records where
+     * the total (T) may be omitted and must be derived from quantity × price.
      */
     private void applyComputedAmountIfNeeded(
             ImportedTransaction.ImportedTransactionBuilder builder,
@@ -661,54 +639,27 @@ public class QifParser {
             builder.amount(uAmount);
             return;
         }
-        if (invQuantity != null && invPrice != null) {
+        // Q × I amount derivation is only valid for investment transactions (!Type:Invst) per
+        // the QIF specification. Standard Bank/Cash/CCard records must carry T or U.
+        if (investmentTransaction && invQuantity != null && invPrice != null) {
             try {
-                // Skrooge repurposes the QIF investment fields (Y/Q/I) to represent foreign
-                // currency and crypto/share units: Q is the native quantity and I is the price
-                // per unit expressed in the home currency. The home-currency value is therefore
-                // always Q × I, regardless of account type. This mirrors the balance Skrooge
-                // itself displays and keeps the imported account in a single (home) currency.
                 BigDecimal computed = invQuantity.multiply(invPrice);
-                if (!investmentTransaction
-                        && !peek.isTransfer()
-                        && isExpenseCategory(peek.getCategory(), categoryTypes)) {
-                    computed = computed.abs().negate();
-                } else if (investmentTransaction && isSellAction(peek.getReferenceNumber())) {
+                if (isSellAction(peek.getReferenceNumber())) {
                     computed = computed.abs().negate();
                 }
                 builder.amount(computed);
-                // NOTE: Skrooge writes each account's opening balance as a leading no-payee
-                // record. Home-currency (T) openings flow through as ordinary transactions and
-                // are counted in the balance, so foreign-unit (Q×I) openings are intentionally
-                // treated the same way — they are kept and counted rather than dropped, matching
-                // the balance Skrooge itself reports.
             } catch (ArithmeticException e) {
                 log.debug("Could not compute investment amount from Q × I: {}", e.getMessage());
             }
         }
     }
 
+    /**
+     * QIF investment actions are English keywords per the format specification (Buy, Sell, ShrsIn,
+     * ShrsOut, …), so an English "sell" check is spec-based, not locale-based.
+     */
     private boolean isSellAction(String action) {
-        return action != null && action.trim().toLowerCase().startsWith("sell");
-    }
-
-    private boolean isExpenseCategory(String category, Map<String, Character> categoryTypes) {
-        if (category == null || category.isBlank()) {
-            return false;
-        }
-        String candidate = category.trim();
-        while (!candidate.isBlank()) {
-            Character categoryType = categoryTypes.get(candidate);
-            if (categoryType != null) {
-                return categoryType == 'E';
-            }
-            int separator = candidate.lastIndexOf(':');
-            if (separator < 0) {
-                return false;
-            }
-            candidate = candidate.substring(0, separator).trim();
-        }
-        return false;
+        return action != null && action.trim().toLowerCase(Locale.ROOT).startsWith("sell");
     }
 
     /**
@@ -725,7 +676,8 @@ public class QifParser {
             String accountName = categoryValue.substring(1, categoryValue.length() - 1).trim();
             builder.transfer(true);
             builder.toAccountName(accountName);
-            builder.category("Transfer");
+            // QIF transfer syntax [Account] carries its semantics in the transfer flag and
+            // target account — no synthetic category is invented for it.
             if (classValue != null && !classValue.isEmpty()) {
                 ImportedTransaction peek = builder.build();
                 List<String> tags = new ArrayList<>(peek.getTags());
@@ -758,36 +710,14 @@ public class QifParser {
     /** Finalize split transaction entries and add to transaction builder. */
     private void finalizeSplits(
             ImportedTransaction.ImportedTransactionBuilder transaction,
-            List<ImportedTransaction.SplitEntry> splits,
-            String foreignUnit,
-            Map<String, BigDecimal> foreignUnitRates) {
+            List<ImportedTransaction.SplitEntry> splits) {
         if (!splits.isEmpty()) {
             ImportedTransaction peek = transaction.build();
             boolean amountFromSplits = peek.getAmount() == null;
-            // Skrooge split ($) lines carry native foreign amounts with no embedded rate.
-            // When the parent amount will be derived from those splits, convert each split to
-            // the home currency using the unit's remembered rate so the account (and its split
-            // breakdown) stay in a single, consistent currency.
-            BigDecimal rate =
-                    amountFromSplits && foreignUnit != null
-                            ? foreignUnitRates.get(foreignUnit)
-                            : null;
-            List<ImportedTransaction.SplitEntry> resolvedSplits = splits;
-            if (rate != null) {
-                resolvedSplits = new ArrayList<>(splits.size());
-                for (ImportedTransaction.SplitEntry split : splits) {
-                    if (split.getAmount() != null) {
-                        resolvedSplits.add(
-                                split.toBuilder().amount(split.getAmount().multiply(rate)).build());
-                    } else {
-                        resolvedSplits.add(split);
-                    }
-                }
-            }
-            transaction.splits(new ArrayList<>(resolvedSplits));
+            transaction.splits(new ArrayList<>(splits));
             if (amountFromSplits) {
                 BigDecimal totalSplitAmount =
-                        resolvedSplits.stream()
+                        splits.stream()
                                 .map(ImportedTransaction.SplitEntry::getAmount)
                                 .filter(amount -> amount != null)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -800,31 +730,36 @@ public class QifParser {
     private ImportedTransaction buildTransaction(
             ImportedTransaction.ImportedTransactionBuilder builder,
             int lineNumber,
-            String fileName) {
+            String fileName,
+            Locale locale) {
         builder.lineNumber(lineNumber);
         builder.sourceFileName(fileName);
 
         ImportedTransaction transaction = builder.build();
-        validateTransaction(transaction);
+        validateTransaction(transaction, locale);
 
         return transaction;
     }
 
     /** Validate imported transaction and add errors. */
-    private void validateTransaction(ImportedTransaction transaction) {
+    private void validateTransaction(ImportedTransaction transaction, Locale locale) {
         if (transaction.getTransactionDate() == null) {
-            transaction.addValidationError("Transaction date is required");
+            transaction.addValidationError(
+                    ImportParseSupport.message("import.validation.date.required", locale));
         }
 
         if (transaction.getAmount() == null) {
-            transaction.addValidationError("Transaction amount is required");
+            transaction.addValidationError(
+                    ImportParseSupport.message("import.validation.amount.required", locale));
         } else if (transaction.getAmount().compareTo(BigDecimal.ZERO) == 0) {
-            transaction.addValidationError("Transaction amount cannot be zero");
+            transaction.addValidationError(
+                    ImportParseSupport.message("import.validation.amount.zero", locale));
         }
 
         if (transaction.getTransactionDate() != null
                 && transaction.getTransactionDate().isAfter(LocalDate.now())) {
-            transaction.addValidationError("Transaction date cannot be in the future");
+            transaction.addValidationError(
+                    ImportParseSupport.message("import.validation.date.future", locale));
         }
 
         if (transaction.isSplitTransaction()) {
@@ -844,20 +779,24 @@ public class QifParser {
                         totalSplitAmount.abs().subtract(transaction.getAmount().abs()).abs();
                 if (difference.compareTo(SPLIT_SUM_TOLERANCE) > 0) {
                     transaction.addValidationError(
-                            String.format(
-                                    "Split amounts (%s) do not match transaction amount (%s)",
-                                    totalSplitAmount, transaction.getAmount()));
+                            ImportParseSupport.message(
+                                    "import.validation.split.mismatch",
+                                    locale,
+                                    totalSplitAmount,
+                                    transaction.getAmount()));
                 }
             }
         }
     }
 
     /**
-     * Parse date from QIF file, trying multiple date formats.
+     * Parse date from QIF file, trying the known formats in QIF-convention order (month-first
+     * first).
      *
-     * <p>Handles: - Apostrophe-notation for post-2000 years (e.g., 01/15'00 → 01/1500 → parsed with
-     * 2-digit year) - Separator variants: '/', '-', '.' - European number format dates are
-     * disambiguated by trying all formats in order
+     * <p>Handles Quicken's legacy notations before parsing: - Space-padded single-digit parts
+     * (e.g., "1/ 6'01") - Apostrophe-notation years (e.g., 01/15'00 → 01/15/00) - Two-digit years,
+     * expanded with a sliding pivot so 19xx legacy dates stay in the past - Separator variants:
+     * '/', '-', '.'
      */
     private LocalDate parseDate(String dateStr, int lineNumber) {
         if (dateStr == null || dateStr.isEmpty()) {
@@ -865,12 +804,24 @@ public class QifParser {
             return null;
         }
 
-        // Remove apostrophes (Quicken post-2000 year notation, e.g., '00 → 00)
-        dateStr = dateStr.replace("'", "");
+        // Quicken pads single-digit date parts with spaces ("D1/ 6'01")
+        String normalized = dateStr.replace(" ", "");
+        // Apostrophe year notation ("01/15'00") — the apostrophe acts as the year separator
+        if (normalized.indexOf('\'') >= 0) {
+            char separator =
+                    normalized.indexOf('/') >= 0
+                            ? '/'
+                            : normalized.indexOf('-') >= 0
+                                    ? '-'
+                                    : normalized.indexOf('.') >= 0 ? '.' : '/';
+            normalized = normalized.replace('\'', separator);
+        }
+        // Expand a trailing two-digit year via the sliding pivot (legacy 19xx dates)
+        normalized = ImportParseSupport.expandTwoDigitYear(normalized);
 
         for (DateTimeFormatter formatter : DATE_FORMATS) {
             try {
-                return LocalDate.parse(dateStr, formatter);
+                return LocalDate.parse(normalized, formatter);
             } catch (DateTimeParseException e) {
                 // Try next format
             }
@@ -886,8 +837,8 @@ public class QifParser {
     /**
      * Parse amount from QIF file.
      *
-     * <p>Handles: - Standard US format: 1,234.56 - European format: 1.234,56 (detected when comma
-     * comes after dot) - Currency symbol stripping: $, €, £
+     * <p>Delegates to the shared lenient amount parser, which handles US ("1,234.56") and European
+     * ("1.234,56" / "1234,56") formats and strips currency symbols ($, €, £).
      */
     private BigDecimal parseAmount(
             String amountStr,
@@ -897,31 +848,11 @@ public class QifParser {
             log.warn("Line {}: Empty amount string", lineNumber);
             return null;
         }
-
-        try {
-            // Remove currency symbols and whitespace
-            String cleaned =
-                    amountStr.replace("$", "").replace("€", "").replace("£", "").replace(" ", "");
-
-            // Detect European format: dot used as thousands separator, comma as decimal
-            // e.g., "1.234,56" → "1234.56"
-            // If the string contains both a dot and a comma, and the comma appears AFTER
-            // the last dot, it is European format.
-            int lastDot = cleaned.lastIndexOf('.');
-            int lastComma = cleaned.lastIndexOf(',');
-            if (lastDot >= 0 && lastComma > lastDot) {
-                // European: remove dots (thousands sep), replace comma with dot (decimal sep)
-                cleaned = cleaned.replace(".", "").replace(",", ".");
-            } else {
-                // Standard: remove commas (thousands sep); dot is already decimal sep
-                cleaned = cleaned.replace(",", "");
-            }
-
-            return new BigDecimal(cleaned);
-        } catch (NumberFormatException e) {
+        BigDecimal amount = ImportParseSupport.parseLenientAmount(amountStr);
+        if (amount == null) {
             log.warn("Line {}: Unable to parse amount '{}'", lineNumber, amountStr);
-            return null;
         }
+        return amount;
     }
 
     /** Map QIF cleared status codes to readable values. */
@@ -929,7 +860,7 @@ public class QifParser {
         if (status == null || status.isEmpty()) {
             return "uncleared";
         }
-        switch (status.toLowerCase()) {
+        switch (status.toLowerCase(Locale.ROOT)) {
             case "c":
             case "*":
                 return "cleared";
