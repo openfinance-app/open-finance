@@ -8,14 +8,18 @@ vi.mock('@/context/NumberFormatContext', () => ({
     }),
 }));
 
-vi.mock('@/utils/currency', () => ({
-    formatCurrency: vi.fn((amount: number, code?: string) => `$${amount.toFixed(2)}`),
-    formatCurrencyCompact: vi.fn((amount: number) => `$${(amount / 1000).toFixed(0)}K`),
-    formatCurrencyWithColor: vi.fn((amount: number) => ({
-        formatted: `$${amount.toFixed(2)}`,
-        className: amount >= 0 ? 'text-green' : 'text-red',
-    })),
-}));
+vi.mock('@/utils/currency', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@/utils/currency')>();
+    return {
+        ...actual,
+        formatCurrency: vi.fn((amount: number, code?: string) => `$${amount.toFixed(2)}`),
+        formatCurrencyCompact: vi.fn((amount: number) => `$${(amount / 1000).toFixed(0)}K`),
+        formatCurrencyWithColor: vi.fn((amount: number) => ({
+            formatted: `$${amount.toFixed(2)}`,
+            className: amount >= 0 ? 'text-green' : 'text-red',
+        })),
+    };
+});
 
 import { useFormatCurrency } from './useFormatCurrency';
 

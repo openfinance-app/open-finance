@@ -15,16 +15,20 @@ vi.mock('@/components/ui/PrivateAmount', () => ({
 }));
 
 // Mock formatCurrency and formatExchangeRate
-vi.mock('@/utils/currency', () => ({
-  formatCurrency: vi.fn((amount: number, currency: string, options?: any) => {
-    const compact = options?.compact ? 'K' : '';
-    return `${currency} ${amount}${compact}`;
-  }),
-  formatExchangeRate: vi.fn((rate: number) => {
-    if (!isFinite(rate) || rate === 0) return '0';
-    return parseFloat(rate.toPrecision(6)).toString();
-  })
-}));
+vi.mock('@/utils/currency', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/utils/currency')>();
+  return {
+    ...actual,
+    formatCurrency: vi.fn((amount: number, currency: string, options?: any) => {
+      const compact = options?.compact ? 'K' : '';
+      return `${currency} ${amount}${compact}`;
+    }),
+    formatExchangeRate: vi.fn((rate: number) => {
+      if (!isFinite(rate) || rate === 0) return '0';
+      return parseFloat(rate.toPrecision(6)).toString();
+    })
+  };
+});
 
 // Mock useCurrencyDisplay
 const mockUseCurrencyDisplay = vi.fn();

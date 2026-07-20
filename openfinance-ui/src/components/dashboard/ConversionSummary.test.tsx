@@ -23,6 +23,22 @@ vi.mock('@/hooks/useCurrency', () => ({
   useUpdateExchangeRates: () => ({ mutate: mockMutate, isPending: false }),
 }));
 
+vi.mock('@/context/AuthContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/context/AuthContext')>();
+  return {
+    ...actual,
+    useAuthContext: vi.fn(() => ({
+      baseCurrency: 'USD',
+      user: null,
+      isAuthenticated: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      updateBaseCurrency: vi.fn(),
+      loading: false
+    }))
+  };
+});
+
 import { ConversionSummary } from './ConversionSummary';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';

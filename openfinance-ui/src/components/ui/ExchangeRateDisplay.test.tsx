@@ -28,9 +28,13 @@ vi.mock('@/hooks/useFormatCurrency', () => ({
   }),
 }));
 
-vi.mock('@/utils/currency', () => ({
-  formatExchangeRate: (rate: number) => rate.toFixed(4),
-}));
+vi.mock('@/utils/currency', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/utils/currency')>();
+  return {
+    ...actual,
+    formatExchangeRate: (rate: number) => rate.toFixed(4),
+  };
+});
 
 describe('ExchangeRateDisplay', () => {
   beforeEach(async () => {

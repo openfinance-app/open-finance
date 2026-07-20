@@ -23,6 +23,23 @@ vi.mock('@/utils/format', () => ({
   }),
 }));
 
+// Mock AuthContext to ensure baseCurrency is USD while preserving AuthProvider
+vi.mock('@/context/AuthContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/context/AuthContext')>();
+  return {
+    ...actual,
+    useAuthContext: vi.fn(() => ({
+      baseCurrency: 'USD',
+      user: null,
+      isAuthenticated: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      updateBaseCurrency: vi.fn(),
+      loading: false
+    }))
+  };
+});
+
 // Test fixtures
 const mockLiabilities: Liability[] = [
   {
