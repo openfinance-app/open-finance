@@ -90,6 +90,7 @@ public class LiabilityService {
     private final NetWorthRepository netWorthRepository;
     private final OperationHistoryService operationHistoryService;
     private final SearchTokenService searchTokenService;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
 
     // Constants for calculations
     private static final int MAX_AMORTIZATION_PERIODS = 360; // Max 30 years of monthly payments
@@ -1346,9 +1347,7 @@ public class LiabilityService {
             BigDecimal nativeBalance) {
         User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
         String baseCurrency =
-                user != null && user.getBaseCurrency() != null && !user.getBaseCurrency().isBlank()
-                        ? user.getBaseCurrency()
-                        : "USD";
+                defaultCurrencyProvider.resolve(user != null ? user.getBaseCurrency() : null);
         String secCurrency = user != null ? user.getSecondaryCurrency() : null;
         response.setBaseCurrency(baseCurrency);
 

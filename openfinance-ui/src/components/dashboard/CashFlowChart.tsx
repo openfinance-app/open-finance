@@ -2,6 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { useTranslation } from 'react-i18next';
 import type { ICashFlow } from '../../types/dashboard';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { PrivateAmount } from '../ui/PrivateAmount';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { useVisibility } from '../../context/VisibilityContext';
@@ -41,7 +42,7 @@ const CustomTooltip = ({ active, payload, format, currency }: any) => {
 export default function CashFlowChart({ 
   cashFlow, 
   period = 30,
-  currency = 'EUR' 
+  currency = DEFAULT_CURRENCY 
 }: CashFlowChartProps) {
   const { t } = useTranslation('dashboard');
   const { isAmountsVisible } = useVisibility();

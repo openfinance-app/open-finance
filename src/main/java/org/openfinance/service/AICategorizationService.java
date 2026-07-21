@@ -49,6 +49,7 @@ public class AICategorizationService {
     private final ImportSessionRepository importSessionRepository;
     private final CategoryRepository categoryRepository;
     private final MessageSource messageSource;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
 
     /**
      * Asynchronously categorize uncategorized transactions for an import session. Loads the
@@ -100,7 +101,7 @@ public class AICategorizationService {
 
                 // Extract existing metadata fields
                 BigDecimal ledgerBalance = BigDecimal.ZERO;
-                String fileCurrency = "USD";
+                String fileCurrency = defaultCurrencyProvider.resolveForUser(session.getUserId());
                 try {
                     Map<String, Object> metadataMap =
                             objectMapper.readValue(

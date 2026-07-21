@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useAssets } from '@/hooks/useAssets';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
-import { formatExchangeRate } from '@/utils/currency';
+import { DEFAULT_CURRENCY, formatExchangeRate } from '@/utils/currency';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { PrivateAmount } from '../ui/PrivateAmount';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -42,7 +42,7 @@ interface CurrencyBreakdownProps {
  * Displays a breakdown of account balances grouped by currency,
  * with conversion to base currency and percentage visualization.
  */
-export default function CurrencyBreakdown({ baseCurrency = 'USD' }: CurrencyBreakdownProps) {
+export default function CurrencyBreakdown({ baseCurrency = DEFAULT_CURRENCY }: CurrencyBreakdownProps) {
   const { t } = useTranslation('dashboard');
   const [refreshKey] = useState(0);
   const { data: accounts, isLoading, error } = useAccounts();

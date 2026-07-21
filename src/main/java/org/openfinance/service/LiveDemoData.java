@@ -95,6 +95,7 @@ public class LiveDemoData implements CommandLineRunner {
     private final InstitutionSeeder institutionSeeder;
     private final EncryptionKeyCache encryptionKeyCache;
     private final SearchTokenService searchTokenService;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
 
     // ── Demo credentials ──────────────────────────────────────────────────────
     private static final String DEMO_USERNAME = "demo";
@@ -129,6 +130,7 @@ public class LiveDemoData implements CommandLineRunner {
                         .email("demo@openfinance.app")
                         .passwordHash(passwordHash)
                         .masterPasswordSalt(saltBase64)
+                        .baseCurrency(defaultCurrencyProvider.getDefaultCurrency())
                         .createdAt(LocalDateTime.now())
                         .build();
         user = userRepository.save(user);

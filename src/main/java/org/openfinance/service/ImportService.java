@@ -118,6 +118,7 @@ public class ImportService {
     private final InstitutionRepository institutionRepository;
     private final CurrencyRepository currencyRepository;
     private final PayeeRepository payeeRepository;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
 
     /**
      * Lazily-resolved executor used to run import confirmation on a background thread. Injected as
@@ -262,7 +263,7 @@ public class ImportService {
             // Parse based on format
             List<ImportedTransaction> transactions;
             BigDecimal ledgerBalance = BigDecimal.ZERO;
-            String fileCurrency = "USD";
+            String fileCurrency = defaultCurrencyProvider.getDefaultCurrency();
             try {
                 User user = userRepository.findById(session.getUserId()).orElse(null);
                 if (user != null && user.getBaseCurrency() != null) {
@@ -452,7 +453,7 @@ public class ImportService {
         // confirmImport() sees the tags/category values set by ADD_TAG / SET_CATEGORY
         // actions. Without this, the enriched state is discarded after the review call.
         BigDecimal ledgerBalance = BigDecimal.ZERO;
-        String fileCurrency = "USD";
+        String fileCurrency = defaultCurrencyProvider.getDefaultCurrency();
         if (session.getMetadata() != null && !session.getMetadata().trim().isEmpty()) {
             try {
                 Map<String, Object> metadataMap =
@@ -548,7 +549,7 @@ public class ImportService {
 
         // Preserve existing ledgerBalance and fileCurrency in metadata
         BigDecimal ledgerBalance = BigDecimal.ZERO;
-        String fileCurrency = "USD";
+        String fileCurrency = defaultCurrencyProvider.getDefaultCurrency();
         try {
             User user = userRepository.findById(session.getUserId()).orElse(null);
             if (user != null && user.getBaseCurrency() != null) {
@@ -701,7 +702,7 @@ public class ImportService {
         Long resolvedAccountId = accountId != null ? accountId : session.getAccountId();
         if (resolvedAccountId == null) {
             BigDecimal ledgerBalance = BigDecimal.ZERO;
-            String fileCurrency = "USD";
+            String fileCurrency = defaultCurrencyProvider.getDefaultCurrency();
             try {
                 User user = userRepository.findById(session.getUserId()).orElse(null);
                 if (user != null && user.getBaseCurrency() != null) {
@@ -1559,7 +1560,7 @@ public class ImportService {
                 AccountRequest.builder()
                         .name(name.trim())
                         .type(AccountType.CHECKING)
-                        .currency(currency != null ? currency : "USD")
+                        .currency(defaultCurrencyProvider.resolve(currency))
                         .initialBalance(initialBalance != null ? initialBalance : BigDecimal.ZERO)
                         .openingDate(LocalDate.now())
                         .build();
@@ -2123,10 +2124,7 @@ public class ImportService {
                                         account.getAccountType() != null
                                                 ? account.getAccountType()
                                                 : AccountType.OTHER)
-                                .currency(
-                                        account.getCurrency() != null
-                                                ? account.getCurrency()
-                                                : "USD")
+                                .currency(defaultCurrencyProvider.resolve(account.getCurrency()))
                                 .initialBalance(
                                         account.getOpeningBalance() != null
                                                 ? account.getOpeningBalance()
@@ -2313,10 +2311,7 @@ public class ImportService {
                         AccountRequest.builder()
                                 .name(descriptor.name())
                                 .type(mapQifAccountType(descriptor.qifAccountType()))
-                                .currency(
-                                        descriptor.currency() != null
-                                                ? descriptor.currency()
-                                                : "USD")
+                                .currency(defaultCurrencyProvider.resolve(descriptor.currency()))
                                 .initialBalance(
                                         descriptor.openingBalance() != null
                                                 ? descriptor.openingBalance()
@@ -2609,7 +2604,7 @@ public class ImportService {
         if (importedTx.getCurrency() != null && !importedTx.getCurrency().isBlank()) {
             return importedTx.getCurrency();
         }
-        return "USD";
+        return defaultCurrencyProvider.getDefaultCurrency();
     }
 
     private BigDecimal resolveSignedAmount(
@@ -2654,11 +2649,7 @@ public class ImportService {
         if (fileCurrency != null && !fileCurrency.toString().isBlank()) {
             return fileCurrency.toString();
         }
-        return userRepository
-                .findById(userId)
-                .map(User::getBaseCurrency)
-                .filter(currency -> currency != null && !currency.isBlank())
-                .orElse("USD");
+        return defaultCurrencyProvider.resolveForUser(userId);
     }
 
     /**

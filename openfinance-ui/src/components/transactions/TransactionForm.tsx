@@ -26,6 +26,7 @@ import { useLiabilities } from '@/hooks/useLiabilities';
 import type { Transaction, TransactionRequest, TransactionType, Category, PaymentMethod, TransactionSplitRequest } from '@/types/transaction';
 import type { Account } from '@/types/account';
 import { formatDateForInput, getToday } from '@/utils/date';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 
 const optionalNumber = z.preprocess((value) => {
   if (value === '' || value === null || value === undefined) {
@@ -144,7 +145,7 @@ export function TransactionForm({
         toAccountId: undefined,
         type: 'EXPENSE',
         amount: 0,
-        currency: 'EUR',
+        currency: DEFAULT_CURRENCY,
         categoryId: undefined,
         date: getToday(),
         description: '',
@@ -479,7 +480,7 @@ export function TransactionForm({
           {splitMode && (
             <SplitTransactionForm
               totalAmount={watch('amount') || 0}
-              currency={watch('currency') || 'EUR'}
+              currency={watch('currency') || DEFAULT_CURRENCY}
               transactionType={selectedType}
               splits={splits}
               onChange={setSplits}

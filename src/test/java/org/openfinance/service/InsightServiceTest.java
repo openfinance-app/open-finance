@@ -52,6 +52,8 @@ class InsightServiceTest {
 
     @Mock private OperationHistoryService operationHistoryService;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private InsightService insightService;
 
     private Long testUserId = 1L;
@@ -71,6 +73,8 @@ class InsightServiceTest {
         when(transactionRepository.findByUserIdAndType(anyLong(), any()))
                 .thenReturn(Collections.emptyList());
         when(aiProvider.sendPrompt(anyString(), anyString())).thenReturn(Mono.just("{}"));
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     @Test

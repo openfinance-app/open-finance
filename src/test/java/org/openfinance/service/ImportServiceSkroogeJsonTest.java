@@ -94,6 +94,8 @@ class ImportServiceSkroogeJsonTest {
     @Mock private UserSettingsRepository userSettingsRepository;
     @Mock private ObjectProvider<ImportConfirmationExecutor> importConfirmationExecutor;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     private ImportService importService;
     private ObjectMapper objectMapper;
 
@@ -127,6 +129,7 @@ class ImportServiceSkroogeJsonTest {
                         institutionRepository,
                         currencyRepository,
                         payeeRepository,
+                        defaultCurrencyProvider,
                         importConfirmationExecutor,
                         userSettingsRepository);
 
@@ -139,6 +142,9 @@ class ImportServiceSkroogeJsonTest {
                             p.setId(999L);
                             return p;
                         });
+
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     @Test

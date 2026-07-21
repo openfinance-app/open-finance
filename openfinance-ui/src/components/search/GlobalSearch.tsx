@@ -16,7 +16,7 @@ import { Search, X, Clock, TrendingUp, Loader, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchWithDebounce } from '../../hooks/useSearch';
 import { useNumberFormat } from '../../context/NumberFormatContext';
-import { formatCurrency } from '../../utils/currency';
+import { DEFAULT_CURRENCY, formatCurrency } from '@/utils/currency';
 import type { SearchResult } from '../../types/search';
 import {
   getResultTypeDisplayName,
@@ -63,7 +63,7 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
   // Format amount with currency symbol respecting user's number format preference
   const formatAmount = (amount?: number, currencyCode?: string): string => {
     if (amount === undefined || amount === null) return '';
-    return formatCurrency(amount, currencyCode || 'EUR', {
+    return formatCurrency(amount, currencyCode || DEFAULT_CURRENCY, {
       showSymbol: true,
       numberFormat,
     });

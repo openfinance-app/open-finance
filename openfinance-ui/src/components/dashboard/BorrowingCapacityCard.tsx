@@ -2,6 +2,7 @@ import { Activity, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 import type { IBorrowingCapacity } from '@/types/dashboard';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { useTranslation } from 'react-i18next';
 
 interface BorrowingCapacityCardProps {
@@ -13,7 +14,7 @@ interface BorrowingCapacityCardProps {
  * Dashboard Borrowing Capacity Card component
  */
 export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCardProps) {
-    const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(capacity.currency || 'EUR');
+    const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(capacity.currency || DEFAULT_CURRENCY);
     const { t } = useTranslation('dashboard');
 
     // Determine health status color and icon
@@ -77,7 +78,7 @@ export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCar
                     <p className="text-3xl font-bold text-primary">
                         <ConvertedAmount
                             amount={capacity.availableBorrowingCapacity}
-                            currency={capacity.currency || 'EUR'}
+                            currency={capacity.currency || DEFAULT_CURRENCY}
                             isConverted={false}
                             secondaryAmount={convert(capacity.availableBorrowingCapacity)}
                             secondaryCurrency={secCurrency}
@@ -128,7 +129,7 @@ export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCar
                         <p className={`text-lg font-semibold ${capacity.monthlyIncome > 0 ? 'text-green-500' : 'text-text-primary'}`}>
                             <ConvertedAmount
                                 amount={capacity.monthlyIncome}
-                                currency={capacity.currency || 'EUR'}
+                                currency={capacity.currency || DEFAULT_CURRENCY}
                                 isConverted={false}
                                 secondaryAmount={convert(capacity.monthlyIncome)}
                                 secondaryCurrency={secCurrency}
@@ -143,7 +144,7 @@ export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCar
                         <p className="text-lg font-semibold text-orange-500">
                             <ConvertedAmount
                                 amount={capacity.monthlyExpenses}
-                                currency={capacity.currency || 'EUR'}
+                                currency={capacity.currency || DEFAULT_CURRENCY}
                                 isConverted={false}
                                 secondaryAmount={convert(capacity.monthlyExpenses)}
                                 secondaryCurrency={secCurrency}
@@ -158,7 +159,7 @@ export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCar
                         <p className={`text-lg font-semibold ${capacity.monthlyDebtPayments > 0 ? 'text-red-500' : 'text-text-primary'}`}>
                             <ConvertedAmount
                                 amount={capacity.monthlyDebtPayments}
-                                currency={capacity.currency || 'EUR'}
+                                currency={capacity.currency || DEFAULT_CURRENCY}
                                 isConverted={false}
                                 secondaryAmount={convert(capacity.monthlyDebtPayments)}
                                 secondaryCurrency={secCurrency}
@@ -173,7 +174,7 @@ export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCar
                         <p className="text-lg font-semibold text-blue-500">
                             <ConvertedAmount
                                 amount={capacity.recommendedMaxBorrowing}
-                                currency={capacity.currency || 'EUR'}
+                                currency={capacity.currency || DEFAULT_CURRENCY}
                                 isConverted={false}
                                 secondaryAmount={convert(capacity.recommendedMaxBorrowing)}
                                 secondaryCurrency={secCurrency}

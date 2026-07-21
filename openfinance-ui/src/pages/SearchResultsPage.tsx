@@ -20,7 +20,7 @@ import { SavedSearchesDropdown } from '@/components/search/SavedSearchesDropdown
 import { SaveSearchDialog } from '@/components/search/SaveSearchDialog';
 import { useAdvancedSearch, useGlobalSearch, useSavedSearches } from '@/hooks/useSearch';
 import { useNumberFormat } from '@/context/NumberFormatContext';
-import { formatCurrency } from '@/utils/currency';
+import { DEFAULT_CURRENCY, formatCurrency } from '@/utils/currency';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useLocale } from '@/context/LocaleContext';
 import {
@@ -62,7 +62,7 @@ export default function SearchResultsPage() {
   // Format amount with currency symbol respecting user's number format preference
   const formatAmount = (amount?: number, currencyCode?: string): string => {
     if (amount === undefined || amount === null) return '';
-    return formatCurrency(amount, currencyCode || 'EUR', {
+    return formatCurrency(amount, currencyCode || DEFAULT_CURRENCY, {
       showSymbol: true,
       numberFormat,
     });

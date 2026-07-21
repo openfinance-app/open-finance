@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { useCompleteOnboarding } from '@/hooks/useAuth';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
 import { CountrySelector } from '@/components/common/CountrySelector';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import type { OnboardingRequest } from '@/types/user';
 
 // ---------------------------------------------------------------------------
@@ -48,7 +49,7 @@ function detectDefaults(): {
     countryCode = langCode === 'fr' ? 'FR' : 'US';
   }
 
-  const baseCurrency = COUNTRY_CURRENCY_MAP[countryCode] ?? 'USD';
+  const baseCurrency = COUNTRY_CURRENCY_MAP[countryCode] ?? DEFAULT_CURRENCY;
 
   // Language — only en/fr are supported
   const language: string = langCode === 'fr' ? 'fr' : 'en';

@@ -7,6 +7,7 @@
 
 import { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 import type { BuyRentInputs, InvestmentInputs } from '@/types/realEstateTools';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 
 /**
  * Custom hook for debouncing values
@@ -204,7 +205,7 @@ export function useLazyChart() {
 /**
  * Memoized currency formatter
  */
-export function useMemoizedFormatter(currency: string = 'EUR') {
+export function useMemoizedFormatter(currency: string = DEFAULT_CURRENCY) {
   return useMemo(() => {
     const currencyFormatter = new Intl.NumberFormat('fr-FR', {
       style: 'currency',

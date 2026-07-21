@@ -139,6 +139,8 @@ class ImportServiceTest {
 
     @Mock private UserSettingsRepository userSettingsRepository;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     private ImportService importService;
 
     private static final Long USER_ID = 123L;
@@ -177,6 +179,7 @@ class ImportServiceTest {
                         institutionRepository,
                         currencyRepository,
                         payeeRepository,
+                        defaultCurrencyProvider,
                         importConfirmationExecutor,
                         userSettingsRepository);
 
@@ -234,6 +237,9 @@ class ImportServiceTest {
                             c.setId(900L);
                             return c;
                         });
+
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     // ========================================

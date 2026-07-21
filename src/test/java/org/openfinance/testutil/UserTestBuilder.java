@@ -23,6 +23,7 @@ public class UserTestBuilder {
     private String email = "test@example.com";
     private String passwordHash = "$2a$10$hashedpassword";
     private String masterPasswordSalt = "salt123456";
+    private String baseCurrency = "USD";
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -71,6 +72,11 @@ public class UserTestBuilder {
         return this;
     }
 
+    public UserTestBuilder withBaseCurrency(String baseCurrency) {
+        this.baseCurrency = baseCurrency;
+        return this;
+    }
+
     public UserTestBuilder withCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
         return this;
@@ -93,6 +99,7 @@ public class UserTestBuilder {
                         .email(email)
                         .passwordHash(passwordHash)
                         .masterPasswordSalt(masterPasswordSalt)
+                        .baseCurrency(baseCurrency)
                         .createdAt(createdAt)
                         .updatedAt(updatedAt)
                         .build();

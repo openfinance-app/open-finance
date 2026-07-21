@@ -82,14 +82,15 @@ public class User {
 
     /**
      * User's preferred base currency for multi-currency conversion. ISO 4217 currency code (e.g.,
-     * "USD", "EUR", "GBP"). Default value is "USD" if not specified. Requirement 6.2.13: Base
-     * currency setting for user preferences
+     * "USD", "EUR", "GBP"). Never defaulted in the entity: every creation path sets it explicitly
+     * from the application-wide default (see {@code
+     * org.openfinance.service.DefaultCurrencyProvider}), which is the single source of truth.
+     * Requirement 6.2.13: Base currency setting for user preferences
      */
     @NotNull(message = "Base currency cannot be null")
     @Size(min = 3, max = 10, message = "Base currency must be between 3 and 10 characters")
     @Column(name = "base_currency", nullable = false, length = 10)
-    @Builder.Default
-    private String baseCurrency = "USD";
+    private String baseCurrency;
 
     /**
      * User's optional secondary currency for side-by-side comparison in tooltips. ISO 4217 currency

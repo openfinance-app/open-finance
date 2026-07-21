@@ -18,6 +18,7 @@ import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { useAuthContext } from '@/context/AuthContext';
 import { getLiabilityTypeName } from '@/hooks/useLiabilities';
 import { useProperties } from '@/hooks/useRealEstate';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import type { Liability, LiabilityRequest, LiabilityType } from '@/types/liability';
 
 const liabilityTypes: LiabilityType[] = [
@@ -117,7 +118,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
         startDate: today,
         endDate: '',
         minimumPayment: 0,
-        currency: baseCurrency || 'USD',
+        currency: baseCurrency || DEFAULT_CURRENCY,
         notes: '',
         institutionId: '',
         insurancePercentage: 0,

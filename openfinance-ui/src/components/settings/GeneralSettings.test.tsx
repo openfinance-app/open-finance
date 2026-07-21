@@ -97,7 +97,7 @@ describe('GeneralSettings', () => {
 
   it('shows current base currency value', () => {
     render(<GeneralSettings />, { wrapper: Wrapper });
-    expect(screen.getByTestId('currency-selector')).toHaveAttribute('data-value', 'USD');
+    expect(screen.getByTestId('currency-selector')).toHaveAttribute('data-value', 'EUR');
   });
 
   it('renders country selector', () => {

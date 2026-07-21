@@ -3,9 +3,24 @@
 
 Four parallel audits completed. Here's the synthesized report.
 
+---
+
+## ✅ Remediation Status
+
+| Item | Status |
+| --- | --- |
+| **Critical Theme 1 — Default-currency chaos** | ✅ **FIXED & VERIFIED** |
+| Critical Theme 2 — Float/double monetary math | ⬜ Not started |
+| Critical Theme 3 — Currency-decimal hardcoding | ⬜ Not started |
+| HIGH / MEDIUM / LOW severity items | ⬜ Not started |
+
+**Verification:** backend `mvn test` → 2371 pass / 0 fail / 0 err; frontend `type-check` + Vitest → 3253 pass / 0 fail; `mvn spotless:apply` + ESLint (0 errors) clean.
+
+---
+
 ## Critical Themes (Root Causes)
 
-### 1. Default-currency chaos — no single source of truth
+### 1. Default-currency chaos — no single source of truth ✅ FIXED
 `application.yml` says `base-currency: EUR`, `User.java:92` defaults to `"USD"`, frontend `currency.ts:46` defines `DEFAULT_CURRENCY = 'EUR'`, and services fallback to a mix of USD/EUR depending on the method. A user with null `baseCurrency` gets **different currencies from different endpoints**.
 
 - `entity/User.java:92` — `private String baseCurrency = "USD";`
@@ -21,6 +36,13 @@ Four parallel audits completed. Here's the synthesized report.
 **PO Assessment:** User can set their preferred base currency in settings, if not set, a default application to EUR.
 
 **Fix:** Introduce one `DefaultCurrencyProvider` reading `application.yml`, replace every `: "USD"` / `|| 'EUR'` fallback, remove the `User.baseCurrency = "USD"` entity default.
+
+**✅ Resolution (done):**
+- New `config/ExchangeRateProperties` binds `application.exchange-rates.base-currency` (default **EUR**); new `service/DefaultCurrencyProvider` (`getDefaultCurrency` / `resolve` / `resolveForUser`) is the single source of truth — added test-first with 9 unit tests (`DefaultCurrencyProviderTest`).
+- Removed the `User.baseCurrency = "USD"` entity default; registration (`UserService`) and both seeders (`LiveDemoData`, `TestDataSeeder`) now set the app default explicitly.
+- Replaced **every** hardcoded USD/EUR user-default fallback across the backend: `DashboardService` (12), `NetWorthService` (5 overloads), `AuthService`, `DashboardController`, `NetWorthSnapshotScheduler`, `FinancialContextBuilder` (5), `ImportService` (9), `AICategorizationService`, `BudgetService` (3), `InsightService` (2), `TransactionService` (transfers + resolve), and the 5 duplicated `resolveBaseCurrency` copies (`Asset`/`Account`/`RealEstate`/`Transaction`/`Liability` services) now delegate to the provider.
+- Frontend: unified **29 files / 42 literals** onto `DEFAULT_CURRENCY` (EUR) from `@/utils/currency`.
+- Deliberately left untouched (legitimate, not user-defaults): `ExchangeRateService` USD FX-pivot logic, demo/seed account-currency data, the ISO `CURRENCIES` list, and country→currency maps.
 
 ### 2. Float/double for monetary math (violates AGENTS.md)
 - `service/InterestCalculatorService.java:75-84` — compound interest computed in `double`, `BigDecimal.valueOf(netInterest)`

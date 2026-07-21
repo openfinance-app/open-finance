@@ -34,6 +34,7 @@ import {
 import { useCategories } from '@/hooks/useCategories';
 import { useUserSettings, useBaseCurrency } from '@/hooks/useUserSettings';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { formatDate as globalFormatDate } from '@/utils/date';
 import { translateCategoryName } from '@/utils/categoryTranslation';
 import type { ImportTransactionDTO } from '@/types/import';
@@ -211,7 +212,7 @@ export function ImportReview({
 
   const { data: categories = [] } = useCategories();
   const { data: settings } = useUserSettings();
-  const { data: baseCurrency = 'EUR' } = useBaseCurrency();
+  const { data: baseCurrency = DEFAULT_CURRENCY } = useBaseCurrency();
   const { format: formatCurrency } = useFormatCurrency();
 
   // -------------------------------------------------------------------------

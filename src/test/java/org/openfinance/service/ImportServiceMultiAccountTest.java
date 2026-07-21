@@ -87,6 +87,8 @@ class ImportServiceMultiAccountTest {
     @Mock private UserSettingsRepository userSettingsRepository;
     @Mock private ObjectProvider<ImportConfirmationExecutor> importConfirmationExecutor;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     private ImportService importService;
     private ObjectMapper objectMapper;
 
@@ -120,6 +122,7 @@ class ImportServiceMultiAccountTest {
                         institutionRepository,
                         currencyRepository,
                         payeeRepository,
+                        defaultCurrencyProvider,
                         importConfirmationExecutor,
                         userSettingsRepository);
 
@@ -132,6 +135,9 @@ class ImportServiceMultiAccountTest {
                             p.setId(999L);
                             return p;
                         });
+
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     @Test

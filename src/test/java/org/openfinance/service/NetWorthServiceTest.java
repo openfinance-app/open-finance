@@ -61,6 +61,8 @@ class NetWorthServiceTest {
 
     @Mock private CurrencyRepository currencyRepository;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private NetWorthService netWorthService;
 
     private Long testUserId;
@@ -80,6 +82,7 @@ class NetWorthServiceTest {
         // Mock exchange rate service to return amount unchanged (identity conversion)
         when(exchangeRateService.convert(any(BigDecimal.class), any(), any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(defaultCurrencyProvider);
     }
 
     // ==================== calculateNetWorth Tests ====================

@@ -19,6 +19,7 @@ import { AccountSelector } from '@/components/ui/AccountSelector';
 import { useAuthContext } from '@/context/AuthContext';
 import { useActivePayees } from '@/hooks/usePayees';
 import { useLatestExchangeRate, useCurrencyFormat } from '@/hooks/useCurrency';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import type {
   RecurringTransaction,
   RecurringTransactionRequest,
@@ -153,7 +154,7 @@ export function RecurringTransactionForm({
       }
       : {
         type: 'EXPENSE',
-        currency: baseCurrency || 'USD',
+        currency: baseCurrency || DEFAULT_CURRENCY,
         frequency: 'MONTHLY',
         nextOccurrence: new Date().toISOString().split('T')[0],
         amount: 0,
@@ -168,8 +169,8 @@ export function RecurringTransactionForm({
   const currency = watch('currency');
 
   // Currency conversion for preview
-  const { data: exchangeRate } = useLatestExchangeRate(currency || 'USD', baseCurrency || 'USD');
-  const formatBaseCurrency = useCurrencyFormat(baseCurrency || 'USD');
+  const { data: exchangeRate } = useLatestExchangeRate(currency || DEFAULT_CURRENCY, baseCurrency || DEFAULT_CURRENCY);
+  const formatBaseCurrency = useCurrencyFormat(baseCurrency || DEFAULT_CURRENCY);
   const convertedAmount = amount && exchangeRate && currency !== baseCurrency ? amount * exchangeRate.rate : null;
 
   // Get payees for auto-fill logic

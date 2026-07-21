@@ -3,7 +3,7 @@
  * 
  * Matches backend DTOs and entities for Real Estate management
  */
-import { formatCurrency } from '../utils/currency';
+import { DEFAULT_CURRENCY, formatCurrency } from '@/utils/currency';
 import i18next from 'i18next';
 
 /**
@@ -228,7 +228,7 @@ export function getPropertyTypeBadgeColor(type: PropertyType): string {
 export function formatAppreciation(
   appreciation: number | undefined,
   percentage: number | undefined,
-  currency: string = 'USD'
+  currency: string = DEFAULT_CURRENCY
 ): {
   text: string;
   color: string;

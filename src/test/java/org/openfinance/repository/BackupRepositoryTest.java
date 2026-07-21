@@ -72,6 +72,7 @@ class BackupRepositoryTest {
                         .email("user1@example.com")
                         .passwordHash("$2a$10$hashedPasswordExample123456789")
                         .masterPasswordSalt("base64EncodedSaltExample==")
+                        .baseCurrency("USD")
                         .build();
         testUser1 = userRepository.save(testUser1);
 
@@ -81,6 +82,7 @@ class BackupRepositoryTest {
                         .email("user2@example.com")
                         .passwordHash("$2a$10$hashedPasswordExample987654321")
                         .masterPasswordSalt("base64EncodedSaltExample22==")
+                        .baseCurrency("USD")
                         .build();
         testUser2 = userRepository.save(testUser2);
 

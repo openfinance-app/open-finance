@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.entity.*;
 import org.openfinance.repository.*;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.service.DefaultCurrencyProvider;
 import org.openfinance.service.NetWorthService;
 import org.springframework.context.MessageSource;
 
@@ -50,6 +51,8 @@ class FinancialContextBuilderTest {
 
     @Mock private MessageSource messageSource;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private FinancialContextBuilder contextBuilder;
 
     private Long userId;
@@ -61,6 +64,8 @@ class FinancialContextBuilderTest {
         lenient()
                 .when(messageSource.getMessage(anyString(), any(), anyString(), any()))
                 .thenAnswer(invocation -> invocation.getArgument(2));
+
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(defaultCurrencyProvider);
     }
 
     @Nested

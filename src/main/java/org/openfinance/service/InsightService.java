@@ -82,6 +82,7 @@ public class InsightService {
     private final LiabilityRepository liabilityRepository;
     private final EncryptionService encryptionService;
     private final MessageSource messageSource;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
     private final AIProvider aiProvider;
     private final ObjectMapper objectMapper;
     private final ExchangeRateService exchangeRateService;
@@ -591,7 +592,7 @@ public class InsightService {
                     accountRepository.findByUserIdAndIsActive(userId, true).stream()
                             .findFirst()
                             .map(Account::getCurrency)
-                            .orElse("EUR");
+                            .orElse(defaultCurrencyProvider.getDefaultCurrency());
 
             // Estimate monthly income from last 30 days of INCOME transactions (converted
             // to base
@@ -789,7 +790,7 @@ public class InsightService {
                     accountRepository.findByUserIdAndIsActive(userId, true).stream()
                             .findFirst()
                             .map(Account::getCurrency)
-                            .orElse("EUR");
+                            .orElse(defaultCurrencyProvider.getDefaultCurrency());
 
             String prompt =
                     String.format(

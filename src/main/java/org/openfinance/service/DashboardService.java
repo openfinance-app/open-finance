@@ -91,6 +91,7 @@ public class DashboardService {
     private final EncryptionService encryptionService;
     private final InterestCalculatorService interestCalculatorService;
     private final ExchangeRateService exchangeRateService;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
 
     /**
      * Retrieves a complete dashboard summary for the specified user.
@@ -196,10 +197,7 @@ public class DashboardService {
                                 () ->
                                         new IllegalArgumentException(
                                                 "User not found with ID: " + userId));
-        final String baseCurrency =
-                (user.getBaseCurrency() == null || user.getBaseCurrency().isBlank())
-                        ? "USD"
-                        : user.getBaseCurrency();
+        final String baseCurrency = defaultCurrencyProvider.resolve(user.getBaseCurrency());
 
         NetWorth currentNetWorth =
                 netWorthService.saveNetWorthSnapshot(userId, today, baseCurrency);
@@ -430,10 +428,7 @@ public class DashboardService {
                         .findById(userId)
                         .orElseThrow(
                                 () -> new IllegalArgumentException("User not found: " + userId));
-        final String cashFlowBase =
-                (user.getBaseCurrency() != null && !user.getBaseCurrency().isBlank())
-                        ? user.getBaseCurrency()
-                        : "USD";
+        final String cashFlowBase = defaultCurrencyProvider.resolve(user.getBaseCurrency());
 
         // Calculate income and expenses (convert each transaction to base currency).
         // Internal transfer legs (transferId != null) are excluded — moving money between
@@ -499,10 +494,7 @@ public class DashboardService {
                         .findById(userId)
                         .orElseThrow(
                                 () -> new IllegalArgumentException("User not found: " + userId));
-        final String cfBase =
-                (cfUser.getBaseCurrency() != null && !cfUser.getBaseCurrency().isBlank())
-                        ? cfUser.getBaseCurrency()
-                        : "USD";
+        final String cfBase = defaultCurrencyProvider.resolve(cfUser.getBaseCurrency());
 
         // Internal transfer legs (transferId != null) are excluded from cash flow.
         BigDecimal income =
@@ -576,10 +568,7 @@ public class DashboardService {
                         .findById(userId)
                         .orElseThrow(
                                 () -> new IllegalArgumentException("User not found: " + userId));
-        final String dailyBase =
-                (dailyUser.getBaseCurrency() != null && !dailyUser.getBaseCurrency().isBlank())
-                        ? dailyUser.getBaseCurrency()
-                        : "USD";
+        final String dailyBase = defaultCurrencyProvider.resolve(dailyUser.getBaseCurrency());
 
         Map<LocalDate, BigDecimal> dailyIncome = new HashMap<>();
         Map<LocalDate, BigDecimal> dailyExpense = new HashMap<>();
@@ -805,10 +794,7 @@ public class DashboardService {
                         .findById(userId)
                         .orElseThrow(
                                 () -> new IllegalArgumentException("User not found: " + userId));
-        final String sankeyBase =
-                (sankeyUser.getBaseCurrency() != null && !sankeyUser.getBaseCurrency().isBlank())
-                        ? sankeyUser.getBaseCurrency()
-                        : "USD";
+        final String sankeyBase = defaultCurrencyProvider.resolve(sankeyUser.getBaseCurrency());
 
         // ── Income sources grouped by category (internal transfers excluded) ─────
         Map<String, BigDecimal> incomeByCategoryKey =
@@ -989,7 +975,7 @@ public class DashboardService {
                                 () ->
                                         new IllegalArgumentException(
                                                 "User not found with ID: " + userId));
-        String baseCurrency = user.getBaseCurrency() != null ? user.getBaseCurrency() : "EUR";
+        String baseCurrency = defaultCurrencyProvider.resolve(user.getBaseCurrency());
 
         // Calculate total portfolio value (converted to base currency)
         BigDecimal totalPortfolioValue =
@@ -1132,7 +1118,7 @@ public class DashboardService {
                                 () ->
                                         new IllegalArgumentException(
                                                 "User not found with ID: " + userId));
-        String baseCurrency = user.getBaseCurrency() != null ? user.getBaseCurrency() : "EUR";
+        String baseCurrency = defaultCurrencyProvider.resolve(user.getBaseCurrency());
 
         // Calculate total portfolio value and cost (converted to base currency)
         BigDecimal totalValue =
@@ -1298,7 +1284,7 @@ public class DashboardService {
                                 () ->
                                         new IllegalArgumentException(
                                                 "User not found with ID: " + userId));
-        String baseCurrency = user.getBaseCurrency() != null ? user.getBaseCurrency() : "EUR";
+        String baseCurrency = defaultCurrencyProvider.resolve(user.getBaseCurrency());
 
         // Calculate date range
         LocalDate endDate = LocalDate.now();
@@ -1460,7 +1446,7 @@ public class DashboardService {
                                 () ->
                                         new IllegalArgumentException(
                                                 "User not found with ID: " + userId));
-        String baseCurrency = user.getBaseCurrency() != null ? user.getBaseCurrency() : "EUR";
+        String baseCurrency = defaultCurrencyProvider.resolve(user.getBaseCurrency());
 
         List<Transaction> transactions =
                 transactionRepository.findByUserIdAndDateBetween(userId, startDate, endDate);
@@ -1598,7 +1584,7 @@ public class DashboardService {
                                 () ->
                                         new IllegalArgumentException(
                                                 "User not found with ID: " + userId));
-        String baseCurrency = user.getBaseCurrency() != null ? user.getBaseCurrency() : "EUR";
+        String baseCurrency = defaultCurrencyProvider.resolve(user.getBaseCurrency());
 
         Map<String, NetWorthAllocation.NetWorthAllocationBuilder> categoryMap = new HashMap<>();
 
@@ -1852,7 +1838,7 @@ public class DashboardService {
                                 () ->
                                         new IllegalArgumentException(
                                                 "User not found with ID: " + userId));
-        String baseCurrency = user.getBaseCurrency() != null ? user.getBaseCurrency() : "EUR";
+        String baseCurrency = defaultCurrencyProvider.resolve(user.getBaseCurrency());
 
         List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
         List<AccountInterest> accountInterests = new java.util.ArrayList<>();
@@ -2167,10 +2153,7 @@ public class DashboardService {
     }
 
     private String getUserCurrency(Long userId) {
-        return userRepository
-                .findById(userId)
-                .map(u -> u.getBaseCurrency() != null ? u.getBaseCurrency() : "USD")
-                .orElse("USD");
+        return defaultCurrencyProvider.resolveForUser(userId);
     }
 
     private BigDecimal computePeriodFraction(String period) {

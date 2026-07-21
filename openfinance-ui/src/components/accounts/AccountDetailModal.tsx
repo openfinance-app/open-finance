@@ -47,6 +47,7 @@ import {
 } from '@/hooks/useAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { cn } from '@/lib/utils';
 import type { AccountType, AccountRequest } from '@/types/account';
 
@@ -124,7 +125,7 @@ export function AccountDetailModal({
   const chartCurrency =
     account?.isConverted && account?.baseCurrency
       ? account.baseCurrency
-      : account?.currency ?? 'USD';
+      : account?.currency ?? DEFAULT_CURRENCY;
 
   const transactions = transactionsData?.content ?? [];
 

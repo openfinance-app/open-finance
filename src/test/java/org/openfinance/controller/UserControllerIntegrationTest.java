@@ -99,7 +99,7 @@ class UserControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username", is("testuser")))
                 .andExpect(jsonPath("$.email", is("testuser@example.com")))
-                .andExpect(jsonPath("$.baseCurrency", is("USD"))) // Default value
+                .andExpect(jsonPath("$.baseCurrency", is("EUR"))) // Application default (EUR)
                 .andExpect(jsonPath("$.id", notNullValue()))
                 .andExpect(jsonPath("$.createdAt", notNullValue()));
     }
@@ -121,7 +121,7 @@ class UserControllerIntegrationTest {
                                 .header("X-Encryption-Session", encryptionSession))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.baseCurrency", is("USD")));
+                .andExpect(jsonPath("$.baseCurrency", is("EUR")));
     }
 
     @Test

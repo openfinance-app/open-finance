@@ -58,6 +58,7 @@ class DashboardServiceBatchLoadTest {
     @Mock private EncryptionService encryptionService;
     @Mock private InterestCalculatorService interestCalculatorService;
     @Mock private ExchangeRateService exchangeRateService;
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
 
     private final Long userId = 1L;
 
@@ -75,7 +76,10 @@ class DashboardServiceBatchLoadTest {
                         transactionMapper,
                         encryptionService,
                         interestCalculatorService,
-                        exchangeRateService);
+                        exchangeRateService,
+                        defaultCurrencyProvider);
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     @Test

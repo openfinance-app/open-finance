@@ -58,6 +58,8 @@ class BudgetServiceAnalyzeTest {
 
     @Mock private OperationHistoryService operationHistoryService;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private BudgetService budgetService;
 
     private User testUser;
@@ -99,6 +101,8 @@ class BudgetServiceAnalyzeTest {
                         .type(TransactionType.EXPENSE)
                         .date(LocalDate.now().minusMonths(1))
                         .build();
+
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(defaultCurrencyProvider);
     }
 
     // ========== ANALYZE CATEGORY SPENDING TESTS ==========
@@ -130,7 +134,7 @@ class BudgetServiceAnalyzeTest {
         assertThat(suggestion.getAverageSpent()).isEqualByComparingTo(new BigDecimal("250.00"));
         assertThat(suggestion.getTransactionCount()).isEqualTo(7);
         assertThat(suggestion.getPeriod()).isEqualTo(BudgetPeriod.MONTHLY);
-        assertThat(suggestion.getCurrency()).isEqualTo("EUR");
+        assertThat(suggestion.getCurrency()).isEqualTo("USD");
         assertThat(suggestion.isHasExistingBudget()).isFalse();
 
         verify(categoryRepository).findByUserIdAndType(1L, CategoryType.EXPENSE);
@@ -215,7 +219,7 @@ class BudgetServiceAnalyzeTest {
     }
 
     @Test
-    void shouldDefaultCurrencyToEUR() {
+    void shouldDefaultCurrencyToResolvedUserCurrency() {
         // Given
         List<Category> categories = Arrays.asList(testCategory1);
         List<Transaction> transactions = Arrays.asList(testTransaction);
@@ -231,8 +235,8 @@ class BudgetServiceAnalyzeTest {
         List<BudgetSuggestion> suggestions =
                 budgetService.analyzeCategorySpending(1L, BudgetPeriod.MONTHLY, 6, null);
 
-        // Then
-        assertThat(suggestions.get(0).getCurrency()).isEqualTo("EUR");
+        // Then: suggestions use the user's resolved base currency (mocked provider default)
+        assertThat(suggestions.get(0).getCurrency()).isEqualTo("USD");
     }
 
     @Test

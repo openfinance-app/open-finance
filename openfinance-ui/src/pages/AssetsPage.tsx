@@ -25,6 +25,7 @@ import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { useAuthContext } from '@/context/AuthContext';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import {
   useAssetsSearch,
   useAssets,
@@ -121,7 +122,7 @@ export default function AssetsPage() {
     const totalGain = totalValue - totalCost;
     const gainPct = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
     // Prefer the base currency from the server response; fall back to auth context baseCurrency
-    const currency = assetList[0]?.baseCurrency ?? baseCurrency ?? assetList[0]?.currency ?? 'USD';
+    const currency = assetList[0]?.baseCurrency ?? baseCurrency ?? assetList[0]?.currency ?? DEFAULT_CURRENCY;
     return { totalValue, totalCost, totalGain, gainPct, currency };
   };
 

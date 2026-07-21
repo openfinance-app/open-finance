@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { IEstimatedInterestSummary } from '@/types/dashboard';
 import { ConvertedAmount } from '../ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { SimpleSelect } from '../ui/SimpleSelect';
 
 interface EstimatedInterestCardProps {
@@ -17,7 +18,7 @@ interface EstimatedInterestCardProps {
  */
 export default function EstimatedInterestCard({ summary, period }: EstimatedInterestCardProps) {
     const [filterType, setFilterType] = useState<'ALL' | 'ACCOUNTS' | 'LIABILITIES'>('ALL');
-    const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(summary.currency || 'EUR');
+    const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(summary.currency || DEFAULT_CURRENCY);
     const { t } = useTranslation('dashboard');
 
     const periodLabel = t(`estimatedInterest.period.${period}`, {
@@ -70,7 +71,7 @@ export default function EstimatedInterestCard({ summary, period }: EstimatedInte
                     <p className="text-3xl font-bold text-green-500">
                         <ConvertedAmount
                             amount={displayEarned}
-                            currency={summary.currency || 'EUR'}
+                            currency={summary.currency || DEFAULT_CURRENCY}
                             isConverted={false}
                             secondaryAmount={convert(displayEarned)}
                             secondaryCurrency={secCurrency}
@@ -82,7 +83,7 @@ export default function EstimatedInterestCard({ summary, period }: EstimatedInte
                         <TrendingUp className="w-3 h-3 text-blue-400" />
                         <span>{t('estimatedInterest.projectedNextYear')}: <span className="text-text-primary font-medium"><ConvertedAmount
                             amount={displayProjected}
-                            currency={summary.currency || 'EUR'}
+                            currency={summary.currency || DEFAULT_CURRENCY}
                             isConverted={false}
                             secondaryAmount={convert(displayProjected)}
                             secondaryCurrency={secCurrency}
@@ -113,7 +114,7 @@ export default function EstimatedInterestCard({ summary, period }: EstimatedInte
                                     <div className="text-sm font-bold text-green-500">
                                         <ConvertedAmount
                                             amount={account.interestEarned}
-                                            currency={summary.currency || 'EUR'}
+                                            currency={summary.currency || DEFAULT_CURRENCY}
                                             isConverted={false}
                                             secondaryAmount={convert(account.interestEarned)}
                                             secondaryCurrency={secCurrency}
@@ -124,7 +125,7 @@ export default function EstimatedInterestCard({ summary, period }: EstimatedInte
                                     <div className="text-xs text-text-muted">
                                         {t('estimatedInterest.projShort')}: <ConvertedAmount
                                             amount={account.projectedInterest}
-                                            currency={summary.currency || 'EUR'}
+                                            currency={summary.currency || DEFAULT_CURRENCY}
                                             isConverted={false}
                                             secondaryAmount={convert(account.projectedInterest)}
                                             secondaryCurrency={secCurrency}

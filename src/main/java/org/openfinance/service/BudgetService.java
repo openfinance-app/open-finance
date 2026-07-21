@@ -92,6 +92,7 @@ public class BudgetService {
     private final MessageSource messageSource;
     private final OperationHistoryService operationHistoryService;
     private final SearchTokenService searchTokenService;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
 
     // Status thresholds
     private static final BigDecimal WARNING_THRESHOLD = BigDecimal.valueOf(75);
@@ -565,7 +566,7 @@ public class BudgetService {
                     .totalRemaining(BigDecimal.ZERO)
                     .averageSpentPercentage(BigDecimal.ZERO)
                     .budgets(List.of())
-                    .currency("USD") // Default
+                    .currency(defaultCurrencyProvider.resolveForUser(userId)) // Default
                     .build();
         }
 
@@ -678,7 +679,7 @@ public class BudgetService {
                     .totalRemaining(BigDecimal.ZERO)
                     .averageSpentPercentage(BigDecimal.ZERO)
                     .budgets(List.of())
-                    .currency("USD")
+                    .currency(defaultCurrencyProvider.resolveForUser(userId))
                     .build();
         }
 
@@ -928,6 +929,10 @@ public class BudgetService {
 
         List<BudgetSuggestion> suggestions = new ArrayList<>();
 
+        // Default currency for suggestions is the user's base currency; the caller may still
+        // override it via the request.
+        String suggestionCurrency = defaultCurrencyProvider.resolveForUser(userId);
+
         for (Category category : categories) {
             // Split window into sub-periods matching the target budget period
             List<LocalDate[]> windows = buildSubPeriodWindows(period, startDate, endDate);
@@ -1009,7 +1014,7 @@ public class BudgetService {
                             .averageSpent(averageSpent)
                             .transactionCount(totalTxCount)
                             .period(period)
-                            .currency("EUR") // default; caller may override via request
+                            .currency(suggestionCurrency) // caller may override via request
                             .startDate(startDate)
                             .endDate(endDate)
                             .hasExistingBudget(hasExistingBudget)

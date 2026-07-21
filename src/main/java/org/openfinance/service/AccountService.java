@@ -79,6 +79,7 @@ public class AccountService {
     private final org.openfinance.repository.AssetRepository assetRepository;
     private final OperationHistoryService operationHistoryService;
     private final SearchTokenService searchTokenService;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
     private final EncryptionProperties encryptionProperties;
 
     /**
@@ -1017,9 +1018,7 @@ public class AccountService {
             AccountResponse response, Long userId, String nativeCurrency, BigDecimal nativeAmount) {
         User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
         String baseCurrency =
-                user != null && user.getBaseCurrency() != null && !user.getBaseCurrency().isBlank()
-                        ? user.getBaseCurrency()
-                        : "USD";
+                defaultCurrencyProvider.resolve(user != null ? user.getBaseCurrency() : null);
         String secCurrency = user != null ? user.getSecondaryCurrency() : null;
         response.setBaseCurrency(baseCurrency);
 
@@ -1080,20 +1079,14 @@ public class AccountService {
     }
 
     /**
-     * Resolves the user's base currency, defaulting to "USD" if not configured.
+     * Resolves the user's base currency, delegating to {@link DefaultCurrencyProvider} (which falls
+     * back to the application default when the user has no configured base currency).
      *
      * @param userId the user ID
-     * @return the user's base currency or "USD" as fallback
+     * @return the user's base currency or the application default
      */
     private String resolveBaseCurrency(Long userId) {
-        if (userId == null) {
-            return "USD";
-        }
-        return userRepository
-                .findById(userId)
-                .map(User::getBaseCurrency)
-                .filter(bc -> bc != null && !bc.isBlank())
-                .orElse("USD");
+        return defaultCurrencyProvider.resolveForUser(userId);
     }
 
     /**

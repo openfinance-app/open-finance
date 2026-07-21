@@ -61,6 +61,7 @@ class RealEstateRepositoryTest {
                         .email("realestate@example.com")
                         .passwordHash("$2a$10$hashedPasswordExample123456789")
                         .masterPasswordSalt("base64EncodedSaltExample==")
+                        .baseCurrency("USD")
                         .build();
         testUser = userRepository.save(testUser);
 
@@ -70,6 +71,7 @@ class RealEstateRepositoryTest {
                         .email("other@example.com")
                         .passwordHash("$2a$10$hashedPasswordExample123456789")
                         .masterPasswordSalt("base64EncodedSaltExample==")
+                        .baseCurrency("USD")
                         .build();
         otherUser = userRepository.save(otherUser);
 

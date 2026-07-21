@@ -159,7 +159,8 @@ class DashboardControllerIntegrationTest {
                 .andExpect(jsonPath("$.totalTransactions", greaterThanOrEqualTo(2)))
                 .andExpect(
                         jsonPath("$.baseCurrency")
-                                .value("USD")); // User.baseCurrency defaults to USD
+                                .value("EUR")); // User.baseCurrency defaults to the app default
+        // (EUR)
     }
 
     @Test

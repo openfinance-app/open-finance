@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import i18next from 'i18next';
 import { buildEncryptionHeaders } from '@/utils/encryption';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import type {
   Liability,
   LiabilityRequest,
@@ -344,7 +345,7 @@ export const calculateMonthsRemaining = (endDate: string | undefined): number =>
 /**
  * Format currency with appropriate symbol
  */
-export const formatCurrency = (amount: number, currency: string = 'USD'): string => {
+export const formatCurrency = (amount: number, currency: string = DEFAULT_CURRENCY): string => {
   const symbols: Record<string, string> = {
     USD: '$',
     EUR: '€',

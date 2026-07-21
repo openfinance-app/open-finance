@@ -55,6 +55,8 @@ class LiabilityServiceTest {
 
     @Mock private SearchTokenService searchTokenService;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private LiabilityService liabilityService;
 
     private Long testUserId;
@@ -68,6 +70,8 @@ class LiabilityServiceTest {
         org.mockito.Mockito.lenient()
                 .when(userRepository.findById(testUserId))
                 .thenReturn(Optional.of(defaultUser));
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     // ============ Helper Methods ============

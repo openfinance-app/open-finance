@@ -57,6 +57,8 @@ class UserServiceTest {
 
     @Mock private OperationHistoryService operationHistoryService;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private UserService userService;
 
     private UserRegistrationRequest validRequest;
@@ -95,6 +97,9 @@ class UserServiceTest {
                         .email("john@example.com")
                         .createdAt(savedUser.getCreatedAt())
                         .build();
+
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     @Test

@@ -28,7 +28,7 @@ import {
   calculateAppreciatedValue,
 } from '@/utils/realEstateCalculations';
 import { calculateAllRegimes } from '@/utils/taxRegimeCalculations';
-import { formatCurrency } from '@/utils/currency';
+import { DEFAULT_CURRENCY, formatCurrency } from '@/utils/currency';
 
 /**
  * Real Estate Calculation Service
@@ -411,7 +411,7 @@ export class RealEstateCalculationService {
    * @param results - Simulation results
    * @returns Recommendation message
    */
-  static getRecommendation(results: BuyRentResults, baseCurrency: string = 'EUR'): string {
+  static getRecommendation(results: BuyRentResults, baseCurrency: string = DEFAULT_CURRENCY): string {
     const { comparison } = results.summary;
     
     if (comparison.winner === 'buy') {

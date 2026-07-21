@@ -74,6 +74,7 @@ class UnusualTransactionRepositoryTest {
                                 .email("user1@test.com")
                                 .passwordHash("hash1")
                                 .masterPasswordSalt("salt1")
+                                .baseCurrency("USD")
                                 .build());
 
         user2 =
@@ -83,6 +84,7 @@ class UnusualTransactionRepositoryTest {
                                 .email("user2@test.com")
                                 .passwordHash("hash2")
                                 .masterPasswordSalt("salt2")
+                                .baseCurrency("USD")
                                 .build());
 
         account =

@@ -60,6 +60,8 @@ class AuthServiceTest {
     @Mock private EncryptionKeyCache encryptionKeyCache;
     @Mock private EncryptionProperties encryptionProperties;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private AuthService authService;
 
     private User testUser;
@@ -96,6 +98,8 @@ class AuthServiceTest {
                 .when(messageSource.getMessage(anyString(), any(), any()))
                 .thenReturn("Invalid username or password");
         lenient().when(encryptionProperties.isEnabled()).thenReturn(true);
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     @Test

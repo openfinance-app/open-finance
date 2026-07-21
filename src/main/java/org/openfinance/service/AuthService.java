@@ -82,6 +82,7 @@ public class AuthService {
     private final UserLoginStateService userLoginStateService;
     private final EncryptionKeyCache encryptionKeyCache;
     private final EncryptionProperties encryptionProperties;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
 
     /**
      * Maximum failed login attempts before the account is locked. Configurable via {@code
@@ -184,7 +185,7 @@ public class AuthService {
                     .username(user.getUsername())
                     .encryptionKey(null)
                     .encryptionEnabled(false)
-                    .baseCurrency(user.getBaseCurrency() != null ? user.getBaseCurrency() : "USD")
+                    .baseCurrency(defaultCurrencyProvider.resolve(user.getBaseCurrency()))
                     .onboardingComplete(user.isOnboardingComplete())
                     .build();
         }
@@ -239,8 +240,7 @@ public class AuthService {
                             .username(user.getUsername())
                             .encryptionKey(sessionToken)
                             .encryptionEnabled(true)
-                            .baseCurrency(
-                                    user.getBaseCurrency() != null ? user.getBaseCurrency() : "USD")
+                            .baseCurrency(defaultCurrencyProvider.resolve(user.getBaseCurrency()))
                             .onboardingComplete(user.isOnboardingComplete())
                             .build();
 

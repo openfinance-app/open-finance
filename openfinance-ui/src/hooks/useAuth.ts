@@ -18,6 +18,7 @@ import type {
 import { useAuthContext } from '@/context/AuthContext';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import { clearStoredEncryptionEnabled, setStoredEncryptionEnabled } from '@/utils/encryption';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 
 // Storage keys - keep consistent and avoid magic strings
 const AUTH_TOKEN_KEY = 'auth_token';
@@ -101,7 +102,7 @@ export function useLogin() {
         id: data.userId,
         username: data.username,
         email: '', // Email not returned in login response
-        baseCurrency: data.baseCurrency ?? 'USD',
+        baseCurrency: data.baseCurrency ?? DEFAULT_CURRENCY,
         createdAt: new Date().toISOString(),
       };
 

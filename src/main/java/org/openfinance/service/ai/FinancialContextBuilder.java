@@ -47,6 +47,7 @@ public class FinancialContextBuilder {
     private final NetWorthService netWorthService;
     private final EncryptionService encryptionService;
     private final MessageSource messageSource;
+    private final org.openfinance.service.DefaultCurrencyProvider defaultCurrencyProvider;
 
     /**
      * Builds a comprehensive financial context summary for the AI assistant.
@@ -184,7 +185,11 @@ public class FinancialContextBuilder {
 
     private void appendNetWorthSummary(StringBuilder sb, Long userId, List<Account> accounts) {
         // Determine base currency from user's first active account (default EUR)
-        String baseCurrency = accounts.stream().findFirst().map(Account::getCurrency).orElse("EUR");
+        String baseCurrency =
+                accounts.stream()
+                        .findFirst()
+                        .map(Account::getCurrency)
+                        .orElse(defaultCurrencyProvider.getDefaultCurrency());
 
         try {
             BigDecimal totalAssets = netWorthService.calculateTotalAssets(userId, baseCurrency);
@@ -230,7 +235,7 @@ public class FinancialContextBuilder {
                 String name = account.getName();
                 BigDecimal balance = account.getBalance();
                 String typeLabel = account.getType().getDisplayName();
-                String currency = account.getCurrency() != null ? account.getCurrency() : "EUR";
+                String currency = defaultCurrencyProvider.resolve(account.getCurrency());
 
                 sb.append(
                         String.format("• %s (%s): %,.2f %s\n", name, typeLabel, balance, currency));
@@ -270,7 +275,7 @@ public class FinancialContextBuilder {
                 TransactionType type = tx.getType();
 
                 String sign = type == TransactionType.EXPENSE ? "-" : "+";
-                String currency = tx.getCurrency() != null ? tx.getCurrency() : "EUR";
+                String currency = defaultCurrencyProvider.resolve(tx.getCurrency());
                 sb.append(
                         String.format(
                                 "%s | %s: %s | %s%,.2f %s\n",
@@ -336,7 +341,10 @@ public class FinancialContextBuilder {
 
             // Determine base currency from first account
             String baseCurrency =
-                    accounts.stream().findFirst().map(Account::getCurrency).orElse("EUR");
+                    accounts.stream()
+                            .findFirst()
+                            .map(Account::getCurrency)
+                            .orElse(defaultCurrencyProvider.getDefaultCurrency());
 
             sb.append(
                     String.format(
@@ -376,7 +384,10 @@ public class FinancialContextBuilder {
 
             // Determine base currency from first account
             String baseCurrency =
-                    accounts.stream().findFirst().map(Account::getCurrency).orElse("EUR");
+                    accounts.stream()
+                            .findFirst()
+                            .map(Account::getCurrency)
+                            .orElse(defaultCurrencyProvider.getDefaultCurrency());
 
             BigDecimal totalBalance = BigDecimal.ZERO;
 

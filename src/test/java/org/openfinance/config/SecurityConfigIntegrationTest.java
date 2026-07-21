@@ -98,6 +98,7 @@ class SecurityConfigIntegrationTest {
                         .email(random + "@example.com")
                         .passwordHash("$2a$10$hash")
                         .masterPasswordSalt("salt")
+                        .baseCurrency("USD")
                         .build();
 
         u = userRepository.save(u);

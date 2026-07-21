@@ -69,6 +69,7 @@ public class TestDataSeeder implements CommandLineRunner {
     private final InstitutionSeeder institutionSeeder;
     private final RecurringTransactionRepository recurringTransactionRepository;
     private final RealEstateRepository realEstateRepository;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
 
     private static final String TEST_USERNAME = "demo";
     private static final String TEST_PASSWORD = "demo123";
@@ -133,6 +134,7 @@ public class TestDataSeeder implements CommandLineRunner {
                         .email("demo@openfinance.app")
                         .passwordHash(passwordHash)
                         .masterPasswordSalt(saltBase64)
+                        .baseCurrency(defaultCurrencyProvider.getDefaultCurrency())
                         .createdAt(LocalDateTime.now())
                         .build();
         user = userRepository.save(user);

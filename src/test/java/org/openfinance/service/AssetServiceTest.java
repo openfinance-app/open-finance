@@ -75,6 +75,8 @@ class AssetServiceTest {
 
     @Mock private EncryptionProperties encryptionProperties;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private AssetService assetService;
 
     private LocalDate purchaseDate;
@@ -84,6 +86,8 @@ class AssetServiceTest {
         purchaseDate = LocalDate.of(2025, 1, 15);
         EncryptionContext.setKey(new SecretKeySpec(new byte[32], "AES"));
         lenient().when(encryptionProperties.isEnabled()).thenReturn(true);
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     @AfterEach

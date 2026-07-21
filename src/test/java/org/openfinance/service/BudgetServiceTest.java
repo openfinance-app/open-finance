@@ -85,6 +85,8 @@ class BudgetServiceTest {
 
     @Mock private SearchTokenService searchTokenService;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private BudgetService budgetService;
 
     private Category testCategory;
@@ -151,6 +153,8 @@ class BudgetServiceTest {
                         .createdAt(LocalDateTime.now())
                         .updatedAt(LocalDateTime.now())
                         .build();
+
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(defaultCurrencyProvider);
     }
 
     // ========== CREATE BUDGET TESTS ==========

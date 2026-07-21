@@ -95,6 +95,8 @@ class TransactionServiceTest {
 
     @Mock private SearchTokenService searchTokenService;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private TransactionService transactionService;
 
     @BeforeEach
@@ -102,6 +104,8 @@ class TransactionServiceTest {
         // Stub userRepository so resolveBaseCurrency() doesn't NPE.
         // Returns empty so the service falls back to "USD".
         when(userRepository.findById(any())).thenReturn(Optional.empty());
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     // ---------- Helpers ----------

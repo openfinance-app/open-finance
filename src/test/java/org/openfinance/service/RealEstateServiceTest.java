@@ -84,6 +84,8 @@ class RealEstateServiceTest {
 
     @Mock private SearchTokenService searchTokenService;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private RealEstateService realEstateService;
 
     private LocalDate purchaseDate;
@@ -100,6 +102,8 @@ class RealEstateServiceTest {
         org.mockito.Mockito.lenient()
                 .when(userRepository.findById(userId))
                 .thenReturn(Optional.of(defaultUser));
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     // ========== CREATE PROPERTY TESTS ==========

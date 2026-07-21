@@ -1,18 +1,8 @@
 TODO:
 
-## SkroogeJsonParser — Generally Solid
-
-### 1. **Keyword-based category type inference** (lines 663-684)
-
-The `inferCategoryTypes()` method uses hardcoded French/English/Italian/Spanish keywords to determine Income vs Expense. While comprehensive, this is language-biased. A user with categories named in a different language (e.g., Japanese, Russian, Arabic) would see those categories default to `EXPENSE`. How to solve this?.
-
-### 2. Their are a lot of hardcoded strings in the SkroogeJsonParser: GENERIC_PAYEES,TRANSFER_CATEGORY_KEYWORDS,INCOME_CATEGORY_KEYWORDS.
-
-What is the rational and is this OK? Otherwise propose appropriate solution.
-
 1-Is the currently implemented exchange rate service/provider handled cryptocurrencies? If not, You should implement a solution to support crypto currencies as well.
 2-Transaction add/edit form should have currency selector to allow user to pick transaction amount currency. see similar in Account, Assets forms
-rate highlight should be displayed, this should convert in account currency when saving and take also into account split transactions amount
+rate small text should be displayed, this should convert in account currency when saving and apply also to split transactions amount on the form
 3- Regex search support
 4-attachments should be stored in db instead of file system
 5- Dashboard Plugin architecture

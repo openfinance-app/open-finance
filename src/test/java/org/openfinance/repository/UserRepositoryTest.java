@@ -51,6 +51,7 @@ class UserRepositoryTest {
                         .email("test@example.com")
                         .passwordHash("$2a$10$hashedPasswordExample123456789")
                         .masterPasswordSalt("base64EncodedSaltExample==")
+                        .baseCurrency("USD")
                         .build();
     }
 
@@ -235,6 +236,7 @@ class UserRepositoryTest {
                         .email("different@example.com")
                         .passwordHash("$2a$10$anotherHashedPassword123456789")
                         .masterPasswordSalt("anotherSalt==")
+                        .baseCurrency("USD")
                         .build();
 
         // When/Then
@@ -258,6 +260,7 @@ class UserRepositoryTest {
                         .email("test@example.com") // Same email
                         .passwordHash("$2a$10$anotherHashedPassword123456789")
                         .masterPasswordSalt("anotherSalt==")
+                        .baseCurrency("USD")
                         .build();
 
         // When/Then
@@ -279,6 +282,7 @@ class UserRepositoryTest {
                         .email("user1@example.com")
                         .passwordHash("$2a$10$hash1")
                         .masterPasswordSalt("salt1==")
+                        .baseCurrency("USD")
                         .build();
 
         User user2 =
@@ -287,6 +291,7 @@ class UserRepositoryTest {
                         .email("user2@example.com")
                         .passwordHash("$2a$10$hash2")
                         .masterPasswordSalt("salt2==")
+                        .baseCurrency("USD")
                         .build();
 
         // When

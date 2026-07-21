@@ -24,6 +24,7 @@ import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { useAuthContext } from '@/context/AuthContext';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import type { Account, AccountRequest, AccountType, InterestPeriod } from '@/types/account';
 
 const ACCOUNT_TYPES: AccountType[] = ['CHECKING', 'SAVINGS', 'CREDIT_CARD', 'INVESTMENT', 'CASH', 'OTHER'];
@@ -138,7 +139,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
         name: '',
         accountNumber: '',
         type: 'CHECKING',
-        currency: baseCurrency || 'USD',
+        currency: baseCurrency || DEFAULT_CURRENCY,
         initialBalance: 0,
         description: '',
         institutionId: '',

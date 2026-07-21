@@ -24,6 +24,7 @@ import {
     useInterestEstimate,
 } from '@/hooks/useAccounts';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import type { InterestPeriod } from '@/types/account';
 
 interface Props {
@@ -57,7 +58,7 @@ function calcPeriodInterest(
     return net;
 }
 
-export function InterestRateVariationsSection({ accountId, accountBalance = 0, accountCurrency = 'USD', accountInterestPeriod = 'ANNUAL' }: Props) {
+export function InterestRateVariationsSection({ accountId, accountBalance = 0, accountCurrency = DEFAULT_CURRENCY, accountInterestPeriod = 'ANNUAL' }: Props) {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const { format: formatCurrency } = useFormatCurrency();
     const { t } = useTranslation('accounts');

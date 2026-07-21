@@ -6,7 +6,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
-import { formatCurrency } from '@/utils/currency';
+import { DEFAULT_CURRENCY, formatCurrency } from '@/utils/currency';
 import i18next from 'i18next';
 import type { Asset, AssetRequest, AssetFilters } from '@/types/asset';
 import { buildEncryptionHeaders } from '@/utils/encryption';
@@ -168,7 +168,7 @@ export function useDeleteAsset() {
 export const formatGainLoss = (
   unrealizedGain: number,
   gainPercentage: number,
-  currency = 'USD'
+  currency = DEFAULT_CURRENCY
 ) => {
   const sign = unrealizedGain >= 0 ? '+' : '';
   const color =

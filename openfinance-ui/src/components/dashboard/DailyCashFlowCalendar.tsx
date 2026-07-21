@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/Tooltip';
 import { useDailyCashFlow } from '../../hooks/useDashboard';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { PrivateAmount } from '../ui/PrivateAmount';
 import {
   format as formatDate,
@@ -33,7 +34,7 @@ interface DailyCashFlowCalendarProps {
   baseCurrency?: string;
 }
 
-const DailyCashFlowCalendar = ({ className, baseCurrency = 'USD' }: DailyCashFlowCalendarProps) => {
+const DailyCashFlowCalendar = ({ className, baseCurrency = DEFAULT_CURRENCY }: DailyCashFlowCalendarProps) => {
   const { t, i18n } = useTranslation('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
   const { format } = useFormatCurrency();

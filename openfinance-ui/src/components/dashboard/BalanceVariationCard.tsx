@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useYearlyBalance } from '@/hooks/useDashboard';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { useVisibility } from '@/context/VisibilityContext';
 import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
@@ -66,7 +67,7 @@ const CustomTooltip = ({
   return null;
 };
 
-export default function BalanceVariationCard({ currency = 'EUR' }: BalanceVariationCardProps) {
+export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: BalanceVariationCardProps) {
   const { t } = useTranslation('dashboard');
   const { format } = useFormatCurrency();
   const { isAmountsVisible } = useVisibility();

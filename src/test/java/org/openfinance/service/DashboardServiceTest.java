@@ -73,6 +73,8 @@ class DashboardServiceTest {
 
     @Mock private OperationHistoryService operationHistoryService;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private DashboardService dashboardService;
 
     private Long userId;
@@ -98,6 +100,8 @@ class DashboardServiceTest {
                 .thenReturn(
                         new NetWorthService.NetWorthChange(
                                 BigDecimal.ZERO, BigDecimal.ZERO, false));
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     // ==================== getDashboardSummary Tests ====================
@@ -881,7 +885,8 @@ class DashboardServiceTest {
 
         // Assert
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getCurrency()).isEqualTo("EUR"); // Default fallback
+        assertThat(result.get(0).getCurrency())
+                .isEqualTo("USD"); // Default fallback (mocked provider)
     }
 
     @Test

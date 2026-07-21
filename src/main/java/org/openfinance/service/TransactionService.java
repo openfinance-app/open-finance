@@ -18,7 +18,6 @@ import org.openfinance.entity.Category;
 import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
-import org.openfinance.entity.User;
 import org.openfinance.exception.AccountNotFoundException;
 import org.openfinance.exception.CategoryNotFoundException;
 import org.openfinance.exception.InvalidTransactionException;
@@ -104,6 +103,7 @@ public class TransactionService {
     private final NetWorthRepository netWorthRepository;
     private final OperationHistoryService operationHistoryService;
     private final SearchTokenService searchTokenService;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
 
     /**
      * Creates a new transaction for the specified user.
@@ -395,9 +395,8 @@ public class TransactionService {
                                                 request.getToAccountId(), userId));
 
         // Handle multi-currency transfer
-        String sourceCurrency =
-                sourceAccount.getCurrency() != null ? sourceAccount.getCurrency() : "USD";
-        String destCurrency = destAccount.getCurrency() != null ? destAccount.getCurrency() : "USD";
+        String sourceCurrency = defaultCurrencyProvider.resolve(sourceAccount.getCurrency());
+        String destCurrency = defaultCurrencyProvider.resolve(destAccount.getCurrency());
         BigDecimal destAmount = request.getAmount();
 
         if (!sourceCurrency.equalsIgnoreCase(destCurrency)) {
@@ -685,10 +684,8 @@ public class TransactionService {
                                         AccountNotFoundException.byIdAndUser(
                                                 request.getToAccountId(), userId));
 
-        String sourceCurrency =
-                newSourceAccount.getCurrency() != null ? newSourceAccount.getCurrency() : "USD";
-        String destCurrency =
-                newDestAccount.getCurrency() != null ? newDestAccount.getCurrency() : "USD";
+        String sourceCurrency = defaultCurrencyProvider.resolve(newSourceAccount.getCurrency());
+        String destCurrency = defaultCurrencyProvider.resolve(newDestAccount.getCurrency());
         BigDecimal destAmount = request.getAmount();
 
         if (!sourceCurrency.equalsIgnoreCase(destCurrency)) {
@@ -1806,20 +1803,14 @@ public class TransactionService {
     }
 
     /**
-     * Resolves the user's base currency, defaulting to "USD" if not configured.
+     * Resolves the user's base currency, delegating to {@link DefaultCurrencyProvider} (which falls
+     * back to the application default when the user has no configured base currency).
      *
      * @param userId the user ID
-     * @return the user's base currency or "USD" as fallback
+     * @return the user's base currency or the application default
      */
     private String resolveBaseCurrency(Long userId) {
-        if (userId == null) {
-            return "USD";
-        }
-        return userRepository
-                .findById(userId)
-                .map(User::getBaseCurrency)
-                .filter(bc -> bc != null && !bc.isBlank())
-                .orElse("USD");
+        return defaultCurrencyProvider.resolveForUser(userId);
     }
 
     /**

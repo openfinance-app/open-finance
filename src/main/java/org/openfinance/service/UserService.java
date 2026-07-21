@@ -60,6 +60,7 @@ public class UserService {
     private final UserMapper userMapper;
     private final CategorySeeder categorySeeder;
     private final PayeeSeeder payeeSeeder;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
 
     /**
      * Registers a new user account with login and master passwords.
@@ -145,6 +146,7 @@ public class UserService {
                         .email(request.getEmail())
                         .passwordHash(passwordHash)
                         .masterPasswordSalt(saltBase64)
+                        .baseCurrency(defaultCurrencyProvider.getDefaultCurrency())
                         .build();
 
         // 6. Persist to database

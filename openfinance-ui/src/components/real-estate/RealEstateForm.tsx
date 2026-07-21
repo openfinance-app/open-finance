@@ -14,6 +14,7 @@ import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { LiabilitySelector } from '@/components/ui/LiabilitySelector';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { useAuthContext } from '@/context/AuthContext';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import type { RealEstateProperty, RealEstatePropertyRequest } from '@/types/realEstate';
 import { PropertyType, getPropertyTypeName } from '@/types/realEstate';
 
@@ -97,7 +98,7 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
         purchasePrice: 0,
         purchaseDate: today,
         currentValue: 0,
-        currency: baseCurrency || 'USD',
+        currency: baseCurrency || DEFAULT_CURRENCY,
         mortgageId: undefined,
         rentalIncome: 0,
         notes: '',
@@ -262,7 +263,7 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           )}
           {selectedCurrency && selectedCurrency !== baseCurrency && (
             <div className="mt-2">
-              <ExchangeRateInline from={selectedCurrency} to={baseCurrency || 'USD'} />
+              <ExchangeRateInline from={selectedCurrency} to={baseCurrency || DEFAULT_CURRENCY} />
             </div>
           )}
         </div>

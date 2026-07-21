@@ -14,6 +14,7 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useAssets } from '@/hooks/useAssets';
 import { ConvertedAmount } from '../ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 
 interface InstitutionBreakdownProps {
     baseCurrency?: string;
@@ -29,7 +30,7 @@ interface InstitutionGroup {
 }
 
 export default function InstitutionBreakdown({
-    baseCurrency = 'USD',
+    baseCurrency = DEFAULT_CURRENCY,
 }: InstitutionBreakdownProps) {
     const { t } = useTranslation('dashboard');
     const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();

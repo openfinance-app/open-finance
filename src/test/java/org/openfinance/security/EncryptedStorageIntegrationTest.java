@@ -60,6 +60,7 @@ class EncryptedStorageIntegrationTest {
                                 .email("enc-user@example.com")
                                 .passwordHash("$2a$10$hashedPasswordExample123456789")
                                 .masterPasswordSalt("base64EncodedSaltExample==")
+                                .baseCurrency("USD")
                                 .build());
     }
 

@@ -12,7 +12,7 @@ import type {
   BuyRentResults,
   InvestmentResults,
 } from '@/types/realEstateTools';
-import { formatCurrency } from '@/utils/currency';
+import { DEFAULT_CURRENCY, formatCurrency } from '@/utils/currency';
 
 export type ExportFormat = 'json' | 'csv' | 'pdf';
 
@@ -149,7 +149,7 @@ export function generatePDFContent(
   _inputs: BuyRentInputs | InvestmentInputs,
   results: BuyRentResults | InvestmentResults,
   type: 'buy_rent' | 'rental_investment',
-  baseCurrency: string = 'EUR'
+  baseCurrency: string = DEFAULT_CURRENCY
 ): string {
   const date = new Date().toLocaleDateString('fr-FR');
 

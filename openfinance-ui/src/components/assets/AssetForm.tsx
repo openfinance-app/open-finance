@@ -20,6 +20,7 @@ import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { AccountSelector } from '@/components/ui/AccountSelector';
 import { useAuthContext } from '@/context/AuthContext';
 import { getAssetTypeName } from '@/hooks/useAssets';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import type { Asset, AssetRequest, AssetType, AssetCondition } from '@/types/asset';
 
 const assetTypes: AssetType[] = [
@@ -135,7 +136,7 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
           quantity: 0,
           purchasePrice: 0,
           currentPrice: 0,
-          currency: baseCurrency || 'USD',
+          currency: baseCurrency || DEFAULT_CURRENCY,
           purchaseDate: today,
           notes: '',
           serialNumber: '',

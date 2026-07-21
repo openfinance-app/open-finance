@@ -67,6 +67,7 @@ public class NetWorthSnapshotScheduler implements ApplicationRunner {
     private final UserRepository userRepository;
     private final SchedulerProperties schedulerProperties;
     private final EncryptionKeyCache encryptionKeyCache;
+    private final org.openfinance.service.DefaultCurrencyProvider defaultCurrencyProvider;
 
     // -----------------------------------------------------------------
     // Startup execution
@@ -131,10 +132,7 @@ public class NetWorthSnapshotScheduler implements ApplicationRunner {
                 }
                 try {
                     EncryptionContext.setKey(keyOpt.get());
-                    String userCurrency =
-                            (user.getBaseCurrency() != null && !user.getBaseCurrency().isBlank())
-                                    ? user.getBaseCurrency()
-                                    : "USD";
+                    String userCurrency = defaultCurrencyProvider.resolve(user.getBaseCurrency());
                     netWorthService.saveNetWorthSnapshot(
                             user.getId(), LocalDate.now(), userCurrency);
                     successCount++;

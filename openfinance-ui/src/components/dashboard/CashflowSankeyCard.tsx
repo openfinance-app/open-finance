@@ -3,6 +3,7 @@ import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCashflowSankey } from '../../hooks/useDashboard';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { PrivateAmount } from '../ui/PrivateAmount';
 import { useVisibility } from '../../context/VisibilityContext';
 import type { ICashflowSankeyNode } from '../../types/dashboard';
@@ -163,7 +164,7 @@ interface CashflowSankeyCardProps {
 }
 
 export default function CashflowSankeyCard({
-  currency = 'EUR',
+  currency = DEFAULT_CURRENCY,
   period = 30,
   dateRange,
 }: CashflowSankeyCardProps) {

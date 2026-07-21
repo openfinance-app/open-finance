@@ -82,6 +82,7 @@ public class NetWorthService {
     private final org.openfinance.security.EncryptionService encryptionService;
     private final ExchangeRateService exchangeRateService;
     private final TransactionRepository transactionRepository;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
 
     /**
      * Calculates the current net worth for a user (backward compatibility - defaults to USD).
@@ -104,7 +105,7 @@ public class NetWorthService {
      * @return calculated net worth in USD
      */
     public BigDecimal calculateNetWorth(Long userId, LocalDate date) {
-        return calculateNetWorth(userId, date, "USD");
+        return calculateNetWorth(userId, date, defaultCurrencyProvider.resolveForUser(userId));
     }
 
     /**
@@ -168,7 +169,7 @@ public class NetWorthService {
      * @return total assets in USD
      */
     public BigDecimal calculateTotalAssets(Long userId) {
-        return calculateTotalAssets(userId, "USD");
+        return calculateTotalAssets(userId, defaultCurrencyProvider.resolveForUser(userId));
     }
 
     /**
@@ -279,7 +280,7 @@ public class NetWorthService {
      * @return total liabilities (positive number) in USD
      */
     public BigDecimal calculateTotalLiabilities(Long userId) {
-        return calculateTotalLiabilities(userId, "USD");
+        return calculateTotalLiabilities(userId, defaultCurrencyProvider.resolveForUser(userId));
     }
 
     /**
@@ -390,7 +391,8 @@ public class NetWorthService {
      * @return the saved net worth snapshot
      */
     public NetWorth saveNetWorthSnapshot(Long userId) {
-        return saveNetWorthSnapshot(userId, LocalDate.now(), "USD");
+        return saveNetWorthSnapshot(
+                userId, LocalDate.now(), defaultCurrencyProvider.resolveForUser(userId));
     }
 
     /**
@@ -404,7 +406,7 @@ public class NetWorthService {
      * @return the saved net worth snapshot
      */
     public NetWorth saveNetWorthSnapshot(Long userId, LocalDate date) {
-        return saveNetWorthSnapshot(userId, date, "USD");
+        return saveNetWorthSnapshot(userId, date, defaultCurrencyProvider.resolveForUser(userId));
     }
 
     /**

@@ -32,6 +32,7 @@ import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.DashboardService;
+import org.openfinance.service.DefaultCurrencyProvider;
 import org.openfinance.service.NetWorthService;
 import org.openfinance.service.OperationHistoryService;
 import org.springframework.util.StopWatch;
@@ -59,6 +60,8 @@ class AggregationBenchmarkTest {
     @Mock private UserRepository userRepository;
     @Mock private OperationHistoryService operationHistoryService;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private DashboardService dashboardService;
 
     private static final Long USER_ID = 1L;
@@ -72,6 +75,8 @@ class AggregationBenchmarkTest {
         User mockUser =
                 User.builder().id(USER_ID).username("benchuser").baseCurrency("USD").build();
         lenient().when(userRepository.findById(USER_ID)).thenReturn(Optional.of(mockUser));
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     // ------------------------------------------------------------------

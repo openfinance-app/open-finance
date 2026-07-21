@@ -74,6 +74,7 @@ public class DashboardController {
     private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
     private final DashboardService dashboardService;
     private final NetWorthService netWorthService;
+    private final org.openfinance.service.DefaultCurrencyProvider defaultCurrencyProvider;
 
     /**
      * Retrieves the complete dashboard summary for the authenticated user.
@@ -525,10 +526,7 @@ public class DashboardController {
                 effectiveEnd,
                 recalculate);
 
-        String userCurrency =
-                (user.getBaseCurrency() != null && !user.getBaseCurrency().isBlank())
-                        ? user.getBaseCurrency()
-                        : "USD";
+        String userCurrency = defaultCurrencyProvider.resolve(user.getBaseCurrency());
 
         // Force-recalculate: delete existing snapshots in range and recompute from
         // scratch

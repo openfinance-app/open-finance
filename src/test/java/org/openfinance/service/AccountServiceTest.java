@@ -69,12 +69,16 @@ class AccountServiceTest {
 
     @Mock private EncryptionProperties encryptionProperties;
 
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
     @InjectMocks private AccountService accountService;
 
     @BeforeEach
     void setUp() {
         EncryptionContext.setKey(new SecretKeySpec(new byte[32], "AES"));
         lenient().when(encryptionProperties.isEnabled()).thenReturn(true);
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     @AfterEach

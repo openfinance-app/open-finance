@@ -24,6 +24,7 @@ import org.openfinance.entity.User;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionKeyCache;
+import org.openfinance.service.DefaultCurrencyProvider;
 import org.openfinance.service.NetWorthService;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,6 +36,7 @@ class NetWorthSnapshotSchedulerTest {
     @Mock private UserRepository userRepository;
     @Mock private SchedulerProperties schedulerProperties;
     @Mock private EncryptionKeyCache encryptionKeyCache;
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
 
     @InjectMocks private NetWorthSnapshotScheduler scheduler;
 
@@ -46,6 +48,8 @@ class NetWorthSnapshotSchedulerTest {
         schedulerConfig = new SchedulerProperties.SchedulerConfig();
         when(schedulerProperties.getNetWorthSnapshot()).thenReturn(schedulerConfig);
         when(encryptionKeyCache.getKey(anyLong())).thenReturn(Optional.of(TEST_KEY));
+        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
+                defaultCurrencyProvider, userRepository);
     }
 
     @Test

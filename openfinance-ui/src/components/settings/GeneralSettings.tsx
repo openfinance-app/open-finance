@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthContext } from '@/context/AuthContext';
 import { useUserSettings, useUpdateBaseCurrency, useUpdateUserSettings } from '@/hooks/useUserSettings';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import {
   Select,
@@ -162,7 +163,7 @@ function SecondaryCurrencySelector({
 export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boolean) => void }) {
   const { t } = useTranslation('settings');
   const { user } = useAuthContext();
-  const [selectedCurrency, setSelectedCurrency] = useState(user?.baseCurrency || 'USD');
+  const [selectedCurrency, setSelectedCurrency] = useState(user?.baseCurrency || DEFAULT_CURRENCY);
   const updateBaseCurrency = useUpdateBaseCurrency();
   const updateSettings = useUpdateUserSettings();
   const [showSuccess, setShowSuccess] = useState(false);
