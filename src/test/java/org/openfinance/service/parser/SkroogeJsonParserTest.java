@@ -477,6 +477,139 @@ class SkroogeJsonParserTest {
     }
 
     @Test
+    @DisplayName("Should detect an uncategorized cross-account balanced group as a transfer")
+    void shouldDetectUncategorizedCrossAccountBalancedGroupAsTransfer() throws IOException {
+        // A transfer between two DIFFERENT accounts, same currency, amounts cancelling to zero,
+        // but with NO category at all (r_category_id = 0). Skrooge does not force a category on a
+        // transfer, so structure alone must classify it — the transfer-category keyword is only a
+        // soft signal now.
+        String json =
+                """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Checking", "t_type": "C", "t_number": "CHK", "t_close": false },
+                    { "id": 20, "rd_bank_id": 1, "t_name": "Savings", "t_type": "S", "t_number": "SAV", "t_close": false }
+                  ],
+                  "category": [],
+                  "payee": [{ "id": 1, "t_name": "Self" }],
+                  "unit": [{ "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 }],
+                  "operation": [
+                    { "id": 2, "rd_account_id": 10, "d_date": "2024-03-01", "i_group_id": 888, "r_payee_id": 1, "t_mode": "Move", "t_status": "Y", "rc_unit_id": 1 },
+                    { "id": 3, "rd_account_id": 20, "d_date": "2024-03-01", "i_group_id": 888, "r_payee_id": 1, "t_mode": "Move", "t_status": "Y", "rc_unit_id": 1 }
+                  ],
+                  "suboperation": [
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 0, "f_value": "-150.00" },
+                    { "id": 31, "rd_operation_id": 3, "r_category_id": 0, "f_value": "150.00" }
+                  ],
+                  "unitvalue": [{ "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 }]
+                }
+                """;
+
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        List<ImportedTransaction> transfers =
+                result.getTransactions().stream().filter(ImportedTransaction::isTransfer).toList();
+        assertThat(transfers).hasSize(2);
+        assertThat(transfers)
+                .extracting(ImportedTransaction::getTransferGroupKey)
+                .containsOnly("skrooge:transfer-group:888");
+
+        ImportedTransaction source =
+                transfers.stream()
+                        .filter(transfer -> transfer.getAmount().signum() < 0)
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(source.getAccountName()).isEqualTo("Checking");
+        assertThat(source.getToAccountName()).isEqualTo("Savings");
+    }
+
+    @Test
+    @DisplayName(
+            "Should detect a cross-account transfer whose category matches no transfer keyword")
+    void shouldDetectTransferWithNonKeywordCategoryName() throws IOException {
+        // The category "Between accounts" is a valid transfer label but contains none of the
+        // TRANSFER_CATEGORY_KEYWORDS. A balanced cross-account group must still be a transfer.
+        String json =
+                """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Checking", "t_type": "C", "t_number": "CHK", "t_close": false },
+                    { "id": 20, "rd_bank_id": 1, "t_name": "Savings", "t_type": "S", "t_number": "SAV", "t_close": false }
+                  ],
+                  "category": [{ "id": 300, "rd_category_id": 0, "t_name": "Between accounts", "t_fullname": "Between accounts" }],
+                  "payee": [{ "id": 1, "t_name": "Self" }],
+                  "unit": [{ "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 }],
+                  "operation": [
+                    { "id": 2, "rd_account_id": 10, "d_date": "2024-03-01", "i_group_id": 889, "r_payee_id": 1, "t_mode": "Move", "t_status": "Y", "rc_unit_id": 1 },
+                    { "id": 3, "rd_account_id": 20, "d_date": "2024-03-01", "i_group_id": 889, "r_payee_id": 1, "t_mode": "Move", "t_status": "Y", "rc_unit_id": 1 }
+                  ],
+                  "suboperation": [
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 300, "f_value": "-75.00" },
+                    { "id": 31, "rd_operation_id": 3, "r_category_id": 300, "f_value": "75.00" }
+                  ],
+                  "unitvalue": [{ "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 }]
+                }
+                """;
+
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        List<ImportedTransaction> transfers =
+                result.getTransactions().stream().filter(ImportedTransaction::isTransfer).toList();
+        assertThat(transfers).hasSize(2);
+        assertThat(transfers)
+                .extracting(ImportedTransaction::getTransferGroupKey)
+                .containsOnly("skrooge:transfer-group:889");
+    }
+
+    @Test
+    @DisplayName(
+            "Should not treat a same-account balanced group without a transfer category as a transfer")
+    void shouldNotTreatSameAccountBalancedGroupAsTransfer() throws IOException {
+        // Two operations in the SAME account that net to zero but carry no transfer category (e.g.
+        // a correction pair). Without the cross-account movement signature or a transfer keyword
+        // these must remain standard operations, guarding against over-detection.
+        String json =
+                """
+                {
+                  "bank": [{ "id": 1, "t_name": "Demo Bank" }],
+                  "account": [
+                    { "id": 10, "rd_bank_id": 1, "t_name": "Checking", "t_type": "C", "t_number": "CHK", "t_close": false }
+                  ],
+                  "category": [{ "id": 100, "rd_category_id": 0, "t_name": "Adjustment", "t_fullname": "Adjustment" }],
+                  "payee": [{ "id": 1, "t_name": "Bank" }],
+                  "unit": [{ "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 }],
+                  "operation": [
+                    { "id": 2, "rd_account_id": 10, "d_date": "2024-03-01", "i_group_id": 890, "r_payee_id": 1, "t_mode": "Adj", "t_status": "Y", "rc_unit_id": 1 },
+                    { "id": 3, "rd_account_id": 10, "d_date": "2024-03-01", "i_group_id": 890, "r_payee_id": 1, "t_mode": "Adj", "t_status": "Y", "rc_unit_id": 1 }
+                  ],
+                  "suboperation": [
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 100, "f_value": "-40.00" },
+                    { "id": 31, "rd_operation_id": 3, "r_category_id": 100, "f_value": "40.00" }
+                  ],
+                  "unitvalue": [{ "id": 1, "rd_unit_id": 1, "d_date": "1999-01-01", "f_quantity": 1 }]
+                }
+                """;
+
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
+                        "test.json");
+
+        List<ImportedTransaction> transfers =
+                result.getTransactions().stream().filter(ImportedTransaction::isTransfer).toList();
+        assertThat(transfers).isEmpty();
+        assertThat(result.getTransactions()).hasSize(2);
+    }
+
+    @Test
     @DisplayName("Should prefer the comment over a generic English bank payee label")
     void shouldPreferCommentOverGenericEnglishPayee() throws IOException {
         String json =

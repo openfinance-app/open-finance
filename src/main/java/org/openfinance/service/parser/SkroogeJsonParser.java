@@ -74,7 +74,10 @@ public class SkroogeJsonParser {
 
     /**
      * Accent-normalised substrings identifying a transfer category, across the languages Skrooge is
-     * commonly used in (fr/en/de/es/it/pt).
+     * commonly used in (fr/en/de/es/it/pt). This is only a <em>soft</em> signal: transfers are
+     * detected structurally (a balanced two-operation group on currency units moving between two
+     * distinct accounts), so uncategorised or differently-named transfers are still recognised. The
+     * keyword additionally rescues the rare same-account group Skrooge labelled as a transfer.
      */
     private static final List<String> TRANSFER_CATEGORY_KEYWORDS =
             List.of(
@@ -369,6 +372,7 @@ public class SkroogeJsonParser {
 
         BigDecimal signedTotal = BigDecimal.ZERO;
         boolean sameUnit = true;
+        boolean anyTransferCategory = false;
         Long firstUnitId = null;
         BigDecimal firstAmount = null;
         BigDecimal secondAmount = null;
@@ -383,9 +387,7 @@ public class SkroogeJsonParser {
             }
             JsonNode subOperation = subOperations.get(0);
             JsonNode category = categoriesById.get(longValue(subOperation, "r_category_id"));
-            if (!isTransferCategory(category)) {
-                return false;
-            }
+            anyTransferCategory = anyTransferCategory || isTransferCategory(category);
             BigDecimal amount = decimalValue(subOperation, "f_value");
             signedTotal = signedTotal.add(amount);
             if (firstAmount == null) {
@@ -404,16 +406,36 @@ public class SkroogeJsonParser {
             }
         }
 
-        // For same-unit transfers, require f_values to sum to zero. For cross-currency transfers,
-        // require one debit and one credit. Share/object groups are handled as source operations so
-        // the imported rows preserve Skrooge's own per-side amounts instead of recreating
-        // transfers.
+        // Structural balance check: same-unit transfers net to zero; cross-currency transfers pair
+        // a debit with a credit. Share/object groups never reach here — their non-currency unit is
+        // already rejected by the isAccountTransferUnit guard above, so they stay source operations
+        // and the imported rows preserve Skrooge's own per-side amounts.
+        boolean balanced;
         if (!sameUnit) {
-            return firstAmount != null
-                    && secondAmount != null
-                    && firstAmount.signum() * secondAmount.signum() < 0;
+            balanced =
+                    firstAmount != null
+                            && secondAmount != null
+                            && firstAmount.signum() * secondAmount.signum() < 0;
+        } else {
+            balanced = signedTotal.compareTo(BigDecimal.ZERO) == 0;
         }
-        return signedTotal.compareTo(BigDecimal.ZERO) == 0;
+        if (!balanced) {
+            return false;
+        }
+
+        // A balanced movement between two DISTINCT accounts is the language-independent signature
+        // of an account transfer, so structure alone classifies it — no category name required.
+        // This catches transfers that are uncategorised or whose category is named outside
+        // TRANSFER_CATEGORY_KEYWORDS (any language, or labels like "Between accounts"). The keyword
+        // is retained only as a soft signal that additionally rescues the rare same-account pair
+        // Skrooge itself labelled as a transfer, so no previously-detected transfer is lost.
+        Long firstAccountId = longValue(operations.get(0), "rd_account_id");
+        Long secondAccountId = longValue(operations.get(1), "rd_account_id");
+        boolean crossAccount =
+                firstAccountId != null
+                        && secondAccountId != null
+                        && !firstAccountId.equals(secondAccountId);
+        return crossAccount || anyTransferCategory;
     }
 
     private boolean isAccountTransferUnit(JsonNode unitNode) {
