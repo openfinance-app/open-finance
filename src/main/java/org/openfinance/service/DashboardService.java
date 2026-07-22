@@ -93,6 +93,9 @@ public class DashboardService {
     private final ExchangeRateService exchangeRateService;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
 
+    /** Debt-to-income ratio ceiling used for borrowing-capacity estimates (40%). */
+    private static final BigDecimal DTI_MAX_RATIO = new BigDecimal("0.40");
+
     /**
      * Retrieves a complete dashboard summary for the specified user.
      *
@@ -1368,7 +1371,7 @@ public class DashboardService {
                         : BigDecimal.ZERO;
 
         // Calculate recommended max borrowing (40% DTI threshold)
-        BigDecimal maxDebtAt40Percent = monthlyIncome.multiply(BigDecimal.valueOf(0.40));
+        BigDecimal maxDebtAt40Percent = monthlyIncome.multiply(DTI_MAX_RATIO);
         BigDecimal recommendedMaxBorrowing =
                 maxDebtAt40Percent
                         .subtract(monthlyDebtPayments)
@@ -1513,7 +1516,7 @@ public class DashboardService {
                                 .setScale(2, RoundingMode.HALF_UP)
                         : BigDecimal.ZERO;
 
-        BigDecimal maxDebtAt40Percent = monthlyIncome.multiply(BigDecimal.valueOf(0.40));
+        BigDecimal maxDebtAt40Percent = monthlyIncome.multiply(DTI_MAX_RATIO);
         BigDecimal recommendedMaxBorrowing =
                 maxDebtAt40Percent.subtract(monthlyDebtPayments).max(BigDecimal.ZERO);
         BigDecimal availableBorrowingCapacity =
@@ -2157,34 +2160,46 @@ public class DashboardService {
     }
 
     private BigDecimal computePeriodFraction(String period) {
-        if (period == null) return BigDecimal.valueOf(1.0 / 12);
+        if (period == null) return oneMonthFraction();
         switch (period.toUpperCase()) {
             case "1D":
-                return BigDecimal.valueOf(1.0 / 365);
+                return daysFraction(1);
             case "7D":
-                return BigDecimal.valueOf(7.0 / 365);
+                return daysFraction(7);
             case "1M":
-                return BigDecimal.valueOf(1.0 / 12);
+                return oneMonthFraction();
             case "YTD":
                 {
                     long daysSoFar =
                             java.time.temporal.ChronoUnit.DAYS.between(
                                     LocalDate.now().withDayOfYear(1), LocalDate.now());
-                    return BigDecimal.valueOf(daysSoFar / 365.0);
+                    return daysFraction(daysSoFar);
                 }
             case "1Y":
                 return BigDecimal.ONE;
             case "ALL":
-                return BigDecimal.valueOf(5.0); // Approximate 5-year
+                return new BigDecimal("5"); // Approximate 5-year
             default:
                 {
                     try {
                         int days = Integer.parseInt(period);
-                        return BigDecimal.valueOf(days / 365.0);
+                        return daysFraction(days);
                     } catch (NumberFormatException e) {
-                        return BigDecimal.valueOf(1.0 / 12);
+                        return oneMonthFraction();
                     }
                 }
         }
+    }
+
+    /** One month as an exact fraction of a year (1/12), computed in BigDecimal (never double). */
+    private BigDecimal oneMonthFraction() {
+        return BigDecimal.ONE.divide(new BigDecimal("12"), 10, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * {@code days} as an exact fraction of a 365-day year, computed in BigDecimal (never double).
+     */
+    private BigDecimal daysFraction(long days) {
+        return BigDecimal.valueOf(days).divide(new BigDecimal("365"), 10, RoundingMode.HALF_UP);
     }
 }

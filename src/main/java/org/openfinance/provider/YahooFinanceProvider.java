@@ -433,7 +433,9 @@ public class YahooFinanceProvider implements MarketDataProvider {
         if (node == null || node.isNull() || !node.isNumber()) {
             return null;
         }
-        return BigDecimal.valueOf(node.asDouble());
+        // Read the JSON number directly as BigDecimal to preserve full precision.
+        // BigDecimal.valueOf(node.asDouble()) would first collapse the value into a double.
+        return node.decimalValue();
     }
 
     /** Returns price − previousClose, or null if price is unavailable. */

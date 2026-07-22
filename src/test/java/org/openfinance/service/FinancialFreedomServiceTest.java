@@ -77,6 +77,66 @@ class FinancialFreedomServiceTest {
             assertNotNull(response);
             assertTrue(response.getYearsToFreedom() > 0);
         }
+
+        @Test
+        @DisplayName("Yearly projections compound in BigDecimal (10% on 100k, no contributions)")
+        void shouldGenerateAnnualProjectionsExactly() {
+            FreedomCalculatorRequest request =
+                    FreedomCalculatorRequest.builder()
+                            .currentSavings(new BigDecimal("100000"))
+                            .monthlyExpenses(new BigDecimal("1000"))
+                            .expectedAnnualReturn(new BigDecimal("10"))
+                            .monthlyContribution(BigDecimal.ZERO)
+                            .withdrawalRate(new BigDecimal("4"))
+                            .build();
+
+            FreedomCalculatorResponse response = service.calculateTimeToFreedom(request);
+
+            // 100000 →(+10%) 110000 →(+10%) 121000 →(+10%) 133100
+            assertEquals(
+                    0,
+                    response.getYearlyProjections()
+                            .get(0)
+                            .getEndingBalance()
+                            .compareTo(new BigDecimal("110000")));
+            assertEquals(
+                    0,
+                    response.getYearlyProjections()
+                            .get(1)
+                            .getEndingBalance()
+                            .compareTo(new BigDecimal("121000")));
+            assertEquals(
+                    0,
+                    response.getYearlyProjections()
+                            .get(2)
+                            .getEndingBalance()
+                            .compareTo(new BigDecimal("133100")));
+            assertEquals(
+                    0,
+                    response.getYearlyProjections()
+                            .get(0)
+                            .getInvestmentReturns()
+                            .compareTo(new BigDecimal("10000")));
+        }
+
+        @Test
+        @DisplayName("Months-to-target grows linearly by contribution at 0% return")
+        void shouldComputeMonthsToTargetLinearlyAtZeroReturn() {
+            // target = (40 × 12) / 0.04 = 12000; 1000/month at 0% return → exactly 12 months
+            FreedomCalculatorRequest request =
+                    FreedomCalculatorRequest.builder()
+                            .currentSavings(BigDecimal.ZERO)
+                            .monthlyExpenses(new BigDecimal("40"))
+                            .expectedAnnualReturn(BigDecimal.ZERO)
+                            .monthlyContribution(new BigDecimal("1000"))
+                            .withdrawalRate(new BigDecimal("4"))
+                            .build();
+
+            FreedomCalculatorResponse response = service.calculateTimeToFreedom(request);
+
+            assertEquals(1, response.getYearsToFreedom());
+            assertEquals(0, response.getMonthsToFreedom());
+        }
     }
 
     @Nested

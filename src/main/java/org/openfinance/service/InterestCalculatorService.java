@@ -1,6 +1,7 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
@@ -72,16 +73,24 @@ public class InterestCalculatorService {
                     case ANNUAL -> 1;
                 };
 
-        double r = ratePct.doubleValue() / 100.0;
-        double grossInterest = balance.doubleValue() * (Math.pow(1 + r / n, (double) n) - 1);
-        double tax = taxPct.doubleValue() / 100.0;
-        double netInterest = grossInterest * (1 - tax);
+        // Compound interest computed entirely in BigDecimal (never double). The exponent n is an
+        // integer number of compounding periods, so BigDecimal.pow(int, MathContext) is exact.
+        MathContext mc = new MathContext(20, RoundingMode.HALF_UP);
+        BigDecimal hundred = new BigDecimal("100");
+
+        BigDecimal r = ratePct.divide(hundred, mc); // annual rate as a fraction
+        BigDecimal perPeriodRate = r.divide(BigDecimal.valueOf(n), mc);
+        BigDecimal compoundFactor = BigDecimal.ONE.add(perPeriodRate).pow(n, mc);
+        BigDecimal grossInterest = balance.multiply(compoundFactor.subtract(BigDecimal.ONE));
+
+        BigDecimal taxFraction = taxPct.divide(hundred, mc);
+        BigDecimal netInterest = grossInterest.multiply(BigDecimal.ONE.subtract(taxFraction));
 
         log.debug(
                 "Projection: balance={}, rate={}%, n={}, gross={}, tax={}%, net={}",
                 balance, ratePct, n, grossInterest, taxPct, netInterest);
 
-        return BigDecimal.valueOf(netInterest).setScale(2, RoundingMode.HALF_UP);
+        return netInterest.setScale(2, RoundingMode.HALF_UP);
     }
 
     // -------------------------------------------------------------------------

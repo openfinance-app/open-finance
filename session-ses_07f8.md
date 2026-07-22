@@ -10,11 +10,11 @@ Four parallel audits completed. Here's the synthesized report.
 | Item | Status |
 | --- | --- |
 | **Critical Theme 1 — Default-currency chaos** | ✅ **FIXED & VERIFIED** |
-| Critical Theme 2 — Float/double monetary math | ⬜ Not started |
+| **Critical Theme 2 — Float/double monetary math** | 🟡 **IN PROGRESS** — backend money-math done; rate DTOs + **app-wide** frontend float math outstanding (see remaining plan) |
 | Critical Theme 3 — Currency-decimal hardcoding | ⬜ Not started |
 | HIGH / MEDIUM / LOW severity items | ⬜ Not started |
 
-**Verification:** backend `mvn test` → 2371 pass / 0 fail / 0 err; frontend `type-check` + Vitest → 3253 pass / 0 fail; `mvn spotless:apply` + ESLint (0 errors) clean.
+**Verification:** backend `mvn test` → 2378 pass / 0 fail / 0 err; frontend `type-check` + Vitest → 3253 pass / 0 fail; `mvn spotless:apply` + ESLint (0 errors) clean.
 
 ---
 
@@ -44,7 +44,7 @@ Four parallel audits completed. Here's the synthesized report.
 - Frontend: unified **29 files / 42 literals** onto `DEFAULT_CURRENCY` (EUR) from `@/utils/currency`.
 - Deliberately left untouched (legitimate, not user-defaults): `ExchangeRateService` USD FX-pivot logic, demo/seed account-currency data, the ISO `CURRENCIES` list, and country→currency maps.
 
-### 2. Float/double for monetary math (violates AGENTS.md)
+### 2. Float/double for monetary math (violates AGENTS.md) 🟡 IN PROGRESS
 - `service/InterestCalculatorService.java:75-84` — compound interest computed in `double`, `BigDecimal.valueOf(netInterest)`
 - `service/FinancialFreedomService.java:433-637` — `calculateMonthsToTarget`, `generateProjections`, `generateSensitivityScenarios` all use `double` rates/balances; magic numbers `-5.0, 2.0, 15.0`
 - `provider/YahooFinanceProvider.java:436` — `BigDecimal.valueOf(node.asDouble())` instead of `node.decimalValue()`
@@ -56,6 +56,35 @@ Four parallel audits completed. Here's the synthesized report.
 - Frontend `utils/realEstateCalculations.ts` & `financialCalculations.ts` — entire calculators in `number`/`double` with `Math.round(x*100)/100`
 
 **PO Assessment:** Apply what fit best for monetary math.
+
+**✅ Phase 1 done — backend money-math:**
+- `InterestCalculatorService.calculateInterestEstimate` — compound interest now pure BigDecimal via `pow(int, MathContext)` (the exponent `n` is an integer number of compounding periods); no more `double`/`Math.pow`. Added 5 hand-verifiable characterization tests (`InterestCalculatorServiceTest`) — the method previously had none.
+- `FinancialFreedomService.calculateMonthsToTarget` & `generateProjections` — balance iteration and yearly compounding converted to BigDecimal (`MathContext(20)`), replacing the `double` loop and the imprecise `BigDecimal.valueOf(annualRate/100.0)`; removed an unused `monthlyRate`. Added 2 characterization tests (exact annual projections, linear 0%-return months).
+- `YahooFinanceProvider.getBigDecimal` — `node.decimalValue()` (reads the JSON number directly) instead of `BigDecimal.valueOf(node.asDouble())`.
+- `entity/Asset` — salvage `0.10` extracted to a string-constructed `SALVAGE_RATE` constant; condition adjustment now multiplies by `AssetCondition.getValueRetentionRate()` (new exact-BigDecimal method) instead of `BigDecimal.valueOf(double)`.
+- `DashboardService` — DTI `0.40` extracted to `DTI_MAX_RATIO = new BigDecimal("0.40")`; `computePeriodFraction` rewritten with exact BigDecimal division (no `1.0/12`, `1.0/365`).
+
+> **Scope correction:** the original audit bullet above under-scoped this theme. A follow-up sweep found client-side `number` (IEEE-754 double) monetary math is **app-wide on the frontend** (~60–80 sites), not just the two calculator utils. Because this is a financial app requiring **maximum precision**, the items below are **required**, not optional.
+
+**⏳ Remaining work (prioritized for maximum precision):**
+
+**P0 — Persisted float → system of record (data integrity, not just display):**
+- `components/transactions/SplitTransactionForm.tsx` — split sums (L57), remainder auto-fill `Math.round(remaining*100)/100` (L67), and a **±0.01 tolerance** balance check (L38/59). These `number` values are written to the API via `TransactionForm.tsx:228` → `useCreateTransaction`/`useUpdateTransaction` (`hooks/useTransactions.ts:135,185`, `POST/PUT /transactions`). Compute splits in decimal and require **exact** sum-to-total (drop the ±0.01 float slack) before persistence. Add a backend guard that split amounts sum exactly to the transaction total.
+
+**P1 — Backend rate/percentage DTOs → BigDecimal (Category C, changes calculator JSON API):**
+- `dto/calculator/SensitivityScenario.returnRate`, `dto/calculator/ProjectionResult.progressTowardTarget`, `dto/calculator/FreedomCalculatorResponse.progressPercentage`, and all rate fields in `dto/calculator/CalculationDefaults` — convert `double` → `BigDecimal`.
+- `FinancialFreedomService` — remove the remaining `double` on the rate path: `generateSensitivityScenarios`/`createScenario` params and the `-5.0 / 2.0 / 15.0` sensitivity-rate bounds (extract as `BigDecimal` constants); `progressPercentage` (`calculateTimeToFreedom`) and `progressTowardTarget` (`generateProjections`) should stay BigDecimal end-to-end instead of `.doubleValue()`.
+- Update the consuming frontend types (`types/calculator.ts`) to strings/decimals accordingly.
+
+**P2 — Frontend decimal foundation (enabler; none exists today):**
+- Add a decimal library (`decimal.js` or `big.js`) and a single shared `money` helper (parse, add/sub/mul/div, allocate/split, round-half-up, format at one boundary). Convert to/from `number` only at the React/recharts edge.
+
+**P3 — Frontend main-app aggregations & FX products (~60–80 sites; display-only but pervasive; FX re-aggregation is where frontend↔backend totals visibly drift):**
+- Prefer backend-provided totals over client re-aggregation wherever an endpoint already returns them; do the unavoidable client sums / `balance × rate` FX products in decimal.
+- Hotspots: `utils/portfolio.ts` (totalValue/cost/gain%/allocation); `pages/AssetsPage.tsx` `computeAssetSummary`; `pages/AccountsPage.tsx` per-currency totals; dashboard `CurrencyBreakdown`, `InstitutionBreakdown`, `CashflowSankeyCard`, `NetWorthTrendChart`, `DailyCashFlowCalendar`, `BalanceVariationCard`, `DashboardPage` period-change; `components/liabilities/LiabilitySummaryCards.tsx` (weighted-avg rate), `hooks/useLiabilities.ts` totals + `calculateTotalInterest`, `LiabilityBreakdownPanel`, `LiabilityList`; `pages/RealEstatePage.tsx` + `PropertyDetailView`; `components/budgets/BudgetSummaryCard.tsx`; `components/assets/PhysicalAssetCard.tsx`; `hooks/useUserFinancialData.ts`; and the scattered `amount × rate` conversions (`useCurrency`, `useSecondaryConversion`, `ExchangeRateDisplay`, recurring-transaction cards, asset/liability lists).
+
+**P4 — Frontend calculator tools (display-only what-if; ~2,300 LOC + ~9 exact-assertion test suites to re-derive):**
+- `utils/financialCalculations.ts`, `utils/realEstateCalculations.ts`, `utils/taxRegimeCalculations.ts`, `services/realEstateCalculationService.ts`, `hooks/useLoanCalculator.ts`, `hooks/useEarlyPayoffCalculator.ts`, `hooks/useFinancialFreedom.ts` (local path), `components/accounts/InterestRateVariationsSection.tsx` (`calcPeriodInterest`) and `components/accounts/AccountForm.tsx` interest preview. Convert to the decimal helper; kill the `Math.round(x*100)/100` sites (6 in `realEstateCalculations.ts` + splits) which mis-round `.xx5` boundaries. The financial-freedom UI uses the local float path — align it with (or route it through) the now-BigDecimal backend endpoint to eliminate frontend↔backend divergence.
 
 ### 3. Currency-decimal hardcoding (breaks JPY=0, BTC=8)
 - `hooks/useLiabilities.ts:358` — `Math.abs(amount).toFixed(2)` for all currencies

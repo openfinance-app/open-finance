@@ -43,6 +43,9 @@ import org.openfinance.converter.EncryptedStringConverter;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Asset {
 
+    /** Residual (salvage) value floor for a fully-depreciated physical asset: 10% of total cost. */
+    private static final BigDecimal SALVAGE_RATE = new BigDecimal("0.10");
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @ToString.Include
@@ -361,7 +364,7 @@ public class Asset {
 
         // If asset is fully depreciated, return salvage value (10% of purchase price)
         if (yearsOwned.compareTo(BigDecimal.valueOf(effectiveLife)) >= 0) {
-            return getTotalCost().multiply(BigDecimal.valueOf(0.10));
+            return getTotalCost().multiply(SALVAGE_RATE);
         }
 
         // Calculate annual depreciation
@@ -377,7 +380,7 @@ public class Asset {
         BigDecimal depreciatedValue = getTotalCost().subtract(totalDepreciation);
 
         // Never go below 10% salvage value
-        BigDecimal salvageValue = getTotalCost().multiply(BigDecimal.valueOf(0.10));
+        BigDecimal salvageValue = getTotalCost().multiply(SALVAGE_RATE);
         return depreciatedValue.max(salvageValue);
     }
 
@@ -409,7 +412,7 @@ public class Asset {
         if (baseValue == null) {
             return null;
         }
-        return baseValue.multiply(BigDecimal.valueOf(condition.getValueRetentionFactor()));
+        return baseValue.multiply(condition.getValueRetentionRate());
     }
 
     /**

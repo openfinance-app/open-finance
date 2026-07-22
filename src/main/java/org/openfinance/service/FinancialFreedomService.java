@@ -1,6 +1,7 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.Year;
 import java.util.ArrayList;
@@ -68,6 +69,12 @@ public class FinancialFreedomService {
     /** Minimum reasonable return rate (-10%). */
     private static final BigDecimal MIN_RETURN_RATE = new BigDecimal("-10.0");
 
+    /** 100, used for percent → fraction conversions. */
+    private static final BigDecimal HUNDRED = new BigDecimal("100");
+
+    /** Working precision for iterative BigDecimal compounding. */
+    private static final MathContext MC = new MathContext(20, RoundingMode.HALF_UP);
+
     /**
      * Calculate time to financial freedom.
      *
@@ -134,8 +141,8 @@ public class FinancialFreedomService {
                 calculateMonthsToTarget(
                         request.getCurrentSavings(),
                         monthlyContribution,
-                        effectiveReturnRate.doubleValue(),
-                        targetAmount.doubleValue());
+                        effectiveReturnRate,
+                        targetAmount);
 
         // Determine if achievable
         boolean achievable = monthsToFreedom < (MAX_PROJECTION_YEARS * MONTHS_PER_YEAR);
@@ -145,7 +152,7 @@ public class FinancialFreedomService {
                 generateProjections(
                         request.getCurrentSavings(),
                         monthlyContribution,
-                        effectiveReturnRate.doubleValue(),
+                        effectiveReturnRate,
                         targetAmount,
                         MAX_PROJECTION_YEARS);
 
@@ -433,22 +440,25 @@ public class FinancialFreedomService {
     private long calculateMonthsToTarget(
             BigDecimal currentSavings,
             BigDecimal monthlyContribution,
-            double annualRate,
-            double targetAmount) {
+            BigDecimal annualRate,
+            BigDecimal targetAmount) {
 
-        double monthlyRate = annualRate / 100.0 / 12.0;
-        double balance = currentSavings.doubleValue();
+        BigDecimal monthlyRate =
+                annualRate.divide(HUNDRED, MC).divide(BigDecimal.valueOf(MONTHS_PER_YEAR), MC);
+        BigDecimal onePlusMonthlyRate = BigDecimal.ONE.add(monthlyRate);
+        BigDecimal balance = currentSavings;
         long months = 0;
 
         // Safety cap to prevent infinite loops
         final long MAX_MONTHS = MAX_PROJECTION_YEARS * MONTHS_PER_YEAR * 2L;
 
-        while (balance < targetAmount && months < MAX_MONTHS) {
-            balance = balance * (1 + monthlyRate) + monthlyContribution.doubleValue();
+        while (balance.compareTo(targetAmount) < 0 && months < MAX_MONTHS) {
+            balance = balance.multiply(onePlusMonthlyRate, MC).add(monthlyContribution);
             months++;
 
             // Safety check for impossible scenarios
-            if (monthlyRate <= 0 && monthlyContribution.doubleValue() <= 0) {
+            if (monthlyRate.compareTo(BigDecimal.ZERO) <= 0
+                    && monthlyContribution.compareTo(BigDecimal.ZERO) <= 0) {
                 return MAX_MONTHS; // Return max to indicate not achievable
             }
         }
@@ -499,13 +509,13 @@ public class FinancialFreedomService {
     private List<ProjectionResult> generateProjections(
             BigDecimal currentSavings,
             BigDecimal monthlyContribution,
-            double annualRate,
+            BigDecimal annualRate,
             BigDecimal targetAmount,
             int maxYears) {
 
         List<ProjectionResult> projections = new ArrayList<>();
         BigDecimal balance = currentSavings;
-        double monthlyRate = annualRate / 100.0 / 12.0;
+        BigDecimal annualRateFraction = annualRate.divide(HUNDRED, MC);
         BigDecimal annualContribution =
                 monthlyContribution.multiply(BigDecimal.valueOf(MONTHS_PER_YEAR));
 
@@ -513,15 +523,15 @@ public class FinancialFreedomService {
             BigDecimal startingBalance = balance;
 
             // Calculate yearly returns
-            BigDecimal yearlyReturns = balance.multiply(BigDecimal.valueOf(annualRate / 100.0));
+            BigDecimal yearlyReturns = balance.multiply(annualRateFraction, MC);
 
             // Update balance
             balance = balance.add(yearlyReturns).add(annualContribution);
 
-            // Calculate progress
+            // Calculate progress (display percentage; response field is a double)
             double progress =
                     balance.divide(targetAmount, 6, RoundingMode.HALF_UP)
-                            .multiply(BigDecimal.valueOf(100))
+                            .multiply(HUNDRED)
                             .doubleValue();
 
             boolean targetReached = balance.compareTo(targetAmount) >= 0;
@@ -624,8 +634,8 @@ public class FinancialFreedomService {
                 calculateMonthsToTarget(
                         currentSavings,
                         monthlyContribution,
-                        returnRate,
-                        targetAmount.doubleValue());
+                        BigDecimal.valueOf(returnRate),
+                        targetAmount);
 
         return SensitivityScenario.builder()
                 .label(label)

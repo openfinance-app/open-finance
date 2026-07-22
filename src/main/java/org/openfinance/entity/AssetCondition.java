@@ -79,6 +79,22 @@ public enum AssetCondition {
     }
 
     /**
+     * Returns the typical value retention factor as an exact {@link java.math.BigDecimal}, for use
+     * in monetary calculations (avoids the {@code double} → {@code BigDecimal} conversion).
+     *
+     * @return exact decimal multiplier between 0 and 1 (e.g., {@code 0.75} = 75% retention)
+     */
+    public java.math.BigDecimal getValueRetentionRate() {
+        return switch (this) {
+            case NEW -> new java.math.BigDecimal("0.95");
+            case EXCELLENT -> new java.math.BigDecimal("0.82");
+            case GOOD -> new java.math.BigDecimal("0.62");
+            case FAIR -> new java.math.BigDecimal("0.37");
+            case POOR -> new java.math.BigDecimal("0.12");
+        };
+    }
+
+    /**
      * Returns the condition description for help text or tooltips.
      *
      * @return detailed description of what this condition means
