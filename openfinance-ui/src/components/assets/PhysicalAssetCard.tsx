@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { getConditionBadgeVariant, getAssetTypeBadgeVariant } from '@/hooks/useAssets';
+import { subtract, percentage } from '@/utils/money';
 import { 
   Package, 
   Shield, 
@@ -29,9 +30,9 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
 
   // Actual market value change: purchase cost vs current market value
   const currentValue = asset.totalValue; // quantity × currentPrice (actual market value)
-  const valueLoss = asset.totalCost - currentValue;
-  const lossPercent = asset.totalCost > 0 ? (valueLoss / asset.totalCost) * 100 : 0;
-  const retainedPercent = asset.totalCost > 0 ? Math.min((currentValue / asset.totalCost) * 100, 100) : 0;
+  const valueLoss = subtract(asset.totalCost, currentValue);
+  const lossPercent = asset.totalCost > 0 ? percentage(valueLoss, asset.totalCost) : 0;
+  const retainedPercent = asset.totalCost > 0 ? Math.min(percentage(currentValue, asset.totalCost), 100) : 0;
   const hasValueChange = asset.totalCost > 0 && currentValue !== asset.totalCost;
 
   return (

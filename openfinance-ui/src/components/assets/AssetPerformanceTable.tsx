@@ -9,6 +9,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown, TrendingUp, TrendingDown } from 'lucid
 import { useTranslation } from 'react-i18next';
 import type { Asset } from '@/types/asset';
 import { formatPercentage, getGainLossColor, getAssetTypeLabel } from '@/utils/portfolio';
+import { multiply } from '@/utils/money';
 import { LastUpdatedIndicator } from './LastUpdatedIndicator';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useNavigate } from 'react-router';
@@ -199,7 +200,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                   <ConvertedAmount
                     amount={asset.totalCost}
                     currency={asset.currency}
-                    convertedAmount={asset.isConverted && asset.exchangeRate ? asset.totalCost * asset.exchangeRate : undefined}
+                    convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.totalCost, asset.exchangeRate) : undefined}
                     baseCurrency={asset.baseCurrency}
                     exchangeRate={asset.exchangeRate}
                     isConverted={asset.isConverted}
@@ -210,7 +211,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                   {asset.quantity} × <ConvertedAmount
                     amount={asset.purchasePrice}
                     currency={asset.currency}
-                    convertedAmount={asset.isConverted && asset.exchangeRate ? asset.purchasePrice * asset.exchangeRate : undefined}
+                    convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.purchasePrice, asset.exchangeRate) : undefined}
                     baseCurrency={asset.baseCurrency}
                     exchangeRate={asset.exchangeRate}
                     isConverted={asset.isConverted}
@@ -237,7 +238,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                   {asset.quantity} × <ConvertedAmount
                     amount={asset.currentPrice}
                     currency={asset.currency}
-                    convertedAmount={asset.isConverted && asset.exchangeRate ? asset.currentPrice * asset.exchangeRate : undefined}
+                    convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.currentPrice, asset.exchangeRate) : undefined}
                     baseCurrency={asset.baseCurrency}
                     exchangeRate={asset.exchangeRate}
                     isConverted={asset.isConverted}
@@ -256,7 +257,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                     <ConvertedAmount
                       amount={asset.unrealizedGain}
                       currency={asset.currency}
-                      convertedAmount={asset.isConverted && asset.exchangeRate ? asset.unrealizedGain * asset.exchangeRate : undefined}
+                      convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.unrealizedGain, asset.exchangeRate) : undefined}
                       baseCurrency={asset.baseCurrency}
                       exchangeRate={asset.exchangeRate}
                       isConverted={asset.isConverted}

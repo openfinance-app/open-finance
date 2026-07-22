@@ -25,6 +25,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { add } from '@/utils/money';
 import {
   useAccountsSearch,
   useCreateAccount,
@@ -227,9 +228,9 @@ export default function AccountsPage() {
         hasConversion: false,
       };
     }
-    acc[currency].nativeTotal += account.balance;
+    acc[currency].nativeTotal = add(acc[currency].nativeTotal, account.balance);
     if (account.isConverted && account.balanceInBaseCurrency != null) {
-      acc[currency].baseCurrencyTotal += account.balanceInBaseCurrency;
+      acc[currency].baseCurrencyTotal = add(acc[currency].baseCurrencyTotal, account.balanceInBaseCurrency);
       acc[currency].hasConversion = true;
       if (account.baseCurrency) acc[currency].baseCurrency = account.baseCurrency;
     }
@@ -250,9 +251,9 @@ export default function AccountsPage() {
         hasConversion: false,
       };
     }
-    acc[currency].nativeTotal += account.balance;
+    acc[currency].nativeTotal = add(acc[currency].nativeTotal, account.balance);
     if (account.isConverted && account.balanceInBaseCurrency != null) {
-      acc[currency].baseCurrencyTotal += account.balanceInBaseCurrency;
+      acc[currency].baseCurrencyTotal = add(acc[currency].baseCurrencyTotal, account.balanceInBaseCurrency);
       acc[currency].hasConversion = true;
       if (account.baseCurrency) acc[currency].baseCurrency = account.baseCurrency;
     }

@@ -4,6 +4,7 @@
  */
 import type { Asset } from '@/types/asset';
 import { DEFAULT_CURRENCY } from './currency';
+import { add, sum, subtract, percentage } from '@/utils/money';
 
 export interface PortfolioMetrics {
   totalValue: number;
@@ -39,10 +40,10 @@ export const calculatePortfolioMetrics = (assets: Asset[]): PortfolioMetrics => 
     };
   }
 
-  const totalValue = assets.reduce((sum, asset) => sum + Number(asset.totalValue), 0);
-  const totalCost = assets.reduce((sum, asset) => sum + Number(asset.totalCost), 0);
-  const unrealizedGain = totalValue - totalCost;
-  const gainPercentage = totalCost > 0 ? (unrealizedGain / totalCost) * 100 : 0;
+  const totalValue = sum(assets.map((asset) => Number(asset.totalValue)));
+  const totalCost = sum(assets.map((asset) => Number(asset.totalCost)));
+  const unrealizedGain = subtract(totalValue, totalCost);
+  const gainPercentage = totalCost > 0 ? percentage(unrealizedGain, totalCost) : 0;
 
   return {
     totalValue,
@@ -61,7 +62,7 @@ export const calculateAssetAllocation = (assets: Asset[]): AssetAllocation[] => 
     return [];
   }
 
-  const totalValue = assets.reduce((sum, asset) => sum + Number(asset.totalValue), 0);
+  const totalValue = sum(assets.map((asset) => Number(asset.totalValue)));
 
   // Group by asset type
   const allocationMap = assets.reduce((acc, asset) => {
@@ -69,7 +70,7 @@ export const calculateAssetAllocation = (assets: Asset[]): AssetAllocation[] => 
     if (!acc[type]) {
       acc[type] = { value: 0, count: 0 };
     }
-    acc[type].value += Number(asset.totalValue);
+    acc[type].value = add(acc[type].value, Number(asset.totalValue));
     acc[type].count += 1;
     return acc;
   }, {} as Record<string, { value: number; count: number }>);
@@ -79,7 +80,7 @@ export const calculateAssetAllocation = (assets: Asset[]): AssetAllocation[] => 
     .map(([type, data]) => ({
       type,
       value: data.value,
-      percentage: totalValue > 0 ? (data.value / totalValue) * 100 : 0,
+      percentage: totalValue > 0 ? percentage(data.value, totalValue) : 0,
       count: data.count,
     }))
     .sort((a, b) => b.value - a.value); // Sort by value descending

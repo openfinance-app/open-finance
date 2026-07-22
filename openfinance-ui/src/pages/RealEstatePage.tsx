@@ -24,6 +24,7 @@ import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAuthContext } from '@/context/AuthContext';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
+import { sum, multiply, subtract } from '@/utils/money';
 import type { RealEstateProperty, PropertySearchFilters, RealEstatePropertyRequest } from '@/types/realEstate';
 import { PropertyType as PropertyTypeEnum } from '@/types/realEstate';
 
@@ -96,43 +97,50 @@ export default function RealEstatePage() {
       return false;
     };
 
-    const totalValue = list.reduce((sum, p) => {
-      if (!isIncludable(p)) { excludedCount++; return sum; }
-      const value = p.isConverted && p.valueInBaseCurrency != null
-        ? p.valueInBaseCurrency
-        : p.currentValue;
-      return sum + value;
-    }, 0);
+    const totalValue = sum(
+      list
+        .filter(isIncludable)
+        .map((p) => (p.isConverted && p.valueInBaseCurrency != null ? p.valueInBaseCurrency : p.currentValue))
+    );
 
     // Reset excludedCount — it was inflated once per metric above; track once.
     excludedCount = list.filter(p => !isIncludable(p)).length;
 
     // Equity = currentValue - mortgageBalance; apply the same conversion logic.
-    const totalEquity = list.reduce((sum, p) => {
-      if (!isIncludable(p)) return sum;
-      const value = p.isConverted && p.valueInBaseCurrency != null
-        ? p.valueInBaseCurrency
-        : p.currentValue;
-      const debt = p.mortgageBalance || 0;
-      // Mortgage balance conversion: multiply by the same exchange rate used for value.
-      const rate = p.exchangeRate ?? 1;
-      const convertedDebt = p.isConverted ? debt * rate : debt;
-      return sum + Math.max(0, value - convertedDebt);
-    }, 0);
+    const totalEquity = sum(
+      list
+        .filter(isIncludable)
+        .map((p) => {
+          const value = p.isConverted && p.valueInBaseCurrency != null
+            ? p.valueInBaseCurrency
+            : p.currentValue;
+          const debt = p.mortgageBalance || 0;
+          // Mortgage balance conversion: multiply by the same exchange rate used for value.
+          const rate = p.exchangeRate ?? 1;
+          const convertedDebt = p.isConverted ? multiply(debt, rate) : debt;
+          return Math.max(0, subtract(value, convertedDebt));
+        })
+    );
 
-    const totalMortgageDebt = list.reduce((sum, p) => {
-      if (!isIncludable(p)) return sum;
-      const debt = p.mortgageBalance || 0;
-      const rate = p.exchangeRate ?? 1;
-      return sum + (p.isConverted ? debt * rate : debt);
-    }, 0);
+    const totalMortgageDebt = sum(
+      list
+        .filter(isIncludable)
+        .map((p) => {
+          const debt = p.mortgageBalance || 0;
+          const rate = p.exchangeRate ?? 1;
+          return p.isConverted ? multiply(debt, rate) : debt;
+        })
+    );
 
-    const totalRentalIncome = list.reduce((sum, p) => {
-      if (!isIncludable(p)) return sum;
-      const income = p.rentalIncome || 0;
-      const rate = p.exchangeRate ?? 1;
-      return sum + (p.isConverted ? income * rate : income);
-    }, 0);
+    const totalRentalIncome = sum(
+      list
+        .filter(isIncludable)
+        .map((p) => {
+          const income = p.rentalIncome || 0;
+          const rate = p.exchangeRate ?? 1;
+          return p.isConverted ? multiply(income, rate) : income;
+        })
+    );
 
     return {
       totalValue,

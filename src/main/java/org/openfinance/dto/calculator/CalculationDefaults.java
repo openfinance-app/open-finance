@@ -1,5 +1,6 @@
 package org.openfinance.dto.calculator;
 
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,31 +23,31 @@ import lombok.NoArgsConstructor;
 public class CalculationDefaults {
 
     /** Default withdrawal rate percentage (4% rule). */
-    private double defaultWithdrawalRate;
+    private BigDecimal defaultWithdrawalRate;
 
     /** Default inflation rate percentage. */
-    private double defaultInflationRate;
+    private BigDecimal defaultInflationRate;
 
     /** Minimum allowed withdrawal rate percentage. */
-    private double minimumWithdrawalRate;
+    private BigDecimal minimumWithdrawalRate;
 
     /** Maximum allowed withdrawal rate percentage. */
-    private double maximumWithdrawalRate;
+    private BigDecimal maximumWithdrawalRate;
 
     /** Minimum allowed return rate percentage. */
-    private double minimumReturnRate;
+    private BigDecimal minimumReturnRate;
 
     /** Maximum allowed return rate percentage. */
-    private double maximumReturnRate;
+    private BigDecimal maximumReturnRate;
 
     /** Default expected annual return rate. */
-    private double defaultReturnRate;
+    private BigDecimal defaultReturnRate;
 
     /** Maximum number of projection years. */
     private int maxProjectionYears;
 
     /** Default monthly contribution amount. */
-    private double defaultMonthlyContribution;
+    private BigDecimal defaultMonthlyContribution;
 
     /** Default number of projection years. */
     private int defaultProjectionYears;

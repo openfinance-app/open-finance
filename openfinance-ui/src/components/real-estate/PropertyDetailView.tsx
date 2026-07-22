@@ -16,6 +16,7 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { PropertyType, getPropertyTypeName, getPropertyTypeBadgeColor, formatAppreciation, calculatePropertyAge } from '@/types/realEstate';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
 import { AttachmentEntityType } from '@/types/attachment';
+import { multiply } from '@/utils/money';
 import { cn } from '@/lib/utils';
 
 interface PropertyDetailViewProps {
@@ -191,7 +192,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                             <ConvertedAmount
                               amount={Math.abs(property.appreciation)}
                               currency={property.currency}
-                              convertedAmount={property.exchangeRate != null ? Math.abs(property.appreciation) * property.exchangeRate : undefined}
+                              convertedAmount={property.exchangeRate != null ? multiply(Math.abs(property.appreciation), property.exchangeRate) : undefined}
                               baseCurrency={property.baseCurrency}
                               exchangeRate={property.exchangeRate}
                               isConverted={property.isConverted}
@@ -241,7 +242,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                              <ConvertedAmount
                                amount={property.purchasePrice}
                                currency={property.currency}
-                               convertedAmount={property.exchangeRate != null ? property.purchasePrice * property.exchangeRate : undefined}
+                               convertedAmount={property.exchangeRate != null ? multiply(property.purchasePrice, property.exchangeRate) : undefined}
                                baseCurrency={property.baseCurrency}
                                exchangeRate={property.exchangeRate}
                                isConverted={property.isConverted}
@@ -268,7 +269,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                <ConvertedAmount
                                  amount={property.rentalIncome}
                                  currency={property.currency}
-                                 convertedAmount={property.exchangeRate != null ? property.rentalIncome * property.exchangeRate : undefined}
+                                 convertedAmount={property.exchangeRate != null ? multiply(property.rentalIncome, property.exchangeRate) : undefined}
                                  baseCurrency={property.baseCurrency}
                                  exchangeRate={property.exchangeRate}
                                  isConverted={property.isConverted}
@@ -331,7 +332,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                              <ConvertedAmount
                                amount={equity.equity}
                                currency={equity.currency}
-                               convertedAmount={property.exchangeRate != null ? equity.equity * property.exchangeRate : undefined}
+                               convertedAmount={property.exchangeRate != null ? multiply(equity.equity, property.exchangeRate) : undefined}
                                baseCurrency={property.baseCurrency}
                                exchangeRate={property.exchangeRate}
                                isConverted={property.isConverted}
@@ -354,7 +355,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                  <ConvertedAmount
                                    amount={equity.currentValue}
                                    currency={equity.currency}
-                                   convertedAmount={property.exchangeRate != null ? equity.currentValue * property.exchangeRate : undefined}
+                                   convertedAmount={property.exchangeRate != null ? multiply(equity.currentValue, property.exchangeRate) : undefined}
                                    baseCurrency={property.baseCurrency}
                                    exchangeRate={property.exchangeRate}
                                    isConverted={property.isConverted}
@@ -371,7 +372,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                      - <ConvertedAmount
                                        amount={equity.mortgageBalance}
                                        currency={equity.currency}
-                                       convertedAmount={property.exchangeRate != null ? equity.mortgageBalance * property.exchangeRate : undefined}
+                                       convertedAmount={property.exchangeRate != null ? multiply(equity.mortgageBalance, property.exchangeRate) : undefined}
                                        baseCurrency={property.baseCurrency}
                                        exchangeRate={property.exchangeRate}
                                        isConverted={property.isConverted}
@@ -387,7 +388,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                        <ConvertedAmount
                                          amount={equity.equity}
                                          currency={equity.currency}
-                                         convertedAmount={property.exchangeRate != null ? equity.equity * property.exchangeRate : undefined}
+                                         convertedAmount={property.exchangeRate != null ? multiply(equity.equity, property.exchangeRate) : undefined}
                                          baseCurrency={property.baseCurrency}
                                          exchangeRate={property.exchangeRate}
                                          isConverted={property.isConverted}
@@ -473,7 +474,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                  <ConvertedAmount
                                    amount={roi.purchasePrice}
                                    currency={roi.currency}
-                                   convertedAmount={property.exchangeRate != null ? roi.purchasePrice * property.exchangeRate : undefined}
+                                   convertedAmount={property.exchangeRate != null ? multiply(roi.purchasePrice, property.exchangeRate) : undefined}
                                    baseCurrency={property.baseCurrency}
                                    exchangeRate={property.exchangeRate}
                                    isConverted={property.isConverted}
@@ -487,7 +488,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                  <ConvertedAmount
                                    amount={roi.currentValue}
                                    currency={roi.currency}
-                                   convertedAmount={property.exchangeRate != null ? roi.currentValue * property.exchangeRate : undefined}
+                                   convertedAmount={property.exchangeRate != null ? multiply(roi.currentValue, property.exchangeRate) : undefined}
                                    baseCurrency={property.baseCurrency}
                                    exchangeRate={property.exchangeRate}
                                    isConverted={property.isConverted}
@@ -505,7 +506,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                  <ConvertedAmount
                                    amount={Math.abs(roi.appreciation)}
                                    currency={roi.currency}
-                                   convertedAmount={property.exchangeRate != null ? Math.abs(roi.appreciation) * property.exchangeRate : undefined}
+                                   convertedAmount={property.exchangeRate != null ? multiply(Math.abs(roi.appreciation), property.exchangeRate) : undefined}
                                    baseCurrency={property.baseCurrency}
                                    exchangeRate={property.exchangeRate}
                                    isConverted={property.isConverted}
@@ -534,7 +535,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                    <ConvertedAmount
                                      amount={roi.monthlyRentalIncome}
                                      currency={roi.currency}
-                                     convertedAmount={property.exchangeRate != null ? roi.monthlyRentalIncome * property.exchangeRate : undefined}
+                                     convertedAmount={property.exchangeRate != null ? multiply(roi.monthlyRentalIncome, property.exchangeRate) : undefined}
                                      baseCurrency={property.baseCurrency}
                                      exchangeRate={property.exchangeRate}
                                      isConverted={property.isConverted}
@@ -550,7 +551,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                      <ConvertedAmount
                                        amount={roi.totalRentalIncome}
                                        currency={roi.currency}
-                                       convertedAmount={property.exchangeRate != null ? roi.totalRentalIncome * property.exchangeRate : undefined}
+                                       convertedAmount={property.exchangeRate != null ? multiply(roi.totalRentalIncome, property.exchangeRate) : undefined}
                                        baseCurrency={property.baseCurrency}
                                        exchangeRate={property.exchangeRate}
                                        isConverted={property.isConverted}

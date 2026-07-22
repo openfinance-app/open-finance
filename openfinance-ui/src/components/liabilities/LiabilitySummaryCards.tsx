@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAuthContext } from '@/context/AuthContext';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
+import { add, multiply, sum, divide } from '@/utils/money';
 import type { Liability } from '@/types/liability';
 
 interface LiabilitySummaryCardsProps {
@@ -58,20 +59,20 @@ function aggregateToBaseCurrency(liabilities: Liability[], baseCurrency: string)
 
       // Balance
       const balance = useConverted
-        ? (liability.balanceInBaseCurrency ?? liability.currentBalance * rate)
+        ? (liability.balanceInBaseCurrency ?? multiply(liability.currentBalance, rate))
         : liability.currentBalance;
 
       // Principal (no pre-converted field from backend — multiply by rate)
-      const principal = useConverted ? liability.principal * rate : liability.principal;
+      const principal = useConverted ? multiply(liability.principal, rate) : liability.principal;
 
       // Minimum payment
       const minimumPayment = useConverted
-        ? (liability.minimumPayment ?? 0) * rate
+        ? multiply(liability.minimumPayment ?? 0, rate)
         : (liability.minimumPayment ?? 0);
 
-      acc.totalBalance += balance;
-      acc.totalPrincipal += principal;
-      acc.totalMinimumPayment += minimumPayment;
+      acc.totalBalance = add(acc.totalBalance, balance);
+      acc.totalPrincipal = add(acc.totalPrincipal, principal);
+      acc.totalMinimumPayment = add(acc.totalMinimumPayment, minimumPayment);
 
       if (liability.interestRate && liability.interestRate > 0) {
         acc.liabilitiesWithInterest.push({ balance, rate: liability.interestRate });
@@ -93,17 +94,13 @@ function aggregateToBaseCurrency(liabilities: Liability[], baseCurrency: string)
 function weightedAvgRate(totals: BaseCurrencyTotals): string {
   if (totals.liabilitiesWithInterest.length === 0) return 'N/A';
 
-  const totalWeightedRate = totals.liabilitiesWithInterest.reduce(
-    (sum, item) => sum + item.balance * item.rate,
-    0
+  const totalWeightedRate = sum(
+    totals.liabilitiesWithInterest.map((item) => multiply(item.balance, item.rate))
   );
-  const totalBalance = totals.liabilitiesWithInterest.reduce(
-    (sum, item) => sum + item.balance,
-    0
-  );
+  const totalBalance = sum(totals.liabilitiesWithInterest.map((item) => item.balance));
 
   if (totalBalance === 0) return 'N/A';
-  return `${(totalWeightedRate / totalBalance).toFixed(2)}%`;
+  return `${divide(totalWeightedRate, totalBalance).toFixed(2)}%`;
 }
 
 export function LiabilitySummaryCards({ liabilities, filteredLiabilities, isActiveFilter }: LiabilitySummaryCardsProps) {

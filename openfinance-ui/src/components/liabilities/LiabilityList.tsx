@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { cn } from '@/lib/utils';
+import { multiply } from '@/utils/money';
 import {
   getLiabilityTypeName,
   getLiabilityTypeBadgeVariant,
@@ -184,7 +185,7 @@ export function LiabilityList({
                       currency={liability.currency}
                       convertedAmount={
                         liability.isConverted && liability.exchangeRate
-                          ? liability.principal * liability.exchangeRate
+                          ? multiply(liability.principal, liability.exchangeRate)
                           : undefined
                       }
                       baseCurrency={liability.baseCurrency}
@@ -219,7 +220,7 @@ export function LiabilityList({
                         currency={liability.currency}
                         convertedAmount={
                           liability.isConverted && liability.exchangeRate
-                            ? liability.minimumPayment * liability.exchangeRate
+                            ? multiply(liability.minimumPayment, liability.exchangeRate)
                             : undefined
                         }
                         baseCurrency={liability.baseCurrency}

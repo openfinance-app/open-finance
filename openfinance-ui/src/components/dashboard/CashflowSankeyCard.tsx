@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useCashflowSankey } from '../../hooks/useDashboard';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { sum } from '@/utils/money';
 import { PrivateAmount } from '../ui/PrivateAmount';
 import { useVisibility } from '../../context/VisibilityContext';
 import type { ICashflowSankeyNode } from '../../types/dashboard';
@@ -211,7 +212,7 @@ export default function CashflowSankeyCard({
       const otherLabel = t('cashflowSankey.other');
       return [
         ...top,
-        { name: otherLabel, amount: rest.reduce((s, n) => s + n.amount, 0), color: '#6b7280', icon: null, isOther: true } as ICashflowSankeyNode & { color: string },
+        { name: otherLabel, amount: sum(rest.map((n) => n.amount)), color: '#6b7280', icon: null, isOther: true } as ICashflowSankeyNode & { color: string },
       ];
     }
 
@@ -241,8 +242,8 @@ export default function CashflowSankeyCard({
     const expLayout = stackBars(expNodes, midY);
 
     // Build fans (compact, proportional slices at node, centred on midY)
-    const incTotal = incNodes.reduce((s, n) => s + n.amount, 0) || 1;
-    const expTotal = expNodes.reduce((s, n) => s + n.amount, 0) || 1;
+    const incTotal = sum(incNodes.map((n) => n.amount)) || 1;
+    const expTotal = sum(expNodes.map((n) => n.amount)) || 1;
     const incFan = buildFan(incNodes, incTotal, midY);
     const expFan = buildFan(expNodes, expTotal, midY);
 

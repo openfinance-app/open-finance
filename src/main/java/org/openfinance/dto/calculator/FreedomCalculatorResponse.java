@@ -68,7 +68,7 @@ public class FreedomCalculatorResponse {
      * Current progress toward target as a percentage. Calculated as: (Current Savings / Target
      * Amount) * 100
      */
-    private double progressPercentage;
+    private BigDecimal progressPercentage;
 
     /** Current savings amount (same as input). Included for reference in UI display. */
     private BigDecimal currentProgress;

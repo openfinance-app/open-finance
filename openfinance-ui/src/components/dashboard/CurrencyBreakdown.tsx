@@ -18,6 +18,7 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useAssets } from '@/hooks/useAssets';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { DEFAULT_CURRENCY, formatExchangeRate } from '@/utils/currency';
+import { add, multiply, sum, percentage } from '@/utils/money';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { PrivateAmount } from '../ui/PrivateAmount';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -105,7 +106,7 @@ export default function CurrencyBreakdown({ baseCurrency = DEFAULT_CURRENCY }: C
     if (!acc[account.currency]) {
       acc[account.currency] = { balance: 0, accountCount: 0 };
     }
-    acc[account.currency].balance += account.balance;
+    acc[account.currency].balance = add(acc[account.currency].balance, account.balance);
     acc[account.currency].accountCount += 1;
     return acc;
   }, {} as Record<string, { balance: number; accountCount: number }>);
@@ -119,7 +120,7 @@ export default function CurrencyBreakdown({ baseCurrency = DEFAULT_CURRENCY }: C
       if (!currencyGroups[asset.currency]) {
         currencyGroups[asset.currency] = { balance: 0, accountCount: 0 };
       }
-      currencyGroups[asset.currency].balance += asset.totalValue;
+      currencyGroups[asset.currency].balance = add(currencyGroups[asset.currency].balance, asset.totalValue);
       currencyGroups[asset.currency].accountCount += 1;
     });
   }
@@ -179,7 +180,7 @@ function CurrencyBreakdownContent({
     );
 
     const rate = isForeignCurrency && exchangeRate ? exchangeRate.rate : 1;
-    const balanceInBase = currencyBalance.balance * rate;
+    const balanceInBase = multiply(currencyBalance.balance, rate);
 
     return {
       ...currencyBalance,
@@ -190,13 +191,13 @@ function CurrencyBreakdownContent({
   });
 
   // Calculate grand total
-  const grandTotal = balancesWithRates.reduce((sum, cb) => sum + cb.balanceInBase, 0);
+  const grandTotal = sum(balancesWithRates.map((cb) => cb.balanceInBase));
 
   // Calculate percentages
-  const balancesWithPercentages = balancesWithRates.map((cb) => ({
-    ...cb,
-    percentage: grandTotal > 0 ? (cb.balanceInBase / grandTotal) * 100 : 0,
-  }));
+  const balancesWithPercentages = balancesWithRates.map((cb) => {
+    const pct = grandTotal > 0 ? percentage(cb.balanceInBase, grandTotal) : 0;
+    return { ...cb, percentage: pct };
+  });
 
   // Sort by balance in base currency (descending)
   const sortedBalances = balancesWithPercentages.sort(

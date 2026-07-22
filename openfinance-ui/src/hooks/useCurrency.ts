@@ -6,6 +6,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
+import { multiply } from '@/utils/money';
 import type {
   Currency,
   ExchangeRate,
@@ -122,7 +123,7 @@ export function useConvertAmount(amount: number, from: string, to: string) {
     return from === to ? amount : null;
   }
 
-  return amount * rate.rate;
+  return multiply(amount, rate.rate);
 }
 
 /**

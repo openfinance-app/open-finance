@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/Dialog';
 import { Edit2, Trash2, Eye, Home, Building2, Mountain, Building, Factory, MapPin } from 'lucide-react';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { multiply } from '@/utils/money';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { useDeleteProperty } from '@/hooks/useRealEstate';
 import { PropertyType, getPropertyTypeName, getPropertyTypeBadgeColor } from '@/types/realEstate';
@@ -173,7 +174,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
                 amount={property.purchasePrice}
                 currency={property.currency}
                 convertedAmount={property.isConverted && property.exchangeRate
-                  ? property.purchasePrice * property.exchangeRate
+                  ? multiply(property.purchasePrice, property.exchangeRate)
                   : undefined}
                 baseCurrency={property.baseCurrency}
                 exchangeRate={property.exchangeRate}
@@ -210,7 +211,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
                   amount={property.appreciation}
                   currency={property.currency}
                   convertedAmount={property.isConverted && property.exchangeRate
-                    ? property.appreciation * property.exchangeRate
+                    ? multiply(property.appreciation, property.exchangeRate)
                     : undefined}
                   baseCurrency={property.baseCurrency}
                   exchangeRate={property.exchangeRate}
@@ -230,7 +231,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
                 <ConvertedAmount
                   amount={property.equity}
                   currency={property.currency}
-                  convertedAmount={property.isConverted && property.exchangeRate ? property.equity! * property.exchangeRate : undefined}
+                  convertedAmount={property.isConverted && property.exchangeRate ? multiply(property.equity!, property.exchangeRate) : undefined}
                   baseCurrency={property.baseCurrency}
                   exchangeRate={property.exchangeRate}
                   isConverted={property.isConverted}

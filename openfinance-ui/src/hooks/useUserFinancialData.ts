@@ -9,6 +9,7 @@ import apiClient from '../services/apiClient';
 import type { Asset } from '../types/asset';
 import type { Transaction } from '../types/transaction';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { sum, multiply, divide } from '@/utils/money';
 
 interface UserFinancialData {
     totalSavings: number;
@@ -47,9 +48,9 @@ export const useUserFinancialData = (): UseUserFinancialDataReturn => {
             const assets = assetsResponse.data;
 
             // Calculate total savings from all assets
-            const totalSavings = assets.reduce((sum, asset) => {
-                return sum + (asset.totalValue || asset.quantity * asset.currentPrice);
-            }, 0);
+            const totalSavings = sum(
+                assets.map((asset) => asset.totalValue || multiply(asset.quantity, asset.currentPrice))
+            );
 
             // Fetch transactions from the last 6 months to calculate average expenses
             const sixMonthsAgo = new Date();
@@ -69,9 +70,7 @@ export const useUserFinancialData = (): UseUserFinancialDataReturn => {
             // Calculate average monthly expenses
             let averageMonthlyExpenses = 0;
             if (expenses.length > 0) {
-                const totalExpenses = expenses.reduce((sum, transaction) => {
-                    return sum + Math.abs(transaction.amount);
-                }, 0);
+                const totalExpenses = sum(expenses.map((transaction) => Math.abs(transaction.amount)));
 
                 // Calculate number of months in the period
                 const oldestExpense = expenses.reduce((oldest, transaction) => {
@@ -86,7 +85,7 @@ export const useUserFinancialData = (): UseUserFinancialDataReturn => {
                     )
                 );
 
-                averageMonthlyExpenses = totalExpenses / monthsDiff;
+                averageMonthlyExpenses = divide(totalExpenses, monthsDiff);
             }
 
             // Determine currency (use first asset's currency or the app default)

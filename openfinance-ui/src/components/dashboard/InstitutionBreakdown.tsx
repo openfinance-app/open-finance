@@ -15,6 +15,7 @@ import { useAssets } from '@/hooks/useAssets';
 import { ConvertedAmount } from '../ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { add, sum, percentage } from '@/utils/money';
 
 interface InstitutionBreakdownProps {
     baseCurrency?: string;
@@ -100,7 +101,7 @@ export default function InstitutionBreakdown({
 
             if (groupMap.has(key)) {
                 const g = groupMap.get(key)!;
-                g.totalBalance += value;
+                g.totalBalance = add(g.totalBalance, value);
                 g.accountCount += 1;
             } else {
                 groupMap.set(key, {
@@ -126,7 +127,7 @@ export default function InstitutionBreakdown({
 
             if (groupMap.has(key)) {
                 const g = groupMap.get(key)!;
-                g.totalBalance += value;
+                g.totalBalance = add(g.totalBalance, value);
                 // We don't increment accountCount for assets, or maybe we should call it "Item Count"?
                 // Let's keep accountCount as is for now or just not increment it.
             } else {
@@ -142,16 +143,13 @@ export default function InstitutionBreakdown({
         }
     }
 
-    const grandTotal = Array.from(groupMap.values()).reduce(
-        (sum, g) => sum + g.totalBalance,
-        0,
-    );
+    const grandTotal = sum(Array.from(groupMap.values()).map((g) => g.totalBalance));
 
     const groups: InstitutionGroup[] = Array.from(groupMap.values())
-        .map((g) => ({
-            ...g,
-            percentage: grandTotal > 0 ? (g.totalBalance / grandTotal) * 100 : 0,
-        }))
+        .map((g) => {
+            const pct = grandTotal > 0 ? percentage(g.totalBalance, grandTotal) : 0;
+            return { ...g, percentage: pct };
+        })
         .sort((a, b) => b.totalBalance - a.totalBalance);
 
     /* ── Render ──────────────────────────────────────────────────────────────── */

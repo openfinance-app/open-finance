@@ -21,6 +21,7 @@ import { AmortizationSchedule } from '@/components/liabilities/AmortizationSched
 import { LiabilityBreakdownPanel } from '@/components/liabilities/LiabilityBreakdownPanel';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
 import { AttachmentEntityType } from '@/types/attachment';
+import { multiply } from '@/utils/money';
 import { useAmortizationSchedule, useLiabilityBreakdown, useLiabilityTransactions } from '@/hooks/useLiabilities';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import type { Liability } from '@/types/liability';
@@ -61,7 +62,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
   /** Convert a native amount to base currency if the liability has conversion data */
   const toBase = (amount: number): number | undefined =>
     liability.isConverted && liability.exchangeRate != null
-      ? amount * liability.exchangeRate
+      ? multiply(amount, liability.exchangeRate)
       : undefined;
 
   return (
@@ -235,7 +236,7 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
   /** Convert a native amount to base using the parent liability's rate */
   const toBase = (amount: number): number | undefined =>
     liability.isConverted && liability.exchangeRate != null
-      ? amount * liability.exchangeRate
+      ? multiply(amount, liability.exchangeRate)
       : undefined;
 
   return (

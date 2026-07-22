@@ -9,6 +9,7 @@ import apiClient from '@/services/apiClient';
 import i18next from 'i18next';
 import { buildEncryptionHeaders } from '@/utils/encryption';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { sum, multiply, add } from '@/utils/money';
 import type {
   Liability,
   LiabilityRequest,
@@ -201,8 +202,8 @@ export function useAmortizationSchedule(liability: Liability | null) {
         remainingBalance: e.remainingBalance,
       }));
 
-      const totalInterest = payments.reduce((sum, p) => sum + p.interestPayment, 0);
-      const totalAmount = payments.reduce((sum, p) => sum + p.paymentAmount, 0);
+      const totalInterest = sum(payments.map((p) => p.interestPayment));
+      const totalAmount = sum(payments.map((p) => p.paymentAmount));
       const monthlyPayment = payments.length > 0 ? payments[0].paymentAmount : 0;
 
       return {
@@ -323,8 +324,9 @@ export const calculateTotalInterest = (
   // Simple interest calculation for estimation
   // For exact calculation, use the backend amortization endpoint
   const monthlyRate = interestRate / 100 / 12;
-  const monthlyPayment = (currentBalance * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -monthsRemaining));
-  const totalPayments = monthlyPayment * monthsRemaining;
+  const monthlyPayment =
+    multiply(currentBalance, monthlyRate) / (1 - Math.pow(add(1, monthlyRate), -monthsRemaining));
+  const totalPayments = multiply(monthlyPayment, monthsRemaining);
 
   return totalPayments - currentBalance;
 };

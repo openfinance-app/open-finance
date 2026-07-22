@@ -1,5 +1,6 @@
 package org.openfinance.dto.calculator;
 
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -37,7 +38,7 @@ public class SensitivityScenario {
     private String label;
 
     /** Return rate used for this scenario as percentage. */
-    private double returnRate;
+    private BigDecimal returnRate;
 
     /** Years to financial freedom with this scenario. */
     private int yearsToFreedom;

@@ -30,6 +30,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { useLocale } from '@/context/LocaleContext';
 import { cn } from '@/lib/utils';
+import { multiply } from '@/utils/money';
 import type { RecurringTransaction } from '@/types/recurringTransaction';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -90,7 +91,7 @@ export function RecurringTransactionDetailModal({
   );
   const exchangeRate = isSameCurrency ? 1 : (exchangeRateData?.rate ?? undefined);
   const convertedAmount =
-    exchangeRate !== undefined ? recurringTransaction.amount * exchangeRate : undefined;
+    exchangeRate !== undefined ? multiply(recurringTransaction.amount, exchangeRate) : undefined;
   const isConverted =
     isSameCurrency || (exchangeRate !== undefined && convertedAmount !== undefined);
 

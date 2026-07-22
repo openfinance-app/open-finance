@@ -249,6 +249,28 @@ describe('SplitTransactionForm', () => {
       ]);
     });
 
+    it('pre-populates new split with the precisely-rounded remaining amount (no float rounding-boundary bug)', () => {
+      // Regression test: Math.round(1.005 * 100) / 100 === 1 (not 1.01) in plain JS floats,
+      // because 1.005 * 100 === 100.49999999999999. The remaining amount must be rounded
+      // half-away-from-zero (matching the backend's BigDecimal HALF_UP), not truncated.
+      const { onChange } = renderForm({
+        totalAmount: 1.005,
+        splits: [{ categoryId: 10, amount: 0 }],
+      });
+
+      const addButton = screen.getByRole('button', { name: /add split/i });
+      addButton.click();
+
+      expect(onChange).toHaveBeenCalledWith([
+        { categoryId: 10, amount: 0 },
+        {
+          categoryId: undefined,
+          amount: 1.01,
+          description: undefined,
+        },
+      ]);
+    });
+
     it('pre-populates new split with 0 when total is exceeded', () => {
       const { onChange } = renderForm({ totalAmount: 50, splits: [{ categoryId: 10, amount: 60 }] });
 

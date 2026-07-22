@@ -20,6 +20,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useActivePayees } from '@/hooks/usePayees';
 import { useLatestExchangeRate, useCurrencyFormat } from '@/hooks/useCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { multiply } from '@/utils/money';
 import type {
   RecurringTransaction,
   RecurringTransactionRequest,
@@ -171,7 +172,7 @@ export function RecurringTransactionForm({
   // Currency conversion for preview
   const { data: exchangeRate } = useLatestExchangeRate(currency || DEFAULT_CURRENCY, baseCurrency || DEFAULT_CURRENCY);
   const formatBaseCurrency = useCurrencyFormat(baseCurrency || DEFAULT_CURRENCY);
-  const convertedAmount = amount && exchangeRate && currency !== baseCurrency ? amount * exchangeRate.rate : null;
+  const convertedAmount = amount && exchangeRate && currency !== baseCurrency ? multiply(amount, exchangeRate.rate) : null;
 
   // Get payees for auto-fill logic
   const { data: payees = [] } = useActivePayees();

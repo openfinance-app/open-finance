@@ -40,6 +40,7 @@ import {
   formatPercentage,
   getGainLossColor,
 } from '@/utils/portfolio';
+import { sum, subtract, percentage, multiply, divide } from '@/utils/money';
 import type { Asset, AssetRequest, AssetFilters as Filters } from '@/types/asset';
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -102,25 +103,30 @@ export default function AssetsPage() {
   const computeAssetSummary = (assetList: Asset[]) => {
     // For physical assets, use conditionAdjustedValue (current depreciated value) rather than
     // totalValue (purchase cost). Scale to base currency via the implicit exchange rate.
-    const totalValue = assetList.reduce((sum, a) => {
-      const effectiveNative = a.isPhysical
-        ? (a.conditionAdjustedValue ?? a.depreciatedValue ?? a.totalValue)
-        : a.totalValue;
+    const totalValue = sum(assetList.map((a) => {
+      // Coerce to Number first: keeps NaN-propagation semantics (instead of throwing) if a
+      // field is unexpectedly missing, matching the previous `sum + effectiveNative` behavior.
+      const effectiveNative = Number(
+        a.isPhysical
+          ? (a.conditionAdjustedValue ?? a.depreciatedValue ?? a.totalValue)
+          : a.totalValue
+      );
       if (a.valueInBaseCurrency !== undefined && a.valueInBaseCurrency !== null && a.totalValue > 0) {
-        const rate = a.valueInBaseCurrency / a.totalValue;
-        return sum + effectiveNative * rate;
+        const rate = divide(a.valueInBaseCurrency, a.totalValue);
+        return multiply(effectiveNative, rate);
       }
-      return sum + effectiveNative;
-    }, 0);
-    const totalCost = assetList.reduce((sum, a) => {
+      return effectiveNative;
+    }));
+    const totalCost = sum(assetList.map((a) => {
+      const cost = Number(a.totalCost);
       if (a.valueInBaseCurrency !== undefined && a.valueInBaseCurrency !== null && a.totalValue > 0) {
-        const rate = a.valueInBaseCurrency / a.totalValue;
-        return sum + a.totalCost * rate;
+        const rate = divide(a.valueInBaseCurrency, a.totalValue);
+        return multiply(cost, rate);
       }
-      return sum + a.totalCost;
-    }, 0);
-    const totalGain = totalValue - totalCost;
-    const gainPct = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+      return cost;
+    }));
+    const totalGain = subtract(totalValue, totalCost);
+    const gainPct = totalCost > 0 ? percentage(totalGain, totalCost) : 0;
     // Prefer the base currency from the server response; fall back to auth context baseCurrency
     const currency = assetList[0]?.baseCurrency ?? baseCurrency ?? assetList[0]?.currency ?? DEFAULT_CURRENCY;
     return { totalValue, totalCost, totalGain, gainPct, currency };

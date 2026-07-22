@@ -3,6 +3,7 @@ package org.openfinance.service;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -137,6 +138,109 @@ class FinancialFreedomServiceTest {
             assertEquals(1, response.getYearsToFreedom());
             assertEquals(0, response.getMonthsToFreedom());
         }
+
+        @Test
+        @DisplayName("progressPercentage and sensitivity scenario returnRate are exact BigDecimal")
+        void shouldComputeProgressAndSensitivityRatesInBigDecimal() {
+            FreedomCalculatorRequest request =
+                    FreedomCalculatorRequest.builder()
+                            .currentSavings(new BigDecimal("375000"))
+                            .monthlyExpenses(new BigDecimal("2500"))
+                            .expectedAnnualReturn(new BigDecimal("7"))
+                            .monthlyContribution(new BigDecimal("500"))
+                            .withdrawalRate(new BigDecimal("4"))
+                            .build();
+
+            FreedomCalculatorResponse response = service.calculateTimeToFreedom(request);
+
+            // Target = 30,000 / 0.04 = 750,000; progress = 375,000 / 750,000 * 100 = 50%
+            assertEquals(0, new BigDecimal("50").compareTo(response.getProgressPercentage()));
+
+            List<SensitivityScenario> scenarios = response.getSensitivityScenarios();
+            SensitivityScenario baseline =
+                    scenarios.stream()
+                            .filter(
+                                    s ->
+                                            s.getScenarioType()
+                                                    == SensitivityScenario.ScenarioType.BASELINE)
+                            .findFirst()
+                            .orElseThrow();
+            assertEquals(0, new BigDecimal("7").compareTo(baseline.getReturnRate()));
+
+            SensitivityScenario pessimistic =
+                    scenarios.stream()
+                            .filter(
+                                    s ->
+                                            s.getScenarioType()
+                                                    == SensitivityScenario.ScenarioType.PESSIMISTIC)
+                            .findFirst()
+                            .orElseThrow();
+            assertEquals(0, new BigDecimal("5").compareTo(pessimistic.getReturnRate()));
+
+            SensitivityScenario optimistic =
+                    scenarios.stream()
+                            .filter(
+                                    s ->
+                                            s.getScenarioType()
+                                                    == SensitivityScenario.ScenarioType.OPTIMISTIC)
+                            .findFirst()
+                            .orElseThrow();
+            assertEquals(0, new BigDecimal("9").compareTo(optimistic.getReturnRate()));
+        }
+
+        @Test
+        @DisplayName("Pessimistic sensitivity scenario is floored at -5%")
+        void shouldFloorPessimisticScenarioAtMinusFivePercent() {
+            FreedomCalculatorRequest request =
+                    FreedomCalculatorRequest.builder()
+                            .currentSavings(new BigDecimal("1000"))
+                            .monthlyExpenses(new BigDecimal("100"))
+                            .expectedAnnualReturn(new BigDecimal("-4"))
+                            .monthlyContribution(new BigDecimal("50"))
+                            .withdrawalRate(new BigDecimal("4"))
+                            .build();
+
+            FreedomCalculatorResponse response = service.calculateTimeToFreedom(request);
+
+            SensitivityScenario pessimistic =
+                    response.getSensitivityScenarios().stream()
+                            .filter(
+                                    s ->
+                                            s.getScenarioType()
+                                                    == SensitivityScenario.ScenarioType.PESSIMISTIC)
+                            .findFirst()
+                            .orElseThrow();
+
+            // base(-4%) - 2% = -6%, floored to -5%
+            assertEquals(0, new BigDecimal("-5").compareTo(pessimistic.getReturnRate()));
+        }
+
+        @Test
+        @DisplayName("Optimistic sensitivity scenario is capped at 15%")
+        void shouldCapOptimisticScenarioAtFifteenPercent() {
+            FreedomCalculatorRequest request =
+                    FreedomCalculatorRequest.builder()
+                            .currentSavings(new BigDecimal("1000"))
+                            .monthlyExpenses(new BigDecimal("100"))
+                            .expectedAnnualReturn(new BigDecimal("14"))
+                            .monthlyContribution(new BigDecimal("50"))
+                            .withdrawalRate(new BigDecimal("4"))
+                            .build();
+
+            FreedomCalculatorResponse response = service.calculateTimeToFreedom(request);
+
+            SensitivityScenario optimistic =
+                    response.getSensitivityScenarios().stream()
+                            .filter(
+                                    s ->
+                                            s.getScenarioType()
+                                                    == SensitivityScenario.ScenarioType.OPTIMISTIC)
+                            .findFirst()
+                            .orElseThrow();
+
+            // base(14%) + 2% = 16%, capped to 15%
+            assertEquals(0, new BigDecimal("15").compareTo(optimistic.getReturnRate()));
+        }
     }
 
     @Nested
@@ -178,8 +282,8 @@ class FinancialFreedomServiceTest {
             CalculationDefaults defaults = service.getDefaults();
 
             assertNotNull(defaults);
-            assertEquals(4.0, defaults.getDefaultWithdrawalRate());
-            assertEquals(2.5, defaults.getDefaultInflationRate());
+            assertEquals(0, new BigDecimal("4.0").compareTo(defaults.getDefaultWithdrawalRate()));
+            assertEquals(0, new BigDecimal("2.5").compareTo(defaults.getDefaultInflationRate()));
         }
     }
 }

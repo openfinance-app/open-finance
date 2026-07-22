@@ -18,6 +18,7 @@
 import { useMemo } from 'react';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
+import { multiply } from '@/utils/money';
 
 export interface SecondaryConversionResult {
     /** ISO 4217 code of the secondary currency, or null when not applicable. */
@@ -62,7 +63,7 @@ export function useSecondaryConversion(
         () =>
             (amount: number | null | undefined): number | null => {
                 if (amount == null || rate == null) return null;
-                return amount * rate;
+                return multiply(amount, rate);
             },
         [rate],
     );

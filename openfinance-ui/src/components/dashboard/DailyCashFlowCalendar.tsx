@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { useDailyCashFlow } from '../../hooks/useDashboard';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { subtract } from '@/utils/money';
 import { PrivateAmount } from '../ui/PrivateAmount';
 import {
   format as formatDate,
@@ -208,7 +209,7 @@ const DailyCashFlowCalendar = ({ className, baseCurrency = DEFAULT_CURRENCY }: D
 
               const income = dayData?.income ?? 0;
               const expense = dayData?.expense ?? 0;
-              const net = income - expense;
+              const net = subtract(income, expense);
               const hasActivity = income > 0 || expense > 0;
 
               // Scale to BAR_AREA_HEIGHT_PX so bars always render with concrete pixel values

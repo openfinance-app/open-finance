@@ -11,6 +11,7 @@ import { PrivateAmount } from '../ui/PrivateAmount';
 import { useVisibility } from '@/context/VisibilityContext';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatDate as globalFormatDate } from '@/utils/date';
+import { subtract, percentage } from '@/utils/money';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useTranslation } from 'react-i18next';
 
@@ -40,9 +41,9 @@ interface CustomTooltipProps {
 const CustomTooltip = ({ active, payload, currency, dateFormat, formatFn }: CustomTooltipProps & { dateFormat?: string }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
-    const change = data.netWorth - (data.previousNetWorth || data.netWorth);
+    const change = subtract(data.netWorth, data.previousNetWorth || data.netWorth);
     const changePercent = data.previousNetWorth
-      ? ((change / data.previousNetWorth) * 100).toFixed(2)
+      ? percentage(change, data.previousNetWorth).toFixed(2)
       : '0.00';
 
     return (
@@ -110,9 +111,9 @@ export default function NetWorthTrendChart({ data, currency, periodLabel }: NetW
   // Calculate overall trend
   const firstValue = data[0]?.netWorth || 0;
   const lastValue = data[data.length - 1]?.netWorth || 0;
-  const overallChange = lastValue - firstValue;
+  const overallChange = subtract(lastValue, firstValue);
   const overallChangePercent = firstValue !== 0
-    ? ((overallChange / Math.abs(firstValue)) * 100).toFixed(2)
+    ? percentage(overallChange, Math.abs(firstValue)).toFixed(2)
     : '0.00';
 
   const getTrendIcon = () => {

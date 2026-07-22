@@ -37,6 +37,7 @@ import RssFeedCard from '../components/dashboard/RssFeedCard';
 import BalanceVariationCard from '../components/dashboard/BalanceVariationCard';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
+import { subtract, percentage } from '@/utils/money';
 import { cn } from '@/lib/utils';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -305,8 +306,8 @@ export default function DashboardPage() {
       }
     }
     if (closest.netWorth === 0) return null;
-    const changeAmount = (summary.netWorth.netWorth ?? 0) - closest.netWorth;
-    const changePercent = (changeAmount / Math.abs(closest.netWorth)) * 100;
+    const changeAmount = subtract(summary.netWorth.netWorth ?? 0, closest.netWorth);
+    const changePercent = percentage(changeAmount, Math.abs(closest.netWorth));
     return { amount: changeAmount, percentage: changePercent };
   }, [netWorthHistory, summary?.netWorth?.netWorth, periodDays]);
 

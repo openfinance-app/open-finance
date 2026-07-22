@@ -25,6 +25,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { multiply, percentage } from '@/utils/money';
 import type { Account, AccountRequest, AccountType, InterestPeriod } from '@/types/account';
 
 const ACCOUNT_TYPES: AccountType[] = ['CHECKING', 'SAVINGS', 'CREDIT_CARD', 'INVESTMENT', 'CASH', 'OTHER'];
@@ -168,7 +169,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
       selectedCurrency !== baseCurrency &&
       exchangeRate &&
       initialBalance
-      ? initialBalance * exchangeRate.rate
+      ? multiply(initialBalance, exchangeRate.rate)
       : undefined;
 
   // Live interest preview computation
@@ -445,7 +446,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
                         </p>
                         {(initialBalance ?? 0) > 0 && (
                           <p className="text-xs font-medium text-primary/70 mt-0.5">
-                            ({((interestPreview.netInterest / (initialBalance ?? 1)) * 100).toFixed(2)}%)
+                            ({percentage(interestPreview.netInterest, initialBalance ?? 1).toFixed(2)}%)
                           </p>
                         )}
                       </div>

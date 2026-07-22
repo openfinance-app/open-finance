@@ -9,6 +9,7 @@
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { formatExchangeRate } from '@/utils/currency';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { multiply } from '@/utils/money';
 import { RefreshCw, TrendingDown, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
@@ -114,7 +115,7 @@ export function ExchangeRateDisplay({
   const { rate, inverseRate, rateDate, source } = exchangeRate;
 
   // Calculate converted amount if provided
-  const convertedAmount = amount ? amount * rate : undefined;
+  const convertedAmount = amount ? multiply(amount, rate) : undefined;
 
   // Format date
   const formattedDate = new Date(rateDate).toLocaleDateString('en-US', {

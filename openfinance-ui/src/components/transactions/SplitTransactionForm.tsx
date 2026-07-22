@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { fromMinorUnits, sumToDecimals, toMinorUnits } from '@/utils/money';
 import type { TransactionSplitRequest } from '@/types/transaction';
 import type { TransactionType } from '@/types/transaction';
 
@@ -31,11 +32,15 @@ interface SplitTransactionFormProps {
 }
 
 /**
- * Returns true when the absolute difference between two numbers is within the
- * allowed split tolerance (REQ-SPL-1.2: ±0.01).
+ * Returns true when the absolute difference between two amounts is within the allowed split
+ * tolerance (REQ-SPL-1.2: ±0.01) — this tolerance is an intentional business rule (it absorbs
+ * legitimate fiat non-divisibility, e.g. a 3-way split of 100.00 into 33.33 + 33.33 + 33.33 =
+ * 99.99), not a floating-point workaround. The comparison itself is done on exact integer minor
+ * units so it can never diverge from the arithmetic used to compute `remaining`/`splitTotal`, and
+ * mirrors the backend's BigDecimal-scale comparison in `TransactionSplitService`.
  */
 function withinTolerance(a: number, b: number): boolean {
-  return Math.abs(a - b) <= SPLIT_TOLERANCE;
+  return Math.abs(toMinorUnits(a) - toMinorUnits(b)) <= toMinorUnits(SPLIT_TOLERANCE);
 }
 
 /**
@@ -53,9 +58,10 @@ export function SplitTransactionForm({
 }: SplitTransactionFormProps) {
   const { t } = useTranslation('transactions');
   const { format: formatCurrency } = useFormatCurrency();
-  // REQ-SPL-3.3: computed running total
-  const splitTotal = splits.reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
-  const remaining = totalAmount - splitTotal;
+  // REQ-SPL-3.3: computed running total. Summed via exact integer minor-units arithmetic
+  // (see utils/money) to avoid float accumulation drift (e.g. 0.1 + 0.2 !== 0.3).
+  const splitTotal = sumToDecimals(splits.map((s) => Number(s.amount) || 0));
+  const remaining = fromMinorUnits(toMinorUnits(totalAmount) - toMinorUnits(splitTotal));
   const isValid = withinTolerance(splitTotal, totalAmount);
 
   // REQ-SPL-3.7: add a new blank split line
@@ -64,7 +70,9 @@ export function SplitTransactionForm({
       ...splits,
       {
         categoryId: undefined,
-        amount: remaining > 0 ? Math.round(remaining * 100) / 100 : 0,
+        // `remaining` is already precisely rounded to 2 decimals (see above) — no further
+        // Math.round(x * 100) / 100 needed, which would reintroduce the float rounding bug.
+        amount: remaining > 0 ? remaining : 0,
         description: undefined,
       },
     ]);

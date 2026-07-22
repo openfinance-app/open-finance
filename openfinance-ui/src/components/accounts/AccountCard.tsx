@@ -15,6 +15,7 @@ import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import type { Account, AccountType } from '@/types/account';
 import { useInterestEstimate } from '@/hooks/useAccounts';
 import { cn } from '@/lib/utils';
+import { percentage } from '@/utils/money';
 
 interface AccountCardProps {
   account: Account;
@@ -226,7 +227,7 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
                 />
                 {account.balance > 0 && (interestData?.estimate ?? 0) > 0 && (
                   <span className="text-xs font-medium text-success/70">
-                    ({(((interestData?.estimate ?? 0) / account.balance) * 100).toFixed(2)}%)
+                    ({percentage(interestData?.estimate ?? 0, account.balance).toFixed(2)}%)
                   </span>
                 )}
               </p>

@@ -15,6 +15,7 @@ import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { PhysicalAssetCard } from './PhysicalAssetCard';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { cn } from '@/lib/utils';
+import { multiply } from '@/utils/money';
 import {
   getAssetTypeName,
   getAssetTypeBadgeVariant,
@@ -261,7 +262,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                           inline
                           amount={asset.totalCost}
                           currency={asset.currency}
-                          convertedAmount={asset.isConverted && asset.exchangeRate ? asset.totalCost * asset.exchangeRate : undefined}
+                          convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.totalCost, asset.exchangeRate) : undefined}
                           baseCurrency={asset.baseCurrency}
                           exchangeRate={asset.exchangeRate}
                           isConverted={asset.isConverted}
@@ -367,7 +368,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                            inline
                            amount={asset.totalCost}
                            currency={asset.currency}
-                           convertedAmount={asset.isConverted && asset.exchangeRate ? asset.totalCost * asset.exchangeRate : undefined}
+                           convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.totalCost, asset.exchangeRate) : undefined}
                            baseCurrency={asset.baseCurrency}
                            exchangeRate={asset.exchangeRate}
                            isConverted={asset.isConverted}

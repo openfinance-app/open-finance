@@ -16,6 +16,7 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useYearlyBalance } from '@/hooks/useDashboard';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { divide, sum } from '@/utils/money';
 import { useVisibility } from '@/context/VisibilityContext';
 import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
@@ -121,7 +122,7 @@ export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: Ba
       .map((d: { variationPercentage: number | null }) => d.variationPercentage)
       .filter((v): v is number => v != null);
     if (variations.length === 0) return null;
-    return variations.reduce((a, b) => a + b, 0) / variations.length;
+    return divide(sum(variations), variations.length);
   }, [chartData]);
 
   if (isLoading) {

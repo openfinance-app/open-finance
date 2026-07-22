@@ -11,6 +11,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import type { Asset } from '@/types/asset';
 import { useHistoricalPrices } from '@/hooks/useMarketData';
 import { formatPercentage, getGainLossColor } from '@/utils/portfolio';
+import { multiply } from '@/utils/money';
 import { getCurrencySymbol } from '@/utils/currency';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
@@ -106,7 +107,7 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
   // Transform historical data for chart
   const chartData = historicalData?.map(item => ({
     date: new Date(item.date).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' }),
-    price: isConverted && asset.exchangeRate ? item.close * asset.exchangeRate : item.close,
+    price: isConverted && asset.exchangeRate ? multiply(item.close, asset.exchangeRate) : item.close,
   })) || [];
 
   const hasHistoricalData = asset.symbol && historicalData && historicalData.length > 0;
@@ -195,10 +196,10 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {asset.quantity} × <ConvertedAmount
-                          amount={isConverted && asset.exchangeRate ? asset.currentPrice * asset.exchangeRate : asset.currentPrice}
+                          amount={isConverted && asset.exchangeRate ? multiply(asset.currentPrice, asset.exchangeRate) : asset.currentPrice}
                           currency={chartCurrency}
                           isConverted={false}
-                          secondaryAmount={convertChart(isConverted && asset.exchangeRate ? asset.currentPrice * asset.exchangeRate : asset.currentPrice)}
+                          secondaryAmount={convertChart(isConverted && asset.exchangeRate ? multiply(asset.currentPrice, asset.exchangeRate) : asset.currentPrice)}
                           secondaryCurrency={secCurrencyChart}
                           secondaryExchangeRate={secExRateChart}
                           inline
@@ -216,7 +217,7 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                         <ConvertedAmount
                           amount={asset.totalCost}
                           currency={asset.currency}
-                          convertedAmount={asset.isConverted && asset.exchangeRate ? asset.totalCost * asset.exchangeRate : undefined}
+                          convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.totalCost, asset.exchangeRate) : undefined}
                           baseCurrency={asset.baseCurrency}
                           exchangeRate={asset.exchangeRate}
                           isConverted={asset.isConverted}
@@ -224,10 +225,10 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {asset.quantity} × <ConvertedAmount
-                          amount={isConverted && asset.exchangeRate ? asset.purchasePrice * asset.exchangeRate : asset.purchasePrice}
+                          amount={isConverted && asset.exchangeRate ? multiply(asset.purchasePrice, asset.exchangeRate) : asset.purchasePrice}
                           currency={chartCurrency}
                           isConverted={false}
-                          secondaryAmount={convertChart(isConverted && asset.exchangeRate ? asset.purchasePrice * asset.exchangeRate : asset.purchasePrice)}
+                          secondaryAmount={convertChart(isConverted && asset.exchangeRate ? multiply(asset.purchasePrice, asset.exchangeRate) : asset.purchasePrice)}
                           secondaryCurrency={secCurrencyChart}
                           secondaryExchangeRate={secExRateChart}
                           inline
@@ -249,7 +250,7 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                         <ConvertedAmount
                           amount={asset.unrealizedGain}
                           currency={asset.currency}
-                          convertedAmount={asset.isConverted && asset.exchangeRate ? asset.unrealizedGain * asset.exchangeRate : undefined}
+                          convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.unrealizedGain, asset.exchangeRate) : undefined}
                           baseCurrency={asset.baseCurrency}
                           exchangeRate={asset.exchangeRate}
                           isConverted={asset.isConverted}

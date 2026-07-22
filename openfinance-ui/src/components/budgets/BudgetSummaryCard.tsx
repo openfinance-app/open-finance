@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { formatPercentage } from '@/utils/format';
+import { percentage, sum, subtract } from '@/utils/money';
 import { TrendingUp, TrendingDown, DollarSign, Target } from 'lucide-react';
 import type { BudgetProgressResponse, BudgetSummaryResponse } from '@/types/budget';
 import { cn } from '@/lib/utils';
@@ -31,10 +32,7 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
   const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
   const isOverBudget = summary.totalSpent > summary.totalBudgeted;
   // Actual spent % for the "Total Spent" card (aggregate ratio)
-  const spentPercentage =
-    summary.totalBudgeted > 0
-      ? (summary.totalSpent / summary.totalBudgeted) * 100
-      : 0;
+  const spentPercentage = percentage(summary.totalSpent, summary.totalBudgeted);
   // Average of individual budget percentages for the "Avg. Spent" card
   const avgSpentPercentage = summary.averageSpentPercentage;
 
@@ -45,11 +43,10 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
 
   const filteredTotals = useMemo(() => {
     if (!filteredBudgets) return null;
-    const filteredTotalBudgeted = filteredBudgets.reduce((sum, b) => sum + b.budgeted, 0);
-    const filteredTotalSpent = filteredBudgets.reduce((sum, b) => sum + b.spent, 0);
-    const filteredTotalRemaining = filteredTotalBudgeted - filteredTotalSpent;
-    const filteredSpentPct =
-      filteredTotalBudgeted > 0 ? (filteredTotalSpent / filteredTotalBudgeted) * 100 : 0;
+    const filteredTotalBudgeted = sum(filteredBudgets.map((b) => b.budgeted));
+    const filteredTotalSpent = sum(filteredBudgets.map((b) => b.spent));
+    const filteredTotalRemaining = subtract(filteredTotalBudgeted, filteredTotalSpent);
+    const filteredSpentPct = percentage(filteredTotalSpent, filteredTotalBudgeted);
     return { filteredTotalBudgeted, filteredTotalSpent, filteredTotalRemaining, filteredSpentPct };
   }, [filteredBudgets]);
 

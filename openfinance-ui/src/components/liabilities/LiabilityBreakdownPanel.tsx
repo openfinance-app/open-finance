@@ -18,6 +18,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useLiabilityBreakdown } from '@/hooks/useLiabilities';
+import { multiply, percentage } from '@/utils/money';
 import type { Liability } from '@/types/liability';
 
 interface LiabilityBreakdownPanelProps {
@@ -45,7 +46,7 @@ function BreakdownRow({
 
   const convertedAmount =
     liability.isConverted && liability.exchangeRate != null
-      ? value * liability.exchangeRate
+      ? multiply(value, liability.exchangeRate)
       : undefined;
 
   return (
@@ -128,7 +129,7 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
 
   const progressPercent =
     breakdown.principal > 0
-      ? Math.min(100, Math.max(0, (breakdown.principalPaid / breakdown.principal) * 100))
+      ? Math.min(100, Math.max(0, percentage(breakdown.principalPaid, breakdown.principal)))
       : 0;
 
   const rate = liability.exchangeRate;
@@ -136,7 +137,7 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
 
   /** Helper: convert a native breakdown amount to base-currency if conversion is available */
   const toBase = (amount: number): number | undefined =>
-    isConverted && rate != null ? amount * rate : undefined;
+    isConverted && rate != null ? multiply(amount, rate) : undefined;
 
   return (
     <div className="space-y-4">

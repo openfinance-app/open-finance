@@ -43,7 +43,7 @@ public class ProjectionResult {
     private BigDecimal withdrawals;
 
     /** Cumulative progress toward target as percentage (0-100). */
-    private double progressTowardTarget;
+    private BigDecimal progressTowardTarget;
 
     /** Flag indicating if target was reached this year. */
     private boolean targetReached;

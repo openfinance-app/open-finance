@@ -75,6 +75,15 @@ public class FinancialFreedomService {
     /** Working precision for iterative BigDecimal compounding. */
     private static final MathContext MC = new MathContext(20, RoundingMode.HALF_UP);
 
+    /** Return-rate delta (± percentage points) applied for pessimistic/optimistic scenarios. */
+    private static final BigDecimal SENSITIVITY_RATE_DELTA = new BigDecimal("2");
+
+    /** Floor applied to the pessimistic sensitivity scenario's return rate. */
+    private static final BigDecimal PESSIMISTIC_RATE_FLOOR = new BigDecimal("-5");
+
+    /** Ceiling applied to the optimistic sensitivity scenario's return rate. */
+    private static final BigDecimal OPTIMISTIC_RATE_CEILING = new BigDecimal("15");
+
     /**
      * Calculate time to financial freedom.
      *
@@ -162,15 +171,14 @@ public class FinancialFreedomService {
                         request.getCurrentSavings(),
                         request.getMonthlyExpenses(),
                         monthlyContribution,
-                        request.getExpectedAnnualReturn().doubleValue(),
-                        withdrawalRate.doubleValue());
+                        request.getExpectedAnnualReturn(),
+                        withdrawalRate);
 
         // Calculate progress percentage
-        double progressPercentage =
+        BigDecimal progressPercentage =
                 request.getCurrentSavings()
                         .divide(targetAmount, 6, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100))
-                        .doubleValue();
+                        .multiply(HUNDRED);
 
         // Calculate annual passive income at target
         BigDecimal annualPassiveIncome =
@@ -185,7 +193,7 @@ public class FinancialFreedomService {
                 .yearsToFreedom((int) (monthsToFreedom / MONTHS_PER_YEAR))
                 .monthsToFreedom(monthsToFreedom % MONTHS_PER_YEAR)
                 .targetSavingsAmount(targetAmount)
-                .progressPercentage(Math.min(progressPercentage, 100.0))
+                .progressPercentage(progressPercentage.min(HUNDRED))
                 .currentProgress(request.getCurrentSavings())
                 .annualPassiveIncome(annualPassiveIncome)
                 .sustainableIndefinitely(
@@ -341,16 +349,16 @@ public class FinancialFreedomService {
      */
     public CalculationDefaults getDefaults() {
         return CalculationDefaults.builder()
-                .defaultWithdrawalRate(4.0)
-                .defaultInflationRate(2.5)
-                .minimumWithdrawalRate(0.5)
-                .maximumWithdrawalRate(10.0)
-                .minimumReturnRate(-10.0)
-                .maximumReturnRate(30.0)
-                .defaultReturnRate(7.0)
+                .defaultWithdrawalRate(new BigDecimal("4.0"))
+                .defaultInflationRate(new BigDecimal("2.5"))
+                .minimumWithdrawalRate(new BigDecimal("0.5"))
+                .maximumWithdrawalRate(new BigDecimal("10.0"))
+                .minimumReturnRate(new BigDecimal("-10.0"))
+                .maximumReturnRate(new BigDecimal("30.0"))
+                .defaultReturnRate(new BigDecimal("7.0"))
                 .maxProjectionYears(MAX_PROJECTION_YEARS)
                 .defaultProjectionYears(30)
-                .defaultMonthlyContribution(0)
+                .defaultMonthlyContribution(BigDecimal.ZERO)
                 .build();
     }
 
@@ -528,11 +536,9 @@ public class FinancialFreedomService {
             // Update balance
             balance = balance.add(yearlyReturns).add(annualContribution);
 
-            // Calculate progress (display percentage; response field is a double)
-            double progress =
-                    balance.divide(targetAmount, 6, RoundingMode.HALF_UP)
-                            .multiply(HUNDRED)
-                            .doubleValue();
+            // Calculate progress (as a percentage; clamped to 100 before assignment below)
+            BigDecimal progress =
+                    balance.divide(targetAmount, 6, RoundingMode.HALF_UP).multiply(HUNDRED);
 
             boolean targetReached = balance.compareTo(targetAmount) >= 0;
 
@@ -543,7 +549,7 @@ public class FinancialFreedomService {
                             .endingBalance(balance)
                             .contributions(annualContribution)
                             .investmentReturns(yearlyReturns)
-                            .progressTowardTarget(Math.min(progress, 100.0))
+                            .progressTowardTarget(progress.min(HUNDRED))
                             .targetReached(targetReached)
                             .build());
 
@@ -573,14 +579,13 @@ public class FinancialFreedomService {
             BigDecimal currentSavings,
             BigDecimal monthlyExpenses,
             BigDecimal monthlyContribution,
-            double baseReturnRate,
-            double withdrawalRate) {
+            BigDecimal baseReturnRate,
+            BigDecimal withdrawalRate) {
 
         List<SensitivityScenario> scenarios = new ArrayList<>();
 
         BigDecimal annualExpenses = monthlyExpenses.multiply(BigDecimal.valueOf(MONTHS_PER_YEAR));
-        BigDecimal targetAmount =
-                calculateTargetAmount(annualExpenses, BigDecimal.valueOf(withdrawalRate));
+        BigDecimal targetAmount = calculateTargetAmount(annualExpenses, withdrawalRate);
 
         // Baseline scenario
         scenarios.add(
@@ -592,9 +597,10 @@ public class FinancialFreedomService {
                         targetAmount,
                         SensitivityScenario.ScenarioType.BASELINE));
 
-        // Pessimistic scenario (-2%, minimum -5%)
-        double pessimisticRate = Math.max(-5.0, baseReturnRate - 2.0);
-        if (pessimisticRate != baseReturnRate) {
+        // Pessimistic scenario (-2%, floored at -5%)
+        BigDecimal pessimisticRate =
+                baseReturnRate.subtract(SENSITIVITY_RATE_DELTA).max(PESSIMISTIC_RATE_FLOOR);
+        if (pessimisticRate.compareTo(baseReturnRate) != 0) {
             scenarios.add(
                     createScenario(
                             "Pessimistic (-2%)",
@@ -605,9 +611,10 @@ public class FinancialFreedomService {
                             SensitivityScenario.ScenarioType.PESSIMISTIC));
         }
 
-        // Optimistic scenario (+2%, maximum 15%)
-        double optimisticRate = Math.min(15.0, baseReturnRate + 2.0);
-        if (optimisticRate != baseReturnRate) {
+        // Optimistic scenario (+2%, capped at 15%)
+        BigDecimal optimisticRate =
+                baseReturnRate.add(SENSITIVITY_RATE_DELTA).min(OPTIMISTIC_RATE_CEILING);
+        if (optimisticRate.compareTo(baseReturnRate) != 0) {
             scenarios.add(
                     createScenario(
                             "Optimistic (+2%)",
@@ -624,7 +631,7 @@ public class FinancialFreedomService {
     /** Creates a single sensitivity scenario. */
     private SensitivityScenario createScenario(
             String label,
-            double returnRate,
+            BigDecimal returnRate,
             BigDecimal currentSavings,
             BigDecimal monthlyContribution,
             BigDecimal targetAmount,
@@ -632,10 +639,7 @@ public class FinancialFreedomService {
 
         long monthsToFreedom =
                 calculateMonthsToTarget(
-                        currentSavings,
-                        monthlyContribution,
-                        BigDecimal.valueOf(returnRate),
-                        targetAmount);
+                        currentSavings, monthlyContribution, returnRate, targetAmount);
 
         return SensitivityScenario.builder()
                 .label(label)
