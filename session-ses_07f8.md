@@ -12,9 +12,10 @@ Four parallel audits completed. Here's the synthesized report.
 | **Critical Theme 1 — Default-currency chaos** | ✅ **FIXED & VERIFIED** |
 | **Critical Theme 2 — Float/double monetary math** | 🟡 **IN PROGRESS** — backend money-math ✅, P0 (split precision) ✅, P1 (rate DTOs) ✅, P2 (decimal foundation) ✅, P3 (app-wide frontend precision) ✅ done; P4 (calculator tools) deferred (see remaining plan) |
 | Critical Theme 3 — Currency-decimal hardcoding | ⬜ Not started |
-| HIGH / MEDIUM / LOW severity items | ⬜ Not started |
+| HIGH / MEDIUM severity items | ⬜ Not started |
+| **LOW severity items** | ✅ **FIXED & VERIFIED** (8 of 11 real items fixed; 3 were stale/already-resolved — see notes) |
 
-**Verification:** backend `mvn test` → 2381 pass / 0 fail / 0 err; frontend `type-check` + Vitest → 3284 pass / 0 fail; `mvn spotless:apply` + ESLint (0 errors, backend & frontend) clean.
+**Verification:** backend `mvn test` → 2395 pass / 0 fail / 0 err; frontend `type-check` + Vitest → 3284 pass / 0 fail; `mvn spotless:apply` + ESLint (0 errors, backend & frontend) clean.
 
 ---
 
@@ -165,7 +166,7 @@ should be configurable.
 2-Crypto currency list should not be hardcoded. Use similar fiat currenciues ISO 4217 list or external free provider.
 
 
-## LOW Severity (highlights)
+## LOW Severity (highlights) ✅ FIXED & VERIFIED (8 of 11 real; 3 stale/already-resolved)
 
 - `service/FinancialFreedomService.java:674` — `String.format("€%,.2f", amount.doubleValue())` hardcoded currency symbol + double
 - `util/DateTimeUtil.java:22-24` — display formatters not locale-aware
@@ -180,6 +181,22 @@ should be configurable.
 - **QIF parser tests use hardcoded MM/DD/YYYY dates** — `QifParserTest.java`; may pass/fail differently on non-US locale JVMs
 
 **PO Assessment:** Fix all above accordingly.
+
+**✅ Resolution:** Re-verified each item against the current codebase (much has shifted since this audit was written) before fixing. **3 items were stale** — already resolved by earlier, unrelated changes, or inaccurate at time of writing — and are called out explicitly rather than silently skipped:
+
+1. **`FinancialFreedomService` €/double format — FIXED.** No currency context exists at this service layer (the request carries only raw amounts), so hardcoding "€" was actively wrong for non-EUR users, not just imprecise. Removed the symbol entirely (caller/frontend pairs the figure with the user's real currency) and replaced `String.format("€%,.2f", amount.doubleValue())` with `NumberFormat.getNumberInstance(Locale.US)` operating on the `BigDecimal` directly (no `.doubleValue()` round-trip). Added a characterization test for the "not achievable" message path (previously untested) — this took a long debugging detour due to repeatedly misreading *which* `assertFalse(...)` was failing in a multi-assertion test (both `achievable` and the `€`-check assertions produce an identical `expected: <false> but was: <true>` signature); resolved by reading exact stack-trace line numbers from the raw Surefire report rather than piped/grepped console output, which was unreliable in this shell for this specific investigation.
+2. **`DateTimeUtil` locale-aware formatters — FIXED.** Had zero production callers and zero tests (confirmed via search), so this was a pure hardening exercise, not a live bug. Pinned the existing `DISPLAY_DATE_FORMATTER`/`DISPLAY_DATE_TIME_FORMATTER` to `Locale.ENGLISH` explicitly (removing the implicit JVM-default-locale dependency) and added `formatDateForDisplay(date, locale)` / `formatDateTimeForDisplay(dateTime, locale)` overloads for callers that need the user's actual locale (e.g. French month abbreviations). 6 new tests.
+3. **`RssService` — FIXED.** Was constructing a `new RestTemplate()` on every single call to `getFinanceFeeds`. Added a dedicated `rssRestTemplate` bean (`config/RssConfig.java`, mirroring the existing `LogoFetchConfig` pattern) injected via constructor, so one instance is reused for the service's lifetime. Extracted the hardcoded Chrome User-Agent string into a named `RssService.USER_AGENT` constant. 2 new tests (RestTemplate reuse, User-Agent header sent).
+4. **`Backup`/`Attachment` duplicate file-size formatters — FIXED.** Extracted a single shared `util/FileSizeFormatter` (2-decimal precision at every tier, "bytes" suffix) used by both entities, eliminating the inconsistency (`Backup` was already internally consistent at 2 decimals; `Attachment` mixed 1 decimal for KB/MB with 2 for GB). Updated `AttachmentTest`'s 4 affected assertions from 1-decimal to 2-decimal patterns (necessary and expected — that's the actual fix). 5 new tests for the extracted formatter; `BackupRepositoryTest`'s existing 2-decimal assertion needed no change.
+5. **`OllamaClient`/`OpenAIProvider` magic number — FIXED.** Extracted the duplicated `10 * 1024 * 1024` WebClient buffer size into a shared `AIWebClientDefaults.MAX_IN_MEMORY_SIZE_BYTES` constant in `service.ai`, so the two providers' buffer sizes can never silently drift apart.
+6. **`application-railway.yml` hardcoded URL — STALE, nothing to fix.** This file no longer exists in the repository (confirmed via filesystem search and `git log`); there is no `railway.toml` either. Railway deployment now appears to rely on environment variables / the `pom.xml` `railway` Maven profile alone, with no separate hardcoded-URL config file.
+7. **`RepairRunner`/`TestDataSeeder` magic numbers — partially stale.** `RepairRunner.java`'s actual repair logic (`repairForUser` and callees) is unreachable dead code — `run()` returns immediately after logging a deprecation warning — and contains **no** `0.10`/`365`/`12` magic numbers at all; the report's claim no longer matches the file's content. `TestDataSeeder.java` did have real (if low-stakes, seed-data-only) `12`/`365` magic numbers — extracted as `MONTHS_PER_YEAR`/`SEED_TRANSACTION_LOOKBACK_DAYS` constants.
+8. **`InsightService` 24 `.doubleValue()` calls — FIXED.** Verified first (by reading the actual `.properties` files) that every affected message pattern uses explicit `{n,number,#.##}`-style `MessageFormat` tokens, which render any `Number` subtype (including `BigDecimal`) identically — so removing `.doubleValue()` and passing the `BigDecimal` directly is a pure precision improvement with **zero visible message-text change**. Fixed all 24 sites (one string-concatenation fallback-message site used `.toPlainString()` instead, to guarantee no scientific-notation risk). Deliberately left untouched: `UnusualTransactionDetectionService.java`'s `.doubleValue()` calls (legitimate statistical mean/stddev/z-score math, not monetary formatting, and not part of this report item) and `FinancialFreedomService.java:410`'s zero-comparison (not a formatting concern).
+9. **Frontend `CompoundInterestCalculator.tsx` — FIXED.** Converted the 3 genuine `Number(x.toFixed(2))` re-conversion sites (chart data: principal/contributions/interest) to `roundToDecimals()` from the established `utils/money` foundation, and also fixed the raw subtraction feeding into them (`row.cumulativePrincipal - initPrincipal` → `subtract(...)`) for full derivation-chain precision. Line 268 (`result.effectiveAnnualRate.toFixed(2)`) — named in the original audit bullet — was **not** touched: it's pure terminal display formatting (renders directly to a string, never re-enters numeric computation), not the "re-introduces float error" pattern the item describes.
+10. **Scheduler timezone divergence — STALE, nothing to fix.** Searched for `Europe/Paris` as a scheduler default anywhere in the codebase — the only matches are Javadoc examples and frontend test fixtures (a French user's `timezone` *setting*, unrelated to schedulers). `application.yml`'s `scheduled.market-hours.zone` and `MarketDataScheduler.DEFAULT_ZONE` both already read `America/New_York`, consistently.
+11. **QIF parser "hardcoded dates" — FIXED (at the root cause).** The tests themselves are safe (`LocalDate.of(year, month, day)` literals — inherently locale-independent). The real, if largely theoretical, risk was in **production code**: `QifParser.java`'s 13 numeric `DateTimeFormatter.ofPattern(...)` array entries used the JVM-default-locale implicitly. Pinned all 13 to `Locale.ROOT` explicitly, which is the standard hardening recommendation for `DateTimeFormatter` construction (never rely on implicit default locale), removing the "may behave differently on non-US locale JVMs" risk at its source rather than in the test file.
+
+**Verified:** full backend `mvn test` → **2395 pass, 0 fail, 0 err** (5 pre-existing skips, +14 new tests this pass); `spotless:apply` clean. Full frontend suite → **3284/3284 pass** (one `useInstitutions` flake in the full parallel run reproduced as a pre-existing, unrelated CPU-contention flake — confirmed 12/12 passing in isolation, and confirmed zero working-tree changes to that file); `type-check` clean; ESLint 0 errors, no new warnings.
 
 ---
 

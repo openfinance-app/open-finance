@@ -3,9 +3,11 @@ package org.openfinance.service;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.calculator.*;
@@ -683,8 +685,18 @@ public class FinancialFreedomService {
         return message.toString();
     }
 
-    /** Formats a BigDecimal as currency. */
+    /**
+     * Formats a BigDecimal amount with thousands separators and 2 decimal places.
+     *
+     * <p>Intentionally has no currency symbol: this service has no currency context (the request
+     * carries only raw amounts), so guessing one (the previous code hardcoded "€") would be wrong
+     * for non-EUR users. The caller/frontend is responsible for pairing this figure with the user's
+     * actual currency.
+     */
     private String formatCurrency(BigDecimal amount) {
-        return String.format("€%,.2f", amount.doubleValue());
+        NumberFormat numberFormat = NumberFormat.getNumberInstance(Locale.US);
+        numberFormat.setMinimumFractionDigits(2);
+        numberFormat.setMaximumFractionDigits(2);
+        return numberFormat.format(amount.setScale(2, RoundingMode.HALF_UP));
     }
 }

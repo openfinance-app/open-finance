@@ -293,11 +293,9 @@ public class InsightService {
                                             "insight.spending.anomaly.description",
                                             new Object[] {
                                                 categoryName.toLowerCase(),
-                                                percentChange
-                                                        .multiply(new BigDecimal("100"))
-                                                        .doubleValue(),
-                                                currentSpending.doubleValue(),
-                                                previousSpending.doubleValue()
+                                                percentChange.multiply(new BigDecimal("100")),
+                                                currentSpending,
+                                                previousSpending
                                             },
                                             LocaleContextHolder.getLocale());
 
@@ -364,11 +362,10 @@ public class InsightService {
                                         "insight.budget.exceeded.description",
                                         new Object[] {
                                             categoryName.toLowerCase(),
-                                            overspent.doubleValue(),
+                                            overspent,
                                             percentUsed
                                                     .subtract(BigDecimal.ONE)
                                                     .multiply(new BigDecimal("100"))
-                                                    .doubleValue()
                                         },
                                         LocaleContextHolder.getLocale());
                         insights.add(
@@ -389,13 +386,11 @@ public class InsightService {
                                 messageSource.getMessage(
                                         "insight.budget.warning.description",
                                         new Object[] {
-                                            percentUsed
-                                                    .multiply(new BigDecimal("100"))
-                                                    .doubleValue(),
+                                            percentUsed.multiply(new BigDecimal("100")),
                                             categoryName.toLowerCase(),
-                                            spent.doubleValue(),
-                                            budgetAmount.doubleValue(),
-                                            remaining.doubleValue()
+                                            spent,
+                                            budgetAmount,
+                                            remaining
                                         },
                                         LocaleContextHolder.getLocale());
                         insights.add(
@@ -456,8 +451,7 @@ public class InsightService {
                                     messageSource.getMessage(
                                             "insight.subscription.description",
                                             new Object[] {
-                                                monthlySpending.doubleValue(),
-                                                categoryName.toLowerCase()
+                                                monthlySpending, categoryName.toLowerCase()
                                             },
                                             LocaleContextHolder.getLocale());
                             insights.add(
@@ -511,7 +505,7 @@ public class InsightService {
                     String description =
                             messageSource.getMessage(
                                     "insight.low.balance.description",
-                                    new Object[] {accountName, balance.doubleValue()},
+                                    new Object[] {accountName, balance},
                                     LocaleContextHolder.getLocale());
                     insights.add(
                             createInsight(
@@ -628,7 +622,7 @@ public class InsightService {
                             messageSource.getMessage(
                                     "insight.region.income.above.description",
                                     new Object[] {
-                                        monthlyIncome.doubleValue(),
+                                        monthlyIncome,
                                         currency,
                                         percentDiff.intValue(),
                                         countryDisplayName
@@ -648,7 +642,7 @@ public class InsightService {
                             messageSource.getMessage(
                                     "insight.region.income.below.description",
                                     new Object[] {
-                                        monthlyIncome.doubleValue(),
+                                        monthlyIncome,
                                         currency,
                                         percentDiff.intValue(),
                                         countryDisplayName
@@ -748,10 +742,10 @@ public class InsightService {
                         messageSource.getMessage(
                                 "insight.region.networth.description",
                                 new Object[] {
-                                    totalNetWorth.doubleValue(),
+                                    totalNetWorth,
                                     currency,
                                     countryDisplayName,
-                                    medianNetWorth.doubleValue(),
+                                    medianNetWorth,
                                     comparison
                                 },
                                 locale);
@@ -841,11 +835,11 @@ public class InsightService {
                     messageSource.getMessage(
                             "insight.tax.estimate.description",
                             new Object[] {
-                                annualIncome.doubleValue(),
+                                annualIncome,
                                 currency,
                                 countryDisplayName,
-                                estimatedTax.doubleValue(),
-                                effectiveRate.doubleValue()
+                                estimatedTax,
+                                effectiveRate
                             },
                             locale);
             insights.add(
@@ -894,9 +888,7 @@ public class InsightService {
                 String deductionDescription =
                         messageSource.getMessage(
                                 "insight.tax.deduction.description",
-                                new Object[] {
-                                    potentialDeductions.doubleValue(), currency, countryDisplayName
-                                },
+                                new Object[] {potentialDeductions, currency, countryDisplayName},
                                 locale);
                 insights.add(
                         createInsight(
@@ -972,9 +964,9 @@ public class InsightService {
                             "insight.recurring.summary.description",
                             new Object[] {
                                 recurringExpenses.size(),
-                                totalMonthly.doubleValue(),
+                                totalMonthly,
                                 currency,
-                                totalAnnual.doubleValue(),
+                                totalAnnual,
                                 incomeRatioPercent.intValue()
                             },
                             locale);
@@ -997,9 +989,7 @@ public class InsightService {
                             messageSource.getMessage(
                                     "insight.recurring.high.ratio.description",
                                     new Object[] {
-                                        totalMonthly.doubleValue(),
-                                        currency,
-                                        incomeRatioPercent.intValue()
+                                        totalMonthly, currency, incomeRatioPercent.intValue()
                                     },
                                     locale);
                     insights.add(
@@ -1058,7 +1048,7 @@ public class InsightService {
                                                     new Object[] {
                                                         originalService,
                                                         competitorName,
-                                                        potentialSavings.doubleValue(),
+                                                        potentialSavings,
                                                         currency
                                                     },
                                                     "Consider switching from "
@@ -1066,7 +1056,7 @@ public class InsightService {
                                                             + " to "
                                                             + competitorName
                                                             + " to save "
-                                                            + potentialSavings.doubleValue()
+                                                            + potentialSavings.toPlainString()
                                                             + " "
                                                             + currency,
                                                     locale);

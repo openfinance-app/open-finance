@@ -4,6 +4,7 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -18,10 +19,20 @@ public final class DateTimeUtil {
     public static final DateTimeFormatter ISO_DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
     public static final DateTimeFormatter ISO_DATE_TIME_FORMATTER =
             DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
+    /**
+     * Default (English) display formatter. {@code "MMM"} resolves month abbreviations via a {@link
+     * Locale}; explicitly pinning {@link Locale#ENGLISH} here (rather than relying on {@link
+     * DateTimeFormatter#ofPattern(String)}'s implicit JVM-default-locale behaviour) keeps this
+     * default deterministic across environments. Use {@link #formatDateForDisplay(LocalDate,
+     * Locale)} to render in the user's actual locale.
+     */
     public static final DateTimeFormatter DISPLAY_DATE_FORMATTER =
-            DateTimeFormatter.ofPattern("dd MMM yyyy");
+            DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
+
+    /** Default (English) display-with-time formatter. See {@link #DISPLAY_DATE_FORMATTER}. */
     public static final DateTimeFormatter DISPLAY_DATE_TIME_FORMATTER =
-            DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm");
+            DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", Locale.ENGLISH);
 
     // Default timezone
     private static final ZoneId DEFAULT_ZONE = ZoneId.systemDefault();
@@ -109,6 +120,21 @@ public final class DateTimeUtil {
     }
 
     /**
+     * Format date for display in a specific locale (dd MMM yyyy), e.g. "30 janv. 2024" for {@link
+     * Locale#FRENCH}.
+     *
+     * @param date the date
+     * @param locale the locale to render month abbreviations in
+     * @return formatted string, or {@code null} if {@code date} is {@code null}
+     */
+    public static String formatDateForDisplay(LocalDate date, Locale locale) {
+        if (date == null) {
+            return null;
+        }
+        return date.format(DateTimeFormatter.ofPattern("dd MMM yyyy", locale));
+    }
+
+    /**
      * Format date-time for display
      *
      * @param dateTime the date-time
@@ -116,6 +142,20 @@ public final class DateTimeUtil {
      */
     public static String formatDateTimeForDisplay(LocalDateTime dateTime) {
         return dateTime != null ? dateTime.format(DISPLAY_DATE_TIME_FORMATTER) : null;
+    }
+
+    /**
+     * Format date-time for display in a specific locale (dd MMM yyyy HH:mm).
+     *
+     * @param dateTime the date-time
+     * @param locale the locale to render month abbreviations in
+     * @return formatted string, or {@code null} if {@code dateTime} is {@code null}
+     */
+    public static String formatDateTimeForDisplay(LocalDateTime dateTime, Locale locale) {
+        if (dateTime == null) {
+            return null;
+        }
+        return dateTime.format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", locale));
     }
 
     // ========== Timezone Conversion Methods ==========

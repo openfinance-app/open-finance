@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Calculator, RefreshCw, AlertCircle, TrendingUp, PiggyBank, Percent, DollarSign } from 'lucide-react';
+import { subtract, roundToDecimals } from '@/utils/money';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
@@ -325,12 +326,12 @@ function GrowthChart({
   // Build chart data suitable for a stacked area
   const chartData = breakdown.map((row) => {
     const initPrincipal = breakdown[0].startingBalance;
-    const totalContribs = row.cumulativePrincipal - initPrincipal;
+    const totalContribs = subtract(row.cumulativePrincipal, initPrincipal);
     return {
       year: `Y${row.year}`,
-      [t('compoundInterest.chart.principal')]: Number(initPrincipal.toFixed(2)),
-      [t('compoundInterest.chart.contributions')]: Number(totalContribs.toFixed(2)),
-      [t('compoundInterest.chart.interest')]: Number(row.cumulativeInterest.toFixed(2)),
+      [t('compoundInterest.chart.principal')]: roundToDecimals(initPrincipal),
+      [t('compoundInterest.chart.contributions')]: roundToDecimals(totalContribs),
+      [t('compoundInterest.chart.interest')]: roundToDecimals(row.cumulativeInterest),
     };
   });
 

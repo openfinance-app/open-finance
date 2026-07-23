@@ -48,7 +48,7 @@ class AttachmentTest {
             String formattedSize = attachment.getFormattedFileSize();
 
             // Assert - Use regex to handle locale-specific decimal separator (. or ,)
-            assertThat(formattedSize).matches("2[.,]5 KB");
+            assertThat(formattedSize).matches("2[.,]50 KB");
         }
 
         @Test
@@ -61,7 +61,7 @@ class AttachmentTest {
             String formattedSize = attachment.getFormattedFileSize();
 
             // Assert - Use regex to handle locale-specific decimal separator (. or ,)
-            assertThat(formattedSize).matches("5[.,]2 MB");
+            assertThat(formattedSize).matches("5[.,]20 MB");
         }
 
         @Test
@@ -113,7 +113,7 @@ class AttachmentTest {
             String formattedSize = attachment.getFormattedFileSize();
 
             // Assert - Use regex to handle locale-specific decimal separator (. or ,)
-            assertThat(formattedSize).matches("1[.,]0 KB");
+            assertThat(formattedSize).matches("1[.,]00 KB");
         }
 
         @Test
@@ -126,7 +126,7 @@ class AttachmentTest {
             String formattedSize = attachment.getFormattedFileSize();
 
             // Assert - Use regex to handle locale-specific decimal separator (. or ,)
-            assertThat(formattedSize).matches("1[.,]0 MB");
+            assertThat(formattedSize).matches("1[.,]00 MB");
         }
 
         @Test
