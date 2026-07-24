@@ -27,6 +27,7 @@ import {
   calculateBorrowedAmount,
   calculateAppreciatedValue,
 } from '@/utils/realEstateCalculations';
+import { add, subtract, multiply, divide, sum, pow } from '@/utils/money';
 import { calculateAllRegimes } from '@/utils/taxRegimeCalculations';
 import { DEFAULT_CURRENCY, formatCurrency } from '@/utils/currency';
 
@@ -59,7 +60,7 @@ export class RealEstateCalculationService {
     let buyCumulativeCost = inputs.purchase.downPayment;
     let rentCumulativeCost = inputs.rental.securityDeposit;
     let currentSavings = inputs.rental.initialSavings || inputs.purchase.downPayment;
-    let currentPropertyValue = inputs.purchase.propertyPrice + inputs.purchase.renovationAmount;
+    let currentPropertyValue = add(inputs.purchase.propertyPrice, inputs.purchase.renovationAmount);
 
     for (let year = 1; year <= inputs.purchase.loanDuration; year++) {
       const yearResult = this.calculateYear(
@@ -119,7 +120,7 @@ export class RealEstateCalculationService {
     _previousPropertyValue: number
   ): YearlyResult {
     // Calculate inflation coefficient for this year
-    const inflationCoeff = Math.pow(1 + inputs.market.inflation / 100, year);
+    const inflationCoeff = pow(add(1, divide(inputs.market.inflation, 100)), year);
 
     // Calculate remaining capital at end of this year
     const monthsElapsed = year * 12;
@@ -132,12 +133,12 @@ export class RealEstateCalculationService {
 
     // Calculate annual buy costs
     const buyCostDetails = this.calculateAnnualBuyCosts(inputs.purchase, monthlyPayment, year, inflationCoeff);
-    const annualBuyCost = Object.values(buyCostDetails).reduce((sum, cost) => sum + cost, 0);
-    const buyCumulativeCost = previousBuyCumulativeCost + annualBuyCost;
+    const annualBuyCost = sum(Object.values(buyCostDetails));
+    const buyCumulativeCost = add(previousBuyCumulativeCost, annualBuyCost);
 
     // Update property value with appreciation
     const propertyValue = calculateAppreciatedValue(
-      initialPropertyPrice + inputs.purchase.renovationAmount,
+      add(initialPropertyPrice, inputs.purchase.renovationAmount),
       inputs.market.priceEvolution,
       year
     );
@@ -151,14 +152,21 @@ export class RealEstateCalculationService {
     );
 
     // Calculate rent with evolution
-    const loyerAnnuel = inputs.rental.monthlyRent * 12 * 
-      Math.pow(1 + inputs.market.rentEvolution / 100, year - 1);
-    const chargesAnnuelles = inputs.rental.monthlyCharges * 12 * inflationCoeff;
-    const taxeOrduresAnnuelle = inputs.rental.garbageTax * inflationCoeff;
-    const assuranceLocativeAnnuelle = inputs.rental.rentalInsurance * inflationCoeff;
+    const loyerAnnuel = multiply(
+      multiply(inputs.rental.monthlyRent, 12),
+      pow(add(1, divide(inputs.market.rentEvolution, 100)), subtract(year, 1))
+    );
+    const chargesAnnuelles = multiply(multiply(inputs.rental.monthlyCharges, 12), inflationCoeff);
+    const taxeOrduresAnnuelle = multiply(inputs.rental.garbageTax, inflationCoeff);
+    const assuranceLocativeAnnuelle = multiply(inputs.rental.rentalInsurance, inflationCoeff);
 
-    const annualRentCost = loyerAnnuel + chargesAnnuelles + assuranceLocativeAnnuelle + taxeOrduresAnnuelle;
-    const rentCumulativeCost = previousRentCumulativeCost + annualRentCost;
+    const annualRentCost = sum([
+      loyerAnnuel,
+      chargesAnnuelles,
+      assuranceLocativeAnnuelle,
+      taxeOrduresAnnuelle,
+    ]);
+    const rentCumulativeCost = add(previousRentCumulativeCost, annualRentCost);
 
     // Calculate savings growth
     const savings = calculateCompoundInterest(
@@ -206,17 +214,17 @@ export class RealEstateCalculationService {
     const isTaxExempt = purchase.isNewProperty && year <= NEW_PROPERTY_TAX_EXEMPTION_YEARS;
 
     return {
-      mortgage: monthlyPayment * 12,
-      insurance: purchase.totalInsurance / purchase.loanDuration,
-      applicationFees: purchase.applicationFees / purchase.loanDuration,
-      guaranteeFees: purchase.guaranteeFees / purchase.loanDuration,
-      accountFees: purchase.accountFees / purchase.loanDuration,
-      propertyTax: isTaxExempt ? 0 : purchase.propertyTax * inflationCoeff,
-      coOwnershipCharges: purchase.coOwnershipCharges * inflationCoeff,
-      maintenance: (purchase.propertyPrice * purchase.maintenancePercent) / 100,
-      homeInsurance: purchase.homeInsurance * inflationCoeff,
+      mortgage: multiply(monthlyPayment, 12),
+      insurance: divide(purchase.totalInsurance, purchase.loanDuration),
+      applicationFees: divide(purchase.applicationFees, purchase.loanDuration),
+      guaranteeFees: divide(purchase.guaranteeFees, purchase.loanDuration),
+      accountFees: divide(purchase.accountFees, purchase.loanDuration),
+      propertyTax: isTaxExempt ? 0 : multiply(purchase.propertyTax, inflationCoeff),
+      coOwnershipCharges: multiply(purchase.coOwnershipCharges, inflationCoeff),
+      maintenance: divide(multiply(purchase.propertyPrice, purchase.maintenancePercent), 100),
+      homeInsurance: multiply(purchase.homeInsurance, inflationCoeff),
       bankFees: purchase.bankFees,
-      garbageTax: purchase.garbageTax * inflationCoeff,
+      garbageTax: multiply(purchase.garbageTax, inflationCoeff),
     };
   }
 
@@ -242,34 +250,38 @@ export class RealEstateCalculationService {
     const totalMonths = years.length * 12;
 
     // Calculate total credit cost
-    const totalCreditCost = years.reduce((total, year) => {
-      return total + year.buy.details.mortgage + year.buy.details.insurance;
-    }, 0) - borrowedAmount;
+    const totalCreditCost = subtract(
+      years.reduce(
+        (total, year) => add(add(total, year.buy.details.mortgage), year.buy.details.insurance),
+        0
+      ),
+      borrowedAmount
+    );
 
     // Build buy scenario summary
     const buySummary: BuyScenarioSummary = {
-      averageMonthlyCost: lastYear.buy.cumulativeCost / totalMonths,
+      averageMonthlyCost: divide(lastYear.buy.cumulativeCost, totalMonths),
       totalCost: lastYear.buy.cumulativeCost,
       finalPropertyValue: lastYear.buy.propertyValue,
-      netExpense: lastYear.buy.cumulativeCost - lastYear.buy.propertyValue,
+      netExpense: subtract(lastYear.buy.cumulativeCost, lastYear.buy.propertyValue),
       remainingCapital: lastYear.buy.remainingCapital,
-      netWorth: lastYear.buy.propertyValue - lastYear.buy.remainingCapital,
+      netWorth: subtract(lastYear.buy.propertyValue, lastYear.buy.remainingCapital),
       totalCreditCost,
     };
 
     // Build rent scenario summary
     const rentSummary: RentScenarioSummary = {
-      averageMonthlyCost: lastYear.rent.cumulativeCost / totalMonths,
+      averageMonthlyCost: divide(lastYear.rent.cumulativeCost, totalMonths),
       totalCost: lastYear.rent.cumulativeCost,
       accumulatedSavings: lastYear.rent.savings,
-      netExpense: lastYear.rent.cumulativeCost - lastYear.rent.savings,
+      netExpense: subtract(lastYear.rent.cumulativeCost, lastYear.rent.savings),
       netWorth: lastYear.rent.savings,
     };
 
     // Build comparison metrics
-    const netWorthDifference = buySummary.netWorth - rentSummary.netWorth;
-    const netExpenseDifference = rentSummary.netExpense - buySummary.netExpense;
-    const monthlyGap = rentSummary.averageMonthlyCost - buySummary.averageMonthlyCost;
+    const netWorthDifference = subtract(buySummary.netWorth, rentSummary.netWorth);
+    const netExpenseDifference = subtract(rentSummary.netExpense, buySummary.netExpense);
+    const monthlyGap = subtract(rentSummary.averageMonthlyCost, buySummary.averageMonthlyCost);
 
     const comparison: ComparisonMetrics = {
       netWorthDifference,
@@ -305,7 +317,7 @@ export class RealEstateCalculationService {
     }
 
     const yearData = results.years[targetYear - 1];
-    const patrimoineNetAchat = yearData.buy.propertyValue - yearData.buy.remainingCapital;
+    const patrimoineNetAchat = subtract(yearData.buy.propertyValue, yearData.buy.remainingCapital);
 
     return {
       year: targetYear,
@@ -314,12 +326,24 @@ export class RealEstateCalculationService {
       netWorth: patrimoineNetAchat,
       totalCostsBuy: yearData.buy.cumulativeCost,
       totalCostsRent: yearData.rent.cumulativeCost,
-      netExpenseBuy: yearData.buy.cumulativeCost - yearData.buy.propertyValue,
-      netExpenseRent: yearData.rent.cumulativeCost - yearData.rent.savings,
-      annualProfitability: (Math.pow(
-        yearData.buy.propertyValue / (yearData.buy.propertyValue - yearData.buy.remainingCapital + yearData.buy.cumulativeCost),
-        1 / targetYear
-      ) - 1) * 100,
+      netExpenseBuy: subtract(yearData.buy.cumulativeCost, yearData.buy.propertyValue),
+      netExpenseRent: subtract(yearData.rent.cumulativeCost, yearData.rent.savings),
+      annualProfitability: multiply(
+        subtract(
+          pow(
+            divide(
+              yearData.buy.propertyValue,
+              add(
+                subtract(yearData.buy.propertyValue, yearData.buy.remainingCapital),
+                yearData.buy.cumulativeCost
+              )
+            ),
+            divide(1, targetYear)
+          ),
+          1
+        ),
+        100
+      ),
       minimumResalePrice: yearData.buy.minimumResalePrice,
       rentSavings: yearData.rent.savings,
     };
@@ -366,24 +390,33 @@ export class RealEstateCalculationService {
     );
 
     // Minimum down payment = upfront fees that can't be financed
-    const minimumDownPayment = 
-      inputs.purchase.applicationFees + 
-      inputs.purchase.guaranteeFees + 
-      inputs.purchase.accountFees;
+    const minimumDownPayment = sum([
+      inputs.purchase.applicationFees,
+      inputs.purchase.guaranteeFees,
+      inputs.purchase.accountFees,
+    ]);
 
     // Calculate suggested monthly savings
-    const monthlyBuyCost = monthlyPayment + 
-      (inputs.purchase.propertyTax + 
-       inputs.purchase.coOwnershipCharges + 
-       inputs.purchase.homeInsurance + 
-       inputs.purchase.bankFees + 
-       inputs.purchase.garbageTax) / 12;
-    
-    const monthlyRentCost = inputs.rental.monthlyRent + 
-      inputs.rental.monthlyCharges + 
-      (inputs.rental.rentalInsurance + inputs.rental.garbageTax) / 12;
-    
-    const suggestedMonthlySavings = Math.max(0, monthlyBuyCost - monthlyRentCost);
+    const monthlyBuyCost = add(
+      monthlyPayment,
+      divide(
+        sum([
+          inputs.purchase.propertyTax,
+          inputs.purchase.coOwnershipCharges,
+          inputs.purchase.homeInsurance,
+          inputs.purchase.bankFees,
+          inputs.purchase.garbageTax,
+        ]),
+        12
+      )
+    );
+
+    const monthlyRentCost = add(
+      add(inputs.rental.monthlyRent, inputs.rental.monthlyCharges),
+      divide(add(inputs.rental.rentalInsurance, inputs.rental.garbageTax), 12)
+    );
+
+    const suggestedMonthlySavings = Math.max(0, subtract(monthlyBuyCost, monthlyRentCost));
 
     return {
       totalPrice,

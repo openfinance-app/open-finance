@@ -23,6 +23,7 @@ import {
   calculateTargetAmount,
   calculateRealReturn,
 } from '../utils/financialCalculations';
+import { divide, multiply, percentage } from '@/utils/money';
 
 /**
  * State interface for the calculator hook
@@ -165,7 +166,7 @@ export function useFinancialFreedom() {
     const inflationRate = input.inflationRate ?? 2.5;
     const adjustForInflation = input.adjustForInflation ?? false;
 
-    const annualExpenses = input.monthlyExpenses * 12;
+    const annualExpenses = multiply(input.monthlyExpenses, 12);
     const effectiveReturnRate = adjustForInflation
       ? calculateRealReturn(input.expectedAnnualReturn, inflationRate)
       : input.expectedAnnualReturn;
@@ -182,8 +183,8 @@ export function useFinancialFreedom() {
     const monthsRemainder = Math.round(monthsToFreedom % 12);
 
     const isAchievable = monthsToFreedom < 600; // 50 years max
-    const progressPercentage = (input.currentSavings / targetAmount) * 100;
-    const annualPassiveIncome = targetAmount * (withdrawalRate / 100);
+    const progressPercentage = percentage(input.currentSavings, targetAmount);
+    const annualPassiveIncome = multiply(targetAmount, divide(withdrawalRate, 100));
 
     const result: FreedomCalculatorResult = {
       yearsToFreedom,

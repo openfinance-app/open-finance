@@ -6,6 +6,7 @@
  */
 
 import { DEFAULT_CURRENCY } from './currency';
+import { add, divide, multiply, percentage, pow, subtract } from '@/utils/money';
 
 /**
  * Calculate future value with monthly contributions
@@ -23,22 +24,24 @@ export function calculateFutureValue(
   annualRate: number,
   months: number
 ): number {
-  const monthlyRate = annualRate / 100 / 12;
+  const monthlyRate = divide(divide(annualRate, 100), 12);
   
   if (months === 0) {
     return presentValue;
   }
   
   if (monthlyRate === 0) {
-    return presentValue + (monthlyContribution * months);
+    return add(presentValue, multiply(monthlyContribution, months));
   }
   
-  const compoundFactor = Math.pow(1 + monthlyRate, months);
-  const futureValueFromSavings = presentValue * compoundFactor;
-  const futureValueFromContributions = monthlyContribution * 
-    ((compoundFactor - 1) / monthlyRate);
+  const compoundFactor = pow(add(1, monthlyRate), months);
+  const futureValueFromSavings = multiply(presentValue, compoundFactor);
+  const futureValueFromContributions = multiply(
+    monthlyContribution,
+    divide(subtract(compoundFactor, 1), monthlyRate)
+  );
   
-  return futureValueFromSavings + futureValueFromContributions;
+  return add(futureValueFromSavings, futureValueFromContributions);
 }
 
 /**
@@ -59,7 +62,7 @@ export function calculateMonthsToTarget(
   targetAmount: number,
   maxMonths: number = 1200
 ): number {
-  const monthlyRate = annualRate / 100 / 12;
+  const monthlyRate = divide(divide(annualRate, 100), 12);
   let balance = currentSavings;
   let months = 0;
   
@@ -69,7 +72,7 @@ export function calculateMonthsToTarget(
   }
   
   while (balance < targetAmount && months < maxMonths) {
-    balance = balance * (1 + monthlyRate) + monthlyContribution;
+    balance = add(multiply(balance, add(1, monthlyRate)), monthlyContribution);
     months++;
   }
   
@@ -91,7 +94,7 @@ export function calculateTargetAmount(
   if (withdrawalRate <= 0) {
     return Infinity;
   }
-  return annualExpenses / (withdrawalRate / 100);
+  return divide(annualExpenses, divide(withdrawalRate, 100));
 }
 
 /**
@@ -113,14 +116,14 @@ export function calculateSavingsLongevity(
   isInfinite: boolean;
   finalBalance: number | null;
 } {
-  const monthlyRate = annualReturnRate / 100 / 12;
+  const monthlyRate = divide(divide(annualReturnRate, 100), 12);
   let balance = currentSavings;
   let months = 0;
   
   // Check for infinite sustainability
   // If returns on current savings exceed monthly expenses
   if (monthlyRate > 0) {
-    const monthlyReturn = currentSavings * monthlyRate;
+    const monthlyReturn = multiply(currentSavings, monthlyRate);
     if (monthlyReturn >= monthlyExpenses) {
       return {
         monthsUntilDepletion: maxMonths,
@@ -133,9 +136,9 @@ export function calculateSavingsLongevity(
   // Calculate month by month depletion
   while (balance > 0 && months < maxMonths) {
     // Add investment returns
-    balance = balance * (1 + monthlyRate);
+    balance = multiply(balance, add(1, monthlyRate));
     // Subtract monthly expenses
-    balance = balance - monthlyExpenses;
+    balance = subtract(balance, monthlyExpenses);
     
     if (balance > 0) {
       months++;
@@ -161,11 +164,11 @@ export function calculateRealReturn(
   nominalReturnRate: number,
   inflationRate: number
 ): number {
-  const onePlusNominal = 1 + nominalReturnRate / 100;
-  const onePlusInflation = 1 + inflationRate / 100;
+  const onePlusNominal = add(1, divide(nominalReturnRate, 100));
+  const onePlusInflation = add(1, divide(inflationRate, 100));
   
-  const realReturn = (onePlusNominal / onePlusInflation) - 1;
-  return realReturn * 100;
+  const realReturn = subtract(divide(onePlusNominal, onePlusInflation), 1);
+  return multiply(realReturn, 100);
 }
 
 /**
@@ -182,7 +185,7 @@ export function calculateProgressPercentage(
   if (targetAmount <= 0) {
     return 100;
   }
-  const progress = (currentSavings / targetAmount) * 100;
+  const progress = percentage(currentSavings, targetAmount);
   return Math.min(progress, 100);
 }
 
@@ -197,7 +200,7 @@ export function calculatePassiveIncome(
   targetAmount: number,
   withdrawalRate: number
 ): number {
-  return targetAmount * (withdrawalRate / 100);
+  return multiply(targetAmount, divide(withdrawalRate, 100));
 }
 
 /**

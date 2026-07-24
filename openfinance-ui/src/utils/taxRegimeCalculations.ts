@@ -13,6 +13,7 @@ import type {
   OwnerExpensesInputs,
 } from '@/types/realEstateTools';
 import { REGIME_LIMITS, REGIME_RATES, FURNITURE_VALUES } from '@/types/realEstateTools';
+import { add, subtract, multiply, divide, sum, percentage } from '@/utils/money';
 
 /**
  * Calculate gross rental revenue
@@ -22,11 +23,11 @@ import { REGIME_LIMITS, REGIME_RATES, FURNITURE_VALUES } from '@/types/realEstat
  * @returns Gross annual revenue in EUR
  */
 export function calculateGrossRevenue(revenue: RentalRevenueInputs): number {
-  const annualRent = (revenue.monthlyRent + revenue.recoverableCharges) * 12;
-  const effectiveOccupancy = revenue.occupancyRate / 100;
-  const effectiveCollection = 1 - (revenue.badDebtRate / 100);
+  const annualRent = multiply(add(revenue.monthlyRent, revenue.recoverableCharges), 12);
+  const effectiveOccupancy = divide(revenue.occupancyRate, 100);
+  const effectiveCollection = subtract(1, divide(revenue.badDebtRate, 100));
   
-  return annualRent * effectiveOccupancy * effectiveCollection;
+  return multiply(multiply(annualRent, effectiveOccupancy), effectiveCollection);
 }
 
 /**
@@ -46,10 +47,10 @@ export function calculateMicroFoncier(
   const grossRevenue = calculateGrossRevenue(inputs.revenue);
   const eligible = grossRevenue <= REGIME_LIMITS.MICRO_FONCIER;
   
-  const abattement = grossRevenue * REGIME_RATES.MICRO_FONCIER_ABATEMENT;
-  const taxableIncome = Math.max(0, grossRevenue - abattement);
-  const incomeTax = taxableIncome * (inputs.expenses.marginalTaxRate / 100);
-  const socialContributions = taxableIncome * REGIME_RATES.SOCIAL_CONTRIBUTIONS_STANDARD;
+  const abattement = multiply(grossRevenue, REGIME_RATES.MICRO_FONCIER_ABATEMENT);
+  const taxableIncome = Math.max(0, subtract(grossRevenue, abattement));
+  const incomeTax = multiply(taxableIncome, divide(inputs.expenses.marginalTaxRate, 100));
+  const socialContributions = multiply(taxableIncome, REGIME_RATES.SOCIAL_CONTRIBUTIONS_STANDARD);
   
   const warnings: string[] = [];
   if (!eligible) {
@@ -86,9 +87,9 @@ export function calculateReelFoncier(
   const grossRevenue = calculateGrossRevenue(inputs.revenue);
   
   const deductibleExpenses = calculateDeductibleExpenses(inputs.expenses);
-  const taxableIncome = Math.max(0, grossRevenue - deductibleExpenses);
-  const incomeTax = taxableIncome * (inputs.expenses.marginalTaxRate / 100);
-  const socialContributions = taxableIncome * REGIME_RATES.SOCIAL_CONTRIBUTIONS_STANDARD;
+  const taxableIncome = Math.max(0, subtract(grossRevenue, deductibleExpenses));
+  const incomeTax = multiply(taxableIncome, divide(inputs.expenses.marginalTaxRate, 100));
+  const socialContributions = multiply(taxableIncome, REGIME_RATES.SOCIAL_CONTRIBUTIONS_STANDARD);
   
   return buildRegimeResult(
     'reel_foncier',
@@ -122,10 +123,10 @@ export function calculateMicroBIC(
   // before any deductions
   const eligible = grossRevenue <= REGIME_LIMITS.MICRO_BIC;
   
-  const abattement = grossRevenue * REGIME_RATES.MICRO_BIC_ABATEMENT;
-  const taxableIncome = Math.max(0, grossRevenue - abattement);
-  const incomeTax = taxableIncome * (inputs.expenses.marginalTaxRate / 100);
-  const socialContributions = taxableIncome * REGIME_RATES.SOCIAL_CONTRIBUTIONS_STANDARD;
+  const abattement = multiply(grossRevenue, REGIME_RATES.MICRO_BIC_ABATEMENT);
+  const taxableIncome = Math.max(0, subtract(grossRevenue, abattement));
+  const incomeTax = multiply(taxableIncome, divide(inputs.expenses.marginalTaxRate, 100));
+  const socialContributions = multiply(taxableIncome, REGIME_RATES.SOCIAL_CONTRIBUTIONS_STANDARD);
   
   const warnings: string[] = [];
   if (!eligible) {
@@ -166,20 +167,20 @@ export function calculateLMNPReel(
   const deductibleExpenses = calculateDeductibleExpenses(inputs.expenses);
   
   // Calculate depreciation
-  const buildingDepreciation = inputs.property.totalPrice / REGIME_RATES.BUILDING_DEPRECIATION_YEARS;
-  const furnitureDepreciation = inputs.property.furnitureValue / REGIME_RATES.FURNITURE_DEPRECIATION_YEARS;
-  const totalDepreciation = buildingDepreciation + furnitureDepreciation;
+  const buildingDepreciation = divide(inputs.property.totalPrice, REGIME_RATES.BUILDING_DEPRECIATION_YEARS);
+  const furnitureDepreciation = divide(inputs.property.furnitureValue, REGIME_RATES.FURNITURE_DEPRECIATION_YEARS);
+  const totalDepreciation = add(buildingDepreciation, furnitureDepreciation);
   
-  const totalDeductions = deductibleExpenses + totalDepreciation;
-  const taxableIncome = Math.max(0, grossRevenue - totalDeductions);
-  const incomeTax = taxableIncome * (inputs.expenses.marginalTaxRate / 100);
+  const totalDeductions = add(deductibleExpenses, totalDepreciation);
+  const taxableIncome = Math.max(0, subtract(grossRevenue, totalDeductions));
+  const incomeTax = multiply(taxableIncome, divide(inputs.expenses.marginalTaxRate, 100));
   
   // Determine social contribution rate based on LMP threshold
   const isLMP = grossRevenue > REGIME_LIMITS.LMNP_SOCIAL_THRESHOLD;
   const socialRate = isLMP 
     ? REGIME_RATES.SOCIAL_CONTRIBUTIONS_LMP 
     : REGIME_RATES.SOCIAL_CONTRIBUTIONS_STANDARD;
-  const socialContributions = taxableIncome * socialRate;
+  const socialContributions = multiply(taxableIncome, socialRate);
   
   const warnings: string[] = [];
   if (isLMP) {
@@ -213,16 +214,16 @@ export function calculateLMNPReel(
  * @returns Total deductible expenses in EUR
  */
 function calculateDeductibleExpenses(expenses: OwnerExpensesInputs): number {
-  return (
-    expenses.propertyTax +
-    expenses.nonRecoverableCharges +
-    expenses.annualMaintenance +
-    expenses.cfe +
-    expenses.cvae +
-    expenses.managementFees +
-    expenses.pnoInsurance +
-    expenses.accountingFees
-  );
+  return sum([
+    expenses.propertyTax,
+    expenses.nonRecoverableCharges,
+    expenses.annualMaintenance,
+    expenses.cfe,
+    expenses.cvae,
+    expenses.managementFees,
+    expenses.pnoInsurance,
+    expenses.accountingFees,
+  ]);
 }
 
 /**
@@ -250,22 +251,22 @@ function buildRegimeResult(
   socialContributions: number,
   warnings: string[]
 ): RegimeCalculationResult {
-  const taxableIncome = Math.max(0, grossRevenue - deduction);
-  const totalTaxes = incomeTax + socialContributions;
+  const taxableIncome = Math.max(0, subtract(grossRevenue, deduction));
+  const totalTaxes = add(incomeTax, socialContributions);
   
   // Calculate charges breakdown
   const creditCharges = inputs.credit.annualCost;
   const otherCharges = calculateDeductibleExpenses(inputs.expenses);
-  const totalCharges = creditCharges + otherCharges;
+  const totalCharges = add(creditCharges, otherCharges);
   
   // Calculate performance metrics
   const netRevenue = grossRevenue;
-  const monthlyCashFlow = (netRevenue - totalCharges - totalTaxes) / 12;
+  const monthlyCashFlow = divide(subtract(subtract(netRevenue, totalCharges), totalTaxes), 12);
   
-  const totalInvestment = inputs.property.totalPrice + inputs.property.furnitureValue;
-  const grossYield = totalInvestment > 0 ? (grossRevenue / totalInvestment) * 100 : 0;
-  const netYield = totalInvestment > 0 
-    ? ((netRevenue - otherCharges - incomeTax - socialContributions) / totalInvestment) * 100 
+  const totalInvestment = add(inputs.property.totalPrice, inputs.property.furnitureValue);
+  const grossYield = totalInvestment > 0 ? percentage(grossRevenue, totalInvestment) : 0;
+  const netYield = totalInvestment > 0
+    ? percentage(subtract(subtract(subtract(netRevenue, otherCharges), incomeTax), socialContributions), totalInvestment)
     : 0;
   
   return {
@@ -287,8 +288,8 @@ function buildRegimeResult(
       deduction,
       taxable: taxableIncome,
       detail: {
-        loyers: inputs.revenue.monthlyRent * 12,
-        chargesRecup: inputs.revenue.recoverableCharges * 12,
+        loyers: multiply(inputs.revenue.monthlyRent, 12),
+        chargesRecup: multiply(inputs.revenue.recoverableCharges, 12),
       },
     },
     charges: {
@@ -360,9 +361,9 @@ export function calculateGrossYield(
   propertyPrice: number,
   furnitureValue: number = 0
 ): number {
-  const totalInvestment = propertyPrice + furnitureValue;
+  const totalInvestment = add(propertyPrice, furnitureValue);
   if (totalInvestment <= 0) return 0;
-  return (annualRent / totalInvestment) * 100;
+  return percentage(annualRent, totalInvestment);
 }
 
 /**
@@ -382,10 +383,10 @@ export function calculateNetYield(
   propertyPrice: number,
   furnitureValue: number = 0
 ): number {
-  const totalInvestment = propertyPrice + furnitureValue;
+  const totalInvestment = add(propertyPrice, furnitureValue);
   if (totalInvestment <= 0) return 0;
-  const netIncome = annualRent - expenses - taxes;
-  return (netIncome / totalInvestment) * 100;
+  const netIncome = subtract(subtract(annualRent, expenses), taxes);
+  return percentage(netIncome, totalInvestment);
 }
 
 /**
@@ -401,7 +402,7 @@ export function calculateMonthlyCashFlow(
   annualExpenses: number,
   annualTaxes: number
 ): number {
-  return (annualRevenue - annualExpenses - annualTaxes) / 12;
+  return divide(subtract(subtract(annualRevenue, annualExpenses), annualTaxes), 12);
 }
 
 /**

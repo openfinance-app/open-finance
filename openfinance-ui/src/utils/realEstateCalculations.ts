@@ -6,6 +6,15 @@
  */
 
 import type { PurchaseInputs } from '@/types/realEstateTools';
+import {
+  add,
+  subtract,
+  multiply,
+  divide,
+  sum,
+  pow,
+  roundToDecimals,
+} from '@/utils/money';
 
 /**
  * Calculate monthly mortgage payment using actuarial formula
@@ -34,22 +43,24 @@ export function calculateMonthlyPayment(
   // Handle edge cases
   if (principal <= 0) return 0;
   if (years <= 0) return principal;
-  
+
   const numPayments = years * 12;
-  
+
   // Handle 0% interest case
   if (annualRate <= 0) {
-    return principal / numPayments;
+    return divide(principal, numPayments);
   }
-  
-  const monthlyRate = annualRate / 12 / 100; // Convert percentage to decimal
-  
+
+  const monthlyRate = divide(divide(annualRate, 12), 100); // Convert percentage to decimal
+
   // Actuarial formula
-  const payment = 
-    (principal * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
-    (Math.pow(1 + monthlyRate, numPayments) - 1);
-  
-  return Math.round(payment * 100) / 100; // Round to 2 decimal places
+  const factor = pow(add(1, monthlyRate), numPayments);
+  const payment = divide(
+    multiply(multiply(principal, monthlyRate), factor),
+    subtract(factor, 1)
+  );
+
+  return roundToDecimals(payment, 2); // Round to 2 decimal places
 }
 
 /**
@@ -83,20 +94,22 @@ export function calculateRemainingCapital(
   // Handle edge cases
   if (principal <= 0) return 0;
   if (monthsElapsed <= 0) return principal;
-  
+
   // Handle 0% interest case - simple linear reduction
   if (annualRate <= 0) {
-    return Math.max(0, principal - (monthlyPayment * monthsElapsed));
+    return Math.max(0, subtract(principal, multiply(monthlyPayment, monthsElapsed)));
   }
-  
-  const monthlyRate = annualRate / 12 / 100;
-  
+
+  const monthlyRate = divide(divide(annualRate, 12), 100);
+
   // Actuarial formula for remaining capital
-  const remaining = 
-    principal * Math.pow(1 + monthlyRate, monthsElapsed) - 
-    monthlyPayment * (Math.pow(1 + monthlyRate, monthsElapsed) - 1) / monthlyRate;
-  
-  return Math.max(0, Math.round(remaining * 100) / 100);
+  const factor = pow(add(1, monthlyRate), monthsElapsed);
+  const remaining = subtract(
+    multiply(principal, factor),
+    divide(multiply(monthlyPayment, subtract(factor, 1)), monthlyRate)
+  );
+
+  return Math.max(0, roundToDecimals(remaining, 2));
 }
 
 /**
@@ -122,25 +135,30 @@ export function calculateCompoundInterest(
   monthlyContribution: number = 0
 ): number {
   if (years <= 0) return principal;
-  
-  const rate = annualRate / 100;
-  
+
+  const rate = divide(annualRate, 100);
+
   // Compound interest for initial principal
-  const principalGrowth = principal * Math.pow(1 + rate, years);
-  
+  const principalGrowth = multiply(principal, pow(add(1, rate), years));
+
   // Future value of monthly contributions
   if (monthlyContribution > 0 && rate > 0) {
-    const monthlyRate = rate / 12;
+    const monthlyRate = divide(rate, 12);
     const months = years * 12;
-    const contributionGrowth = monthlyContribution * 
-      ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
-    return Math.round((principalGrowth + contributionGrowth) * 100) / 100;
+    const contributionGrowth = multiply(
+      monthlyContribution,
+      divide(subtract(pow(add(1, monthlyRate), months), 1), monthlyRate)
+    );
+    return roundToDecimals(add(principalGrowth, contributionGrowth), 2);
   } else if (monthlyContribution > 0) {
     // 0% interest - simple accumulation
-    return Math.round((principalGrowth + (monthlyContribution * 12 * years)) * 100) / 100;
+    return roundToDecimals(
+      add(principalGrowth, multiply(multiply(monthlyContribution, 12), years)),
+      2
+    );
   }
-  
-  return Math.round(principalGrowth * 100) / 100;
+
+  return roundToDecimals(principalGrowth, 2);
 }
 
 /**
@@ -164,13 +182,16 @@ export function calculateMinimumResalePrice(
   targetProfit: number,
   resaleFeesPercent: number
 ): number {
-  const resaleFees = resaleFeesPercent / 100;
-  
+  const resaleFees = divide(resaleFeesPercent, 100);
+
   // When fees >= 100%, the price needed is mathematically infinite
   if (resaleFees >= 1) return Infinity;
-  
-  const minimumPrice = (totalCosts + remainingCapital + targetProfit) / (1 - resaleFees);
-  return Math.round(minimumPrice * 100) / 100;
+
+  const minimumPrice = divide(
+    add(add(totalCosts, remainingCapital), targetProfit),
+    subtract(1, resaleFees)
+  );
+  return roundToDecimals(minimumPrice, 2);
 }
 
 /**
@@ -184,8 +205,8 @@ export function calculateMinimumResalePrice(
  * // Returns 321000
  */
 export function calculateTotalPrice(inputs: PurchaseInputs): number {
-  const notaryFees = inputs.propertyPrice * (inputs.notaryFeesPercent / 100);
-  return inputs.propertyPrice + inputs.renovationAmount + notaryFees + inputs.agencyFees;
+  const notaryFees = multiply(inputs.propertyPrice, divide(inputs.notaryFeesPercent, 100));
+  return sum([inputs.propertyPrice, inputs.renovationAmount, notaryFees, inputs.agencyFees]);
 }
 
 /**
@@ -199,7 +220,7 @@ export function calculateBorrowedAmount(
   totalPrice: number,
   downPayment: number
 ): number {
-  return Math.max(0, totalPrice - downPayment);
+  return Math.max(0, subtract(totalPrice, downPayment));
 }
 
 /**
@@ -211,7 +232,7 @@ export function calculateBorrowedAmount(
  */
 export function calculateMinimumDownPayment(inputs: PurchaseInputs): number {
   // Minimum down payment = fees that cannot be financed
-  return inputs.applicationFees + inputs.guaranteeFees + inputs.accountFees;
+  return sum([inputs.applicationFees, inputs.guaranteeFees, inputs.accountFees]);
 }
 
 /**
@@ -227,7 +248,7 @@ export function calculateAnnualInterest(
   annualRate: number
 ): number {
   if (remainingCapital <= 0 || annualRate <= 0) return 0;
-  return remainingCapital * (annualRate / 100);
+  return multiply(remainingCapital, divide(annualRate, 100));
 }
 
 /**
@@ -242,15 +263,24 @@ export function calculateMonthlyBuyCost(
   inputs: PurchaseInputs,
   monthlyPayment: number
 ): number {
-  const monthlyCharges = 
-    (inputs.propertyTax + 
-     inputs.coOwnershipCharges + 
-     inputs.homeInsurance + 
-     inputs.bankFees + 
-     inputs.garbageTax) / 12 +
-    (inputs.propertyPrice * inputs.maintenancePercent / 100 / 12);
-  
-  return monthlyPayment + monthlyCharges;
+  const monthlyCharges = add(
+    divide(
+      sum([
+        inputs.propertyTax,
+        inputs.coOwnershipCharges,
+        inputs.homeInsurance,
+        inputs.bankFees,
+        inputs.garbageTax,
+      ]),
+      12
+    ),
+    divide(
+      divide(multiply(inputs.propertyPrice, inputs.maintenancePercent), 100),
+      12
+    )
+  );
+
+  return add(monthlyPayment, monthlyCharges);
 }
 
 /**
@@ -268,7 +298,10 @@ export function calculateMonthlyRentCost(
   annualInsurance: number,
   annualGarbageTax: number
 ): number {
-  return monthlyRent + monthlyCharges + (annualInsurance + annualGarbageTax) / 12;
+  return add(
+    add(monthlyRent, monthlyCharges),
+    divide(add(annualInsurance, annualGarbageTax), 12)
+  );
 }
 
 /**
@@ -285,7 +318,7 @@ export function calculateInflationAdjustedAmount(
   years: number
 ): number {
   if (years <= 0) return baseAmount;
-  return baseAmount * Math.pow(1 + inflationRate / 100, years);
+  return multiply(baseAmount, pow(add(1, divide(inflationRate, 100)), years));
 }
 
 /**
@@ -302,7 +335,7 @@ export function calculateAppreciatedValue(
   years: number
 ): number {
   if (years <= 0) return initialValue;
-  return initialValue * Math.pow(1 + appreciationRate / 100, years);
+  return multiply(initialValue, pow(add(1, divide(appreciationRate, 100)), years));
 }
 
 /**
@@ -317,7 +350,7 @@ export function calculateAnnualInsurance(
   loanDurationYears: number
 ): number {
   if (loanDurationYears <= 0) return totalInsurance;
-  return totalInsurance / loanDurationYears;
+  return divide(totalInsurance, loanDurationYears);
 }
 
 /**
@@ -332,7 +365,7 @@ export function calculateAnnualizedFee(
   loanDurationYears: number
 ): number {
   if (loanDurationYears <= 0) return totalFee;
-  return totalFee / loanDurationYears;
+  return divide(totalFee, loanDurationYears);
 }
 
 /**
@@ -348,8 +381,7 @@ export function calculateAnnualizedFee(
  * @returns Rounded number
  */
 export function round(value: number, decimals: number = 2): number {
-  const multiplier = Math.pow(10, decimals);
-  return Math.round(value * multiplier) / multiplier;
+  return roundToDecimals(value, decimals);
 }
 
 /**
@@ -359,7 +391,7 @@ export function round(value: number, decimals: number = 2): number {
  * @returns Sum of all values
  */
 export function sumObjectValues(obj: Record<string, number>): number {
-  return Object.values(obj).reduce((sum, value) => sum + value, 0);
+  return sum(Object.values(obj));
 }
 
 /**

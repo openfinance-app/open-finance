@@ -5,6 +5,7 @@ import {
     type LoanCalculatorResult,
     type LoanAmortizationEntry,
 } from '../types/calculator';
+import { add, divide, multiply, pow, subtract } from '@/utils/money';
 
 interface LoanCalculatorState {
     input: LoanCalculatorInput;
@@ -37,15 +38,16 @@ export function useLoanCalculator() {
     const calculate = useCallback(() => {
         const { principal, annualRate, years } = state.input;
 
-        const monthlyRate = (annualRate / 100) / 12;
+        const monthlyRate = divide(divide(annualRate, 100), 12);
         const totalPayments = years * 12;
 
         let monthlyPayment = 0;
 
         if (monthlyRate === 0) {
-            monthlyPayment = principal / totalPayments;
+            monthlyPayment = divide(principal, totalPayments);
         } else {
-            monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
+            const factor = pow(add(1, monthlyRate), totalPayments);
+            monthlyPayment = divide(multiply(multiply(principal, monthlyRate), factor), subtract(factor, 1));
         }
 
         const schedule: LoanAmortizationEntry[] = [];
@@ -54,18 +56,18 @@ export function useLoanCalculator() {
         let totalInterest = 0;
 
         for (let i = 1; i <= totalPayments; i++) {
-            const interestPortion = remainingBalance * monthlyRate;
-            let principalPortion = monthlyPayment - interestPortion;
+            const interestPortion = multiply(remainingBalance, monthlyRate);
+            let principalPortion = subtract(monthlyPayment, interestPortion);
 
             if (i === totalPayments) {
                 principalPortion = remainingBalance;
-                monthlyPayment = principalPortion + interestPortion;
+                monthlyPayment = add(principalPortion, interestPortion);
             }
 
-            remainingBalance -= principalPortion;
+            remainingBalance = subtract(remainingBalance, principalPortion);
             if (remainingBalance < 0) remainingBalance = 0;
 
-            cumulativeInterest += interestPortion;
+            cumulativeInterest = add(cumulativeInterest, interestPortion);
 
             schedule.push({
                 paymentNumber: i,
@@ -78,7 +80,7 @@ export function useLoanCalculator() {
         }
 
         totalInterest = cumulativeInterest;
-        const totalPayment = principal + totalInterest;
+        const totalPayment = add(principal, totalInterest);
 
         setState(prev => ({
             ...prev,

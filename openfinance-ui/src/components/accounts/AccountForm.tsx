@@ -25,7 +25,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { multiply, percentage } from '@/utils/money';
+import { add, divide, multiply, percentage, pow, subtract } from '@/utils/money';
 import type { Account, AccountRequest, AccountType, InterestPeriod } from '@/types/account';
 
 const ACCOUNT_TYPES: AccountType[] = ['CHECKING', 'SAVINGS', 'CREDIT_CARD', 'INVESTMENT', 'CASH', 'OTHER'];
@@ -69,11 +69,12 @@ function calcInterestPreview(
   if (!balance || balance <= 0 || !annualRatePercent || annualRatePercent <= 0) {
     return { grossInterest: 0, taxAmount: 0, netInterest: 0 };
   }
-  const r = annualRatePercent / 100;
+  const r = divide(annualRatePercent, 100);
   const n = compoundsPerYear;
-  const grossInterest = balance * (Math.pow(1 + r / n, n) - 1);
-  const taxAmount = grossInterest * (taxRatePercent / 100);
-  const netInterest = grossInterest - taxAmount;
+  const factor = pow(add(1, divide(r, n)), n);
+  const grossInterest = multiply(balance, subtract(factor, 1));
+  const taxAmount = multiply(grossInterest, divide(taxRatePercent, 100));
+  const netInterest = subtract(grossInterest, taxAmount);
   return { grossInterest, taxAmount, netInterest };
 }
 

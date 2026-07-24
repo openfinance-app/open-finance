@@ -70,6 +70,21 @@ export function multiply(a: Numeric, b: Numeric): number {
 }
 
 /**
+ * Raises `base` to the power of `exponent` precisely (e.g. for compound-growth factors
+ * `(1 + r)^n` or amortization reciprocals `(1 + r)^-n`).
+ *
+ * `Decimal.pow` is exact for integer exponents (repeated multiplication) and uses
+ * high-precision `e^(n*ln(x))` for fractional/negative exponents. The main precision
+ * win over `Math.pow(1 + r, n)` is compositional: pairing with {@link add} builds the
+ * base as `Decimal(1).plus(Decimal(r))` (exactly `1 + r` in decimal arithmetic) before
+ * exponentiating, so the base never inherits the `1 + r` IEEE-754 drift that
+ * `Math.pow` would otherwise amplify.
+ */
+export function pow(base: Numeric, exponent: Numeric): number {
+  return toDecimal(base).pow(toDecimal(exponent)).toNumber();
+}
+
+/**
  * Divides `a / b` precisely. Dividing by zero mirrors native JS semantics
  * (`Infinity` for a non-zero numerator, `NaN` for `0 / 0`) rather than throwing, so existing
  * call-site behaviour around zero-division is preserved.

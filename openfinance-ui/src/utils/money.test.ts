@@ -5,6 +5,7 @@ import {
   fromMinorUnits,
   multiply,
   percentage,
+  pow,
   roundToDecimals,
   subtract,
   sum,
@@ -180,6 +181,77 @@ describe('money', () => {
     it('round-trips back to the original precise decimal value', () => {
       expect(fromMinorUnits(toMinorUnits(2.675))).toBe(2.68);
       expect(fromMinorUnits(101)).toBe(1.01);
+    });
+  });
+
+  describe('pow', () => {
+    it('computes compound growth for an integer exponent: (1.05)^10', () => {
+      // decimal.js exact: 1.6288946267774414063; .toNumber() rounds to nearest
+      // double 1.6288946267774413 (canonical round-trip), differing from
+      // Math.pow(1.05, 10) = 1.6288946267774422 in the 16th sig fig.
+      expect(pow(1.05, 10)).toBeCloseTo(1.6288946267774413, 15);
+    });
+
+    it('returns 1 for base^0 (any base, including non-finite-friendly cases)', () => {
+      expect(pow(1.05, 0)).toBe(1);
+      expect(pow(2, 0)).toBe(1);
+    });
+
+    it('returns the base for base^1', () => {
+      expect(pow(1.05, 1)).toBe(1.05);
+    });
+
+    it('returns 1 for 1^n (any exponent)', () => {
+      expect(pow(1, 100)).toBe(1);
+    });
+
+    it('handles fractional exponents: sqrt(2) via 2^0.5', () => {
+      expect(pow(2, 0.5)).toBeCloseTo(1.4142135623730951, 14);
+    });
+
+    it('handles negative exponents: (1.005)^-360 (amortization reciprocal)', () => {
+      // Used in useEarlyPayoffCalculator: 1 - pow(1 + monthlyRate, -months).
+      // decimal.js is exact for integer exponents (incl. negative); Math.pow(1.005, -360)
+      // yields 0.16604192803832987 which differs from decimal.js's exact
+      // 0.16604192803832352992 in the 15th sig fig — the precision win that
+      // matters at .xx5 rounding boundaries.
+      const result = pow(1.005, -360);
+      expect(result).toBeGreaterThan(0);
+      expect(result).toBeLessThan(1);
+      // Pin to the decimal.js exact value (converted to the nearest double).
+      expect(result).toBeCloseTo(0.16604192803832352, 15);
+    });
+
+    it('composes with add() to keep the base exact before exponentiation', () => {
+      // The precision win: `Math.pow(1 + 0.007, 12)` first computes `1 + 0.007`
+      // in float (drift at ~1e-16) then exponentiates that drifted base, yielding
+      // 1.0873106619155055. `pow(add(1, 0.007), 12)` builds the base as
+      // Decimal(1).plus(Decimal('0.007')) = exactly 1.007, then .pow(12) from
+      // there, yielding the exact 1.0873106619155067845 — differing from Math.pow
+      // in the 16th sig fig, which flips .xx5 rounding boundaries.
+      const rate = 0.007;
+      const months = 12;
+      const composed = pow(add(1, rate), months);
+      // (1.007)^12 exact value (decimal.js, converted to nearest double).
+      expect(composed).toBeCloseTo(1.0873106619155068, 15);
+    });
+
+    it('propagates NaN instead of throwing when the base is undefined', () => {
+      expect(Number.isNaN(pow(undefined as unknown as number, 12))).toBe(true);
+    });
+
+    it('propagates NaN instead of throwing when the exponent is undefined', () => {
+      expect(Number.isNaN(pow(1.05, undefined as unknown as number))).toBe(true);
+    });
+
+    it('returns 0 for base 0 raised to a positive exponent', () => {
+      expect(pow(0, 5)).toBe(0);
+    });
+
+    it('monotonically increases for base > 1 as exponent grows', () => {
+      const lower = pow(1.05, 5);
+      const higher = pow(1.05, 10);
+      expect(higher).toBeGreaterThan(lower);
     });
   });
 });

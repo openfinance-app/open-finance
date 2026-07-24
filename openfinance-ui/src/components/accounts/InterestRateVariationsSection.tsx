@@ -25,6 +25,7 @@ import {
 } from '@/hooks/useAccounts';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { add, divide, multiply, percentage, pow, subtract, sum } from '@/utils/money';
 import type { InterestPeriod } from '@/types/account';
 
 interface Props {
@@ -51,10 +52,11 @@ function calcPeriodInterest(
     days: number
 ): number {
     if (!balance || balance <= 0 || ratePercent <= 0 || days <= 0) return 0;
-    const r = ratePercent / 100;
-    const elapsed = days / 365;
-    const gross = balance * (Math.pow(1 + r / n, n * elapsed) - 1);
-    const net = gross * (1 - taxPercent / 100);
+    const r = divide(ratePercent, 100);
+    const elapsed = divide(days, 365);
+    const factor = pow(add(1, divide(r, n)), multiply(n, elapsed));
+    const gross = multiply(balance, subtract(factor, 1));
+    const net = multiply(gross, subtract(1, divide(taxPercent, 100)));
     return net;
 }
 
@@ -133,7 +135,7 @@ export function InterestRateVariationsSection({ accountId, accountBalance = 0, a
 
     const earned = interestEstimate?.historicalAccumulated ?? 0;
     const projected = interestEstimate?.estimate ?? 0;
-    const projectedPct = accountBalance > 0 ? ((projected / accountBalance) * 100).toFixed(2) : '0.00';
+    const projectedPct = accountBalance > 0 ? percentage(projected, accountBalance).toFixed(2) : '0.00';
 
     if (isLoading) {
         return (
@@ -171,7 +173,7 @@ export function InterestRateVariationsSection({ accountId, accountBalance = 0, a
                             )}
                         </div>
                         {variationsWithInterest.length > 0 && (() => {
-                            const totalProduced = variationsWithInterest.reduce((s, v) => s + v.netInterest, 0);
+                            const totalProduced = sum(variationsWithInterest.map(v => v.netInterest));
                             return totalProduced > 0 ? (
                                 <>
                                     <div className="text-text-muted text-xs">|</div>

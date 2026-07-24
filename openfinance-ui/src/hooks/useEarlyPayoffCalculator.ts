@@ -8,13 +8,14 @@ import type {
 } from '../types/calculator';
 import { DEFAULT_EARLY_PAYOFF_INPUT } from '../types/calculator';
 import type { EarlyPayoffCountryConfig } from '@/configs/tools/earlyPayoffConfig';
+import { add, divide, multiply, pow, subtract, sum } from '@/utils/money';
 
 // ── Pure calculation helpers ─────────────────────────────────────────────────
 
 function calcMonthlyPayment(balance: number, monthlyRate: number, months: number): number {
     if (months <= 0 || balance <= 0) return 0;
-    if (monthlyRate === 0) return balance / months;
-    return (balance * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months));
+    if (monthlyRate === 0) return divide(balance, months);
+    return divide(multiply(balance, monthlyRate), subtract(1, pow(add(1, monthlyRate), -months)));
 }
 
 /**
@@ -31,10 +32,10 @@ function computeIRA(
 ): number {
     if (!cfg.hasIRA || lumpSumAmount <= 0) return 0;
     const cap1 = cfg.iraMonthsInterestCap > 0
-        ? lumpSumAmount * monthlyRate * cfg.iraMonthsInterestCap
+        ? multiply(multiply(lumpSumAmount, monthlyRate), cfg.iraMonthsInterestCap)
         : Infinity;
     const cap2 = cfg.iraCapitalPercentCap > 0
-        ? balanceBefore * cfg.iraCapitalPercentCap
+        ? multiply(balanceBefore, cfg.iraCapitalPercentCap)
         : Infinity;
     return Math.min(cap1, cap2);
 }
@@ -73,7 +74,7 @@ function simulate(
     if (mode !== 'base') {
         for (const ls of lumpSums) {
             if (ls.amount > 0 && ls.month > 0) {
-                lumpSumByMonth.set(ls.month, (lumpSumByMonth.get(ls.month) ?? 0) + ls.amount);
+                lumpSumByMonth.set(ls.month, add(lumpSumByMonth.get(ls.month) ?? 0, ls.amount));
             }
         }
     }
@@ -87,17 +88,17 @@ function simulate(
     const maxMonths = Math.max(totalRemainingMonths * 2, 600);
 
     for (let month = 1; month <= maxMonths && balance > 0.005; month++) {
-        const interest = balance * monthlyRate;
+        const interest = multiply(balance, monthlyRate);
         // Cap payment at remaining balance + interest (handles last payment rounding)
-        const payment = Math.min(currentMonthlyPayment, balance + interest);
-        const principal = Math.max(0, payment - interest);
-        balance = Math.max(0, balance - principal);
+        const payment = Math.min(currentMonthlyPayment, add(balance, interest));
+        const principal = Math.max(0, subtract(payment, interest));
+        balance = Math.max(0, subtract(balance, principal));
 
         // Apply monthly extra payment if balance remains
         let extraApplied = 0;
         if (effectiveMonthlyExtra > 0 && balance > 0.005) {
             extraApplied = Math.min(effectiveMonthlyExtra, balance);
-            balance = Math.max(0, balance - extraApplied);
+            balance = Math.max(0, subtract(balance, extraApplied));
         }
 
         let lumpSumApplied = 0;
@@ -108,7 +109,7 @@ function simulate(
             const balanceBefore = balance;
             lumpSumApplied = Math.min(lsAmount, balance);
             iraApplied = computeIRA(lumpSumApplied, balanceBefore, monthlyRate, cfg);
-            balance = Math.max(0, balance - lumpSumApplied);
+            balance = Math.max(0, subtract(balance, lumpSumApplied));
 
             if (balance > 0.005) {
                 if (mode === 'reducePayment') {
@@ -123,7 +124,7 @@ function simulate(
         }
 
         // Accumulate extra payment into lump sum for reporting purposes
-        const totalLumpSumThisMonth = lumpSumApplied + extraApplied;
+        const totalLumpSumThisMonth = add(lumpSumApplied, extraApplied);
         rows.push({ month, payment, principal, interest, lumpSum: totalLumpSumThisMonth, ira: iraApplied, balance });
         if (balance <= 0.005) break;
     }
@@ -137,11 +138,11 @@ function buildYearlySchedule(rows: MonthRow[]): EarlyPayoffYearRow[] {
     for (const row of rows) {
         const year = Math.ceil(row.month / 12);
         const existing = map.get(year) ?? { year, totalPayment: 0, principalPaid: 0, interestPaid: 0, lumpSum: 0, ira: 0, endBalance: 0 };
-        existing.totalPayment += row.payment + row.lumpSum + row.ira;
-        existing.principalPaid += row.principal + row.lumpSum;
-        existing.interestPaid += row.interest;
-        existing.lumpSum += row.lumpSum;
-        existing.ira += row.ira;
+        existing.totalPayment = add(existing.totalPayment, sum([row.payment, row.lumpSum, row.ira]));
+        existing.principalPaid = add(existing.principalPaid, add(row.principal, row.lumpSum));
+        existing.interestPaid = add(existing.interestPaid, row.interest);
+        existing.lumpSum = add(existing.lumpSum, row.lumpSum);
+        existing.ira = add(existing.ira, row.ira);
         existing.endBalance = row.balance;
         map.set(year, existing);
     }
@@ -154,16 +155,16 @@ function buildScenario(
     finalMonthlyPayment: number,
     baseScenario: EarlyPayoffScenario | null,
 ): EarlyPayoffScenario {
-    const totalInterest = rows.reduce((s, r) => s + r.interest, 0);
-    const totalIRA = rows.reduce((s, r) => s + r.ira, 0);
-    const totalLumpSum = rows.reduce((s, r) => s + r.lumpSum, 0);
+    const totalInterest = sum(rows.map(r => r.interest));
+    const totalIRA = sum(rows.map(r => r.ira));
+    const totalLumpSum = sum(rows.map(r => r.lumpSum));
     const totalMonths = rows.length;
-    const totalPayments = rows.reduce((s, r) => s + r.payment, 0);
-    const totalCost = totalPayments + totalLumpSum + totalIRA;
+    const totalPayments = sum(rows.map(r => r.payment));
+    const totalCost = sum([totalPayments, totalLumpSum, totalIRA]);
 
-    const interestSaved = baseScenario ? Math.max(0, baseScenario.totalInterest - totalInterest) : 0;
+    const interestSaved = baseScenario ? Math.max(0, subtract(baseScenario.totalInterest, totalInterest)) : 0;
     const timeSavedMonths = baseScenario ? Math.max(0, baseScenario.totalMonths - totalMonths) : 0;
-    const netSavings = interestSaved - totalIRA;
+    const netSavings = subtract(interestSaved, totalIRA);
 
     return {
         monthlyPayment: baseMonthlyPayment,
@@ -236,7 +237,7 @@ export function useEarlyPayoffCalculator(cfg: EarlyPayoffCountryConfig) {
             return;
         }
 
-        const monthlyRate = annualRate / 100 / 12;
+        const monthlyRate = divide(divide(annualRate, 100), 12);
         const totalRemainingMonths = remainingYears * 12 + remainingMonthsExtra;
 
         // No-IRA config for base scenario (never penalise the base)
