@@ -188,6 +188,27 @@ public class UserSettingsService {
             updated = true;
         }
 
+        if (request.decimalPlacesOverrideEnabled() != null
+                && request.decimalPlacesOverrideEnabled()
+                        != settings.isDecimalPlacesOverrideEnabled()) {
+            log.debug(
+                    "Updating decimalPlacesOverrideEnabled from {} to {}",
+                    settings.isDecimalPlacesOverrideEnabled(),
+                    request.decimalPlacesOverrideEnabled());
+            settings.setDecimalPlacesOverrideEnabled(request.decimalPlacesOverrideEnabled());
+            updated = true;
+        }
+
+        if (request.preferredDecimalPlaces() != null
+                && request.preferredDecimalPlaces() != settings.getPreferredDecimalPlaces()) {
+            log.debug(
+                    "Updating preferredDecimalPlaces from {} to {}",
+                    settings.getPreferredDecimalPlaces(),
+                    request.preferredDecimalPlaces());
+            settings.setPreferredDecimalPlaces(request.preferredDecimalPlaces());
+            updated = true;
+        }
+
         // Requirement REQ-2.2: secondaryCurrency is stored on the User entity.
         // A non-null value triggers an update; empty string clears the preference.
         if (request.secondaryCurrency() != null) {
