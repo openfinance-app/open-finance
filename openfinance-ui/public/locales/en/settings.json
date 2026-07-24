@@ -91,8 +91,7 @@
       "enableHint": "Applies to every currency. Minimum 1 to avoid hiding small amounts.",
       "placesLabel": "Decimal places",
       "livePreview": "Live preview",
-      "updateSuccess": "Decimal places updated successfully",
-      "updateError": "Failed to update decimal places. Please try again."
+      "updateSuccess": "Decimal places updated successfully"
     },
     "currencyDisplay": {
       "label": "Currency Display",

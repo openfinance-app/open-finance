@@ -91,8 +91,7 @@
       "enableHint": "S'applique à toutes les devises. Minimum 1 pour ne pas masquer les petits montants.",
       "placesLabel": "Décimales",
       "livePreview": "Aperçu en direct",
-      "updateSuccess": "Décimales mises à jour avec succès",
-      "updateError": "Échec de la mise à jour des décimales. Veuillez réessayer."
+      "updateSuccess": "Décimales mises à jour avec succès"
     },
     "currencyDisplay": {
       "label": "Affichage de la devise",
