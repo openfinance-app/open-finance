@@ -74,6 +74,8 @@ public class TestDataSeeder implements CommandLineRunner {
     private static final String TEST_USERNAME = "demo";
     private static final String TEST_PASSWORD = "demo123";
     private static final String TEST_MASTER_PASSWORD = "master123";
+    private static final int MONTHS_PER_YEAR = 12;
+    private static final int SEED_TRANSACTION_LOOKBACK_DAYS = 365;
 
     private SecretKey cachedEncryptionKey;
     private Long cachedUserId;
@@ -439,7 +441,7 @@ public class TestDataSeeder implements CommandLineRunner {
             // M = P * r(1+r)^n / ((1+r)^n - 1)
             BigDecimal monthlyRate =
                     interestRateValue.divide(BigDecimal.valueOf(1200), 8, RoundingMode.HALF_UP);
-            int totalMonths = loanTermYears * 12;
+            int totalMonths = loanTermYears * MONTHS_PER_YEAR;
             BigDecimal minimumPayment;
             if (monthlyRate.compareTo(BigDecimal.ZERO) > 0) {
                 try {
@@ -487,7 +489,7 @@ public class TestDataSeeder implements CommandLineRunner {
             BigDecimal amount = BigDecimal.valueOf(5 + rnd.nextInt(2000)).setScale(2);
             TransactionType type = (i % 8 == 0) ? TransactionType.INCOME : TransactionType.EXPENSE;
             Category category = categories.get(rnd.nextInt(categories.size()));
-            LocalDate date = LocalDate.now().minusDays(rnd.nextInt(365));
+            LocalDate date = LocalDate.now().minusDays(rnd.nextInt(SEED_TRANSACTION_LOOKBACK_DAYS));
             String desc = (type == TransactionType.INCOME ? "Salary " : "Purchase ") + (i + 1);
             String payee = "Payee " + ((i % payeeCount) + 1);
             Transaction tx =

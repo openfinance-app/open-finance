@@ -80,6 +80,32 @@ class FinancialFreedomServiceTest {
         }
 
         @Test
+        @DisplayName(
+                "Not-achievable message formats the target amount without a hardcoded currency symbol")
+        void shouldFormatNotAchievableMessageWithoutHardcodedCurrencySymbol() {
+            // Huge target relative to tiny savings/contribution/return — unreachable within 50
+            // years
+            FreedomCalculatorRequest request =
+                    FreedomCalculatorRequest.builder()
+                            .currentSavings(BigDecimal.ZERO)
+                            .monthlyExpenses(new BigDecimal("100000"))
+                            .expectedAnnualReturn(new BigDecimal("0.01"))
+                            .monthlyContribution(new BigDecimal("1"))
+                            .withdrawalRate(new BigDecimal("4"))
+                            .build();
+
+            FreedomCalculatorResponse response = service.calculateTimeToFreedom(request);
+
+            assertFalse(response.isAchievable());
+            assertNotNull(response.getMessage());
+            // No hardcoded currency symbol — the caller/frontend applies the user's actual currency
+            assertFalse(response.getMessage().contains("€"));
+            assertFalse(response.getMessage().contains("$"));
+            // Target amount is still rendered with thousands separators, e.g. "30,000,000.00"
+            assertTrue(response.getMessage().contains("30,000,000.00"));
+        }
+
+        @Test
         @DisplayName("Yearly projections compound in BigDecimal (10% on 100k, no contributions)")
         void shouldGenerateAnnualProjectionsExactly() {
             FreedomCalculatorRequest request =

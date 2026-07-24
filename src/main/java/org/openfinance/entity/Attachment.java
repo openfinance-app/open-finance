@@ -179,22 +179,10 @@ public class Attachment {
     /**
      * Helper method to get a human-readable file size string.
      *
-     * @return Formatted file size (e.g., "1.5 MB", "234 KB", "12 bytes")
+     * @return Formatted file size (e.g., "1.50 MB", "234.00 KB", "12 bytes")
      */
     public String getFormattedFileSize() {
-        if (fileSize == null) {
-            return "Unknown";
-        }
-
-        if (fileSize < 1024) {
-            return fileSize + " bytes";
-        } else if (fileSize < 1024 * 1024) {
-            return String.format("%.1f KB", fileSize / 1024.0);
-        } else if (fileSize < 1024 * 1024 * 1024) {
-            return String.format("%.1f MB", fileSize / (1024.0 * 1024));
-        } else {
-            return String.format("%.2f GB", fileSize / (1024.0 * 1024 * 1024));
-        }
+        return org.openfinance.util.FileSizeFormatter.format(fileSize);
     }
 
     /**

@@ -80,21 +80,21 @@ public class QifParser {
      * are needed here.
      */
     private static final DateTimeFormatter[] DATE_FORMATS = {
-        DateTimeFormatter.ofPattern("MM/dd/yyyy"), // US convention with 4-digit year
-        DateTimeFormatter.ofPattern("dd/MM/yyyy"), // International with 4-digit year
-        DateTimeFormatter.ofPattern("yyyy-MM-dd"), // ISO format
-        DateTimeFormatter.ofPattern("M/d/yyyy"), // US no leading zeros
-        DateTimeFormatter.ofPattern("d/M/yyyy"), // International no leading zeros
+        DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.ROOT), // US convention with 4-digit year
+        DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ROOT), // International with 4-digit year
+        DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ROOT), // ISO format
+        DateTimeFormatter.ofPattern("M/d/yyyy", Locale.ROOT), // US no leading zeros
+        DateTimeFormatter.ofPattern("d/M/yyyy", Locale.ROOT), // International no leading zeros
         // Dash-separated variants
-        DateTimeFormatter.ofPattern("MM-dd-yyyy"),
-        DateTimeFormatter.ofPattern("dd-MM-yyyy"),
-        DateTimeFormatter.ofPattern("M-d-yyyy"),
-        DateTimeFormatter.ofPattern("d-M-yyyy"),
+        DateTimeFormatter.ofPattern("MM-dd-yyyy", Locale.ROOT),
+        DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.ROOT),
+        DateTimeFormatter.ofPattern("M-d-yyyy", Locale.ROOT),
+        DateTimeFormatter.ofPattern("d-M-yyyy", Locale.ROOT),
         // Dot-separated variants
-        DateTimeFormatter.ofPattern("MM.dd.yyyy"),
-        DateTimeFormatter.ofPattern("dd.MM.yyyy"),
-        DateTimeFormatter.ofPattern("M.d.yyyy"),
-        DateTimeFormatter.ofPattern("d.M.yyyy"),
+        DateTimeFormatter.ofPattern("MM.dd.yyyy", Locale.ROOT),
+        DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.ROOT),
+        DateTimeFormatter.ofPattern("M.d.yyyy", Locale.ROOT),
+        DateTimeFormatter.ofPattern("d.M.yyyy", Locale.ROOT),
     };
 
     /**

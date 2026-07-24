@@ -11,9 +11,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.RssFeedItem;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -23,9 +23,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class RssService {
+
+    /**
+     * User-Agent sent with every RSS request. Several finance news sites reject requests without a
+     * recognizable browser User-Agent.
+     */
+    static final String USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
     private static final List<String> EN_RSS_URLS =
             List.of(
@@ -37,10 +43,15 @@ public class RssService {
                     "https://www.lemonde.fr/economie/rss_full.xml",
                     "https://www.lefigaro.fr/rss/figaro_economie.xml");
 
+    private final RestTemplate restTemplate;
+
+    public RssService(@Qualifier("rssRestTemplate") RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     @Cacheable(value = "rssFeeds", key = "#locale.language", sync = true)
     public List<RssFeedItem> getFinanceFeeds(Locale locale) {
         List<RssFeedItem> allItems = new ArrayList<>();
-        RestTemplate restTemplate = new RestTemplate();
         SyndFeedInput input = new SyndFeedInput();
 
         List<String> targetUrls =
@@ -49,9 +60,7 @@ public class RssService {
         for (String url : targetUrls) {
             try {
                 HttpHeaders headers = new HttpHeaders();
-                headers.set(
-                        "User-Agent",
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                headers.set("User-Agent", USER_AGENT);
                 HttpEntity<String> entity = new HttpEntity<>(headers);
 
                 ResponseEntity<byte[]> response =

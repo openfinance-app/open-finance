@@ -74,7 +74,9 @@ public class OllamaClient {
                                 configurer ->
                                         configurer
                                                 .defaultCodecs()
-                                                .maxInMemorySize(10 * 1024 * 1024)) // 10MB buffer
+                                                .maxInMemorySize(
+                                                        AIWebClientDefaults
+                                                                .MAX_IN_MEMORY_SIZE_BYTES))
                         .build();
 
         log.info(

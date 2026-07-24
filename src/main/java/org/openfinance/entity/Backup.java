@@ -125,22 +125,10 @@ public class Backup {
     /**
      * Returns a human-readable file size.
      *
-     * @return formatted file size (e.g., "1.5 MB")
+     * @return formatted file size (e.g., "1.50 MB")
      */
     public String getFormattedFileSize() {
-        if (fileSize == null) {
-            return "Unknown";
-        }
-        if (fileSize < 1024) {
-            return fileSize + " B";
-        }
-        if (fileSize < 1024 * 1024) {
-            return String.format("%.2f KB", fileSize / 1024.0);
-        }
-        if (fileSize < 1024 * 1024 * 1024) {
-            return String.format("%.2f MB", fileSize / (1024.0 * 1024.0));
-        }
-        return String.format("%.2f GB", fileSize / (1024.0 * 1024.0 * 1024.0));
+        return org.openfinance.util.FileSizeFormatter.format(fileSize);
     }
 
     /**

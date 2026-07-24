@@ -59,7 +59,9 @@ public class OpenAIProvider implements AIProvider {
                                 configurer ->
                                         configurer
                                                 .defaultCodecs()
-                                                .maxInMemorySize(10 * 1024 * 1024))
+                                                .maxInMemorySize(
+                                                        AIWebClientDefaults
+                                                                .MAX_IN_MEMORY_SIZE_BYTES))
                         .build();
 
         log.info(
