@@ -38,7 +38,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CsvParser {
 
-    private static final DateTimeFormatter[] DATE_FORMATS = {
+    /** Numeric (locale-independent) date formats, month-first variants ordered first. */
+    private static final DateTimeFormatter[] NUMERIC_DEFAULT = {
         DateTimeFormatter.ofPattern("MM/dd/yyyy"),
         DateTimeFormatter.ofPattern("dd/MM/yyyy"),
         DateTimeFormatter.ofPattern("yyyy-MM-dd"),
@@ -49,12 +50,6 @@ public class CsvParser {
         DateTimeFormatter.ofPattern("MM-dd-yyyy"),
         DateTimeFormatter.ofPattern("M-d-yyyy"),
         DateTimeFormatter.ofPattern("d-M-yyyy"),
-        DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.ENGLISH),
-        DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH),
-        DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH),
-        DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH),
-        DateTimeFormatter.ofPattern("MMMM dd, yyyy", Locale.ENGLISH),
-        DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.ENGLISH),
     };
 
     /**
@@ -64,8 +59,8 @@ public class CsvParser {
     private static final Pattern NUMERIC_DATE_PATTERN =
             Pattern.compile("^(\\d{1,2})[/\\-](\\d{1,2})[/\\-](\\d{2,4})$");
 
-    /** Date formats with day-first variants prioritised (dd/MM before MM/dd). */
-    private static final DateTimeFormatter[] DATE_FORMATS_DAY_FIRST = {
+    /** Numeric (locale-independent) date formats, day-first variants prioritised. */
+    private static final DateTimeFormatter[] NUMERIC_DAY_FIRST = {
         DateTimeFormatter.ofPattern("dd/MM/yyyy"),
         DateTimeFormatter.ofPattern("d/M/yyyy"),
         DateTimeFormatter.ofPattern("dd-MM-yyyy"),
@@ -76,13 +71,29 @@ public class CsvParser {
         DateTimeFormatter.ofPattern("M/d/yyyy"),
         DateTimeFormatter.ofPattern("MM-dd-yyyy"),
         DateTimeFormatter.ofPattern("M-d-yyyy"),
-        DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.ENGLISH),
-        DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH),
-        DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH),
-        DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH),
-        DateTimeFormatter.ofPattern("MMMM dd, yyyy", Locale.ENGLISH),
-        DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.ENGLISH),
     };
+
+    /**
+     * Build the date-format array tried by the parser: the locale-independent numeric formats
+     * (ordered per the dayFirst flag) followed by textual-month formats bound to {@code locale}.
+     * Textual months must honour the user's locale so French exports like {@code 15 janv. 2024}
+     * parse correctly when the user is French (and English {@code Jan 15, 2024} when English).
+     */
+    private static DateTimeFormatter[] buildDateFormats(Locale locale, boolean dayFirst) {
+        DateTimeFormatter[] numeric = dayFirst ? NUMERIC_DAY_FIRST : NUMERIC_DEFAULT;
+        DateTimeFormatter[] textual = {
+            DateTimeFormatter.ofPattern("MMM dd, yyyy", locale),
+            DateTimeFormatter.ofPattern("dd MMM yyyy", locale),
+            DateTimeFormatter.ofPattern("MMM d, yyyy", locale),
+            DateTimeFormatter.ofPattern("d MMM yyyy", locale),
+            DateTimeFormatter.ofPattern("MMMM dd, yyyy", locale),
+            DateTimeFormatter.ofPattern("dd MMMM yyyy", locale),
+        };
+        DateTimeFormatter[] result = new DateTimeFormatter[numeric.length + textual.length];
+        System.arraycopy(numeric, 0, result, 0, numeric.length);
+        System.arraycopy(textual, 0, result, numeric.length, textual.length);
+        return result;
+    }
 
     /** Known header names (normalised) that help distinguish a header row from data */
     private static final List<String> KNOWN_HEADERS =
@@ -222,7 +233,8 @@ public class CsvParser {
                     getValue(row, headerMap, "date", "transactiondate", "posteddate", "dateposted");
             if (dateStr != null) dateStrings.add(dateStr);
         }
-        DateTimeFormatter[] dateFormats = inferDateFormats(dateStrings, context.dayFirst());
+        DateTimeFormatter[] dateFormats =
+                inferDateFormats(dateStrings, context.dayFirst(), context.locale());
 
         // Parse all data rows
         for (int i = dataStartIndex; i < allRows.size(); i++) {
@@ -500,7 +512,7 @@ public class CsvParser {
      * ({@code dayFirstDefault}).
      */
     private DateTimeFormatter[] inferDateFormats(
-            List<String> dateStrings, boolean dayFirstDefault) {
+            List<String> dateStrings, boolean dayFirstDefault, Locale locale) {
         boolean firstPartExceeds12 = false;
         boolean secondPartExceeds12 = false;
 
@@ -518,16 +530,16 @@ public class CsvParser {
         if (secondPartExceeds12 && !firstPartExceeds12) {
             log.debug(
                     "Inferred date format: month-first (MM/dd) — values > 12 found in second position");
-            return DATE_FORMATS;
+            return buildDateFormats(locale, false);
         }
         if (firstPartExceeds12) {
             log.debug(
                     "Inferred date format: day-first (dd/MM) — values > 12 found in first position");
-            return DATE_FORMATS_DAY_FIRST;
+            return buildDateFormats(locale, true);
         }
         // Fully ambiguous — fall back to the user's date-format preference
         log.debug("Ambiguous numeric dates — using user preference (dayFirst={})", dayFirstDefault);
-        return dayFirstDefault ? DATE_FORMATS_DAY_FIRST : DATE_FORMATS;
+        return buildDateFormats(locale, dayFirstDefault);
     }
 
     /** Parse amount from CSV file. */

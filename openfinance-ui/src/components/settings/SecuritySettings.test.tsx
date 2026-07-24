@@ -3,13 +3,13 @@ import { screen, waitFor } from '@testing-library/react';
 import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent } from '@/test/test-utils';
 import { SecuritySettings } from './SecuritySettings';
 
-vi.mock('@/lib/apiClient', () => ({
+vi.mock('@/services/apiClient', () => ({
   default: {
     put: vi.fn(),
   },
 }));
 
-import apiClient from '@/lib/apiClient';
+import apiClient from '@/services/apiClient';
 const mockPut = vi.mocked(apiClient.put);
 
 describe('SecuritySettings', () => {
@@ -91,7 +91,7 @@ describe('SecuritySettings', () => {
     await user.click(screen.getByRole('button', { name: /^change password$/i }));
 
     await waitFor(() => {
-      expect(mockPut).toHaveBeenCalledWith('/api/v1/users/me/password', {
+      expect(mockPut).toHaveBeenCalledWith('/users/me/password', {
         currentPassword: 'oldpass123',
         newPassword: 'newpass1234',
       });
@@ -129,7 +129,7 @@ describe('SecuritySettings', () => {
     await user.click(screen.getByRole('button', { name: /^change master password$/i }));
 
     await waitFor(() => {
-      expect(mockPut).toHaveBeenCalledWith('/api/v1/users/me/master-password', {
+      expect(mockPut).toHaveBeenCalledWith('/users/me/master-password', {
         currentMasterPassword: 'oldmaster1',
         newMasterPassword: 'newmaster12',
       });

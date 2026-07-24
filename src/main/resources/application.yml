@@ -78,6 +78,8 @@ spring:
       enabled: true
 application:
   version: 0.1.0
+  openapi:
+    server-url: http://localhost:8080
   
   test-data-seed:
     enabled: false
@@ -109,6 +111,14 @@ application:
   exchange-rates:
     base-currency: EUR
     cache-ttl: 86400
+  rss:
+    feeds:
+      en:
+        - https://finance.yahoo.com/news/rssindex
+        - https://feeds.a.dj.com/rss/RSSMarketsMain.xml
+      fr:
+        - https://www.lemonde.fr/economie/rss_full.xml
+        - https://www.lefigaro.fr/rss/figaro_economie.xml
   import:
     allowed-extensions: .qif,.ofx,.qfx,.csv,.json
     temp-directory: ./temp/imports

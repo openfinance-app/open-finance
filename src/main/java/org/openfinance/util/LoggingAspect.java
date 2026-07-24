@@ -1,6 +1,7 @@
 package org.openfinance.util;
 
 import java.util.Arrays;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -27,6 +28,9 @@ public class LoggingAspect {
      * slow-query threshold so a single notion of "slow" applies across the application.
      */
     static final long SLOW_EXECUTION_THRESHOLD_MS = 500;
+
+    private static final List<String> SENSITIVE_ARG_TOKENS =
+            List.of("password", "secret", "token", "apikey", "motdepasse", "x-encryption-session");
 
     /** Pointcut for all methods in service layer */
     @Pointcut("within(org.openfinance.service..*)")
@@ -160,7 +164,8 @@ public class LoggingAspect {
                             String argString = arg.toString();
 
                             // Mask sensitive data in argument strings
-                            if (argString.toLowerCase().contains("password")) {
+                            String lower = argString.toLowerCase();
+                            if (SENSITIVE_ARG_TOKENS.stream().anyMatch(lower::contains)) {
                                 return "[REDACTED]";
                             }
 

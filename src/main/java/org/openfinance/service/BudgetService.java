@@ -1373,12 +1373,17 @@ public class BudgetService {
      */
     private String formatPeriodLabel(
             BudgetPeriod period, LocalDate periodStart, LocalDate periodEnd) {
+        Locale locale = LocaleContextHolder.getLocale();
         switch (period) {
             case WEEKLY:
-                return "Week of "
-                        + periodStart.format(DateTimeFormatter.ofPattern("dd MMM", Locale.FRENCH));
+                String weekDate = periodStart.format(DateTimeFormatter.ofPattern("dd MMM", locale));
+                return messageSource.getMessage(
+                        "budget.period.weekOf",
+                        new Object[] {weekDate},
+                        "Week of " + weekDate,
+                        locale);
             case MONTHLY:
-                return periodStart.format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.FRENCH));
+                return periodStart.format(DateTimeFormatter.ofPattern("MMM yyyy", locale));
             case QUARTERLY:
                 int quarter = (periodStart.getMonthValue() - 1) / 3 + 1;
                 return "Q" + quarter + " " + periodStart.getYear();

@@ -14,7 +14,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Lock, Shield, AlertTriangle, Smartphone, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import apiClient from '@/lib/apiClient';
+import apiClient from '@/services/apiClient';
 import { useAuthContext } from '@/context/AuthContext';
 
 // Validation schemas
@@ -131,7 +131,7 @@ export function SecuritySettings() {
     setErrorMessage(null);
 
     try {
-      await apiClient.put('/api/v1/users/me/password', {
+      await apiClient.put('/users/me/password', {
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
       });
@@ -158,7 +158,7 @@ export function SecuritySettings() {
     setErrorMessage(null);
 
     try {
-      await apiClient.put('/api/v1/users/me/master-password', {
+      await apiClient.put('/users/me/master-password', {
         currentMasterPassword: data.currentMasterPassword,
         newMasterPassword: data.newMasterPassword,
       });

@@ -40,6 +40,9 @@ public class OpenApiConfig {
     @Value("${application.version:0.1.0}")
     private String appVersion;
 
+    @Value("${application.openapi.server-url:http://localhost:8080}")
+    private String openApiServerUrl;
+
     /**
      * Builds the {@link OpenAPI} bean with application metadata, server list, JWT security scheme,
      * and global security requirement.
@@ -51,9 +54,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(buildApiInfo())
                 .addServersItem(
-                        new Server()
-                                .url("http://localhost:8080")
-                                .description("Local development server"))
+                        new Server().url(openApiServerUrl).description("Local development server"))
                 .components(
                         new Components()
                                 .addSecuritySchemes(BEARER_AUTH_SCHEME, buildJwtSecurityScheme()))

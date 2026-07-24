@@ -8,6 +8,7 @@
 import { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 import type { BuyRentInputs, InvestmentInputs } from '@/types/realEstateTools';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import i18n from '@/i18n';
 
 /**
  * Custom hook for debouncing values
@@ -206,21 +207,22 @@ export function useLazyChart() {
  * Memoized currency formatter
  */
 export function useMemoizedFormatter(currency: string = DEFAULT_CURRENCY) {
+  const locale = (i18n.language ?? 'en').startsWith('fr') ? 'fr-FR' : 'en-US';
   return useMemo(() => {
-    const currencyFormatter = new Intl.NumberFormat('fr-FR', {
+    const currencyFormatter = new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
 
-    const percentFormatter = new Intl.NumberFormat('fr-FR', {
+    const percentFormatter = new Intl.NumberFormat(locale, {
       style: 'percent',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
 
-    const compactFormatter = new Intl.NumberFormat('fr-FR', {
+    const compactFormatter = new Intl.NumberFormat(locale, {
       notation: 'compact',
       compactDisplay: 'short',
     });
@@ -230,7 +232,7 @@ export function useMemoizedFormatter(currency: string = DEFAULT_CURRENCY) {
       formatPercent: (value: number) => percentFormatter.format(value / 100),
       formatCompact: (value: number) => compactFormatter.format(value),
     };
-  }, []);
+  }, [locale]);
 }
 
 /**

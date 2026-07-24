@@ -12,7 +12,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.config.RssFeedProperties;
 import org.openfinance.dto.RssFeedItem;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpEntity;
@@ -33,20 +35,19 @@ public class RssService {
     static final String USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-    private static final List<String> EN_RSS_URLS =
-            List.of(
-                    "https://finance.yahoo.com/news/rssindex",
-                    "https://feeds.a.dj.com/rss/RSSMarketsMain.xml");
-
-    private static final List<String> FR_RSS_URLS =
-            List.of(
-                    "https://www.lemonde.fr/economie/rss_full.xml",
-                    "https://www.lefigaro.fr/rss/figaro_economie.xml");
-
     private final RestTemplate restTemplate;
+    private final RssFeedProperties feedProperties;
 
     public RssService(@Qualifier("rssRestTemplate") RestTemplate restTemplate) {
+        this(restTemplate, new RssFeedProperties());
+    }
+
+    @Autowired
+    public RssService(
+            @Qualifier("rssRestTemplate") RestTemplate restTemplate,
+            RssFeedProperties feedProperties) {
         this.restTemplate = restTemplate;
+        this.feedProperties = feedProperties;
     }
 
     @Cacheable(value = "rssFeeds", key = "#locale.language", sync = true)
@@ -55,7 +56,9 @@ public class RssService {
         SyndFeedInput input = new SyndFeedInput();
 
         List<String> targetUrls =
-                "fr".equalsIgnoreCase(locale.getLanguage()) ? FR_RSS_URLS : EN_RSS_URLS;
+                "fr".equalsIgnoreCase(locale.getLanguage())
+                        ? feedProperties.getFeeds().getFr()
+                        : feedProperties.getFeeds().getEn();
 
         for (String url : targetUrls) {
             try {

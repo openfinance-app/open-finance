@@ -20,6 +20,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { useAuthContext } from '@/context/AuthContext';
+import i18n from '@/i18n';
 import type { BuyRentResults } from '@/types/realEstateTools';
 
 // Register Chart.js components
@@ -40,6 +41,7 @@ export interface EvolutionChartProps {
 
 export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
   const { baseCurrency } = useAuthContext();
+  const locale = (i18n.language ?? 'en').startsWith('fr') ? 'fr-FR' : 'en-US';
   const years = results.years.map(y => `Année ${y.year}`);
   
   const buyNetWorth = results.years.map(y => y.buy.propertyValue - y.buy.remainingCapital);
@@ -101,7 +103,7 @@ export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
               label += ': ';
             }
             if (context.parsed.y !== null) {
-              label += new Intl.NumberFormat('fr-FR', {
+              label += new Intl.NumberFormat(locale, {
                 style: 'currency',
                 currency: baseCurrency,
               }).format(context.parsed.y);
@@ -124,7 +126,7 @@ export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
         beginAtZero: true,
         ticks: {
           callback: (value: any) => {
-            return new Intl.NumberFormat('fr-FR', {
+            return new Intl.NumberFormat(locale, {
               style: 'currency',
               currency: baseCurrency,
               notation: 'compact',

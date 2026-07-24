@@ -21,6 +21,7 @@ import org.openfinance.repository.TransactionRepository;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
 import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -293,7 +294,7 @@ public class CategoryService {
      */
     @Transactional(readOnly = true)
     public CategoryResponse getCategoryById(Long userId, Long categoryId) {
-        return getCategoryById(userId, categoryId, Locale.ENGLISH);
+        return getCategoryById(userId, categoryId, LocaleContextHolder.getLocale());
     }
 
     /**
@@ -346,7 +347,7 @@ public class CategoryService {
      */
     @Transactional(readOnly = true)
     public List<CategoryResponse> getAllCategories(Long userId) {
-        return getAllCategories(userId, Locale.ENGLISH);
+        return getAllCategories(userId, LocaleContextHolder.getLocale());
     }
 
     /**
@@ -397,7 +398,7 @@ public class CategoryService {
      */
     @Transactional(readOnly = true)
     public List<CategoryResponse> getCategoriesByType(Long userId, CategoryType type) {
-        return getCategoriesByType(userId, type, Locale.ENGLISH);
+        return getCategoriesByType(userId, type, LocaleContextHolder.getLocale());
     }
 
     /**
@@ -505,7 +506,7 @@ public class CategoryService {
      */
     @Transactional(readOnly = true)
     public List<CategoryTreeNode> getCategoryTree(Long userId) {
-        return getCategoryTree(userId, Locale.ENGLISH);
+        return getCategoryTree(userId, LocaleContextHolder.getLocale());
     }
 
     /**
@@ -720,7 +721,7 @@ public class CategoryService {
      * @return the response DTO with decrypted data
      */
     private CategoryResponse toResponseWithDecryption(Category category) {
-        return toResponseWithDecryption(category, Locale.ENGLISH);
+        return toResponseWithDecryption(category, LocaleContextHolder.getLocale());
     }
 
     /**

@@ -14,6 +14,7 @@ import org.openfinance.repository.*;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.NetWorthService;
 import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -75,7 +76,7 @@ public class FinancialContextBuilder {
      * @return Formatted financial context string
      */
     public String buildContext(Long userId) {
-        return buildContext(userId, Locale.ENGLISH);
+        return buildContext(userId, LocaleContextHolder.getLocale());
     }
 
     /**
@@ -153,7 +154,7 @@ public class FinancialContextBuilder {
      * @return Minimal financial context string
      */
     public String buildMinimalContext(Long userId) {
-        return buildMinimalContext(userId, Locale.ENGLISH);
+        return buildMinimalContext(userId, LocaleContextHolder.getLocale());
     }
 
     /**

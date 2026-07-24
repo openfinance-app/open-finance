@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -24,6 +25,7 @@ import org.openfinance.security.EncryptionService;
 import org.openfinance.service.DefaultCurrencyProvider;
 import org.openfinance.service.NetWorthService;
 import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 
 /**
  * Unit tests for FinancialContextBuilder Task 11.1.7b: Write FinancialContextBuilder unit tests
@@ -71,6 +73,52 @@ class FinancialContextBuilderTest {
     @Nested
     @DisplayName("buildContext Tests")
     class BuildContextTests {
+
+        @Test
+        @DisplayName(
+                "no-arg overload should honour LocaleContextHolder (bug: hardcoded Locale.ENGLISH)")
+        void noArgOverloadShouldHonourRequestLocale() {
+            // Regression for High-severity audit item: the no-Locale convenience overload
+            // buildContext(userId) hardcoded Locale.ENGLISH, ignoring the request locale. After
+            // the fix it must delegate to LocaleContextHolder.getLocale() so the AI context is
+            // built in the user's language (AcceptHeaderLocaleResolver sets the thread locale
+            // from the Accept-Language header).
+            Locale previous = LocaleContextHolder.getLocale();
+            try {
+                LocaleContextHolder.setLocale(Locale.FRENCH);
+                lenient()
+                        .when(
+                                messageSource.getMessage(
+                                        eq("ai.context.financial.summary"),
+                                        any(),
+                                        anyString(),
+                                        eq(Locale.FRENCH)))
+                        .thenReturn("RÉSUMÉ FINANCIER");
+
+                when(netWorthService.calculateTotalAssets(eq(userId), eq("USD")))
+                        .thenReturn(BigDecimal.ZERO);
+                when(netWorthService.calculateTotalLiabilities(eq(userId), eq("USD")))
+                        .thenReturn(BigDecimal.ZERO);
+                when(accountRepository.findByUserIdAndIsActive(userId, true))
+                        .thenReturn(Collections.emptyList());
+                when(transactionRepository.findByUserIdAndDateBetween(
+                                eq(userId), any(LocalDate.class), any(LocalDate.class)))
+                        .thenReturn(Collections.emptyList());
+                when(assetRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
+                when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId))
+                        .thenReturn(Collections.emptyList());
+                when(budgetRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
+
+                // When: call the no-arg overload (no explicit Locale passed)
+                String context = contextBuilder.buildContext(userId);
+
+                // Then: the French header key is resolved, proving the request locale was used
+                assertThat(context).contains("=== RÉSUMÉ FINANCIER ===");
+                assertThat(context).doesNotContain("=== FINANCIAL SUMMARY ===");
+            } finally {
+                LocaleContextHolder.setLocale(previous);
+            }
+        }
 
         @Test
         @DisplayName("should build context with all financial data")

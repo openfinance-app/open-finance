@@ -1,5 +1,7 @@
 package org.openfinance.service.ai;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -18,6 +20,8 @@ import reactor.core.publisher.Mono;
 public class OpenAIProvider implements AIProvider {
 
     private static final String PROVIDER_NAME = "OpenAI";
+
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final WebClient webClient;
     private final String model;
@@ -71,9 +75,8 @@ public class OpenAIProvider implements AIProvider {
     }
 
     private String buildRequestBody(String prompt, String context, boolean stream) {
-        String systemMessage =
-                systemPromptTemplate.formatted(context).replace("\"", "\\\"").replace("\n", "\\n");
-        String safePrompt = prompt.replace("\"", "\\\"").replace("\n", "\\n");
+        String systemMessage = jsonEscape(systemPromptTemplate.formatted(context));
+        String safePrompt = jsonEscape(prompt);
 
         return """
         {
@@ -99,6 +102,20 @@ public class OpenAIProvider implements AIProvider {
         }
         """
                 .formatted(model, temperature, maxTokens, stream, systemMessage, safePrompt);
+    }
+
+    private String jsonEscape(String s) {
+        try {
+            String quoted = JSON.writeValueAsString(s);
+            return quoted.substring(1, quoted.length() - 1);
+        } catch (JsonProcessingException e) {
+            // Unreachable for a plain String; ObjectMapper always serializes strings.
+            return s.replace("\"", "\\\"")
+                    .replace("\\", "\\\\")
+                    .replace("\n", "\\n")
+                    .replace("\t", "\\t")
+                    .replace("\r", "\\r");
+        }
     }
 
     @Override

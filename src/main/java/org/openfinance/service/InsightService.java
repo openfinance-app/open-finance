@@ -430,12 +430,19 @@ public class InsightService {
 
             for (Category category : categories) {
                 try {
-                    String categoryName = category.getName();
-
-                    // Check if category name suggests subscriptions/recurring costs
-                    if (categoryName.toLowerCase().contains("subscription")
-                            || categoryName.toLowerCase().contains("streaming")
-                            || categoryName.toLowerCase().contains("membership")) {
+                    String nameKey = category.getNameKey();
+                    String categoryName =
+                            encryptionService.decrypt(
+                                    category.getName(), EncryptionContext.getKey());
+                    boolean isSubscriptionLike =
+                            nameKey != null
+                                    ? nameKey.contains("subscription")
+                                            || nameKey.contains("streaming")
+                                            || nameKey.contains("membership")
+                                    : categoryName.toLowerCase().contains("subscription")
+                                            || categoryName.toLowerCase().contains("streaming")
+                                            || categoryName.toLowerCase().contains("membership");
+                    if (isSubscriptionLike) {
 
                         BigDecimal monthlySpending =
                                 calculateCategorySpending(
@@ -857,17 +864,25 @@ public class InsightService {
 
             for (Category category : expenseCategories) {
                 try {
+                    String nameKey = category.getNameKey();
                     String catName =
                             encryptionService
                                     .decrypt(category.getName(), EncryptionContext.getKey())
                                     .toLowerCase();
-                    if (catName.contains("donat")
-                            || catName.contains("charit")
-                            || catName.contains("don")
-                            || catName.contains("profession")
-                            || catName.contains("education")
-                            || catName.contains("retirement")
-                            || catName.contains("retraite")) {
+                    boolean isDeductionLike =
+                            nameKey != null
+                                    ? nameKey.contains("donation")
+                                            || nameKey.contains("charit")
+                                            || nameKey.contains("professional")
+                                            || nameKey.contains("education")
+                                            || nameKey.contains("retirement")
+                                    : catName.contains("donat")
+                                            || catName.contains("charit")
+                                            || catName.contains("profession")
+                                            || catName.contains("education")
+                                            || catName.contains("retirement")
+                                            || catName.contains("retraite");
+                    if (isDeductionLike) {
                         BigDecimal catSpending =
                                 calculateCategorySpending(
                                         userId, category.getId(), thirtyDaysAgo, today);
