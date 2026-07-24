@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import {
   getCurrencySymbol,
   getCurrencyName,
   isValidCurrency,
   getCurrencyDecimals,
+  setDecimalPlacesOverride,
   isCryptoCurrency,
   formatCurrency,
   formatCurrencyCompact,
@@ -72,6 +73,38 @@ describe('getCurrencyDecimals', () => {
   });
   it('defaults to EUR when null', () => {
     expect(getCurrencyDecimals(null)).toBe(2);
+  });
+});
+
+describe('decimal places override', () => {
+  afterEach(() => {
+    // Always reset the module-level override so other tests are unaffected.
+    setDecimalPlacesOverride(null);
+  });
+
+  it('overrides decimals for every currency when set', () => {
+    setDecimalPlacesOverride(3);
+    expect(getCurrencyDecimals('USD')).toBe(3);
+    expect(getCurrencyDecimals('JPY')).toBe(3);
+    expect(getCurrencyDecimals('BTC')).toBe(3);
+  });
+
+  it('falls back to smart per-currency decimals when override is null', () => {
+    setDecimalPlacesOverride(null);
+    expect(getCurrencyDecimals('USD')).toBe(2);
+    expect(getCurrencyDecimals('JPY')).toBe(0);
+    expect(getCurrencyDecimals('BTC')).toBe(8);
+  });
+
+  it('ignores values below 1 (treats them as no override)', () => {
+    setDecimalPlacesOverride(0);
+    expect(getCurrencyDecimals('BTC')).toBe(8);
+  });
+
+  it('explicit options.decimals still wins over the override in formatCurrency', () => {
+    setDecimalPlacesOverride(5);
+    // '$1,234.00' — the explicit decimals:2 beats the override of 5.
+    expect(formatCurrency(1234, 'USD', { decimals: 2 })).toBe('$1,234.00');
   });
 });
 

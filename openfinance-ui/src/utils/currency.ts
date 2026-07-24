@@ -105,12 +105,42 @@ export function isValidCurrency(code: string | null | undefined): boolean {
 }
 
 /**
+ * Module-level global decimal-places override (display preference).
+ *
+ * `null` (default) means "no override — use the smart per-currency decimals".
+ * A value >= 1 forces that many fraction digits for EVERY currency. Values < 1 are
+ * ignored (treated as no override) to prevent the zero-decimal clamp bug.
+ *
+ * Kept as module state (rather than a parameter) so all formatters that funnel through
+ * `getCurrencyDecimals` honor the preference without call-site changes. It is synced from
+ * the user's UserSettings by `DecimalPlacesContext`. An explicit `options.decimals`
+ * argument to `formatCurrency`/`formatCurrencyCompact` still takes precedence.
+ */
+let decimalPlacesOverride: number | null = null;
+
+/**
+ * Set (or clear) the global decimal-places override. Called by DecimalPlacesContext.
+ * @param value the number of fraction digits (>= 1) to force for all currencies, or null to clear
+ */
+export function setDecimalPlacesOverride(value: number | null): void {
+  decimalPlacesOverride = value != null && value >= 1 ? Math.floor(value) : null;
+}
+
+/** Read the current global decimal-places override (mainly for tests/consumers). */
+export function getDecimalPlacesOverride(): number | null {
+  return decimalPlacesOverride;
+}
+
+/**
  * Get the number of decimal places for a currency
  * 
  * @param currencyCode - Currency code (e.g., 'USD', 'BTC')
  * @returns Number of decimal places (0 for JPY, 8 for crypto, 2 for most)
  */
 export function getCurrencyDecimals(currencyCode: string | null | undefined): number {
+  if (decimalPlacesOverride !== null) {
+    return decimalPlacesOverride;
+  }
   currencyCode = currencyCode || DEFAULT_CURRENCY;
   if (ZERO_DECIMAL_CURRENCIES.includes(currencyCode.toUpperCase())) {
     return 0;
