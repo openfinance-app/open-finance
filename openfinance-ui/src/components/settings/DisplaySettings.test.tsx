@@ -7,6 +7,8 @@ const mockMutate = vi.fn();
 const mockSetTheme = vi.fn();
 const mockSetDisplayMode = vi.fn();
 const mockSetNumberFormat = vi.fn();
+const mockSetOverrideEnabled = vi.fn();
+const mockSetDecimalPlaces = vi.fn();
 
 let mockSettings: any = {
   dateFormat: 'MM/DD/YYYY',
@@ -14,6 +16,8 @@ let mockSettings: any = {
 };
 let mockIsLoading = false;
 let mockError: any = null;
+let mockOverrideEnabled = false;
+let mockDecimalPlaces = 2;
 
 vi.mock('@/hooks/useUserSettings', () => ({
   useUserSettings: () => ({
@@ -47,6 +51,17 @@ vi.mock('@/context/NumberFormatContext', () => ({
   }),
 }));
 
+vi.mock('@/context/DecimalPlacesContext', () => ({
+  useDecimalPlaces: () => ({
+    overrideEnabled: mockOverrideEnabled,
+    decimalPlaces: mockDecimalPlaces,
+    effectiveDecimals: mockOverrideEnabled ? mockDecimalPlaces : null,
+    isLoading: false,
+    setOverrideEnabled: mockSetOverrideEnabled,
+    setDecimalPlaces: mockSetDecimalPlaces,
+  }),
+}));
+
 vi.mock('@/components/settings/LanguageSelector', () => ({
   LanguageSelector: () => <div data-testid="language-selector">LanguageSelector</div>,
 }));
@@ -63,6 +78,8 @@ describe('DisplaySettings', () => {
     mockSettings = { dateFormat: 'MM/DD/YYYY', language: 'en' };
     mockIsLoading = false;
     mockError = null;
+    mockOverrideEnabled = false;
+    mockDecimalPlaces = 2;
   });
 
   it('renders loading skeleton', () => {
@@ -101,10 +118,7 @@ describe('DisplaySettings', () => {
     render(<DisplaySettings />, { wrapper: Wrapper });
     const ddmmButton = screen.getByText('DD/MM/YYYY').closest('button');
     fireEvent.click(ddmmButton!);
-    expect(mockMutate).toHaveBeenCalledWith(
-      { dateFormat: 'DD/MM/YYYY' },
-      expect.any(Object)
-    );
+    expect(mockMutate).toHaveBeenCalledWith({ dateFormat: 'DD/MM/YYYY' }, expect.any(Object));
   });
 
   it('renders number format examples', () => {
@@ -157,5 +171,38 @@ describe('DisplaySettings', () => {
     await waitFor(() => {
       expect(screen.getByText(/Failed to update date format/)).toBeInTheDocument();
     });
+  });
+});
+
+describe('DisplaySettings — decimal places card', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSettings = { dateFormat: 'MM/DD/YYYY', language: 'en' };
+    mockIsLoading = false;
+    mockError = null;
+    mockOverrideEnabled = false;
+    mockDecimalPlaces = 2;
+  });
+
+  it('renders the decimal places card', () => {
+    render(<DisplaySettings />, { wrapper: Wrapper });
+    expect(screen.getByText('Decimal Places')).toBeInTheDocument();
+  });
+
+  it('enables the override when the toggle is clicked', () => {
+    render(<DisplaySettings />, { wrapper: Wrapper });
+    const toggle = screen.getByRole('switch', {
+      name: /custom number of decimal places/i,
+    });
+    fireEvent.click(toggle);
+    expect(mockSetOverrideEnabled).toHaveBeenCalledWith(true);
+  });
+
+  it('persists the chosen decimal places when a value is selected', () => {
+    // Override must be enabled for the selector buttons to be interactive.
+    mockOverrideEnabled = true;
+    render(<DisplaySettings />, { wrapper: Wrapper });
+    fireEvent.click(screen.getByRole('button', { name: '4' }));
+    expect(mockSetDecimalPlaces).toHaveBeenCalledWith(4);
   });
 });

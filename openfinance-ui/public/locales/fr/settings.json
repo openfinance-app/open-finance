@@ -84,6 +84,16 @@
       "large": "Grand",
       "updateSuccess": "Format des nombres mis à jour avec succès"
     },
+    "decimalPlaces": {
+      "label": "Décimales",
+      "description": "Remplacez le nombre de décimales affichées pour tous les montants monétaires. Désactivé, chaque devise utilise sa précision naturelle (par ex. JPY 0, crypto jusqu'à 8).",
+      "enableLabel": "Utiliser un nombre de décimales personnalisé",
+      "enableHint": "S'applique à toutes les devises. Minimum 1 pour ne pas masquer les petits montants.",
+      "placesLabel": "Décimales",
+      "livePreview": "Aperçu en direct",
+      "updateSuccess": "Décimales mises à jour avec succès",
+      "updateError": "Échec de la mise à jour des décimales. Veuillez réessayer."
+    },
     "currencyDisplay": {
       "label": "Affichage de la devise",
       "description": "Choisissez comment les montants monétaires sont affichés dans toute l'application",

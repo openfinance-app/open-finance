@@ -13,12 +13,13 @@
  * Requirements: REQ-6.3 (User Settings & Preferences), REQ-15.1–REQ-15.4
  */
 import { useState, useEffect } from 'react';
-import { Moon, Sun, Calendar, Check, DollarSign, Hash } from 'lucide-react';
+import { Moon, Sun, Calendar, Check, DollarSign, Hash, Percent } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUserSettings, useUpdateUserSettings } from '@/hooks/useUserSettings';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useNumberFormat, type NumberFormat } from '@/context/NumberFormatContext';
+import { useDecimalPlaces } from '@/context/DecimalPlacesContext';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
 import type { AmountDisplayMode } from '@/context/CurrencyDisplayContext';
 
@@ -41,6 +42,25 @@ export function DisplaySettings() {
 
   // Number format preference from context — REQ-6.3.15
   const { numberFormat, setNumberFormat } = useNumberFormat();
+
+  // Preferred decimal-places override — display-only global precision preference.
+  const { overrideEnabled, decimalPlaces, setOverrideEnabled, setDecimalPlaces } =
+    useDecimalPlaces();
+
+  const handleToggleDecimalOverride = (enabled: boolean) => {
+    setOverrideEnabled(enabled);
+    setSuccessMessage(t('display.decimalPlaces.updateSuccess'));
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
+
+  const handleDecimalPlacesChange = (places: number) => {
+    setDecimalPlaces(places);
+    setSuccessMessage(t('display.decimalPlaces.updateSuccess'));
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
+
+  // Sample amount used for the decimal-places live preview.
+  const decimalPreview = (1234.56789).toFixed(overrideEnabled ? decimalPlaces : 2);
 
   // Local state for UI updates before API response
   const [dateFormat, setDateFormat] = useState<DateFormat>('MM/DD/YYYY');
@@ -121,9 +141,7 @@ export function DisplaySettings() {
   if (error) {
     return (
       <div className="bg-error/10 border border-error/20 rounded-lg p-4">
-        <p className="text-error text-sm">
-          {t('display.loadError')}
-        </p>
+        <p className="text-error text-sm">{t('display.loadError')}</p>
       </div>
     );
   }
@@ -195,9 +213,7 @@ export function DisplaySettings() {
             <Sun className="h-4 w-4" />
             {t('display.theme.label')}
           </label>
-          <p className="text-xs text-text-muted mb-4">
-            {t('display.theme.description')}
-          </p>
+          <p className="text-xs text-text-muted mb-4">{t('display.theme.description')}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -253,7 +269,10 @@ export function DisplaySettings() {
         </div>
 
         {/* Theme preview swatch */}
-        <div className="mt-4 grid grid-cols-2 gap-4 pointer-events-none select-none" aria-hidden="true">
+        <div
+          className="mt-4 grid grid-cols-2 gap-4 pointer-events-none select-none"
+          aria-hidden="true"
+        >
           {/* Dark swatch */}
           <div className="rounded-md overflow-hidden border border-border/50 h-14 flex">
             <div className="w-6 bg-[#0a0a0a] shrink-0" />
@@ -280,13 +299,11 @@ export function DisplaySettings() {
             <Calendar className="h-4 w-4" />
             {t('display.dateFormat.label')}
           </label>
-          <p className="text-xs text-text-muted mb-4">
-            {t('display.dateFormat.description')}
-          </p>
+          <p className="text-xs text-text-muted mb-4">{t('display.dateFormat.description')}</p>
         </div>
 
         <div className="space-y-3">
-          {(['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'] as DateFormat[]).map((format) => (
+          {(['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'] as DateFormat[]).map(format => (
             <button
               key={format}
               onClick={() => handleDateFormatChange(format)}
@@ -320,9 +337,7 @@ export function DisplaySettings() {
             <Hash className="h-4 w-4" />
             {t('display.numberFormat.label')}
           </label>
-          <p className="text-xs text-text-muted mb-4">
-            {t('display.numberFormat.description')}
-          </p>
+          <p className="text-xs text-text-muted mb-4">{t('display.numberFormat.description')}</p>
         </div>
 
         <div className="space-y-3">
@@ -396,6 +411,88 @@ export function DisplaySettings() {
         </div>
       </div>
 
+      {/* Decimal Places Override */}
+      <div className="bg-surface rounded-lg p-6 border border-border">
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-text-secondary mb-2 flex items-center gap-2">
+            <Percent className="h-4 w-4" />
+            {t('display.decimalPlaces.label')}
+          </label>
+          <p className="text-xs text-text-muted mb-4">{t('display.decimalPlaces.description')}</p>
+        </div>
+
+        {/* Enable/disable toggle */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={overrideEnabled}
+          onClick={() => handleToggleDecimalOverride(!overrideEnabled)}
+          className={`w-full p-4 rounded-lg border-2 transition-all text-left flex items-center justify-between ${
+            overrideEnabled
+              ? 'border-primary bg-primary/10'
+              : 'border-border bg-surface-elevated hover:border-text-muted'
+          }`}
+        >
+          <div>
+            <div className="text-text-primary font-medium mb-1">
+              {t('display.decimalPlaces.enableLabel')}
+            </div>
+            <div className="text-sm text-text-secondary">
+              {t('display.decimalPlaces.enableHint')}
+            </div>
+          </div>
+          <span
+            aria-hidden="true"
+            className={`ml-3 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+              overrideEnabled ? 'bg-primary' : 'bg-surface'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                overrideEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </span>
+        </button>
+
+        {/* Decimal-place selector (1-8) */}
+        <div className={`mt-4 ${overrideEnabled ? '' : 'opacity-50 pointer-events-none'}`}>
+          <label className="block text-xs text-text-muted mb-2">
+            {t('display.decimalPlaces.placesLabel')}
+          </label>
+          <div
+            className="grid grid-cols-8 gap-2"
+            role="group"
+            aria-label={t('display.decimalPlaces.placesLabel')}
+          >
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+              <button
+                key={n}
+                type="button"
+                disabled={!overrideEnabled}
+                onClick={() => handleDecimalPlacesChange(n)}
+                aria-pressed={overrideEnabled && decimalPlaces === n}
+                className={`p-2 rounded-lg border-2 font-mono text-sm transition-all ${
+                  overrideEnabled && decimalPlaces === n
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-surface-elevated text-text-secondary hover:border-text-muted'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+
+          {/* Live preview strip */}
+          <div className="mt-5 pt-4 border-t border-border">
+            <p className="text-xs text-text-muted mb-2">{t('display.decimalPlaces.livePreview')}</p>
+            <div className="bg-surface-elevated rounded-md p-3 text-center">
+              <div className="font-mono text-sm text-text-primary">{decimalPreview}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Currency Display Mode — REQ-11.1, REQ-11.4 */}
       <div className="bg-surface rounded-lg p-6 border border-border">
         <div className="mb-4">
@@ -403,9 +500,7 @@ export function DisplaySettings() {
             <DollarSign className="h-4 w-4" />
             {t('display.currencyDisplay.label')}
           </label>
-          <p className="text-xs text-text-muted mb-4">
-            {t('display.currencyDisplay.description')}
-          </p>
+          <p className="text-xs text-text-muted mb-4">{t('display.currencyDisplay.description')}</p>
         </div>
 
         <div className="space-y-3">

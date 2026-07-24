@@ -84,6 +84,16 @@
       "large": "Large",
       "updateSuccess": "Number format updated successfully"
     },
+    "decimalPlaces": {
+      "label": "Decimal Places",
+      "description": "Override how many decimal places are shown for all monetary amounts. When off, each currency uses its natural precision (e.g. JPY 0, crypto up to 8).",
+      "enableLabel": "Use a custom number of decimal places",
+      "enableHint": "Applies to every currency. Minimum 1 to avoid hiding small amounts.",
+      "placesLabel": "Decimal places",
+      "livePreview": "Live preview",
+      "updateSuccess": "Decimal places updated successfully",
+      "updateError": "Failed to update decimal places. Please try again."
+    },
     "currencyDisplay": {
       "label": "Currency Display",
       "description": "Choose how monetary amounts are shown throughout the application",
