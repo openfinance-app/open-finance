@@ -23,6 +23,8 @@ import java.time.LocalDateTime;
  *     null when unset
  * @param country ISO 3166-1 alpha-2 country code for tool localisation (e.g. "FR", "US")
  * @param amountDisplayMode Amount display mode ("base", "native", "both")
+ * @param decimalPlacesOverrideEnabled Whether the global decimal-places override is active
+ * @param preferredDecimalPlaces Decimal places to display when the override is enabled (1-8)
  * @param createdAt Timestamp when settings were created
  * @param updatedAt Timestamp when settings were last updated
  */
@@ -37,5 +39,7 @@ public record UserSettingsResponse(
         String secondaryCurrency,
         String country,
         String amountDisplayMode,
+        boolean decimalPlacesOverrideEnabled,
+        int preferredDecimalPlaces,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {}

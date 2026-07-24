@@ -381,6 +381,8 @@ public class UserSettingsService {
                 secondaryCurrency,
                 settings.getCountry(),
                 settings.getAmountDisplayMode(),
+                settings.isDecimalPlacesOverrideEnabled(),
+                settings.getPreferredDecimalPlaces(),
                 settings.getCreatedAt(),
                 settings.getUpdatedAt());
     }

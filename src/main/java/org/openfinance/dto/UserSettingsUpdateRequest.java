@@ -1,5 +1,7 @@
 package org.openfinance.dto;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 
 /**
@@ -21,6 +23,10 @@ import jakarta.validation.constraints.Pattern;
  *     an empty string or null to clear the preference
  * @param country ISO 3166-1 alpha-2 country code for tool localisation (e.g. "FR", "US"); controls
  *     country-specific defaults and France-only tool availability
+ * @param decimalPlacesOverrideEnabled When true, applies preferredDecimalPlaces to every currency
+ *     in the UI; when false, uses smart per-currency decimals. Null leaves unchanged.
+ * @param preferredDecimalPlaces Decimal places (1-8) used when the override is enabled; null leaves
+ *     unchanged
  */
 public record UserSettingsUpdateRequest(
         @Pattern(regexp = "dark|light", message = "{settings.theme.invalid}") String theme,
@@ -38,4 +44,8 @@ public record UserSettingsUpdateRequest(
                 String secondaryCurrency,
         @Pattern(regexp = "[A-Z]{2}", message = "{settings.country.invalid}") String country,
         @Pattern(regexp = "base|native|both|", message = "{settings.amount.display.invalid}")
-                String amountDisplayMode) {}
+                String amountDisplayMode,
+        Boolean decimalPlacesOverrideEnabled,
+        @Min(value = 1, message = "{settings.decimal.places.invalid}")
+                @Max(value = 8, message = "{settings.decimal.places.invalid}")
+                Integer preferredDecimalPlaces) {}
