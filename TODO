@@ -1,5 +1,6 @@
 TODO:
 
+hardcoded in Currencydecimals
 1-Is the currently implemented exchange rate service/provider handled cryptocurrencies? If not, You should implement a solution to support crypto currencies as well.
 2-Transaction add/edit form should have currency selector to allow user to pick transaction amount currency. see similar in Account, Assets forms
 rate small text should be displayed, this should convert in account currency when saving and apply also to split transactions amount on the form

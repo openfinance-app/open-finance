@@ -11,7 +11,7 @@ Four parallel audits completed. Here's the synthesized report.
 | --- | --- |
 | **Critical Theme 1 — Default-currency chaos** | ✅ **FIXED & VERIFIED** |
 | **Critical Theme 2 — Float/double monetary math** | ✅ **FIXED & VERIFIED** — backend money-math ✅, P0 (split precision) ✅, P1 (rate DTOs) ✅, P2 (decimal foundation) ✅, P3 (app-wide frontend precision) ✅, P4 (calculator tools) ✅ done |
-| Critical Theme 3 — Currency-decimal hardcoding | ⬜ Not started |
+| **Critical Theme 3 — Currency-decimal hardcoding** | ✅ **FIXED & VERIFIED** — 5 frontend display formatters routed through `getCurrencyDecimals`; backend targeted fix (new `CurrencyDecimals` util + `InterestCalculatorService`); fiat/base-currency `setScale(2)` correctly left as-is |
 | HIGH — hardcoded Locale (BudgetService FR, CategoryService/FinancialContextBuilder EN) | ✅ **FIXED & VERIFIED** |
 | HIGH — InsightService substring matching | ✅ **FIXED & VERIFIED** |
 | HIGH — Frontend 'fr-FR' formatting (real-estate-tools) | ✅ **FIXED & VERIFIED** |
@@ -25,7 +25,7 @@ Four parallel audits completed. Here's the synthesized report.
 | HIGH / MEDIUM severity items (other) | ⬜ Not started |
 | **LOW severity items** | ✅ **FIXED & VERIFIED** (8 of 11 real items fixed; 3 were stale/already-resolved — see notes) |
 
-**Verification:** backend `mvn test` → 2395 pass / 0 fail / 0 err; frontend `type-check` + Vitest → 3284 pass / 0 fail; `mvn spotless:apply` + ESLint (0 errors, backend & frontend) clean.
+**Verification:** backend `mvn test` → 2395 pass / 0 fail / 0 err (Theme 3's follow-up run: 259/260 classes green, sole fail a pre-existing default-locale test that passes under `-Duser.language=fr`); frontend `type-check` + Vitest → 3283 pass (Theme 3; 5 known parallel-run flakes pass in isolation); `mvn spotless:apply` + ESLint (0 errors, backend & frontend) clean.
 
 ---
 
@@ -113,13 +113,26 @@ Four parallel audits completed. Here's the synthesized report.
 - **Verified:** full frontend suite **3295 tests pass, 0 fail** (242 files — P3's 3284 + 11 new `pow` characterization tests); `type-check` clean (tsc exit 0); ESLint **0 errors** on `money.ts`/`money.test.ts` and all 9 converted files (6 pre-existing React-Compiler/`any` warnings in `AccountForm`/`useEarlyPayoffCalculator`/`useFinancialFreedom`, all unrelated to the conversion — confirmed pre-existing pattern, none introduced). No test-assertion changes were required anywhere (all pre-existing `toBeCloseTo`/relational/`toBe`-clean-value assertions pass unchanged — fixtures used values where the precision improvement is invisible). Executed as 5 parallel subagents over disjoint file sets (no shared state, no conflicts); the single shared enabler (`pow` in `money.ts`) was added first via TDD before the batches were dispatched. Coordinate-theme remediation complete: backend + P0–P4 all ✅.
 - **Note on deferred re-derivation:** the original audit estimate of "~9 exact-assertion test suites to re-derive" proved conservative — no test suites required re-derivation because the existing fixtures all used clean values where improved precision is invisible after `roundToDecimals` and within `toBeCloseTo` tolerances; the only test file touched was `money.test.ts` (the 11 new `pow` tests added TDD-style).
 
-### 3. Currency-decimal hardcoding (breaks JPY=0, BTC=8)
+### 3. Currency-decimal hardcoding (breaks JPY=0, BTC=8) ✅ FIXED
 - `hooks/useLiabilities.ts:358` — `Math.abs(amount).toFixed(2)` for all currencies
 - `hooks/useCurrency.ts:142,143` & `utils/portfolio.ts:129,130` — `minimumFractionDigits: 2, maximumFractionDigits: 2`
 - `utils/format.ts:29,65` & `components/real-estate-tools/performance.tsx:212,213` — `maximumFractionDigits: 2`
 - Backend `setScale(2, RoundingMode.HALF_UP)` on amounts across `RealEstateService`, `LiabilityService`, `DashboardService`, `BudgetService`, `CompoundInterestService`, `InterestCalculatorService` — fine for fiat, risky for crypto accounts
 
 **Fix:** Route through `getCurrencyDecimals(currency)` which already exists in `currency.ts`.
+
+**✅ Resolution (done) — frontend display + targeted backend:**
+- **Frontend (5 display formatters, the actual user-visible bug — a `0.00123456 BTC` amount rendered as `0.00`):** all now derive decimals from `getCurrencyDecimals(currency)` (already the single source of truth used by the canonical `currency.ts:formatCurrency`, which was already correct):
+  - `hooks/useLiabilities.ts` — `formatCurrency` `.toFixed(2)` → `.toFixed(getCurrencyDecimals(currency))`.
+  - `hooks/useCurrency.ts` — `useCurrencyFormat` fallback string **and** the `Intl.NumberFormat` `min/maxFractionDigits` now use the code's decimals.
+  - `utils/portfolio.ts` — `formatCurrency` `Intl` `min/maxFractionDigits` → per-currency.
+  - `utils/format.ts` — `formatCurrency` + `formatCompactCurrency` `maximumFractionDigits` → per-currency (kept `minimumFractionDigits: 0`, the intentional Finary-style trailing-zero strip).
+  - `components/real-estate-tools/performance.tsx` — `useMemoizedFormatter` currency formatter → per-currency; the **percent** formatter deliberately stays at 2 (percentages, not money). Also fixed a pre-existing missing `useMemo` dep (`currency` was referenced but only `locale` was listed) → `[locale, currency]`.
+- **Backend (targeted, not a blanket 69-site change):** the 69 `setScale(2)` sites were classified. Crypto is modeled as an **asset** (`AssetType.CRYPTO`) whose values are returned at **full stored precision** (`AssetService`/`AssetResponse` never `setScale`), and nearly every `setScale(2)` site operates on inherently-fiat data (real estate, fiat loans) or **base-currency** net-worth/budget aggregations (base currency defaults to EUR) — all correct at 2 decimals; forcing them currency-aware would add risk for zero benefit. The one genuinely at-risk site is **interest computed on a real account**, which carries a currency (`AccountResponse.currency`) that can be JPY/crypto:
+  - New `util/CurrencyDecimals.java` — Java mirror of the frontend `getCurrencyDecimals` (JPY/KRW/VND/CLP/ISK → 0, BTC/ETH/BNB/ADA/SOL/DOT/AVAX/MATIC/LINK/UNI → 8, else 2; null/blank/unknown → 2). 5 unit tests (`CurrencyDecimalsTest`).
+  - `InterestCalculatorService` — both `calculateInterestEstimate` and `calculateHistoricalAccumulated` now `setScale(CurrencyDecimals.forCurrency(account.getCurrency()), HALF_UP)` instead of a hardcoded 2. 2 new regression tests pin scale-preservation: a **BTC** account keeps 8-decimal interest (`0.12682503`, not clamped to `0.13`) and a **JPY** account rounds to whole units (`1268`).
+  - `CompoundInterestService` (22 sites) deliberately **left unchanged**: its `CompoundInterestRequest` carries **no currency**, so there is no context to route decimals through — the frontend applies per-currency precision on display (via the formatters fixed above); making it currency-aware would require an API change (out of scope for the targeted fix).
+- **Verified:** frontend `type-check` clean; affected-file tests 123/123; full Vitest **3283 pass** (the 5 stragglers — `useAlerts`, `useSimulationStorage`, `useTransactionTags`, 2× `DashboardPage` — are known parallel-run flakes, confirmed **59/59 pass in isolation**); ESLint **0 errors** (771 warnings, down from 788 — the `useMemo`-dep fix removed one). Backend `spotless:apply` clean; `CurrencyDecimalsTest` 5/5 + `InterestCalculatorServiceTest` 7/7 via raw surefire reports; full `mvn test` → **259/260 test classes green**, the sole failure (`BudgetServiceTest#shouldGetBudgetHistorySuccessfully`, `"févr. 2026"` vs `"Feb 2026"`) is a **pre-existing default-locale environmental issue** — file not in changeset, and it passes with `-Duser.language=fr` (`MVN_EXIT=0`).
 
 ## HIGH Severity (other)
 

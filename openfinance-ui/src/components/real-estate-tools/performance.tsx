@@ -7,7 +7,7 @@
 
 import { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 import type { BuyRentInputs, InvestmentInputs } from '@/types/realEstateTools';
-import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { DEFAULT_CURRENCY, getCurrencyDecimals } from '@/utils/currency';
 import i18n from '@/i18n';
 
 /**
@@ -209,11 +209,12 @@ export function useLazyChart() {
 export function useMemoizedFormatter(currency: string = DEFAULT_CURRENCY) {
   const locale = (i18n.language ?? 'en').startsWith('fr') ? 'fr-FR' : 'en-US';
   return useMemo(() => {
+    const currencyDecimals = getCurrencyDecimals(currency);
     const currencyFormatter = new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: currencyDecimals,
+      maximumFractionDigits: currencyDecimals,
     });
 
     const percentFormatter = new Intl.NumberFormat(locale, {
@@ -232,7 +233,7 @@ export function useMemoizedFormatter(currency: string = DEFAULT_CURRENCY) {
       formatPercent: (value: number) => percentFormatter.format(value / 100),
       formatCompact: (value: number) => compactFormatter.format(value),
     };
-  }, [locale]);
+  }, [locale, currency]);
 }
 
 /**

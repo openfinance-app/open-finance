@@ -14,6 +14,7 @@ import org.openfinance.dto.BalanceHistoryPoint;
 import org.openfinance.entity.InterestPeriod;
 import org.openfinance.entity.InterestRateVariation;
 import org.openfinance.repository.InterestRateVariationRepository;
+import org.openfinance.util.CurrencyDecimals;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -90,7 +91,8 @@ public class InterestCalculatorService {
                 "Projection: balance={}, rate={}%, n={}, gross={}, tax={}%, net={}",
                 balance, ratePct, n, grossInterest, taxPct, netInterest);
 
-        return netInterest.setScale(2, RoundingMode.HALF_UP);
+        return netInterest.setScale(
+                CurrencyDecimals.forCurrency(account.getCurrency()), RoundingMode.HALF_UP);
     }
 
     // -------------------------------------------------------------------------
@@ -141,7 +143,8 @@ public class InterestCalculatorService {
             totalNetInterest = totalNetInterest.add(dailyGross.multiply(keep));
         }
 
-        return totalNetInterest.setScale(2, RoundingMode.HALF_UP);
+        return totalNetInterest.setScale(
+                CurrencyDecimals.forCurrency(account.getCurrency()), RoundingMode.HALF_UP);
     }
 
     // -------------------------------------------------------------------------

@@ -7,7 +7,7 @@
  * These helpers remain for backward-compat and simple use-cases.
  */
 
-import { DEFAULT_CURRENCY } from './currency';
+import { DEFAULT_CURRENCY, getCurrencyDecimals } from './currency';
 
 /**
  * Format currency with proper thousand separators.
@@ -26,7 +26,7 @@ export function formatCurrency(amount: number, currency?: string, options?: Form
     currency: actualCurrency,
     notation: options?.compact ? 'compact' : 'standard',
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: getCurrencyDecimals(actualCurrency),
   });
 
   return formatter.format(amount);
@@ -62,7 +62,7 @@ export function formatCompactCurrency(amount: number, currency: string): string 
     currency: currency,
     notation: 'compact',
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: getCurrencyDecimals(currency),
   });
 
   return formatter.format(amount);

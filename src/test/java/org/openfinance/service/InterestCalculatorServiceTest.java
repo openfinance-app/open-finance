@@ -46,6 +46,17 @@ class InterestCalculatorServiceTest {
         when(accountService.getAccountById(ACCOUNT_ID, USER_ID)).thenReturn(account);
     }
 
+    private void givenAccount(BigDecimal balance, InterestPeriod period, String currency) {
+        AccountResponse account =
+                AccountResponse.builder()
+                        .balance(balance)
+                        .isInterestEnabled(true)
+                        .interestPeriod(period)
+                        .currency(currency)
+                        .build();
+        when(accountService.getAccountById(ACCOUNT_ID, USER_ID)).thenReturn(account);
+    }
+
     private void givenRate(String ratePct, String taxPct) {
         InterestRateVariation variation =
                 InterestRateVariation.builder()
@@ -111,5 +122,30 @@ class InterestCalculatorServiceTest {
 
         assertThat(service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y"))
                 .isEqualByComparingTo("0");
+    }
+
+    @Test
+    @DisplayName("Crypto (BTC) account preserves 8-decimal precision instead of clamping to 2")
+    void cryptoAccountPreservesPrecision() {
+        givenAccount(new BigDecimal("1"), InterestPeriod.MONTHLY, "BTC");
+        givenRate("12", "0");
+
+        // 1 × ((1 + 0.12/12)^12 − 1) = 0.126825030... BTC
+        // At 2 decimals this would clamp to 0.13, destroying value; 8 decimals keeps it.
+        BigDecimal result = service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y");
+        assertThat(result.scale()).isEqualTo(8);
+        assertThat(result).isEqualByComparingTo("0.12682503");
+    }
+
+    @Test
+    @DisplayName("Zero-decimal (JPY) account rounds interest to whole units")
+    void zeroDecimalAccountRoundsToWholeUnits() {
+        givenAccount(new BigDecimal("10000"), InterestPeriod.MONTHLY, "JPY");
+        givenRate("12", "0");
+
+        // 10000 × 0.12682503... = 1268.2503 → 1268 at 0 decimals
+        BigDecimal result = service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y");
+        assertThat(result.scale()).isEqualTo(0);
+        assertThat(result).isEqualByComparingTo("1268");
     }
 }

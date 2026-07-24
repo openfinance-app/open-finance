@@ -7,6 +7,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import { multiply } from '@/utils/money';
+import { getCurrencyDecimals } from '@/utils/currency';
 import type {
   Currency,
   ExchangeRate,
@@ -135,13 +136,14 @@ export function useCurrencyFormat(code: string) {
   const currency = currencies?.find(c => c.code === code);
   
   return (amount: number) => {
+    const decimals = getCurrencyDecimals(code);
     if (!currency) {
-      return `${code} ${amount.toFixed(2)}`;
+      return `${code} ${amount.toFixed(decimals)}`;
     }
 
     const formattedAmount = new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
     }).format(Math.abs(amount));
 
     const sign = amount < 0 ? '-' : '';

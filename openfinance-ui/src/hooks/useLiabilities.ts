@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import i18next from 'i18next';
 import { buildEncryptionHeaders } from '@/utils/encryption';
-import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { DEFAULT_CURRENCY, getCurrencyDecimals } from '@/utils/currency';
 import { sum, multiply, add } from '@/utils/money';
 import type {
   Liability,
@@ -358,7 +358,7 @@ export const formatCurrency = (amount: number, currency: string = DEFAULT_CURREN
   };
 
   const symbol = symbols[currency] || currency + ' ';
-  const formatted = Math.abs(amount).toFixed(2);
+  const formatted = Math.abs(amount).toFixed(getCurrencyDecimals(currency));
 
   if (amount < 0) {
     return `-${symbol}${formatted}`;
