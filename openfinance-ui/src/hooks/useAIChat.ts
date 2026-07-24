@@ -20,7 +20,7 @@ import type {
   ConversationDetail,
   OllamaHealthResponse,
 } from '@/types/ai';
-import { buildEncryptionHeaders, getEncryptionKey } from '@/utils/encryption';
+import { buildEncryptionHeaders } from '@/utils/encryption';
 
 /**
  * Check if Ollama service is available
