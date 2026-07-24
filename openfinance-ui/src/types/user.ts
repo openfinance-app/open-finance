@@ -61,9 +61,9 @@ export interface UserSettings {
   /** Amount display mode: 'base' = base currency, 'native' = native currency, 'both' = both inline */
   amountDisplayMode?: 'base' | 'native' | 'both';
   /** When true, preferredDecimalPlaces overrides per-currency decimals for all currencies (display only). */
-  decimalPlacesOverrideEnabled: boolean;
+  decimalPlacesOverrideEnabled?: boolean;
   /** Decimal places (1-8) shown when the override is enabled. */
-  preferredDecimalPlaces: number;
+  preferredDecimalPlaces?: number;
 }
 
 /**
