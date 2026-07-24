@@ -6,14 +6,21 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from '@/test/i18n-test';
 import { VisibilityProvider, useVisibility } from '@/context/VisibilityContext';
 import { NumberFormatProvider } from '@/context/NumberFormatContext';
+import { DecimalPlacesProvider } from '@/context/DecimalPlacesContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock Recharts — render children and call tickFormatter / tooltip render
 vi.mock('recharts', async () => {
   const React = await import('react');
   return {
-    ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
-    BarChart: ({ children, data }: any) => <div data-testid="bar-chart" data-items={JSON.stringify(data)}>{children}</div>,
+    ResponsiveContainer: ({ children }: any) => (
+      <div data-testid="responsive-container">{children}</div>
+    ),
+    BarChart: ({ children, data }: any) => (
+      <div data-testid="bar-chart" data-items={JSON.stringify(data)}>
+        {children}
+      </div>
+    ),
     Bar: () => <div data-testid="bar" />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: ({ tickFormatter }: any) => {
@@ -67,9 +74,11 @@ const renderChart = (props: Partial<Parameters<typeof CashFlowChart>[0]> = {}) =
       <VisibilityProvider>
         <I18nextProvider i18n={i18n}>
           <NumberFormatProvider>
-            <MemoryRouter>
-              <CashFlowChart cashFlow={mockCashFlow} {...props} />
-            </MemoryRouter>
+            <DecimalPlacesProvider>
+              <MemoryRouter>
+                <CashFlowChart cashFlow={mockCashFlow} {...props} />
+              </MemoryRouter>
+            </DecimalPlacesProvider>
           </NumberFormatProvider>
         </I18nextProvider>
       </VisibilityProvider>
@@ -150,6 +159,11 @@ describe('CashFlowChart', () => {
     unmount();
 
     renderChart({ cashFlow: { income: 1000, expenses: 3000, netCashFlow: -2000 } });
-    expect(screen.getByText('Net Cash Flow').closest('div')?.parentElement?.querySelector('.text-red-500')).toBeInTheDocument();
+    expect(
+      screen
+        .getByText('Net Cash Flow')
+        .closest('div')
+        ?.parentElement?.querySelector('.text-red-500')
+    ).toBeInTheDocument();
   });
 });
