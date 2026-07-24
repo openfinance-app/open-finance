@@ -1,6 +1,6 @@
 /**
  * Test Utilities
- * 
+ *
  * Common helpers and wrappers for testing React components
  */
 
@@ -15,6 +15,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { VisibilityProvider } from '@/context/VisibilityContext';
 import { CurrencyDisplayProvider } from '@/context/CurrencyDisplayContext';
 import { NumberFormatProvider } from '@/context/NumberFormatContext';
+import { DecimalPlacesProvider } from '@/context/DecimalPlacesContext';
 
 /**
  * Create a new QueryClient for each test to ensure test isolation
@@ -50,9 +51,11 @@ export function AllProviders({ children, queryClient }: AllProvidersProps) {
         <BrowserRouter>
           <AuthProvider>
             <NumberFormatProvider>
-              <CurrencyDisplayProvider>
-                <VisibilityProvider>{children}</VisibilityProvider>
-              </CurrencyDisplayProvider>
+              <DecimalPlacesProvider>
+                <CurrencyDisplayProvider>
+                  <VisibilityProvider>{children}</VisibilityProvider>
+                </CurrencyDisplayProvider>
+              </DecimalPlacesProvider>
             </NumberFormatProvider>
           </AuthProvider>
         </BrowserRouter>
@@ -63,10 +66,10 @@ export function AllProviders({ children, queryClient }: AllProvidersProps) {
 
 /**
  * Custom render function that wraps components with all providers
- * 
+ *
  * @example
  * renderWithProviders(<MyComponent />);
- * 
+ *
  * @example
  * const queryClient = createTestQueryClient();
  * renderWithProviders(<MyComponent />, { queryClient });
@@ -75,16 +78,11 @@ interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   queryClient?: QueryClient;
 }
 
-export function renderWithProviders(
-  ui: ReactElement,
-  options?: CustomRenderOptions
-) {
+export function renderWithProviders(ui: ReactElement, options?: CustomRenderOptions) {
   const { queryClient, ...renderOptions } = options || {};
 
   return render(ui, {
-    wrapper: ({ children }) => (
-      <AllProviders queryClient={queryClient}>{children}</AllProviders>
-    ),
+    wrapper: ({ children }) => <AllProviders queryClient={queryClient}>{children}</AllProviders>,
     ...renderOptions,
   });
 }
@@ -123,8 +121,7 @@ export function clearAuthentication() {
 /**
  * Wait for async operations to complete
  */
-export const waitFor = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+export const waitFor = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Re-export everything from @testing-library/react

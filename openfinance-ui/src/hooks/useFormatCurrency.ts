@@ -10,6 +10,7 @@
  */
 import { useCallback } from 'react';
 import { useNumberFormat } from '@/context/NumberFormatContext';
+import { useDecimalPlaces } from '@/context/DecimalPlacesContext';
 import {
   formatCurrency,
   formatCurrencyCompact,
@@ -19,15 +20,16 @@ import {
 
 export function useFormatCurrency() {
   const { numberFormat } = useNumberFormat();
+  const { effectiveDecimals } = useDecimalPlaces();
 
   const format = useCallback(
-    (
-      amount: number,
-      currencyCode?: string | null,
-      options?: FormatCurrencyOptions
-    ): string =>
-      formatCurrency(amount, currencyCode, { numberFormat, ...options }),
-    [numberFormat]
+    (amount: number, currencyCode?: string | null, options?: FormatCurrencyOptions): string =>
+      formatCurrency(amount, currencyCode, {
+        numberFormat,
+        ...(effectiveDecimals !== null ? { decimals: effectiveDecimals } : {}),
+        ...options,
+      }),
+    [numberFormat, effectiveDecimals]
   );
 
   const formatCompact = useCallback(
@@ -36,8 +38,12 @@ export function useFormatCurrency() {
       currencyCode?: string | null,
       options?: Omit<FormatCurrencyOptions, 'compact'>
     ): string =>
-      formatCurrencyCompact(amount, currencyCode, { numberFormat, ...options }),
-    [numberFormat]
+      formatCurrencyCompact(amount, currencyCode, {
+        numberFormat,
+        ...(effectiveDecimals !== null ? { decimals: effectiveDecimals } : {}),
+        ...options,
+      }),
+    [numberFormat, effectiveDecimals]
   );
 
   const formatWithColor = useCallback(
@@ -46,8 +52,12 @@ export function useFormatCurrency() {
       currencyCode?: string | null,
       options?: FormatCurrencyOptions
     ): { formatted: string; className: string } =>
-      formatCurrencyWithColor(amount, currencyCode, { numberFormat, ...options }),
-    [numberFormat]
+      formatCurrencyWithColor(amount, currencyCode, {
+        numberFormat,
+        ...(effectiveDecimals !== null ? { decimals: effectiveDecimals } : {}),
+        ...options,
+      }),
+    [numberFormat, effectiveDecimals]
   );
 
   return { format, formatCompact, formatWithColor, numberFormat };
