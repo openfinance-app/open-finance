@@ -126,6 +126,27 @@ public class UserSettings {
     @ToString.Include
     private String amountDisplayMode = "base";
 
+    /**
+     * Whether the user's preferred decimal-places override is active. When {@code true}, {@link
+     * #preferredDecimalPlaces} overrides the default per-currency decimal count for every currency
+     * in the UI. Display-only: never affects stored amounts or calculations. Defaults to {@code
+     * false} (smart per-currency decimals).
+     */
+    @Column(name = "decimal_places_override_enabled", nullable = false)
+    @Builder.Default
+    @ToString.Include
+    private boolean decimalPlacesOverrideEnabled = false;
+
+    /**
+     * Number of fraction digits to display when {@link #decimalPlacesOverrideEnabled} is {@code
+     * true}. Valid range 1-8. Retained even while the override is disabled so re-enabling restores
+     * the user's last choice. Defaults to 2.
+     */
+    @Column(name = "preferred_decimal_places", nullable = false)
+    @Builder.Default
+    @ToString.Include
+    private int preferredDecimalPlaces = 2;
+
     /** Timestamp when settings were created. Set automatically on entity creation. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
