@@ -831,7 +831,7 @@ class BudgetServiceTest {
 
         // Check the February entry (index 1) which has transaction1 (350.25)
         BudgetHistoryEntry febEntry = history.getHistory().get(1);
-        assertThat(febEntry.getLabel()).isEqualTo("févr. 2026");
+        assertThat(febEntry.getLabel()).isEqualTo("Feb 2026");
         assertThat(febEntry.getPeriodStart()).isEqualTo(LocalDate.of(2026, 2, 1));
         assertThat(febEntry.getPeriodEnd()).isEqualTo(LocalDate.of(2026, 2, 28));
         assertThat(febEntry.getBudgeted()).isEqualByComparingTo(new BigDecimal("500.00"));
