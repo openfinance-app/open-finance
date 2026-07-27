@@ -81,6 +81,7 @@ public class AccountService {
     private final SearchTokenService searchTokenService;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
     private final EncryptionProperties encryptionProperties;
+    private final org.openfinance.config.BusinessRulesProperties businessRules;
 
     /**
      * Creates a new account for the specified user.
@@ -785,7 +786,9 @@ public class AccountService {
                 criteria.getIsActive());
 
         // Build dynamic specification
-        Specification<Account> spec = AccountSpecification.buildSpecification(userId, criteria);
+        Specification<Account> spec =
+                AccountSpecification.buildSpecification(
+                        userId, criteria, businessRules.getAccounts().getLowBalanceThreshold());
 
         // Execute query
         if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {

@@ -141,7 +141,7 @@ See `.github/workflows/backend-ci.yml` and `frontend-ci.yml` for environment det
 
 ## Repo-specific agent behaviors
 - Never revert others' changes without explicit request; respect a dirty working tree.
-- SQLite WAL mode: `busy_timeout=5000` (JDBC URL) handles writer contention (`SQLITE_BUSY`) but **not** stale snapshots (`SQLITE_BUSY_SNAPSHOT`). Fix snapshot errors by using `Propagation.NOT_SUPPORTED` on the top-level method and extracting User writes into a separate `@Service` with its own `@Transactional`.
+- SQLite WAL mode: `busy_timeout=10000` (JDBC URL and `DatabaseConfig` connection-init PRAGMA, kept in sync) handles writer contention (`SQLITE_BUSY`) but **not** stale snapshots (`SQLITE_BUSY_SNAPSHOT`). Fix snapshot errors by using `Propagation.NOT_SUPPORTED` on the top-level method and extracting User writes into a separate `@Service` with its own `@Transactional`.
 - Concurrent writes to tables with unique constraints (e.g., `net_worth`) require a warm-up request first in parallel tests.
 - SSE/EventSource cannot send JWT headers — use synchronous POST endpoints for authenticated AI endpoints.
 - New `InsightType` enum values require a Flyway migration to drop and recreate the `CHECK` constraint (SQLite has no `ALTER TABLE DROP CONSTRAINT`).

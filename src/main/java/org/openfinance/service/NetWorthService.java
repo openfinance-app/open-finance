@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -83,6 +84,15 @@ public class NetWorthService {
     private final ExchangeRateService exchangeRateService;
     private final TransactionRepository transactionRepository;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
+
+    /**
+     * Per-user monitors serializing the read-modify-write in {@link #saveNetWorthSnapshot} so two
+     * concurrent callers (e.g. the daily scheduler and a manual dashboard refresh) cannot both read
+     * "no snapshot" and both INSERT, which would otherwise violate the {@code (user_id,
+     * snapshot_date)} unique index. In-process locking is sufficient for this single-instance
+     * SQLite deployment. The map is bounded by the number of distinct users.
+     */
+    private final ConcurrentHashMap<Long, Object> snapshotLocks = new ConcurrentHashMap<>();
 
     /**
      * Calculates the current net worth for a user (backward compatibility - defaults to USD).
@@ -448,47 +458,52 @@ public class NetWorthService {
         BigDecimal totalLiabilities = calculateTotalLiabilities(userId, baseCurrency);
         BigDecimal netWorth = totalAssets.subtract(totalLiabilities);
 
-        // Check if snapshot already exists for this date
-        Optional<NetWorth> existingSnapshot =
-                netWorthRepository.findByUserIdAndSnapshotDate(userId, date);
+        // Serialize the check-then-write per user so concurrent callers cannot both INSERT for the
+        // same (user_id, snapshot_date) and trip the unique index.
+        Object userLock = snapshotLocks.computeIfAbsent(userId, k -> new Object());
+        synchronized (userLock) {
+            // Check if snapshot already exists for this date
+            Optional<NetWorth> existingSnapshot =
+                    netWorthRepository.findByUserIdAndSnapshotDate(userId, date);
 
-        Long currencyId = resolveCurrencyId(baseCurrency);
+            Long currencyId = resolveCurrencyId(baseCurrency);
 
-        NetWorth snapshot;
-        if (existingSnapshot.isPresent()) {
-            // Update existing snapshot
-            snapshot = existingSnapshot.get();
-            snapshot.setTotalAssets(totalAssets);
-            snapshot.setTotalLiabilities(totalLiabilities);
-            snapshot.setNetWorth(netWorth);
-            snapshot.setCurrency(baseCurrency);
-            snapshot.setCurrencyId(currencyId);
-            log.debug("Updating existing net worth snapshot: id={}", snapshot.getId());
-        } else {
-            // Create new snapshot
-            snapshot =
-                    NetWorth.builder()
-                            .userId(userId)
-                            .snapshotDate(date)
-                            .totalAssets(totalAssets)
-                            .totalLiabilities(totalLiabilities)
-                            .netWorth(netWorth)
-                            .currency(baseCurrency)
-                            .currencyId(currencyId)
-                            .build();
-            log.debug("Creating new net worth snapshot");
+            NetWorth snapshot;
+            if (existingSnapshot.isPresent()) {
+                // Update existing snapshot
+                snapshot = existingSnapshot.get();
+                snapshot.setTotalAssets(totalAssets);
+                snapshot.setTotalLiabilities(totalLiabilities);
+                snapshot.setNetWorth(netWorth);
+                snapshot.setCurrency(baseCurrency);
+                snapshot.setCurrencyId(currencyId);
+                log.debug("Updating existing net worth snapshot: id={}", snapshot.getId());
+            } else {
+                // Create new snapshot
+                snapshot =
+                        NetWorth.builder()
+                                .userId(userId)
+                                .snapshotDate(date)
+                                .totalAssets(totalAssets)
+                                .totalLiabilities(totalLiabilities)
+                                .netWorth(netWorth)
+                                .currency(baseCurrency)
+                                .currencyId(currencyId)
+                                .build();
+                log.debug("Creating new net worth snapshot");
+            }
+
+            NetWorth saved = netWorthRepository.save(snapshot);
+            log.info(
+                    "Net worth snapshot saved: id={}, userId={}, date={}, netWorth={} {}",
+                    saved.getId(),
+                    userId,
+                    date,
+                    saved.getNetWorth(),
+                    baseCurrency);
+
+            return saved;
         }
-
-        NetWorth saved = netWorthRepository.save(snapshot);
-        log.info(
-                "Net worth snapshot saved: id={}, userId={}, date={}, netWorth={} {}",
-                saved.getId(),
-                userId,
-                date,
-                saved.getNetWorth(),
-                baseCurrency);
-
-        return saved;
     }
 
     /**

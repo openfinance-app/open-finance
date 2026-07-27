@@ -9,7 +9,7 @@ spring:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   datasource:
-    url: jdbc:sqlite:openfinance.db?foreign_keys=on&journal_mode=WAL&busy_timeout=5000
+    url: jdbc:sqlite:openfinance.db?foreign_keys=on&journal_mode=WAL&busy_timeout=10000
     driver-class-name: org.sqlite.JDBC
     username: ''
     password: ''
@@ -111,6 +111,37 @@ application:
   exchange-rates:
     base-currency: EUR
     cache-ttl: 86400
+    # Currency codes treated as cryptocurrencies (no ISO 4217 registry exists for crypto).
+    # Adding a coin is a configuration change, not a code change.
+    crypto-codes:
+      - BTC
+      - ETH
+      - BNB
+      - XRP
+      - ADA
+      - SOL
+      - DOT
+      - DOGE
+      - USDT
+      - USDC
+      - MATIC
+      - AVAX
+      - LINK
+      - UNI
+  business-rules:
+    insights:
+      spending-anomaly-threshold: 0.40
+      budget-warning-threshold: 0.75
+      recurring-expense-high-ratio: 0.50
+      min-subscription-amount: 20
+      low-balance-threshold: 100
+    accounts:
+      low-balance-threshold: 1000
+    debt-to-income:
+      excellent-max-percent: 20
+      good-max-percent: 35
+      fair-max-percent: 50
+      borrowing-term-years: 10
   rss:
     feeds:
       en:

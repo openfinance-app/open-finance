@@ -7,8 +7,16 @@ import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -282,6 +290,59 @@ class NetWorthServiceTest {
         assertThat(result.getNetWorth()).isEqualByComparingTo(new BigDecimal("5000.00"));
 
         verify(netWorthRepository).save(any(NetWorth.class));
+    }
+
+    @Test
+    @DisplayName("Concurrent saves for the same user/date must insert exactly one snapshot")
+    void concurrentSnapshotSavesShouldNotDoubleInsert() throws Exception {
+        // Arrange - a stateful stand-in for the DB row guarded by the (user_id, snapshot_date)
+        // unique index. A deliberate delay inside the read widens the check-then-act window so an
+        // unsynchronized read-modify-write reliably double-inserts.
+        AtomicReference<NetWorth> storedRow = new AtomicReference<>();
+        AtomicLong idSequence = new AtomicLong();
+        AtomicInteger insertCount = new AtomicInteger();
+
+        when(netWorthRepository.findByUserIdAndSnapshotDate(eq(testUserId), eq(testDate)))
+                .thenAnswer(
+                        inv -> {
+                            Thread.sleep(100);
+                            return Optional.ofNullable(storedRow.get());
+                        });
+        when(netWorthRepository.save(any(NetWorth.class)))
+                .thenAnswer(
+                        inv -> {
+                            NetWorth nw = inv.getArgument(0);
+                            if (nw.getId() == null) {
+                                nw.setId(idSequence.incrementAndGet());
+                                insertCount.incrementAndGet();
+                            }
+                            storedRow.set(nw);
+                            return nw;
+                        });
+
+        int threadCount = 2;
+        ExecutorService pool = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch start = new CountDownLatch(1);
+        List<Future<?>> futures = new ArrayList<>();
+
+        // Act - fire both saves at once for the same user and date.
+        for (int i = 0; i < threadCount; i++) {
+            futures.add(
+                    pool.submit(
+                            () -> {
+                                start.await();
+                                return netWorthService.saveNetWorthSnapshot(
+                                        testUserId, testDate, "EUR");
+                            }));
+        }
+        start.countDown();
+        for (Future<?> f : futures) {
+            f.get();
+        }
+        pool.shutdownNow();
+
+        // Assert - exactly one INSERT; the second caller must observe the first row and update it.
+        assertThat(insertCount.get()).isEqualTo(1);
     }
 
     @Test

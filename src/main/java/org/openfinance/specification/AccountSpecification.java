@@ -42,15 +42,18 @@ public class AccountSpecification {
      *   <li>balance >= ? (if balanceMin provided)
      *   <li>balance <= ? (if balanceMax provided)
      *   <li>institution.name LIKE ? (if provided)
-     *   <li>balance < 1000 (if lowBalance = true)
+     *   <li>balance < lowBalanceThreshold (if lowBalance = true)
      * </ul>
      *
      * @param userId the user ID (required for security)
      * @param criteria the search criteria
+     * @param lowBalanceThreshold balance below which the {@code lowBalance} filter matches (kept in
+     *     sync with {@code NotificationService} via {@code
+     *     application.business-rules.accounts.low-balance-threshold})
      * @return JPA Specification for dynamic query building
      */
     public static Specification<Account> buildSpecification(
-            Long userId, AccountSearchCriteria criteria) {
+            Long userId, AccountSearchCriteria criteria, BigDecimal lowBalanceThreshold) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -101,11 +104,10 @@ public class AccountSpecification {
                                 institution));
             }
 
-            // Filter by low balance — matches the threshold used in NotificationService (<
-            // 1000)
+            // Filter by low balance — threshold shared with NotificationService via
+            // application.business-rules.accounts.low-balance-threshold
             if (Boolean.TRUE.equals(criteria.getLowBalance())) {
-                predicates.add(
-                        criteriaBuilder.lessThan(root.get("balance"), new BigDecimal("1000")));
+                predicates.add(criteriaBuilder.lessThan(root.get("balance"), lowBalanceThreshold));
             }
 
             // Combine all predicates with AND logic

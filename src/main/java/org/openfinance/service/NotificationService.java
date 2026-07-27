@@ -45,10 +45,10 @@ public class NotificationService {
     private final AccountRepository accountRepository;
     private final ExchangeRateRepository exchangeRateRepository;
     private final MessageSource messageSource;
+    private final org.openfinance.config.BusinessRulesProperties businessRules;
 
     private static final int UNCATEGORIZED_THRESHOLD = 30;
     private static final int UNLINKED_PAYEE_THRESHOLD = 30;
-    private static final BigDecimal LOW_BALANCE_THRESHOLD = new BigDecimal("1000");
     private static final int STALE_QUOTE_DAYS = 1;
     private static final int STALE_EXCHANGE_RATE_DAYS = 2;
 
@@ -187,8 +187,12 @@ public class NotificationService {
                         .build());
     }
 
-    /** Checks for accounts with very low balance (below 1000). */
+    /**
+     * Checks for accounts with very low balance (below the configured account low-balance
+     * threshold).
+     */
     private List<NotificationResponse> checkLowBalances(Long userId) {
+        BigDecimal lowBalanceThreshold = businessRules.getAccounts().getLowBalanceThreshold();
         // Balance is encrypted — cannot use SQL comparison. Fetch all active accounts
         // and filter in Java after JPA converter decrypts the balance.
         List<Account> lowBalanceAccounts =
@@ -196,7 +200,7 @@ public class NotificationService {
                         .filter(
                                 a ->
                                         a.getBalance() != null
-                                                && a.getBalance().compareTo(LOW_BALANCE_THRESHOLD)
+                                                && a.getBalance().compareTo(lowBalanceThreshold)
                                                         < 0)
                         .toList();
 
@@ -216,7 +220,7 @@ public class NotificationService {
                                 messageSource.getMessage(
                                         "notification.low.balance.message",
                                         new Object[] {
-                                            lowBalanceAccounts.size(), LOW_BALANCE_THRESHOLD
+                                            lowBalanceAccounts.size(), lowBalanceThreshold
                                         },
                                         LocaleContextHolder.getLocale()))
                         .count(lowBalanceAccounts.size())

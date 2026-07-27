@@ -56,6 +56,10 @@ class ExchangeRateServiceTest {
 
     @Mock private OperationHistoryService operationHistoryService;
 
+    @org.mockito.Spy
+    private org.openfinance.config.ExchangeRateProperties exchangeRateProperties =
+            new org.openfinance.config.ExchangeRateProperties();
+
     @InjectMocks private ExchangeRateService exchangeRateService;
 
     // ==================== getExchangeRate() Tests ====================

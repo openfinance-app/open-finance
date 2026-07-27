@@ -75,6 +75,10 @@ class DashboardServiceTest {
 
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
 
+    @org.mockito.Spy
+    private org.openfinance.config.BusinessRulesProperties businessRules =
+            new org.openfinance.config.BusinessRulesProperties();
+
     @InjectMocks private DashboardService dashboardService;
 
     private Long userId;

@@ -22,38 +22,53 @@ package org.openfinance.entity;
  */
 public enum BudgetPeriod {
     /** Weekly budget period (7 days). Resets every Sunday at midnight. */
-    WEEKLY("Weekly", 7),
+    WEEKLY("Weekly", "budget.period.weekly", 7),
 
     /** Monthly budget period (calendar month). Resets on the 1st of each month. */
-    MONTHLY("Monthly", 30),
+    MONTHLY("Monthly", "budget.period.monthly", 30),
 
     /** Quarterly budget period (3 months). Resets every 3 months (Jan 1, Apr 1, Jul 1, Oct 1). */
-    QUARTERLY("Quarterly", 90),
+    QUARTERLY("Quarterly", "budget.period.quarterly", 90),
 
     /** Yearly budget period (12 months). Resets on January 1st each year. */
-    YEARLY("Yearly", 365);
+    YEARLY("Yearly", "budget.period.yearly", 365);
 
     private final String displayName;
+    private final String nameKey;
     private final int approximateDays;
 
     /**
      * Constructor for BudgetPeriod enum.
      *
-     * @param displayName human-readable name of the period
+     * @param displayName human-readable English fallback name of the period
+     * @param nameKey i18n message key for the localized period name (EN/FR)
      * @param approximateDays approximate number of days in the period
      */
-    BudgetPeriod(String displayName, int approximateDays) {
+    BudgetPeriod(String displayName, String nameKey, int approximateDays) {
         this.displayName = displayName;
+        this.nameKey = nameKey;
         this.approximateDays = approximateDays;
     }
 
     /**
-     * Gets the human-readable display name.
+     * Gets the human-readable English fallback display name.
      *
      * @return the display name (e.g., "Monthly")
      */
     public String getDisplayName() {
         return displayName;
+    }
+
+    /**
+     * Gets the i18n message key for the localized period name.
+     *
+     * <p>Resolve it via {@code MessageSource} at the service/DTO layer (e.g. {@code
+     * budget.period.monthly}) to present the period name in the user's locale.
+     *
+     * @return the i18n name key
+     */
+    public String getNameKey() {
+        return nameKey;
     }
 
     /**

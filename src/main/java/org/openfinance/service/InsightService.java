@@ -86,12 +86,9 @@ public class InsightService {
     private final AIProvider aiProvider;
     private final ObjectMapper objectMapper;
     private final ExchangeRateService exchangeRateService;
+    private final org.openfinance.config.BusinessRulesProperties businessRules;
 
     // Thresholds for insight generation
-    private static final BigDecimal SPENDING_ANOMALY_THRESHOLD =
-            new BigDecimal("0.40"); // 40% increase
-    private static final BigDecimal BUDGET_WARNING_THRESHOLD =
-            new BigDecimal("0.75"); // 75% of budget spent
     private static final BigDecimal BUDGET_EXCEEDED_THRESHOLD =
             new BigDecimal("1.00"); // 100% of budget spent
     private static final int LOOKBACK_DAYS = 30; // Days to look back for comparisons
@@ -247,7 +244,8 @@ public class InsightService {
      * Generate insights about unusual spending patterns.
      *
      * <p>Compares spending in each category for the last 30 days vs previous 30 days. Generates
-     * SPENDING_ANOMALY insight if increase exceeds {@value SPENDING_ANOMALY_THRESHOLD}.
+     * SPENDING_ANOMALY insight if the increase exceeds the configured spending-anomaly threshold
+     * ({@code application.business-rules.insights.spending-anomaly-threshold}).
      */
     private List<Insight> generateSpendingAnomalyInsights(Long userId) {
         List<Insight> insights = new ArrayList<>();
@@ -282,7 +280,9 @@ public class InsightService {
                                         .subtract(previousSpending)
                                         .divide(previousSpending, 4, RoundingMode.HALF_UP);
 
-                        if (percentChange.compareTo(SPENDING_ANOMALY_THRESHOLD) > 0) {
+                        if (percentChange.compareTo(
+                                        businessRules.getInsights().getSpendingAnomalyThreshold())
+                                > 0) {
                             String title =
                                     messageSource.getMessage(
                                             "insight.spending.anomaly.title",
@@ -375,7 +375,9 @@ public class InsightService {
                                         title,
                                         description,
                                         InsightPriority.HIGH));
-                    } else if (percentUsed.compareTo(BUDGET_WARNING_THRESHOLD) >= 0) {
+                    } else if (percentUsed.compareTo(
+                                    businessRules.getInsights().getBudgetWarningThreshold())
+                            >= 0) {
                         BigDecimal remaining = budgetAmount.subtract(spent);
                         String title =
                                 messageSource.getMessage(
@@ -448,7 +450,9 @@ public class InsightService {
                                 calculateCategorySpending(
                                         userId, category.getId(), thirtyDaysAgo, today);
 
-                        if (monthlySpending.compareTo(new BigDecimal("20")) > 0) {
+                        if (monthlySpending.compareTo(
+                                        businessRules.getInsights().getMinSubscriptionAmount())
+                                > 0) {
                             String title =
                                     messageSource.getMessage(
                                             "insight.subscription.title",
@@ -501,7 +505,8 @@ public class InsightService {
                 // Check for low balance in checking/savings accounts
                 if ((account.getType() == AccountType.CHECKING
                                 || account.getType() == AccountType.SAVINGS)
-                        && balance.compareTo(new BigDecimal("100")) < 0) {
+                        && balance.compareTo(businessRules.getInsights().getLowBalanceThreshold())
+                                < 0) {
 
                     String accountName = account.getName();
                     String title =
@@ -569,9 +574,6 @@ public class InsightService {
             return objectMapper.createObjectNode();
         }
     }
-
-    private static final BigDecimal RECURRING_EXPENSE_HIGH_RATIO =
-            new BigDecimal("0.50"); // 50% of income
 
     /**
      * Generate insights comparing user's income and net worth to regional averages.
@@ -996,7 +998,8 @@ public class InsightService {
             // High ratio warning
             if (monthlyIncome.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal ratio = totalMonthly.divide(monthlyIncome, 4, RoundingMode.HALF_UP);
-                if (ratio.compareTo(RECURRING_EXPENSE_HIGH_RATIO) >= 0) {
+                if (ratio.compareTo(businessRules.getInsights().getRecurringExpenseHighRatio())
+                        >= 0) {
                     String highTitle =
                             messageSource.getMessage(
                                     "insight.recurring.high.ratio.title", null, locale);

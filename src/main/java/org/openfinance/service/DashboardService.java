@@ -92,9 +92,13 @@ public class DashboardService {
     private final InterestCalculatorService interestCalculatorService;
     private final ExchangeRateService exchangeRateService;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
+    private final org.openfinance.config.BusinessRulesProperties businessRules;
 
     /** Debt-to-income ratio ceiling used for borrowing-capacity estimates (40%). */
     private static final BigDecimal DTI_MAX_RATIO = new BigDecimal("0.40");
+
+    /** Months per year — a unit conversion constant, not a tunable business rule. */
+    private static final BigDecimal MONTHS_PER_YEAR = BigDecimal.valueOf(12);
 
     /**
      * Retrieves a complete dashboard summary for the specified user.
@@ -1383,8 +1387,12 @@ public class DashboardService {
         // terms
         BigDecimal availableBorrowingCapacity =
                 recommendedMaxBorrowing
-                        .multiply(BigDecimal.valueOf(12)) // Annual
-                        .multiply(BigDecimal.valueOf(10)) // 10-year term
+                        .multiply(MONTHS_PER_YEAR) // Annual
+                        .multiply(
+                                BigDecimal.valueOf(
+                                        businessRules
+                                                .getDebtToIncome()
+                                                .getBorrowingTermYears())) // loan term
                         .setScale(2, RoundingMode.HALF_UP);
 
         // Determine financial health status
@@ -1393,11 +1401,15 @@ public class DashboardService {
         String financialHealthStatus;
         if (monthlyIncome.compareTo(BigDecimal.ZERO) == 0) {
             financialHealthStatus = "INSUFFICIENT_DATA";
-        } else if (debtToIncomeRatio.compareTo(BigDecimal.valueOf(20)) <= 0) {
+        } else if (debtToIncomeRatio.compareTo(
+                        businessRules.getDebtToIncome().getExcellentMaxPercent())
+                <= 0) {
             financialHealthStatus = "EXCELLENT";
-        } else if (debtToIncomeRatio.compareTo(BigDecimal.valueOf(35)) <= 0) {
+        } else if (debtToIncomeRatio.compareTo(businessRules.getDebtToIncome().getGoodMaxPercent())
+                <= 0) {
             financialHealthStatus = "GOOD";
-        } else if (debtToIncomeRatio.compareTo(BigDecimal.valueOf(50)) <= 0) {
+        } else if (debtToIncomeRatio.compareTo(businessRules.getDebtToIncome().getFairMaxPercent())
+                <= 0) {
             financialHealthStatus = "FAIR";
         } else {
             financialHealthStatus = "POOR";
@@ -1521,18 +1533,24 @@ public class DashboardService {
                 maxDebtAt40Percent.subtract(monthlyDebtPayments).max(BigDecimal.ZERO);
         BigDecimal availableBorrowingCapacity =
                 recommendedMaxBorrowing
-                        .multiply(BigDecimal.valueOf(12))
-                        .multiply(BigDecimal.valueOf(10))
+                        .multiply(MONTHS_PER_YEAR)
+                        .multiply(
+                                BigDecimal.valueOf(
+                                        businessRules.getDebtToIncome().getBorrowingTermYears()))
                         .setScale(2, RoundingMode.HALF_UP);
 
         String financialHealthStatus;
         if (monthlyIncome.compareTo(BigDecimal.ZERO) == 0) {
             financialHealthStatus = "INSUFFICIENT_DATA";
-        } else if (debtToIncomeRatio.compareTo(BigDecimal.valueOf(20)) <= 0) {
+        } else if (debtToIncomeRatio.compareTo(
+                        businessRules.getDebtToIncome().getExcellentMaxPercent())
+                <= 0) {
             financialHealthStatus = "EXCELLENT";
-        } else if (debtToIncomeRatio.compareTo(BigDecimal.valueOf(35)) <= 0) {
+        } else if (debtToIncomeRatio.compareTo(businessRules.getDebtToIncome().getGoodMaxPercent())
+                <= 0) {
             financialHealthStatus = "GOOD";
-        } else if (debtToIncomeRatio.compareTo(BigDecimal.valueOf(50)) <= 0) {
+        } else if (debtToIncomeRatio.compareTo(businessRules.getDebtToIncome().getFairMaxPercent())
+                <= 0) {
             financialHealthStatus = "FAIR";
         } else {
             financialHealthStatus = "POOR";

@@ -462,13 +462,21 @@ public class EncryptionService {
             throw new IllegalArgumentException("Key cannot be null");
         }
 
-        // Evict one entry when the cache is at capacity
-        if (!keyCache.containsKey(encodedKeyString) && keyCache.size() >= KEY_CACHE_MAX_SIZE) {
-            String firstKey = keyCache.keys().nextElement();
-            keyCache.remove(firstKey);
+        // Serialize the compound check-evict-put so the {@value #KEY_CACHE_MAX_SIZE} bound is
+        // never breached by concurrent callers. Lock-free reads via getCachedKey are unaffected.
+        synchronized (keyCache) {
+            SecretKey existing = keyCache.get(encodedKeyString);
+            if (existing != null) {
+                return existing;
+            }
+            // Evict the oldest entry (by ConcurrentHashMap iteration order) when at capacity.
+            if (keyCache.size() >= KEY_CACHE_MAX_SIZE) {
+                String firstKey = keyCache.keys().nextElement();
+                keyCache.remove(firstKey);
+            }
+            keyCache.put(encodedKeyString, key);
+            return key;
         }
-
-        return keyCache.computeIfAbsent(encodedKeyString, k -> key);
     }
 
     /**
@@ -489,6 +497,18 @@ public class EncryptionService {
      */
     public void clearKeyCache() {
         keyCache.clear();
+    }
+
+    /**
+     * Returns the current number of entries in the in-memory key cache.
+     *
+     * <p>Read-only observability accessor (visible for testing) used to assert the {@value
+     * #KEY_CACHE_MAX_SIZE}-entry bound invariant. Does not mutate state.
+     *
+     * @return the current key-cache size
+     */
+    int keyCacheSize() {
+        return keyCache.size();
     }
 
     // =========================================================================

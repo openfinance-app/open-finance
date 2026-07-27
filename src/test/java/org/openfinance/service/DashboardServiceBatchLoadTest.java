@@ -77,7 +77,8 @@ class DashboardServiceBatchLoadTest {
                         encryptionService,
                         interestCalculatorService,
                         exchangeRateService,
-                        defaultCurrencyProvider);
+                        defaultCurrencyProvider,
+                        new org.openfinance.config.BusinessRulesProperties());
         org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
                 defaultCurrencyProvider, userRepository);
     }

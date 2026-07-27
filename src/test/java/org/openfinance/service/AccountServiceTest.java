@@ -71,6 +71,10 @@ class AccountServiceTest {
 
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
 
+    @org.mockito.Spy
+    private org.openfinance.config.BusinessRulesProperties businessRules =
+            new org.openfinance.config.BusinessRulesProperties();
+
     @InjectMocks private AccountService accountService;
 
     @BeforeEach

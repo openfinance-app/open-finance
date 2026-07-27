@@ -21,9 +21,10 @@ import org.springframework.stereotype.Service;
  * Service for JWT token generation and validation.
  *
  * <p>Provides methods to create JWTs with user claims, validate token signatures, and extract user
- * information from tokens. Tokens expire after 24 hours.
+ * information from tokens. Token lifetime is configurable via {@code jwt.expiration} (default 24
+ * hours).
  *
- * <p>Requirement REQ-2.1.3: JWT-based authentication with 24-hour token expiration
+ * <p>Requirement REQ-2.1.3: JWT-based authentication with configurable token expiration
  *
  * @author Open-Finance Development Team
  * @version 1.0
@@ -33,23 +34,27 @@ import org.springframework.stereotype.Service;
 @Service
 public class JwtService {
 
-    private static final long JWT_EXPIRATION_MS = 24 * 60 * 60 * 1000; // 24 hours
-
     private final SecretKey signingKey;
+    private final long jwtExpirationMs;
 
     /**
-     * Constructs JwtService with signing key from configuration.
+     * Constructs JwtService with signing key and token lifetime from configuration.
      *
      * <p>The configured property {@code jwt.secret} must provide sufficient entropy (>= 256 bits)
      * for the HS256 algorithm. The value is used as raw bytes; if you store the secret as
      * Base64-encoded string, decode it before assigning to the property.
      *
      * @param jwtSecret secret key string (raw, not automatically Base64-decoded)
+     * @param jwtExpirationMs token lifetime in milliseconds, from {@code jwt.expiration} (defaults
+     *     to 24 hours if the property is absent)
      */
-    public JwtService(@Value("${jwt.secret}") String jwtSecret) {
+    public JwtService(
+            @Value("${jwt.secret}") String jwtSecret,
+            @Value("${jwt.expiration:86400000}") long jwtExpirationMs) {
         this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        this.jwtExpirationMs = jwtExpirationMs;
         // log at debug to avoid logging environment sensitive initialization in production logs
-        log.debug("JwtService initialized with HS256 algorithm");
+        log.debug("JwtService initialized with HS256 algorithm, expiration={}ms", jwtExpirationMs);
     }
 
     /**
@@ -77,7 +82,7 @@ public class JwtService {
         claims.put("userId", user.getId());
 
         Date now = new Date();
-        Date expiration = new Date(now.getTime() + JWT_EXPIRATION_MS);
+        Date expiration = new Date(now.getTime() + jwtExpirationMs);
 
         String token =
                 Jwts.builder()

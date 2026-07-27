@@ -110,6 +110,10 @@ public class OperationHistory {
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
+            // Intentionally UTC: the history API filters by a client-supplied ISO Instant
+            // ("since"), which OperationHistoryController converts with
+            // LocalDateTime.ofInstant(since, ZoneOffset.UTC). createdAt must be stored in the same
+            // UTC wall-clock frame for that ">= since" comparison to be correct across timezones.
             createdAt = LocalDateTime.now(ZoneOffset.UTC);
         }
     }

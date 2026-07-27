@@ -54,6 +54,10 @@ class InsightServiceTest {
 
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
 
+    @Spy
+    private org.openfinance.config.BusinessRulesProperties businessRules =
+            new org.openfinance.config.BusinessRulesProperties();
+
     @InjectMocks private InsightService insightService;
 
     private Long testUserId = 1L;

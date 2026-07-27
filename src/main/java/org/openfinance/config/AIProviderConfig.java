@@ -33,7 +33,7 @@ public class AIProviderConfig {
     @Value("${application.ai.ollama.base-url:http://localhost:11434}")
     private String ollamaBaseUrl;
 
-    @Value("${application.ai.ollama.model:qwen2.5:0.5b}")
+    @Value("${application.ai.ollama.model:llama3.2:3b}")
     private String ollamaModel;
 
     @Value("${application.ai.ollama.temperature:0.7}")
@@ -42,7 +42,7 @@ public class AIProviderConfig {
     @Value("${application.ai.ollama.max-tokens:2048}")
     private int ollamaMaxTokens;
 
-    @Value("${application.ai.ollama.timeout-seconds:60}")
+    @Value("${application.ai.ollama.timeout-seconds:600}")
     private int ollamaTimeout;
 
     @Value("${application.ai.ollama.searxng.base-url:}")

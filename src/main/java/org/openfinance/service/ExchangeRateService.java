@@ -74,6 +74,7 @@ public class ExchangeRateService {
     private final ExchangeRateRepository exchangeRateRepository;
     private final CurrencyRepository currencyRepository;
     private final MarketDataProvider marketDataProvider;
+    private final org.openfinance.config.ExchangeRateProperties exchangeRateProperties;
 
     /**
      * Retrieves the exchange rate between two currencies for a specific date.
@@ -775,12 +776,14 @@ public class ExchangeRateService {
      * @return true if cryptocurrency, false otherwise
      */
     private boolean isCryptocurrency(String currencyCode) {
-        // Common cryptocurrency codes
-        List<String> cryptoCodes =
-                List.of(
-                        "BTC", "ETH", "BNB", "XRP", "ADA", "SOL", "DOT", "DOGE", "USDT", "USDC",
-                        "MATIC", "AVAX", "LINK", "UNI");
-        return cryptoCodes.contains(currencyCode.toUpperCase());
+        if (currencyCode == null) {
+            return false;
+        }
+        // No ISO 4217 registry exists for crypto, so the codes are curated in configuration
+        // (application.exchange-rates.crypto-codes) rather than hardcoded here.
+        String normalized = currencyCode.toUpperCase(java.util.Locale.ROOT);
+        return exchangeRateProperties.getCryptoCodes().stream()
+                .anyMatch(code -> code.equalsIgnoreCase(normalized));
     }
 
     /**

@@ -29,7 +29,27 @@ class JwtServiceTest {
 
     @BeforeEach
     void setUp() {
-        jwtService = new JwtService(TEST_JWT_SECRET);
+        jwtService = new JwtService(TEST_JWT_SECRET, 86400000L);
+    }
+
+    @Test
+    @DisplayName("Should honor the configured jwt.expiration for token lifetime")
+    void shouldHonorConfiguredExpiration() {
+        // Given a service configured with a non-default expiration
+        long customExpirationMs = 60 * 60 * 1000L; // 1 hour
+        JwtService service = new JwtService(TEST_JWT_SECRET, customExpirationMs);
+        User user = createTestUser(1L, "john_doe");
+
+        // When
+        String token = service.generateToken(user);
+
+        // Then the token's (exp - iat) equals the configured expiration, proving the
+        // application.yml value drives lifetime instead of a hardcoded constant.
+        SecretKey key = Keys.hmacShaKeyFor(TEST_JWT_SECRET.getBytes());
+        io.jsonwebtoken.Claims claims =
+                Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+        long lifetimeMs = claims.getExpiration().getTime() - claims.getIssuedAt().getTime();
+        assertThat(lifetimeMs).isEqualTo(customExpirationMs);
     }
 
     @Test

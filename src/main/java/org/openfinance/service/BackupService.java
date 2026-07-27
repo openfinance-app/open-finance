@@ -124,7 +124,7 @@ public class BackupService {
 
         } catch (Exception e) {
             log.error("Failed to create backup for user ID: {}", userId, e);
-            throw new BackupException("Failed to create backup: " + e.getMessage(), e);
+            throw BackupException.internal("Failed to create backup: " + e.getMessage(), e);
         }
     }
 
@@ -173,7 +173,8 @@ public class BackupService {
 
         } catch (Exception e) {
             log.error("Failed to create automatic backup for user ID: {}", userId, e);
-            throw new BackupException("Failed to create automatic backup: " + e.getMessage(), e);
+            throw BackupException.internal(
+                    "Failed to create automatic backup: " + e.getMessage(), e);
         }
     }
 
@@ -241,7 +242,7 @@ public class BackupService {
         Path sourcePath = Paths.get(dbFilePath);
 
         if (!Files.exists(sourcePath)) {
-            throw new BackupException("Database file not found: " + dbFilePath);
+            throw BackupException.internal("Database file not found: " + dbFilePath);
         }
 
         // Copy and compress database file
@@ -285,22 +286,24 @@ public class BackupService {
                 backupRepository
                         .findByIdAndUserId(backupId, userId)
                         .orElseThrow(
-                                () -> new BackupException("Backup not found or access denied"));
+                                () ->
+                                        BackupException.notFound(
+                                                "Backup not found or access denied"));
 
         if (!"COMPLETED".equals(backup.getStatus())) {
-            throw new BackupException("Cannot restore incomplete backup");
+            throw BackupException.validation("Cannot restore incomplete backup");
         }
 
         Path backupPath = Paths.get(backup.getFilePath());
         if (!Files.exists(backupPath)) {
-            throw new BackupException("Backup file not found: " + backup.getFilePath());
+            throw BackupException.notFound("Backup file not found: " + backup.getFilePath());
         }
 
         try {
             // Validate checksum
             String currentChecksum = calculateChecksum(backupPath);
             if (!currentChecksum.equals(backup.getChecksum())) {
-                throw new BackupException("Backup file corrupted (checksum mismatch)");
+                throw BackupException.validation("Backup file corrupted (checksum mismatch)");
             }
 
             // Create safety backup of current database
@@ -330,9 +333,16 @@ public class BackupService {
 
             log.info("Backup restored successfully: {}", backup.getFilename());
 
+        } catch (BackupException e) {
+            // Preserve intentional classification (e.g. checksum mismatch → VALIDATION).
+            throw e;
+        } catch (java.util.zip.ZipException e) {
+            // Uploaded/stored archive is not a valid gzip stream — a client-side bad-file problem.
+            log.warn("Backup archive is not a valid gzip stream: {}", e.getMessage());
+            throw BackupException.validation("Failed to restore backup: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Failed to restore backup ID: {}", backupId, e);
-            throw new BackupException("Failed to restore backup: " + e.getMessage(), e);
+            throw BackupException.internal("Failed to restore backup: " + e.getMessage(), e);
         }
     }
 
@@ -348,11 +358,11 @@ public class BackupService {
         log.info("Restoring backup from uploaded file for user ID: {}", userId);
 
         if (file.isEmpty()) {
-            throw new BackupException("Uploaded file is empty");
+            throw BackupException.validation("Uploaded file is empty");
         }
 
         if (!file.getOriginalFilename().endsWith(BACKUP_FILE_EXTENSION)) {
-            throw new BackupException("Invalid backup file format. Expected .ofbak file");
+            throw BackupException.validation("Invalid backup file format. Expected .ofbak file");
         }
 
         try {
@@ -390,9 +400,16 @@ public class BackupService {
 
             log.info("Backup restored successfully from uploaded file");
 
+        } catch (BackupException e) {
+            // Preserve intentional classification (validation/notFound).
+            throw e;
+        } catch (java.util.zip.ZipException e) {
+            // Uploaded archive is not a valid gzip stream — a client-side bad-file problem.
+            log.warn("Uploaded backup archive is not a valid gzip stream: {}", e.getMessage());
+            throw BackupException.validation("Failed to restore backup: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Failed to restore backup from uploaded file", e);
-            throw new BackupException("Failed to restore backup: " + e.getMessage(), e);
+            throw BackupException.internal("Failed to restore backup: " + e.getMessage(), e);
         }
     }
 
@@ -420,7 +437,7 @@ public class BackupService {
     public Backup getBackup(Long userId, Long backupId) {
         return backupRepository
                 .findByIdAndUserId(backupId, userId)
-                .orElseThrow(() -> new BackupException("Backup not found or access denied"));
+                .orElseThrow(() -> BackupException.notFound("Backup not found or access denied"));
     }
 
     /**
@@ -437,13 +454,13 @@ public class BackupService {
 
         Path backupPath = Paths.get(backup.getFilePath());
         if (!Files.exists(backupPath)) {
-            throw new BackupException("Backup file not found: " + backup.getFilePath());
+            throw BackupException.notFound("Backup file not found: " + backup.getFilePath());
         }
 
         try {
             return Files.newInputStream(backupPath);
         } catch (IOException e) {
-            throw new BackupException("Failed to read backup file", e);
+            throw BackupException.internal("Failed to read backup file", e);
         }
     }
 

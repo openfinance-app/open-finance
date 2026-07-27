@@ -557,7 +557,7 @@ public class ImportController {
     @PutMapping("/sessions/{id}/transactions")
     public ResponseEntity<ImportSession> updateParsedTransactions(
             @PathVariable Long id,
-            @RequestBody List<ImportedTransaction> transactions,
+            @Valid @RequestBody List<ImportedTransaction> transactions,
             Authentication authentication) {
 
         Long userId = ControllerUtil.extractUserId(authentication);

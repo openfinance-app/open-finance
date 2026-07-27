@@ -501,4 +501,59 @@ class EncryptionServiceTest {
         // Then
         assertEquals(largeText, decrypted, "Very large text should round-trip correctly");
     }
+
+    // ========== Key Cache Concurrency Tests ==========
+
+    @Test
+    @DisplayName("cacheKey should keep the cache within its bound under concurrent inserts")
+    void cacheKeyShouldRespectBoundUnderConcurrency() throws Exception {
+        // Given - the cache pre-filled to one below its max capacity, maximizing the
+        // check-then-act race window when many threads insert new distinct keys at once.
+        final int maxSize = 100;
+        for (int i = 0; i < maxSize - 1; i++) {
+            encryptionService.cacheKey("warmup-" + i, testKey);
+        }
+
+        int threadCount = 64;
+        java.util.concurrent.ExecutorService pool =
+                java.util.concurrent.Executors.newFixedThreadPool(threadCount);
+        java.util.concurrent.CountDownLatch ready =
+                new java.util.concurrent.CountDownLatch(threadCount);
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        java.util.List<java.util.concurrent.Future<?>> futures = new java.util.ArrayList<>();
+        java.util.List<Throwable> failures =
+                java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+
+        // When - every thread inserts a distinct brand-new key simultaneously.
+        for (int t = 0; t < threadCount; t++) {
+            final int id = t;
+            futures.add(
+                    pool.submit(
+                            () -> {
+                                ready.countDown();
+                                try {
+                                    start.await();
+                                    encryptionService.cacheKey("concurrent-" + id, testKey);
+                                } catch (Throwable ex) {
+                                    failures.add(ex);
+                                }
+                            }));
+        }
+        ready.await();
+        start.countDown();
+        for (java.util.concurrent.Future<?> f : futures) {
+            f.get();
+        }
+        pool.shutdownNow();
+
+        // Then - no thread blew up on the non-atomic eviction, and the bound held.
+        assertTrue(failures.isEmpty(), "cacheKey threw under concurrency: " + failures);
+        assertTrue(
+                encryptionService.keyCacheSize() <= maxSize,
+                "Key cache exceeded its bound of "
+                        + maxSize
+                        + " (was "
+                        + encryptionService.keyCacheSize()
+                        + ")");
+    }
 }

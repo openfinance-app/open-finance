@@ -94,7 +94,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.CONFLICT.value())
                         .error(HttpStatus.CONFLICT.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -584,32 +584,17 @@ public class GlobalExceptionHandler {
             BackupException ex, WebRequest request) {
 
         String message = ex.getMessage();
-        HttpStatus status;
+        HttpStatus status =
+                switch (ex.getKind()) {
+                    case VALIDATION -> HttpStatus.BAD_REQUEST;
+                    case NOT_FOUND -> HttpStatus.NOT_FOUND;
+                    case INTERNAL -> HttpStatus.INTERNAL_SERVER_ERROR;
+                };
 
-        // Determine HTTP status based on exception message
-        // Check for validation errors first (400 Bad Request)
-        if (message != null
-                && (message.contains("empty")
-                        || message.contains("Invalid")
-                        || message.contains("corrupted")
-                        || message.contains("Cannot restore")
-                        || message.contains("GZIP format")
-                        || message.contains("format"))) {
-            status = HttpStatus.BAD_REQUEST;
-            log.warn("Invalid backup request: {}", message);
-        }
-        // Then check for resource not found (404 Not Found) - specifically "Backup not
-        // found" or "access denied"
-        else if (message != null
-                && message.contains("Backup")
-                && (message.contains("not found") || message.contains("access denied"))) {
-            status = HttpStatus.NOT_FOUND;
-            log.warn("Backup not found: {}", message);
-        }
-        // Everything else is internal server error (500)
-        else {
-            status = HttpStatus.INTERNAL_SERVER_ERROR;
+        if (status == HttpStatus.INTERNAL_SERVER_ERROR) {
             log.error("Backup operation failed: {}", message, ex);
+        } else {
+            log.warn("Backup request rejected ({}): {}", status.value(), message);
         }
 
         ErrorResponse errorResponse =
