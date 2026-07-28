@@ -72,6 +72,11 @@ class LiabilityServiceTest {
                 .thenReturn(Optional.of(defaultUser));
         org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
                 defaultCurrencyProvider, userRepository);
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                liabilityService,
+                "currencyConversionHelper",
+                new CurrencyConversionHelper(
+                        userRepository, defaultCurrencyProvider, exchangeRateService));
     }
 
     // ============ Helper Methods ============

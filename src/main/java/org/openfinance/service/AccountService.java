@@ -15,7 +15,6 @@ import org.openfinance.entity.Account;
 import org.openfinance.entity.Institution;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
-import org.openfinance.entity.User;
 import org.openfinance.exception.AccountHasTransactionsException;
 import org.openfinance.exception.AccountNotFoundException;
 import org.openfinance.exception.InstitutionNotFoundException;
@@ -82,6 +81,7 @@ public class AccountService {
     private final DefaultCurrencyProvider defaultCurrencyProvider;
     private final EncryptionProperties encryptionProperties;
     private final org.openfinance.config.BusinessRulesProperties businessRules;
+    private final CurrencyConversionHelper currencyConversionHelper;
 
     /**
      * Creates a new account for the specified user.
@@ -1019,65 +1019,17 @@ public class AccountService {
      */
     private void populateConversionFields(
             AccountResponse response, Long userId, String nativeCurrency, BigDecimal nativeAmount) {
-        User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
-        String baseCurrency =
-                defaultCurrencyProvider.resolve(user != null ? user.getBaseCurrency() : null);
-        String secCurrency = user != null ? user.getSecondaryCurrency() : null;
-        response.setBaseCurrency(baseCurrency);
-
-        // Step 1: Base conversion
-        boolean needsConversion = nativeCurrency != null && !nativeCurrency.equals(baseCurrency);
-        if (!needsConversion || nativeAmount == null) {
-            response.setBalanceInBaseCurrency(nativeAmount);
-            response.setIsConverted(false);
-        } else {
-            try {
-                BigDecimal rate =
-                        exchangeRateService.getExchangeRate(nativeCurrency, baseCurrency, null);
-                BigDecimal converted =
-                        exchangeRateService.convert(nativeAmount, nativeCurrency, baseCurrency);
-                response.setBalanceInBaseCurrency(converted);
-                response.setExchangeRate(rate);
-                response.setIsConverted(true);
-            } catch (Exception e) {
-                log.warn(
-                        "Currency conversion failed for account (user={}, {}->{}) – falling back to native: {}",
-                        userId,
-                        nativeCurrency,
-                        baseCurrency,
-                        e.getMessage());
-                response.setBalanceInBaseCurrency(nativeAmount);
-                response.setIsConverted(false);
-            }
-        }
-
-        // Step 2: Secondary conversion (Requirement REQ-4.1, REQ-4.6)
-        if (secCurrency != null
-                && !secCurrency.isBlank()
-                && nativeCurrency != null
-                && !nativeCurrency.equals(secCurrency)
-                && nativeAmount != null) {
-            try {
-                BigDecimal secRate =
-                        exchangeRateService.getExchangeRate(nativeCurrency, secCurrency, null);
-                BigDecimal secAmount =
-                        exchangeRateService.convert(nativeAmount, nativeCurrency, secCurrency);
-                response.setBalanceInSecondaryCurrency(secAmount);
-                response.setSecondaryCurrency(secCurrency);
-                response.setSecondaryExchangeRate(secRate);
-            } catch (Exception e) {
-                log.warn(
-                        "Secondary currency conversion failed for account (user={}, {}->{}) – omitting: {}",
-                        userId,
-                        nativeCurrency,
-                        secCurrency,
-                        e.getMessage());
-                // Secondary fields remain null — frontend omits secondary line from tooltip
-                response.setSecondaryCurrency(secCurrency);
-            }
-        } else if (secCurrency != null && !secCurrency.isBlank()) {
-            // Secondary currency is configured but matches native — no conversion needed
-            response.setSecondaryCurrency(secCurrency);
+        CurrencyConversionHelper.ConversionResult r =
+                currencyConversionHelper.convert(
+                        userId, nativeCurrency, nativeAmount, true, null, "account");
+        response.setBaseCurrency(r.baseCurrency());
+        response.setBalanceInBaseCurrency(r.amountInBaseCurrency());
+        response.setExchangeRate(r.exchangeRate());
+        response.setIsConverted(r.converted());
+        if (r.secondaryCurrency() != null) {
+            response.setSecondaryCurrency(r.secondaryCurrency());
+            response.setBalanceInSecondaryCurrency(r.amountInSecondaryCurrency());
+            response.setSecondaryExchangeRate(r.secondaryExchangeRate());
         }
     }
 

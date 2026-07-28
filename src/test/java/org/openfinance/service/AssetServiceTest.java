@@ -88,6 +88,11 @@ class AssetServiceTest {
         lenient().when(encryptionProperties.isEnabled()).thenReturn(true);
         org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
                 defaultCurrencyProvider, userRepository);
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                assetService,
+                "currencyConversionHelper",
+                new CurrencyConversionHelper(
+                        userRepository, defaultCurrencyProvider, exchangeRateService));
     }
 
     @AfterEach

@@ -3,12 +3,15 @@ package org.openfinance.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +38,14 @@ class LogoFetchServiceTest {
     @Mock private RestTemplate restTemplate;
 
     @InjectMocks private LogoFetchService logoFetchService;
+
+    @BeforeEach
+    void setUpDomainDefaults() {
+        // Default heuristic: no overrides, ".com" TLD. Lenient because the "disabled" test never
+        // reaches inferDomain.
+        lenient().when(properties.getDefaultTld()).thenReturn("com");
+        lenient().when(properties.getDomainOverrides()).thenReturn(Map.of());
+    }
 
     // -------------------------------------------------------------------------
     // Feature disabled
@@ -70,6 +81,25 @@ class LogoFetchServiceTest {
         // Call package-private inferDomain directly
         String domain = logoFetchService.inferDomain(name.trim());
         assertThat(domain).isEqualTo(expectedDomain.trim());
+    }
+
+    @Test
+    @DisplayName("inferDomain appends the configured default TLD instead of a hardcoded .com")
+    void shouldUseConfiguredDefaultTld() {
+        when(properties.getDefaultTld()).thenReturn("fr");
+
+        assertThat(logoFetchService.inferDomain("Boursorama")).isEqualTo("boursorama.fr");
+    }
+
+    @Test
+    @DisplayName("inferDomain uses an explicit domain override when one matches the slug")
+    void shouldUseDomainOverride() {
+        when(properties.getDomainOverrides())
+                .thenReturn(Map.of("caissedepargne", "caisse-epargne.fr"));
+
+        // Override wins over the default-TLD heuristic (which would give caissedepargne.com).
+        assertThat(logoFetchService.inferDomain("Caisse d\u2019Epargne"))
+                .isEqualTo("caisse-epargne.fr");
     }
 
     // -------------------------------------------------------------------------

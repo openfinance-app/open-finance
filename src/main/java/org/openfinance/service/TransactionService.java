@@ -104,6 +104,7 @@ public class TransactionService {
     private final OperationHistoryService operationHistoryService;
     private final SearchTokenService searchTokenService;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
+    private final CurrencyConversionHelper currencyConversionHelper;
 
     /**
      * Creates a new transaction for the specified user.
@@ -1769,37 +1770,15 @@ public class TransactionService {
             Long userId,
             String nativeCurrency,
             BigDecimal nativeAmount) {
-        String baseCurrency = resolveBaseCurrency(userId);
-        response.setBaseCurrency(baseCurrency);
-
-        boolean needsConversion = nativeCurrency != null && !nativeCurrency.equals(baseCurrency);
-        if (!needsConversion || nativeAmount == null) {
-            response.setAmountInBaseCurrency(nativeAmount);
-            response.setIsConverted(false);
-            return;
-        }
-
-        try {
-            BigDecimal rate =
-                    exchangeRateService.getExchangeRate(nativeCurrency, baseCurrency, null);
-            BigDecimal converted =
-                    exchangeRateService.convert(nativeAmount, nativeCurrency, baseCurrency);
-
-            // Round conversion metadata to 4 decimal places for consistency with entity
-            // constraints
-            response.setAmountInBaseCurrency(converted.setScale(4, RoundingMode.HALF_UP));
-            response.setExchangeRate(rate.setScale(4, RoundingMode.HALF_UP));
-            response.setIsConverted(true);
-        } catch (Exception e) {
-            log.warn(
-                    "Currency conversion failed for transaction (user={}, {}->{}) – falling back to native: {}",
-                    userId,
-                    nativeCurrency,
-                    baseCurrency,
-                    e.getMessage());
-            response.setAmountInBaseCurrency(nativeAmount);
-            response.setIsConverted(false);
-        }
+        // Transactions carry no secondary currency and round conversion metadata to 4 decimals for
+        // consistency with entity constraints.
+        CurrencyConversionHelper.ConversionResult r =
+                currencyConversionHelper.convert(
+                        userId, nativeCurrency, nativeAmount, false, 4, "transaction");
+        response.setBaseCurrency(r.baseCurrency());
+        response.setAmountInBaseCurrency(r.amountInBaseCurrency());
+        response.setExchangeRate(r.exchangeRate());
+        response.setIsConverted(r.converted());
     }
 
     /**

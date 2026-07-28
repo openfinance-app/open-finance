@@ -83,6 +83,13 @@ class AccountServiceTest {
         lenient().when(encryptionProperties.isEnabled()).thenReturn(true);
         org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
                 defaultCurrencyProvider, userRepository);
+        // Wire the real CurrencyConversionHelper (built from the same mocks) so the existing
+        // conversion assertions continue to drive behavior through it.
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                accountService,
+                "currencyConversionHelper",
+                new CurrencyConversionHelper(
+                        userRepository, defaultCurrencyProvider, exchangeRateService));
     }
 
     @AfterEach

@@ -17,7 +17,6 @@ import org.openfinance.entity.Liability;
 import org.openfinance.entity.PropertyType;
 import org.openfinance.entity.RealEstateProperty;
 import org.openfinance.entity.RealEstateValueHistory;
-import org.openfinance.entity.User;
 import org.openfinance.exception.LiabilityNotFoundException;
 import org.openfinance.exception.RealEstatePropertyNotFoundException;
 import org.openfinance.mapper.RealEstateMapper;
@@ -29,6 +28,7 @@ import org.openfinance.repository.RealEstateValueHistoryRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.specification.RealEstateSpecification;
+import org.openfinance.util.MathConstants;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -90,6 +90,7 @@ public class RealEstateService {
     private final OperationHistoryService operationHistoryService;
     private final SearchTokenService searchTokenService;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
+    private final CurrencyConversionHelper currencyConversionHelper;
 
     // Constants for calculations
     private static final int SCALE = 4; // Decimal precision for financial calculations
@@ -755,14 +756,14 @@ public class RealEstateService {
         if (currentValue.compareTo(BigDecimal.ZERO) > 0) {
             equityPercentage =
                     equity.divide(currentValue, SCALE, RoundingMode.HALF_UP)
-                            .multiply(new BigDecimal("100"))
+                            .multiply(MathConstants.HUNDRED)
                             .setScale(2, RoundingMode.HALF_UP);
 
             if (hasMortgage) {
                 loanToValueRatio =
                         mortgageBalance
                                 .divide(currentValue, SCALE, RoundingMode.HALF_UP)
-                                .multiply(new BigDecimal("100"))
+                                .multiply(MathConstants.HUNDRED)
                                 .setScale(2, RoundingMode.HALF_UP);
             }
         }
@@ -834,7 +835,7 @@ public class RealEstateService {
             appreciationPercentage =
                     appreciation
                             .divide(purchasePrice, SCALE, RoundingMode.HALF_UP)
-                            .multiply(new BigDecimal("100"))
+                            .multiply(MathConstants.HUNDRED)
                             .setScale(2, RoundingMode.HALF_UP);
         }
 
@@ -867,7 +868,7 @@ public class RealEstateService {
                 rentalYield =
                         annualRentalIncome
                                 .divide(currentValue, SCALE, RoundingMode.HALF_UP)
-                                .multiply(new BigDecimal("100"))
+                                .multiply(MathConstants.HUNDRED)
                                 .setScale(2, RoundingMode.HALF_UP);
             }
         }
@@ -885,7 +886,7 @@ public class RealEstateService {
             totalROI =
                     totalGain
                             .divide(purchasePrice, SCALE, RoundingMode.HALF_UP)
-                            .multiply(new BigDecimal("100"))
+                            .multiply(MathConstants.HUNDRED)
                             .setScale(2, RoundingMode.HALF_UP);
 
             // Calculate annualized return if property owned for at least 1 year
@@ -1215,7 +1216,7 @@ public class RealEstateService {
             BigDecimal appreciationPercentage =
                     appreciation
                             .divide(purchasePrice, SCALE, RoundingMode.HALF_UP)
-                            .multiply(new BigDecimal("100"))
+                            .multiply(MathConstants.HUNDRED)
                             .setScale(2, RoundingMode.HALF_UP);
             response.setAppreciationPercentage(appreciationPercentage);
         }
@@ -1226,7 +1227,7 @@ public class RealEstateService {
             BigDecimal rentalYield =
                     annualRentalIncome
                             .divide(currentValue, SCALE, RoundingMode.HALF_UP)
-                            .multiply(new BigDecimal("100"))
+                            .multiply(MathConstants.HUNDRED)
                             .setScale(2, RoundingMode.HALF_UP);
             response.setRentalYield(rentalYield);
         }
@@ -1257,7 +1258,7 @@ public class RealEstateService {
             if (currentValue.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal equityPercentage =
                         equity.divide(currentValue, SCALE, RoundingMode.HALF_UP)
-                                .multiply(new BigDecimal("100"))
+                                .multiply(MathConstants.HUNDRED)
                                 .setScale(2, RoundingMode.HALF_UP);
                 response.setEquityPercentage(equityPercentage);
             }
@@ -1273,7 +1274,7 @@ public class RealEstateService {
             BigDecimal roi =
                     appreciation
                             .divide(purchasePrice, SCALE, RoundingMode.HALF_UP)
-                            .multiply(new BigDecimal("100"))
+                            .multiply(MathConstants.HUNDRED)
                             .setScale(2, RoundingMode.HALF_UP);
             response.setRoi(roi);
         }
@@ -1311,63 +1312,17 @@ public class RealEstateService {
             Long userId,
             String nativeCurrency,
             BigDecimal nativeValue) {
-        User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
-        String baseCurrency =
-                defaultCurrencyProvider.resolve(user != null ? user.getBaseCurrency() : null);
-        String secCurrency = user != null ? user.getSecondaryCurrency() : null;
-        response.setBaseCurrency(baseCurrency);
-
-        // Step 1: Base conversion
-        boolean needsConversion = nativeCurrency != null && !nativeCurrency.equals(baseCurrency);
-        if (!needsConversion || nativeValue == null) {
-            response.setValueInBaseCurrency(nativeValue);
-            response.setIsConverted(false);
-        } else {
-            try {
-                BigDecimal rate =
-                        exchangeRateService.getExchangeRate(nativeCurrency, baseCurrency, null);
-                BigDecimal converted =
-                        exchangeRateService.convert(nativeValue, nativeCurrency, baseCurrency);
-                response.setValueInBaseCurrency(converted);
-                response.setExchangeRate(rate);
-                response.setIsConverted(true);
-            } catch (Exception e) {
-                log.warn(
-                        "Currency conversion failed for property (user={}, {}->{}) – falling back to native: {}",
-                        userId,
-                        nativeCurrency,
-                        baseCurrency,
-                        e.getMessage());
-                response.setValueInBaseCurrency(nativeValue);
-                response.setIsConverted(false);
-            }
-        }
-
-        // Step 2: Secondary conversion (Requirement REQ-4.4, REQ-4.5)
-        if (secCurrency != null
-                && !secCurrency.isBlank()
-                && nativeCurrency != null
-                && !nativeCurrency.equals(secCurrency)
-                && nativeValue != null) {
-            try {
-                BigDecimal secRate =
-                        exchangeRateService.getExchangeRate(nativeCurrency, secCurrency, null);
-                BigDecimal secAmount =
-                        exchangeRateService.convert(nativeValue, nativeCurrency, secCurrency);
-                response.setValueInSecondaryCurrency(secAmount);
-                response.setSecondaryCurrency(secCurrency);
-                response.setSecondaryExchangeRate(secRate);
-            } catch (Exception e) {
-                log.warn(
-                        "Secondary currency conversion failed for property (user={}, {}->{}) – omitting: {}",
-                        userId,
-                        nativeCurrency,
-                        secCurrency,
-                        e.getMessage());
-                response.setSecondaryCurrency(secCurrency);
-            }
-        } else if (secCurrency != null && !secCurrency.isBlank()) {
-            response.setSecondaryCurrency(secCurrency);
+        CurrencyConversionHelper.ConversionResult r =
+                currencyConversionHelper.convert(
+                        userId, nativeCurrency, nativeValue, true, null, "property");
+        response.setBaseCurrency(r.baseCurrency());
+        response.setValueInBaseCurrency(r.amountInBaseCurrency());
+        response.setExchangeRate(r.exchangeRate());
+        response.setIsConverted(r.converted());
+        if (r.secondaryCurrency() != null) {
+            response.setSecondaryCurrency(r.secondaryCurrency());
+            response.setValueInSecondaryCurrency(r.amountInSecondaryCurrency());
+            response.setSecondaryExchangeRate(r.secondaryExchangeRate());
         }
     }
 

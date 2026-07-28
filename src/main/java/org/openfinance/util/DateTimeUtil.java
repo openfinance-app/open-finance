@@ -34,8 +34,24 @@ public final class DateTimeUtil {
     public static final DateTimeFormatter DISPLAY_DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", Locale.ENGLISH);
 
-    // Default timezone
-    private static final ZoneId DEFAULT_ZONE = ZoneId.systemDefault();
+    /**
+     * Default zone for the {@code local}-zone conversion helpers below.
+     *
+     * <p>Resolved once from the {@code application.default-timezone} system property (e.g. {@code
+     * -Dapplication.default-timezone=UTC} or {@code Europe/Paris}); when unset it falls back to the
+     * JVM's {@link ZoneId#systemDefault()}. Making this explicitly configurable removes the hard
+     * dependency on the (environment-dependent) host timezone. For fully deterministic conversions,
+     * prefer the {@code ZoneId}-taking overloads of {@link #toUtc(LocalDateTime, ZoneId)} etc.
+     */
+    private static final ZoneId DEFAULT_ZONE = resolveDefaultZone();
+
+    private static ZoneId resolveDefaultZone() {
+        String configured = System.getProperty("application.default-timezone");
+        if (configured != null && !configured.isBlank()) {
+            return ZoneId.of(configured.trim());
+        }
+        return ZoneId.systemDefault();
+    }
 
     private DateTimeUtil() {
         throw new UnsupportedOperationException("Utility class cannot be instantiated");
@@ -161,43 +177,89 @@ public final class DateTimeUtil {
     // ========== Timezone Conversion Methods ==========
 
     /**
-     * Convert LocalDateTime to UTC
+     * Convert LocalDateTime to UTC, interpreting it in {@link #DEFAULT_ZONE}.
      *
      * @param dateTime the local date-time
      * @return ZonedDateTime in UTC
      */
     public static ZonedDateTime toUtc(LocalDateTime dateTime) {
-        return dateTime.atZone(DEFAULT_ZONE).withZoneSameInstant(ZoneOffset.UTC);
+        return toUtc(dateTime, DEFAULT_ZONE);
     }
 
     /**
-     * Convert UTC to local timezone
+     * Convert a LocalDateTime to UTC, interpreting the wall-clock time in the given source zone.
+     * Portable: the result does not depend on the JVM's default timezone.
+     *
+     * @param dateTime the local (wall-clock) date-time
+     * @param sourceZone the zone the {@code dateTime} is expressed in
+     * @return ZonedDateTime in UTC
+     */
+    public static ZonedDateTime toUtc(LocalDateTime dateTime, ZoneId sourceZone) {
+        return dateTime.atZone(sourceZone).withZoneSameInstant(ZoneOffset.UTC);
+    }
+
+    /**
+     * Convert UTC to {@link #DEFAULT_ZONE}.
      *
      * @param utcDateTime the UTC date-time
-     * @return ZonedDateTime in local timezone
+     * @return ZonedDateTime in the default zone
      */
     public static ZonedDateTime toLocalZone(ZonedDateTime utcDateTime) {
-        return utcDateTime.withZoneSameInstant(DEFAULT_ZONE);
+        return toLocalZone(utcDateTime, DEFAULT_ZONE);
     }
 
     /**
-     * Convert epoch milliseconds to LocalDateTime
+     * Shift a ZonedDateTime's instant into the given target zone. Portable.
+     *
+     * @param dateTime the date-time (any zone)
+     * @param targetZone the zone to express the same instant in
+     * @return ZonedDateTime in {@code targetZone}
+     */
+    public static ZonedDateTime toLocalZone(ZonedDateTime dateTime, ZoneId targetZone) {
+        return dateTime.withZoneSameInstant(targetZone);
+    }
+
+    /**
+     * Convert epoch milliseconds to LocalDateTime using {@link #DEFAULT_ZONE}.
      *
      * @param epochMilli epoch milliseconds
      * @return LocalDateTime
      */
     public static LocalDateTime fromEpochMilli(long epochMilli) {
-        return LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMilli), DEFAULT_ZONE);
+        return fromEpochMilli(epochMilli, DEFAULT_ZONE);
     }
 
     /**
-     * Convert LocalDateTime to epoch milliseconds
+     * Convert epoch milliseconds to LocalDateTime using the given zone. Portable.
+     *
+     * @param epochMilli epoch milliseconds
+     * @param zone the zone to express the instant in
+     * @return LocalDateTime
+     */
+    public static LocalDateTime fromEpochMilli(long epochMilli, ZoneId zone) {
+        return LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMilli), zone);
+    }
+
+    /**
+     * Convert LocalDateTime to epoch milliseconds, interpreting it in {@link #DEFAULT_ZONE}.
      *
      * @param dateTime the date-time
      * @return epoch milliseconds
      */
     public static long toEpochMilli(LocalDateTime dateTime) {
-        return dateTime.atZone(DEFAULT_ZONE).toInstant().toEpochMilli();
+        return toEpochMilli(dateTime, DEFAULT_ZONE);
+    }
+
+    /**
+     * Convert a LocalDateTime to epoch milliseconds, interpreting the wall-clock time in the given
+     * zone. Portable.
+     *
+     * @param dateTime the local (wall-clock) date-time
+     * @param zone the zone the {@code dateTime} is expressed in
+     * @return epoch milliseconds
+     */
+    public static long toEpochMilli(LocalDateTime dateTime, ZoneId zone) {
+        return dateTime.atZone(zone).toInstant().toEpochMilli();
     }
 
     // ========== Date Calculation Methods ==========

@@ -106,6 +106,11 @@ class TransactionServiceTest {
         when(userRepository.findById(any())).thenReturn(Optional.empty());
         org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
                 defaultCurrencyProvider, userRepository);
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                transactionService,
+                "currencyConversionHelper",
+                new CurrencyConversionHelper(
+                        userRepository, defaultCurrencyProvider, exchangeRateService));
     }
 
     // ---------- Helpers ----------

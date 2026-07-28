@@ -15,6 +15,7 @@ import org.openfinance.entity.InterestPeriod;
 import org.openfinance.entity.InterestRateVariation;
 import org.openfinance.repository.InterestRateVariationRepository;
 import org.openfinance.util.CurrencyDecimals;
+import org.openfinance.util.MathConstants;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,14 +78,13 @@ public class InterestCalculatorService {
         // Compound interest computed entirely in BigDecimal (never double). The exponent n is an
         // integer number of compounding periods, so BigDecimal.pow(int, MathContext) is exact.
         MathContext mc = new MathContext(20, RoundingMode.HALF_UP);
-        BigDecimal hundred = new BigDecimal("100");
 
-        BigDecimal r = ratePct.divide(hundred, mc); // annual rate as a fraction
+        BigDecimal r = ratePct.divide(MathConstants.HUNDRED, mc); // annual rate as a fraction
         BigDecimal perPeriodRate = r.divide(BigDecimal.valueOf(n), mc);
         BigDecimal compoundFactor = BigDecimal.ONE.add(perPeriodRate).pow(n, mc);
         BigDecimal grossInterest = balance.multiply(compoundFactor.subtract(BigDecimal.ONE));
 
-        BigDecimal taxFraction = taxPct.divide(hundred, mc);
+        BigDecimal taxFraction = taxPct.divide(MathConstants.HUNDRED, mc);
         BigDecimal netInterest = grossInterest.multiply(BigDecimal.ONE.subtract(taxFraction));
 
         log.debug(
@@ -130,7 +130,7 @@ public class InterestCalculatorService {
             if (applicable == null) continue;
 
             BigDecimal annualRate =
-                    applicable.getRate().divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP);
+                    applicable.getRate().divide(MathConstants.HUNDRED, 10, RoundingMode.HALF_UP);
             BigDecimal dailyGross =
                     balance.multiply(annualRate)
                             .divide(new BigDecimal("365"), 10, RoundingMode.HALF_UP);
@@ -139,7 +139,7 @@ public class InterestCalculatorService {
                     applicable.getTaxRate() != null ? applicable.getTaxRate() : BigDecimal.ZERO;
             BigDecimal keep =
                     BigDecimal.ONE.subtract(
-                            taxPct.divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP));
+                            taxPct.divide(MathConstants.HUNDRED, 10, RoundingMode.HALF_UP));
             totalNetInterest = totalNetInterest.add(dailyGross.multiply(keep));
         }
 

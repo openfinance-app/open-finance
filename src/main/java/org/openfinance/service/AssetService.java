@@ -17,7 +17,6 @@ import org.openfinance.dto.AssetSummaryResponse;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.AssetType;
-import org.openfinance.entity.User;
 import org.openfinance.exception.AccountNotFoundException;
 import org.openfinance.exception.AssetNotFoundException;
 import org.openfinance.mapper.AssetMapper;
@@ -85,6 +84,7 @@ public class AssetService {
     private final SearchTokenService searchTokenService;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
     private final EncryptionProperties encryptionProperties;
+    private final CurrencyConversionHelper currencyConversionHelper;
 
     /**
      * Creates a new asset for the specified user.
@@ -855,63 +855,17 @@ public class AssetService {
             Long userId,
             String nativeCurrency,
             java.math.BigDecimal nativeValue) {
-        User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
-        String baseCurrency =
-                defaultCurrencyProvider.resolve(user != null ? user.getBaseCurrency() : null);
-        String secCurrency = user != null ? user.getSecondaryCurrency() : null;
-        response.setBaseCurrency(baseCurrency);
-
-        // Step 1: Base conversion
-        boolean needsConversion = nativeCurrency != null && !nativeCurrency.equals(baseCurrency);
-        if (!needsConversion || nativeValue == null) {
-            response.setValueInBaseCurrency(nativeValue);
-            response.setIsConverted(false);
-        } else {
-            try {
-                java.math.BigDecimal rate =
-                        exchangeRateService.getExchangeRate(nativeCurrency, baseCurrency, null);
-                java.math.BigDecimal converted =
-                        exchangeRateService.convert(nativeValue, nativeCurrency, baseCurrency);
-                response.setValueInBaseCurrency(converted);
-                response.setExchangeRate(rate);
-                response.setIsConverted(true);
-            } catch (Exception e) {
-                log.warn(
-                        "Currency conversion failed for asset (user={}, {}->{}) – falling back to native: {}",
-                        userId,
-                        nativeCurrency,
-                        baseCurrency,
-                        e.getMessage());
-                response.setValueInBaseCurrency(nativeValue);
-                response.setIsConverted(false);
-            }
-        }
-
-        // Step 2: Secondary conversion (Requirement REQ-4.2, REQ-4.5)
-        if (secCurrency != null
-                && !secCurrency.isBlank()
-                && nativeCurrency != null
-                && !nativeCurrency.equals(secCurrency)
-                && nativeValue != null) {
-            try {
-                java.math.BigDecimal secRate =
-                        exchangeRateService.getExchangeRate(nativeCurrency, secCurrency, null);
-                java.math.BigDecimal secAmount =
-                        exchangeRateService.convert(nativeValue, nativeCurrency, secCurrency);
-                response.setValueInSecondaryCurrency(secAmount);
-                response.setSecondaryCurrency(secCurrency);
-                response.setSecondaryExchangeRate(secRate);
-            } catch (Exception e) {
-                log.warn(
-                        "Secondary currency conversion failed for asset (user={}, {}->{}) – omitting: {}",
-                        userId,
-                        nativeCurrency,
-                        secCurrency,
-                        e.getMessage());
-                response.setSecondaryCurrency(secCurrency);
-            }
-        } else if (secCurrency != null && !secCurrency.isBlank()) {
-            response.setSecondaryCurrency(secCurrency);
+        CurrencyConversionHelper.ConversionResult r =
+                currencyConversionHelper.convert(
+                        userId, nativeCurrency, nativeValue, true, null, "asset");
+        response.setBaseCurrency(r.baseCurrency());
+        response.setValueInBaseCurrency(r.amountInBaseCurrency());
+        response.setExchangeRate(r.exchangeRate());
+        response.setIsConverted(r.converted());
+        if (r.secondaryCurrency() != null) {
+            response.setSecondaryCurrency(r.secondaryCurrency());
+            response.setValueInSecondaryCurrency(r.amountInSecondaryCurrency());
+            response.setSecondaryExchangeRate(r.secondaryExchangeRate());
         }
     }
 

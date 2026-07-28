@@ -30,6 +30,7 @@ import org.openfinance.repository.UserSettingsRepository;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.ai.AIProvider;
+import org.openfinance.util.MathConstants;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.MessageSource;
@@ -293,7 +294,7 @@ public class InsightService {
                                             "insight.spending.anomaly.description",
                                             new Object[] {
                                                 categoryName.toLowerCase(),
-                                                percentChange.multiply(new BigDecimal("100")),
+                                                percentChange.multiply(MathConstants.HUNDRED),
                                                 currentSpending,
                                                 previousSpending
                                             },
@@ -365,7 +366,7 @@ public class InsightService {
                                             overspent,
                                             percentUsed
                                                     .subtract(BigDecimal.ONE)
-                                                    .multiply(new BigDecimal("100"))
+                                                    .multiply(MathConstants.HUNDRED)
                                         },
                                         LocaleContextHolder.getLocale());
                         insights.add(
@@ -388,7 +389,7 @@ public class InsightService {
                                 messageSource.getMessage(
                                         "insight.budget.warning.description",
                                         new Object[] {
-                                            percentUsed.multiply(new BigDecimal("100")),
+                                            percentUsed.multiply(MathConstants.HUNDRED),
                                             categoryName.toLowerCase(),
                                             spent,
                                             budgetAmount,
@@ -622,7 +623,7 @@ public class InsightService {
                 BigDecimal percentDiff =
                         diff.abs()
                                 .divide(medianIncome, 4, RoundingMode.HALF_UP)
-                                .multiply(new BigDecimal("100"));
+                                .multiply(MathConstants.HUNDRED);
 
                 if (diff.compareTo(BigDecimal.ZERO) >= 0) {
                     String title =
@@ -830,12 +831,12 @@ public class InsightService {
             BigDecimal estimatedTax =
                     taxableIncome
                             .multiply(baseRate)
-                            .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+                            .divide(MathConstants.HUNDRED, 2, RoundingMode.HALF_UP);
             BigDecimal effectiveRate =
                     annualIncome.compareTo(BigDecimal.ZERO) > 0
                             ? estimatedTax
                                     .divide(annualIncome, 4, RoundingMode.HALF_UP)
-                                    .multiply(new BigDecimal("100"))
+                                    .multiply(MathConstants.HUNDRED)
                             : BigDecimal.ZERO;
 
             // Generate tax estimate insight
@@ -970,7 +971,7 @@ public class InsightService {
                 incomeRatioPercent =
                         totalMonthly
                                 .divide(monthlyIncome, 4, RoundingMode.HALF_UP)
-                                .multiply(new BigDecimal("100"));
+                                .multiply(MathConstants.HUNDRED);
             }
 
             // Summary insight

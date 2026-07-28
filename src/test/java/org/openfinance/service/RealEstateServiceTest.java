@@ -104,6 +104,11 @@ class RealEstateServiceTest {
                 .thenReturn(Optional.of(defaultUser));
         org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
                 defaultCurrencyProvider, userRepository);
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                realEstateService,
+                "currencyConversionHelper",
+                new CurrencyConversionHelper(
+                        userRepository, defaultCurrencyProvider, exchangeRateService));
     }
 
     // ========== CREATE PROPERTY TESTS ==========

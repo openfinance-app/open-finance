@@ -22,7 +22,6 @@ import org.openfinance.dto.LiabilityResponse;
 import org.openfinance.entity.Liability;
 import org.openfinance.entity.LiabilityType;
 import org.openfinance.entity.Transaction;
-import org.openfinance.entity.User;
 import org.openfinance.exception.LiabilityNotFoundException;
 import org.openfinance.exception.ResourceNotFoundException;
 import org.openfinance.repository.CurrencyRepository;
@@ -91,6 +90,7 @@ public class LiabilityService {
     private final OperationHistoryService operationHistoryService;
     private final SearchTokenService searchTokenService;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
+    private final CurrencyConversionHelper currencyConversionHelper;
 
     // Constants for calculations
     private static final int MAX_AMORTIZATION_PERIODS = 360; // Max 30 years of monthly payments
@@ -1345,63 +1345,17 @@ public class LiabilityService {
             Long userId,
             String nativeCurrency,
             BigDecimal nativeBalance) {
-        User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
-        String baseCurrency =
-                defaultCurrencyProvider.resolve(user != null ? user.getBaseCurrency() : null);
-        String secCurrency = user != null ? user.getSecondaryCurrency() : null;
-        response.setBaseCurrency(baseCurrency);
-
-        // Step 1: Base conversion
-        boolean needsConversion = nativeCurrency != null && !nativeCurrency.equals(baseCurrency);
-        if (!needsConversion || nativeBalance == null) {
-            response.setBalanceInBaseCurrency(nativeBalance);
-            response.setIsConverted(false);
-        } else {
-            try {
-                BigDecimal rate =
-                        exchangeRateService.getExchangeRate(nativeCurrency, baseCurrency, null);
-                BigDecimal converted =
-                        exchangeRateService.convert(nativeBalance, nativeCurrency, baseCurrency);
-                response.setBalanceInBaseCurrency(converted);
-                response.setExchangeRate(rate);
-                response.setIsConverted(true);
-            } catch (Exception e) {
-                log.warn(
-                        "Currency conversion failed for liability (user={}, {}->{}) – falling back to native: {}",
-                        userId,
-                        nativeCurrency,
-                        baseCurrency,
-                        e.getMessage());
-                response.setBalanceInBaseCurrency(nativeBalance);
-                response.setIsConverted(false);
-            }
-        }
-
-        // Step 2: Secondary conversion (Requirement REQ-4.3, REQ-4.5)
-        if (secCurrency != null
-                && !secCurrency.isBlank()
-                && nativeCurrency != null
-                && !nativeCurrency.equals(secCurrency)
-                && nativeBalance != null) {
-            try {
-                BigDecimal secRate =
-                        exchangeRateService.getExchangeRate(nativeCurrency, secCurrency, null);
-                BigDecimal secAmount =
-                        exchangeRateService.convert(nativeBalance, nativeCurrency, secCurrency);
-                response.setBalanceInSecondaryCurrency(secAmount);
-                response.setSecondaryCurrency(secCurrency);
-                response.setSecondaryExchangeRate(secRate);
-            } catch (Exception e) {
-                log.warn(
-                        "Secondary currency conversion failed for liability (user={}, {}->{}) – omitting: {}",
-                        userId,
-                        nativeCurrency,
-                        secCurrency,
-                        e.getMessage());
-                response.setSecondaryCurrency(secCurrency);
-            }
-        } else if (secCurrency != null && !secCurrency.isBlank()) {
-            response.setSecondaryCurrency(secCurrency);
+        CurrencyConversionHelper.ConversionResult r =
+                currencyConversionHelper.convert(
+                        userId, nativeCurrency, nativeBalance, true, null, "liability");
+        response.setBaseCurrency(r.baseCurrency());
+        response.setBalanceInBaseCurrency(r.amountInBaseCurrency());
+        response.setExchangeRate(r.exchangeRate());
+        response.setIsConverted(r.converted());
+        if (r.secondaryCurrency() != null) {
+            response.setSecondaryCurrency(r.secondaryCurrency());
+            response.setBalanceInSecondaryCurrency(r.amountInSecondaryCurrency());
+            response.setSecondaryExchangeRate(r.secondaryExchangeRate());
         }
     }
 

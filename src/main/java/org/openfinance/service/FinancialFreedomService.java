@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.calculator.*;
 import org.openfinance.exception.CalculationValidationException;
+import org.openfinance.util.MathConstants;
 import org.springframework.stereotype.Service;
 
 /**
@@ -71,8 +72,10 @@ public class FinancialFreedomService {
     /** Minimum reasonable return rate (-10%). */
     private static final BigDecimal MIN_RETURN_RATE = new BigDecimal("-10.0");
 
-    /** 100, used for percent → fraction conversions. */
-    private static final BigDecimal HUNDRED = new BigDecimal("100");
+    /**
+     * 100, used for percent → fraction conversions. Sourced from the shared {@link MathConstants}.
+     */
+    private static final BigDecimal HUNDRED = MathConstants.HUNDRED;
 
     /** Working precision for iterative BigDecimal compounding. */
     private static final MathContext MC = new MathContext(20, RoundingMode.HALF_UP);

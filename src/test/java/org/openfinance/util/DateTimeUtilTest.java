@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.Locale;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -60,5 +63,48 @@ class DateTimeUtilTest {
     @DisplayName("formatDateTimeForDisplay(dateTime, locale) returns null for a null date-time")
     void formatDateTimeForDisplayNullDateTime() {
         assertThat(DateTimeUtil.formatDateTimeForDisplay(null, Locale.FRENCH)).isNull();
+    }
+
+    // ========== Explicit-zone conversion overloads (portable, JVM-zone independent) ==========
+
+    private static final ZoneId PLUS_TWO = ZoneOffset.ofHours(2);
+
+    @Test
+    @DisplayName("toUtc(dateTime, zone) interprets the wall-clock time in the given zone")
+    void toUtcWithExplicitZone() {
+        // 12:00 in UTC+2 is 10:00 UTC, regardless of the JVM's default timezone.
+        ZonedDateTime utc = DateTimeUtil.toUtc(LocalDateTime.of(2024, 6, 1, 12, 0), PLUS_TWO);
+
+        assertThat(utc.getZone()).isEqualTo(ZoneOffset.UTC);
+        assertThat(utc.toLocalDateTime()).isEqualTo(LocalDateTime.of(2024, 6, 1, 10, 0));
+    }
+
+    @Test
+    @DisplayName("toLocalZone(zonedDateTime, zone) shifts the instant into the target zone")
+    void toLocalZoneWithExplicitZone() {
+        ZonedDateTime utcNoon =
+                ZonedDateTime.of(LocalDateTime.of(2024, 6, 1, 12, 0), ZoneOffset.UTC);
+
+        ZonedDateTime shifted = DateTimeUtil.toLocalZone(utcNoon, PLUS_TWO);
+
+        assertThat(shifted.getZone()).isEqualTo(PLUS_TWO);
+        assertThat(shifted.toLocalDateTime()).isEqualTo(LocalDateTime.of(2024, 6, 1, 14, 0));
+    }
+
+    @Test
+    @DisplayName("fromEpochMilli(epoch, zone) uses the given zone")
+    void fromEpochMilliWithExplicitZone() {
+        assertThat(DateTimeUtil.fromEpochMilli(0L, ZoneOffset.UTC))
+                .isEqualTo(LocalDateTime.of(1970, 1, 1, 0, 0));
+    }
+
+    @Test
+    @DisplayName("toEpochMilli(dateTime, zone) and fromEpochMilli round-trip under a fixed zone")
+    void epochMilliRoundTripWithExplicitZone() {
+        LocalDateTime original = LocalDateTime.of(2024, 6, 1, 12, 34, 56);
+
+        long epoch = DateTimeUtil.toEpochMilli(original, PLUS_TWO);
+
+        assertThat(DateTimeUtil.fromEpochMilli(epoch, PLUS_TWO)).isEqualTo(original);
     }
 }

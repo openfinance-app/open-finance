@@ -14,7 +14,8 @@ import org.springframework.web.client.RestTemplate;
  * Service that automatically fetches a brand favicon for a given name.
  *
  * <p>Uses Google's Favicon API ({@code https://www.google.com/s2/favicons}) to retrieve a 128px
- * icon. The name is converted to a best-guess {@code .com} domain via {@link #inferDomain(String)}.
+ * icon. The name is converted to a best-guess domain via {@link #inferDomain(String)} (configurable
+ * default TLD + per-brand overrides via {@link LogoFetchProperties}).
  *
  * <p>This service is always safe to call — all failure paths return {@link Optional#empty()} and
  * log a WARN. No exception is ever propagated to the caller.
@@ -81,7 +82,7 @@ public class LogoFetchService {
     }
 
     /**
-     * Converts a human name to a best-guess {@code .com} domain.
+     * Converts a human name to a best-guess domain.
      *
      * <p>Pipeline:
      *
@@ -90,11 +91,14 @@ public class LogoFetchService {
      *   <li>Strip non-ASCII chars (removes combining marks)
      *   <li>Lowercase
      *   <li>Remove all non-alphanumeric chars (spaces, hyphens, apostrophes, etc.)
-     *   <li>Append {@code .com}
+     *   <li>Return the configured {@link LogoFetchProperties#getDomainOverrides() override} for
+     *       that slug if present, else append the configured {@link
+     *       LogoFetchProperties#getDefaultTld() default TLD}
      * </ol>
      *
-     * <p>Examples: "Société Générale" → "societegenerale.com", "McDonald's" → "mcdonalds.com",
-     * "Hello bank!" → "hellobank.com"
+     * <p>Examples (default config): "Société Générale" → "societegenerale.com", "McDonald's" →
+     * "mcdonalds.com", "Hello bank!" → "hellobank.com". With an override {@code caissedepargne →
+     * caisse-epargne.fr}, "Caisse d'Epargne" → "caisse-epargne.fr".
      *
      * <p>Package-private to allow direct testing.
      */
@@ -107,7 +111,12 @@ public class LogoFetchService {
         String lower = asciiOnly.toLowerCase();
         // 4. Strip everything that is not a-z or 0-9
         String slug = lower.replaceAll("[^a-z0-9]", "");
-        // 5. Append .com
-        return slug + ".com";
+        // 5. Explicit per-brand override wins (no reliable way to infer a real TLD from a name)
+        String override = properties.getDomainOverrides().get(slug);
+        if (override != null && !override.isBlank()) {
+            return override;
+        }
+        // 6. Otherwise append the configured default TLD
+        return slug + "." + properties.getDefaultTld();
     }
 }

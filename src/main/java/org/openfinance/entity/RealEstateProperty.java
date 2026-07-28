@@ -10,6 +10,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.openfinance.converter.EncryptedStringConverter;
+import org.openfinance.util.MathConstants;
 
 /**
  * Entity representing a real estate property in the Open-Finance system.
@@ -337,7 +338,7 @@ public class RealEstateProperty {
 
         return appreciation
                 .divide(purchase, 4, RoundingMode.HALF_UP)
-                .multiply(new BigDecimal("100"))
+                .multiply(MathConstants.HUNDRED)
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
@@ -361,7 +362,7 @@ public class RealEstateProperty {
         BigDecimal annualIncome = monthly.multiply(new BigDecimal("12"));
         return annualIncome
                 .divide(current, 4, RoundingMode.HALF_UP)
-                .multiply(new BigDecimal("100"))
+                .multiply(MathConstants.HUNDRED)
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
