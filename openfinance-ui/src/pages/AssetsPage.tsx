@@ -42,8 +42,8 @@ import {
 } from '@/utils/portfolio';
 import { sum, subtract, percentage, multiply, divide } from '@/utils/money';
 import type { Asset, AssetRequest, AssetFilters as Filters } from '@/types/asset';
+import { DEFAULT_PAGE_SIZE, FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
 
-const DEFAULT_PAGE_SIZE = 20;
 
 export default function AssetsPage() {
   const { t } = useTranslation('assets');
@@ -73,7 +73,7 @@ export default function AssetsPage() {
 
   const { data: assetsPage, isLoading, error } = useAssetsSearch(filters);
   // Fetch all assets (unfiltered) for global totals in summary cards
-  const { data: allAssetsPage } = useAssetsSearch({ page: 0, size: 10000, sort: 'name,asc' });
+  const { data: allAssetsPage } = useAssetsSearch({ page: 0, size: FETCH_ALL_PAGE_SIZE, sort: 'name,asc' });
   // Also use the flat assets list for portfolio metrics
   const { data: allAssetsList } = useAssets();
   const createAsset = useCreateAsset();

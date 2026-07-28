@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useRef } from 'react';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { FloatingAIChat } from '@/components/ai/FloatingAIChat';
+import { STORAGE_KEYS } from '@/constants/storage';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useLocale } from '@/context/LocaleContext';
@@ -27,13 +28,13 @@ function AppLayoutInner({ children }: AppLayoutProps) {
   // Load user's locale preference after login/mount
   useEffect(() => {
     if (settings && !hasSyncedRef.current) {
-      const pendingSync = sessionStorage.getItem('pending_language_sync');
+      const pendingSync = sessionStorage.getItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC);
       
       if (pendingSync && pendingSync !== settings.language) {
         // User changed language on the login page before authenticating
         // We should push this new preference to the backend instead of reverting
         void setLocale(pendingSync);
-        sessionStorage.removeItem('pending_language_sync');
+        sessionStorage.removeItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC);
       } else if (settings.language && settings.language !== locale) {
         // Normal flow: use the backend setting
         void setLocale(settings.language);

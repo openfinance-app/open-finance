@@ -15,6 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslation, Trans } from 'react-i18next';
 import { Link } from 'react-router';
+import { ROUTES } from '@/constants/routes';
 import { useLocale } from '@/context/LocaleContext';
 import { updateProfileSchema, type UpdateProfileFormData } from '@/validators/authSchemas';
 import { useGetProfile, useUpdateProfile } from '@/hooks/useAuth';
@@ -119,7 +120,7 @@ export default function ProfilePage() {
           <Trans
             t={t}
             i18nKey="profile.description"
-            components={{ 1: <Link to="/settings" className="text-primary hover:underline" /> }}
+            components={{ 1: <Link to={ROUTES.SETTINGS} className="text-primary hover:underline" /> }}
           />
         }
       />

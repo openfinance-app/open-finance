@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { enUS, fr } from 'date-fns/locale';
 import type { Locale as DateFnsLocale } from 'date-fns';
 import apiClient from '../services/apiClient';
+import { STORAGE_KEYS } from '@/constants/storage';
 
 // Map i18next language codes to date-fns locale objects
 const DATE_FNS_LOCALES: Record<string, DateFnsLocale> = {
@@ -46,10 +47,10 @@ const LocaleContext = createContext<LocaleContextValue>({
  * Errors are swallowed — the locale change still applies locally.
  */
 async function persistLocaleToBackend(locale: string): Promise<void> {
-  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
   if (!token) {
     // User is not logged in — store flag so AppLayout can sync it after login.
-    sessionStorage.setItem('pending_language_sync', locale);
+    sessionStorage.setItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC, locale);
     return;
   }
 
@@ -57,7 +58,7 @@ async function persistLocaleToBackend(locale: string): Promise<void> {
     await apiClient.put('/users/me/settings', { language: locale });
   } catch (error: any) {
     if (error?.response?.status === 401 || error?.response?.status === 403) {
-      sessionStorage.setItem('pending_language_sync', locale);
+      sessionStorage.setItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC, locale);
     } else {
       console.warn('[LocaleContext] Failed to persist locale preference to backend:', error);
     }

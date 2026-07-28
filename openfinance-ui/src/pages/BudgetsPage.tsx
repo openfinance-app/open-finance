@@ -36,9 +36,8 @@ import {
   useBudget,
 } from '@/hooks/useBudgets';
 import type { BudgetRequest, BudgetResponse } from '@/types/budget';
+import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '@/constants/pagination';
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
-const DEFAULT_PAGE_SIZE = 20;
 
 export default function BudgetsPage() {
   const { t } = useTranslation('budgets');

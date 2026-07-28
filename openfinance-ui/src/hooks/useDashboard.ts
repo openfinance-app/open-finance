@@ -18,10 +18,11 @@ import type {
 import type { Transaction } from '../types/transaction';
 import type { DateRange } from '../components/ui/PeriodSelector';
 import { buildEncryptionHeaders } from '@/utils/encryption';
+import { STORAGE_KEYS } from '@/constants/storage';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const getEncryptionKey = (): string | null => sessionStorage.getItem('encryption_session');
+const getEncryptionKey = (): string | null => sessionStorage.getItem(STORAGE_KEYS.ENCRYPTION_SESSION);
 
 /**
  * Build query params that support either a simple `period` (days) or an

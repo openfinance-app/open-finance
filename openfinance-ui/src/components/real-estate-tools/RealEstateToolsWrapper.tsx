@@ -8,6 +8,7 @@
 
 import React, { useState } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router';
+import { ROUTES } from '@/constants/routes';
 import { BuyRentComparator } from './BuyRentComparator';
 import { PropertyRentalSimulator } from './PropertyRentalSimulator';
 import type { SharedPropertyData } from '@/types/realEstateTools';
@@ -19,7 +20,7 @@ const RentalSimulatorGuard: React.FC<{
 }> = ({ children }) => {
   const { isPropertyRentalAvailable } = useCountryToolConfig();
   if (!isPropertyRentalAvailable) {
-    return <Navigate to="/real-estate/tools" replace />;
+    return <Navigate to={ROUTES.REAL_ESTATE_TOOLS} replace />;
   }
   return <>{children}</>;
 };
@@ -31,12 +32,12 @@ export const RealEstateToolsWrapper: React.FC = () => {
   // Handle navigation from Buy/Rent to Rental Simulator with shared data
   const handleNavigateToRentalSimulator = (data: SharedPropertyData) => {
     setSharedData(data);
-    navigate('/real-estate/tools/rental');
+    navigate(ROUTES.REAL_ESTATE_TOOLS_RENTAL);
   };
 
   // Handle navigation back to Buy/Rent Comparator
   const handleNavigateBack = () => {
-    navigate('/real-estate/tools/buy-rent');
+    navigate(ROUTES.REAL_ESTATE_TOOLS_BUY_RENT);
   };
 
   return (

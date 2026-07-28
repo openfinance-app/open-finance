@@ -5,6 +5,7 @@
  */
 
 import type { ReactElement, ReactNode } from 'react';
+import { STORAGE_KEYS } from '@/constants/storage';
 import { render } from '@testing-library/react';
 import type { RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -100,11 +101,11 @@ export function mockAuthentication() {
   };
 
   // Auth token and user in localStorage (persistent)
-  localStorage.setItem('auth_token', mockToken);
-  localStorage.setItem('auth_user', JSON.stringify(mockUser));
+  localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, mockToken);
+  localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(mockUser));
 
   // Encryption key in sessionStorage (per-session)
-  sessionStorage.setItem('encryption_session', mockEncryptionKey);
+  sessionStorage.setItem(STORAGE_KEYS.ENCRYPTION_SESSION, mockEncryptionKey);
 
   return { mockToken, mockEncryptionKey, mockUser };
 }
@@ -113,9 +114,9 @@ export function mockAuthentication() {
  * Clear authentication from localStorage and sessionStorage
  */
 export function clearAuthentication() {
-  localStorage.removeItem('auth_token');
-  localStorage.removeItem('auth_user');
-  sessionStorage.removeItem('encryption_session');
+  localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+  localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+  sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_SESSION);
 }
 
 /**

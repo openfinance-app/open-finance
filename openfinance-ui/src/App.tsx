@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ROUTES, ROUTE_PATTERNS } from '@/constants/routes';
 import { AuthProvider } from './context/AuthContext';
 import { VisibilityProvider } from './context/VisibilityContext';
 import { CurrencyDisplayProvider } from './context/CurrencyDisplayContext';
@@ -106,13 +107,13 @@ function App() {
                       <Suspense fallback={<PageLoadingFallback />}>
                         <Routes>
                           {/* Public routes */}
-                          <Route path="/login" element={<LoginPage />} />
-                          <Route path="/register" element={<RegisterPage />} />
-                          <Route path="/onboarding" element={<OnboardingPage />} />
+                          <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+                          <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+                          <Route path={ROUTES.ONBOARDING} element={<OnboardingPage />} />
 
                           {/* Protected routes - require authentication */}
                           <Route
-                            path="/dashboard"
+                            path={ROUTES.DASHBOARD}
                             element={
                               <ProtectedRoute>
                                 <DashboardPage />
@@ -120,7 +121,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/accounts"
+                            path={ROUTES.ACCOUNTS}
                             element={
                               <ProtectedRoute>
                                 <AccountsPage />
@@ -128,11 +129,11 @@ function App() {
                             }
                           />
                           <Route
-                            path="/accounts/:id"
-                            element={<Navigate to="/accounts" replace />}
+                            path={ROUTE_PATTERNS.ACCOUNT_DETAIL}
+                            element={<Navigate to={ROUTES.ACCOUNTS} replace />}
                           />
                           <Route
-                            path="/transactions"
+                            path={ROUTES.TRANSACTIONS}
                             element={
                               <ProtectedRoute>
                                 <TransactionsPage />
@@ -140,7 +141,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/recurring-transactions"
+                            path={ROUTES.RECURRING_TRANSACTIONS}
                             element={
                               <ProtectedRoute>
                                 <RecurringTransactionsPage />
@@ -148,7 +149,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/search"
+                            path={ROUTES.SEARCH}
                             element={
                               <ProtectedRoute>
                                 <SearchResultsPage />
@@ -156,7 +157,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/import"
+                            path={ROUTES.IMPORT}
                             element={
                               <ProtectedRoute>
                                 <ImportPage />
@@ -164,16 +165,16 @@ function App() {
                             }
                           />
                           <Route
-                            path="/assets"
+                            path={ROUTES.ASSETS}
                             element={
                               <ProtectedRoute>
                                 <AssetsPage />
                               </ProtectedRoute>
                             }
                           />
-                          <Route path="/portfolio" element={<Navigate to="/assets" replace />} />
+                          <Route path={ROUTES.PORTFOLIO} element={<Navigate to={ROUTES.ASSETS} replace />} />
                           <Route
-                            path="/liabilities"
+                            path={ROUTES.LIABILITIES}
                             element={
                               <ProtectedRoute>
                                 <LiabilitiesPage />
@@ -181,7 +182,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/institutions"
+                            path={ROUTES.INSTITUTIONS}
                             element={
                               <ProtectedRoute>
                                 <InstitutionManagementSettings />
@@ -189,7 +190,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/payees"
+                            path={ROUTES.PAYEES}
                             element={
                               <ProtectedRoute>
                                 <PayeeManagementSettings />
@@ -197,7 +198,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/categories"
+                            path={ROUTES.CATEGORIES}
                             element={
                               <ProtectedRoute>
                                 <CategoriesPage />
@@ -205,7 +206,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/transaction-rules"
+                            path={ROUTES.TRANSACTION_RULES}
                             element={
                               <ProtectedRoute>
                                 <TransactionRulesPage />
@@ -213,16 +214,16 @@ function App() {
                             }
                           />
                           <Route
-                            path="/budget"
+                            path={ROUTES.BUDGET}
                             element={
                               <ProtectedRoute>
                                 <BudgetsPage />
                               </ProtectedRoute>
                             }
                           />
-                          <Route path="/budget/:id" element={<Navigate to="/budget" replace />} />
+                          <Route path={ROUTE_PATTERNS.BUDGET_DETAIL} element={<Navigate to={ROUTES.BUDGET} replace />} />
                           <Route
-                            path="/history"
+                            path={ROUTES.HISTORY}
                             element={
                               <ProtectedRoute>
                                 <HistoryPage />
@@ -230,7 +231,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/real-estate"
+                            path={ROUTES.REAL_ESTATE}
                             element={
                               <ProtectedRoute>
                                 <RealEstatePage />
@@ -238,7 +239,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/real-estate/tools"
+                            path={ROUTES.REAL_ESTATE_TOOLS}
                             element={
                               <ProtectedRoute>
                                 <RealEstateToolsHub />
@@ -246,7 +247,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/real-estate/tools/*"
+                            path={ROUTE_PATTERNS.REAL_ESTATE_TOOLS_WILDCARD}
                             element={
                               <ProtectedRoute>
                                 <RealEstateToolsWrapper />
@@ -256,12 +257,12 @@ function App() {
 
                           {/* AI Assistant is now a floating widget — redirect old URL for backward compatibility */}
                           <Route
-                            path="/ai-assistant"
-                            element={<Navigate to="/dashboard" replace />}
+                            path={ROUTES.AI_ASSISTANT}
+                            element={<Navigate to={ROUTES.DASHBOARD} replace />}
                           />
                           {/* /tools view removed - keep submenu routes only */}
                           <Route
-                            path="/tools/financial-freedom"
+                            path={ROUTES.FINANCIAL_FREEDOM}
                             element={
                               <ProtectedRoute>
                                 <FinancialFreedomPage />
@@ -269,7 +270,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/tools/compound-interest"
+                            path={ROUTES.COMPOUND_INTEREST}
                             element={
                               <ProtectedRoute>
                                 <CompoundInterestPage />
@@ -277,7 +278,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/tools/loan-calculator"
+                            path={ROUTES.LOAN_CALCULATOR}
                             element={
                               <ProtectedRoute>
                                 <LoanCalculatorPage />
@@ -285,7 +286,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/tools/early-payoff"
+                            path={ROUTES.EARLY_PAYOFF}
                             element={
                               <ProtectedRoute>
                                 <EarlyPayoffPage />
@@ -293,7 +294,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/community"
+                            path={ROUTES.COMMUNITY}
                             element={
                               <ProtectedRoute>
                                 <CommunityPage />
@@ -301,7 +302,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/premium"
+                            path={ROUTES.PREMIUM}
                             element={
                               <ProtectedRoute>
                                 <PremiumPage />
@@ -309,7 +310,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/profile"
+                            path={ROUTES.PROFILE}
                             element={
                               <ProtectedRoute>
                                 <ProfilePage />
@@ -317,7 +318,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/settings"
+                            path={ROUTES.SETTINGS}
                             element={
                               <ProtectedRoute>
                                 <SettingsPage />
@@ -325,7 +326,7 @@ function App() {
                             }
                           />
                           <Route
-                            path="/backup"
+                            path={ROUTES.BACKUP}
                             element={
                               <ProtectedRoute>
                                 <BackupPage />
@@ -334,10 +335,10 @@ function App() {
                           />
 
                           {/* Default redirect - go to dashboard (protected) */}
-                          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                          <Route path={ROUTES.HOME} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
 
                           {/* 404 fallback */}
-                          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                          <Route path={ROUTE_PATTERNS.NOT_FOUND} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
                         </Routes>
                       </Suspense>
                     </Router>

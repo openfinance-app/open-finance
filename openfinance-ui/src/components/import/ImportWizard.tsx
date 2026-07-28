@@ -13,6 +13,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useBeforeUnload } from 'react-router';
+import { ROUTES } from '@/constants/routes';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { FileUpload } from './FileUpload';
@@ -20,6 +21,7 @@ import { ImportReview } from './ImportReview';
 import { ImportProgress } from './ImportProgress';
 import { Button } from '@/components/ui/Button';
 import { SimpleSelect } from '@/components/ui/SimpleSelect';
+import { STORAGE_KEYS } from '@/constants/storage';
 import {
   ChevronLeft,
   ChevronRight,
@@ -257,7 +259,7 @@ export function ImportWizard() {
           return created.id;
         } catch (err: unknown) {
           // Category already exists — refetch with English names to match QIF category names
-          const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+          const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
           const { buildEncryptionHeaders } = await import('@/utils/encryption');
           const resp = await fetch(
             `${apiClient.defaults.baseURL}/categories`,
@@ -365,7 +367,7 @@ export function ImportWizard() {
       setShowCancelConfirm(true);
       return;
     }
-    navigate('/import');
+    navigate(ROUTES.IMPORT);
   };
 
   /** Called when the user confirms they want to leave mid-import */
@@ -378,10 +380,10 @@ export function ImportWizard() {
         console.error('Failed to cancel import:', error);
       }
     }
-    navigate('/import');
+    navigate(ROUTES.IMPORT);
   };
 
-  const handleViewTransactions = () => navigate('/transactions');
+  const handleViewTransactions = () => navigate(ROUTES.TRANSACTIONS);
 
   // ── Navigation guards ─────────────────────────────────────────────────────
 

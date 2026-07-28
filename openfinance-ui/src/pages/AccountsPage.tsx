@@ -16,6 +16,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
+import { DEFAULT_PAGE_SIZE, FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
 import { AccountCard } from '@/components/accounts/AccountCard';
 import { AccountForm } from '@/components/accounts/AccountForm';
 import { AccountFilters } from '@/components/accounts/AccountFilters';
@@ -50,7 +51,6 @@ function hasActiveFilters(filters: Filters): boolean {
   );
 }
 
-const DEFAULT_PAGE_SIZE = 20;
 
 export default function AccountsPage() {
   const { t } = useTranslation('accounts');
@@ -95,9 +95,9 @@ export default function AccountsPage() {
 
   const { data: accountsPage, isLoading: isSearchLoading, error } = useAccountsSearch(filters);
   // Fetch all accounts (unfiltered) for global totals in the summary card
-  const { data: allAccountsPage } = useAccountsSearch({ page: 0, size: 10000, sort: 'name,asc' });
+  const { data: allAccountsPage } = useAccountsSearch({ page: 0, size: FETCH_ALL_PAGE_SIZE, sort: 'name,asc' });
   // Fetch all filtered accounts for correct totals
-  const { data: allFilteredAccountsPage, isLoading: isFilteredLoading } = useAccountsSearch({ ...filters, page: 0, size: 10000 });
+  const { data: allFilteredAccountsPage, isLoading: isFilteredLoading } = useAccountsSearch({ ...filters, page: 0, size: FETCH_ALL_PAGE_SIZE });
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
   const closeAccount = useCloseAccount();

@@ -7,6 +7,7 @@
  */
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+import { ROUTES } from '@/constants/routes';
 import { useTranslation } from 'react-i18next';
 import { User, Settings, HelpCircle, LogOut, ChevronDown } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
@@ -57,7 +58,7 @@ export function UserDropdownMenu() {
 
   const handleLogout = async () => {
     clearAuth();
-    navigate('/login');
+    navigate(ROUTES.LOGIN);
   };
 
   const menuItems = [
@@ -65,7 +66,7 @@ export function UserDropdownMenu() {
       label: t('profile'),
       icon: User,
       onClick: () => {
-        navigate('/profile');
+        navigate(ROUTES.PROFILE);
         setIsOpen(false);
       },
     },
@@ -73,7 +74,7 @@ export function UserDropdownMenu() {
       label: t('settings'),
       icon: Settings,
       onClick: () => {
-        navigate('/settings');
+        navigate(ROUTES.SETTINGS);
         setIsOpen(false);
       },
     },

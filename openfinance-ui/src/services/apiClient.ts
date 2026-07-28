@@ -1,5 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import i18n from '../i18n';
+import { STORAGE_KEYS } from '@/constants/storage';
 
 // API base URL - defaults to backend running on port 8080
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
@@ -17,13 +18,13 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Add JWT token from localStorage or sessionStorage
-    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
     // Add encryption session token to X-Encryption-Session header
-    const sessionToken = sessionStorage.getItem('encryption_session');
+    const sessionToken = sessionStorage.getItem(STORAGE_KEYS.ENCRYPTION_SESSION);
 
     if (sessionToken && config.headers && !config.headers['X-Encryption-Session']) {
       config.headers['X-Encryption-Session'] = sessionToken;
@@ -64,9 +65,9 @@ apiClient.interceptors.response.use(
           // An authenticated request was rejected (expired/invalid token).
           // Clear stale tokens and send the user back to login.
           try {
-            localStorage.removeItem('auth_token');
-            sessionStorage.removeItem('encryption_session');
-            sessionStorage.removeItem('session_start_time');
+            localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+            sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_SESSION);
+            sessionStorage.removeItem(STORAGE_KEYS.SESSION_START_TIME);
           } catch (e) {
             // ignore storage errors
           }

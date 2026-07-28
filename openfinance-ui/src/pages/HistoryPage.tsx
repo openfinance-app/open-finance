@@ -11,10 +11,9 @@ import { historyService } from '@/services/historyService';
 import type { EntityType, OperationHistoryResponse } from '@/types/history';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuthContext } from '@/context/AuthContext';
+import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '@/constants/pagination';
 import { format } from 'date-fns';
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
-const DEFAULT_PAGE_SIZE = 20;
 
 export default function HistoryPage() {
   const { t } = useTranslation('history');

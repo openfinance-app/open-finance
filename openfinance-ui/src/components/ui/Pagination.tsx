@@ -7,6 +7,7 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
+import { PAGE_SIZE_OPTIONS } from '@/constants/pagination';
 
 interface PaginationProps {
   currentPage: number; // 0-indexed
@@ -18,7 +19,6 @@ interface PaginationProps {
   pageSizeOptions?: number[];
 }
 
-const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export function Pagination({
   currentPage,
@@ -27,7 +27,7 @@ export function Pagination({
   totalElements,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
+  pageSizeOptions = PAGE_SIZE_OPTIONS,
 }: PaginationProps) {
   const { t } = useTranslation('common');
   // Calculate showing range

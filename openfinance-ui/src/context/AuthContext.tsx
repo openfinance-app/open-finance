@@ -12,6 +12,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo } 
 import type { ReactNode } from 'react';
 import type { User } from '@/types/user';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { STORAGE_KEYS } from '@/constants/storage';
 
 interface AuthContextType {
   /** Current authenticated user, null if not authenticated */
@@ -49,7 +50,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionStartTime, setSessionStartTime] = useState<string | null>(() =>
-    sessionStorage.getItem('session_start_time')
+    sessionStorage.getItem(STORAGE_KEYS.SESSION_START_TIME)
   );
 
   /**
@@ -60,13 +61,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const initAuth = () => {
       try {
         // Check localStorage first (persistent sessions with "remember me")
-        let storedToken = localStorage.getItem('auth_token');
-        let storedUser = localStorage.getItem('auth_user');
+        let storedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+        let storedUser = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
 
         // If not in localStorage, check sessionStorage (session-only)
         if (!storedToken) {
-          storedToken = sessionStorage.getItem('auth_token');
-          storedUser = sessionStorage.getItem('auth_user');
+          storedToken = sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+          storedUser = sessionStorage.getItem(STORAGE_KEYS.AUTH_USER);
         }
 
         if (storedToken && storedUser) {
@@ -77,10 +78,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } catch (error) {
         console.error('Failed to initialize auth state:', error);
         // Clear invalid stored data from both storages
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
-        sessionStorage.removeItem('auth_token');
-        sessionStorage.removeItem('auth_user');
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+        sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
       } finally {
         setIsLoading(false);
       }
@@ -90,7 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Listen to storage events to sync auth state across tabs
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'auth_token') {
+      if (e.key === STORAGE_KEYS.AUTH_TOKEN) {
         if (e.newValue === null) {
           // Logged out in another tab
           setToken(null);
@@ -98,7 +99,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         } else {
           // Logged in on another tab
           const storedUser =
-            localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+            localStorage.getItem(STORAGE_KEYS.AUTH_USER) || sessionStorage.getItem(STORAGE_KEYS.AUTH_USER);
           if (storedUser) {
             setToken(e.newValue);
             setUser(JSON.parse(storedUser) as User);
@@ -130,17 +131,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Persist to chosen storage. Note: storing JWT in localStorage has XSS risk;
     // consider using httpOnly cookies for production deployments.
     try {
-      storage.setItem('auth_token', token);
-      storage.setItem('auth_user', JSON.stringify(user));
+      storage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+      storage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
 
       // Record session start time; always in sessionStorage so it clears on tab close
       const now = new Date().toISOString();
-      sessionStorage.setItem('session_start_time', now);
+      sessionStorage.setItem(STORAGE_KEYS.SESSION_START_TIME, now);
       setSessionStartTime(now);
 
       // Clear from opposite storage
-      oppositeStorage.removeItem('auth_token');
-      oppositeStorage.removeItem('auth_user');
+      oppositeStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      oppositeStorage.removeItem(STORAGE_KEYS.AUTH_USER);
     } catch (error) {
       // Log but don't throw — UI should remain usable even if persistence fails
       // eslint-disable-next-line no-console
@@ -160,10 +161,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Persist to whichever storage currently holds the session
       try {
-        if (localStorage.getItem('auth_user')) {
-          localStorage.setItem('auth_user', JSON.stringify(updated));
-        } else if (sessionStorage.getItem('auth_user')) {
-          sessionStorage.setItem('auth_user', JSON.stringify(updated));
+        if (localStorage.getItem(STORAGE_KEYS.AUTH_USER)) {
+          localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(updated));
+        } else if (sessionStorage.getItem(STORAGE_KEYS.AUTH_USER)) {
+          sessionStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(updated));
         }
       } catch (e) {
         console.error('Failed to persist user update to storage:', e);
@@ -183,13 +184,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Clear from both storages
     try {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      sessionStorage.removeItem('auth_token');
-      sessionStorage.removeItem('auth_user');
-      sessionStorage.removeItem('encryption_session');
-      sessionStorage.removeItem('encryption_enabled');
-      sessionStorage.removeItem('session_start_time');
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+      sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+      sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_SESSION);
+      sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_ENABLED);
+      sessionStorage.removeItem(STORAGE_KEYS.SESSION_START_TIME);
       setSessionStartTime(null);
     } catch (e) {
       // ignore storage errors

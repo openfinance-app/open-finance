@@ -8,6 +8,8 @@ import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Building2, Calculator, Filter, Search, X, AlertTriangle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { ROUTES } from '@/constants/routes';
+import { DEFAULT_PAGE_SIZE, FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Pagination } from '@/components/ui/Pagination';
@@ -28,7 +30,6 @@ import { sum, multiply, subtract } from '@/utils/money';
 import type { RealEstateProperty, PropertySearchFilters, RealEstatePropertyRequest } from '@/types/realEstate';
 import { PropertyType as PropertyTypeEnum } from '@/types/realEstate';
 
-const DEFAULT_PAGE_SIZE = 20;
 
 export default function RealEstatePage() {
   const { t } = useTranslation('realEstate');
@@ -59,7 +60,7 @@ export default function RealEstatePage() {
 
   const { data: propertiesPage, isLoading, error } = usePropertiesSearch(apiFilters);
   // Fetch all active properties (unfiltered) for global summary totals
-  const { data: allPropertiesPage } = usePropertiesSearch({ page: 0, size: 10000, sort: 'name,asc', isActive: true });
+  const { data: allPropertiesPage } = usePropertiesSearch({ page: 0, size: FETCH_ALL_PAGE_SIZE, sort: 'name,asc', isActive: true });
 
   const properties = propertiesPage?.content || [];
   const allProperties = allPropertiesPage?.content || [];
@@ -263,7 +264,7 @@ export default function RealEstatePage() {
             <Filter className="h-4 w-4 mr-2" />
             {t('filters.label')}
           </Button>
-          <Button variant="outline" onClick={() => navigate('/real-estate/tools')}>
+          <Button variant="outline" onClick={() => navigate(ROUTES.REAL_ESTATE_TOOLS)}>
             <Calculator className="h-4 w-4 mr-2" />
             {t('tools')}
           </Button>

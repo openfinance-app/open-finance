@@ -7,6 +7,7 @@ import {
   HelpCircle 
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { ROUTES } from '@/constants/routes';
 import type { IAccountSummary } from '../../types/dashboard';
 import type { AccountType } from '../../types/account';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -77,11 +78,11 @@ export default function AccountsSummaryCard({ accounts }: AccountsSummaryCardPro
           return (
             <div
               key={account.id}
-              onClick={() => navigate('/accounts')}
+              onClick={() => navigate(ROUTES.ACCOUNTS)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  navigate('/accounts');
+                  navigate(ROUTES.ACCOUNTS);
                 }
               }}
               role="button"

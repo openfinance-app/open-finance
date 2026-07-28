@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'react-router';
+import { ROUTES } from '@/constants/routes';
 import { Lock, Mail, User, Shield, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -269,7 +270,7 @@ export default function RegisterPage() {
             <p className="text-text-secondary text-sm">
               {t('register.hasAccount')}{' '}
               <Link
-                to="/login"
+                to={ROUTES.LOGIN}
                 className="text-primary hover:text-primary/90 font-medium transition-colors"
               >
                 {t('register.signIn')}

@@ -1,5 +1,4 @@
-const ENCRYPTION_SESSION_KEY = 'encryption_session';
-const ENCRYPTION_ENABLED_KEY = 'encryption_enabled';
+import { STORAGE_KEYS } from '@/constants/storage';
 
 /**
  * Gets the encryption key from session storage
@@ -7,7 +6,7 @@ const ENCRYPTION_ENABLED_KEY = 'encryption_enabled';
  */
 export function getEncryptionKey(): string | null {
   if (typeof window === 'undefined') return null;
-  return sessionStorage.getItem(ENCRYPTION_SESSION_KEY);
+  return sessionStorage.getItem(STORAGE_KEYS.ENCRYPTION_SESSION);
 }
 
 /**
@@ -15,7 +14,7 @@ export function getEncryptionKey(): string | null {
  */
 export function setEncryptionKey(key: string): void {
   if (typeof window === 'undefined') return;
-  sessionStorage.setItem(ENCRYPTION_SESSION_KEY, key);
+  sessionStorage.setItem(STORAGE_KEYS.ENCRYPTION_SESSION, key);
 }
 
 /**
@@ -23,27 +22,27 @@ export function setEncryptionKey(key: string): void {
  */
 export function clearEncryptionKey(): void {
   if (typeof window === 'undefined') return;
-  sessionStorage.removeItem(ENCRYPTION_SESSION_KEY);
+  sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_SESSION);
 }
 
 export function getStoredEncryptionEnabled(): boolean {
   if (typeof window === 'undefined') return true;
   const storedMode =
-    sessionStorage.getItem(ENCRYPTION_ENABLED_KEY) ?? localStorage.getItem(ENCRYPTION_ENABLED_KEY);
+    sessionStorage.getItem(STORAGE_KEYS.ENCRYPTION_ENABLED) ?? localStorage.getItem(STORAGE_KEYS.ENCRYPTION_ENABLED);
   return storedMode === 'false' ? false : true;
 }
 
 export function setStoredEncryptionEnabled(encryptionEnabled: boolean): void {
   if (typeof window === 'undefined') return;
   const storedValue = encryptionEnabled ? 'true' : 'false';
-  sessionStorage.setItem(ENCRYPTION_ENABLED_KEY, storedValue);
-  localStorage.setItem(ENCRYPTION_ENABLED_KEY, storedValue);
+  sessionStorage.setItem(STORAGE_KEYS.ENCRYPTION_ENABLED, storedValue);
+  localStorage.setItem(STORAGE_KEYS.ENCRYPTION_ENABLED, storedValue);
 }
 
 export function clearStoredEncryptionEnabled(): void {
   if (typeof window === 'undefined') return;
-  sessionStorage.removeItem(ENCRYPTION_ENABLED_KEY);
-  localStorage.removeItem(ENCRYPTION_ENABLED_KEY);
+  sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_ENABLED);
+  localStorage.removeItem(STORAGE_KEYS.ENCRYPTION_ENABLED);
 }
 
 export function buildEncryptionHeaders(

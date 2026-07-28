@@ -31,6 +31,7 @@ import { LiabilityList } from '@/components/liabilities/LiabilityList';
 import { LiabilityFilters } from '@/components/liabilities/LiabilityFilters';
 import { LiabilitySummaryCards } from '@/components/liabilities/LiabilitySummaryCards';
 import { LiabilityDetailDialog } from '@/components/liabilities/LiabilityDetailDialog';
+import { FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
 
 export default function LiabilitiesPage() {
   const { t } = useTranslation('liabilities');
@@ -51,7 +52,7 @@ export default function LiabilitiesPage() {
   const deleteLiability = useDeleteLiability();
 
   // Fetch all liabilities for summary cards (unfiltered)
-  const { data: allLiabilities } = useLiabilitiesPaged({ page: 0, size: 1000 });
+  const { data: allLiabilities } = useLiabilitiesPaged({ page: 0, size: FETCH_ALL_PAGE_SIZE });
 
   const liabilities = liabilitiesPage?.content || [];
   const hasLiabilities = (allLiabilities?.content?.length ?? 0) > 0;

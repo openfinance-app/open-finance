@@ -8,6 +8,7 @@
  */
 
 import { useNavigate } from 'react-router';
+import { ROUTES } from '@/constants/routes';
 import { useTranslation } from 'react-i18next';
 import { Target, TrendingDown, ArrowRight, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -158,7 +159,7 @@ export default function BudgetProgressCard() {
           {isError ? t('cards.budgetCard.loadError') : t('cards.budgetCard.noBudgets')}
         </p>
         <button
-          onClick={() => navigate('/budgets')}
+          onClick={() => navigate(ROUTES.BUDGET)}
           className="text-xs text-primary hover:underline font-medium"
         >
           {t('cards.budgetCard.setUp')} →
@@ -173,7 +174,7 @@ export default function BudgetProgressCard() {
         <Target className="h-8 w-8 text-text-tertiary" />
         <p className="text-sm text-text-secondary text-center">{t('cards.budgetCard.noBudgets')}</p>
         <button
-          onClick={() => navigate('/budgets')}
+          onClick={() => navigate(ROUTES.BUDGET)}
           className="text-xs text-primary hover:underline font-medium"
         >
           {t('cards.budgetCard.createFirst')} →
@@ -218,7 +219,7 @@ export default function BudgetProgressCard() {
             />
           </CardTitle>
           <button
-            onClick={() => navigate('/budgets')}
+            onClick={() => navigate(ROUTES.BUDGET)}
             className="flex items-center gap-1 text-xs text-primary hover:underline font-medium"
           >
             {t('cards.budgetCard.viewAll')}
@@ -304,7 +305,7 @@ export default function BudgetProgressCard() {
 
           {hasMore && (
             <button
-              onClick={() => navigate('/budgets')}
+              onClick={() => navigate(ROUTES.BUDGET)}
               className="w-full text-center text-xs text-text-tertiary hover:text-primary transition-colors py-1"
             >
               {t('cards.budgetCard.more', { count: sorted.length - MAX_VISIBLE })}

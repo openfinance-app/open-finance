@@ -12,6 +12,7 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
+import { ROUTES } from '@/constants/routes';
 import { useAuthContext } from '@/context/AuthContext';
 import { LoadingSpinner } from '@/components/LoadingComponents';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -51,7 +52,7 @@ export const ProtectedRoute = React.memo(function ProtectedRoute({ children }: P
   // Redirect to login if not authenticated
   // Preserve the attempted location so we can redirect back after login
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
   }
 
   // Render protected content wrapped in app layout

@@ -4,6 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+import { ROUTES } from '@/constants/routes';
 import type { AxiosError } from 'axios';
 import apiClient from '@/services/apiClient';
 import type {
@@ -19,10 +20,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import { clearStoredEncryptionEnabled, setStoredEncryptionEnabled } from '@/utils/encryption';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
-
-// Storage keys - keep consistent and avoid magic strings
-const AUTH_TOKEN_KEY = 'auth_token';
-const ENCRYPTION_SESSION_KEY = 'encryption_session';
+import { STORAGE_KEYS } from '@/constants/storage';
 
 interface SanitizedAuthErrorLog {
   status?: number;
@@ -65,7 +63,7 @@ export function useRegister() {
     onSuccess: () => {
       // Redirect to login page after successful registration
       // Pass a translation key so LoginPage can render it in the active language
-      navigate('/login', {
+      navigate(ROUTES.LOGIN, {
         state: { messageKey: 'register.success' },
       });
     },
@@ -114,10 +112,10 @@ export function useLogin() {
       try {
         const encryptionEnabled = data.encryptionEnabled !== false;
         if (encryptionEnabled && typeof data.encryptionKey === 'string') {
-          sessionStorage.setItem(ENCRYPTION_SESSION_KEY, data.encryptionKey);
+          sessionStorage.setItem(STORAGE_KEYS.ENCRYPTION_SESSION, data.encryptionKey);
           setStoredEncryptionEnabled(true);
         } else {
-          sessionStorage.removeItem(ENCRYPTION_SESSION_KEY);
+          sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_SESSION);
           setStoredEncryptionEnabled(false);
         }
       } catch (e) {
@@ -131,9 +129,9 @@ export function useLogin() {
       console.error('Login failed:', sanitizeAuthErrorForLog(error));
       // Clear any stale tokens from both storages
       try {
-        localStorage.removeItem(AUTH_TOKEN_KEY);
-        sessionStorage.removeItem(AUTH_TOKEN_KEY);
-        sessionStorage.removeItem(ENCRYPTION_SESSION_KEY);
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_SESSION);
         clearStoredEncryptionEnabled();
       } catch (e) {
         console.warn('Failed to clear stale auth storage', sanitizeAuthErrorForLog(e));
@@ -158,7 +156,7 @@ export function useLogout() {
     clearAuth();
 
     // Navigate to login
-    navigate('/login');
+    navigate(ROUTES.LOGIN);
   }, [navigate, clearAuth]);
 }
 
@@ -218,8 +216,8 @@ export function useUpdateProfile() {
       if (currentUser) {
         // Check which storage has the token to preserve the "remember me" preference
         const token =
-          localStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem(AUTH_TOKEN_KEY) || '';
-        const rememberMe = !!localStorage.getItem(AUTH_TOKEN_KEY); // true if in localStorage
+          localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || '';
+        const rememberMe = !!localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN); // true if in localStorage
         setAuth(updatedUser, token, rememberMe);
       }
     },
@@ -301,7 +299,7 @@ export function useCompleteOnboarding() {
       // Sync the amount display mode into context (and localStorage)
       setDisplayMode(variables.amountDisplayMode);
       queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-      navigate('/dashboard', { replace: true });
+      navigate(ROUTES.DASHBOARD, { replace: true });
     },
     onError: error => {
       console.error('Onboarding submission failed:', error?.message ?? error);

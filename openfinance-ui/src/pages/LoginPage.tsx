@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useLocation, useNavigate } from 'react-router';
+import { ROUTES } from '@/constants/routes';
 import { Lock, User, Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -91,9 +92,9 @@ export default function LoginPage() {
               ...(encryptionEnabled ? { masterPassword: masterPassword ?? '' } : {}),
             });
             if (!result.onboardingComplete) {
-              navigate('/onboarding', { replace: true });
+              navigate(ROUTES.ONBOARDING, { replace: true });
             } else {
-              navigate('/dashboard', { replace: true });
+              navigate(ROUTES.DASHBOARD, { replace: true });
             }
           } catch (error: any) {
             const msg =
@@ -129,9 +130,9 @@ export default function LoginPage() {
       // Redirect to onboarding for first-time users; otherwise go to the
       // originally requested page or the dashboard.
       if (!loginResult.onboardingComplete) {
-        navigate('/onboarding', { replace: true });
+        navigate(ROUTES.ONBOARDING, { replace: true });
       } else {
-        const from = (location.state as any)?.from?.pathname || '/dashboard';
+        const from = (location.state as any)?.from?.pathname || ROUTES.DASHBOARD;
         navigate(from, { replace: true });
       }
     } catch (error: any) {
@@ -327,7 +328,7 @@ export default function LoginPage() {
             <p className="text-text-secondary text-sm">
               {t('login.noAccount')}{' '}
               <Link
-                to="/register"
+                to={ROUTES.REGISTER}
                 className="text-primary hover:text-primary/90 font-medium transition-colors"
               >
                 {t('login.createAccount')}

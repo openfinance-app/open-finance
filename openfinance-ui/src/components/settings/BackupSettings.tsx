@@ -8,6 +8,7 @@
  * Requirements: REQ-2.14.2 (Data Backup & Restore)
  */
 import { useNavigate } from 'react-router';
+import { ROUTES } from '@/constants/routes';
 import { Database, Clock, HardDrive, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useListBackups } from '@/hooks/useBackup';
@@ -149,7 +150,7 @@ export function BackupSettings() {
         {/* Action Button */}
         <Button
           variant="primary"
-          onClick={() => navigate('/backup')}
+          onClick={() => navigate(ROUTES.BACKUP)}
           className="w-full flex items-center justify-center gap-2"
         >
           <Database className="h-4 w-4" />

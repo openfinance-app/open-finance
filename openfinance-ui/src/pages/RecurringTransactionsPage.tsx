@@ -36,6 +36,7 @@ import type {
 import { Badge } from '@/components/ui/Badge';
 import { RecurringTransactionForm } from '@/components/transactions/RecurringTransactionForm';
 import { Input } from '@/components/ui/Input';
+import { FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
 
 export default function RecurringTransactionsPage() {
   const { t } = useTranslation('recurring');
@@ -51,9 +52,9 @@ export default function RecurringTransactionsPage() {
 
   const { data: recurringTransactionsPage, isLoading, error } = useRecurringTransactionsPaged(filters);
   // Fetch all (unfiltered) for global stat totals
-  const { data: allRecurringPage } = useRecurringTransactionsPaged({ page: 0, size: 10000, sort: 'nextOccurrence,asc' });
+  const { data: allRecurringPage } = useRecurringTransactionsPaged({ page: 0, size: FETCH_ALL_PAGE_SIZE, sort: 'nextOccurrence,asc' });
   // Fetch all matching current filters (no pagination) for filtered stats
-  const { data: allFilteredPage } = useRecurringTransactionsPaged({ ...filters, page: 0, size: 10000 });
+  const { data: allFilteredPage } = useRecurringTransactionsPaged({ ...filters, page: 0, size: FETCH_ALL_PAGE_SIZE });
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
   const createMutation = useCreateRecurringTransaction();
