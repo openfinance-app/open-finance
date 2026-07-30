@@ -100,6 +100,12 @@ public class DashboardService {
     /** Months per year — a unit conversion constant, not a tunable business rule. */
     private static final BigDecimal MONTHS_PER_YEAR = BigDecimal.valueOf(12);
 
+    /** Days per month — used for period estimation in borrowing-capacity calculations. */
+    private static final BigDecimal DAYS_PER_MONTH = BigDecimal.valueOf(30);
+
+    /** Days per year — used for period fraction calculations. */
+    private static final BigDecimal DAYS_PER_YEAR = new BigDecimal("365");
+
     /**
      * Retrieves a complete dashboard summary for the specified user.
      *
@@ -1325,8 +1331,7 @@ public class DashboardService {
 
         // Calculate average monthly income and expenses
         BigDecimal monthsInPeriod =
-                BigDecimal.valueOf(analysisPeriod)
-                        .divide(BigDecimal.valueOf(30), 2, RoundingMode.HALF_UP);
+                BigDecimal.valueOf(analysisPeriod).divide(DAYS_PER_MONTH, 2, RoundingMode.HALF_UP);
 
         BigDecimal monthlyIncome =
                 monthsInPeriod.compareTo(BigDecimal.ZERO) > 0
@@ -1490,7 +1495,7 @@ public class DashboardService {
         BigDecimal monthsInPeriod =
                 analysisPeriod > 0
                         ? BigDecimal.valueOf(analysisPeriod)
-                                .divide(BigDecimal.valueOf(30), 2, RoundingMode.HALF_UP)
+                                .divide(DAYS_PER_MONTH, 2, RoundingMode.HALF_UP)
                         : BigDecimal.ONE;
 
         BigDecimal monthlyIncome = totalIncome.divide(monthsInPeriod, 2, RoundingMode.HALF_UP);
@@ -2211,13 +2216,13 @@ public class DashboardService {
 
     /** One month as an exact fraction of a year (1/12), computed in BigDecimal (never double). */
     private BigDecimal oneMonthFraction() {
-        return BigDecimal.ONE.divide(new BigDecimal("12"), 10, RoundingMode.HALF_UP);
+        return BigDecimal.ONE.divide(MONTHS_PER_YEAR, 10, RoundingMode.HALF_UP);
     }
 
     /**
      * {@code days} as an exact fraction of a 365-day year, computed in BigDecimal (never double).
      */
     private BigDecimal daysFraction(long days) {
-        return BigDecimal.valueOf(days).divide(new BigDecimal("365"), 10, RoundingMode.HALF_UP);
+        return BigDecimal.valueOf(days).divide(DAYS_PER_YEAR, 10, RoundingMode.HALF_UP);
     }
 }

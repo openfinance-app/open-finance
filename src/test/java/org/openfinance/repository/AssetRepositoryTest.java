@@ -278,6 +278,61 @@ class AssetRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should save and round-trip asset with JPY currency (zero decimal)")
+    void shouldSaveAndRoundTripJpyAsset() {
+        // Given
+        Asset jpyAsset =
+                Asset.builder()
+                        .userId(testUser.getId())
+                        .name("JPY Bond")
+                        .type(AssetType.BOND)
+                        .quantity(BigDecimal.ONE)
+                        .purchasePrice(new BigDecimal("100000"))
+                        .currentPrice(new BigDecimal("101000"))
+                        .currency("JPY")
+                        .purchaseDate(LocalDate.of(2024, 6, 1))
+                        .build();
+
+        // When
+        Asset saved = assetRepository.save(jpyAsset);
+        Optional<Asset> found = assetRepository.findById(saved.getId());
+
+        // Then
+        assertThat(found).isPresent();
+        assertThat(found.get().getCurrency()).isEqualTo("JPY");
+        assertThat(found.get().getPurchasePrice()).isEqualByComparingTo(new BigDecimal("100000"));
+        assertThat(found.get().getPurchasePrice().scale()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("Should save and round-trip asset with BTC currency (high precision)")
+    void shouldSaveAndRoundTripBtcAsset() {
+        // Given
+        Asset btcAsset =
+                Asset.builder()
+                        .userId(testUser.getId())
+                        .name("Bitcoin Holding")
+                        .type(AssetType.CRYPTO)
+                        .symbol("BTC")
+                        .quantity(new BigDecimal("0.12345678"))
+                        .purchasePrice(new BigDecimal("50000.00"))
+                        .currentPrice(new BigDecimal("52000.00"))
+                        .currency("BTC")
+                        .purchaseDate(LocalDate.of(2024, 3, 1))
+                        .build();
+
+        // When
+        Asset saved = assetRepository.save(btcAsset);
+        Optional<Asset> found = assetRepository.findById(saved.getId());
+
+        // Then
+        assertThat(found).isPresent();
+        assertThat(found.get().getCurrency()).isEqualTo("BTC");
+        assertThat(found.get().getQuantity()).isEqualByComparingTo(new BigDecimal("0.12345678"));
+        assertThat(found.get().getQuantity().scale()).isEqualTo(8);
+    }
+
+    @Test
     @DisplayName("Should find assets by user ID and symbol")
     void shouldFindAssetsByUserIdAndSymbol() {
         // Given

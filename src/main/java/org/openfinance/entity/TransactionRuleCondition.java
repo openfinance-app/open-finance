@@ -64,13 +64,13 @@ public class TransactionRuleCondition {
     private Long ruleId;
 
     /** The field of the imported transaction this condition targets. Requirement: REQ-TR-2.1 */
-    @NotNull(message = "Condition field is required")
+    @NotNull(message = "{transactionRuleCondition.field.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "field", nullable = false, length = 30)
     private RuleConditionField field;
 
     /** The comparison operator to apply. Requirement: REQ-TR-2.2 */
-    @NotNull(message = "Condition operator is required")
+    @NotNull(message = "{transactionRuleCondition.operator.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "operator", nullable = false, length = 30)
     private RuleConditionOperator operator;
@@ -80,7 +80,7 @@ public class TransactionRuleCondition {
      * decimal string (parsed as BigDecimal). For TRANSACTION_TYPE: "INCOME" or "EXPENSE".
      * Requirement: REQ-TR-2.3
      */
-    @NotBlank(message = "Condition value is required")
+    @NotBlank(message = "{transactionRuleCondition.value.notblank}")
     @Column(name = "`value`", nullable = false)
     private String value;
 

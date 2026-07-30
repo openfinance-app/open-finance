@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { Progress } from '@/components/ui/Progress';
+import { useTranslation } from 'react-i18next';
 import type { RentalRevenueInputs, ValidationError } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
@@ -33,6 +34,7 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
 }) => {
   const { baseCurrency } = useAuthContext();
   const { format: formatCurrency } = useFormatCurrency();
+  const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) => errors.find(e => e.field === `revenue.${field}`)?.message;
 
@@ -49,7 +51,7 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <Euro className="h-5 w-5" />
-            Revenus Locatifs
+            {t('revenueSection.title')}
           </span>
           <ChevronDown
             className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -63,7 +65,7 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
         <CardContent className="p-4 space-y-4">
           {/* Monthly Rent */}
           <div className="space-y-2">
-            <Label htmlFor="monthlyRent">Loyer mensuel HC</Label>
+            <Label htmlFor="monthlyRent">{t('revenueSection.monthlyRent')}</Label>
             <Input
               id="monthlyRent"
               type="number"
@@ -81,7 +83,7 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
 
           {/* Recoverable Charges */}
           <div className="space-y-2">
-            <Label htmlFor="recoverableCharges">Charges récupérables/mois</Label>
+            <Label htmlFor="recoverableCharges">{t('revenueSection.recoverableCharges')}</Label>
             <Input
               id="recoverableCharges"
               type="number"
@@ -96,7 +98,7 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
           <div className="space-y-2">
             <Label htmlFor="occupancyRate" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Taux d'occupation (%)
+              {t('revenueSection.occupancyRate')}
             </Label>
             <Input
               id="occupancyRate"
@@ -119,7 +121,7 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
           <div className="space-y-2">
             <Label htmlFor="badDebtRate" className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
-              Taux d'impayés (%)
+              {t('revenueSection.badDebtRate')}
             </Label>
             <Input
               id="badDebtRate"
@@ -141,11 +143,11 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
           {/* Revenue Summary */}
           <div className="pt-2 border-t space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Loyer annuel brut</span>
+              <span className="text-muted-foreground">{t('revenueSection.annualGrossRent')}</span>
               <span>{formatCurrency(annualRent, baseCurrency)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Revenu effectif</span>
+              <span className="text-muted-foreground">{t('revenueSection.effectiveRevenue')}</span>
               <span className="font-semibold text-success">{formatCurrency(effectiveRevenue, baseCurrency)}</span>
             </div>
           </div>

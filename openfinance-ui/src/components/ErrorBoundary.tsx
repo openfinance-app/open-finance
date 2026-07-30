@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Button } from './ui/Button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/Card';
+import i18n from '@/i18n';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -44,10 +45,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <div className="flex items-center justify-center min-h-screen bg-background p-4">
           <Card className="max-w-md w-full">
             <CardHeader>
-              <CardTitle className="text-error">Something went wrong</CardTitle>
+              <CardTitle className="text-error">{i18n.t('errorBoundary.title')}</CardTitle>
               <CardDescription>
-                An unexpected error occurred. Please try again or contact support if the problem
-                persists.
+                {i18n.t('errorBoundary.description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -61,13 +61,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </CardContent>
             <CardFooter className="flex gap-2">
               <Button variant="primary" onClick={this.handleReset}>
-                Try Again
+                {i18n.t('errorBoundary.tryAgain')}
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => window.location.reload()}
               >
-                Reload Page
+                {i18n.t('errorBoundary.reloadPage')}
               </Button>
             </CardFooter>
           </Card>

@@ -35,6 +35,7 @@ import org.openfinance.dto.TransactionRequest;
 import org.openfinance.dto.TransactionResponse;
 import org.openfinance.dto.TransactionSplitResponse;
 import org.openfinance.entity.Account;
+import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Category;
 import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.Payee;
@@ -1833,5 +1834,84 @@ class TransactionServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> transactionService.getSplitsForTransaction(1L, null));
+    }
+
+    @Test
+    @DisplayName("Should create transaction with JPY currency (zero decimal)")
+    void shouldCreateTransactionWithJpyCurrency() {
+        // Given
+        Account account =
+                Account.builder()
+                        .id(1L)
+                        .userId(1L)
+                        .currency("JPY")
+                        .type(AccountType.CHECKING)
+                        .build();
+        Category category =
+                Category.builder()
+                        .id(1L)
+                        .userId(1L)
+                        .name("Groceries")
+                        .type(CategoryType.EXPENSE)
+                        .build();
+
+        TransactionRequest request =
+                TransactionRequest.builder()
+                        .accountId(1L)
+                        .type(TransactionType.EXPENSE)
+                        .amount(new BigDecimal("50000"))
+                        .currency("JPY")
+                        .categoryId(1L)
+                        .date(LocalDate.of(2026, 3, 1))
+                        .description("Groceries in Tokyo")
+                        .build();
+
+        Transaction mapped =
+                Transaction.builder()
+                        .accountId(1L)
+                        .type(TransactionType.EXPENSE)
+                        .amount(new BigDecimal("50000"))
+                        .currency("JPY")
+                        .categoryId(1L)
+                        .date(LocalDate.of(2026, 3, 1))
+                        .description("Groceries in Tokyo")
+                        .build();
+
+        Transaction saved =
+                Transaction.builder()
+                        .id(100L)
+                        .userId(1L)
+                        .accountId(1L)
+                        .type(TransactionType.EXPENSE)
+                        .amount(new BigDecimal("50000"))
+                        .currency("JPY")
+                        .categoryId(1L)
+                        .date(LocalDate.of(2026, 3, 1))
+                        .description("Groceries in Tokyo")
+                        .isReconciled(false)
+                        .isDeleted(false)
+                        .build();
+
+        when(accountRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(account));
+        when(categoryRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(category));
+        when(transactionMapper.toEntity(request)).thenReturn(mapped);
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(saved);
+        when(transactionMapper.toResponse(any(Transaction.class)))
+                .thenReturn(
+                        TransactionResponse.builder()
+                                .id(100L)
+                                .accountId(1L)
+                                .amount(new BigDecimal("50000"))
+                                .currency("JPY")
+                                .description("Groceries in Tokyo")
+                                .build());
+
+        // When
+        TransactionResponse response = transactionService.createTransaction(1L, request);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getCurrency()).isEqualTo("JPY");
+        assertThat(response.getAmount()).isEqualByComparingTo(new BigDecimal("50000"));
     }
 }

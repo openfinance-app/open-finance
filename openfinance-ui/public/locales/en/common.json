@@ -160,6 +160,24 @@
     "networkError": "Network error. Please check your connection.",
     "unexpected": "An unexpected error occurred."
   },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. Please try again or contact support if the problem persists.",
+    "tryAgain": "Try Again",
+    "reloadPage": "Reload Page"
+  },
+  "timelineProjection": {
+    "year": "Year",
+    "savingsBalance": "Savings Balance",
+    "contributions": "Contributions",
+    "investmentReturns": "Investment Returns",
+    "progress": "Progress",
+    "status": "Status",
+    "now": "Now",
+    "achieved": "Achieved",
+    "targetYear": "Target Year",
+    "building": "Building"
+  },
   "logoutAndTryAgain": "Logout and Try Again",
   "filteredOf": "{{filtered}} sur {{total}}",
   "buttons": {

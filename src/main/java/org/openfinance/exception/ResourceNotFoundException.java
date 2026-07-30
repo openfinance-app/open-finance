@@ -8,7 +8,10 @@ package org.openfinance.exception;
  *
  * @see org.openfinance.exception.GlobalExceptionHandler
  */
-public class ResourceNotFoundException extends RuntimeException {
+public class ResourceNotFoundException extends RuntimeException implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new resource not found exception with the specified detail message.
@@ -17,6 +20,8 @@ public class ResourceNotFoundException extends RuntimeException {
      */
     public ResourceNotFoundException(String message) {
         super(message);
+        this.messageKey = null;
+        this.messageArgs = null;
     }
 
     /**
@@ -27,5 +32,28 @@ public class ResourceNotFoundException extends RuntimeException {
      */
     public ResourceNotFoundException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = null;
+        this.messageArgs = null;
+    }
+
+    /**
+     * Constructs a new resource not found exception for a resource ID.
+     *
+     * @param resourceId the resource ID that was not found
+     */
+    public ResourceNotFoundException(Long resourceId) {
+        super("Resource not found with id: " + resourceId);
+        this.messageKey = "error.resource.not.found";
+        this.messageArgs = new Object[] {resourceId};
+    }
+
+    @Override
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return messageArgs;
     }
 }

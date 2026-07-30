@@ -721,6 +721,36 @@ class RealEstateRepositoryTest {
         assertThat(realEstateRepository.findById(savedProperty.getId())).isPresent();
     }
 
+    @Test
+    @DisplayName("Should save property with JPY currency (zero decimal)")
+    void shouldSavePropertyWithJpyCurrency() {
+        // Given
+        RealEstateProperty jpyProperty =
+                RealEstateProperty.builder()
+                        .userId(testUser.getId())
+                        .name("encrypted-TokyoApartment")
+                        .address("encrypted-TokyoAddress")
+                        .propertyType(PropertyType.RESIDENTIAL)
+                        .purchasePrice("encrypted-50000000")
+                        .currentValue("encrypted-55000000")
+                        .currency("JPY")
+                        .purchaseDate(LocalDate.of(2021, 4, 1))
+                        .mortgageId(null)
+                        .rentalIncome(null)
+                        .latitude(new BigDecimal("35.6762"))
+                        .longitude(new BigDecimal("139.6503"))
+                        .isActive(true)
+                        .build();
+
+        // When
+        RealEstateProperty saved = realEstateRepository.save(jpyProperty);
+        Optional<RealEstateProperty> found = realEstateRepository.findById(saved.getId());
+
+        // Then
+        assertThat(found).isPresent();
+        assertThat(found.get().getCurrency()).isEqualTo("JPY");
+    }
+
     // === Edge Case Tests ===
 
     @Test

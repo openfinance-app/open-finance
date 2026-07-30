@@ -75,7 +75,7 @@ public class Category {
      *
      * <p>Requirement REQ-2.10.1: User-specific categories
      */
-    @NotNull(message = "User ID is required")
+    @NotNull(message = "{category.userId.notnull}")
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -86,8 +86,8 @@ public class Category {
      *
      * <p><strong>Note:</strong> This field is stored encrypted for privacy.
      */
-    @NotBlank(message = "Category name is required")
-    @Size(min = 1, max = 100, message = "Category name must be between 1 and 100 characters")
+    @NotBlank(message = "{category.name.notblank}")
+    @Size(min = 1, max = 100, message = "{category.name.size}")
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
@@ -103,7 +103,7 @@ public class Category {
      *
      * <p>Requirement REQ-2.10.1: Category type classification
      */
-    @NotNull(message = "Category type is required")
+    @NotNull(message = "{category.type.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "category_type", nullable = false, length = 20)
     private CategoryType type;
@@ -154,7 +154,7 @@ public class Category {
      * <p>Can be an emoji, icon name, or icon library reference. Examples: "🛒", "shopping-cart",
      * "fas fa-cart-shopping"
      */
-    @Size(max = 50, message = "Icon must not exceed 50 characters")
+    @Size(max = 50, message = "{category.icon.size}")
     @Column(name = "icon", length = 50)
     private String icon;
 
@@ -164,7 +164,7 @@ public class Category {
      * <p>Hex color code for category visualization in charts and reports. Examples: "#FF5733",
      * "#3498DB", "#2ECC71"
      */
-    @Size(max = 20, message = "Color must not exceed 20 characters")
+    @Size(max = 20, message = "{category.color.size}")
     @Column(name = "color", length = 20)
     private String color;
 
@@ -176,7 +176,7 @@ public class Category {
      *
      * <p>Reference: ISO 18245 - Retail financial services - Merchant category codes
      */
-    @Size(max = 10, message = "MCC code must not exceed 10 characters")
+    @Size(max = 10, message = "{category.mccCode.size}")
     @Column(name = "mcc_code", length = 10)
     private String mccCode;
 

@@ -26,7 +26,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @since 1.0
  */
 @ResponseStatus(HttpStatus.BAD_REQUEST)
-public class InvalidTransactionException extends RuntimeException {
+public class InvalidTransactionException extends RuntimeException implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new InvalidTransactionException with the specified message.
@@ -35,6 +38,8 @@ public class InvalidTransactionException extends RuntimeException {
      */
     public InvalidTransactionException(String message) {
         super(message);
+        this.messageKey = "error.transaction.invalid";
+        this.messageArgs = new Object[] {message};
     }
 
     /**
@@ -45,6 +50,8 @@ public class InvalidTransactionException extends RuntimeException {
      */
     public InvalidTransactionException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = "error.transaction.invalid";
+        this.messageArgs = new Object[] {message};
     }
 
     /**
@@ -133,5 +140,15 @@ public class InvalidTransactionException extends RuntimeException {
                 String.format(
                         "Transaction currency %s does not match account currency %s",
                         transactionCurrency, accountCurrency));
+    }
+
+    @Override
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return messageArgs;
     }
 }

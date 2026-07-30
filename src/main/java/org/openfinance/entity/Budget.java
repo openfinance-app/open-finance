@@ -79,7 +79,7 @@ public class Budget {
      *
      * <p>Requirement REQ-2.9.1.1: User-specific budgets
      */
-    @NotNull(message = "User ID is required")
+    @NotNull(message = "{budget.userId.notnull}")
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -91,7 +91,7 @@ public class Budget {
      *
      * <p>Requirement REQ-2.9.1.1: Category-based budgets
      */
-    @NotNull(message = "Category ID is required")
+    @NotNull(message = "{budget.categoryId.notnull}")
     @Column(name = "category_id", nullable = false)
     private Long categoryId;
 
@@ -118,7 +118,7 @@ public class Budget {
      *
      * <p>Requirement REQ-1.1.1: Encryption of sensitive financial data
      */
-    @NotNull(message = "Budget amount is required")
+    @NotNull(message = "{budget.amount.notnull}")
     @Column(name = "amount", nullable = false, length = 512)
     @Convert(converter = EncryptedStringConverter.class)
     private String amount; // Encrypted BigDecimal
@@ -131,8 +131,8 @@ public class Budget {
      *
      * <p>Requirement REQ-2.8: Multi-currency support
      */
-    @NotNull(message = "Currency is required")
-    @Size(min = 3, max = 3, message = "Currency must be a 3-letter ISO 4217 code")
+    @NotNull(message = "{budget.currency.notnull}")
+    @Size(min = 3, max = 3, message = "{budget.currency.size}")
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;
 
@@ -159,7 +159,7 @@ public class Budget {
      *
      * <p>Requirement REQ-2.9.1.1: Multiple period types
      */
-    @NotNull(message = "Budget period is required")
+    @NotNull(message = "{budget.period.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "period", nullable = false, length = 20)
     private BudgetPeriod period;
@@ -174,7 +174,7 @@ public class Budget {
      *
      * <p>Requirement REQ-2.9.1.1: Budget date range
      */
-    @NotNull(message = "Start date is required")
+    @NotNull(message = "{budget.startDate.notnull}")
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
@@ -188,7 +188,7 @@ public class Budget {
      *
      * <p>Requirement REQ-2.9.1.1: Budget date range
      */
-    @NotNull(message = "End date is required")
+    @NotNull(message = "{budget.endDate.notnull}")
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
@@ -203,7 +203,7 @@ public class Budget {
      *
      * <p>Requirement REQ-2.9.1.1: Rollover support
      */
-    @NotNull(message = "Rollover flag is required")
+    @NotNull(message = "{budget.rollover.notnull}")
     @Column(name = "rollover", nullable = false)
     @Builder.Default
     private Boolean rollover = false;
@@ -214,7 +214,7 @@ public class Budget {
      * <p>Users can add context or reminders about this budget. For example: "Christmas shopping",
      * "Summer vacation fund", etc.
      */
-    @Size(max = 500, message = "Notes cannot exceed 500 characters")
+    @Size(max = 500, message = "{budget.notes.size}")
     @Column(name = "notes", length = 1000)
     @Convert(converter = EncryptedStringConverter.class)
     private String notes;

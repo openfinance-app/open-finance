@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
+import { useTranslation } from 'react-i18next';
 import type { RentalInputs, ValidationError } from '@/types/realEstateTools';
 
 export interface RentalSectionProps {
@@ -28,6 +29,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
   isOpen,
   onToggle,
 }) => {
+  const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) => errors.find(e => e.field === `rental.${field}`)?.message;
 
@@ -40,7 +42,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <Key className="h-5 w-5" />
-            Paramètres Location
+            {t('rentalSection.title')}
           </span>
           <ChevronDown
             className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -55,7 +57,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
           <div className="space-y-4">
             {/* Rent */}
             <div className="space-y-2">
-              <Label htmlFor="monthlyRent">Loyer mensuel HC</Label>
+              <Label htmlFor="monthlyRent">{t('rentalSection.monthlyRent')}</Label>
               <Input
                 id="monthlyRent"
                 type="number"
@@ -73,7 +75,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
 
             {/* Charges */}
             <div className="space-y-2">
-              <Label htmlFor="monthlyCharges">Charges locatives/mois</Label>
+              <Label htmlFor="monthlyCharges">{t('rentalSection.monthlyCharges')}</Label>
               <Input
                 id="monthlyCharges"
                 type="number"
@@ -88,7 +90,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="securityDeposit" className="flex items-center gap-2">
                 <Key className="h-4 w-4" />
-                Dépôt de garantie
+                {t('rentalSection.securityDeposit')}
               </Label>
               <Input
                 id="securityDeposit"
@@ -104,7 +106,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="rentalInsurance" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
-                Assurance locative/an
+                {t('rentalSection.rentalInsurance')}
               </Label>
               <Input
                 id="rentalInsurance"
@@ -120,7 +122,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="rentalGarbageTax" className="flex items-center gap-2">
                 <Trash2 className="h-4 w-4" />
-                Taxe ordures ménagères/an
+                {t('rentalSection.garbageTax')}
               </Label>
               <Input
                 id="rentalGarbageTax"
@@ -138,7 +140,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="initialSavings" className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
-                Montant d'épargne initial
+                {t('rentalSection.initialSavings')}
               </Label>
               <Input
                 id="initialSavings"
@@ -151,7 +153,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
                 className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">
-                Auto-ajusté selon l'apport
+                {t('rentalSection.autoAdjusted')}
               </p>
             </div>
 
@@ -159,7 +161,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="monthlySavings" className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
-                Épargne mensuelle additionnelle
+                {t('rentalSection.monthlySavings')}
               </Label>
               <Input
                 id="monthlySavings"
@@ -172,7 +174,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
                 className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">
-                Calculée selon l'écart achat-location
+                {t('rentalSection.calculatedFromGap')}
               </p>
             </div>
           </div>

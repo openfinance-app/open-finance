@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/DropdownMenu';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 import { SummaryCards } from './SummaryCards';
 import { EvolutionChart } from './EvolutionChart';
 import { YearlyTable } from './YearlyTable';
@@ -39,13 +40,14 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   isValidResaleYear,
 }) => {
   const [activeTab, setActiveTab] = useState('summary');
+  const { t } = useTranslation('realEstate');
   const { baseCurrency } = useAuthContext();
 
   const handleExportCSV = () => {
     const csv = exportBuyRentToCSV(inputs, results);
     downloadFile(
       csv,
-      `simulation-achat-location-${new Date().toISOString().split('T')[0]}.csv`,
+      `${t('exportImport.exportCSVFilename')}-${new Date().toISOString().split('T')[0]}.csv`,
       'text/csv;charset=utf-8;'
     );
   };
@@ -64,20 +66,21 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     const json = exportToJSON(simulation, results);
     downloadFile(
       json,
-      `simulation-achat-location-${new Date().toISOString().split('T')[0]}.json`,
+      `${t('exportImport.exportJSONFilename')}-${new Date().toISOString().split('T')[0]}.json`,
       'application/json'
     );
   };
 
   const handleExportPDF = () => {
+    const pdfTitle = t('comparator.title');
     const html = generatePDFContent(
-      'Simulation Achat vs Location',
+      pdfTitle,
       inputs,
       results,
       'buy_rent',
       baseCurrency
     );
-    printToPDF(html, 'Simulation Achat vs Location');
+    printToPDF(html, pdfTitle);
   };
 
   const yearNAnalysis = isValidResaleYear ? getYearNAnalysis(inputs.resale.targetYear) : null;
@@ -90,21 +93,21 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           <DropdownMenuTrigger asChild>
             <Button variant="outline">
               <Download className="mr-2 h-4 w-4" />
-              Exporter
+              {t('results.export')}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={handleExportCSV}>
               <Table className="mr-2 h-4 w-4" />
-              Exporter en CSV
+              {t('results.exportCSV')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleExportJSON}>
               <FileJson className="mr-2 h-4 w-4" />
-              Exporter en JSON
+              {t('results.exportJSON')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleExportPDF}>
               <Printer className="mr-2 h-4 w-4" />
-              Imprimer / PDF
+              {t('results.printPDF')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -129,7 +132,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               )}
             >
               <BarChart3 className="h-4 w-4" />
-              Vue d'ensemble
+              {t('results.overview')}
             </button>
             <button
               onClick={() => setActiveTab('table')}
@@ -141,7 +144,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               )}
             >
               <Table className="h-4 w-4" />
-              Tableau
+              {t('results.table')}
             </button>
             <button
               onClick={() => setActiveTab('chart')}
@@ -153,7 +156,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               )}
             >
               <PieChart className="h-4 w-4" />
-              Graphique
+              {t('results.chart')}
             </button>
             {yearNAnalysis && (
               <button
@@ -166,7 +169,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                 )}
               >
                 <FileText className="h-4 w-4" />
-                Année {inputs.resale.targetYear}
+                {t('results.yearN', { year: inputs.resale.targetYear })}
               </button>
             )}
           </div>

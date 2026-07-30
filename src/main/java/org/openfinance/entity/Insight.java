@@ -80,7 +80,7 @@ public class Insight {
      *
      * @see InsightType
      */
-    @NotNull(message = "Insight type is required")
+    @NotNull(message = "{insight.type.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 50)
     private InsightType type;
@@ -90,8 +90,8 @@ public class Insight {
      *
      * <p>Examples: "Unusual Spending Detected", "Budget Limit Approaching"
      */
-    @NotBlank(message = "Insight title is required")
-    @Size(max = 200, message = "Title must be at most 200 characters")
+    @NotBlank(message = "{insight.title.notblank}")
+    @Size(max = 200, message = "{insight.title.size}")
     @Column(name = "title", nullable = false, length = 512)
     @Convert(converter = EncryptedStringConverter.class)
     private String title;
@@ -102,8 +102,8 @@ public class Insight {
      * <p>May include specific numbers, comparisons, and actionable recommendations. Stored as TEXT
      * to support longer descriptions.
      */
-    @NotBlank(message = "Insight description is required")
-    @Size(max = 2000, message = "Description must be at most 2000 characters")
+    @NotBlank(message = "{insight.description.notblank}")
+    @Size(max = 2000, message = "{insight.description.size}")
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     @Convert(converter = EncryptedStringConverter.class)
     private String description;
@@ -117,7 +117,7 @@ public class Insight {
      *
      * @see InsightPriority
      */
-    @NotNull(message = "Insight priority is required")
+    @NotNull(message = "{insight.priority.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "priority", nullable = false, length = 20)
     private InsightPriority priority;

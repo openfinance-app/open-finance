@@ -14,7 +14,10 @@ package org.openfinance.exception;
  * @version 1.0
  * @since 2026-01-30
  */
-public class DuplicateUserException extends RuntimeException {
+public class DuplicateUserException extends RuntimeException implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new DuplicateUserException with the specified detail message.
@@ -23,6 +26,8 @@ public class DuplicateUserException extends RuntimeException {
      */
     public DuplicateUserException(String message) {
         super(message);
+        this.messageKey = "error.user.duplicate";
+        this.messageArgs = new Object[] {message};
     }
 
     /**
@@ -33,5 +38,17 @@ public class DuplicateUserException extends RuntimeException {
      */
     public DuplicateUserException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = "error.user.duplicate";
+        this.messageArgs = new Object[] {message};
+    }
+
+    @Override
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return messageArgs;
     }
 }

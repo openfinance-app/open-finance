@@ -620,6 +620,30 @@ class AssetTest {
         }
 
         @Test
+        @DisplayName("Should build asset with BTC currency (high precision)")
+        void shouldBuildAssetWithBtcCurrency() {
+            // Arrange & Act
+            Asset asset =
+                    Asset.builder()
+                            .id(3L)
+                            .userId(100L)
+                            .name("Bitcoin")
+                            .type(AssetType.CRYPTO)
+                            .symbol("BTC")
+                            .quantity(new BigDecimal("0.12345678"))
+                            .purchasePrice(new BigDecimal("50000.00"))
+                            .currentPrice(new BigDecimal("52000.00"))
+                            .currency("BTC")
+                            .purchaseDate(LocalDate.now().minusMonths(1))
+                            .build();
+
+            // Assert
+            assertThat(asset.getCurrency()).isEqualTo("BTC");
+            assertThat(asset.getQuantity()).isEqualByComparingTo(new BigDecimal("0.12345678"));
+            assertThat(asset.getQuantity().scale()).isEqualTo(8);
+        }
+
+        @Test
         @DisplayName("Should build financial asset without physical fields")
         void shouldBuildFinancialAssetWithoutPhysicalFields() {
             // Arrange & Act

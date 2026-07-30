@@ -70,6 +70,7 @@
     "editCategory": "Edit category",
     "deleteCategory": "Delete category"
   },
+  "unknownCategory": "Unknown Category",
   "loadError": {
     "title": "Failed to load categories",
     "description": "There was an error loading your categories. Please try again.",

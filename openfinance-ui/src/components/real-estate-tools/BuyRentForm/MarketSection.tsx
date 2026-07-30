@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
+import { useTranslation } from 'react-i18next';
 import type { MarketInputs, ValidationError } from '@/types/realEstateTools';
 
 export interface MarketSectionProps {
@@ -28,6 +29,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
   isOpen,
   onToggle,
 }) => {
+  const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) => errors.find(e => e.field === `market.${field}`)?.message;
 
@@ -40,7 +42,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Marché Immobilier
+            {t('marketSection.title')}
           </span>
           <ChevronDown
             className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -57,7 +59,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="priceEvolution" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
-                Évolution prix immo (%/an)
+                {t('marketSection.priceEvolution')}
               </Label>
               <Input
                 id="priceEvolution"
@@ -69,7 +71,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
                 step={0.1}
               />
               <p className="text-xs text-muted-foreground">
-                Estimation de l'augmentation annuelle de la valeur du bien
+                {t('marketSection.priceEvolutionHelp')}
               </p>
               {getFieldError('priceEvolution') && (
                 <Alert variant="error" className="py-2">
@@ -82,7 +84,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="rentEvolution" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
-                Évolution loyers (%/an)
+                {t('marketSection.rentEvolution')}
               </Label>
               <Input
                 id="rentEvolution"
@@ -94,7 +96,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
                 step={0.1}
               />
               <p className="text-xs text-muted-foreground">
-                Estimation de l'augmentation annuelle des loyers
+                {t('marketSection.rentEvolutionHelp')}
               </p>
               {getFieldError('rentEvolution') && (
                 <Alert variant="error" className="py-2">
@@ -107,7 +109,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="investmentReturn" className="flex items-center gap-2">
                 <Percent className="h-4 w-4" />
-                Rendement placement (%/an)
+                {t('marketSection.investmentReturn')}
               </Label>
               <Input
                 id="investmentReturn"
@@ -119,7 +121,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
                 step={0.1}
               />
               <p className="text-xs text-muted-foreground">
-                Rendement attendu sur l'épargne (actions, obligations, etc.)
+                {t('marketSection.investmentReturnHelp')}
               </p>
               {getFieldError('investmentReturn') && (
                 <Alert variant="error" className="py-2">
@@ -132,7 +134,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="inflation" className="flex items-center gap-2">
                 <Euro className="h-4 w-4" />
-                Inflation (%/an)
+                {t('marketSection.inflation')}
               </Label>
               <Input
                 id="inflation"
@@ -144,7 +146,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
                 step={0.1}
               />
               <p className="text-xs text-muted-foreground">
-                Taux d'inflation annuel estimé
+                {t('marketSection.inflationHelp')}
               </p>
               {getFieldError('inflation') && (
                 <Alert variant="error" className="py-2">

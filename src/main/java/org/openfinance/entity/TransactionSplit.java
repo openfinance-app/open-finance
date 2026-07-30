@@ -59,7 +59,7 @@ public class TransactionSplit {
      *
      * <p>Requirement REQ-SPL-2.7: Cascade delete
      */
-    @NotNull(message = "Transaction ID is required")
+    @NotNull(message = "{transactionSplit.transactionId.notnull}")
     @Column(name = "transaction_id", nullable = false)
     private Long transactionId;
 
@@ -86,12 +86,9 @@ public class TransactionSplit {
      *
      * <p>Requirement REQ-SPL-1.1: Amount field; REQ-SPL-1.2: Sum validation
      */
-    @NotNull(message = "Split amount is required")
-    @DecimalMin(value = "0.01", message = "Split amount must be at least 0.01")
-    @Digits(
-            integer = 15,
-            fraction = 4,
-            message = "Amount must have at most 15 integer digits and 4 decimal places")
+    @NotNull(message = "{transactionSplit.amount.notnull}")
+    @DecimalMin(value = "0.01", message = "{transactionSplit.amount.decimalMin}")
+    @Digits(integer = 15, fraction = 4, message = "{transactionSplit.amount.digits}")
     @Column(name = "amount", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal amount;

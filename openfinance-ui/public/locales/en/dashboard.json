@@ -99,7 +99,18 @@
       "label": "Estimated Interest",
       "description": "Interest earned across accounts"
     },
-    "balanceVariation": {
+  "rssFeed": {
+    "title": "Finance News",
+    "loadError": "Failed to load news",
+    "empty": "No news items found",
+    "allDiscarded": "All news items have been discarded.",
+    "readArticle": "Read Full Article",
+    "discard": "Discard this feed item",
+    "recently": "Recently",
+    "unknownSource": "Unknown Source",
+    "rssTooltip": "Latest top finance news items from configured RSS sources."
+  },
+  "balanceVariation": {
       "label": "Yearly Balance",
       "description": "Year-over-year balance variations"
     }

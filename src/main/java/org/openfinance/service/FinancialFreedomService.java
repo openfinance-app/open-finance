@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.config.BusinessRulesProperties;
 import org.openfinance.dto.calculator.*;
 import org.openfinance.exception.CalculationValidationException;
 import org.openfinance.util.MathConstants;
@@ -51,11 +52,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class FinancialFreedomService {
 
-    /** Default withdrawal rate (4% rule). */
-    private static final BigDecimal DEFAULT_WITHDRAWAL_RATE = new BigDecimal("4.0");
-
-    /** Default inflation rate. */
-    private static final BigDecimal DEFAULT_INFLATION_RATE = new BigDecimal("2.5");
+    private final BusinessRulesProperties businessRules;
 
     /** Maximum projection years to prevent excessive computation. */
     private static final int MAX_PROJECTION_YEARS = 50;
@@ -122,12 +119,12 @@ public class FinancialFreedomService {
         BigDecimal withdrawalRate =
                 request.getWithdrawalRate() != null
                         ? request.getWithdrawalRate()
-                        : DEFAULT_WITHDRAWAL_RATE;
+                        : businessRules.getDefaultWithdrawalRate();
 
         BigDecimal inflationRate =
                 request.getInflationRate() != null
                         ? request.getInflationRate()
-                        : DEFAULT_INFLATION_RATE;
+                        : businessRules.getDefaultInflationRate();
 
         BigDecimal monthlyContribution =
                 request.getMonthlyContribution() != null
@@ -354,8 +351,8 @@ public class FinancialFreedomService {
      */
     public CalculationDefaults getDefaults() {
         return CalculationDefaults.builder()
-                .defaultWithdrawalRate(new BigDecimal("4.0"))
-                .defaultInflationRate(new BigDecimal("2.5"))
+                .defaultWithdrawalRate(businessRules.getDefaultWithdrawalRate())
+                .defaultInflationRate(businessRules.getDefaultInflationRate())
                 .minimumWithdrawalRate(new BigDecimal("0.5"))
                 .maximumWithdrawalRate(new BigDecimal("10.0"))
                 .minimumReturnRate(new BigDecimal("-10.0"))

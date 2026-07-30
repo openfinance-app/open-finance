@@ -976,4 +976,77 @@ class BudgetServiceTest {
         assertThat(entry.getPercentageSpent()).isEqualByComparingTo(new BigDecimal("120.00"));
         assertThat(entry.getStatus()).isEqualTo("EXCEEDED");
     }
+
+    @Test
+    @DisplayName("Should create budget with JPY currency (zero decimal)")
+    void shouldCreateBudgetWithJpyCurrency() {
+        // Given
+        BudgetRequest jpyRequest =
+                BudgetRequest.builder()
+                        .categoryId(1L)
+                        .amount(new BigDecimal("100000"))
+                        .currency("JPY")
+                        .period(BudgetPeriod.MONTHLY)
+                        .startDate(LocalDate.of(2026, 3, 1))
+                        .endDate(LocalDate.of(2026, 3, 31))
+                        .rollover(false)
+                        .notes("March budget in JPY")
+                        .build();
+
+        Budget jpyMapped =
+                Budget.builder()
+                        .categoryId(1L)
+                        .amount("100000")
+                        .currency("JPY")
+                        .period(BudgetPeriod.MONTHLY)
+                        .startDate(LocalDate.of(2026, 3, 1))
+                        .endDate(LocalDate.of(2026, 3, 31))
+                        .rollover(false)
+                        .build();
+
+        Budget jpyBudget =
+                Budget.builder()
+                        .id(10L)
+                        .userId(1L)
+                        .categoryId(1L)
+                        .amount("100000")
+                        .currency("JPY")
+                        .period(BudgetPeriod.MONTHLY)
+                        .startDate(LocalDate.of(2026, 3, 1))
+                        .endDate(LocalDate.of(2026, 3, 31))
+                        .rollover(false)
+                        .notes("March budget in JPY")
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
+
+        BudgetResponse jpyResponse =
+                BudgetResponse.builder()
+                        .id(10L)
+                        .categoryId(1L)
+                        .categoryName("Groceries")
+                        .amount(new BigDecimal("100000"))
+                        .currency("JPY")
+                        .period(BudgetPeriod.MONTHLY)
+                        .startDate(LocalDate.of(2026, 3, 1))
+                        .endDate(LocalDate.of(2026, 3, 31))
+                        .rollover(false)
+                        .notes("March budget in JPY")
+                        .build();
+
+        when(categoryRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(testCategory));
+        when(budgetRepository.findByUserIdAndCategoryIdAndPeriod(1L, 1L, BudgetPeriod.MONTHLY))
+                .thenReturn(Optional.empty());
+        when(budgetMapper.toEntity(jpyRequest)).thenReturn(jpyMapped);
+        when(budgetRepository.save(any(Budget.class))).thenReturn(jpyBudget);
+        when(budgetMapper.toResponse(jpyBudget)).thenReturn(jpyResponse);
+
+        // When
+        BudgetResponse response = budgetService.createBudget(jpyRequest, 1L);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getCurrency()).isEqualTo("JPY");
+        assertThat(response.getAmount()).isEqualByComparingTo(new BigDecimal("100000"));
+    }
 }

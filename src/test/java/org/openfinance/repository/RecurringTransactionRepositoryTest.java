@@ -139,6 +139,36 @@ class RecurringTransactionRepositoryTest {
         categoryIncome = categoryRepository.save(categoryIncome);
     }
 
+    @Test
+    @DisplayName("Should save recurring transaction with JPY currency (zero decimal)")
+    void shouldSaveRecurringTransactionWithJpyCurrency() {
+        // Given
+        RecurringTransaction jpyRecurring =
+                RecurringTransaction.builder()
+                        .userId(user1.getId())
+                        .accountId(account1User1.getId())
+                        .type(TransactionType.EXPENSE)
+                        .amount(new BigDecimal("120000"))
+                        .currency("JPY")
+                        .categoryId(categoryExpense.getId())
+                        .description("Tokyo Rent")
+                        .frequency(RecurringFrequency.MONTHLY)
+                        .nextOccurrence(LocalDate.of(2026, 3, 1))
+                        .isActive(true)
+                        .build();
+
+        // When
+        RecurringTransaction saved = recurringTransactionRepository.save(jpyRecurring);
+        Optional<RecurringTransaction> found =
+                recurringTransactionRepository.findById(saved.getId());
+
+        // Then
+        assertThat(found).isPresent();
+        assertThat(found.get().getCurrency()).isEqualTo("JPY");
+        assertThat(found.get().getAmount()).isEqualByComparingTo(new BigDecimal("120000"));
+        assertThat(found.get().getAmount().scale()).isEqualTo(0);
+    }
+
     // ========== CRUD OPERATIONS TESTS ==========
 
     @Nested

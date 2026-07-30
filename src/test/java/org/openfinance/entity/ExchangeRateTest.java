@@ -9,6 +9,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +39,7 @@ class ExchangeRateTest {
 
     @BeforeEach
     void setUp() {
+        Locale.setDefault(Locale.ENGLISH);
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         validator = factory.getValidator();
     }
@@ -157,8 +159,7 @@ class ExchangeRateTest {
         Set<ConstraintViolation<ExchangeRate>> violations = validator.validate(rate);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Base currency cannot be null");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("BaseCurrency is required");
     }
 
     @Test
@@ -179,12 +180,10 @@ class ExchangeRateTest {
         assertThat(violations)
                 .anyMatch(
                         v ->
-                                v.getMessage()
-                                                .equals(
-                                                        "Base currency must be 3 to 10 uppercase letters")
+                                v.getMessage().equals("BaseCurrency format is invalid")
                                         || v.getMessage()
                                                 .equals(
-                                                        "Base currency must be exactly 3 characters"));
+                                                        "BaseCurrency size must be between 3 and 10"));
     }
 
     @Test
@@ -202,7 +201,7 @@ class ExchangeRateTest {
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Base currency must be 3 to 10 uppercase letters");
+                .isEqualTo("BaseCurrency format is invalid");
     }
 
     @Test
@@ -223,12 +222,10 @@ class ExchangeRateTest {
         assertThat(violations)
                 .anyMatch(
                         v ->
-                                v.getMessage()
-                                                .equals(
-                                                        "Base currency must be 3 to 10 uppercase letters")
+                                v.getMessage().equals("BaseCurrency format is invalid")
                                         || v.getMessage()
                                                 .equals(
-                                                        "Base currency must be exactly 3 characters"));
+                                                        "BaseCurrency size must be between 3 and 10"));
     }
 
     @Test
@@ -246,7 +243,7 @@ class ExchangeRateTest {
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Base currency must be 3 to 10 uppercase letters");
+                .isEqualTo("BaseCurrency format is invalid");
     }
 
     // ==================== Target Currency Validation Tests ====================
@@ -266,7 +263,7 @@ class ExchangeRateTest {
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Target currency cannot be null");
+                .isEqualTo("TargetCurrency is required");
     }
 
     @Test
@@ -287,12 +284,10 @@ class ExchangeRateTest {
         assertThat(violations)
                 .anyMatch(
                         v ->
-                                v.getMessage()
-                                                .equals(
-                                                        "Target currency must be 3 to 10 uppercase letters")
+                                v.getMessage().equals("TargetCurrency format is invalid")
                                         || v.getMessage()
                                                 .equals(
-                                                        "Target currency must be exactly 3 characters"));
+                                                        "TargetCurrency size must be between 3 and 10"));
     }
 
     @Test
@@ -310,7 +305,7 @@ class ExchangeRateTest {
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Target currency must be 3 to 10 uppercase letters");
+                .isEqualTo("TargetCurrency format is invalid");
     }
 
     @Test
@@ -331,12 +326,10 @@ class ExchangeRateTest {
         assertThat(violations)
                 .anyMatch(
                         v ->
-                                v.getMessage()
-                                                .equals(
-                                                        "Target currency must be 3 to 10 uppercase letters")
+                                v.getMessage().equals("TargetCurrency format is invalid")
                                         || v.getMessage()
                                                 .equals(
-                                                        "Target currency must be between 3 and 10 characters"));
+                                                        "TargetCurrency size must be between 3 and 10"));
     }
 
     // ==================== Rate Validation Tests ====================
@@ -355,8 +348,7 @@ class ExchangeRateTest {
         Set<ConstraintViolation<ExchangeRate>> violations = validator.validate(rate);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Exchange rate cannot be null");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("Rate is required");
     }
 
     @Test
@@ -374,7 +366,7 @@ class ExchangeRateTest {
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Exchange rate must be greater than 0");
+                .isEqualTo("Rate must be at least 0.0");
     }
 
     @Test
@@ -392,7 +384,7 @@ class ExchangeRateTest {
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Exchange rate must be greater than 0");
+                .isEqualTo("Rate must be at least 0.0");
     }
 
     // ==================== Rate Date Validation Tests ====================
@@ -411,7 +403,7 @@ class ExchangeRateTest {
         Set<ConstraintViolation<ExchangeRate>> violations = validator.validate(rate);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage()).isEqualTo("Rate date cannot be null");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("RateDate is required");
     }
 
     @Test

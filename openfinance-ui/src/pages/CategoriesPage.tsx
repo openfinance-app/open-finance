@@ -116,7 +116,7 @@ function TreeNode({ node, depth = 0, onEdit, onDelete }: TreeNodeProps) {
         {/* Name */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-text-primary truncate">{node.name || 'Unknown Category'}</span>
+            <span className="font-medium text-text-primary truncate">{node.name || t('unknownCategory')}</span>
             {node.isSystem && (
               <Badge variant="outline" className="text-xs">{t('badges.system')}</Badge>
             )}

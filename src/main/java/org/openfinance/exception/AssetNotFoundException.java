@@ -12,7 +12,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>Requirement REQ-3.2: Authorization - Users can only access their own assets
  */
 @ResponseStatus(HttpStatus.NOT_FOUND)
-public class AssetNotFoundException extends RuntimeException {
+public class AssetNotFoundException extends RuntimeException implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new AssetNotFoundException with a detail message.
@@ -21,6 +24,8 @@ public class AssetNotFoundException extends RuntimeException {
      */
     public AssetNotFoundException(String message) {
         super(message);
+        this.messageKey = null;
+        this.messageArgs = null;
     }
 
     /**
@@ -31,6 +36,14 @@ public class AssetNotFoundException extends RuntimeException {
      */
     public AssetNotFoundException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = null;
+        this.messageArgs = null;
+    }
+
+    private AssetNotFoundException(String message, String messageKey, Object[] messageArgs) {
+        super(message);
+        this.messageKey = messageKey;
+        this.messageArgs = messageArgs;
     }
 
     /**
@@ -40,7 +53,10 @@ public class AssetNotFoundException extends RuntimeException {
      * @return a new AssetNotFoundException
      */
     public static AssetNotFoundException byId(Long assetId) {
-        return new AssetNotFoundException("Asset not found with id: " + assetId);
+        return new AssetNotFoundException(
+                "Asset not found with id: " + assetId,
+                "error.asset.not.found",
+                new Object[] {assetId});
     }
 
     /**
@@ -52,6 +68,18 @@ public class AssetNotFoundException extends RuntimeException {
      */
     public static AssetNotFoundException byIdAndUser(Long assetId, Long userId) {
         return new AssetNotFoundException(
-                String.format("Asset not found with id: %d for user: %d", assetId, userId));
+                String.format("Asset not found with id: %d for user: %d", assetId, userId),
+                "error.asset.not.found",
+                new Object[] {assetId});
+    }
+
+    @Override
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return messageArgs;
     }
 }

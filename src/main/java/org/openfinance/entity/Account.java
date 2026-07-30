@@ -66,7 +66,7 @@ public class Account {
     /**
      * The user who owns this account. Requirement REQ-2.2.1: Each account belongs to a single user
      */
-    @NotNull(message = "User ID cannot be null")
+    @NotNull(message = "{account.userId.notnull}")
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -96,10 +96,10 @@ public class Account {
      * AccountService handles encryption/decryption transparently. Requirement REQ-2.2.2: Account
      * must have a descriptive name
      */
-    @NotNull(message = "Account name cannot be null")
+    @NotNull(message = "{account.name.notnull}")
     // Match database column length to avoid validation/DB mismatches when
     // encryption
-    @Size(min = 1, max = 500, message = "Account name must be between 1 and 500 characters")
+    @Size(min = 1, max = 500, message = "{account.name.size}")
     @Column(name = "name", nullable = false, length = 500) // Extra length for encrypted data
     @Convert(converter = EncryptedStringConverter.class)
     private String name;
@@ -108,7 +108,7 @@ public class Account {
      * Type of account (CHECKING, SAVINGS, CREDIT_CARD, INVESTMENT, CASH, OTHER). Requirement
      * REQ-2.2.2: Account type categorization
      */
-    @NotNull(message = "Account type cannot be null")
+    @NotNull(message = "{account.type.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "account_type", nullable = false, length = 20)
     private AccountType type;
@@ -126,8 +126,8 @@ public class Account {
      * Currency code in ISO 4217 format (e.g., USD, EUR, GBP). Requirement REQ-2.7: Multi-currency
      * support
      */
-    @NotNull(message = "Currency cannot be null")
-    @Size(min = 3, max = 3, message = "Currency must be a 3-letter ISO 4217 code")
+    @NotNull(message = "{account.currency.notnull}")
+    @Size(min = 3, max = 3, message = "{account.currency.size}")
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;
 
@@ -143,7 +143,7 @@ public class Account {
      * for permitted ranges should be enforced in the service layer. Requirement REQ-2.2.5: Account
      * balance calculation
      */
-    @NotNull(message = "Balance cannot be null")
+    @NotNull(message = "{account.balance.notnull}")
     @Column(name = "balance", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     @Builder.Default
@@ -157,7 +157,7 @@ public class Account {
      *
      * <p>Requirement REQ-2.6.1.2: Account Balance Tracking - Historical snapshots
      */
-    @NotNull(message = "Opening balance cannot be null")
+    @NotNull(message = "{account.openingBalance.notnull}")
     @Column(name = "opening_balance", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     @Builder.Default
@@ -170,7 +170,7 @@ public class Account {
      *
      * <p>Requirement REQ-2.6.1.2: Account Balance Tracking - Historical snapshots
      */
-    @NotNull(message = "Opening date cannot be null")
+    @NotNull(message = "{account.openingDate.notnull}")
     @Column(name = "opening_date", nullable = false)
     @Builder.Default
     private java.time.LocalDate openingDate = java.time.LocalDate.now();
@@ -191,13 +191,13 @@ public class Account {
      *
      * <p>Requirement REQ-2.2.4: Soft delete for accounts
      */
-    @NotNull(message = "isActive flag cannot be null")
+    @NotNull(message = "{account.isActive.notnull}")
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
 
     /** Flag indicating whether interest calculation is enabled for this account. */
-    @NotNull(message = "isInterestEnabled flag cannot be null")
+    @NotNull(message = "{account.isInterestEnabled.notnull}")
     @Column(name = "is_interest_enabled", nullable = false)
     @Builder.Default
     private Boolean isInterestEnabled = false;

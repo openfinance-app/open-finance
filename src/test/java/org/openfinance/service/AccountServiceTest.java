@@ -156,6 +156,64 @@ class AccountServiceTest {
     }
 
     @Test
+    @DisplayName("Should create account with JPY currency (zero decimal)")
+    void shouldCreateAccountWithJpyCurrency() {
+        // Arrange
+        AccountRequest req =
+                AccountRequest.builder()
+                        .name("Japan Wallet")
+                        .type(AccountType.CASH)
+                        .currency("JPY")
+                        .initialBalance(new BigDecimal("50000"))
+                        .description("JPY cash holdings")
+                        .build();
+
+        Account mapped =
+                Account.builder()
+                        .currency("JPY")
+                        .type(AccountType.CASH)
+                        .balance(new BigDecimal("50000"))
+                        .isActive(true)
+                        .build();
+
+        Account saved =
+                Account.builder()
+                        .id(20L)
+                        .userId(1L)
+                        .currency("JPY")
+                        .type(AccountType.CASH)
+                        .balance(new BigDecimal("50000"))
+                        .name("Japan Wallet")
+                        .description("JPY cash holdings")
+                        .isActive(true)
+                        .build();
+
+        AccountResponse resp =
+                AccountResponse.builder()
+                        .id(20L)
+                        .name("Japan Wallet")
+                        .type(AccountType.CASH)
+                        .currency("JPY")
+                        .balance(new BigDecimal("50000"))
+                        .description("JPY cash holdings")
+                        .isActive(true)
+                        .build();
+
+        when(accountMapper.toEntity(req)).thenReturn(mapped);
+        when(accountRepository.save(any(Account.class))).thenReturn(saved);
+        when(accountMapper.toResponse(saved)).thenReturn(resp);
+
+        // Act
+        AccountResponse created = accountService.createAccount(1L, req);
+
+        // Assert
+        assertThat(created).isNotNull();
+        assertThat(created.getCurrency()).isEqualTo("JPY");
+        assertThat(created.getBalance()).isEqualByComparingTo(new BigDecimal("50000"));
+        verify(accountRepository).save(any(Account.class));
+    }
+
+    @Test
     @DisplayName("Should create account without encryption key when encryption is disabled")
     void shouldCreateAccountWithoutEncryptionKeyWhenEncryptionDisabled() {
         EncryptionContext.clear();

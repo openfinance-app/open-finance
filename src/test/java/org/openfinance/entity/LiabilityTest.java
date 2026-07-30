@@ -8,6 +8,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ class LiabilityTest {
 
     @BeforeAll
     static void setUp() {
+        Locale.setDefault(Locale.ENGLISH);
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         validator = factory.getValidator();
     }
@@ -74,7 +76,7 @@ class LiabilityTest {
         // Then
         // userId IS validated at entity level with @NotNull
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage()).isEqualTo("User ID cannot be null");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("User ID is required");
     }
 
     @Test

@@ -7,6 +7,7 @@
 
 import React, { useEffect, useCallback } from 'react';
 import { announceToScreenReader } from '@/utils/accessibility';
+import i18n from '@/i18n';
 
 /**
  * Hook to announce messages to screen readers.
@@ -64,40 +65,31 @@ export function useKeyboardShortcuts(shortcuts: {
  * ARIA labels for common actions
  */
 export const ariaLabels = {
-  // Actions
-  calculate: 'Calculer la simulation',
-  reset: 'Réinitialiser tous les paramètres',
-  save: 'Sauvegarder la simulation',
-  load: 'Charger une simulation sauvegardée',
-  delete: 'Supprimer la simulation',
-  export: 'Exporter les résultats',
-  navigateToRental: 'Passer au simulateur de location',
-  navigateBack: 'Retourner au comparateur',
-  
-  // Input sections
-  purchaseSection: 'Paramètres d\'achat',
-  rentalSection: 'Paramètres de location',
-  marketSection: 'Évolution du marché immobilier',
-  resaleSection: 'Objectifs de revente',
-  propertySection: 'Bien immobilier',
-  revenueSection: 'Revenus locatifs',
-  expensesSection: 'Charges propriétaire',
-  
-  // Results
-  summaryCards: 'Résumé des scénarios',
-  comparisonTable: 'Tableau comparatif détaillé',
-  evolutionChart: 'Graphique d\'évolution du patrimoine',
-  yearlyTable: 'Tableau année par année',
-  
-  // Navigation
-  inputsTab: 'Onglet des paramètres de saisie',
-  resultsTab: 'Onglet des résultats',
-  
-  // Regimes
-  microFoncier: 'Régime Micro-Foncier',
-  reelFoncier: 'Régime Réel Foncier',
-  lmnpReel: 'Régime LMNP Réel',
-  microBic: 'Régime Micro-BIC',
+  calculate: i18n.t('realEstate.accessibility.calculate'),
+  reset: i18n.t('realEstate.accessibility.reset'),
+  save: i18n.t('realEstate.accessibility.save'),
+  load: i18n.t('realEstate.accessibility.load'),
+  delete: i18n.t('realEstate.accessibility.delete'),
+  export: i18n.t('realEstate.accessibility.export'),
+  navigateToRental: i18n.t('realEstate.accessibility.navigateToRental'),
+  navigateBack: i18n.t('realEstate.accessibility.navigateBack'),
+  purchaseSection: i18n.t('realEstate.accessibility.purchaseSection'),
+  rentalSection: i18n.t('realEstate.accessibility.rentalSection'),
+  marketSection: i18n.t('realEstate.accessibility.marketSection'),
+  resaleSection: i18n.t('realEstate.accessibility.resaleSection'),
+  propertySection: i18n.t('realEstate.accessibility.propertySection'),
+  revenueSection: i18n.t('realEstate.accessibility.revenueSection'),
+  expensesSection: i18n.t('realEstate.accessibility.expensesSection'),
+  summaryCards: i18n.t('realEstate.accessibility.summaryCards'),
+  comparisonTable: i18n.t('realEstate.accessibility.comparisonTable'),
+  evolutionChart: i18n.t('realEstate.accessibility.evolutionChart'),
+  yearlyTable: i18n.t('realEstate.accessibility.yearlyTable'),
+  inputsTab: i18n.t('realEstate.accessibility.inputsTab'),
+  resultsTab: i18n.t('realEstate.accessibility.resultsTab'),
+  microFoncier: i18n.t('realEstate.accessibility.microFoncier'),
+  reelFoncier: i18n.t('realEstate.accessibility.reelFoncier'),
+  lmnpReel: i18n.t('realEstate.accessibility.lmnpReel'),
+  microBic: i18n.t('realEstate.accessibility.microBic'),
 };
 
 /**
@@ -123,7 +115,7 @@ export const SkipToContent: React.FC<{ contentId: string }> = ({ contentId }) =>
       className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 
                  bg-primary text-primary-foreground px-4 py-2 rounded z-50"
     >
-      Aller au contenu principal
+      {i18n.t('realEstate.accessibility.skipToContent')}
     </a>
   );
 };

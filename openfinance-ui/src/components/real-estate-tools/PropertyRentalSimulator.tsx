@@ -1,13 +1,3 @@
-/**
- * PropertyRentalSimulator Component
- * 
- * Main container for the rental investment simulator
- * Calculates and displays results for all 4 French tax regimes
- * Requirements: REQ-2.x
- * 
- * Redesigned: single-page layout without tabs, sections collapsible individually
- */
-
 import React from 'react';
 import { Calculator, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -15,6 +5,7 @@ import { ACCORDION_SYNC_BREAKPOINT } from '@/constants/breakpoints';
 import { Card } from '@/components/ui/Card';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { useTranslation } from 'react-i18next';
 import { useRentalSimulator } from '@/hooks/useRentalSimulator';
 import { useSimulationStorage } from '@/hooks/useSimulationStorage';
 import { SimulationHeader } from './SimulationHeader';
@@ -36,6 +27,7 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
   sharedData,
   onNavigateBack,
 }) => {
+  const { t } = useTranslation('realEstate');
   const [simulationName, setSimulationName] = React.useState('');
   const [propertyOpen, setPropertyOpen] = React.useState(true);
   const [revenueOpen, setRevenueOpen] = React.useState(true);
@@ -85,7 +77,6 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
 
   const handleCalculate = () => {
     calculate();
-    // Synchronously collapse all sections on mobile or desktop when results are generated
     setPropertyOpen(false);
     setRevenueOpen(false);
     setExpensesOpen(false);
@@ -129,8 +120,8 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <PageHeader
-        title="Simulateur de Location Meublée"
-        description="Analysez la rentabilité de votre investissement locatif sous différents régimes fiscaux."
+        title={t('rentalSimulator.title')}
+        description={t('rentalSimulator.description')}
       />
 
       {/* Back Button */}
@@ -141,7 +132,7 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
           className="mb-6"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour au comparateur
+          {t('rentalSimulator.backToComparator')}
         </Button>
       )}
 
@@ -170,25 +161,23 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
         </Alert>
       )}
 
-
-
       {/* Summary Card */}
       <Card className="p-4 bg-muted/50 mb-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
-            <p className="text-muted-foreground">Prix total</p>
+            <p className="text-muted-foreground">{t('rentalSimulator.totalPrice')}</p>
             <p className="font-semibold">{formatCurrency(inputs.property.totalPrice, baseCurrency)}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Loyer mensuel</p>
+            <p className="text-muted-foreground">{t('rentalSimulator.monthlyRent')}</p>
             <p className="font-semibold">{formatCurrency(inputs.revenue.monthlyRent, baseCurrency)}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Mensualité crédit</p>
-            <p className="font-semibold">{formatCurrency(inputs.credit.monthlyPayment, baseCurrency)}/mois</p>
+            <p className="text-muted-foreground">{t('rentalSimulator.creditPayment')}</p>
+            <p className="font-semibold">{formatCurrency(inputs.credit.monthlyPayment, baseCurrency)}/{t('comparison.perMonth')}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Régimes éligibles</p>
+            <p className="text-muted-foreground">{t('rentalSimulator.eligibleRegimes')}</p>
             <p className="font-semibold">{eligibleRegimes.length}/4</p>
           </div>
         </div>
@@ -232,12 +221,12 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
           {isCalculating ? (
             <>
               <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Calcul en cours...
+              {t('rentalSimulator.calculating')}
             </>
           ) : (
             <>
               <Calculator className="mr-2 h-4 w-4" />
-              Calculer les 4 régimes
+              {t('rentalSimulator.calculateAllRegimes')}
             </>
           )}
         </Button>
@@ -249,7 +238,7 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
           disabled={isCalculating}
         >
           <RefreshCw className="mr-2 h-4 w-4" />
-          Réinitialiser
+          {t('rentalSimulator.reset')}
         </Button>
       </div>
 

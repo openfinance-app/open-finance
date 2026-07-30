@@ -51,7 +51,7 @@ public class Liability {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @NotNull(message = "User ID cannot be null")
+    @NotNull(message = "{liability.userId.notnull}")
     @Column(name = "user_id", nullable = false)
     @ToString.Include
     private Long userId;
@@ -65,26 +65,26 @@ public class Liability {
      * for AES-256
      */
     @Column(name = "name", nullable = false, length = 512)
-    @NotBlank(message = "Liability name is required")
+    @NotBlank(message = "{liability.name.notblank}")
     @Convert(converter = EncryptedStringConverter.class)
     @ToString.Include
     private String name;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 20)
-    @NotNull(message = "Liability type is required")
+    @NotNull(message = "{liability.type.notnull}")
     @ToString.Include
     private LiabilityType type;
 
     /** Original principal amount (encrypted) Max encrypted length: 512 chars */
     @Column(name = "principal", nullable = false, length = 512)
-    @NotNull(message = "Principal amount is required")
+    @NotNull(message = "{liability.principal.notnull}")
     @Convert(converter = EncryptedStringConverter.class)
     private String principal;
 
     /** Current outstanding balance (encrypted) Max encrypted length: 512 chars */
     @Column(name = "current_balance", nullable = false, length = 512)
-    @NotNull(message = "Current balance is required")
+    @NotNull(message = "{liability.currentBalance.notnull}")
     @Convert(converter = EncryptedStringConverter.class)
     private String currentBalance;
 
@@ -94,7 +94,7 @@ public class Liability {
     private String interestRate;
 
     @Column(name = "start_date", nullable = false)
-    @NotNull(message = "Start date is required")
+    @NotNull(message = "{liability.startDate.notnull}")
     @ToString.Include
     private LocalDate startDate;
 
@@ -108,8 +108,8 @@ public class Liability {
     private String minimumPayment;
 
     @Column(name = "currency", nullable = false, length = 3)
-    @NotBlank(message = "Currency is required")
-    @Pattern(regexp = "^[A-Z]{3}$", message = "Currency must be a 3-letter ISO code")
+    @NotBlank(message = "{liability.currency.notblank}")
+    @Pattern(regexp = "^[A-Z]{3}$", message = "{liability.currency.pattern}")
     @ToString.Include
     private String currency;
 

@@ -44,6 +44,38 @@ public class AssetNullConditionTest {
 
         assetRepository.save(asset);
         assetRepository.flush();
-        System.out.println("TEST PASSED!");
+    }
+
+    @Test
+    public void testSaveAssetWithJpyCurrency() {
+        User user =
+                User.builder()
+                        .username("jpyuser")
+                        .email("jpy@example.com")
+                        .passwordHash("hashedpassword")
+                        .masterPasswordSalt("salt")
+                        .baseCurrency("JPY")
+                        .build();
+        user = userRepository.save(user);
+
+        Asset asset =
+                Asset.builder()
+                        .userId(user.getId())
+                        .name("JPY Asset")
+                        .type(AssetType.STOCK)
+                        .quantity(BigDecimal.ONE)
+                        .purchasePrice(new BigDecimal("10000"))
+                        .currentPrice(new BigDecimal("10500"))
+                        .currency("JPY")
+                        .purchaseDate(LocalDate.now())
+                        .build();
+
+        assetRepository.save(asset);
+        assetRepository.flush();
+
+        var saved = assetRepository.findById(asset.getId());
+        assert saved.isPresent();
+        assert "JPY".equals(saved.get().getCurrency());
+        assert saved.get().getPurchasePrice().scale() == 0;
     }
 }

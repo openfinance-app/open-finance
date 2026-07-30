@@ -56,22 +56,22 @@ public class Currency {
      * ISO 4217 currency code (3 letters). Examples: USD, EUR, GBP, JPY, BTC Requirement REQ-2.8.1:
      * Support standard currency codes
      */
-    @NotBlank(message = "Currency code cannot be blank")
-    @Pattern(regexp = "^[A-Z]{3,10}$", message = "Currency code must be 3 to 10 uppercase letters")
-    @Size(min = 3, max = 10, message = "Currency code must be between 3 and 10 characters")
+    @NotBlank(message = "{currency.code.notblank}")
+    @Pattern(regexp = "^[A-Z]{3,10}$", message = "{currency.code.pattern}")
+    @Size(min = 3, max = 10, message = "{currency.code.size}")
     @Column(name = "code", nullable = false, length = 10, unique = true)
     @EqualsAndHashCode.Include
     private String code;
 
     /** Full name of the currency. Examples: US Dollar, Euro, British Pound, Bitcoin */
-    @NotBlank(message = "Currency name cannot be blank")
-    @Size(max = 100, message = "Currency name cannot exceed 100 characters")
+    @NotBlank(message = "{currency.name.notblank}")
+    @Size(max = 100, message = "{currency.name.size}")
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
     /** Currency symbol for display. Examples: $, €, £, ¥, ₿ */
-    @NotBlank(message = "Currency symbol cannot be blank")
-    @Size(max = 10, message = "Currency symbol cannot exceed 10 characters")
+    @NotBlank(message = "{currency.symbol.notblank}")
+    @Size(max = 10, message = "{currency.symbol.size}")
     @Column(name = "symbol", nullable = false, length = 10)
     private String symbol;
 
@@ -89,7 +89,7 @@ public class Currency {
      *
      * @since Phase 3.2 of i18n & Localization feature
      */
-    @Size(max = 100, message = "Currency name key cannot exceed 100 characters")
+    @Size(max = 100, message = "{currency.nameKey.size}")
     @Column(name = "name_key", length = 100)
     private String nameKey;
 

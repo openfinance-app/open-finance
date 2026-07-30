@@ -48,8 +48,8 @@ public class User {
      * Unique username for login authentication. Requirement 1.1.1: Username field with uniqueness
      * constraint
      */
-    @NotNull(message = "Username cannot be null")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @NotNull(message = "{user.username.notnull}")
+    @Size(min = 3, max = 50, message = "{user.username.size}")
     @Column(unique = true, nullable = false, length = 50)
     private String username;
 
@@ -57,8 +57,8 @@ public class User {
      * User's email address, must be unique across the system. Requirement 1.1.1: Email field with
      * validation
      */
-    @NotNull(message = "Email cannot be null")
-    @Email(message = "Email must be valid")
+    @NotNull(message = "{user.email.notnull}")
+    @Email(message = "{user.email.email}")
     @Column(unique = true, nullable = false, length = 255)
     private String email;
 
@@ -67,7 +67,7 @@ public class User {
      * encryption. Requirement 1.1.1: Password hash storage
      */
     @ToString.Exclude
-    @NotNull(message = "Password hash cannot be null")
+    @NotNull(message = "{user.passwordHash.notnull}")
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
@@ -76,7 +76,7 @@ public class User {
      * string. Requirement 1.1.1: Master password salt for key derivation
      */
     @ToString.Exclude
-    @NotNull(message = "Master password salt cannot be null")
+    @NotNull(message = "{user.masterPasswordSalt.notnull}")
     @Column(name = "master_password_salt", nullable = false, length = 255)
     private String masterPasswordSalt;
 
@@ -87,8 +87,8 @@ public class User {
      * org.openfinance.service.DefaultCurrencyProvider}), which is the single source of truth.
      * Requirement 6.2.13: Base currency setting for user preferences
      */
-    @NotNull(message = "Base currency cannot be null")
-    @Size(min = 3, max = 10, message = "Base currency must be between 3 and 10 characters")
+    @NotNull(message = "{user.baseCurrency.notnull}")
+    @Size(min = 3, max = 10, message = "{user.baseCurrency.size}")
     @Column(name = "base_currency", nullable = false, length = 10)
     private String baseCurrency;
 
@@ -99,7 +99,7 @@ public class User {
      *
      * <p>Requirement REQ-2.2: Secondary currency field
      */
-    @Size(max = 3, message = "Secondary currency must be at most 3 characters")
+    @Size(max = 3, message = "{user.secondaryCurrency.size}")
     @Column(name = "secondary_currency", length = 3)
     private String secondaryCurrency;
 

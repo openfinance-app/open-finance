@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { YearlyProjection } from '../../types/calculator';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { cn } from '../../lib/utils';
@@ -25,6 +26,7 @@ export function TimelineProjection({
   currency,
   yearsToFreedom,
 }: TimelineProjectionProps) {
+  const { t } = useTranslation();
   const { format: formatCurrency } = useFormatCurrency();
   // Calculate progress percentage
   const calculateProgress = (savings: number) => {
@@ -36,12 +38,12 @@ export function TimelineProjection({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border">
-            <th className="text-left py-3 px-4 font-medium text-text-secondary">Year</th>
-            <th className="text-right py-3 px-4 font-medium text-text-secondary">Savings Balance</th>
-            <th className="text-right py-3 px-4 font-medium text-text-secondary">Contributions</th>
-            <th className="text-right py-3 px-4 font-medium text-text-secondary">Investment Returns</th>
-            <th className="text-right py-3 px-4 font-medium text-text-secondary">Progress</th>
-            <th className="text-center py-3 px-4 font-medium text-text-secondary">Status</th>
+            <th className="text-left py-3 px-4 font-medium text-text-secondary">{t('timelineProjection.year')}</th>
+            <th className="text-right py-3 px-4 font-medium text-text-secondary">{t('timelineProjection.savingsBalance')}</th>
+            <th className="text-right py-3 px-4 font-medium text-text-secondary">{t('timelineProjection.contributions')}</th>
+            <th className="text-right py-3 px-4 font-medium text-text-secondary">{t('timelineProjection.investmentReturns')}</th>
+            <th className="text-right py-3 px-4 font-medium text-text-secondary">{t('timelineProjection.progress')}</th>
+            <th className="text-center py-3 px-4 font-medium text-text-secondary">{t('timelineProjection.status')}</th>
           </tr>
         </thead>
         <tbody>
@@ -60,7 +62,7 @@ export function TimelineProjection({
                 )}
               >
                 <td className="py-3 px-4 font-medium text-text-primary">
-                  {projection.year === 0 ? 'Now' : `+${projection.year}`}
+                  {projection.year === 0 ? t('timelineProjection.now') : `+${projection.year}`}
                 </td>
                 <td className="py-3 px-4 text-right text-text-primary font-medium">
                   {formatCurrency(projection.endingBalance, currency)}
@@ -90,15 +92,15 @@ export function TimelineProjection({
                 <td className="py-3 px-4 text-center">
                   {isBeyondFreedom ? (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success/10 text-success">
-                      ✓ Achieved
+                      ✓ {t('timelineProjection.achieved')}
                     </span>
                   ) : isFreedomYear ? (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary animate-pulse">
-                      Target Year
+                      {t('timelineProjection.targetYear')}
                     </span>
                   ) : (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-surface text-text-secondary">
-                      Building
+                      {t('timelineProjection.building')}
                     </span>
                   )}
                 </td>

@@ -402,4 +402,28 @@ class AccountControllerIntegrationTest {
                                 .header("X-Encryption-Session", bobEnc))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @DisplayName("POST /api/v1/accounts - create account with JPY currency")
+    void shouldCreateAccountWithJpyCurrency() throws Exception {
+        AccountRequest req =
+                AccountRequest.builder()
+                        .name("Japan Wallet")
+                        .type(org.openfinance.entity.AccountType.CASH)
+                        .currency("JPY")
+                        .initialBalance(new BigDecimal("50000"))
+                        .description("JPY cash")
+                        .build();
+
+        mockMvc.perform(
+                        post("/api/v1/accounts")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(req)))
+                .andDo(print())
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.currency").value("JPY"))
+                .andExpect(jsonPath("$.balance").value(50000));
+    }
 }

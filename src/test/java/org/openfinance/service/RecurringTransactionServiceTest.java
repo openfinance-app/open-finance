@@ -1176,4 +1176,56 @@ class RecurringTransactionServiceTest {
             verify(recurringTransactionRepository, never()).save(any());
         }
     }
+
+    @Test
+    @DisplayName("Should create recurring transaction with JPY currency (zero decimal)")
+    void shouldCreateRecurringTransactionWithJpyCurrency() {
+        // Given
+        RecurringTransactionRequest jpyRequest =
+                RecurringTransactionRequest.builder()
+                        .accountId(100L)
+                        .type(TransactionType.EXPENSE)
+                        .amount(new BigDecimal("120000"))
+                        .currency("JPY")
+                        .categoryId(50L)
+                        .description("Tokyo rent")
+                        .frequency(RecurringFrequency.MONTHLY)
+                        .nextOccurrence(LocalDate.of(2026, 4, 1))
+                        .endDate(LocalDate.of(2027, 3, 31))
+                        .build();
+
+        RecurringTransaction jpyEntity =
+                RecurringTransaction.builder()
+                        .id(50L)
+                        .userId(1L)
+                        .accountId(100L)
+                        .type(TransactionType.EXPENSE)
+                        .amount(new BigDecimal("120000"))
+                        .currency("JPY")
+                        .categoryId(50L)
+                        .description("Tokyo rent")
+                        .frequency(RecurringFrequency.MONTHLY)
+                        .nextOccurrence(LocalDate.of(2026, 4, 1))
+                        .endDate(LocalDate.of(2027, 3, 31))
+                        .isActive(true)
+                        .build();
+
+        lenient().when(encryptionService.decrypt(any(), any())).thenAnswer(i -> i.getArgument(0));
+
+        when(accountRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(testAccount));
+        when(categoryRepository.findByIdAndUserId(50L, 1L))
+                .thenReturn(Optional.of(testExpenseCategory));
+        when(recurringTransactionRepository.save(any(RecurringTransaction.class)))
+                .thenReturn(jpyEntity);
+
+        // When
+        RecurringTransactionResponse response =
+                recurringTransactionService.createRecurringTransaction(1L, jpyRequest);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getCurrency()).isEqualTo("JPY");
+        assertThat(response.getAmount()).isEqualByComparingTo(new BigDecimal("120000"));
+        verify(recurringTransactionRepository).save(any(RecurringTransaction.class));
+    }
 }

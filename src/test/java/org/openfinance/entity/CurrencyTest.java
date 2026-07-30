@@ -6,6 +6,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +34,7 @@ class CurrencyTest {
 
     @BeforeEach
     void setUp() {
+        Locale.setDefault(Locale.ENGLISH);
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         validator = factory.getValidator();
     }
@@ -105,8 +107,7 @@ class CurrencyTest {
         Set<ConstraintViolation<Currency>> violations = validator.validate(currency);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Currency code cannot be blank");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("Code must not be blank");
     }
 
     @Test
@@ -118,8 +119,7 @@ class CurrencyTest {
 
         // Multiple violations expected: @NotBlank, @Pattern, @Size
         assertThat(violations).hasSizeGreaterThanOrEqualTo(1);
-        assertThat(violations)
-                .anyMatch(v -> v.getMessage().equals("Currency code cannot be blank"));
+        assertThat(violations).anyMatch(v -> v.getMessage().equals("Code must not be blank"));
     }
 
     @Test
@@ -134,12 +134,9 @@ class CurrencyTest {
         assertThat(violations)
                 .anyMatch(
                         v ->
-                                v.getMessage()
-                                                .equals(
-                                                        "Currency code must be 3 to 10 uppercase letters")
+                                v.getMessage().equals("Code format is invalid")
                                         || v.getMessage()
-                                                .equals(
-                                                        "Currency code must be between 3 and 10 characters"));
+                                                .equals("Code size must be between 3 and 10"));
     }
 
     @Test
@@ -150,8 +147,7 @@ class CurrencyTest {
         Set<ConstraintViolation<Currency>> violations = validator.validate(currency);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Currency code must be 3 to 10 uppercase letters");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("Code format is invalid");
     }
 
     @Test
@@ -162,8 +158,7 @@ class CurrencyTest {
         Set<ConstraintViolation<Currency>> violations = validator.validate(currency);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Currency code must be 3 to 10 uppercase letters");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("Code format is invalid");
     }
 
     @Test
@@ -174,8 +169,7 @@ class CurrencyTest {
         Set<ConstraintViolation<Currency>> violations = validator.validate(currency);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Currency code must be 3 to 10 uppercase letters");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("Code format is invalid");
     }
 
     @Test
@@ -186,8 +180,7 @@ class CurrencyTest {
         Set<ConstraintViolation<Currency>> violations = validator.validate(currency);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Currency code must be 3 to 10 uppercase letters");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("Code format is invalid");
     }
 
     // ==================== Name Validation Tests ====================
@@ -200,8 +193,7 @@ class CurrencyTest {
         Set<ConstraintViolation<Currency>> violations = validator.validate(currency);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Currency name cannot be blank");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("Name must not be blank");
     }
 
     @Test
@@ -212,8 +204,7 @@ class CurrencyTest {
         Set<ConstraintViolation<Currency>> violations = validator.validate(currency);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Currency name cannot be blank");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("Name must not be blank");
     }
 
     @Test
@@ -241,8 +232,7 @@ class CurrencyTest {
         Set<ConstraintViolation<Currency>> violations = validator.validate(currency);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Currency symbol cannot be blank");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("Symbol must not be blank");
     }
 
     @Test
@@ -253,8 +243,7 @@ class CurrencyTest {
         Set<ConstraintViolation<Currency>> violations = validator.validate(currency);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("Currency symbol cannot be blank");
+        assertThat(violations.iterator().next().getMessage()).isEqualTo("Symbol must not be blank");
     }
 
     @Test

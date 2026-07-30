@@ -53,7 +53,7 @@ public class Asset {
     private Long id;
 
     /** The user who owns this asset. Requirement REQ-2.6.1: Each asset belongs to a single user */
-    @NotNull(message = "User ID cannot be null")
+    @NotNull(message = "{asset.userId.notnull}")
     @Column(name = "user_id", nullable = false)
     @ToString.Include
     private Long userId;
@@ -82,8 +82,8 @@ public class Asset {
      * AssetService handles encryption/decryption transparently. Requirement REQ-2.6.2: Asset must
      * have a descriptive name
      */
-    @NotNull(message = "Asset name cannot be null")
-    @Size(min = 1, max = 500, message = "Asset name must be between 1 and 500 characters")
+    @NotNull(message = "{asset.name.notnull}")
+    @Size(min = 1, max = 500, message = "{asset.name.size}")
     @Column(name = "name", nullable = false, length = 500) // Extra length for encrypted data
     @Convert(converter = EncryptedStringConverter.class)
     private String name;
@@ -92,7 +92,7 @@ public class Asset {
      * Type of asset (STOCK, ETF, MUTUAL_FUND, BOND, CRYPTO, COMMODITY, REAL_ESTATE, OTHER).
      * Requirement REQ-2.6: Asset type categorization
      */
-    @NotNull(message = "Asset type cannot be null")
+    @NotNull(message = "{asset.type.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "asset_type", nullable = false, length = 20)
     @ToString.Include
@@ -104,7 +104,7 @@ public class Asset {
      *
      * <p>Requirement REQ-2.6.4: Symbol for market data integration
      */
-    @Size(max = 20, message = "Symbol must not exceed 20 characters")
+    @Size(max = 20, message = "{asset.symbol.size}")
     @Column(name = "symbol", length = 20)
     @ToString.Include
     private String symbol;
@@ -123,8 +123,8 @@ public class Asset {
      * <p>Stored with precision 19, scale 8 to handle fractional assets (e.g., cryptocurrencies).
      * Requirement REQ-2.6.2: Track quantity of assets
      */
-    @NotNull(message = "Quantity cannot be null")
-    @DecimalMin(value = "0.00000001", message = "Quantity must be greater than 0")
+    @NotNull(message = "{asset.quantity.notnull}")
+    @DecimalMin(value = "0.00000001", message = "{asset.quantity.decimalMin}")
     @Column(name = "quantity", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal quantity;
@@ -133,8 +133,8 @@ public class Asset {
      * Purchase price per unit in the specified currency. Requirement REQ-2.6.2: Track purchase
      * price for gain/loss calculation
      */
-    @NotNull(message = "Purchase price cannot be null")
-    @DecimalMin(value = "0.00", message = "Purchase price must be non-negative")
+    @NotNull(message = "{asset.purchasePrice.notnull}")
+    @DecimalMin(value = "0.00", message = "{asset.purchasePrice.decimalMin}")
     @Column(name = "purchase_price", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal purchasePrice;
@@ -148,8 +148,8 @@ public class Asset {
      *
      * <p>Requirement REQ-2.6.4: Track current price for portfolio valuation
      */
-    @NotNull(message = "Current price cannot be null")
-    @DecimalMin(value = "0.00", message = "Current price must be non-negative")
+    @NotNull(message = "{asset.currentPrice.notnull}")
+    @DecimalMin(value = "0.00", message = "{asset.currentPrice.decimalMin}")
     @Column(name = "current_price", nullable = false, precision = 19, scale = 8)
     private BigDecimal currentPrice;
 
@@ -157,8 +157,8 @@ public class Asset {
      * Currency code in ISO 4217 format (e.g., USD, EUR, GBP). Requirement REQ-2.8: Multi-currency
      * support for assets
      */
-    @NotNull(message = "Currency cannot be null")
-    @Size(min = 3, max = 3, message = "Currency must be a 3-letter ISO 4217 code")
+    @NotNull(message = "{asset.currency.notnull}")
+    @Size(min = 3, max = 3, message = "{asset.currency.size}")
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;
 
@@ -176,7 +176,7 @@ public class Asset {
      *
      * <p>Requirement REQ-2.6.2: Track purchase date
      */
-    @NotNull(message = "Purchase date cannot be null")
+    @NotNull(message = "{asset.purchaseDate.notnull}")
     @Column(name = "purchase_date", nullable = false)
     private LocalDate purchaseDate;
 
@@ -201,7 +201,7 @@ public class Asset {
      *
      * <p>Requirement REQ-2.6: Track physical asset identification
      */
-    @Size(max = 500, message = "Serial number must not exceed 500 characters")
+    @Size(max = 500, message = "{asset.serialNumber.size}")
     @Column(name = "serial_number", length = 500)
     @Convert(converter = EncryptedStringConverter.class)
     private String serialNumber;
@@ -211,7 +211,7 @@ public class Asset {
      *
      * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database.
      */
-    @Size(max = 500, message = "Brand must not exceed 500 characters")
+    @Size(max = 500, message = "{asset.brand.size}")
     @Column(name = "brand", length = 500)
     @Convert(converter = EncryptedStringConverter.class)
     private String brand;
@@ -221,7 +221,7 @@ public class Asset {
      *
      * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database.
      */
-    @Size(max = 500, message = "Model must not exceed 500 characters")
+    @Size(max = 500, message = "{asset.model.size}")
     @Column(name = "model", length = 500)
     @Convert(converter = EncryptedStringConverter.class)
     private String model;
@@ -263,7 +263,7 @@ public class Asset {
      *
      * <p>Examples: assets/photos/IMG_1234.jpg, assets/photos/vehicle_vin12345.png
      */
-    @Size(max = 500, message = "Photo path must not exceed 500 characters")
+    @Size(max = 500, message = "{asset.photoPath.size}")
     @Column(name = "photo_path", length = 500)
     private String photoPath;
 

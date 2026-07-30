@@ -77,7 +77,7 @@ public class Transaction {
      *
      * <p>Requirement REQ-3.2: User-specific data isolation
      */
-    @NotNull(message = "User ID is required")
+    @NotNull(message = "{transaction.userId.notnull}")
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -92,7 +92,7 @@ public class Transaction {
      *
      * <p>Requirement REQ-2.4.1.1: Account association
      */
-    @NotNull(message = "Account ID is required")
+    @NotNull(message = "{transaction.accountId.notnull}")
     @Column(name = "account_id", nullable = false)
     private Long accountId;
 
@@ -123,7 +123,7 @@ public class Transaction {
      *
      * <p>Requirement REQ-2.4.1.1: Transaction types
      */
-    @NotNull(message = "Transaction type is required")
+    @NotNull(message = "{transaction.type.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false, length = 20)
     private TransactionType type;
@@ -144,12 +144,9 @@ public class Transaction {
      *
      * <p>Requirement REQ-2.4.1.1: Amount validation (non-zero)
      */
-    @NotNull(message = "Amount is required")
-    @DecimalMin(value = "0.0001", message = "Amount must be at least 0.0001")
-    @Digits(
-            integer = 15,
-            fraction = 4,
-            message = "Amount must have at most 15 integer digits and 4 decimal places")
+    @NotNull(message = "{transaction.amount.notnull}")
+    @DecimalMin(value = "0.0001", message = "{transaction.amount.decimalMin}")
+    @Digits(integer = 15, fraction = 4, message = "{transaction.amount.digits}")
     @Column(name = "amount", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal amount;
@@ -162,8 +159,8 @@ public class Transaction {
      *
      * <p>Requirement REQ-2.8: Multi-currency support
      */
-    @NotBlank(message = "Currency is required")
-    @Size(min = 3, max = 3, message = "Currency must be a 3-letter ISO 4217 code")
+    @NotBlank(message = "{transaction.currency.notblank}")
+    @Size(min = 3, max = 3, message = "{transaction.currency.size}")
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;
 
@@ -210,7 +207,7 @@ public class Transaction {
      *
      * <p>Requirement REQ-2.4.1.1: Date tracking
      */
-    @NotNull(message = "Transaction date is required")
+    @NotNull(message = "{transaction.date.notnull}")
     @Column(name = "transaction_date", nullable = false)
     private LocalDate date;
 
@@ -224,7 +221,7 @@ public class Transaction {
      *
      * <p>Requirement REQ-2.4.1.1: Description field
      */
-    @Size(max = 255, message = "Description must not exceed 255 characters")
+    @Size(max = 255, message = "{transaction.description.size}")
     @Column(name = "description", length = 1000) // Extra space for AES-256-GCM encryption
     @Convert(converter = EncryptedStringConverter.class)
     private String description;
@@ -237,7 +234,7 @@ public class Transaction {
      * <p><strong>Security:</strong> This field is encrypted before storage for privacy. Column
      * length is larger than validation constraint to accommodate encryption overhead.
      */
-    @Size(max = 1000, message = "Notes must not exceed 1000 characters")
+    @Size(max = 1000, message = "{transaction.notes.size}")
     @Column(name = "notes", length = 2000) // Extra space for AES-256-GCM encryption
     @Convert(converter = EncryptedStringConverter.class)
     private String notes;
@@ -249,7 +246,7 @@ public class Transaction {
      *
      * <p>Requirement REQ-2.4.1.1: Tags support
      */
-    @Size(max = 500, message = "Tags must not exceed 500 characters")
+    @Size(max = 500, message = "{transaction.tags.size}")
     @Column(name = "tags", length = 1000)
     @Convert(converter = EncryptedStringConverter.class)
     private String tags;
@@ -263,7 +260,7 @@ public class Transaction {
      *
      * <p>Examples: "Walmart", "John Doe", "Acme Corporation"
      */
-    @Size(max = 100, message = "Payee must not exceed 100 characters")
+    @Size(max = 100, message = "{transaction.payee.size}")
     @Column(name = "payee", length = 512)
     @Convert(converter = EncryptedStringConverter.class)
     private String payee;
@@ -330,7 +327,7 @@ public class Transaction {
      *
      * <p>Requirement: REQ-2.10.4 (Duplicate transaction detection — reference-based)
      */
-    @Size(max = 255, message = "External reference must not exceed 255 characters")
+    @Size(max = 255, message = "{transaction.externalReference.size}")
     @Column(name = "external_reference", length = 512)
     @Convert(converter = EncryptedStringConverter.class)
     private String externalReference;

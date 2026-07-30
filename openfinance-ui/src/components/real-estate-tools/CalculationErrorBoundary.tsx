@@ -11,6 +11,7 @@ import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
+import i18n from '@/i18n';
 
 interface Props {
   children: ReactNode;
@@ -68,14 +69,13 @@ export class CalculationErrorBoundary extends Component<Props, State> {
           <CardHeader className="bg-error/10">
             <CardTitle className="flex items-center gap-2 text-error">
               <AlertTriangle className="h-6 w-6" />
-              Erreur de calcul
+              {i18n.t('realEstate:calculationError.title')}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             <Alert variant="error">
               <AlertDescription>
-                Une erreur est survenue lors du calcul. Cela peut être dû à des
-                valeurs invalides ou une combinaison de paramètres incompatible.
+                {i18n.t('realEstate:calculationError.description')}
               </AlertDescription>
             </Alert>
 
@@ -93,21 +93,20 @@ export class CalculationErrorBoundary extends Component<Props, State> {
             <div className="flex flex-wrap gap-3 pt-4">
               <Button onClick={this.handleReset} variant="default">
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Réessayer
+                {i18n.t('realEstate:calculationError.retry')}
               </Button>
               <Button onClick={this.handleReload} variant="outline">
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Recharger la page
+                {i18n.t('realEstate:calculationError.reloadPage')}
               </Button>
               <Button onClick={this.handleGoHome} variant="ghost">
                 <Home className="mr-2 h-4 w-4" />
-                Retour aux outils
+                {i18n.t('realEstate:calculationError.backToTools')}
               </Button>
             </div>
 
             <p className="text-sm text-muted-foreground mt-4">
-              Si le problème persiste, essayez de réinitialiser les paramètres
-              ou contactez le support.
+              {i18n.t('realEstate:calculationError.persistenceMessage')}
             </p>
           </CardContent>
         </Card>

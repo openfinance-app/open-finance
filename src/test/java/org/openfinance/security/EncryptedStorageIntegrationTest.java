@@ -113,4 +113,31 @@ class EncryptedStorageIntegrationTest {
         assertThat(reloaded.getOpeningBalance()).isEqualByComparingTo("1200.00");
         assertThat(reloaded.getDescription()).isEqualTo("Primary household account");
     }
+
+    @Test
+    @DisplayName("Encrypted account with JPY currency round-trips correctly")
+    void encryptedJpyAccountFieldsRoundTripCorrectly() {
+        Account account =
+                Account.builder()
+                        .userId(user.getId())
+                        .name("Japan Wallet")
+                        .type(AccountType.CASH)
+                        .currency("JPY")
+                        .balance(new BigDecimal("50000"))
+                        .description("JPY cash holdings")
+                        .build();
+
+        EncryptionContext.setKey(TEST_KEY);
+        Account saved = accountRepository.saveAndFlush(account);
+        EncryptionContext.clear();
+
+        entityManager.clear();
+        EncryptionContext.setKey(TEST_KEY);
+
+        Account reloaded = accountRepository.findById(saved.getId()).orElseThrow();
+
+        assertThat(reloaded.getCurrency()).isEqualTo("JPY");
+        assertThat(reloaded.getBalance()).isEqualByComparingTo(new BigDecimal("50000"));
+        assertThat(reloaded.getBalance().scale()).isEqualTo(0);
+    }
 }

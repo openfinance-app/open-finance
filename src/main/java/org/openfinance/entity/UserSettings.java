@@ -57,7 +57,7 @@ public class UserSettings {
      */
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, unique = true)
-    @NotNull(message = "User is required")
+    @NotNull(message = "{userSettings.user.notnull}")
     private User user;
 
     /** Theme preference: "dark" or "light". Defaults to "dark" for better eye comfort. */

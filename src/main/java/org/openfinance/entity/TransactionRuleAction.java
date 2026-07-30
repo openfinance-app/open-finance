@@ -74,7 +74,7 @@ public class TransactionRuleAction {
     private Long ruleId;
 
     /** The type of action to perform. Requirement: REQ-TR-3.2 */
-    @NotNull(message = "Action type is required")
+    @NotNull(message = "{transactionRuleAction.actionType.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "action_type", nullable = false, length = 30)
     private RuleActionType actionType;

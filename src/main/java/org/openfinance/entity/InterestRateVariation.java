@@ -38,7 +38,7 @@ public class InterestRateVariation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull(message = "Account ID cannot be null")
+    @NotNull(message = "{interestRateVariation.accountId.notnull}")
     @Column(name = "account_id", nullable = false)
     private Long accountId;
 
@@ -47,7 +47,7 @@ public class InterestRateVariation {
     @ToString.Exclude
     private Account account;
 
-    @NotNull(message = "Interest rate cannot be null")
+    @NotNull(message = "{interestRateVariation.rate.notnull}")
     @Column(name = "rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal rate;
 
@@ -55,7 +55,7 @@ public class InterestRateVariation {
     @Builder.Default
     private BigDecimal taxRate = BigDecimal.ZERO;
 
-    @NotNull(message = "Valid from date cannot be null")
+    @NotNull(message = "{interestRateVariation.validFrom.notnull}")
     @Column(name = "valid_from", nullable = false)
     private LocalDate validFrom;
 

@@ -366,6 +366,58 @@ class AccountRepositoryTest {
                         AccountType.CHECKING, AccountType.SAVINGS, AccountType.CREDIT_CARD);
     }
 
+    // === Non-USD Currency Tests ===
+
+    @Test
+    @DisplayName("Should save and round-trip account with JPY currency (zero decimal)")
+    void shouldSaveAndRoundTripJpyAccount() {
+        // Given
+        Account jpyAccount =
+                Account.builder()
+                        .userId(testUser.getId())
+                        .name("JPY Cash Account")
+                        .type(AccountType.CASH)
+                        .currency("JPY")
+                        .balance(new BigDecimal("50000"))
+                        .isActive(true)
+                        .build();
+
+        // When
+        Account saved = accountRepository.save(jpyAccount);
+        Optional<Account> found = accountRepository.findById(saved.getId());
+
+        // Then
+        assertThat(found).isPresent();
+        assertThat(found.get().getCurrency()).isEqualTo("JPY");
+        assertThat(found.get().getBalance()).isEqualByComparingTo(new BigDecimal("50000"));
+        assertThat(found.get().getBalance().scale()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("Should save and round-trip account with BTC currency (high precision)")
+    void shouldSaveAndRoundTripBtcAccount() {
+        // Given
+        Account btcAccount =
+                Account.builder()
+                        .userId(testUser.getId())
+                        .name("BTC Wallet")
+                        .type(AccountType.INVESTMENT)
+                        .currency("BTC")
+                        .balance(new BigDecimal("0.12345678"))
+                        .isActive(true)
+                        .build();
+
+        // When
+        Account saved = accountRepository.save(btcAccount);
+        Optional<Account> found = accountRepository.findById(saved.getId());
+
+        // Then
+        assertThat(found).isPresent();
+        assertThat(found.get().getCurrency()).isEqualTo("BTC");
+        assertThat(found.get().getBalance()).isEqualByComparingTo(new BigDecimal("0.12345678"));
+        assertThat(found.get().getBalance().scale()).isEqualTo(8);
+    }
+
     // === Empty Result Tests ===
 
     @Test

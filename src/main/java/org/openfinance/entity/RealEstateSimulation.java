@@ -48,7 +48,7 @@ public class RealEstateSimulation {
     private Long id;
 
     /** The user who owns this simulation. */
-    @NotNull(message = "User ID cannot be null")
+    @NotNull(message = "{realEstateSimulation.userId.notnull}")
     @Column(name = "user_id", nullable = false)
     @ToString.Include
     private Long userId;
@@ -59,16 +59,16 @@ public class RealEstateSimulation {
     private User user;
 
     /** Simulation name for user identification. */
-    @NotNull(message = "Simulation name cannot be null")
-    @Size(min = 1, max = 200, message = "Name must be between 1 and 200 characters")
+    @NotNull(message = "{realEstateSimulation.name.notnull}")
+    @Size(min = 1, max = 200, message = "{realEstateSimulation.name.size}")
     @Column(name = "name", nullable = false, length = 200)
     private String name;
 
     /** Type of simulation: 'buy_rent' or 'rental_investment'. */
-    @NotNull(message = "Simulation type cannot be null")
+    @NotNull(message = "{realEstateSimulation.simulationType.notnull}")
     @Pattern(
             regexp = "buy_rent|rental_investment",
-            message = "Type must be 'buy_rent' or 'rental_investment'")
+            message = "{realEstateSimulation.simulationType.pattern}")
     @Column(name = "simulation_type", nullable = false, length = 20)
     private String simulationType;
 
@@ -76,8 +76,8 @@ public class RealEstateSimulation {
      * Simulation data stored as encrypted JSON string. Contains all user inputs and potentially
      * calculated results.
      */
-    @NotNull(message = "Simulation data cannot be null")
-    @Size(max = 10000, message = "Data cannot exceed 10000 characters")
+    @NotNull(message = "{realEstateSimulation.data.notnull}")
+    @Size(max = 10000, message = "{realEstateSimulation.data.size}")
     @Column(name = "data", nullable = false, columnDefinition = "TEXT")
     private String data;
 

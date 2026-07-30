@@ -75,7 +75,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.CONFLICT.value())
                         .error(HttpStatus.CONFLICT.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -278,7 +278,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.NOT_FOUND.value())
                         .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -306,7 +306,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.BAD_REQUEST.value())
                         .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -365,7 +365,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.BAD_REQUEST.value())
                         .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -390,7 +390,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.BAD_REQUEST.value())
                         .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -415,7 +415,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.NOT_FOUND.value())
                         .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -440,7 +440,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.NOT_FOUND.value())
                         .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -465,7 +465,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.NOT_FOUND.value())
                         .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -490,7 +490,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.NOT_FOUND.value())
                         .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -515,7 +515,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.NOT_FOUND.value())
                         .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -540,7 +540,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.NOT_FOUND.value())
                         .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -565,7 +565,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.NOT_FOUND.value())
                         .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 
@@ -741,6 +741,56 @@ public class GlobalExceptionHandler {
                         .status(HttpStatus.FORBIDDEN.value())
                         .error(HttpStatus.FORBIDDEN.getReasonPhrase())
                         .message(ex.getMessage())
+                        .path(getRequestPath(request))
+                        .build();
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+
+    /**
+     * Handles unauthorized access exceptions.
+     *
+     * @param ex the exception
+     * @param request the web request
+     * @return HTTP 403 Forbidden with localized error message
+     */
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized(
+            UnauthorizedException ex, WebRequest request) {
+
+        log.warn("Unauthorized access: {}", ex.getMessage());
+
+        ErrorResponse errorResponse =
+                ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(HttpStatus.FORBIDDEN.value())
+                        .error(HttpStatus.FORBIDDEN.getReasonPhrase())
+                        .message(resolveMessage(ex))
+                        .path(getRequestPath(request))
+                        .build();
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+
+    /**
+     * Handles account locked exceptions.
+     *
+     * @param ex the exception
+     * @param request the web request
+     * @return HTTP 403 Forbidden with localized error message
+     */
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<ErrorResponse> handleAccountLocked(
+            AccountLockedException ex, WebRequest request) {
+
+        log.warn("Account locked: {}", ex.getMessage());
+
+        ErrorResponse errorResponse =
+                ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(HttpStatus.FORBIDDEN.value())
+                        .error(HttpStatus.FORBIDDEN.getReasonPhrase())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 

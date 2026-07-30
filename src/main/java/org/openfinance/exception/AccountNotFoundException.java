@@ -12,7 +12,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>Requirement REQ-3.2: Authorization - Users can only access their own accounts
  */
 @ResponseStatus(HttpStatus.NOT_FOUND)
-public class AccountNotFoundException extends RuntimeException {
+public class AccountNotFoundException extends RuntimeException implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new AccountNotFoundException with a detail message.
@@ -21,6 +24,8 @@ public class AccountNotFoundException extends RuntimeException {
      */
     public AccountNotFoundException(String message) {
         super(message);
+        this.messageKey = null;
+        this.messageArgs = null;
     }
 
     /**
@@ -31,6 +36,14 @@ public class AccountNotFoundException extends RuntimeException {
      */
     public AccountNotFoundException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = null;
+        this.messageArgs = null;
+    }
+
+    private AccountNotFoundException(String message, String messageKey, Object[] messageArgs) {
+        super(message);
+        this.messageKey = messageKey;
+        this.messageArgs = messageArgs;
     }
 
     /**
@@ -40,7 +53,10 @@ public class AccountNotFoundException extends RuntimeException {
      * @return a new AccountNotFoundException
      */
     public static AccountNotFoundException byId(Long accountId) {
-        return new AccountNotFoundException("Account not found with id: " + accountId);
+        return new AccountNotFoundException(
+                "Account not found with id: " + accountId,
+                "error.account.not.found",
+                new Object[] {accountId});
     }
 
     /**
@@ -52,6 +68,18 @@ public class AccountNotFoundException extends RuntimeException {
      */
     public static AccountNotFoundException byIdAndUser(Long accountId, Long userId) {
         return new AccountNotFoundException(
-                String.format("Account not found with id: %d for user: %d", accountId, userId));
+                String.format("Account not found with id: %d for user: %d", accountId, userId),
+                "error.account.not.found",
+                new Object[] {accountId});
+    }
+
+    @Override
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return messageArgs;
     }
 }

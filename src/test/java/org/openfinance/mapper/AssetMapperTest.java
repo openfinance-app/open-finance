@@ -229,6 +229,87 @@ class AssetMapperTest {
         }
     }
 
+    // === Non-USD Currency Mapping Tests ===
+
+    @Nested
+    @DisplayName("Non-USD Currency Mapping")
+    class NonUsdCurrencyMapping {
+
+        @Test
+        @DisplayName("Should map JPY currency (zero decimal) in AssetRequest to entity")
+        void shouldMapJpyCurrencyRequestToEntity() {
+            // Given
+            AssetRequest request =
+                    AssetRequest.builder()
+                            .name("Japan Bond")
+                            .type(AssetType.BOND)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("100000"))
+                            .currentPrice(new BigDecimal("101000"))
+                            .currency("JPY")
+                            .purchaseDate(LocalDate.of(2025, 1, 15))
+                            .build();
+
+            // When
+            Asset entity = mapper.toEntity(request);
+
+            // Then
+            assertThat(entity.getCurrency()).isEqualTo("JPY");
+            assertThat(entity.getPurchasePrice()).isEqualByComparingTo(new BigDecimal("100000"));
+            assertThat(entity.getPurchasePrice().scale()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("Should map JPY currency in entity to AssetResponse")
+        void shouldMapJpyCurrencyEntityToResponse() {
+            // Given
+            Asset entity =
+                    Asset.builder()
+                            .id(1L)
+                            .userId(1L)
+                            .name("Japan Bond")
+                            .type(AssetType.BOND)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(new BigDecimal("100000"))
+                            .currentPrice(new BigDecimal("101000"))
+                            .currency("JPY")
+                            .purchaseDate(LocalDate.of(2025, 1, 15))
+                            .build();
+
+            // When
+            AssetResponse response = mapper.toResponse(entity);
+
+            // Then
+            assertThat(response.getCurrency()).isEqualTo("JPY");
+            assertThat(response.getPurchasePrice()).isEqualByComparingTo(new BigDecimal("100000"));
+        }
+
+        @Test
+        @DisplayName("Should map BTC currency (high precision) in AssetRequest to entity")
+        void shouldMapBtcCurrencyRequestToEntity() {
+            // Given
+            AssetRequest request =
+                    AssetRequest.builder()
+                            .name("Bitcoin Holding")
+                            .type(AssetType.CRYPTO)
+                            .symbol("BTC")
+                            .quantity(new BigDecimal("0.12345678"))
+                            .purchasePrice(new BigDecimal("50000.00"))
+                            .currentPrice(new BigDecimal("52000.00"))
+                            .currency("BTC")
+                            .purchaseDate(LocalDate.of(2025, 3, 1))
+                            .build();
+
+            // When
+            Asset entity = mapper.toEntity(request);
+
+            // Then
+            assertThat(entity.getCurrency()).isEqualTo("BTC");
+            assertThat(entity.getQuantity()).isEqualByComparingTo(new BigDecimal("0.12345678"));
+            assertThat(entity.getQuantity().scale()).isEqualTo(8);
+        }
+    }
+
     // === Physical Asset Mapping Tests ===
 
     @Nested

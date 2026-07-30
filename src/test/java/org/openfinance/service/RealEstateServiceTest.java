@@ -1051,4 +1051,66 @@ class RealEstateServiceTest {
         assertThat(result.getValueInBaseCurrency())
                 .isEqualByComparingTo(new BigDecimal("550000.00"));
     }
+
+    @Test
+    @DisplayName("Should create property with JPY currency (zero decimal)")
+    void shouldCreatePropertyWithJpyCurrency() {
+        // Given
+        RealEstatePropertyRequest jpyRequest =
+                RealEstatePropertyRequest.builder()
+                        .name("Tokyo Apartment")
+                        .address("Shibuya, Tokyo")
+                        .propertyType(PropertyType.RESIDENTIAL)
+                        .purchasePrice(new BigDecimal("50000000"))
+                        .currentValue(new BigDecimal("55000000"))
+                        .currency("JPY")
+                        .purchaseDate(LocalDate.of(2021, 4, 1))
+                        .build();
+
+        RealEstateProperty jpyMapped =
+                RealEstateProperty.builder()
+                        .name("Tokyo Apartment")
+                        .currency("JPY")
+                        .purchasePrice("50000000")
+                        .currentValue("55000000")
+                        .build();
+
+        RealEstateProperty jpySaved =
+                RealEstateProperty.builder()
+                        .id(100L)
+                        .userId(userId)
+                        .name("Tokyo Apartment")
+                        .currency("JPY")
+                        .purchasePrice("50000000")
+                        .currentValue("55000000")
+                        .isActive(true)
+                        .build();
+
+        RealEstatePropertyResponse jpyResponse =
+                RealEstatePropertyResponse.builder()
+                        .id(100L)
+                        .userId(userId)
+                        .name("Tokyo Apartment")
+                        .currency("JPY")
+                        .isActive(true)
+                        .build();
+
+        org.openfinance.dto.AssetResponse assetResponse = new org.openfinance.dto.AssetResponse();
+        assetResponse.setId(100L);
+        when(assetService.createAsset(eq(userId), any(org.openfinance.dto.AssetRequest.class)))
+                .thenReturn(assetResponse);
+
+        when(realEstateMapper.toEntity(jpyRequest)).thenReturn(jpyMapped);
+        when(realEstateRepository.save(any(RealEstateProperty.class))).thenReturn(jpySaved);
+        when(realEstateMapper.toResponse(jpySaved)).thenReturn(jpyResponse);
+
+        // When
+        RealEstatePropertyResponse result = realEstateService.createProperty(userId, jpyRequest);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getCurrency()).isEqualTo("JPY");
+        verify(realEstateRepository, org.mockito.Mockito.atLeastOnce())
+                .save(any(RealEstateProperty.class));
+    }
 }

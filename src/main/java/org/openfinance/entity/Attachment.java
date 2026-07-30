@@ -74,7 +74,7 @@ public class Attachment {
      * The user who uploaded this attachment. Requirement REQ-2.12.1: Each attachment belongs to a
      * single user for security
      */
-    @NotNull(message = "User ID cannot be null")
+    @NotNull(message = "{attachment.userId.notnull}")
     @Column(name = "user_id", nullable = false)
     @ToString.Include
     private Long userId;
@@ -89,7 +89,7 @@ public class Attachment {
      * Type of entity this attachment is associated with (TRANSACTION, ASSET, REAL_ESTATE,
      * LIABILITY). Requirement REQ-2.12.2: Attachments can be linked to various entity types
      */
-    @NotNull(message = "Entity type cannot be null")
+    @NotNull(message = "{attachment.entityType.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "entity_type", nullable = false, length = 25)
     @ToString.Include
@@ -102,8 +102,8 @@ public class Attachment {
      *
      * <p>Requirement REQ-2.12.2: Attachments link to specific entities
      */
-    @NotNull(message = "Entity ID cannot be null")
-    @Positive(message = "Entity ID must be positive")
+    @NotNull(message = "{attachment.entityId.notnull}")
+    @Positive(message = "{attachment.entityId.positive}")
     @Column(name = "entity_id", nullable = false)
     @ToString.Include
     private Long entityId;
@@ -114,8 +114,8 @@ public class Attachment {
      *
      * <p>Requirement REQ-2.12.3: Original filename preserved for user convenience
      */
-    @NotNull(message = "File name cannot be null")
-    @Size(min = 1, max = 255, message = "File name must be between 1 and 255 characters")
+    @NotNull(message = "{attachment.fileName.notnull}")
+    @Size(min = 1, max = 255, message = "{attachment.fileName.size}")
     @Column(name = "file_name", nullable = false, length = 512)
     @Convert(converter = EncryptedStringConverter.class)
     @ToString.Include
@@ -127,8 +127,8 @@ public class Attachment {
      *
      * <p>Requirement REQ-2.12.4: Store file type for proper content handling
      */
-    @NotNull(message = "File type cannot be null")
-    @Size(min = 1, max = 100, message = "File type must be between 1 and 100 characters")
+    @NotNull(message = "{attachment.fileType.notnull}")
+    @Size(min = 1, max = 100, message = "{attachment.fileType.size}")
     @Column(name = "file_type", nullable = false, length = 100)
     private String fileType;
 
@@ -137,8 +137,8 @@ public class Attachment {
      *
      * <p>Requirement REQ-2.12.5: Track file size (max 10MB per file)
      */
-    @NotNull(message = "File size cannot be null")
-    @Positive(message = "File size must be positive")
+    @NotNull(message = "{attachment.fileSize.notnull}")
+    @Positive(message = "{attachment.fileSize.positive}")
     @Column(name = "file_size", nullable = false)
     private Long fileSize;
 
@@ -153,8 +153,8 @@ public class Attachment {
      * encrypted version of the file, not the original unencrypted file. Requirement REQ-2.12.6:
      * Files stored encrypted at rest on filesystem
      */
-    @NotNull(message = "File path cannot be null")
-    @Size(min = 1, max = 500, message = "File path must be between 1 and 500 characters")
+    @NotNull(message = "{attachment.filePath.notnull}")
+    @Size(min = 1, max = 500, message = "{attachment.filePath.size}")
     @Column(name = "file_path", nullable = false, length = 500, unique = true)
     private String filePath;
 
@@ -171,7 +171,7 @@ public class Attachment {
      * Optional description or notes about this attachment. Allows users to add context about what
      * the file contains.
      */
-    @Size(max = 500, message = "Description must not exceed 500 characters")
+    @Size(max = 500, message = "{attachment.description.size}")
     @Column(name = "description", length = 1000)
     @Convert(converter = EncryptedStringConverter.class)
     private String description;

@@ -42,7 +42,7 @@ public class Backup {
     private Long id;
 
     /** The user who owns this backup. */
-    @NotNull(message = "User ID is required")
+    @NotNull(message = "{backup.userId.notnull}")
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -52,19 +52,19 @@ public class Backup {
     private User user;
 
     /** Original filename of the backup file. Format: openfinance-backup-YYYYMMDD-HHMMSS.ofbak */
-    @NotBlank(message = "Filename is required")
-    @Size(max = 255, message = "Filename must not exceed 255 characters")
+    @NotBlank(message = "{backup.filename.notblank}")
+    @Size(max = 255, message = "{backup.filename.size}")
     @Column(name = "filename", nullable = false, length = 255)
     private String filename;
 
     /** Storage path on the server (relative to backup directory). */
-    @NotBlank(message = "File path is required")
-    @Size(max = 500, message = "File path must not exceed 500 characters")
+    @NotBlank(message = "{backup.filePath.notblank}")
+    @Size(max = 500, message = "{backup.filePath.size}")
     @Column(name = "file_path", nullable = false, length = 500)
     private String filePath;
 
     /** Size of the backup file in bytes. */
-    @NotNull(message = "File size is required")
+    @NotNull(message = "{backup.fileSize.notnull}")
     @Column(name = "file_size", nullable = false)
     private Long fileSize;
 
@@ -72,42 +72,40 @@ public class Backup {
      * SHA-256 checksum for file integrity verification. Empty string is allowed for IN_PROGRESS
      * status, populated when backup completes.
      */
-    @NotNull(message = "Checksum cannot be null")
-    @Size(max = 64, message = "Checksum must be 64 characters")
-    @Pattern(
-            regexp = "^$|^[a-f0-9]{64}$",
-            message = "Checksum must be empty or a valid SHA-256 hash")
+    @NotNull(message = "{backup.checksum.notnull}")
+    @Size(max = 64, message = "{backup.checksum.size}")
+    @Pattern(regexp = "^$|^[a-f0-9]{64}$", message = "{backup.checksum.pattern}")
     @Column(name = "checksum", nullable = false, length = 64)
     private String checksum;
 
     /** Status of the backup: PENDING, IN_PROGRESS, COMPLETED, FAILED. */
-    @NotBlank(message = "Status is required")
+    @NotBlank(message = "{backup.status.notblank}")
     @Pattern(
             regexp = "^(PENDING|IN_PROGRESS|COMPLETED|FAILED)$",
-            message = "Status must be PENDING, IN_PROGRESS, COMPLETED, or FAILED")
+            message = "{backup.status.pattern}")
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
     private String status = "PENDING";
 
     /** Type of backup: MANUAL or AUTOMATIC. */
-    @NotBlank(message = "Backup type is required")
-    @Pattern(regexp = "^(MANUAL|AUTOMATIC)$", message = "Backup type must be MANUAL or AUTOMATIC")
+    @NotBlank(message = "{backup.backupType.notblank}")
+    @Pattern(regexp = "^(MANUAL|AUTOMATIC)$", message = "{backup.backupType.pattern}")
     @Column(name = "backup_type", nullable = false, length = 20)
     @Builder.Default
     private String backupType = "MANUAL";
 
     /** Description or notes about the backup (optional). */
-    @Size(max = 500, message = "Description must not exceed 500 characters")
+    @Size(max = 500, message = "{backup.description.size}")
     @Column(name = "description", length = 500)
     private String description;
 
     /** Error message if backup failed (optional). */
-    @Size(max = 1000, message = "Error message must not exceed 1000 characters")
+    @Size(max = 1000, message = "{backup.errorMessage.size}")
     @Column(name = "error_message", length = 1000)
     private String errorMessage;
 
     /** Timestamp when the backup was created. */
-    @NotNull(message = "Created at timestamp is required")
+    @NotNull(message = "{backup.createdAt.notnull}")
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

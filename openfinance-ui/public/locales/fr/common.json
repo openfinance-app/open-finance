@@ -160,6 +160,24 @@
     "networkError": "Erreur réseau. Veuillez vérifier votre connexion.",
     "unexpected": "Une erreur inattendue s'est produite."
   },
+  "errorBoundary": {
+    "title": "Une erreur s'est produite",
+    "description": "Une erreur inattendue s'est produite. Veuillez réessayer ou contacter le support si le problème persiste.",
+    "tryAgain": "Réessayer",
+    "reloadPage": "Recharger la page"
+  },
+  "timelineProjection": {
+    "year": "Année",
+    "savingsBalance": "Solde d'épargne",
+    "contributions": "Cotisations",
+    "investmentReturns": "Rendements des investissements",
+    "progress": "Progression",
+    "status": "Statut",
+    "now": "Maintenant",
+    "achieved": "Atteint",
+    "targetYear": "Année cible",
+    "building": "En construction"
+  },
   "logoutAndTryAgain": "Se déconnecter et réessayer",
   "filteredOf": "{{filtered}} sur {{total}}",
   "buttons": {

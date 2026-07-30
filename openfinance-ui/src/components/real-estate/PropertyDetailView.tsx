@@ -5,6 +5,7 @@
  * Detailed view of a property with tabs for Overview, Equity, and ROI analysis
  */
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -40,6 +41,7 @@ function getPropertyTypeIcon(type: string): React.ReactNode {
 type TabType = 'overview' | 'equity' | 'roi' | 'attachments';
 
 export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewProps) {
+  const { t } = useTranslation('realEstate');
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   const { data: property, isLoading: loadingProperty, error: propertyError } = useProperty(propertyId);
@@ -51,12 +53,12 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
       <Dialog open={true} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Property Details</DialogTitle>
+            <DialogTitle>{t('propertyDetail.title')}</DialogTitle>
           </DialogHeader>
           <div className="p-4 bg-error/10 border border-error/20 rounded-lg text-error">
-            Failed to load property details. Please try again.
+            {t('propertyDetail.loadError')}
           </div>
-          <Button variant="ghost" onClick={onClose}>Close</Button>
+          <Button variant="ghost" onClick={onClose}>{t('propertyDetail.close')}</Button>
         </DialogContent>
       </Dialog>
     );
@@ -69,7 +71,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
           {loadingProperty ? (
             <div className="space-y-4">
               <DialogHeader>
-                <DialogTitle className="sr-only">Loading property details</DialogTitle>
+                <DialogTitle className="sr-only">{t('propertyDetail.loading')}</DialogTitle>
               </DialogHeader>
               <LoadingSkeleton className="h-8 w-3/4" />
               <LoadingSkeleton className="h-64" />
@@ -94,7 +96,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                         </div>
                         {!property.isActive && (
                           <div className="inline-flex items-center px-2 py-1 rounded-md bg-surface-elevated text-text-muted text-xs font-medium border border-border">
-                            Inactive
+                            {t('card.inactive')}
                           </div>
                         )}
                       </div>
@@ -116,7 +118,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                         : 'border-transparent text-text-secondary hover:text-text-primary'
                     )}
                   >
-                    Overview
+                    {t('propertyDetail.tab.overview')}
                   </button>
                   <button
                     onClick={() => setActiveTab('equity')}
@@ -127,7 +129,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                         : 'border-transparent text-text-secondary hover:text-text-primary'
                     )}
                   >
-                    Equity
+                    {t('propertyDetail.tab.equity')}
                   </button>
                   <button
                     onClick={() => setActiveTab('roi')}
@@ -138,7 +140,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                         : 'border-transparent text-text-secondary hover:text-text-primary'
                     )}
                   >
-                    ROI Analysis
+                    {t('propertyDetail.tab.roi')}
                   </button>
                   <button
                     onClick={() => setActiveTab('attachments')}
@@ -149,7 +151,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                         : 'border-transparent text-text-secondary hover:text-text-primary'
                     )}
                   >
-                    Attachments
+                    {t('propertyDetail.tab.attachments')}
                   </button>
                 </div>
               </div>
@@ -164,7 +166,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                       <Card className="p-4">
                         <div className="flex items-center gap-2 mb-1">
                           <DollarSign className="h-4 w-4 text-text-secondary" />
-                          <p className="text-sm text-text-secondary">Current Value</p>
+                          <p className="text-sm text-text-secondary">{t('form.currentValue')}</p>
                         </div>
                         <p className="text-2xl font-bold text-text-primary">
                            {/* REQ-2.4: Show converted base-currency value when available */}
@@ -184,7 +186,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                       <Card className="p-4">
                         <div className="flex items-center gap-2 mb-1">
                           <TrendingUp className="h-4 w-4 text-text-secondary" />
-                          <p className="text-sm text-text-secondary">Appreciation</p>
+                          <p className="text-sm text-text-secondary">{t('card.appreciation')}</p>
                         </div>
                         {property.appreciation !== undefined && property.appreciationPercentage !== undefined ? (
                           <p className={cn('text-2xl font-bold', formatAppreciation(property.appreciation, property.appreciationPercentage, property.currency).color)}>
@@ -201,32 +203,32 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                             {' '}({property.appreciation >= 0 ? '+' : ''}{property.appreciationPercentage.toFixed(2)}%)
                           </p>
                         ) : (
-                          <p className="text-2xl font-bold text-text-muted">N/A</p>
+                          <p className="text-2xl font-bold text-text-muted">{t('propertyDetail.na')}</p>
                         )}
                       </Card>
 
                       <Card className="p-4">
                         <div className="flex items-center gap-2 mb-1">
                           <Calendar className="h-4 w-4 text-text-secondary" />
-                          <p className="text-sm text-text-secondary">Property Age</p>
+                          <p className="text-sm text-text-secondary">{t('propertyDetail.propertyAgeLabel')}</p>
                         </div>
                         <p className="text-2xl font-bold text-text-primary">
-                          {calculatePropertyAge(property.purchaseDate)} years
+                          {t('propertyDetail.propertyAge', { years: calculatePropertyAge(property.purchaseDate) })}
                         </p>
                       </Card>
                     </div>
 
                     {/* Property Details */}
                     <Card className="p-6">
-                      <h3 className="text-lg font-semibold text-text-primary mb-4">Property Details</h3>
+                      <h3 className="text-lg font-semibold text-text-primary mb-4">{t('propertyDetail.title')}</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm text-text-secondary mb-1">Address</p>
+                          <p className="text-sm text-text-secondary mb-1">{t('form.address')}</p>
                           <p className="text-text-primary">{property.address}</p>
                         </div>
 
                         <div>
-                          <p className="text-sm text-text-secondary mb-1">Purchase Date</p>
+                          <p className="text-sm text-text-secondary mb-1">{t('form.purchaseDate')}</p>
                           <p className="text-text-primary">
                             {new Date(property.purchaseDate).toLocaleDateString('en-US', {
                               year: 'numeric',
@@ -237,7 +239,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                         </div>
 
                          <div>
-                           <p className="text-sm text-text-secondary mb-1">Purchase Price</p>
+                            <p className="text-sm text-text-secondary mb-1">{t('form.purchasePrice')}</p>
                            <p className="text-text-primary">
                              <ConvertedAmount
                                amount={property.purchasePrice}
@@ -251,20 +253,20 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                          </div>
 
                         <div>
-                          <p className="text-sm text-text-secondary mb-1">Currency</p>
+                          <p className="text-sm text-text-secondary mb-1">{t('form.currency')}</p>
                           <p className="text-text-primary">{property.currency}</p>
                         </div>
 
                         {property.mortgageName && (
                           <div>
-                            <p className="text-sm text-text-secondary mb-1">Linked Mortgage</p>
+                            <p className="text-sm text-text-secondary mb-1">{t('propertyDetail.linkedMortgage')}</p>
                             <p className="text-text-primary">{property.mortgageName}</p>
                           </div>
                         )}
 
                          {property.rentalIncome && property.rentalIncome > 0 && (
                            <div>
-                             <p className="text-sm text-text-secondary mb-1">Monthly Rental Income</p>
+                              <p className="text-sm text-text-secondary mb-1">{t('propertyDetail.monthlyRentalIncome')}</p>
                              <p className="text-primary font-medium">
                                <ConvertedAmount
                                  amount={property.rentalIncome}
@@ -286,24 +288,24 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                       <Card className="p-6">
                         <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
                           <MapPinIcon className="h-5 w-5" />
-                          Location
+                          {t('propertyDetail.location')}
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {property.latitude && (
                             <div>
-                              <p className="text-sm text-text-secondary mb-1">Latitude</p>
+                              <p className="text-sm text-text-secondary mb-1">{t('propertyDetail.latitude')}</p>
                               <p className="text-text-primary font-mono">{property.latitude.toFixed(6)}</p>
                             </div>
                           )}
                           {property.longitude && (
                             <div>
-                              <p className="text-sm text-text-secondary mb-1">Longitude</p>
+                              <p className="text-sm text-text-secondary mb-1">{t('propertyDetail.longitude')}</p>
                               <p className="text-text-primary font-mono">{property.longitude.toFixed(6)}</p>
                             </div>
                           )}
                         </div>
                         <p className="mt-3 text-xs text-text-tertiary">
-                          Future feature: Interactive map view
+                          {t('propertyDetail.futureMap')}
                         </p>
                       </Card>
                     )}
@@ -311,7 +313,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                     {/* Notes */}
                     {property.notes && (
                       <Card className="p-6">
-                        <h3 className="text-lg font-semibold text-text-primary mb-3">Notes</h3>
+                        <h3 className="text-lg font-semibold text-text-primary mb-3">{t('propertyDetail.notes')}</h3>
                         <p className="text-text-secondary whitespace-pre-wrap">{property.notes}</p>
                       </Card>
                     )}
@@ -327,8 +329,8 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                       <>
                          {/* Equity Summary Card */}
                          <Card className="p-6 bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-                           <h3 className="text-xl font-semibold text-text-primary mb-4">Property Equity</h3>
-                           <p className="text-4xl font-bold text-green-400 mb-2">
+                            <h3 className="text-xl font-semibold text-text-primary mb-4">{t('propertyDetail.propertyEquity')}</h3>
+                            <p className="text-4xl font-bold text-green-400 mb-2">
                              <ConvertedAmount
                                amount={equity.equity}
                                currency={equity.currency}
@@ -338,20 +340,20 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                isConverted={property.isConverted}
                              />
                            </p>
-                           <p className="text-text-secondary">
-                             {equity.equityPercentage.toFixed(2)}% of property value
-                           </p>
+                            <p className="text-text-secondary">
+                              {t('propertyDetail.percentOfValue', { percentage: equity.equityPercentage.toFixed(2) })}
+                            </p>
                          </Card>
 
                         {/* Equity Calculation */}
                         <Card className="p-6">
-                          <h3 className="text-lg font-semibold text-text-primary mb-4">Equity Calculation</h3>
+                           <h3 className="text-lg font-semibold text-text-primary mb-4">{t('propertyDetail.equityCalculation')}</h3>
 
                           <div className="space-y-4">
                              {/* Current Value */}
                              <div className="flex justify-between items-center text-lg">
-                               <span className="text-text-secondary">Current Value</span>
-                               <span className="text-text-primary font-semibold">
+                                <span className="text-text-secondary">{t('form.currentValue')}</span>
+                                <span className="text-text-primary font-semibold">
                                  <ConvertedAmount
                                    amount={equity.currentValue}
                                    currency={equity.currency}
@@ -367,7 +369,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                              {equity.hasMortgage && (
                                <>
                                  <div className="flex justify-between items-center text-lg">
-                                   <span className="text-text-secondary">Mortgage Balance</span>
+                                    <span className="text-text-secondary">{t('propertyDetail.mortgageBalance')}</span>
                                    <span className="text-error font-semibold">
                                      - <ConvertedAmount
                                        amount={equity.mortgageBalance}
@@ -383,7 +385,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
 
                                  <div className="border-t border-border pt-4">
                                    <div className="flex justify-between items-center text-xl">
-                                     <span className="text-text-primary font-semibold">Total Equity</span>
+                                      <span className="text-text-primary font-semibold">{t('propertyDetail.totalEquity')}</span>
                                      <span className="text-green-400 font-bold">
                                        <ConvertedAmount
                                          amount={equity.equity}
@@ -402,8 +404,8 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                             {/* Visual Bar */}
                             <div className="mt-6">
                               <div className="flex justify-between text-sm text-text-secondary mb-2">
-                                <span>Equity vs Debt</span>
-                                <span>{equity.equityPercentage.toFixed(1)}% equity</span>
+                                 <span>{t('propertyDetail.equityVsDebt')}</span>
+                                 <span>{t('propertyDetail.equityPercent', { percentage: equity.equityPercentage.toFixed(1) })}</span>
                               </div>
                               <div className="h-4 bg-surface rounded-full overflow-hidden">
                                 <div
@@ -420,13 +422,13 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
 
                           {!equity.hasMortgage && (
                             <p className="mt-4 text-sm text-text-tertiary italic">
-                              This property has no linked mortgage. Full equity belongs to you.
+                              {t('propertyDetail.noMortgage')}
                             </p>
                           )}
 
                           {equity.mortgageId && (
                             <p className="mt-4 text-sm text-text-secondary">
-                              Mortgage ID: {equity.mortgageId}
+                              {t('propertyDetail.mortgageId', { id: equity.mortgageId })}
                             </p>
                           )}
                         </Card>
@@ -435,7 +437,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                       </>
                     ) : (
                       <div className="p-4 bg-error/10 border border-error/20 rounded-lg text-error">
-                        Failed to load equity data.
+                        {t('propertyDetail.loadEquityError')}
                       </div>
                     )}
                   </div>
@@ -450,26 +452,26 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                       <>
                          {/* Overall ROI Summary */}
                          <Card className="p-6 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-                           <h3 className="text-xl font-semibold text-text-primary mb-4">Total Return on Investment</h3>
-                           <p className="text-4xl font-bold text-primary mb-2">
-                             <PrivateAmount>{roi.totalROI != null ? `${roi.totalROI.toFixed(2)}%` : 'N/A'}</PrivateAmount>
+                            <h3 className="text-xl font-semibold text-text-primary mb-4">{t('propertyDetail.totalROI')}</h3>
+                            <p className="text-4xl font-bold text-primary mb-2">
+                              <PrivateAmount>{roi.totalROI != null ? `${roi.totalROI.toFixed(2)}%` : t('propertyDetail.na')}</PrivateAmount>
                            </p>
-                           <p className="text-text-secondary">
-                             Annualized return: {roi.annualizedReturn != null ? roi.annualizedReturn.toFixed(2) : 'N/A'}% per year
-                           </p>
+                            <p className="text-text-secondary">
+                              {t('propertyDetail.annualizedReturn', { value: roi.annualizedReturn != null ? roi.annualizedReturn.toFixed(2) : t('propertyDetail.na') })}
+                            </p>
                            {roi.yearsOwned != null && (
-                             <p className="text-sm text-text-tertiary mt-2">
-                               Holding period: {roi.yearsOwned} year{roi.yearsOwned !== 1 ? 's' : ''}
+                              <p className="text-sm text-text-tertiary mt-2">
+                                {t('propertyDetail.holdingPeriod', { years: roi.yearsOwned })}
                              </p>
                            )}
                          </Card>
 
                          {/* Appreciation Section */}
                          <Card className="p-6">
-                           <h3 className="text-lg font-semibold text-text-primary mb-4">Appreciation</h3>
+                            <h3 className="text-lg font-semibold text-text-primary mb-4">{t('card.appreciation')}</h3>
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div>
-                               <p className="text-sm text-text-secondary mb-1">Purchase Price</p>
+                               <p className="text-sm text-text-secondary mb-1">{t('form.purchasePrice')}</p>
                                <p className="text-text-primary font-medium">
                                  <ConvertedAmount
                                    amount={roi.purchasePrice}
@@ -483,8 +485,8 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                              </div>
 
                              <div>
-                               <p className="text-sm text-text-secondary mb-1">Current Value</p>
-                               <p className="text-text-primary font-medium">
+                                <p className="text-sm text-text-secondary mb-1">{t('form.currentValue')}</p>
+                                <p className="text-text-primary font-medium">
                                  <ConvertedAmount
                                    amount={roi.currentValue}
                                    currency={roi.currency}
@@ -497,7 +499,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                              </div>
 
                              <div>
-                               <p className="text-sm text-text-secondary mb-1">Total Appreciation</p>
+                                <p className="text-sm text-text-secondary mb-1">{t('propertyDetail.totalAppreciation')}</p>
                                <p className={cn(
                                  'font-bold text-lg',
                                  roi.appreciation >= 0 ? 'text-green-400' : 'text-red-400'
@@ -511,14 +513,14 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                    exchangeRate={property.exchangeRate}
                                    isConverted={property.isConverted}
                                    inline
-                                 /> ({roi.appreciationPercentage != null ? roi.appreciationPercentage.toFixed(2) : 'N/A'}%)
+                                  /> ({roi.appreciationPercentage != null ? roi.appreciationPercentage.toFixed(2) : t('propertyDetail.na')}%)
                                </p>
                              </div>
 
                              <div>
-                               <p className="text-sm text-text-secondary mb-1">Annualized Return</p>
-                               <p className="text-primary font-bold text-lg">
-                                 {roi.annualizedReturn != null ? roi.annualizedReturn.toFixed(2) : 'N/A'}%
+                                <p className="text-sm text-text-secondary mb-1">{t('propertyDetail.annualizedReturnLabel')}</p>
+                                <p className="text-primary font-bold text-lg">
+                                  {roi.annualizedReturn != null ? roi.annualizedReturn.toFixed(2) : t('propertyDetail.na')}%
                                </p>
                              </div>
                            </div>
@@ -527,10 +529,10 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                          {/* Rental Income Section */}
                          {roi.isRentalProperty && roi.monthlyRentalIncome != null && (
                            <Card className="p-6">
-                             <h3 className="text-lg font-semibold text-text-primary mb-4">Rental Income</h3>
+                              <h3 className="text-lg font-semibold text-text-primary mb-4">{t('propertyDetail.rentalIncome')}</h3>
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                <div>
-                                 <p className="text-sm text-text-secondary mb-1">Monthly Rental Income</p>
+                                 <p className="text-sm text-text-secondary mb-1">{t('propertyDetail.monthlyRentalIncome')}</p>
                                  <p className="text-primary font-bold text-lg">
                                    <ConvertedAmount
                                      amount={roi.monthlyRentalIncome}
@@ -546,7 +548,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
 
                                {roi.totalRentalIncome != null && (
                                  <div>
-                                   <p className="text-sm text-text-secondary mb-1">Total Rental Income</p>
+                                    <p className="text-sm text-text-secondary mb-1">{t('propertyDetail.totalRentalIncome')}</p>
                                    <p className="text-text-primary font-medium">
                                      <ConvertedAmount
                                        amount={roi.totalRentalIncome}
@@ -562,13 +564,13 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
 
                                {roi.rentalYield != null && (
                                  <div className="md:col-span-2">
-                                   <p className="text-sm text-text-secondary mb-1">Rental Yield</p>
-                                   <p className="text-green-400 font-bold text-lg">
-                                     {roi.rentalYield.toFixed(2)}% annually
-                                   </p>
-                                   <p className="text-xs text-text-tertiary mt-1">
-                                     Based on current property value
-                                   </p>
+                                    <p className="text-sm text-text-secondary mb-1">{t('propertyDetail.rentalYield')}</p>
+                                    <p className="text-green-400 font-bold text-lg">
+                                      {t('propertyDetail.rentalYieldValue', { percentage: roi.rentalYield.toFixed(2) })}
+                                    </p>
+                                    <p className="text-xs text-text-tertiary mt-1">
+                                      {t('propertyDetail.basedOnCurrentValue')}
+                                    </p>
                                  </div>
                                )}
                              </div>
@@ -579,7 +581,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                       </>
                     ) : (
                       <div className="p-4 bg-error/10 border border-error/20 rounded-lg text-error">
-                        Failed to load ROI data.
+                        {t('propertyDetail.loadROIError')}
                       </div>
                     )}
                   </div>

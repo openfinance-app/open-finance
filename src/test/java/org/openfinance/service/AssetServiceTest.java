@@ -191,6 +191,82 @@ class AssetServiceTest {
     }
 
     @Test
+    @DisplayName("Should create asset with BTC currency (high precision)")
+    void shouldCreateAssetWithBtcCurrency() {
+        // Arrange
+        AssetRequest request =
+                AssetRequest.builder()
+                        .name("Bitcoin")
+                        .type(AssetType.CRYPTO)
+                        .symbol("BTC")
+                        .quantity(new BigDecimal("1.23456789"))
+                        .purchasePrice(new BigDecimal("50000.00"))
+                        .currentPrice(new BigDecimal("52000.00"))
+                        .currency("BTC")
+                        .purchaseDate(purchaseDate)
+                        .build();
+
+        Asset mapped =
+                Asset.builder()
+                        .type(AssetType.CRYPTO)
+                        .symbol("BTC")
+                        .quantity(new BigDecimal("1.23456789"))
+                        .purchasePrice(new BigDecimal("50000.00"))
+                        .currentPrice(new BigDecimal("52000.00"))
+                        .currency("BTC")
+                        .purchaseDate(purchaseDate)
+                        .build();
+
+        Asset saved =
+                Asset.builder()
+                        .id(10L)
+                        .userId(1L)
+                        .name("Bitcoin")
+                        .type(AssetType.CRYPTO)
+                        .symbol("BTC")
+                        .quantity(new BigDecimal("1.23456789"))
+                        .purchasePrice(new BigDecimal("50000.00"))
+                        .currentPrice(new BigDecimal("52000.00"))
+                        .currency("BTC")
+                        .purchaseDate(purchaseDate)
+                        .lastUpdated(LocalDateTime.now())
+                        .build();
+
+        AssetResponse response =
+                AssetResponse.builder()
+                        .id(10L)
+                        .userId(1L)
+                        .name("Bitcoin")
+                        .type(AssetType.CRYPTO)
+                        .symbol("BTC")
+                        .quantity(new BigDecimal("1.23456789"))
+                        .purchasePrice(new BigDecimal("50000.00"))
+                        .currentPrice(new BigDecimal("52000.00"))
+                        .currency("BTC")
+                        .purchaseDate(purchaseDate)
+                        .totalValue(new BigDecimal("64197.53028"))
+                        .totalCost(new BigDecimal("61728.39450"))
+                        .unrealizedGain(new BigDecimal("2469.13578"))
+                        .gainPercentage(new BigDecimal("0.0400"))
+                        .holdingDays(17L)
+                        .build();
+
+        when(assetMapper.toEntity(request)).thenReturn(mapped);
+        when(assetRepository.save(any(Asset.class))).thenReturn(saved);
+        when(assetMapper.toResponse(any(Asset.class))).thenReturn(response);
+
+        // Act
+        AssetResponse created = assetService.createAsset(1L, request);
+
+        // Assert
+        assertThat(created).isNotNull();
+        assertThat(created.getCurrency()).isEqualTo("BTC");
+        assertThat(created.getQuantity()).isEqualByComparingTo(new BigDecimal("1.23456789"));
+        assertThat(created.getQuantity().scale()).isEqualTo(8);
+        verify(assetRepository).save(any(Asset.class));
+    }
+
+    @Test
     @DisplayName("Should create asset without notes and without account")
     void shouldCreateAssetWithoutNotesAndAccount() {
         // Arrange

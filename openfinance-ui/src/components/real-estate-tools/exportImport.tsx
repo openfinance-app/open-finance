@@ -14,6 +14,7 @@ import type {
 } from '@/types/realEstateTools';
 import { DEFAULT_CURRENCY, formatCurrency } from '@/utils/currency';
 import { PRINT_PREVIEW_DELAY_MS } from '@/constants/timing';
+import i18n from '@/i18n';
 
 export type ExportFormat = 'json' | 'csv' | 'pdf';
 
@@ -45,17 +46,17 @@ export function exportBuyRentToCSV(
   results: BuyRentResults
 ): string {
   const headers = [
-    'Année',
-    'Coût annuel achat',
-    'Coût cumulé achat',
-    'Valeur du bien',
-    'Capital restant',
-    'Prix revente min',
-    'Coût annuel location',
-    'Coût cumulé location',
-    'Épargne cumulée',
-    'Patrimoine net achat',
-    'Patrimoine net location',
+    i18n.t('realEstate.exportImport.year'),
+    i18n.t('realEstate.exportImport.annualBuyCost'),
+    i18n.t('realEstate.exportImport.cumulativeBuyCost'),
+    i18n.t('realEstate.exportImport.propertyValue'),
+    i18n.t('realEstate.exportImport.remainingCapital'),
+    i18n.t('realEstate.exportImport.minResalePrice'),
+    i18n.t('realEstate.exportImport.annualRentCost'),
+    i18n.t('realEstate.exportImport.cumulativeRentCost'),
+    i18n.t('realEstate.exportImport.accumulatedSavings'),
+    i18n.t('realEstate.exportImport.netWorthBuy'),
+    i18n.t('realEstate.exportImport.netWorthRent'),
   ];
 
   const rows = results.years.map((year) => [
@@ -74,7 +75,7 @@ export function exportBuyRentToCSV(
 
   // Add summary row
   const summaryRow = [
-    'TOTAL',
+    i18n.t('realEstate.exportImport.total'),
     '',
     results.summary.buy.totalCost.toFixed(2),
     results.summary.buy.finalPropertyValue.toFixed(2),
@@ -102,17 +103,17 @@ export function exportInvestmentToCSV(
   results: InvestmentResults
 ): string {
   const headers = [
-    'Régime',
-    'Éligible',
-    'Revenu brut',
-    'Déduction',
-    'Revenu imposable',
-    'Impôt sur le revenu',
-    'Prélèvements sociaux',
-    'Total impôts',
-    'Cash-flow mensuel',
-    'Rentabilité brute',
-    'Rentabilité nette',
+    i18n.t('realEstate.exportImport.regime'),
+    i18n.t('realEstate.exportImport.eligible'),
+    i18n.t('realEstate.exportImport.grossIncome'),
+    i18n.t('realEstate.exportImport.deduction'),
+    i18n.t('realEstate.exportImport.taxableIncome'),
+    i18n.t('realEstate.exportImport.incomeTax'),
+    i18n.t('realEstate.exportImport.socialContributions'),
+    i18n.t('realEstate.exportImport.totalTaxes'),
+    i18n.t('realEstate.exportImport.monthlyCashFlow'),
+    i18n.t('realEstate.exportImport.grossYield'),
+    i18n.t('realEstate.exportImport.netYield'),
   ];
 
   const regimes = [
@@ -126,7 +127,7 @@ export function exportInvestmentToCSV(
     const result = results[key];
     return [
       name,
-      result.eligible ? 'Oui' : 'Non',
+      result.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no'),
       result.revenue.gross.toFixed(2),
       result.revenue.deduction.toFixed(2),
       result.revenue.taxable.toFixed(2),
@@ -152,7 +153,8 @@ export function generatePDFContent(
   type: 'buy_rent' | 'rental_investment',
   baseCurrency: string = DEFAULT_CURRENCY
 ): string {
-  const date = new Date().toLocaleDateString('fr-FR');
+  const lang = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
+  const date = new Date().toLocaleDateString(lang);
 
   let content = `
     <!DOCTYPE html>
@@ -180,19 +182,19 @@ export function generatePDFContent(
     const brResults = results as BuyRentResults;
     content += `
       <div class="summary">
-        <h2>Résumé</h2>
-        <p><strong>Scénario gagnant:</strong> ${brResults.summary.comparison.winner === 'buy' ? 'Achat' : 'Location'}</p>
-        <p><strong>Différence de patrimoine:</strong> ${formatCurrency(brResults.summary.comparison.netWorthDifference, baseCurrency)}</p>
+        <h2>${i18n.t('realEstate.exportImport.summary')}</h2>
+        <p><strong>${i18n.t('realEstate.exportImport.winner')}:</strong> ${brResults.summary.comparison.winner === 'buy' ? i18n.t('realEstate.exportImport.winnerBuy') : i18n.t('realEstate.exportImport.winnerRent')}</p>
+        <p><strong>${i18n.t('realEstate.exportImport.netWorthDifference')}:</strong> ${formatCurrency(brResults.summary.comparison.netWorthDifference, baseCurrency)}</p>
       </div>
       
-      <h2>Détails par année</h2>
+      <h2>${i18n.t('realEstate.exportImport.yearDetails')}</h2>
       <table>
         <thead>
           <tr>
-            <th>Année</th>
-            <th>Patrimoine Achat</th>
-            <th>Patrimoine Location</th>
-            <th>Avantage</th>
+            <th>${i18n.t('realEstate.exportImport.year')}</th>
+            <th>${i18n.t('realEstate.exportImport.buyNetWorth')}</th>
+            <th>${i18n.t('realEstate.exportImport.rentNetWorth')}</th>
+            <th>${i18n.t('realEstate.exportImport.advantage')}</th>
           </tr>
         </thead>
         <tbody>
@@ -201,7 +203,7 @@ export function generatePDFContent(
               <td>${y.year}</td>
               <td>${formatCurrency(y.buy.propertyValue - y.buy.remainingCapital, baseCurrency)}</td>
               <td>${formatCurrency(y.rent.savings, baseCurrency)}</td>
-              <td>${(y.buy.propertyValue - y.buy.remainingCapital) > y.rent.savings ? 'Achat' : 'Location'}</td>
+              <td>${(y.buy.propertyValue - y.buy.remainingCapital) > y.rent.savings ? i18n.t('realEstate.exportImport.winnerBuy') : i18n.t('realEstate.exportImport.winnerRent')}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -210,38 +212,38 @@ export function generatePDFContent(
   } else {
     const invResults = results as InvestmentResults;
     content += `
-      <h2>Comparaison des régimes fiscaux</h2>
+      <h2>${i18n.t('realEstate.exportImport.regimeComparison')}</h2>
       <table>
         <thead>
           <tr>
-            <th>Régime</th>
-            <th>Éligible</th>
-            <th>Rentabilité nette</th>
-            <th>Cash-flow mensuel</th>
+            <th>${i18n.t('realEstate.exportImport.regime')}</th>
+            <th>${i18n.t('realEstate.exportImport.eligible')}</th>
+            <th>${i18n.t('realEstate.exportImport.netYield')}</th>
+            <th>${i18n.t('realEstate.exportImport.monthlyCashFlow')}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>Micro-Foncier</td>
-            <td>${invResults.microFoncier.eligible ? 'Oui' : 'Non'}</td>
+            <td>${invResults.microFoncier.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no')}</td>
             <td>${invResults.microFoncier.performance.netYield.toFixed(2)}%</td>
             <td>${formatCurrency(invResults.microFoncier.performance.monthlyCashFlow, baseCurrency)}</td>
           </tr>
           <tr>
             <td>Réel Foncier</td>
-            <td>${invResults.reelFoncier.eligible ? 'Oui' : 'Non'}</td>
+            <td>${invResults.reelFoncier.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no')}</td>
             <td>${invResults.reelFoncier.performance.netYield.toFixed(2)}%</td>
             <td>${formatCurrency(invResults.reelFoncier.performance.monthlyCashFlow, baseCurrency)}</td>
           </tr>
           <tr>
             <td>LMNP Réel</td>
-            <td>${invResults.lmnpReel.eligible ? 'Oui' : 'Non'}</td>
+            <td>${invResults.lmnpReel.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no')}</td>
             <td>${invResults.lmnpReel.performance.netYield.toFixed(2)}%</td>
             <td>${formatCurrency(invResults.lmnpReel.performance.monthlyCashFlow, baseCurrency)}</td>
           </tr>
           <tr>
             <td>Micro-BIC</td>
-            <td>${invResults.microBic.eligible ? 'Oui' : 'Non'}</td>
+            <td>${invResults.microBic.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no')}</td>
             <td>${invResults.microBic.performance.netYield.toFixed(2)}%</td>
             <td>${formatCurrency(invResults.microBic.performance.monthlyCashFlow, baseCurrency)}</td>
           </tr>
@@ -252,7 +254,7 @@ export function generatePDFContent(
 
   content += `
       <div class="footer">
-        <p>Généré par Open-Finance - Ces résultats sont fournis à titre indicatif.</p>
+        <p>${i18n.t('realEstate.exportImport.generatedBy')}</p>
       </div>
     </body>
     </html>
@@ -274,7 +276,7 @@ export function importFromJSON(jsonString: string): {
 
     // Validate structure
     if (!parsed.metadata || !parsed.inputs) {
-      return { success: false, error: 'Format invalide: métadonnées ou données manquantes' };
+      return { success: false, error: i18n.t('realEstate.exportImport.invalidFormat') };
     }
 
     // Check version compatibility
@@ -294,7 +296,7 @@ export function importFromJSON(jsonString: string): {
 
     return { success: true, data: simulation };
   } catch (error) {
-    return { success: false, error: 'Erreur de parsing JSON' };
+    return { success: false, error: i18n.t('realEstate.exportImport.jsonParseError') };
   }
 }
 
@@ -319,7 +321,7 @@ export function downloadFile(content: string, filename: string, mimeType: string
 export function printToPDF(htmlContent: string, title: string) {
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
-    alert('Veuillez autoriser les pop-ups pour imprimer en PDF');
+    alert(i18n.t('realEstate.exportImport.allowPopups'));
     return;
   }
 

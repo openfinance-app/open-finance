@@ -70,6 +70,7 @@
     "editCategory": "Modifier la catégorie",
     "deleteCategory": "Supprimer la catégorie"
   },
+  "unknownCategory": "Catégorie inconnue",
   "loadError": {
     "title": "Impossible de charger les catégories",
     "description": "Une erreur s'est produite lors du chargement de vos catégories. Veuillez réessayer.",

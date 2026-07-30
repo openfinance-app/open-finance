@@ -21,7 +21,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @since 1.0
  */
 @ResponseStatus(HttpStatus.NOT_FOUND)
-public class RecurringTransactionNotFoundException extends RuntimeException {
+public class RecurringTransactionNotFoundException extends RuntimeException
+        implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new RecurringTransactionNotFoundException with the specified message.
@@ -30,6 +34,8 @@ public class RecurringTransactionNotFoundException extends RuntimeException {
      */
     public RecurringTransactionNotFoundException(String message) {
         super(message);
+        this.messageKey = null;
+        this.messageArgs = null;
     }
 
     /**
@@ -40,6 +46,15 @@ public class RecurringTransactionNotFoundException extends RuntimeException {
      */
     public RecurringTransactionNotFoundException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = null;
+        this.messageArgs = null;
+    }
+
+    private RecurringTransactionNotFoundException(
+            String message, String messageKey, Object[] messageArgs) {
+        super(message);
+        this.messageKey = messageKey;
+        this.messageArgs = messageArgs;
     }
 
     /**
@@ -50,8 +65,9 @@ public class RecurringTransactionNotFoundException extends RuntimeException {
      */
     public static RecurringTransactionNotFoundException byId(Long recurringTransactionId) {
         return new RecurringTransactionNotFoundException(
-                String.format(
-                        "Recurring transaction with ID %d not found", recurringTransactionId));
+                String.format("Recurring transaction with ID %d not found", recurringTransactionId),
+                "error.recurring.transaction.not.found",
+                new Object[] {recurringTransactionId});
     }
 
     /**
@@ -67,6 +83,18 @@ public class RecurringTransactionNotFoundException extends RuntimeException {
         return new RecurringTransactionNotFoundException(
                 String.format(
                         "Recurring transaction with ID %d not found or not accessible by user %d",
-                        recurringTransactionId, userId));
+                        recurringTransactionId, userId),
+                "error.recurring.transaction.not.found",
+                new Object[] {recurringTransactionId});
+    }
+
+    @Override
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return messageArgs;
     }
 }

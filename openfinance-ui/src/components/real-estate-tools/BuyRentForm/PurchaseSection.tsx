@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/Label';
 import { Switch } from '@/components/ui/Switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/Accordion';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
+import { useTranslation } from 'react-i18next';
 import type { PurchaseInputs, ValidationError } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
@@ -41,6 +42,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
 }) => {
   const { baseCurrency } = useAuthContext();
   const { format: formatCurrency } = useFormatCurrency();
+  const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) => errors.find(e => e.field === `purchase.${field}`)?.message;
 
@@ -53,7 +55,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <Home className="h-5 w-5" />
-            Paramètres Achat
+            {t('purchaseSection.title')}
           </span>
           <ChevronDown
             className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -71,12 +73,12 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
               <AccordionTrigger className="text-sm font-medium">
                 <div className="flex items-center gap-2">
                   <Home className="h-4 w-4" />
-                  Prix et Frais
+                  {t('purchaseSection.priceAndFees')}
                 </div>
               </AccordionTrigger>
               <AccordionContent className="space-y-3 pt-2">
                 <div className="space-y-2">
-                  <Label htmlFor="propertyPrice">Prix du bien</Label>
+                  <Label htmlFor="propertyPrice">{t('purchaseSection.propertyPrice')}</Label>
                   <Input
                     id="propertyPrice"
                     type="number"
@@ -93,7 +95,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="renovationAmount">Montant travaux</Label>
+                  <Label htmlFor="renovationAmount">{t('purchaseSection.renovationAmount')}</Label>
                   <Input
                     id="renovationAmount"
                     type="number"
@@ -105,7 +107,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between space-y-0 py-2">
-                  <Label htmlFor="isNewProperty">Logement neuf (exonération taxe foncière 2 ans)</Label>
+                  <Label htmlFor="isNewProperty">{t('purchaseSection.newPropertyExemption')}</Label>
                   <Switch
                     id="isNewProperty"
                     checked={inputs.isNewProperty}
@@ -114,7 +116,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="notaryFeesPercent">Frais de notaire (%)</Label>
+                  <Label htmlFor="notaryFeesPercent">{t('purchaseSection.notaryFees')}</Label>
                   <Input
                     id="notaryFeesPercent"
                     type="number"
@@ -127,7 +129,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="agencyFees">Frais d'agence</Label>
+                  <Label htmlFor="agencyFees">{t('purchaseSection.agencyFees')}</Label>
                   <Input
                     id="agencyFees"
                     type="number"
@@ -139,7 +141,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="pt-2 border-t">
-                  <p className="text-sm text-muted-foreground">Prix total</p>
+                  <p className="text-sm text-muted-foreground">{t('purchaseSection.totalPrice')}</p>
                   <p className="text-lg font-semibold text-primary">{formatCurrency(derivedValues.totalPrice, baseCurrency)}</p>
                 </div>
               </AccordionContent>
@@ -150,12 +152,12 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
               <AccordionTrigger className="text-sm font-medium">
                 <div className="flex items-center gap-2">
                   <Calculator className="h-4 w-4" />
-                  Financement
+                  {t('purchaseSection.financing')}
                 </div>
               </AccordionTrigger>
               <AccordionContent className="space-y-3 pt-2">
                 <div className="space-y-2">
-                  <Label htmlFor="downPayment">Apport personnel</Label>
+                  <Label htmlFor="downPayment">{t('purchaseSection.downPayment')}</Label>
                   <Input
                     id="downPayment"
                     type="number"
@@ -165,7 +167,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                     step={1000}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Minimum suggéré : {formatCurrency(derivedValues.minimumDownPayment, baseCurrency)}
+                    {t('purchaseSection.minimumSuggested')} : {formatCurrency(derivedValues.minimumDownPayment, baseCurrency)}
                   </p>
                   {getFieldError('downPayment') && (
                     <Alert variant="error" className="py-2">
@@ -175,12 +177,12 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="pt-2 border-t">
-                  <p className="text-sm text-muted-foreground">Montant emprunté</p>
+                  <p className="text-sm text-muted-foreground">{t('purchaseSection.borrowedAmount')}</p>
                   <p className="text-lg font-semibold">{formatCurrency(derivedValues.borrowedAmount, baseCurrency)}</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="loanDuration">Durée du crédit (années)</Label>
+                  <Label htmlFor="loanDuration">{t('purchaseSection.loanDuration')}</Label>
                   <Input
                     id="loanDuration"
                     type="number"
@@ -192,7 +194,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="interestRate">Taux annuel (%)</Label>
+                  <Label htmlFor="interestRate">{t('purchaseSection.annualRate')}</Label>
                   <Input
                     id="interestRate"
                     type="number"
@@ -205,8 +207,8 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="pt-2 border-t bg-muted/50 p-2 rounded">
-                  <p className="text-sm text-muted-foreground">Mensualité hors assurance</p>
-                  <p className="text-xl font-bold text-primary">{formatCurrency(derivedValues.monthlyPayment, baseCurrency)}/mois</p>
+                  <p className="text-sm text-muted-foreground">{t('purchaseSection.monthlyPaymentExclInsurance')}</p>
+                  <p className="text-xl font-bold text-primary">{formatCurrency(derivedValues.monthlyPayment, baseCurrency)}{t('purchaseSection.perMonth')}</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -216,12 +218,12 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
               <AccordionTrigger className="text-sm font-medium">
                 <div className="flex items-center gap-2">
                   <Shield className="h-4 w-4" />
-                  Assurance et Frais
+                  {t('purchaseSection.insuranceAndFees')}
                 </div>
               </AccordionTrigger>
               <AccordionContent className="space-y-3 pt-2">
                 <div className="space-y-2">
-                  <Label htmlFor="totalInsurance">Assurance totale sur durée du prêt</Label>
+                  <Label htmlFor="totalInsurance">{t('purchaseSection.totalInsurance')}</Label>
                   <Input
                     id="totalInsurance"
                     type="number"
@@ -233,7 +235,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="applicationFees">Frais de dossier</Label>
+                  <Label htmlFor="applicationFees">{t('purchaseSection.applicationFees')}</Label>
                   <Input
                     id="applicationFees"
                     type="number"
@@ -245,7 +247,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="guaranteeFees">Frais de garantie</Label>
+                  <Label htmlFor="guaranteeFees">{t('purchaseSection.guaranteeFees')}</Label>
                   <Input
                     id="guaranteeFees"
                     type="number"
@@ -257,7 +259,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="accountFees">Frais tenue de compte total</Label>
+                  <Label htmlFor="accountFees">{t('purchaseSection.accountFees')}</Label>
                   <Input
                     id="accountFees"
                     type="number"
@@ -275,12 +277,12 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
               <AccordionTrigger className="text-sm font-medium">
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  Charges récurrentes
+                  {t('purchaseSection.recurringCharges')}
                 </div>
               </AccordionTrigger>
               <AccordionContent className="space-y-3 pt-2">
                 <div className="space-y-2">
-                  <Label htmlFor="propertyTax">Taxe foncière annuelle</Label>
+                  <Label htmlFor="propertyTax">{t('purchaseSection.annualPropertyTax')}</Label>
                   <Input
                     id="propertyTax"
                     type="number"
@@ -292,7 +294,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="coOwnershipCharges">Charges copropriété/an</Label>
+                  <Label htmlFor="coOwnershipCharges">{t('purchaseSection.coOwnershipChargesPerYear')}</Label>
                   <Input
                     id="coOwnershipCharges"
                     type="number"
@@ -304,7 +306,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="maintenancePercent">Entretien (%/an)</Label>
+                  <Label htmlFor="maintenancePercent">{t('purchaseSection.maintenancePercent')}</Label>
                   <Input
                     id="maintenancePercent"
                     type="number"
@@ -317,7 +319,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="homeInsurance">Assurance habitation/an</Label>
+                  <Label htmlFor="homeInsurance">{t('purchaseSection.homeInsurance')}</Label>
                   <Input
                     id="homeInsurance"
                     type="number"
@@ -329,7 +331,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="bankFees">Frais bancaires additionnels/an</Label>
+                  <Label htmlFor="bankFees">{t('purchaseSection.bankFees')}</Label>
                   <Input
                     id="bankFees"
                     type="number"
@@ -341,7 +343,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="garbageTax">Taxe ordures ménagères/an</Label>
+                  <Label htmlFor="garbageTax">{t('purchaseSection.garbageTax')}</Label>
                   <Input
                     id="garbageTax"
                     type="number"

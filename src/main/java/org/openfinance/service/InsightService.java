@@ -95,6 +95,13 @@ public class InsightService {
     private static final int LOOKBACK_DAYS = 30; // Days to look back for comparisons
     private static final int INSIGHT_EXPIRY_DAYS = 7; // Delete insights older than 7 days
 
+    // Period conversion constants
+    private static final BigDecimal DAYS_PER_MONTH = new BigDecimal("30");
+    private static final BigDecimal WEEKS_PER_MONTH = new BigDecimal("4.33");
+    private static final BigDecimal BIWEEKS_PER_MONTH = new BigDecimal("2.17");
+    private static final BigDecimal MONTHS_PER_QUARTER = new BigDecimal("3");
+    private static final BigDecimal MONTHS_PER_YEAR = new BigDecimal("12");
+
     /**
      * Generate fresh insights for a user by analyzing their financial data.
      *
@@ -819,7 +826,7 @@ public class InsightService {
                 return insights;
             }
 
-            BigDecimal annualIncome = monthlyIncome.multiply(new BigDecimal("12"));
+            BigDecimal annualIncome = monthlyIncome.multiply(MONTHS_PER_YEAR);
 
             // Calculate estimated tax using the base rate
             BigDecimal baseRate =
@@ -890,7 +897,7 @@ public class InsightService {
                                 calculateCategorySpending(
                                         userId, category.getId(), thirtyDaysAgo, today);
                         potentialDeductions =
-                                potentialDeductions.add(catSpending.multiply(new BigDecimal("12")));
+                                potentialDeductions.add(catSpending.multiply(MONTHS_PER_YEAR));
                     }
                 } catch (Exception e) {
                     log.warn(
@@ -956,7 +963,7 @@ public class InsightService {
                 totalMonthly = totalMonthly.add(monthlyEquiv);
             }
 
-            BigDecimal totalAnnual = totalMonthly.multiply(new BigDecimal("12"));
+            BigDecimal totalAnnual = totalMonthly.multiply(MONTHS_PER_YEAR);
 
             String currency = recurringExpenses.get(0).getCurrency();
 
@@ -1110,17 +1117,17 @@ public class InsightService {
         }
         switch (frequency) {
             case DAILY:
-                return amount.multiply(new BigDecimal("30"));
+                return amount.multiply(DAYS_PER_MONTH);
             case WEEKLY:
-                return amount.multiply(new BigDecimal("4.33"));
+                return amount.multiply(WEEKS_PER_MONTH);
             case BIWEEKLY:
-                return amount.multiply(new BigDecimal("2.17"));
+                return amount.multiply(BIWEEKS_PER_MONTH);
             case MONTHLY:
                 return amount;
             case QUARTERLY:
-                return amount.divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP);
+                return amount.divide(MONTHS_PER_QUARTER, 2, RoundingMode.HALF_UP);
             case YEARLY:
-                return amount.divide(new BigDecimal("12"), 2, RoundingMode.HALF_UP);
+                return amount.divide(MONTHS_PER_YEAR, 2, RoundingMode.HALF_UP);
             default:
                 return amount;
         }
@@ -1153,7 +1160,7 @@ public class InsightService {
             log.debug(
                     "No income found in last 30 days for user {}; falling back to 12-month average",
                     userId);
-            return yearTotal.divide(new BigDecimal("12"), 2, RoundingMode.HALF_UP);
+            return yearTotal.divide(MONTHS_PER_YEAR, 2, RoundingMode.HALF_UP);
         }
 
         return BigDecimal.ZERO;

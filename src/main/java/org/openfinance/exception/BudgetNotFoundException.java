@@ -18,7 +18,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @since 2026-02-02
  */
 @ResponseStatus(HttpStatus.NOT_FOUND)
-public class BudgetNotFoundException extends RuntimeException {
+public class BudgetNotFoundException extends RuntimeException implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new BudgetNotFoundException with a detail message.
@@ -27,6 +30,8 @@ public class BudgetNotFoundException extends RuntimeException {
      */
     public BudgetNotFoundException(String message) {
         super(message);
+        this.messageKey = null;
+        this.messageArgs = null;
     }
 
     /**
@@ -37,6 +42,14 @@ public class BudgetNotFoundException extends RuntimeException {
      */
     public BudgetNotFoundException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = null;
+        this.messageArgs = null;
+    }
+
+    private BudgetNotFoundException(String message, String messageKey, Object[] messageArgs) {
+        super(message);
+        this.messageKey = messageKey;
+        this.messageArgs = messageArgs;
     }
 
     /**
@@ -46,7 +59,10 @@ public class BudgetNotFoundException extends RuntimeException {
      * @return a new BudgetNotFoundException
      */
     public static BudgetNotFoundException byId(Long budgetId) {
-        return new BudgetNotFoundException("Budget not found with id: " + budgetId);
+        return new BudgetNotFoundException(
+                "Budget not found with id: " + budgetId,
+                "error.budget.not.found",
+                new Object[] {budgetId});
     }
 
     /**
@@ -58,6 +74,18 @@ public class BudgetNotFoundException extends RuntimeException {
      */
     public static BudgetNotFoundException byIdAndUser(Long budgetId, Long userId) {
         return new BudgetNotFoundException(
-                String.format("Budget not found with id: %d for user: %d", budgetId, userId));
+                String.format("Budget not found with id: %d for user: %d", budgetId, userId),
+                "error.budget.not.found",
+                new Object[] {budgetId});
+    }
+
+    @Override
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return messageArgs;
     }
 }

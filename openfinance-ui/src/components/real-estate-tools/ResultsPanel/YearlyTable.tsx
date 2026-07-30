@@ -1,15 +1,9 @@
-/**
- * YearlyTable Component
- * 
- * Detailed year-by-year results table
- * Requirements: REQ-1.6.4
- */
-
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import { useTranslation } from 'react-i18next';
 import type { BuyRentResults } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
@@ -21,6 +15,7 @@ export interface YearlyTableProps {
 export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
   const { baseCurrency } = useAuthContext();
   const { format: formatCurrency } = useFormatCurrency();
+  const { t } = useTranslation('realEstate');
   const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
 
   const toggleYear = (year: number) => {
@@ -40,9 +35,9 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Détail année par année</CardTitle>
+        <CardTitle>{t('yearlyTable.title')}</CardTitle>
         <div className="text-sm text-muted-foreground">
-          {results.years.length} années
+          {t('yearlyTable.yearsCount', { count: results.years.length })}
         </div>
       </CardHeader>
       <CardContent>
@@ -50,15 +45,15 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-16">Année</TableHead>
-                <TableHead>Coût achat</TableHead>
-                <TableHead>Cumulé achat</TableHead>
-                <TableHead>Valeur bien</TableHead>
-                <TableHead>Capital restant</TableHead>
-                <TableHead>Prix revente min</TableHead>
-                <TableHead>Coût location</TableHead>
-                <TableHead>Cumulé location</TableHead>
-                <TableHead>Épargne</TableHead>
+                <TableHead className="w-16">{t('yearlyTable.year')}</TableHead>
+                <TableHead>{t('yearlyTable.buyCost')}</TableHead>
+                <TableHead>{t('yearlyTable.buyCumulative')}</TableHead>
+                <TableHead>{t('yearlyTable.propertyValue')}</TableHead>
+                <TableHead>{t('yearlyTable.remainingCapital')}</TableHead>
+                <TableHead>{t('yearlyTable.minResalePrice')}</TableHead>
+                <TableHead>{t('yearlyTable.rentCost')}</TableHead>
+                <TableHead>{t('yearlyTable.rentCumulative')}</TableHead>
+                <TableHead>{t('yearlyTable.savings')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -103,52 +98,52 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                         {formatCurrency(year.rent.savings, baseCurrency)}
                       </TableCell>
                     </TableRow>
-                    
+
                     {isExpanded && (
                       <TableRow>
                         <TableCell colSpan={9} className="bg-muted/30 p-4">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                              <p className="font-medium text-muted-foreground">Détails Achat</p>
+                              <p className="font-medium text-muted-foreground">{t('yearlyTable.buyDetails')}</p>
                               <ul className="mt-2 space-y-1">
-                                 <li>Mensualités: {formatCurrency(year.buy.details.mortgage, baseCurrency)}</li>
-                                 <li>Assurance: {formatCurrency(year.buy.details.insurance, baseCurrency)}</li>
-                                 <li>Taxe foncière: {formatCurrency(year.buy.details.propertyTax, baseCurrency)}</li>
-                                 <li>Charges: {formatCurrency(year.buy.details.coOwnershipCharges, baseCurrency)}</li>
-                                 <li>Entretien: {formatCurrency(year.buy.details.maintenance, baseCurrency)}</li>
+                                <li>{t('yearlyTable.mortgage')}: {formatCurrency(year.buy.details.mortgage, baseCurrency)}</li>
+                                <li>{t('yearlyTable.insurance')}: {formatCurrency(year.buy.details.insurance, baseCurrency)}</li>
+                                <li>{t('yearlyTable.propertyTax')}: {formatCurrency(year.buy.details.propertyTax, baseCurrency)}</li>
+                                <li>{t('yearlyTable.coOwnershipCharges')}: {formatCurrency(year.buy.details.coOwnershipCharges, baseCurrency)}</li>
+                                <li>{t('yearlyTable.maintenance')}: {formatCurrency(year.buy.details.maintenance, baseCurrency)}</li>
                               </ul>
                             </div>
                             <div>
-                              <p className="font-medium text-muted-foreground">Patrimoine</p>
+                              <p className="font-medium text-muted-foreground">{t('yearlyTable.netWorth')}</p>
                               <ul className="mt-2 space-y-1">
-                                 <li>Valeur: {formatCurrency(year.buy.propertyValue, baseCurrency)}</li>
-                                 <li>Capital dû: {formatCurrency(year.buy.remainingCapital, baseCurrency)}</li>
-                                 <li className="font-semibold">
-                                   Net: {formatCurrency(year.buy.propertyValue - year.buy.remainingCapital, baseCurrency)}
+                                <li>{t('yearlyTable.value')}: {formatCurrency(year.buy.propertyValue, baseCurrency)}</li>
+                                <li>{t('yearlyTable.capitalDue')}: {formatCurrency(year.buy.remainingCapital, baseCurrency)}</li>
+                                <li className="font-semibold">
+                                  {t('yearlyTable.net')}: {formatCurrency(year.buy.propertyValue - year.buy.remainingCapital, baseCurrency)}
                                 </li>
                               </ul>
                             </div>
                             <div>
-                              <p className="font-medium text-muted-foreground">Détails Location</p>
+                              <p className="font-medium text-muted-foreground">{t('yearlyTable.rentDetails')}</p>
                               <ul className="mt-2 space-y-1">
-                                 <li>Loyer: {formatCurrency(year.rent.annualCost * 0.8, baseCurrency)}</li>
-                                 <li>Charges: {formatCurrency(year.rent.annualCost * 0.2, baseCurrency)}</li>
-                                 <li>Total: {formatCurrency(year.rent.annualCost, baseCurrency)}</li>
+                                <li>{t('yearlyTable.rent')}: {formatCurrency(year.rent.annualCost * 0.8, baseCurrency)}</li>
+                                <li>{t('yearlyTable.charges')}: {formatCurrency(year.rent.annualCost * 0.2, baseCurrency)}</li>
+                                <li>{t('yearlyTable.total')}: {formatCurrency(year.rent.annualCost, baseCurrency)}</li>
                               </ul>
                             </div>
                             <div>
-                              <p className="font-medium text-muted-foreground">Comparaison</p>
+                              <p className="font-medium text-muted-foreground">{t('yearlyTable.comparison')}</p>
                               <ul className="mt-2 space-y-1">
-                                 <li>
-                                   Différence: {formatCurrency(
-                                     (year.buy.propertyValue - year.buy.remainingCapital) - year.rent.savings,
-                                     baseCurrency
-                                   )}
+                                <li>
+                                  {t('yearlyTable.difference')}: {formatCurrency(
+                                    (year.buy.propertyValue - year.buy.remainingCapital) - year.rent.savings,
+                                    baseCurrency
+                                  )}
                                 </li>
                                 <li>
-                                  Avantage: {(year.buy.propertyValue - year.buy.remainingCapital) > year.rent.savings
-                                    ? 'Achat'
-                                    : 'Location'}
+                                  {t('yearlyTable.advantage')}: {(year.buy.propertyValue - year.buy.remainingCapital) > year.rent.savings
+                                    ? t('results.buyGenitive')
+                                    : t('results.rentGenitive')}
                                 </li>
                               </ul>
                             </div>
@@ -162,20 +157,20 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
             </TableBody>
           </Table>
         </div>
-        
+
         <div className="mt-4 flex justify-center">
           <Button
             variant="outline"
             onClick={() => setExpandedYears(new Set(results.years.map(y => y.year)))}
             className="mr-2"
           >
-            Tout développer
+            {t('yearlyTable.expandAll')}
           </Button>
           <Button
             variant="outline"
             onClick={() => setExpandedYears(new Set())}
           >
-            Tout réduire
+            {t('yearlyTable.collapseAll')}
           </Button>
         </div>
       </CardContent>

@@ -24,7 +24,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @since 1.0
  */
 @ResponseStatus(HttpStatus.BAD_REQUEST)
-public class AccountHasTransactionsException extends RuntimeException {
+public class AccountHasTransactionsException extends RuntimeException
+        implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new AccountHasTransactionsException with a detail message.
@@ -33,6 +37,8 @@ public class AccountHasTransactionsException extends RuntimeException {
      */
     public AccountHasTransactionsException(String message) {
         super(message);
+        this.messageKey = null;
+        this.messageArgs = null;
     }
 
     /**
@@ -43,6 +49,8 @@ public class AccountHasTransactionsException extends RuntimeException {
      */
     public AccountHasTransactionsException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = null;
+        this.messageArgs = null;
     }
 
     /**
@@ -62,5 +70,15 @@ public class AccountHasTransactionsException extends RuntimeException {
                         transactionCount,
                         transactionCount == 1 ? "" : "s",
                         transactionCount == 1 ? "" : "s"));
+    }
+
+    @Override
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return messageArgs;
     }
 }

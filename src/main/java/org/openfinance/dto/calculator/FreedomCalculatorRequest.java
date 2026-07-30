@@ -87,6 +87,11 @@ public class FreedomCalculatorRequest {
      * Safe withdrawal rate as a percentage for calculating target savings. Default follows the "4%
      * rule" - withdraw 4% of portfolio annually. Reasonable range: 0.5% (conservative) to 10%
      * (aggressive).
+     *
+     * <p>This default is mirrored in {@code application.business-rules.default-withdrawal-rate} in
+     * {@link org.openfinance.config.BusinessRulesProperties}. That config property is used by
+     * {@link org.openfinance.service.FinancialFreedomService} when the request does not supply this
+     * field.
      */
     @Builder.Default
     @DecimalMin(value = "0.5", message = "{calc.withdrawal.min}")
@@ -96,6 +101,11 @@ public class FreedomCalculatorRequest {
     /**
      * Expected annual inflation rate as a percentage. Used when adjustForInflation is true to
      * calculate real returns. Default: 2.5% (historical average).
+     *
+     * <p>This default is mirrored in {@code application.business-rules.default-inflation-rate} in
+     * {@link org.openfinance.config.BusinessRulesProperties}. That config property is used by
+     * {@link org.openfinance.service.FinancialFreedomService} when the request does not supply this
+     * field.
      */
     @Builder.Default
     @DecimalMin(value = "0.0", message = "{calc.inflation.min}")

@@ -14,7 +14,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>Requirement REQ-3.2: Authorization - Users can only access their own attachments
  */
 @ResponseStatus(HttpStatus.NOT_FOUND)
-public class AttachmentNotFoundException extends RuntimeException {
+public class AttachmentNotFoundException extends RuntimeException implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new AttachmentNotFoundException with a detail message.
@@ -23,6 +26,8 @@ public class AttachmentNotFoundException extends RuntimeException {
      */
     public AttachmentNotFoundException(String message) {
         super(message);
+        this.messageKey = null;
+        this.messageArgs = null;
     }
 
     /**
@@ -33,6 +38,14 @@ public class AttachmentNotFoundException extends RuntimeException {
      */
     public AttachmentNotFoundException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = null;
+        this.messageArgs = null;
+    }
+
+    private AttachmentNotFoundException(String message, String messageKey, Object[] messageArgs) {
+        super(message);
+        this.messageKey = messageKey;
+        this.messageArgs = messageArgs;
     }
 
     /**
@@ -42,7 +55,10 @@ public class AttachmentNotFoundException extends RuntimeException {
      * @return a new AttachmentNotFoundException
      */
     public static AttachmentNotFoundException byId(Long attachmentId) {
-        return new AttachmentNotFoundException("Attachment not found with id: " + attachmentId);
+        return new AttachmentNotFoundException(
+                "Attachment not found with id: " + attachmentId,
+                "error.attachment.not.found",
+                new Object[] {attachmentId});
     }
 
     /**
@@ -55,6 +71,18 @@ public class AttachmentNotFoundException extends RuntimeException {
     public static AttachmentNotFoundException byIdAndUser(Long attachmentId, Long userId) {
         return new AttachmentNotFoundException(
                 String.format(
-                        "Attachment not found with id: %d for user: %d", attachmentId, userId));
+                        "Attachment not found with id: %d for user: %d", attachmentId, userId),
+                "error.attachment.not.found",
+                new Object[] {attachmentId});
+    }
+
+    @Override
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return messageArgs;
     }
 }

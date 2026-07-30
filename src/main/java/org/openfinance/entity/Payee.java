@@ -50,8 +50,8 @@ public class Payee {
     private Long id;
 
     /** Name of the payee. Examples: "Amazon", "Netflix", "EDF", "Carrefour" */
-    @NotBlank(message = "Payee name cannot be blank")
-    @Size(max = 100, message = "Name must not exceed 100 characters")
+    @NotBlank(message = "{payee.name.notblank}")
+    @Size(max = 100, message = "{payee.name.size}")
     @Column(nullable = false, length = 512)
     @Convert(converter = EncryptedStringConverter.class)
     private String name;

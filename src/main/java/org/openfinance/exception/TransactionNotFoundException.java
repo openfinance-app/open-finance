@@ -22,7 +22,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @since 1.0
  */
 @ResponseStatus(HttpStatus.NOT_FOUND)
-public class TransactionNotFoundException extends RuntimeException {
+public class TransactionNotFoundException extends RuntimeException implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new TransactionNotFoundException with the specified message.
@@ -31,6 +34,8 @@ public class TransactionNotFoundException extends RuntimeException {
      */
     public TransactionNotFoundException(String message) {
         super(message);
+        this.messageKey = null;
+        this.messageArgs = null;
     }
 
     /**
@@ -41,6 +46,14 @@ public class TransactionNotFoundException extends RuntimeException {
      */
     public TransactionNotFoundException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = null;
+        this.messageArgs = null;
+    }
+
+    private TransactionNotFoundException(String message, String messageKey, Object[] messageArgs) {
+        super(message);
+        this.messageKey = messageKey;
+        this.messageArgs = messageArgs;
     }
 
     /**
@@ -51,7 +64,9 @@ public class TransactionNotFoundException extends RuntimeException {
      */
     public static TransactionNotFoundException byId(Long transactionId) {
         return new TransactionNotFoundException(
-                String.format("Transaction with ID %d not found", transactionId));
+                String.format("Transaction with ID %d not found", transactionId),
+                "error.transaction.not.found",
+                new Object[] {transactionId});
     }
 
     /**
@@ -65,6 +80,18 @@ public class TransactionNotFoundException extends RuntimeException {
         return new TransactionNotFoundException(
                 String.format(
                         "Transaction with ID %d not found or not accessible by user %d",
-                        transactionId, userId));
+                        transactionId, userId),
+                "error.transaction.not.found",
+                new Object[] {transactionId});
+    }
+
+    @Override
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return messageArgs;
     }
 }

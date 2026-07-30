@@ -592,6 +592,32 @@ class BudgetRepositoryTest {
         assertThat(existsWeekly).isFalse();
     }
 
+    @Test
+    @DisplayName("Should save budget with JPY currency (zero decimal)")
+    void shouldSaveBudgetWithJpyCurrency() {
+        // Given
+        Budget jpyBudget =
+                Budget.builder()
+                        .userId(testUser1.getId())
+                        .categoryId(groceriesCategory.getId())
+                        .amount("encryptedAmount100000")
+                        .currency("JPY")
+                        .period(BudgetPeriod.MONTHLY)
+                        .startDate(LocalDate.of(2026, 3, 1))
+                        .endDate(LocalDate.of(2026, 3, 31))
+                        .rollover(false)
+                        .notes("March grocery budget in JPY")
+                        .build();
+
+        // When
+        Budget saved = budgetRepository.save(jpyBudget);
+        Optional<Budget> found = budgetRepository.findById(saved.getId());
+
+        // Then
+        assertThat(found).isPresent();
+        assertThat(found.get().getCurrency()).isEqualTo("JPY");
+    }
+
     // === Edge Case Tests ===
 
     @Test

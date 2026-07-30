@@ -80,7 +80,7 @@ public class RecurringTransaction {
      *
      * <p>Requirement REQ-3.2: User-specific data isolation
      */
-    @NotNull(message = "User ID is required")
+    @NotNull(message = "{recurringTransaction.userId.notnull}")
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -90,7 +90,7 @@ public class RecurringTransaction {
      * <p>Foreign key reference to the accounts table. For TRANSFER type transactions, this
      * represents the source account (money leaves this account).
      */
-    @NotNull(message = "Account ID is required")
+    @NotNull(message = "{recurringTransaction.accountId.notnull}")
     @Column(name = "account_id", nullable = false)
     private Long accountId;
 
@@ -113,7 +113,7 @@ public class RecurringTransaction {
      *   <li>TRANSFER: Moves money between accounts (requires toAccountId)
      * </ul>
      */
-    @NotNull(message = "Transaction type is required")
+    @NotNull(message = "{recurringTransaction.type.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false, length = 20)
     @ToString.Include
@@ -124,9 +124,9 @@ public class RecurringTransaction {
      *
      * <p>Always positive. The transaction type determines debit/credit behavior.
      */
-    @NotNull(message = "Amount is required")
-    @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
-    @Digits(integer = 15, fraction = 2, message = "Amount must have at most 2 decimal places")
+    @NotNull(message = "{recurringTransaction.amount.notnull}")
+    @DecimalMin(value = "0.01", message = "{recurringTransaction.amount.decimalMin}")
+    @Digits(integer = 15, fraction = 2, message = "{recurringTransaction.amount.digits}")
     @Column(nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     @ToString.Include
@@ -137,8 +137,8 @@ public class RecurringTransaction {
      *
      * <p>Three-letter uppercase code. Defaults to user's base currency if not specified.
      */
-    @NotNull(message = "Currency is required")
-    @Size(min = 3, max = 3, message = "Currency code must be exactly 3 characters")
+    @NotNull(message = "{recurringTransaction.currency.notnull}")
+    @Size(min = 3, max = 3, message = "{recurringTransaction.currency.size}")
     @Column(nullable = false, length = 3)
     private String currency;
 
@@ -207,7 +207,7 @@ public class RecurringTransaction {
      *
      * <p>Determines how nextOccurrence is calculated after each transaction.
      */
-    @NotNull(message = "Frequency is required")
+    @NotNull(message = "{recurringTransaction.frequency.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @ToString.Include
@@ -219,7 +219,7 @@ public class RecurringTransaction {
      * <p>The scheduled job checks this date daily. When current date >= nextOccurrence, a new
      * transaction is created and this date is updated based on frequency.
      */
-    @NotNull(message = "Next occurrence date is required")
+    @NotNull(message = "{recurringTransaction.nextOccurrence.notnull}")
     @Column(name = "next_occurrence", nullable = false)
     @ToString.Include
     private LocalDate nextOccurrence;
@@ -241,7 +241,7 @@ public class RecurringTransaction {
      *
      * <p>Default: true
      */
-    @NotNull(message = "Active status is required")
+    @NotNull(message = "{recurringTransaction.isActive.notnull}")
     @Column(name = "is_active", nullable = false)
     @ToString.Include
     private Boolean isActive;

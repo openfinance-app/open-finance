@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { Separator } from '@/components/ui/Separator';
+import { useTranslation } from 'react-i18next';
 import type { OwnerExpensesInputs, ValidationError } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
@@ -33,6 +34,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
 }) => {
   const { baseCurrency } = useAuthContext();
   const { format: formatCurrency } = useFormatCurrency();
+  const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) => errors.find(e => e.field === `expenses.${field}`)?.message;
 
@@ -55,7 +57,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            Charges Propriétaire
+            {t('expensesSection.title')}
           </span>
           <ChevronDown
             className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -71,11 +73,11 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
           <div className="space-y-3">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              Taxes et impôts
+              {t('expensesSection.taxesTitle')}
             </h4>
 
             <div className="space-y-2">
-              <Label htmlFor="propertyTax">Taxe foncière</Label>
+              <Label htmlFor="propertyTax">{t('expensesSection.propertyTax')}</Label>
               <Input
                 id="propertyTax"
                 type="number"
@@ -87,7 +89,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cfe">CFE (Cotisation Foncière des Entreprises)</Label>
+              <Label htmlFor="cfe">{t('expensesSection.cfe')}</Label>
               <Input
                 id="cfe"
                 type="number"
@@ -99,7 +101,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cvae">CVAE (si applicable)</Label>
+              <Label htmlFor="cvae">{t('expensesSection.cvae')}</Label>
               <Input
                 id="cvae"
                 type="number"
@@ -117,11 +119,11 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
           <div className="space-y-3">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Building2 className="h-4 w-4" />
-              Charges de copropriété
+              {t('expensesSection.coOwnershipTitle')}
             </h4>
 
             <div className="space-y-2">
-              <Label htmlFor="nonRecoverableCharges">Charges non récupérables</Label>
+              <Label htmlFor="nonRecoverableCharges">{t('expensesSection.nonRecoverableCharges')}</Label>
               <Input
                 id="nonRecoverableCharges"
                 type="number"
@@ -133,7 +135,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="annualMaintenance">Travaux d'entretien annuels</Label>
+              <Label htmlFor="annualMaintenance">{t('expensesSection.annualMaintenance')}</Label>
               <Input
                 id="annualMaintenance"
                 type="number"
@@ -151,11 +153,11 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
           <div className="space-y-3">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              Gestion et assurance
+              {t('expensesSection.managementTitle')}
             </h4>
 
             <div className="space-y-2">
-              <Label htmlFor="managementFees">Frais de gestion locative</Label>
+              <Label htmlFor="managementFees">{t('expensesSection.managementFees')}</Label>
               <Input
                 id="managementFees"
                 type="number"
@@ -167,7 +169,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="pnoInsurance">Assurance PNO (Propriétaire Non Occupant)</Label>
+              <Label htmlFor="pnoInsurance">{t('expensesSection.pnoInsurance')}</Label>
               <Input
                 id="pnoInsurance"
                 type="number"
@@ -179,7 +181,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="accountingFees">Frais de comptabilité</Label>
+              <Label htmlFor="accountingFees">{t('expensesSection.accountingFees')}</Label>
               <Input
                 id="accountingFees"
                 type="number"
@@ -197,7 +199,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
           <div className="space-y-2">
             <Label htmlFor="marginalTaxRate" className="flex items-center gap-2">
               <Percent className="h-4 w-4" />
-              Taux marginal d'imposition (TMI)
+              {t('expensesSection.marginalTaxRate')}
             </Label>
             <Input
               id="marginalTaxRate"
@@ -218,7 +220,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
           {/* Expenses Summary */}
           <div className="pt-2 border-t">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total charges déductibles</span>
+              <span className="text-muted-foreground">{t('expensesSection.totalDeductibleExpenses')}</span>
               <span className="font-semibold text-error">{formatCurrency(totalDeductibleExpenses, baseCurrency)}</span>
             </div>
           </div>

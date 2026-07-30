@@ -99,7 +99,18 @@
       "label": "Intérêts estimés",
       "description": "Intérêts perçus sur l'ensemble des comptes"
     },
-    "balanceVariation": {
+  "rssFeed": {
+    "title": "Actualités financières",
+    "loadError": "Échec du chargement des actualités",
+    "empty": "Aucune actualité trouvée",
+    "allDiscarded": "Toutes les actualités ont été supprimées.",
+    "readArticle": "Lire l'article complet",
+    "discard": "Supprimer cette actualité",
+    "recently": "Récemment",
+    "unknownSource": "Source inconnue",
+    "rssTooltip": "Dernières actualités financières issues des sources RSS configurées."
+  },
+  "balanceVariation": {
       "label": "Solde annuel",
       "description": "Variations du solde d'année en année"
     }

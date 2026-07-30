@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.openfinance.config.BusinessRulesProperties;
 import org.openfinance.dto.calculator.*;
 
 /** Unit tests for FinancialFreedomService. */
@@ -17,7 +18,8 @@ class FinancialFreedomServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new FinancialFreedomService();
+        BusinessRulesProperties businessRules = new BusinessRulesProperties();
+        service = new FinancialFreedomService(businessRules);
     }
 
     @Nested

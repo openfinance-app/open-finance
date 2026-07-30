@@ -76,13 +76,13 @@ public class TransactionRule {
      * ID of the user who owns this rule. Rules are user-scoped; a user can only access their own
      * rules. Requirement: REQ-TR-1.5, REQ-TR-NFR-3
      */
-    @NotNull(message = "User ID is required")
+    @NotNull(message = "{transactionRule.userId.notnull}")
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
     /** Human-readable name for this rule. Requirement: REQ-TR-1.1 */
-    @NotBlank(message = "Rule name is required")
-    @Size(max = 100, message = "Rule name must not exceed 100 characters")
+    @NotBlank(message = "{transactionRule.name.notblank}")
+    @Size(max = 100, message = "{transactionRule.name.size}")
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 

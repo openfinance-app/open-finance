@@ -603,6 +603,58 @@ class TransactionRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should save transaction with JPY currency (zero decimal)")
+    void shouldSaveTransactionWithJpyCurrency() {
+        // Given
+        Transaction jpyTransaction =
+                Transaction.builder()
+                        .userId(testUser1.getId())
+                        .accountId(checkingAccount.getId())
+                        .type(TransactionType.EXPENSE)
+                        .amount(new BigDecimal("80000"))
+                        .currency("JPY")
+                        .categoryId(groceryCategory.getId())
+                        .date(LocalDate.of(2026, 2, 10))
+                        .description("Tokyo groceries")
+                        .isReconciled(false)
+                        .isDeleted(false)
+                        .build();
+
+        // When
+        Transaction saved = transactionRepository.save(jpyTransaction);
+
+        // Then
+        assertThat(saved.getCurrency()).isEqualTo("JPY");
+        assertThat(saved.getAmount()).isEqualByComparingTo(new BigDecimal("80000"));
+        assertThat(saved.getAmount().scale()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("Should save transaction with BTC currency (crypto)")
+    void shouldSaveTransactionWithBtcCurrency() {
+        // Given
+        Transaction btcTransaction =
+                Transaction.builder()
+                        .userId(testUser1.getId())
+                        .accountId(checkingAccount.getId())
+                        .type(TransactionType.INCOME)
+                        .amount(new BigDecimal("0.0500"))
+                        .currency("BTC")
+                        .date(LocalDate.of(2026, 2, 15))
+                        .description("BTC mining reward")
+                        .isReconciled(false)
+                        .isDeleted(false)
+                        .build();
+
+        // When
+        Transaction saved = transactionRepository.save(btcTransaction);
+
+        // Then
+        assertThat(saved.getCurrency()).isEqualTo("BTC");
+        assertThat(saved.getAmount()).isEqualByComparingTo(new BigDecimal("0.0500"));
+    }
+
+    @Test
     @DisplayName("Should return empty list when no transactions for user")
     void shouldReturnEmptyListWhenNoTransactionsForUser() {
         // When

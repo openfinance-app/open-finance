@@ -18,7 +18,7 @@ interface FeedItemProps {
 }
 
 function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
-  const { i18n } = useTranslation('dashboard');
+  const { t, i18n } = useTranslation('dashboard');
   const dateLocale = i18n.language === 'fr' ? fr : enUS;
 
   // Sometimes RSS feeds contain HTML entities in titles
@@ -49,7 +49,7 @@ function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
                 }
               }}
               className="p-1 -mr-2 hover:bg-surface rounded-full text-text-muted hover:text-red-500 transition-colors flex-shrink-0"
-              title="Discard this feed item"
+              title={t('cards.rssFeed.discard')}
             >
               <X className="h-4 w-4" />
             </button>
@@ -60,7 +60,7 @@ function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
                 differenceInDays(new Date(), new Date(item.pubDate)) <= 7
                   ? formatDistanceToNow(new Date(item.pubDate), { addSuffix: true, locale: dateLocale })
                   : format(new Date(item.pubDate), 'PP', { locale: dateLocale })
-              ) : 'Recently'}
+              )                   : t('cards.rssFeed.recently')}
             </span>
             <Badge variant="info" size="sm" className="opacity-70 text-[10px] uppercase">
               {item.source}
@@ -95,7 +95,7 @@ export default function RssFeedCard() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Rss className="h-5 w-5 text-primary" />
-              Finance News
+              {t('cards.rssFeed.title')}
             </CardTitle>
           </div>
         </CardHeader>
@@ -120,14 +120,14 @@ export default function RssFeedCard() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Rss className="h-5 w-5 text-primary" />
-              Finance News
+              {t('cards.rssFeed.title')}
             </CardTitle>
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
           <div className="text-center py-8">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
-            <p className="text-red-500 font-semibold mb-2">Failed to load news</p>
+            <p className="text-red-500 font-semibold mb-2">{t('cards.rssFeed.loadError')}</p>
             <p className="text-text-secondary text-sm mb-4">
               {error instanceof Error ? error.message : t('errors.unexpected')}
             </p>
@@ -149,14 +149,14 @@ export default function RssFeedCard() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Rss className="h-5 w-5 text-primary" />
-              Finance News
+              {t('cards.rssFeed.title')}
             </CardTitle>
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
           <div className="text-center py-8">
             <Newspaper className="h-12 w-12 text-text-muted mx-auto mb-3" />
-            <p className="text-text-secondary text-sm mb-2">No news items found</p>
+            <p className="text-text-secondary text-sm mb-2">{t('cards.rssFeed.empty')}</p>
           </div>
         </CardContent>
       </Card>
@@ -169,7 +169,7 @@ export default function RssFeedCard() {
   const displayedFeeds: RssFeedItem[] = [];
 
   for (const feed of filteredFeeds) {
-    const source = feed.source || 'Unknown Source';
+    const source = feed.source || t('cards.rssFeed.unknownSource');
     if (!sourceCount[source]) {
       sourceCount[source] = 0;
     }
@@ -185,9 +185,9 @@ export default function RssFeedCard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Rss className="h-5 w-5 text-primary" />
-            <CardTitle>Finance News</CardTitle>
+            <CardTitle>{t('cards.rssFeed.title')}</CardTitle>
             <HelpTooltip
-              text="Latest top finance news items from configured RSS sources."
+              text={t('cards.rssFeed.rssTooltip')}
               side="right"
             />
           </div>
@@ -213,7 +213,7 @@ export default function RssFeedCard() {
             />
           )) : (
             <div className="text-center py-8">
-              <p className="text-text-secondary text-sm">All news items have been discarded.</p>
+              <p className="text-text-secondary text-sm">{t('cards.rssFeed.allDiscarded')}</p>
             </div>
           )}
         </div>
@@ -258,7 +258,7 @@ export default function RssFeedCard() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary-hover transition-colors"
               >
-                Read Full Article
+                {t('cards.rssFeed.readArticle')}
                 <ExternalLink className="h-4 w-4" />
               </a>
             )}

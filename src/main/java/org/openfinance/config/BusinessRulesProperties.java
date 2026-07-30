@@ -42,6 +42,20 @@ public class BusinessRulesProperties {
     private Accounts accounts = new Accounts();
     private DebtToIncome debtToIncome = new DebtToIncome();
 
+    /**
+     * Default withdrawal rate used by FinancialFreedomService when the request does not supply one
+     * (the "4% rule"). Mirrored as a Jackson-deserialization default in {@code
+     * FreedomCalculatorRequest.withdrawalRate}.
+     */
+    private BigDecimal defaultWithdrawalRate = new BigDecimal("4.0");
+
+    /**
+     * Default inflation rate used by FinancialFreedomService when the request does not supply one.
+     * Mirrored as a Jackson-deserialization default in {@code
+     * FreedomCalculatorRequest.inflationRate}.
+     */
+    private BigDecimal defaultInflationRate = new BigDecimal("2.5");
+
     /** Thresholds driving {@code InsightService} generation. */
     @Data
     public static class Insights {

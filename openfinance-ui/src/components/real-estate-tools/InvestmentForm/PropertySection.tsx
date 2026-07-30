@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/Select';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
+import { useTranslation } from 'react-i18next';
 import type { InvestmentPropertyInputs, ValidationError, FurnishingType } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
@@ -39,14 +40,15 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
 }) => {
   const { baseCurrency } = useAuthContext();
   const { format: formatCurrency } = useFormatCurrency();
+  const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) => errors.find(e => e.field === `property.${field}`)?.message;
 
   const furnishingOptions: { value: FurnishingType; label: string; price: number }[] = [
-    { value: 'unfurnished', label: 'Non meublé', price: 0 },
-    { value: 'basic', label: 'Meublé basique', price: 5000 },
-    { value: 'standard', label: 'Meublé standard', price: 10000 },
-    { value: 'luxury', label: 'Meublé haut de gamme', price: 20000 },
+    { value: 'unfurnished', label: t('propertySection.unfurnished'), price: 0 },
+    { value: 'basic', label: t('propertySection.basic'), price: 5000 },
+    { value: 'standard', label: t('propertySection.standard'), price: 10000 },
+    { value: 'luxury', label: t('propertySection.luxury'), price: 20000 },
   ];
 
   return (
@@ -58,7 +60,7 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            Bien Immobilier
+            {t('propertySection.title')}
           </span>
           <ChevronDown
             className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -72,7 +74,7 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
         <CardContent className="p-4 space-y-4">
           {/* Total Price */}
           <div className="space-y-2">
-            <Label htmlFor="totalPrice">Prix total du bien</Label>
+            <Label htmlFor="totalPrice">{t('propertySection.totalPrice')}</Label>
             <Input
               id="totalPrice"
               type="number"
@@ -92,14 +94,14 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
           <div className="space-y-2">
             <Label htmlFor="furnishingType" className="flex items-center gap-2">
               <Sofa className="h-4 w-4" />
-              Type de meublé
+              {t('propertySection.furnishingType')}
             </Label>
             <Select
               value={inputs.furnishingType}
               onValueChange={(value) => onUpdate('furnishingType', value as FurnishingType)}
             >
               <SelectTrigger id="furnishingType">
-                <SelectValue placeholder="Sélectionnez le type de meublé" />
+                <SelectValue placeholder={t('propertySection.selectFurnishingType')} />
               </SelectTrigger>
               <SelectContent>
                 {furnishingOptions.map((option) => (
@@ -113,7 +115,7 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
 
           {/* Furniture Value */}
           <div className="space-y-2">
-            <Label htmlFor="furnitureValue">Valeur du mobilier</Label>
+            <Label htmlFor="furnitureValue">{t('propertySection.furnitureValue')}</Label>
             <Input
               id="furnitureValue"
               type="number"
@@ -126,14 +128,14 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
             />
             <p className="text-xs text-muted-foreground">
               {inputs.furnishingType === 'unfurnished'
-                ? 'Saisie libre pour bien non meublé'
-                : 'Auto-calculé selon le type de meublé'}
+                ? t('propertySection.freeInputUnfurnished')
+                : t('propertySection.autoCalculated')}
             </p>
           </div>
 
           {/* Investment Total */}
           <div className="pt-2 border-t">
-            <p className="text-sm text-muted-foreground">Investissement total</p>
+            <p className="text-sm text-muted-foreground">{t('propertySection.totalInvestment')}</p>
             <p className="text-lg font-semibold text-primary">
               {formatCurrency(inputs.totalPrice + inputs.furnitureValue, baseCurrency)}
             </p>

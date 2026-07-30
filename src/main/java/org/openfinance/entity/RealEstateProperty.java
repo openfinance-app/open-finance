@@ -63,7 +63,7 @@ public class RealEstateProperty {
      * The user who owns this property. Requirement REQ-2.16.1: Each property belongs to a single
      * user
      */
-    @NotNull(message = "User ID cannot be null")
+    @NotNull(message = "{realEstateProperty.userId.notnull}")
     @Column(name = "user_id", nullable = false)
     @ToString.Include
     private Long userId;
@@ -80,8 +80,8 @@ public class RealEstateProperty {
      * RealEstateService handles encryption/decryption transparently. Requirement REQ-2.16.2:
      * Property must have a descriptive name
      */
-    @NotNull(message = "Property name cannot be null")
-    @Size(min = 1, max = 500, message = "Property name must be between 1 and 500 characters")
+    @NotNull(message = "{realEstateProperty.name.notnull}")
+    @Size(min = 1, max = 500, message = "{realEstateProperty.name.size}")
     @Column(name = "name", nullable = false, length = 500) // Extra length for encrypted data
     @Convert(converter = EncryptedStringConverter.class)
     private String name;
@@ -93,8 +93,8 @@ public class RealEstateProperty {
      * protect the user's property location information. Requirement REQ-2.16.3: Property must have
      * a full address
      */
-    @NotNull(message = "Property address cannot be null")
-    @Size(min = 1, max = 1000, message = "Property address must be between 1 and 1000 characters")
+    @NotNull(message = "{realEstateProperty.address.notnull}")
+    @Size(min = 1, max = 1000, message = "{realEstateProperty.address.size}")
     @Column(name = "address", nullable = false, length = 1000) // Extra length for encrypted data
     @Convert(converter = EncryptedStringConverter.class)
     private String address;
@@ -103,7 +103,7 @@ public class RealEstateProperty {
      * Type of property (RESIDENTIAL, COMMERCIAL, LAND, etc.). Requirement REQ-2.16: Property type
      * categorization
      */
-    @NotNull(message = "Property type cannot be null")
+    @NotNull(message = "{realEstateProperty.propertyType.notnull}")
     @Enumerated(EnumType.STRING)
     @Column(name = "property_type", nullable = false, length = 20)
     private PropertyType propertyType;
@@ -115,15 +115,15 @@ public class RealEstateProperty {
      * getPurchasePriceDecimal() after decryption for calculations. Requirement REQ-2.16.4: Track
      * purchase price with high precision
      */
-    @NotNull(message = "Purchase price cannot be null")
-    @Size(max = 500, message = "Purchase price (encrypted) cannot exceed 500 characters")
+    @NotNull(message = "{realEstateProperty.purchasePrice.notnull}")
+    @Size(max = 500, message = "{realEstateProperty.purchasePrice.size}")
     @Column(name = "purchase_price", nullable = false, length = 500)
     @Convert(converter = EncryptedStringConverter.class)
     private String purchasePrice;
 
     /** Date when the property was purchased. Requirement REQ-2.16.5: Track purchase date */
-    @NotNull(message = "Purchase date cannot be null")
-    @PastOrPresent(message = "Purchase date cannot be in the future")
+    @NotNull(message = "{realEstateProperty.purchaseDate.notnull}")
+    @PastOrPresent(message = "{realEstateProperty.purchaseDate.pastOrPresent}")
     @Column(name = "purchase_date", nullable = false)
     private LocalDate purchaseDate;
 
@@ -134,8 +134,8 @@ public class RealEstateProperty {
      * <p><strong>Encrypted Field:</strong> Stored as encrypted string. Use getCurrentValueDecimal()
      * after decryption for calculations. Requirement REQ-2.16.6: Track current estimated value
      */
-    @NotNull(message = "Current value cannot be null")
-    @Size(max = 500, message = "Current value (encrypted) cannot exceed 500 characters")
+    @NotNull(message = "{realEstateProperty.currentValue.notnull}")
+    @Size(max = 500, message = "{realEstateProperty.currentValue.size}")
     @Column(name = "current_value", nullable = false, length = 500)
     @Convert(converter = EncryptedStringConverter.class)
     private String currentValue;
@@ -143,8 +143,8 @@ public class RealEstateProperty {
     /**
      * Currency code for monetary amounts (ISO 4217). Requirement REQ-2.8: Multi-currency support
      */
-    @NotNull(message = "Currency cannot be null")
-    @Pattern(regexp = "[A-Z]{3}", message = "Currency must be a 3-letter ISO 4217 code")
+    @NotNull(message = "{realEstateProperty.currency.notnull}")
+    @Pattern(regexp = "[A-Z]{3}", message = "{realEstateProperty.currency.pattern}")
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;
 
@@ -189,7 +189,7 @@ public class RealEstateProperty {
      * after decryption for calculations. Requirement REQ-2.16.8: Track rental income for investment
      * properties
      */
-    @Size(max = 500, message = "Rental income (encrypted) cannot exceed 500 characters")
+    @Size(max = 500, message = "{realEstateProperty.rentalIncome.size}")
     @Column(name = "rental_income", length = 500)
     @Convert(converter = EncryptedStringConverter.class)
     private String rentalIncome;
@@ -200,7 +200,7 @@ public class RealEstateProperty {
      * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database.
      * Requirement REQ-2.16.9: Allow additional notes for property details
      */
-    @Size(max = 2000, message = "Notes cannot exceed 2000 characters")
+    @Size(max = 2000, message = "{realEstateProperty.notes.size}")
     @Column(name = "notes", columnDefinition = "TEXT")
     @Convert(converter = EncryptedStringConverter.class)
     private String notes;
@@ -213,7 +213,7 @@ public class RealEstateProperty {
      * <p>Format: JSON array of document metadata (file IDs, names, types) Requirement REQ-2.12:
      * File attachment support for real estate documents
      */
-    @Size(max = 2000, message = "Documents metadata cannot exceed 2000 characters")
+    @Size(max = 2000, message = "{realEstateProperty.documents.size}")
     @Column(name = "documents", length = 2000)
     @Convert(converter = EncryptedStringConverter.class)
     private String documents;
@@ -224,8 +224,8 @@ public class RealEstateProperty {
      * <p>Not encrypted as it doesn't directly reveal personal information when stored separately
      * from the address. Requirement REQ-2.16.10: Store location coordinates for mapping
      */
-    @DecimalMin(value = "-90.0", message = "Latitude must be >= -90")
-    @DecimalMax(value = "90.0", message = "Latitude must be <= 90")
+    @DecimalMin(value = "-90.0", message = "{realEstateProperty.latitude.decimalMin}")
+    @DecimalMax(value = "90.0", message = "{realEstateProperty.latitude.decimalMax}")
     @Column(name = "latitude", precision = 10, scale = 7)
     private BigDecimal latitude;
 
@@ -235,8 +235,8 @@ public class RealEstateProperty {
      * <p>Not encrypted as it doesn't directly reveal personal information when stored separately
      * from the address. Requirement REQ-2.16.10: Store location coordinates for mapping
      */
-    @DecimalMin(value = "-180.0", message = "Longitude must be >= -180")
-    @DecimalMax(value = "180.0", message = "Longitude must be <= 180")
+    @DecimalMin(value = "-180.0", message = "{realEstateProperty.longitude.decimalMin}")
+    @DecimalMax(value = "180.0", message = "{realEstateProperty.longitude.decimalMax}")
     @Column(name = "longitude", precision = 10, scale = 7)
     private BigDecimal longitude;
 

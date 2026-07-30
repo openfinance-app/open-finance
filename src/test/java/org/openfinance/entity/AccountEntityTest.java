@@ -150,6 +150,46 @@ class AccountEntityTest {
     }
 
     @Test
+    @DisplayName("Should save and round-trip JPY currency (zero-decimal fiat)")
+    void shouldSaveAndRoundTripJpyCurrency() {
+        // Given
+        Account jpyAccount =
+                Account.builder()
+                        .userId(1L)
+                        .name("Japan Account")
+                        .type(AccountType.CHECKING)
+                        .currency("JPY")
+                        .balance(new BigDecimal("10000"))
+                        .isActive(true)
+                        .build();
+
+        // When / Then
+        assertThat(jpyAccount.getCurrency()).isEqualTo("JPY");
+        assertThat(jpyAccount.getBalance()).isEqualByComparingTo(new BigDecimal("10000"));
+        assertThat(jpyAccount.getBalance().scale()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("Should save and round-trip BTC currency (crypto, high precision)")
+    void shouldSaveAndRoundTripBtcCurrency() {
+        // Given
+        Account btcAccount =
+                Account.builder()
+                        .userId(1L)
+                        .name("Crypto Wallet")
+                        .type(AccountType.INVESTMENT)
+                        .currency("BTC")
+                        .balance(new BigDecimal("0.12345678"))
+                        .isActive(true)
+                        .build();
+
+        // When / Then
+        assertThat(btcAccount.getCurrency()).isEqualTo("BTC");
+        assertThat(btcAccount.getBalance()).isEqualByComparingTo(new BigDecimal("0.12345678"));
+        assertThat(btcAccount.getBalance().scale()).isEqualTo(8);
+    }
+
+    @Test
     @DisplayName("Should enforce name max size constraint")
     void shouldEnforceNameMaxSize() {
         // Given: name exceeding 500 characters

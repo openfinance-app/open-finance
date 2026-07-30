@@ -42,7 +42,7 @@ export interface EvolutionChartProps {
 export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
   const { baseCurrency } = useAuthContext();
   const locale = (i18n.language ?? 'en').startsWith('fr') ? 'fr-FR' : 'en-US';
-  const years = results.years.map(y => `Année ${y.year}`);
+  const years = results.years.map(y => i18n.t('realEstate:evolutionChart.yearLabel', { year: y.year }));
   
   const buyNetWorth = results.years.map(y => y.buy.propertyValue - y.buy.remainingCapital);
   const rentNetWorth = results.years.map(y => y.rent.savings);
@@ -51,7 +51,7 @@ export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
     labels: years,
     datasets: [
       {
-        label: 'Patrimoine net (Achat)',
+        label: i18n.t('realEstate:evolutionChart.buyNetWorth'),
         data: buyNetWorth,
         borderColor: 'rgb(59, 130, 246)', // Blue
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -61,7 +61,7 @@ export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
         pointHoverRadius: 6,
       },
       {
-        label: 'Patrimoine net (Location)',
+        label: i18n.t('realEstate:evolutionChart.rentNetWorth'),
         data: rentNetWorth,
         borderColor: 'rgb(234, 179, 8)', // Yellow
         backgroundColor: 'rgba(234, 179, 8, 0.1)',
@@ -90,7 +90,7 @@ export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
       },
       title: {
         display: true,
-        text: 'Évolution du patrimoine net',
+        text: i18n.t('realEstate:evolutionChart.title'),
         font: {
           size: 16,
         },
@@ -140,7 +140,7 @@ export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Évolution du patrimoine net</CardTitle>
+        <CardTitle>{i18n.t('realEstate:evolutionChart.title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[400px]">

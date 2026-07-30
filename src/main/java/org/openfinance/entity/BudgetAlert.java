@@ -79,7 +79,7 @@ public class BudgetAlert {
             name = "budget_id",
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_alert_budget"))
-    @NotNull(message = "Budget is required")
+    @NotNull(message = "{budgetAlert.budget.notnull}")
     private Budget budget;
 
     /**
@@ -93,9 +93,9 @@ public class BudgetAlert {
      * <p>Example: threshold=75.00 means alert when spent ≥ 75% of budget
      */
     @Column(name = "threshold", nullable = false, precision = 5, scale = 2)
-    @NotNull(message = "Threshold is required")
-    @DecimalMin(value = "1.00", message = "Threshold must be at least 1%")
-    @DecimalMax(value = "150.00", message = "Threshold must not exceed 150%")
+    @NotNull(message = "{budgetAlert.threshold.notnull}")
+    @DecimalMin(value = "1.00", message = "{budgetAlert.threshold.decimalMin}")
+    @DecimalMax(value = "150.00", message = "{budgetAlert.threshold.decimalMax}")
     private BigDecimal threshold;
 
     /**

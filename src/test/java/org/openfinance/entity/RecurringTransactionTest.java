@@ -504,6 +504,54 @@ class RecurringTransactionTest {
         }
 
         @Test
+        @DisplayName("Should build recurring transaction with JPY currency (zero decimal)")
+        void shouldBuildRecurringTransactionWithJpyCurrency() {
+            // Arrange & Act
+            RecurringTransaction recurring =
+                    RecurringTransaction.builder()
+                            .userId(100L)
+                            .accountId(200L)
+                            .type(TransactionType.EXPENSE)
+                            .amount(new BigDecimal("50000"))
+                            .currency("JPY")
+                            .categoryId(70L)
+                            .description("Monthly Rent Tokyo")
+                            .frequency(RecurringFrequency.MONTHLY)
+                            .nextOccurrence(LocalDate.now())
+                            .isActive(true)
+                            .build();
+
+            // Assert
+            assertThat(recurring.getCurrency()).isEqualTo("JPY");
+            assertThat(recurring.getAmount()).isEqualByComparingTo(new BigDecimal("50000"));
+            assertThat(recurring.getAmount().scale()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("Should build recurring transaction with BTC currency (high precision)")
+        void shouldBuildRecurringTransactionWithBtcCurrency() {
+            // Arrange & Act
+            RecurringTransaction recurring =
+                    RecurringTransaction.builder()
+                            .userId(100L)
+                            .accountId(200L)
+                            .type(TransactionType.EXPENSE)
+                            .amount(new BigDecimal("0.50000000"))
+                            .currency("BTC")
+                            .categoryId(70L)
+                            .description("Crypto Subscription")
+                            .frequency(RecurringFrequency.MONTHLY)
+                            .nextOccurrence(LocalDate.now())
+                            .isActive(true)
+                            .build();
+
+            // Assert
+            assertThat(recurring.getCurrency()).isEqualTo("BTC");
+            assertThat(recurring.getAmount()).isEqualByComparingTo(new BigDecimal("0.50000000"));
+            assertThat(recurring.getAmount().scale()).isEqualTo(8);
+        }
+
+        @Test
         @DisplayName("Should build recurring transaction with indefinite end date (null)")
         void shouldBuildRecurringTransactionWithIndefiniteEndDate() {
             // Arrange & Act

@@ -45,8 +45,8 @@ public class Institution {
     private Long id;
 
     /** Name of the financial institution. Examples: "BNP Paribas", "Deutsche Bank", "Boursorama" */
-    @NotBlank(message = "Institution name cannot be blank")
-    @Size(max = 200, message = "Name must not exceed 200 characters")
+    @NotBlank(message = "{institution.name.notblank}")
+    @Size(max = 200, message = "{institution.name.size}")
     @Column(nullable = false, length = 200)
     private String name;
 
@@ -54,12 +54,12 @@ public class Institution {
      * BIC (Bank Identifier Code) in ISO 9362 format. 8 or 11 character code identifying the
      * institution. Example: "BNPAFRPP" for BNP Paribas France
      */
-    @Size(min = 4, max = 15, message = "BIC must be 4 to 15 characters")
+    @Size(min = 4, max = 15, message = "{institution.bic.size}")
     @Column(name = "bic", length = 15)
     private String bic;
 
     /** Country code in ISO 3166-1 alpha-2 format. Examples: FR, DE, ES, IT, NL */
-    @Size(min = 2, max = 2, message = "Country must be 2-letter ISO code")
+    @Size(min = 2, max = 2, message = "{institution.country.size}")
     @Column(name = "country", length = 2)
     private String country;
 

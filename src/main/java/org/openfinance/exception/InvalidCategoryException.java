@@ -18,7 +18,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>Requirement REQ-2.4: Category Management - Business rule enforcement
  */
 @ResponseStatus(HttpStatus.BAD_REQUEST)
-public class InvalidCategoryException extends RuntimeException {
+public class InvalidCategoryException extends RuntimeException implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new InvalidCategoryException with a detail message.
@@ -27,6 +30,8 @@ public class InvalidCategoryException extends RuntimeException {
      */
     public InvalidCategoryException(String message) {
         super(message);
+        this.messageKey = "error.category.invalid";
+        this.messageArgs = new Object[] {message};
     }
 
     /**
@@ -37,5 +42,17 @@ public class InvalidCategoryException extends RuntimeException {
      */
     public InvalidCategoryException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = "error.category.invalid";
+        this.messageArgs = new Object[] {message};
+    }
+
+    @Override
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return messageArgs;
     }
 }

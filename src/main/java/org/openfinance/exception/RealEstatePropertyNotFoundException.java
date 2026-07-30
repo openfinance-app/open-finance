@@ -12,7 +12,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>Requirement REQ-3.2: Authorization - Users can only access their own properties
  */
 @ResponseStatus(HttpStatus.NOT_FOUND)
-public class RealEstatePropertyNotFoundException extends RuntimeException {
+public class RealEstatePropertyNotFoundException extends RuntimeException
+        implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new RealEstatePropertyNotFoundException with a detail message.
@@ -21,6 +25,8 @@ public class RealEstatePropertyNotFoundException extends RuntimeException {
      */
     public RealEstatePropertyNotFoundException(String message) {
         super(message);
+        this.messageKey = null;
+        this.messageArgs = null;
     }
 
     /**
@@ -31,6 +37,15 @@ public class RealEstatePropertyNotFoundException extends RuntimeException {
      */
     public RealEstatePropertyNotFoundException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = null;
+        this.messageArgs = null;
+    }
+
+    private RealEstatePropertyNotFoundException(
+            String message, String messageKey, Object[] messageArgs) {
+        super(message);
+        this.messageKey = messageKey;
+        this.messageArgs = messageArgs;
     }
 
     /**
@@ -41,7 +56,9 @@ public class RealEstatePropertyNotFoundException extends RuntimeException {
      */
     public static RealEstatePropertyNotFoundException byId(Long propertyId) {
         return new RealEstatePropertyNotFoundException(
-                "Real estate property not found with id: " + propertyId);
+                "Real estate property not found with id: " + propertyId,
+                "error.realestate.not.found",
+                new Object[] {propertyId});
     }
 
     /**
@@ -55,6 +72,18 @@ public class RealEstatePropertyNotFoundException extends RuntimeException {
         return new RealEstatePropertyNotFoundException(
                 String.format(
                         "Real estate property not found with id: %d for user: %d",
-                        propertyId, userId));
+                        propertyId, userId),
+                "error.realestate.not.found",
+                new Object[] {propertyId});
+    }
+
+    @Override
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return messageArgs;
     }
 }

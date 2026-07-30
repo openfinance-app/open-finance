@@ -10,7 +10,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * (such as a simulation or property) that belongs to another user.
  */
 @ResponseStatus(HttpStatus.FORBIDDEN)
-public class UnauthorizedException extends RuntimeException {
+public class UnauthorizedException extends RuntimeException implements LocalizableException {
+
+    private final String messageKey;
+    private final Object[] messageArgs;
 
     /**
      * Constructs a new UnauthorizedException with a detail message.
@@ -19,6 +22,8 @@ public class UnauthorizedException extends RuntimeException {
      */
     public UnauthorizedException(String message) {
         super(message);
+        this.messageKey = null;
+        this.messageArgs = null;
     }
 
     /**
@@ -29,6 +34,8 @@ public class UnauthorizedException extends RuntimeException {
      */
     public UnauthorizedException(String message, Throwable cause) {
         super(message, cause);
+        this.messageKey = null;
+        this.messageArgs = null;
     }
 
     /**
@@ -53,5 +60,15 @@ public class UnauthorizedException extends RuntimeException {
      */
     public static UnauthorizedException operation(String operation) {
         return new UnauthorizedException("Unauthorized to perform operation: " + operation);
+    }
+
+    @Override
+    public String getMessageKey() {
+        return "error.unauthorized";
+    }
+
+    @Override
+    public Object[] getMessageArgs() {
+        return new Object[0];
     }
 }

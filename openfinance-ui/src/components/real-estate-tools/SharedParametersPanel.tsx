@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthContext } from '@/context/AuthContext';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { useTranslation } from 'react-i18next';
 import type { SharedPropertyData } from '@/types/realEstateTools';
 
 export interface SharedParametersPanelProps {
@@ -22,6 +23,7 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
 }) => {
   const { baseCurrency } = useAuthContext();
   const { format: formatCurrency } = useFormatCurrency();
+  const { t } = useTranslation('realEstate');
   if (!sharedData) {
     return null;
   }
@@ -32,10 +34,10 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Link2 className="h-4 w-4 text-primary" />
-            Données importées du comparateur
+            {t('sharedParameters.importedDataTitle')}
           </CardTitle>
           <Badge variant="outline" className="text-xs">
-            Lecture seule
+            {t('sharedParameters.readOnly')}
           </Badge>
         </div>
       </CardHeader>
@@ -45,7 +47,7 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
           <div className="flex items-center gap-3 bg-background/50 p-3 rounded">
             <Home className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-xs text-muted-foreground">Prix du bien</p>
+              <p className="text-xs text-muted-foreground">{t('sharedParameters.propertyPrice')}</p>
               <p className="font-medium">{formatCurrency(sharedData.totalPrice, baseCurrency)}</p>
             </div>
           </div>
@@ -54,8 +56,8 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
           <div className="flex items-center gap-3 bg-background/50 p-3 rounded">
             <Wallet className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-xs text-muted-foreground">Mensualité crédit</p>
-              <p className="font-medium">{formatCurrency(sharedData.credit.monthlyPayment, baseCurrency)}/mois</p>
+              <p className="text-xs text-muted-foreground">{t('sharedParameters.creditPayment')}</p>
+              <p className="font-medium">{formatCurrency(sharedData.credit.monthlyPayment, baseCurrency)}{t('sharedParameters.creditPaymentPerMonth')}</p>
             </div>
           </div>
 
@@ -63,8 +65,8 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
           <div className="flex items-center gap-3 bg-background/50 p-3 rounded">
             <FileText className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-xs text-muted-foreground">Taxe foncière</p>
-              <p className="font-medium">{formatCurrency(sharedData.propertyTax, baseCurrency)}/an</p>
+              <p className="text-xs text-muted-foreground">{t('sharedParameters.propertyTax')}</p>
+              <p className="font-medium">{formatCurrency(sharedData.propertyTax, baseCurrency)}{t('sharedParameters.propertyTaxPerYear')}</p>
             </div>
           </div>
 
@@ -72,8 +74,8 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
           <div className="flex items-center gap-3 bg-background/50 p-3 rounded">
             <FileText className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-xs text-muted-foreground">Charges copro (non récup.)</p>
-              <p className="font-medium">{formatCurrency(sharedData.coOwnershipCharges, baseCurrency)}/an</p>
+              <p className="text-xs text-muted-foreground">{t('sharedParameters.coOwnershipCharges')}</p>
+              <p className="font-medium">{formatCurrency(sharedData.coOwnershipCharges, baseCurrency)}{t('sharedParameters.coOwnershipChargesPerYear')}</p>
             </div>
           </div>
         </div>
@@ -81,8 +83,7 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
         {/* Note */}
         <div className="mt-4 text-sm text-muted-foreground">
           <p>
-            Ces valeurs ont été importées depuis le comparateur achat/location.
-            Vous pouvez les modifier ci-dessous si nécessaire.
+            {t('sharedParameters.note')}
           </p>
         </div>
       </CardContent>

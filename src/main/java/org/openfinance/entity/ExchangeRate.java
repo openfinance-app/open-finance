@@ -71,19 +71,17 @@ public class ExchangeRate {
      * Base currency code (ISO 4217). Example: For USD/EUR rate, this would be "USD" Requirement
      * REQ-2.8.3: Support currency pair conversion
      */
-    @NotNull(message = "Base currency cannot be null")
-    @Pattern(regexp = "^[A-Z]{3,10}$", message = "Base currency must be 3 to 10 uppercase letters")
-    @Size(min = 3, max = 10, message = "Base currency must be between 3 and 10 characters")
+    @NotNull(message = "{exchangeRate.baseCurrency.notnull}")
+    @Pattern(regexp = "^[A-Z]{3,10}$", message = "{exchangeRate.baseCurrency.pattern}")
+    @Size(min = 3, max = 10, message = "{exchangeRate.baseCurrency.size}")
     @Column(name = "base_currency", nullable = false, length = 10)
     @EqualsAndHashCode.Include
     private String baseCurrency;
 
     /** Target currency code (ISO 4217). Example: For USD/EUR rate, this would be "EUR" */
-    @NotNull(message = "Target currency cannot be null")
-    @Pattern(
-            regexp = "^[A-Z]{3,10}$",
-            message = "Target currency must be 3 to 10 uppercase letters")
-    @Size(min = 3, max = 10, message = "Target currency must be between 3 and 10 characters")
+    @NotNull(message = "{exchangeRate.targetCurrency.notnull}")
+    @Pattern(regexp = "^[A-Z]{3,10}$", message = "{exchangeRate.targetCurrency.pattern}")
+    @Size(min = 3, max = 10, message = "{exchangeRate.targetCurrency.size}")
     @Column(name = "target_currency", nullable = false, length = 10)
     @EqualsAndHashCode.Include
     private String targetCurrency;
@@ -94,8 +92,8 @@ public class ExchangeRate {
      *
      * <p>Must be positive and stored with high precision for accurate calculations.
      */
-    @NotNull(message = "Exchange rate cannot be null")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Exchange rate must be greater than 0")
+    @NotNull(message = "{exchangeRate.rate.notnull}")
+    @DecimalMin(value = "0.0", inclusive = false, message = "{exchangeRate.rate.decimalMin}")
     @Column(name = "rate", nullable = false, precision = 18, scale = 8)
     private BigDecimal rate;
 
@@ -103,13 +101,13 @@ public class ExchangeRate {
      * Date for which this exchange rate is valid. Typically set to the date when the rate was
      * fetched. Requirement REQ-2.8.4: Historical rate tracking for point-in-time conversion
      */
-    @NotNull(message = "Rate date cannot be null")
+    @NotNull(message = "{exchangeRate.rateDate.notnull}")
     @Column(name = "rate_date", nullable = false)
     @EqualsAndHashCode.Include
     private LocalDate rateDate;
 
     /** Source of the exchange rate data. Examples: "yfinance" */
-    @Size(max = 100, message = "Source cannot exceed 100 characters")
+    @Size(max = 100, message = "{exchangeRate.source.size}")
     @Column(name = "source", length = 100)
     @Builder.Default
     private String source = "system";
