@@ -34,6 +34,7 @@ class DuplicatePayeeExceptionTest {
                 new org.springframework.context.support.ResourceBundleMessageSource();
         messageSource.setBasename("i18n/messages");
         messageSource.setDefaultEncoding("UTF-8");
+        messageSource.setFallbackToSystemLocale(false);
 
         DuplicatePayeeException ex = new DuplicatePayeeException("Netflix");
 

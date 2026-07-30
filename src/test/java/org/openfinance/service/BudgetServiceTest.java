@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +48,7 @@ import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.security.EncryptionService;
 import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 
 /**
  * Unit tests for BudgetService.
@@ -96,6 +98,7 @@ class BudgetServiceTest {
 
     @BeforeEach
     void setUp() {
+        LocaleContextHolder.setLocale(Locale.ENGLISH);
         // Create test category
         testCategory =
                 Category.builder()
