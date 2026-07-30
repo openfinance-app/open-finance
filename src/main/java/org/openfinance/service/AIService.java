@@ -102,7 +102,11 @@ public class AIService {
                 languageInstruction.isEmpty() ? context : languageInstruction + "\n\n" + context;
 
         // 3. Call AI provider (block on the reactive call to stay on the servlet
-        // thread)
+        // thread). Safe re: SecurityContextHolder: userId/locale/context are all resolved
+        // above on this servlet thread *before* the reactive chain runs, and no provider
+        // implementation reads SecurityContextHolder inside a Mono/Flux operator. If that
+        // ever changes, don't rely on ThreadLocal SecurityContext propagating onto the
+        // WebClient's Netty event-loop threads — pass the needed value in explicitly instead.
         String aiResponse = aiProvider.sendPrompt(request.getQuestion(), fullContext).block();
 
         // 4. Save conversation messages
@@ -241,6 +245,8 @@ public class AIService {
      * @return true if available, false otherwise
      */
     public boolean isAIProviderAvailable() {
+        // Same SecurityContextHolder caveat as askQuestion() above: no reactive operator here
+        // reads SecurityContextHolder, so blocking on the servlet thread is safe.
         Boolean result = aiProvider.isAvailable().block();
         return Boolean.TRUE.equals(result);
     }
