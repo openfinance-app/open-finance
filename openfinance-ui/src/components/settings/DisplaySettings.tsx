@@ -22,6 +22,10 @@ import { useNumberFormat, type NumberFormat } from '@/context/NumberFormatContex
 import { useDecimalPlaces } from '@/context/DecimalPlacesContext';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
 import type { AmountDisplayMode } from '@/context/CurrencyDisplayContext';
+import {
+  SETTINGS_SUCCESS_MESSAGE_DURATION_MS,
+  EXTENDED_MESSAGE_DURATION_MS,
+} from '@/constants/timing';
 
 type DateFormat = 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
 
@@ -50,13 +54,13 @@ export function DisplaySettings() {
   const handleToggleDecimalOverride = (enabled: boolean) => {
     setOverrideEnabled(enabled);
     setSuccessMessage(t('display.decimalPlaces.updateSuccess'));
-    setTimeout(() => setSuccessMessage(null), 3000);
+    setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
   };
 
   const handleDecimalPlacesChange = (places: number) => {
     setDecimalPlaces(places);
     setSuccessMessage(t('display.decimalPlaces.updateSuccess'));
-    setTimeout(() => setSuccessMessage(null), 3000);
+    setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
   };
 
   // Sample amount used for the decimal-places live preview.
@@ -77,7 +81,7 @@ export function DisplaySettings() {
   const handleThemeChange = (newTheme: 'dark' | 'light') => {
     setTheme(newTheme);
     setSuccessMessage(t('display.theme.updateSuccess'));
-    setTimeout(() => setSuccessMessage(null), 3000);
+    setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
   };
 
   const handleDateFormatChange = (format: DateFormat) => {
@@ -88,11 +92,11 @@ export function DisplaySettings() {
       {
         onSuccess: () => {
           setSuccessMessage(t('display.dateFormat.updateSuccess'));
-          setTimeout(() => setSuccessMessage(null), 3000);
+          setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
         },
         onError: () => {
           setErrorMessage(t('display.dateFormat.updateError'));
-          setTimeout(() => setErrorMessage(null), 5000);
+          setTimeout(() => setErrorMessage(null), EXTENDED_MESSAGE_DURATION_MS);
           // Revert to previous format on error
           if (settings) {
             setDateFormat(settings.dateFormat);
@@ -105,13 +109,13 @@ export function DisplaySettings() {
   const handleNumberFormatChange = (format: NumberFormat) => {
     setNumberFormat(format);
     setSuccessMessage(t('display.numberFormat.updateSuccess'));
-    setTimeout(() => setSuccessMessage(null), 3000);
+    setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
   };
 
   const handleDisplayModeChange = (mode: AmountDisplayMode) => {
     setDisplayMode(mode);
     setSuccessMessage(t('display.currencyDisplay.updateSuccess'));
-    setTimeout(() => setSuccessMessage(null), 3000);
+    setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
   };
 
   const formatExample = (format: DateFormat): string => {

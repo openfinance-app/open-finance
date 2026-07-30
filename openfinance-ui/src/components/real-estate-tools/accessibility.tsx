@@ -6,25 +6,17 @@
  */
 
 import React, { useEffect, useCallback } from 'react';
+import { announceToScreenReader } from '@/utils/accessibility';
 
 /**
- * Hook to announce messages to screen readers
+ * Hook to announce messages to screen readers.
+ *
+ * Delegates to the shared {@link announceToScreenReader} (previously this hook duplicated the
+ * same ARIA-live-region DOM logic independently).
  */
 export function useAnnouncer() {
   const announce = useCallback((message: string, priority: 'polite' | 'assertive' = 'polite') => {
-    const announcement = document.createElement('div');
-    announcement.setAttribute('role', 'status');
-    announcement.setAttribute('aria-live', priority);
-    announcement.setAttribute('aria-atomic', 'true');
-    announcement.className = 'sr-only';
-    announcement.textContent = message;
-    
-    document.body.appendChild(announcement);
-    
-    // Remove after announcement
-    setTimeout(() => {
-      document.body.removeChild(announcement);
-    }, 1000);
+    announceToScreenReader(message, priority);
   }, []);
 
   return { announce };

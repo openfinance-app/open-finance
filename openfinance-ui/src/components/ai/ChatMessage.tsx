@@ -11,6 +11,7 @@
  * @since Sprint 11 - AI Assistant Integration
  */
 import React from 'react';
+import { COPY_FEEDBACK_RESET_MS } from '@/constants/timing';
 import ReactMarkdown from 'react-markdown';
 import { Bot, User, Copy, Check } from 'lucide-react';
 import type { Message } from '@/types/ai';
@@ -30,7 +31,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), COPY_FEEDBACK_RESET_MS);
   };
 
   const formattedTime = new Date(message.timestamp).toLocaleTimeString('en-US', {

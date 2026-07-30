@@ -9,6 +9,10 @@
  * Requirements: REQ-6.3 (User Settings & Preferences)
  */
 import { useState } from 'react';
+import {
+  EXTENDED_MESSAGE_DURATION_MS,
+  SECURITY_EXTENDED_MESSAGE_DURATION_MS,
+} from '@/constants/timing';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -141,7 +145,7 @@ export function SecuritySettings() {
       setShowPasswordForm(false);
 
       // Auto-clear success message after 5 seconds
-      setTimeout(() => setSuccessMessage(null), 5000);
+      setTimeout(() => setSuccessMessage(null), EXTENDED_MESSAGE_DURATION_MS);
     } catch (error: any) {
       setErrorMessage(
         error.response?.data?.message ||
@@ -168,7 +172,7 @@ export function SecuritySettings() {
       setShowMasterPasswordForm(false);
 
       // Auto-clear success message after 8 seconds
-      setTimeout(() => setSuccessMessage(null), 8000);
+      setTimeout(() => setSuccessMessage(null), SECURITY_EXTENDED_MESSAGE_DURATION_MS);
     } catch (error: any) {
       setErrorMessage(
         error.response?.data?.message ||

@@ -10,6 +10,7 @@ import { Plus, ChevronRight, ChevronDown, FolderOpen, Edit2, Trash2, Tag, Search
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { CATEGORY_COLOR_SWATCHES, CATEGORY_COLOR_FALLBACK } from '@/constants/colors';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/layout/EmptyState';
@@ -103,7 +104,7 @@ function TreeNode({ node, depth = 0, onEdit, onDelete }: TreeNodeProps) {
         {/* Icon */}
         <div
           className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-white text-sm font-medium"
-          style={{ backgroundColor: node.color || '#6B7280' }}
+          style={{ backgroundColor: node.color || CATEGORY_COLOR_FALLBACK }}
         >
           {node.icon ? (
             <span className="text-xs">{node.icon}</span>
@@ -211,12 +212,6 @@ interface CategoryFormData {
   color?: string;
 }
 
-const COLORS = [
-  '#EF4444', '#F97316', '#F59E0B', '#84CC16', '#22C55E',
-  '#14B8A6', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6',
-  '#A855F7', '#EC4899', '#F43F5E', '#6B7280', '#10B981'
-];
-
 const ICONS = [
   '🍔', '🚗', '🏠', '💊', '🛒', '📺', '✈️', '💰', '🎁', '💳',
   '🏥', '📱', '🎮', '👕', '🏋️', '📚', '🎵', '☕', '🚿', '💼'
@@ -236,7 +231,7 @@ export function CategoryFormDialog({
     type: 'EXPENSE',
     parentId: undefined,
     icon: '📁',
-    color: '#6B7280',
+    color: CATEGORY_COLOR_FALLBACK,
   });
 
   // Bug #4 fix: reset form whenever the dialog opens (watch both `open` and `category`)
@@ -248,7 +243,7 @@ export function CategoryFormDialog({
         type: category.type,
         parentId: category.parentId || undefined,
         icon: category.icon || '📁',
-        color: category.color || '#6B7280',
+        color: category.color || CATEGORY_COLOR_FALLBACK,
       });
     } else {
       setFormData({
@@ -256,7 +251,7 @@ export function CategoryFormDialog({
         type: 'EXPENSE',
         parentId: undefined,
         icon: '📁',
-        color: '#6B7280',
+        color: CATEGORY_COLOR_FALLBACK,
       });
     }
   }, [category, open]);
@@ -346,7 +341,7 @@ export function CategoryFormDialog({
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-primary">{t('form.color')}</label>
             <div className="flex flex-wrap gap-2">
-              {COLORS.map((color) => (
+              {CATEGORY_COLOR_SWATCHES.map((color) => (
                 <button
                   key={color}
                   type="button"

@@ -3,6 +3,10 @@ import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import type { INetWorthAllocation } from '@/types/dashboard';
 import { PrivateAmount } from '../ui/PrivateAmount';
+import {
+  NET_WORTH_TREEMAP_LIABILITY_COLORS,
+  NET_WORTH_TREEMAP_ASSET_COLORS,
+} from '@/constants/colors';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 
 interface NetWorthAllocationChartProps {
@@ -43,8 +47,8 @@ const CustomizedContent = (props: any) => {
                 height={height}
                 style={{
                     fill: props.isLiability
-                        ? ['#EF4444', '#DC2626', '#B91C1C'][index % 3] // Red shades for liabilities
-                        : ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899'][index % 5], // Diverse colors for assets
+                        ? NET_WORTH_TREEMAP_LIABILITY_COLORS[index % 3] // Red shades for liabilities
+                        : NET_WORTH_TREEMAP_ASSET_COLORS[index % 5], // Diverse colors for assets
                     stroke: '#fff',
                     strokeWidth: 2 / (depth + 1e-10),
                     strokeOpacity: 1 / (depth + 1e-10),
@@ -140,8 +144,8 @@ export default function NetWorthAllocationChart({ allocations, currency: _curren
                             className="w-3 h-3 rounded-full"
                             style={{
                                 backgroundColor: item.isLiability
-                                    ? ['#EF4444', '#DC2626', '#B91C1C'][index % 3]
-                                    : ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899'][index % 5]
+                                    ? NET_WORTH_TREEMAP_LIABILITY_COLORS[index % 3]
+                                    : NET_WORTH_TREEMAP_ASSET_COLORS[index % 5]
                             }}
                         />
                         <span className="truncate text-text-secondary">{t(`allocationCategories.${item.category.replace(/[^a-zA-Z0-9]/g, '_')}`, { defaultValue: item.category })}</span>

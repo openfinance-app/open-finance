@@ -2,6 +2,7 @@
  * Accessibility utilities for keyboard navigation, focus management, and screen readers.
  * Implements WCAG 2.1 Level AA compliance features.
  */
+import { ARIA_ANNOUNCEMENT_CLEANUP_MS } from '@/constants/timing';
 
 /**
  * Screen reader only text (visually hidden but accessible)
@@ -149,7 +150,7 @@ export function announceToScreenReader(
     if (announcement.parentNode === document.body) {
       document.body.removeChild(announcement);
     }
-  }, 1000);
+  }, ARIA_ANNOUNCEMENT_CLEANUP_MS);
 }
 
 /**

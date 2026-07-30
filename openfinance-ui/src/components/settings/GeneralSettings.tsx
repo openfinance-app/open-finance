@@ -15,6 +15,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useUserSettings, useUpdateBaseCurrency, useUpdateUserSettings } from '@/hooks/useUserSettings';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { SETTINGS_SUCCESS_MESSAGE_DURATION_MS } from '@/constants/timing';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import {
   Select,
@@ -208,7 +209,7 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
     try {
       await updateBaseCurrency.mutateAsync(selectedCurrency);
       setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      setTimeout(() => setShowSuccess(false), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
     } catch (error) {
       // Error is handled by the mutation hook and can be accessed via updateBaseCurrency.error
       console.error('Failed to update base currency:', error);
@@ -228,7 +229,7 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
       {
         onSuccess: () => {
           setSecondarySaveSuccess(true);
-          setTimeout(() => setSecondarySaveSuccess(false), 3000);
+          setTimeout(() => setSecondarySaveSuccess(false), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
         },
         onError: () => {
           // Revert to previous value on error
@@ -248,7 +249,7 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
       {
         onSuccess: () => {
           setCountrySaveSuccess(true);
-          setTimeout(() => setCountrySaveSuccess(false), 3000);
+          setTimeout(() => setCountrySaveSuccess(false), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
         },
         onError: () => {
           if (settings?.country) {

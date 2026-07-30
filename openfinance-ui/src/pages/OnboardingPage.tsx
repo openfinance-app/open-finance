@@ -15,23 +15,13 @@ import { useCompleteOnboarding } from '@/hooks/useAuth';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
 import { CountrySelector } from '@/components/common/CountrySelector';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { COUNTRY_CURRENCY_MAP } from '@/constants/countryCurrency';
 import type { OnboardingRequest } from '@/types/user';
 
 // ---------------------------------------------------------------------------
 // Locale-based defaults
 // ---------------------------------------------------------------------------
 
-/** Map browser country code → default currency code */
-const COUNTRY_CURRENCY_MAP: Record<string, string> = {
-  US: 'USD', CA: 'CAD', GB: 'GBP', AU: 'AUD', NZ: 'NZD', JP: 'JPY',
-  CN: 'CNY', IN: 'INR', BR: 'BRL', MX: 'MXN', KR: 'KRW', SG: 'SGD',
-  HK: 'HKD', CH: 'CHF', NO: 'NOK', SE: 'SEK', DK: 'DKK',
-  // Euro-zone
-  FR: 'EUR', DE: 'EUR', IT: 'EUR', ES: 'EUR', PT: 'EUR', NL: 'EUR',
-  BE: 'EUR', AT: 'EUR', FI: 'EUR', IE: 'EUR', LU: 'EUR', GR: 'EUR',
-  SK: 'EUR', SI: 'EUR', EE: 'EUR', LV: 'EUR', LT: 'EUR', CY: 'EUR',
-  MT: 'EUR',
-};
 
 function detectDefaults(): {
   country: string;

@@ -30,7 +30,7 @@ mvn spring-boot:run            # start locally (port 8080)
 ### Frontend (Vitest) — run from `openfinance-ui/`
 ```
 npm install                    # install deps (or bun install)
-npm run dev                    # dev server (port 5173)
+npm run dev                    # dev server (port 3000)
 npm test                       # all tests (Vitest — NOT Jest)
 npm test -- path/to/File.test.tsx              # single test file
 npm test -- -t "pattern"                       # tests matching name pattern

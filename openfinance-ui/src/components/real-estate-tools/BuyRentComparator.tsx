@@ -10,6 +10,7 @@
 import React from 'react';
 import { Calculator, Save, ArrowRight, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { ACCORDION_SYNC_BREAKPOINT } from '@/constants/breakpoints';
 import { Card } from '@/components/ui/Card';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { useTranslation } from 'react-i18next';
@@ -147,7 +148,7 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
   const togglePurchase = () => {
     setPurchaseOpen(prev => {
       const next = !prev;
-      if (window.innerWidth >= 1024) setRentalOpen(next);
+      if (window.innerWidth >= ACCORDION_SYNC_BREAKPOINT) setRentalOpen(next);
       return next;
     });
   };
@@ -155,7 +156,7 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
   const toggleRental = () => {
     setRentalOpen(prev => {
       const next = !prev;
-      if (window.innerWidth >= 1024) setPurchaseOpen(next);
+      if (window.innerWidth >= ACCORDION_SYNC_BREAKPOINT) setPurchaseOpen(next);
       return next;
     });
   };
@@ -163,7 +164,7 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
   const toggleMarket = () => {
     setMarketOpen(prev => {
       const next = !prev;
-      if (window.innerWidth >= 1024) setResaleOpen(next);
+      if (window.innerWidth >= ACCORDION_SYNC_BREAKPOINT) setResaleOpen(next);
       return next;
     });
   };
@@ -171,7 +172,7 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
   const toggleResale = () => {
     setResaleOpen(prev => {
       const next = !prev;
-      if (window.innerWidth >= 1024) setMarketOpen(next);
+      if (window.innerWidth >= ACCORDION_SYNC_BREAKPOINT) setMarketOpen(next);
       return next;
     });
   };

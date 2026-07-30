@@ -8,33 +8,17 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 import type { AssetAllocation } from '@/utils/portfolio';
 import { formatPercentage } from '@/utils/portfolio';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ASSET_TYPE_COLORS, ASSET_TYPE_COLOR_FALLBACKS } from '@/constants/colors';
 
 interface AssetAllocationChartProps {
   data: AssetAllocation[];
 }
 
-// Color palette for asset types
-const COLORS: Record<string, string> = {
-  STOCK: '#3b82f6', // blue
-  ETF: '#8b5cf6', // purple
-  CRYPTO: '#f59e0b', // amber
-  BOND: '#10b981', // green
-  MUTUAL_FUND: '#ec4899', // pink
-  REAL_ESTATE: '#06b6d4', // cyan
-  COMMODITY: '#f97316', // orange
-  OTHER: '#6b7280', // gray
-};
-
-const FALLBACK_COLORS = [
-  '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981',
-  '#ec4899', '#06b6d4', '#f97316', '#6b7280'
-];
-
 /**
  * Get color for asset type
  */
 const getColor = (type: string, index: number): string => {
-  return COLORS[type] || FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+  return ASSET_TYPE_COLORS[type] || ASSET_TYPE_COLOR_FALLBACKS[index % ASSET_TYPE_COLOR_FALLBACKS.length];
 };
 
 /**

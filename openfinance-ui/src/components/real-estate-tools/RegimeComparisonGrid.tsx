@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { ACCORDION_SYNC_BREAKPOINT_NARROW } from '@/constants/breakpoints';
 import { Card, CardContent } from '@/components/ui/Card';
 import { RegimeCard } from './RegimeCard';
 import type { InvestmentResults, TaxRegime, RegimeCalculationResult } from '@/types/realEstateTools';
@@ -71,7 +72,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
   const toggleMicroFoncier = () => {
     setMicroFoncierOpen(p => {
       const n = !p;
-      if (window.innerWidth >= 768) setReelFoncierOpen(n);
+      if (window.innerWidth >= ACCORDION_SYNC_BREAKPOINT_NARROW) setReelFoncierOpen(n);
       return n;
     });
   };
@@ -79,7 +80,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
   const toggleReelFoncier = () => {
     setReelFoncierOpen(p => {
       const n = !p;
-      if (window.innerWidth >= 768) setMicroFoncierOpen(n);
+      if (window.innerWidth >= ACCORDION_SYNC_BREAKPOINT_NARROW) setMicroFoncierOpen(n);
       return n;
     });
   };
@@ -87,7 +88,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
   const toggleLmnpReel = () => {
     setLmnpReelOpen(p => {
       const n = !p;
-      if (window.innerWidth >= 768) setMicroBicOpen(n);
+      if (window.innerWidth >= ACCORDION_SYNC_BREAKPOINT_NARROW) setMicroBicOpen(n);
       return n;
     });
   };
@@ -95,7 +96,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
   const toggleMicroBic = () => {
     setMicroBicOpen(p => {
       const n = !p;
-      if (window.innerWidth >= 768) setLmnpReelOpen(n);
+      if (window.innerWidth >= ACCORDION_SYNC_BREAKPOINT_NARROW) setLmnpReelOpen(n);
       return n;
     });
   };

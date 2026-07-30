@@ -9,11 +9,17 @@ import { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 import type { BuyRentInputs, InvestmentInputs } from '@/types/realEstateTools';
 import { DEFAULT_CURRENCY, getCurrencyDecimals } from '@/utils/currency';
 import i18n from '@/i18n';
+import {
+  DEFAULT_DEBOUNCE_MS,
+  DEFAULT_THROTTLE_MS,
+  PREFETCH_FALLBACK_DELAY_MS,
+  PREFETCH_IDLE_DELAY_MS,
+} from '@/constants/timing';
 
 /**
  * Custom hook for debouncing values
  */
-export function useDebounce<T>(value: T, delay: number = 300): T {
+export function useDebounce<T>(value: T, delay: number = DEFAULT_DEBOUNCE_MS): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
   useEffect(() => {
@@ -32,7 +38,7 @@ export function useDebounce<T>(value: T, delay: number = 300): T {
  */
 export function useThrottle<T extends (...args: unknown[]) => unknown>(
   callback: T,
-  delay: number = 100
+  delay: number = DEFAULT_THROTTLE_MS
 ): T {
   const lastCall = useRef<number>(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -287,11 +293,11 @@ export function usePrefetchCalculations(
           });
         } else {
           // Fallback for browsers without requestIdleCallback
-          setTimeout(calculateFn, 100);
+          setTimeout(calculateFn, PREFETCH_FALLBACK_DELAY_MS);
           setIsPrefetched(true);
         }
       }
-    }, 2000);
+    }, PREFETCH_IDLE_DELAY_MS);
 
     return () => {
       if (timeoutRef.current) {

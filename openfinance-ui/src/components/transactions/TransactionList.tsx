@@ -7,6 +7,7 @@
  * Shows visual connectors between linked transfer transactions.
  */
 import { useEffect, useState } from 'react';
+import { ROW_HIGHLIGHT_SCROLL_DELAY_MS } from '@/constants/timing';
 import { useTranslation } from 'react-i18next';
 import { Edit2, Trash2, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Calendar, Scissors, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -168,7 +169,7 @@ function TransactionItem({
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 150);
+      }, ROW_HIGHLIGHT_SCROLL_DELAY_MS);
       return () => clearTimeout(timer);
     }
   }, [isHighlighted, transaction.id]);

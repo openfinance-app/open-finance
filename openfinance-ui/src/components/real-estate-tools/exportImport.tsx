@@ -13,6 +13,7 @@ import type {
   InvestmentResults,
 } from '@/types/realEstateTools';
 import { DEFAULT_CURRENCY, formatCurrency } from '@/utils/currency';
+import { PRINT_PREVIEW_DELAY_MS } from '@/constants/timing';
 
 export type ExportFormat = 'json' | 'csv' | 'pdf';
 
@@ -331,7 +332,7 @@ export function printToPDF(htmlContent: string, title: string) {
     printWindow.print();
     // Close window after print dialog (optional)
     // printWindow.close();
-  }, 250);
+  }, PRINT_PREVIEW_DELAY_MS);
 }
 
 export default {

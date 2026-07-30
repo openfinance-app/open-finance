@@ -7,6 +7,7 @@
  * unified LiabilityDetailDialog (Overview / Amortization / Linked Payments tabs).
  */
 import { useState, useEffect } from 'react';
+import { ROW_HIGHLIGHT_SCROLL_DELAY_MS } from '@/constants/timing';
 import { useTranslation } from 'react-i18next';
 import { Pencil, Trash2, CreditCard, BarChart2 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
@@ -49,7 +50,7 @@ export function LiabilityList({
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 150);
+      }, ROW_HIGHLIGHT_SCROLL_DELAY_MS);
       return () => clearTimeout(timer);
     }
   }, [highlightedId, liabilities]);

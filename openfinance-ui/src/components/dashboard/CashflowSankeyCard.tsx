@@ -9,15 +9,18 @@ import { PrivateAmount } from '../ui/PrivateAmount';
 import { useVisibility } from '../../context/VisibilityContext';
 import type { ICashflowSankeyNode } from '../../types/dashboard';
 import type { DateRange } from '../ui/PeriodSelector';
+import {
+  CASHFLOW_INCOME_COLORS,
+  CASHFLOW_EXPENSE_COLORS,
+  CASHFLOW_SURPLUS_COLOR,
+  CASHFLOW_DEFICIT_COLOR,
+} from '@/constants/colors';
 
 // ─── Colour palettes ───────────────────────────────────────────────────────────
-const INCOME_COLORS = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#059669'];
-const EXPENSE_COLORS = [
-  '#ec4899', '#14b8a6', '#3b82f6', '#f59e0b', '#8b5cf6',
-  '#ef4444', '#6b7280', '#f97316', '#60a5fa', '#a78bfa',
-];
-const SURPLUS_COLOR = '#10b981';
-const DEFICIT_COLOR = '#ef4444';
+const INCOME_COLORS = CASHFLOW_INCOME_COLORS;
+const EXPENSE_COLORS = CASHFLOW_EXPENSE_COLORS;
+const SURPLUS_COLOR = CASHFLOW_SURPLUS_COLOR;
+const DEFICIT_COLOR = CASHFLOW_DEFICIT_COLOR;
 
 // ─── SVG layout constants ──────────────────────────────────────────────────────
 //

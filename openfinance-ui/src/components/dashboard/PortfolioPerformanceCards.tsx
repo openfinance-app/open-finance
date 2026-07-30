@@ -10,6 +10,7 @@ import type { IPortfolioPerformance } from '@/types/dashboard';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { ConvertedAmount } from '../ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
+import { SPARKLINE_COLORS } from '@/constants/colors';
 import { useTranslation } from 'react-i18next';
 
 interface PortfolioPerformanceCardsProps {
@@ -35,7 +36,11 @@ function PerformanceCard({ performance, t }: { performance: IPortfolioPerformanc
   }));
 
   // Determine sparkline color based on trend
-  const sparklineColor = isPositive ? '#00c853' : isNeutral ? '#666666' : '#ff5252';
+  const sparklineColor = isPositive
+    ? SPARKLINE_COLORS.positive
+    : isNeutral
+      ? SPARKLINE_COLORS.neutral
+      : SPARKLINE_COLORS.negative;
 
   const TrendIcon = isPositive ? TrendingUp : isNeutral ? Minus : TrendingDown;
 

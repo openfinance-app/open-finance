@@ -11,6 +11,7 @@
 import React from 'react';
 import { Calculator, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { ACCORDION_SYNC_BREAKPOINT } from '@/constants/breakpoints';
 import { Card } from '@/components/ui/Card';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -94,7 +95,7 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
   const toggleProperty = () => {
     setPropertyOpen(p => {
       const n = !p;
-      if (window.innerWidth >= 1024) {
+      if (window.innerWidth >= ACCORDION_SYNC_BREAKPOINT) {
         setRevenueOpen(n);
         setExpensesOpen(n);
       }
@@ -105,7 +106,7 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
   const toggleRevenue = () => {
     setRevenueOpen(p => {
       const n = !p;
-      if (window.innerWidth >= 1024) {
+      if (window.innerWidth >= ACCORDION_SYNC_BREAKPOINT) {
         setPropertyOpen(n);
         setExpensesOpen(n);
       }
@@ -116,7 +117,7 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
   const toggleExpenses = () => {
     setExpensesOpen(p => {
       const n = !p;
-      if (window.innerWidth >= 1024) {
+      if (window.innerWidth >= ACCORDION_SYNC_BREAKPOINT) {
         setPropertyOpen(n);
         setRevenueOpen(n);
       }

@@ -10,6 +10,7 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
+import { DROPDOWN_CLOSE_DELAY_MS } from '@/constants/timing';
 import { useTranslation } from 'react-i18next';
 import {
   Popover,
@@ -409,7 +410,7 @@ export function PayeeCombobox({
         }}
         onBlur={() => {
           // Commit to parent on blur
-          setTimeout(() => setIsOpen(false), 150);
+          setTimeout(() => setIsOpen(false), DROPDOWN_CLOSE_DELAY_MS);
           onValueChange(inputValue);
         }}
         onFocus={() => setIsOpen(true)}

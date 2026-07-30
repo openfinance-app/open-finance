@@ -1,6 +1,7 @@
 /**
  * Types for system notifications
  */
+import { NOTIFICATION_SEVERITY_COLORS } from '@/constants/colors';
 
 export type NotificationType = 'STALE_QUOTES' | 'STALE_EXCHANGE_RATES' | 'UNCATEGORIZED_TRANSACTIONS' | 'UNLINKED_PAYEE' | 'LOW_BALANCE' | 'BUDGET_ALERT';
 
@@ -18,14 +19,7 @@ export interface INotification {
 }
 
 export function getNotificationColor(severity: NotificationSeverity): string {
-    switch (severity) {
-        case 'CRITICAL':
-            return '#ef4444'; // red-500
-        case 'WARNING':
-            return '#f59e0b'; // amber-500
-        case 'INFO':
-            return '#3b82f6'; // blue-500
-    }
+    return NOTIFICATION_SEVERITY_COLORS[severity];
 }
 
 export function getNotificationIcon(type: NotificationType): string {

@@ -7,6 +7,7 @@
  * Supports sortable columns on desktop view.
  */
 import { useState, useEffect } from 'react';
+import { ROW_HIGHLIGHT_SCROLL_DELAY_MS } from '@/constants/timing';
 import { useTranslation } from 'react-i18next';
 import { Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -67,7 +68,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 150);
+      }, ROW_HIGHLIGHT_SCROLL_DELAY_MS);
       return () => clearTimeout(timer);
     }
   }, [highlightedId, assets]);

@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { SEARCH_BLUR_DELAY_MS } from '@/constants/timing';
 import { useNavigate, useSearchParams } from 'react-router';
 import { Search, X, Clock, TrendingUp, Loader, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -218,7 +219,7 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
           onFocus={() => { setIsOpen(true); setIsFocused(true); }}
           onBlur={() => {
             // Need a slight delay to allow clicks to register inside the dropdown
-            setTimeout(() => setIsFocused(false), 200);
+            setTimeout(() => setIsFocused(false), SEARCH_BLUR_DELAY_MS);
           }}
           onKeyDown={handleKeyDown}
           className="w-full pl-10 pr-10 py-2 border border-border rounded-lg 

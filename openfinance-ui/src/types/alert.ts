@@ -5,6 +5,7 @@
  * - BudgetAlertRequest.java
  * - BudgetAlertResponse.java
  */
+import { ALERT_SEVERITY_COLORS } from '@/constants/colors';
 
 export interface BudgetAlert {
   id: string;
@@ -45,12 +46,5 @@ export function getAlertSeverity(threshold: number, spentPercentage: number | nu
 }
 
 export function getAlertColor(severity: AlertSeverity): string {
-  switch (severity) {
-    case 'exceeded':
-      return '#ef4444'; // red-500
-    case 'critical':
-      return '#f59e0b'; // amber-500
-    case 'warning':
-      return '#eab308'; // yellow-500
-  }
+  return ALERT_SEVERITY_COLORS[severity];
 }

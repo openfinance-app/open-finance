@@ -10,6 +10,7 @@
  * - Empty, loading, and error states
  */
 import { useState } from 'react';
+import { DISMISS_ANIMATION_DELAY_MS } from '@/constants/timing';
 import {
   AlertTriangle,
   AlertCircle,
@@ -113,7 +114,7 @@ function InsightItem({ insight, onDismiss, onClick, isDismissing, t }: InsightIt
     // Wait for animation before calling onDismiss
     setTimeout(() => {
       onDismiss(insight.id);
-    }, 300);
+    }, DISMISS_ANIMATION_DELAY_MS);
   };
 
   return (

@@ -7,6 +7,7 @@
  * regardless of browser security restrictions on programmatic .click() calls.
  */
 import { useState, type ChangeEvent } from 'react';
+import { PROFILE_IMAGE_SUCCESS_MESSAGE_DURATION_MS } from '@/constants/timing';
 import { Camera, Trash2, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useUploadProfileImage, useDeleteProfileImage } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -111,7 +112,7 @@ export function ProfileImageUpload({ currentImage, username }: ProfileImageUploa
       onSuccess: () => {
         setPreview(null); // server response reflected via React Query cache
         setSuccessMessage(t('profile.uploadSuccess'));
-        setTimeout(() => setSuccessMessage(null), 4000);
+        setTimeout(() => setSuccessMessage(null), PROFILE_IMAGE_SUCCESS_MESSAGE_DURATION_MS);
       },
       onError: (err) => {
         setPreview(null);
@@ -137,7 +138,7 @@ export function ProfileImageUpload({ currentImage, username }: ProfileImageUploa
     deleteMutation.mutate(undefined, {
       onSuccess: () => {
         setSuccessMessage(t('profile.removeSuccess'));
-        setTimeout(() => setSuccessMessage(null), 4000);
+        setTimeout(() => setSuccessMessage(null), PROFILE_IMAGE_SUCCESS_MESSAGE_DURATION_MS);
       },
       onError: (err) => {
         const msg =

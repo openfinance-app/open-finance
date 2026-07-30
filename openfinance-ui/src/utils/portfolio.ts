@@ -5,6 +5,7 @@
 import type { Asset } from '@/types/asset';
 import { DEFAULT_CURRENCY, getCurrencyDecimals } from './currency';
 import { add, sum, subtract, percentage } from '@/utils/money';
+import { ASSET_TYPE_COLORS, CATEGORY_COLOR_FALLBACK } from '@/constants/colors';
 
 export interface PortfolioMetrics {
   totalValue: number;
@@ -171,15 +172,5 @@ export const getAssetTypeLabel = (type: string): string => {
  * Get color for asset type (for charts)
  */
 export const getAssetTypeColor = (type: string): string => {
-  const colors: Record<string, string> = {
-    STOCK: '#3b82f6', // blue
-    ETF: '#8b5cf6', // purple
-    CRYPTO: '#f59e0b', // amber
-    BOND: '#10b981', // green
-    MUTUAL_FUND: '#ec4899', // pink
-    REAL_ESTATE: '#06b6d4', // cyan
-    COMMODITY: '#f97316', // orange
-    OTHER: '#6b7280', // gray
-  };
-  return colors[type] || '#6b7280';
+  return ASSET_TYPE_COLORS[type] || CATEGORY_COLOR_FALLBACK;
 };

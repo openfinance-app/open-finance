@@ -64,12 +64,13 @@ public class SecurityConfig {
 
     /**
      * Comma-separated list of allowed CORS origins, driven by application configuration. Defaults
-     * to localhost dev servers; override via APPLICATION_CORS_ALLOWED_ORIGINS environment variable
-     * in production.
+     * to the frontend's dev server (Vite is pinned to port 3000 — see
+     * `openfinance-ui/vite.config.ts`); override via APPLICATION_CORS_ALLOWED_ORIGINS environment
+     * variable in production.
      *
      * <p>Requirement TASK-16.2.4: Environment variable driven secrets / configuration.
      */
-    @Value("${application.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
+    @Value("${application.cors.allowed-origins:http://localhost:3000}")
     private String allowedOrigins;
 
     /**
@@ -180,7 +181,8 @@ public class SecurityConfig {
      * <p>Configuration:
      *
      * <ul>
-     *   <li>Allowed origins: http://localhost:3000, http://localhost:5173 (React dev servers)
+     *   <li>Allowed origins: http://localhost:3000 (Vite dev server; override via
+     *       APPLICATION_CORS_ALLOWED_ORIGINS in production)
      *   <li>Allowed methods: GET, POST, PUT, DELETE, PATCH, OPTIONS
      *   <li>Allowed headers: All (*)
      *   <li>Credentials: Enabled (for cookies/auth headers)

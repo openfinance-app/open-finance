@@ -6,6 +6,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState, useCallback } from 'react';
 import apiClient from '@/services/apiClient';
 import { buildEncryptionHeaders } from '@/utils/encryption';
+import { SEARCH_DEBOUNCE_MS } from '@/constants/timing';
 import type {
   GlobalSearchResponse,
   AdvancedSearchRequest,
@@ -139,7 +140,7 @@ export const useSearchWithDebounce = (initialQuery: string = '') => {
     const timer = setTimeout(() => {
       setDebouncedQuery(newQuery);
       setIsDebouncing(false);
-    }, 300); // 300ms debounce
+    }, SEARCH_DEBOUNCE_MS); // search debounce
 
     return () => clearTimeout(timer);
   }, []);

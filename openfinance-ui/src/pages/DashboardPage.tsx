@@ -4,6 +4,8 @@ import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { useTranslation } from 'react-i18next';
+import { GRID_LAYOUT_BREAKPOINTS, GRID_LAYOUT_COLS } from '@/constants/breakpoints';
+import { RESIZE_EVENT_DELAY_MS } from '@/constants/timing';
 
 import {
   useDashboardSummary,
@@ -602,7 +604,7 @@ export default function DashboardPage() {
                         checked={cardVisibility[card.id]}
                         onChange={() => {
                           setCardVisibility((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
-                          setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+                          setTimeout(() => window.dispatchEvent(new Event('resize')), RESIZE_EVENT_DELAY_MS);
                         }}
                         disabled={!card.isAvailable}
                       />
@@ -638,8 +640,8 @@ export default function DashboardPage() {
         <ResponsiveGridLayout
           className="layout"
           layouts={layouts}
-          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-          cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+          breakpoints={GRID_LAYOUT_BREAKPOINTS}
+          cols={GRID_LAYOUT_COLS}
           rowHeight={40}
           onLayoutChange={handleLayoutChange}
           draggableHandle=".drag-handle"

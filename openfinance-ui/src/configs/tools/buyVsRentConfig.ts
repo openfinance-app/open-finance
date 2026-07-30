@@ -17,6 +17,8 @@
  *   rentEvolution       – Default annual rent increase %
  */
 
+import { COUNTRY_CURRENCY_MAP } from '@/constants/countryCurrency';
+
 export interface BuyVsRentCountryConfig {
     /** ISO 3166-1 alpha-2 code */
     countryCode: string;
@@ -67,7 +69,7 @@ const configs: Record<string, BuyVsRentCountryConfig> = {
     FR: {
         countryCode: 'FR',
         displayName: 'France',
-        currency: 'EUR',
+        currency: COUNTRY_CURRENCY_MAP.FR,
         notaryFeesPercent: 7,          // ~7-8 % old, regulated notarial costs
         notaryFeesNewPercent: 2.5,     // ~2-3 % new build
         guaranteeFees: 2750,           // caution bancaire / hypothèque
@@ -88,7 +90,7 @@ const configs: Record<string, BuyVsRentCountryConfig> = {
     US: {
         countryCode: 'US',
         displayName: 'United States',
-        currency: 'USD',
+        currency: COUNTRY_CURRENCY_MAP.US,
         notaryFeesPercent: 2.5,        // closing costs ≈ 2-3 % (title, escrow, recording)
         notaryFeesNewPercent: 2.5,
         guaranteeFees: 0,              // no caution equivalent; PMI is monthly
@@ -109,7 +111,7 @@ const configs: Record<string, BuyVsRentCountryConfig> = {
     GB: {
         countryCode: 'GB',
         displayName: 'United Kingdom',
-        currency: 'GBP',
+        currency: COUNTRY_CURRENCY_MAP.GB,
         notaryFeesPercent: 2,          // SDLT + conveyancing ≈ 1.5-3 %
         notaryFeesNewPercent: 1.5,
         guaranteeFees: 0,
@@ -130,7 +132,7 @@ const configs: Record<string, BuyVsRentCountryConfig> = {
     DE: {
         countryCode: 'DE',
         displayName: 'Germany',
-        currency: 'EUR',
+        currency: COUNTRY_CURRENCY_MAP.DE,
         notaryFeesPercent: 5,          // Grunderwerbsteuer 3.5-6.5 % + notary ≈ 5-7 %
         notaryFeesNewPercent: 5,
         guaranteeFees: 0,
@@ -151,7 +153,7 @@ const configs: Record<string, BuyVsRentCountryConfig> = {
     BE: {
         countryCode: 'BE',
         displayName: 'Belgium',
-        currency: 'EUR',
+        currency: COUNTRY_CURRENCY_MAP.BE,
         notaryFeesPercent: 7,          // droits d'enregistrement 10-12.5 % + notary ~2 %
         notaryFeesNewPercent: 3,       // TVA 21 % on new build price + notary
         guaranteeFees: 1500,
