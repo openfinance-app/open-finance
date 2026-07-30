@@ -1,5 +1,21 @@
 TODO:
 
+Remaining MEDIUM items
+
+1. Deferred (explicit decision, own batch each):
+
+- 200+ entity validation messages hardcoded English — 194 message="..." across 24 entities need {key} + matching ValidationMessages.properties/\_fr entries (~388 lines). Large, mechanical.
+- Wholesale exception → LocalizableException conversion — only DuplicatePayeeException was fixed; ~22 other exceptions (the \*NotFound family, Unauthorized, etc.) still bypass it. Scoping call needed on which are truly user-facing vs. internal/technical.
+
+2. Never batched — untouched:
+
+- Hardcoded French UI strings in real-estate-tools/\* (~80-100 strings shown in French to English users)
+- ~231 hardcoded English JSX strings not wrapped in t() (ErrorBoundary.tsx, AttachmentList.tsx, PropertyDetailView.tsx, RssFeedCard.tsx, TimelineProjection.tsx, etc.)
+- SecurityContext thread-local + reactive types — OpenAIProvider.java:51 still uses WebClient + .block() in the service layer; works but fragile (thread-local SecurityContext doesn't propagate to Reactor scheduler threads)
+- Period divisors 12/30 bare in InsightService.java and DashboardService.java — distinct from the DTI/borrowing-term constants I already extracted in Batch 3; these are separate bare-literal sites (annual-income ×12, daily-rate ÷30, etc.)
+- Default interest/inflation rate duplication — withdrawalRate=4%/inflationRate=2.5% defined independently in both FreedomCalculatorRequest.java (DTO defaults) and FinancialFreedomService.java (constants); can drift apart
+- Test data uses USD monoculture — 70+ test files never exercise JPY/crypto/zero-decimal currencies (AccountRepositoryTest, AssetRepositoryTest, etc.)
+
 1-currencies table should have type column fiat/currency.
 application.exchange-rates.crypto-codes should be removed. implement free crypto list providers from crypto_list_provider.md to fetch cryptos
 -Is the currently implemented exchange rate service/provider handled cryptocurrencies? If not, You should implement a solution to support crypto currencies as well.
