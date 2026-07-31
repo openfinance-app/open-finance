@@ -124,7 +124,7 @@ application:
       enabled: true
       base-url: https://api.coingecko.com/api/v3
       api-key: ${COINGECKO_API_KEY:}
-      api-key-header: x-cg-demo-api-key
+      api-key-header: x-cg-demo-api-key   # or x-cg-pro-api-key
     coinmarketcap:
       enabled: true
       base-url: https://pro-api.coinmarketcap.com
@@ -181,7 +181,7 @@ application:
       mode: DEFAULT
       interval-hours: 6
     crypto-list:
-      mode: DEFAULT             # weekly (0 0 3 * * MON); use STARTUP_* to also run on boot
+      mode: STARTUP_ONLY             # weekly (0 0 3 * * MON); use STARTUP_* to also run on boot
       interval-hours: 6
     recurring-transactions:
       mode: DEFAULT

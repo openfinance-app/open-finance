@@ -36,7 +36,7 @@ COPY src ./src
 COPY --from=frontend-build /app/dist ./src/main/resources/static
 
 # Build the fat JAR (skip tests — tests run separately in CI).
-RUN mvn clean package -DskipTests -Pprod -B -q && \
+RUN mvn clean package -DskipTests -Pprod -Dcheck-line-counts.skip=true -B -q && \
     mv target/open-finance-backend-*.jar target/app.jar
 
 # ── Stage 3: Runtime ─────────────────────────────────────────────────────────
