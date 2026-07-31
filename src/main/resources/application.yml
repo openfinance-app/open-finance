@@ -115,23 +115,6 @@ application:
   exchange-rates:
     base-currency: EUR
     cache-ttl: 86400
-    # Currency codes treated as cryptocurrencies (no ISO 4217 registry exists for crypto).
-    # Adding a coin is a configuration change, not a code change.
-    crypto-codes:
-      - BTC
-      - ETH
-      - BNB
-      - XRP
-      - ADA
-      - SOL
-      - DOT
-      - DOGE
-      - USDT
-      - USDC
-      - MATIC
-      - AVAX
-      - LINK
-      - UNI
   business-rules:
     insights:
       spending-anomaly-threshold: 0.40
