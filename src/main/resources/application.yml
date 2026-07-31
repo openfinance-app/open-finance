@@ -180,6 +180,9 @@ application:
     exchange-rates:
       mode: DEFAULT
       interval-hours: 6
+    crypto-list:
+      mode: DEFAULT             # weekly (0 0 3 * * MON); use STARTUP_* to also run on boot
+      interval-hours: 6
     recurring-transactions:
       mode: DEFAULT
       interval-hours: 6

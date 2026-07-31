@@ -42,6 +42,7 @@ public class SchedulerProperties {
     private SchedulerConfig recurringTransactions = new SchedulerConfig();
     private SchedulerConfig netWorthSnapshot = new SchedulerConfig();
     private SchedulerConfig unusualTransactionDetection = new SchedulerConfig();
+    private SchedulerConfig cryptoList = new SchedulerConfig();
     private MarketHoursConfig marketHours = new MarketHoursConfig();
 
     // --- Getters & Setters ---
@@ -84,6 +85,14 @@ public class SchedulerProperties {
 
     public void setUnusualTransactionDetection(SchedulerConfig unusualTransactionDetection) {
         this.unusualTransactionDetection = unusualTransactionDetection;
+    }
+
+    public SchedulerConfig getCryptoList() {
+        return cryptoList;
+    }
+
+    public void setCryptoList(SchedulerConfig cryptoList) {
+        this.cryptoList = cryptoList;
     }
 
     public MarketHoursConfig getMarketHours() {
