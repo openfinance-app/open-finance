@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.HistoricalPrice;
 import org.openfinance.dto.MarketQuote;
 import org.openfinance.entity.Currency;
+import org.openfinance.entity.CurrencyType;
 import org.openfinance.entity.ExchangeRate;
 import org.openfinance.exception.MarketDataException;
 import org.openfinance.provider.MarketDataProvider;
@@ -56,9 +57,7 @@ class ExchangeRateServiceTest {
 
     @Mock private OperationHistoryService operationHistoryService;
 
-    @org.mockito.Spy
-    private org.openfinance.config.ExchangeRateProperties exchangeRateProperties =
-            new org.openfinance.config.ExchangeRateProperties();
+    @org.mockito.Mock private CurrencyTypeResolver currencyTypeResolver;
 
     @InjectMocks private ExchangeRateService exchangeRateService;
 
@@ -361,23 +360,16 @@ class ExchangeRateServiceTest {
     }
 
     @Test
-    @DisplayName("Should parse crypto currency quote correctly with inverse")
-    void shouldParseCryptoCurrencyQuoteCorrectlyWithInverse() {
-        // Arrange
+    @DisplayName("Should not request crypto symbols from Yahoo in the bulk update")
+    void shouldExcludeCryptoFromBulkUpdate() {
         List<Currency> currencies =
-                List.of(
-                        createCurrency("USD", "US Dollar", true),
-                        createCurrency("BTC", "Bitcoin", true));
+                List.of(createCurrency("USD", "US Dollar", true), createCrypto("BTC", "Bitcoin"));
         when(currencyRepository.findByIsActiveTrueOrderByCodeAsc()).thenReturn(currencies);
+        when(marketDataProvider.getQuotes(anyList())).thenReturn(List.of());
 
-        MarketQuote quote = createMarketQuote("BTC-USD", 95000.00);
-        when(marketDataProvider.getQuotes(anyList())).thenReturn(List.of(quote));
-
-        // Act
         exchangeRateService.updateExchangeRates();
 
-        // Assert
-        verify(exchangeRateRepository, times(1)).saveAll(any());
+        verify(marketDataProvider).getQuotes(argThat(java.util.List::isEmpty));
     }
 
     @Test
@@ -406,33 +398,29 @@ class ExchangeRateServiceTest {
     }
 
     @Test
-    @DisplayName("Should build correct Yahoo Finance symbols")
-    void shouldBuildCorrectYahooFinanceSymbols() {
-        // Arrange
+    @DisplayName("Should build fiat-only Yahoo Finance symbols (crypto excluded)")
+    void shouldBuildFiatOnlyYahooFinanceSymbols() {
         List<Currency> currencies =
                 List.of(
                         createCurrency("USD", "US Dollar", true),
                         createCurrency("EUR", "Euro", true),
                         createCurrency("GBP", "British Pound", true),
-                        createCurrency("BTC", "Bitcoin", true),
-                        createCurrency("ETH", "Ethereum", true));
+                        createCrypto("BTC", "Bitcoin"),
+                        createCrypto("ETH", "Ethereum"));
         when(currencyRepository.findByIsActiveTrueOrderByCodeAsc()).thenReturn(currencies);
         when(marketDataProvider.getQuotes(anyList())).thenReturn(List.of());
 
-        // Act
         exchangeRateService.updateExchangeRates();
 
-        // Assert
         verify(marketDataProvider)
                 .getQuotes(
                         argThat(
                                 symbols ->
-                                        symbols.size() == 4
-                                                && // USD excluded
-                                                symbols.contains("EURUSD=X")
+                                        symbols.size() == 2
+                                                && symbols.contains("EURUSD=X")
                                                 && symbols.contains("GBPUSD=X")
-                                                && symbols.contains("BTC-USD")
-                                                && symbols.contains("ETH-USD")));
+                                                && !symbols.contains("BTC-USD")
+                                                && !symbols.contains("ETH-USD")));
     }
 
     // ==================== updateExchangeRatesForDate() Tests ====================
@@ -580,7 +568,23 @@ class ExchangeRateServiceTest {
     }
 
     private Currency createCurrency(String code, String name, boolean isActive) {
-        return Currency.builder().code(code).name(name).symbol(code).isActive(isActive).build();
+        return Currency.builder()
+                .code(code)
+                .name(name)
+                .symbol(code)
+                .isActive(isActive)
+                .type(CurrencyType.FIAT)
+                .build();
+    }
+
+    private Currency createCrypto(String code, String name) {
+        return Currency.builder()
+                .code(code)
+                .name(name)
+                .symbol(code)
+                .isActive(true)
+                .type(CurrencyType.CRYPTO)
+                .build();
     }
 
     private MarketQuote createMarketQuote(String symbol, double price) {

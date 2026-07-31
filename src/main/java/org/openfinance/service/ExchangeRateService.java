@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.MarketQuote;
 import org.openfinance.entity.Currency;
+import org.openfinance.entity.CurrencyType;
 import org.openfinance.entity.ExchangeRate;
 import org.openfinance.exception.MarketDataException;
 import org.openfinance.provider.MarketDataProvider;
@@ -74,7 +75,7 @@ public class ExchangeRateService {
     private final ExchangeRateRepository exchangeRateRepository;
     private final CurrencyRepository currencyRepository;
     private final MarketDataProvider marketDataProvider;
-    private final org.openfinance.config.ExchangeRateProperties exchangeRateProperties;
+    private final CurrencyTypeResolver currencyTypeResolver;
 
     /**
      * Retrieves the exchange rate between two currencies for a specific date.
@@ -687,40 +688,27 @@ public class ExchangeRateService {
     }
 
     /**
-     * Builds Yahoo Finance symbols for fetching exchange rates.
+     * Builds Yahoo Finance symbols for the bulk exchange-rate update.
      *
-     * <p><strong>Yahoo Finance Symbol Format:</strong>
-     *
-     * <ul>
-     *   <li>Fiat pairs: EURUSD=X (EUR to USD)
-     *   <li>Crypto pairs: BTC-USD (Bitcoin to USD)
-     * </ul>
+     * <p>Only fiat currencies are included (format {@code EURUSD=X}). USD is skipped because it is
+     * the quote currency, and cryptocurrencies are skipped entirely — their prices come from the
+     * crypto-list provider rather than Yahoo Finance.
      *
      * @param currencies list of currencies to build symbols for
-     * @return list of Yahoo Finance symbols
+     * @return list of fiat Yahoo Finance symbols
      */
     private List<String> buildYahooFinanceSymbols(List<Currency> currencies) {
         List<String> symbols = new ArrayList<>();
-
         for (Currency currency : currencies) {
             String code = currency.getCode();
-
-            // Skip USD (base currency)
             if ("USD".equalsIgnoreCase(code)) {
-                continue;
+                continue; // USD is the quote currency
             }
-
-            // Determine symbol format based on currency type
-            if (isCryptocurrency(code)) {
-                // Crypto format: BTC-USD, ETH-USD
-                symbols.add(code + "-USD");
-            } else {
-                // Fiat format: EURUSD=X (for EUR → USD rate)
-                // Yahoo Finance convention: base currency first, then quote currency
-                symbols.add(code + "USD=X");
+            if (currency.getType() == CurrencyType.CRYPTO) {
+                continue; // crypto prices come from the crypto-list provider, not Yahoo
             }
+            symbols.add(code + "USD=X"); // fiat: EURUSD=X
         }
-
         return symbols;
     }
 
@@ -776,14 +764,7 @@ public class ExchangeRateService {
      * @return true if cryptocurrency, false otherwise
      */
     private boolean isCryptocurrency(String currencyCode) {
-        if (currencyCode == null) {
-            return false;
-        }
-        // No ISO 4217 registry exists for crypto, so the codes are curated in configuration
-        // (application.exchange-rates.crypto-codes) rather than hardcoded here.
-        String normalized = currencyCode.toUpperCase(java.util.Locale.ROOT);
-        return exchangeRateProperties.getCryptoCodes().stream()
-                .anyMatch(code -> code.equalsIgnoreCase(normalized));
+        return currencyTypeResolver.isCrypto(currencyCode);
     }
 
     /**

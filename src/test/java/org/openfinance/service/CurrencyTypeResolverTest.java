@@ -62,4 +62,17 @@ class CurrencyTypeResolverTest {
         assertThat(resolver.decimalsFor(null)).isEqualTo(2);
         assertThat(resolver.decimalsFor("XYZ")).isEqualTo(2);
     }
+
+    @Test
+    @DisplayName("reload() refreshes the snapshot so subsequent lookups reflect new data")
+    void reloadRefreshesSnapshot() {
+        // Overrides the @BeforeEach stub with consecutive returns.
+        when(currencyRepository.findAll())
+                .thenReturn(List.of(currency("BTC", CurrencyType.CRYPTO)))
+                .thenReturn(List.of(currency("BTC", CurrencyType.FIAT)));
+
+        assertThat(resolver.isCrypto("BTC")).isTrue();
+        resolver.reload();
+        assertThat(resolver.isCrypto("BTC")).isFalse();
+    }
 }
