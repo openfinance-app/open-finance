@@ -1,6 +1,7 @@
 package org.openfinance.dto;
 
 import lombok.Builder;
+import org.openfinance.entity.CurrencyType;
 
 /**
  * DTO for currency information.
@@ -24,9 +25,15 @@ import lombok.Builder;
  * @param symbol the currency symbol (e.g., "$", "€")
  * @param isActive whether the currency is currently active for use
  * @param nameKey the i18n message key for localized name resolution (optional)
+ * @param type the classification (FIAT or CRYPTO)
  * @author Open-Finance Development Team
  * @since 1.0
  */
 @Builder
 public record CurrencyResponse(
-        String code, String name, String symbol, boolean isActive, String nameKey) {}
+        String code,
+        String name,
+        String symbol,
+        boolean isActive,
+        String nameKey,
+        CurrencyType type) {}

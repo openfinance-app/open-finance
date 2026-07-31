@@ -14,6 +14,7 @@ import org.openfinance.dto.CurrencyResponse;
 import org.openfinance.dto.ExchangeRateResponse;
 import org.openfinance.entity.Currency;
 import org.openfinance.repository.CurrencyRepository;
+import org.openfinance.service.CryptoListService;
 import org.openfinance.service.ExchangeRateService;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -60,7 +61,7 @@ public class CurrencyController {
 
     private final CurrencyRepository currencyRepository;
     private final ExchangeRateService exchangeRateService;
-    private final org.openfinance.service.CryptoListService cryptoListService;
+    private final CryptoListService cryptoListService;
     private final MessageSource messageSource;
 
     /**
@@ -495,6 +496,7 @@ public class CurrencyController {
                 .symbol(currency.getSymbol())
                 .isActive(currency.getIsActive())
                 .nameKey(currency.getNameKey())
+                .type(currency.getType())
                 .build();
     }
 

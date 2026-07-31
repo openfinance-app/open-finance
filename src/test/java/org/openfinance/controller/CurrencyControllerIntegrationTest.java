@@ -22,6 +22,7 @@ import org.openfinance.entity.ExchangeRate;
 import org.openfinance.provider.MarketDataProvider;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.ExchangeRateRepository;
+import org.openfinance.service.CryptoListService;
 import org.openfinance.service.OperationHistoryService;
 import org.openfinance.service.UserService;
 import org.openfinance.util.DatabaseCleanupService;
@@ -65,7 +66,7 @@ class CurrencyControllerIntegrationTest {
 
     @MockBean private MarketDataProvider marketDataProvider;
 
-    @MockBean private org.openfinance.service.CryptoListService cryptoListService;
+    @MockBean private CryptoListService cryptoListService;
 
     @Autowired private MockMvc mockMvc;
 
@@ -211,7 +212,8 @@ class CurrencyControllerIntegrationTest {
                 .andExpect(jsonPath("$[0].symbol").value("€"))
                 .andExpect(jsonPath("$[0].isActive").value(true))
                 .andExpect(jsonPath("$[1].code").value("GBP"))
-                .andExpect(jsonPath("$[2].code").value("USD"));
+                .andExpect(jsonPath("$[2].code").value("USD"))
+                .andExpect(jsonPath("$[2].type").value("FIAT"));
     }
 
     @Test
