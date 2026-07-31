@@ -115,6 +115,20 @@ application:
   exchange-rates:
     base-currency: EUR
     cache-ttl: 86400
+  crypto-list:
+    enabled: true
+    limit: 250
+    fallback: enabled            # enabled | disabled
+    provider: coingecko          # primary; the pinned one when fallback disabled
+    coingecko:
+      enabled: true
+      base-url: https://api.coingecko.com/api/v3
+      api-key: ${COINGECKO_API_KEY:}
+      api-key-header: x-cg-demo-api-key
+    coinmarketcap:
+      enabled: true
+      base-url: https://pro-api.coinmarketcap.com
+      api-key: ${COINMARKETCAP_API_KEY:}
   business-rules:
     insights:
       spending-anomaly-threshold: 0.40
