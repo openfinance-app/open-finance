@@ -140,7 +140,10 @@ describe('dynamic crypto currency codes', () => {
 
   it('once set, the dynamic list overrides the bootstrap fallback', () => {
     setCryptoCurrencyCodes(['SUI']);
-    expect(isCryptoCurrency('DOGE')).toBe(false); // not in the dynamic set
+    expect(isCryptoCurrency('SUI')).toBe(true);
+    // BTC is in the bootstrap list but NOT the dynamic set -> a true override must exclude it
+    expect(isCryptoCurrency('BTC')).toBe(false);
+    expect(isCryptoCurrency('DOGE')).toBe(false);
   });
 
   it('falls back to the bootstrap list (BTC/ETH) before the API loads', () => {
