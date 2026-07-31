@@ -60,6 +60,7 @@ public class CurrencyController {
 
     private final CurrencyRepository currencyRepository;
     private final ExchangeRateService exchangeRateService;
+    private final org.openfinance.service.CryptoListService cryptoListService;
     private final MessageSource messageSource;
 
     /**
@@ -447,6 +448,22 @@ public class CurrencyController {
 
         log.info("Exchange rates updated: {} rates fetched", updatedCount);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Manually refreshes the cryptocurrency list from the configured providers (admin only).
+     *
+     * <p><strong>Endpoint:</strong> {@code POST /api/v1/currencies/crypto-list/refresh}
+     *
+     * @return the number of cryptocurrencies inserted or updated
+     */
+    @PostMapping("/crypto-list/refresh")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UpdateRatesResponse> refreshCryptoList() {
+        log.info("Manual crypto-list refresh triggered by admin");
+        int count = cryptoListService.refresh();
+        return ResponseEntity.ok(
+                new UpdateRatesResponse("Crypto list refreshed successfully", count));
     }
 
     /**

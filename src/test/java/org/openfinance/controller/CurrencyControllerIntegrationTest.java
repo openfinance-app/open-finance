@@ -65,6 +65,8 @@ class CurrencyControllerIntegrationTest {
 
     @MockBean private MarketDataProvider marketDataProvider;
 
+    @MockBean private org.openfinance.service.CryptoListService cryptoListService;
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private ObjectMapper objectMapper;
@@ -509,6 +511,28 @@ class CurrencyControllerIntegrationTest {
     @DisplayName("Should return 403 when not authenticated (update rates)")
     void shouldReturn403WhenNotAuthenticatedUpdateRates() throws Exception {
         mockMvc.perform(post("/api/v1/currencies/exchange-rates/update"))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+    }
+
+    // ========== POST /api/v1/currencies/crypto-list/refresh (Refresh Crypto List - Admin Only)
+    // ==========
+
+    @Test
+    @DisplayName("Should return 403 when regular user tries to refresh crypto list")
+    void shouldReturn403WhenUserTriesToRefreshCryptoList() throws Exception {
+        mockMvc.perform(
+                        post("/api/v1/currencies/crypto-list/refresh")
+                                .header("Authorization", "Bearer " + userToken)
+                                .header("X-Encryption-Session", userEncKey))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Should return 403 when not authenticated (refresh crypto list)")
+    void shouldReturn403WhenNotAuthenticatedRefreshCryptoList() throws Exception {
+        mockMvc.perform(post("/api/v1/currencies/crypto-list/refresh"))
                 .andDo(print())
                 .andExpect(status().isForbidden());
     }
