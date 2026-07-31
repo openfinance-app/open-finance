@@ -6,12 +6,15 @@
 /**
  * Currency information from backend
  */
+export type CurrencyType = 'FIAT' | 'CRYPTO';
+
 export interface Currency {
   code: string;
   name: string;
   symbol: string;
   isActive: boolean;
   nameKey: string; // i18n key for translated currency name (e.g., "currency.usd")
+  type: CurrencyType;
 }
 
 /**
