@@ -8,6 +8,7 @@ import { CurrencyDisplayProvider } from './context/CurrencyDisplayContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NumberFormatProvider } from './context/NumberFormatContext';
 import { DecimalPlacesProvider } from './context/DecimalPlacesContext';
+import { CryptoCurrenciesProvider } from '@/context/CryptoCurrenciesProvider';
 import { LocaleProvider } from './context/LocaleContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import './index.css';
@@ -102,247 +103,261 @@ function App() {
             <ThemeProvider>
               <NumberFormatProvider>
                 <DecimalPlacesProvider>
-                  <LocaleProvider>
-                    <Router>
-                      <Suspense fallback={<PageLoadingFallback />}>
-                        <Routes>
-                          {/* Public routes */}
-                          <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-                          <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-                          <Route path={ROUTES.ONBOARDING} element={<OnboardingPage />} />
+                  <CryptoCurrenciesProvider>
+                    <LocaleProvider>
+                      <Router>
+                        <Suspense fallback={<PageLoadingFallback />}>
+                          <Routes>
+                            {/* Public routes */}
+                            <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+                            <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+                            <Route path={ROUTES.ONBOARDING} element={<OnboardingPage />} />
 
-                          {/* Protected routes - require authentication */}
-                          <Route
-                            path={ROUTES.DASHBOARD}
-                            element={
-                              <ProtectedRoute>
-                                <DashboardPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.ACCOUNTS}
-                            element={
-                              <ProtectedRoute>
-                                <AccountsPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTE_PATTERNS.ACCOUNT_DETAIL}
-                            element={<Navigate to={ROUTES.ACCOUNTS} replace />}
-                          />
-                          <Route
-                            path={ROUTES.TRANSACTIONS}
-                            element={
-                              <ProtectedRoute>
-                                <TransactionsPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.RECURRING_TRANSACTIONS}
-                            element={
-                              <ProtectedRoute>
-                                <RecurringTransactionsPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.SEARCH}
-                            element={
-                              <ProtectedRoute>
-                                <SearchResultsPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.IMPORT}
-                            element={
-                              <ProtectedRoute>
-                                <ImportPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.ASSETS}
-                            element={
-                              <ProtectedRoute>
-                                <AssetsPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route path={ROUTES.PORTFOLIO} element={<Navigate to={ROUTES.ASSETS} replace />} />
-                          <Route
-                            path={ROUTES.LIABILITIES}
-                            element={
-                              <ProtectedRoute>
-                                <LiabilitiesPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.INSTITUTIONS}
-                            element={
-                              <ProtectedRoute>
-                                <InstitutionManagementSettings />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.PAYEES}
-                            element={
-                              <ProtectedRoute>
-                                <PayeeManagementSettings />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.CATEGORIES}
-                            element={
-                              <ProtectedRoute>
-                                <CategoriesPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.TRANSACTION_RULES}
-                            element={
-                              <ProtectedRoute>
-                                <TransactionRulesPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.BUDGET}
-                            element={
-                              <ProtectedRoute>
-                                <BudgetsPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route path={ROUTE_PATTERNS.BUDGET_DETAIL} element={<Navigate to={ROUTES.BUDGET} replace />} />
-                          <Route
-                            path={ROUTES.HISTORY}
-                            element={
-                              <ProtectedRoute>
-                                <HistoryPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.REAL_ESTATE}
-                            element={
-                              <ProtectedRoute>
-                                <RealEstatePage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.REAL_ESTATE_TOOLS}
-                            element={
-                              <ProtectedRoute>
-                                <RealEstateToolsHub />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTE_PATTERNS.REAL_ESTATE_TOOLS_WILDCARD}
-                            element={
-                              <ProtectedRoute>
-                                <RealEstateToolsWrapper />
-                              </ProtectedRoute>
-                            }
-                          />
+                            {/* Protected routes - require authentication */}
+                            <Route
+                              path={ROUTES.DASHBOARD}
+                              element={
+                                <ProtectedRoute>
+                                  <DashboardPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.ACCOUNTS}
+                              element={
+                                <ProtectedRoute>
+                                  <AccountsPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTE_PATTERNS.ACCOUNT_DETAIL}
+                              element={<Navigate to={ROUTES.ACCOUNTS} replace />}
+                            />
+                            <Route
+                              path={ROUTES.TRANSACTIONS}
+                              element={
+                                <ProtectedRoute>
+                                  <TransactionsPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.RECURRING_TRANSACTIONS}
+                              element={
+                                <ProtectedRoute>
+                                  <RecurringTransactionsPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.SEARCH}
+                              element={
+                                <ProtectedRoute>
+                                  <SearchResultsPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.IMPORT}
+                              element={
+                                <ProtectedRoute>
+                                  <ImportPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.ASSETS}
+                              element={
+                                <ProtectedRoute>
+                                  <AssetsPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.PORTFOLIO}
+                              element={<Navigate to={ROUTES.ASSETS} replace />}
+                            />
+                            <Route
+                              path={ROUTES.LIABILITIES}
+                              element={
+                                <ProtectedRoute>
+                                  <LiabilitiesPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.INSTITUTIONS}
+                              element={
+                                <ProtectedRoute>
+                                  <InstitutionManagementSettings />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.PAYEES}
+                              element={
+                                <ProtectedRoute>
+                                  <PayeeManagementSettings />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.CATEGORIES}
+                              element={
+                                <ProtectedRoute>
+                                  <CategoriesPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.TRANSACTION_RULES}
+                              element={
+                                <ProtectedRoute>
+                                  <TransactionRulesPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.BUDGET}
+                              element={
+                                <ProtectedRoute>
+                                  <BudgetsPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTE_PATTERNS.BUDGET_DETAIL}
+                              element={<Navigate to={ROUTES.BUDGET} replace />}
+                            />
+                            <Route
+                              path={ROUTES.HISTORY}
+                              element={
+                                <ProtectedRoute>
+                                  <HistoryPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.REAL_ESTATE}
+                              element={
+                                <ProtectedRoute>
+                                  <RealEstatePage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.REAL_ESTATE_TOOLS}
+                              element={
+                                <ProtectedRoute>
+                                  <RealEstateToolsHub />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTE_PATTERNS.REAL_ESTATE_TOOLS_WILDCARD}
+                              element={
+                                <ProtectedRoute>
+                                  <RealEstateToolsWrapper />
+                                </ProtectedRoute>
+                              }
+                            />
 
-                          {/* AI Assistant is now a floating widget — redirect old URL for backward compatibility */}
-                          <Route
-                            path={ROUTES.AI_ASSISTANT}
-                            element={<Navigate to={ROUTES.DASHBOARD} replace />}
-                          />
-                          {/* /tools view removed - keep submenu routes only */}
-                          <Route
-                            path={ROUTES.FINANCIAL_FREEDOM}
-                            element={
-                              <ProtectedRoute>
-                                <FinancialFreedomPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.COMPOUND_INTEREST}
-                            element={
-                              <ProtectedRoute>
-                                <CompoundInterestPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.LOAN_CALCULATOR}
-                            element={
-                              <ProtectedRoute>
-                                <LoanCalculatorPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.EARLY_PAYOFF}
-                            element={
-                              <ProtectedRoute>
-                                <EarlyPayoffPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.COMMUNITY}
-                            element={
-                              <ProtectedRoute>
-                                <CommunityPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.PREMIUM}
-                            element={
-                              <ProtectedRoute>
-                                <PremiumPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.PROFILE}
-                            element={
-                              <ProtectedRoute>
-                                <ProfilePage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.SETTINGS}
-                            element={
-                              <ProtectedRoute>
-                                <SettingsPage />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path={ROUTES.BACKUP}
-                            element={
-                              <ProtectedRoute>
-                                <BackupPage />
-                              </ProtectedRoute>
-                            }
-                          />
+                            {/* AI Assistant is now a floating widget — redirect old URL for backward compatibility */}
+                            <Route
+                              path={ROUTES.AI_ASSISTANT}
+                              element={<Navigate to={ROUTES.DASHBOARD} replace />}
+                            />
+                            {/* /tools view removed - keep submenu routes only */}
+                            <Route
+                              path={ROUTES.FINANCIAL_FREEDOM}
+                              element={
+                                <ProtectedRoute>
+                                  <FinancialFreedomPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.COMPOUND_INTEREST}
+                              element={
+                                <ProtectedRoute>
+                                  <CompoundInterestPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.LOAN_CALCULATOR}
+                              element={
+                                <ProtectedRoute>
+                                  <LoanCalculatorPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.EARLY_PAYOFF}
+                              element={
+                                <ProtectedRoute>
+                                  <EarlyPayoffPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.COMMUNITY}
+                              element={
+                                <ProtectedRoute>
+                                  <CommunityPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.PREMIUM}
+                              element={
+                                <ProtectedRoute>
+                                  <PremiumPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.PROFILE}
+                              element={
+                                <ProtectedRoute>
+                                  <ProfilePage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.SETTINGS}
+                              element={
+                                <ProtectedRoute>
+                                  <SettingsPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path={ROUTES.BACKUP}
+                              element={
+                                <ProtectedRoute>
+                                  <BackupPage />
+                                </ProtectedRoute>
+                              }
+                            />
 
-                          {/* Default redirect - go to dashboard (protected) */}
-                          <Route path={ROUTES.HOME} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+                            {/* Default redirect - go to dashboard (protected) */}
+                            <Route
+                              path={ROUTES.HOME}
+                              element={<Navigate to={ROUTES.DASHBOARD} replace />}
+                            />
 
-                          {/* 404 fallback */}
-                          <Route path={ROUTE_PATTERNS.NOT_FOUND} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
-                        </Routes>
-                      </Suspense>
-                    </Router>
-                  </LocaleProvider>
+                            {/* 404 fallback */}
+                            <Route
+                              path={ROUTE_PATTERNS.NOT_FOUND}
+                              element={<Navigate to={ROUTES.DASHBOARD} replace />}
+                            />
+                          </Routes>
+                        </Suspense>
+                      </Router>
+                    </LocaleProvider>
+                  </CryptoCurrenciesProvider>
                 </DecimalPlacesProvider>
               </NumberFormatProvider>
             </ThemeProvider>
