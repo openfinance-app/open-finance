@@ -4,7 +4,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +57,7 @@ public class CryptoListService {
             log.warn("Crypto-list refresh produced no coins from any provider");
             return 0;
         }
+        coins = deduplicateByCode(coins);
         int upserted = upsertCurrencies(coins);
         seedRates(coins);
         currencyTypeResolver.reload();
@@ -90,10 +93,24 @@ public class CryptoListService {
                 }
                 log.warn("Provider '{}' returned no coins", provider.name());
             } catch (Exception e) {
-                log.warn("Provider '{}' failed: {}", provider.name(), e.getMessage());
+                log.warn("Provider '{}' failed", provider.name(), e);
             }
         }
         return List.of();
+    }
+
+    /**
+     * Removes coins with duplicate codes, keeping the first occurrence. Providers return coins in
+     * market-cap-rank order, so the highest-ranked coin wins a code collision. This keeps the
+     * upsert count accurate and prevents duplicate {@code (base,target,rate_date)} rate rows in one
+     * batch.
+     */
+    private List<CryptoCurrencyInfo> deduplicateByCode(List<CryptoCurrencyInfo> coins) {
+        Map<String, CryptoCurrencyInfo> byCode = new LinkedHashMap<>();
+        for (CryptoCurrencyInfo coin : coins) {
+            byCode.putIfAbsent(coin.code(), coin);
+        }
+        return new ArrayList<>(byCode.values());
     }
 
     private int upsertCurrencies(List<CryptoCurrencyInfo> coins) {

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -180,5 +181,31 @@ class CryptoListServiceTest {
         assertThat(count).isZero();
         verify(gecko, never()).fetchTopCryptocurrencies(anyInt());
         verify(cmc, never()).fetchTopCryptocurrencies(anyInt());
+    }
+
+    @Test
+    @DisplayName("de-duplicates coins sharing the same code (keeps the first / highest rank)")
+    void deduplicatesCoinsBySameCode() {
+        when(gecko.fetchTopCryptocurrencies(anyInt()))
+                .thenReturn(List.of(info("BTC", 95000, 1), info("BTC", 90000, 5)));
+        when(currencyRepository.findByCode("BTC")).thenReturn(Optional.empty());
+        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        any(), any(), any()))
+                .thenReturn(Optional.empty());
+
+        int count = service.refresh();
+
+        assertThat(count).isEqualTo(1);
+        // BTC upserted exactly once (not twice)
+        verify(currencyRepository, times(1)).save(any());
+        // exactly the two directional rates, no duplicate (base,target,date) rows
+        verify(exchangeRateRepository)
+                .saveAll(
+                        argThat(
+                                (Iterable<ExchangeRate> it) -> {
+                                    List<ExchangeRate> list = new ArrayList<>();
+                                    it.forEach(list::add);
+                                    return list.size() == 2;
+                                }));
     }
 }
