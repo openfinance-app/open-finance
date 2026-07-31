@@ -222,7 +222,8 @@ public class ExchangeRateService {
      *
      * <ol>
      *   <li>Query all active currencies from database
-     *   <li>Build Yahoo Finance symbols (e.g., EURUSD=X, BTC-USD)
+     *   <li>Build Yahoo Finance symbols for fiat currencies (e.g., EURUSD=X); crypto prices are
+     *       seeded separately
      *   <li>Fetch quotes from Yahoo Finance API
      *   <li>Store rates in database with today's date
      *   <li>Clear exchange rate cache
@@ -704,6 +705,8 @@ public class ExchangeRateService {
             if ("USD".equalsIgnoreCase(code)) {
                 continue; // USD is the quote currency
             }
+            // Use the entity's authoritative type directly (the resolver is used where only a
+            // code string is available).
             if (currency.getType() == CurrencyType.CRYPTO) {
                 continue; // crypto prices come from the crypto-list provider, not Yahoo
             }

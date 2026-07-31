@@ -36,10 +36,9 @@ class InterestCalculatorServiceTest {
 
     @Mock private InterestRateVariationRepository variationRepository;
     @Mock private AccountService accountService;
+    @Mock private CurrencyTypeResolver currencyTypeResolver;
 
     @InjectMocks private InterestCalculatorService service;
-
-    @Mock private CurrencyTypeResolver currencyTypeResolver;
 
     @BeforeEach
     void stubDecimals() {

@@ -293,12 +293,12 @@ class ExchangeRateServiceTest {
                 List.of(
                         createCurrency("USD", "US Dollar", true),
                         createCurrency("EUR", "Euro", true),
-                        createCurrency("BTC", "Bitcoin", true));
+                        createCurrency("CHF", "Swiss Franc", true));
         when(currencyRepository.findByIsActiveTrueOrderByCodeAsc()).thenReturn(currencies);
 
         MarketQuote eurQuote = createMarketQuote("EURUSD=X", 1.08);
-        MarketQuote btcQuote = createMarketQuote("BTC-USD", 95000.00);
-        when(marketDataProvider.getQuotes(anyList())).thenReturn(List.of(eurQuote, btcQuote));
+        MarketQuote chfQuote = createMarketQuote("CHFUSD=X", 1.10);
+        when(marketDataProvider.getQuotes(anyList())).thenReturn(List.of(eurQuote, chfQuote));
 
         // Act
         int count = exchangeRateService.updateExchangeRates();
@@ -541,6 +541,45 @@ class ExchangeRateServiceTest {
                 .getHistoricalPrices(symbolCaptor.capture(), eq(date.minusDays(7)), eq(date));
         assertThat(symbolCaptor.getAllValues()).containsExactlyInAnyOrder("EURUSD=X", "XOFUSD=X");
         verifyNoMoreInteractions(marketDataProvider);
+    }
+
+    // ==================== fetchAndStorePairRate() Tests ====================
+
+    @Test
+    @DisplayName(
+            "Should fetch on-demand crypto pair rate storing USD -> crypto as the inverse price")
+    void shouldFetchCryptoPairRateOnDemandStoringUsdToCryptoInverse() {
+        // Arrange: BTC is a cryptocurrency, so the on-demand fetch must build the
+        // Yahoo crypto symbol (BTC-USD) and store the inverse (USD -> BTC = 1/price).
+        when(currencyTypeResolver.isCrypto("BTC")).thenReturn(true);
+        when(marketDataProvider.getHistoricalPrices(eq("BTC-USD"), any(), any()))
+                .thenReturn(List.of(createHistoricalPrice("BTC-USD", LocalDate.now(), "95000")));
+        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        eq("USD"), eq("BTC"), any()))
+                .thenReturn(Optional.empty());
+
+        // Act
+        boolean stored = exchangeRateService.fetchAndStorePairRate("USD", "BTC");
+
+        // Assert
+        assertThat(stored).isTrue();
+
+        // Crypto symbol must be built as BTC-USD (proves the addSymbolForCurrency crypto branch).
+        verify(marketDataProvider).getHistoricalPrices(eq("BTC-USD"), any(), any());
+
+        // Rate must be stored as USD -> BTC = 1/price (proves the parseQuoteToExchangeRate crypto
+        // branch; fiat handling would store BTC -> USD = price instead).
+        ArgumentCaptor<List<ExchangeRate>> ratesCaptor = ArgumentCaptor.forClass(List.class);
+        verify(exchangeRateRepository).saveAll(ratesCaptor.capture());
+        BigDecimal expectedInverseRate =
+                BigDecimal.ONE.divide(new BigDecimal("95000"), 8, RoundingMode.HALF_UP);
+        assertThat(ratesCaptor.getValue())
+                .anySatisfy(
+                        rate -> {
+                            assertThat(rate.getBaseCurrency()).isEqualTo("USD");
+                            assertThat(rate.getTargetCurrency()).isEqualTo("BTC");
+                            assertThat(rate.getRate()).isEqualByComparingTo(expectedInverseRate);
+                        });
     }
 
     // ==================== clearCache() Tests ====================
