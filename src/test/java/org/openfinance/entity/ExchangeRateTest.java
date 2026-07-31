@@ -159,7 +159,8 @@ class ExchangeRateTest {
         Set<ConstraintViolation<ExchangeRate>> violations = validator.validate(rate);
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage()).isEqualTo("Base currency is required");
+        assertThat(violations.iterator().next().getMessage())
+                .isEqualTo("Base currency is required");
     }
 
     @Test

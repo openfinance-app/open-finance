@@ -1,11 +1,5 @@
 TODO:
 
-1-currencies table should have type column fiat/currency.
-application.exchange-rates.crypto-codes should be removed. implement free crypto list providers from @crypto_list_provider.md to fetch cryptos
--Is the currently implemented exchange rate service/provider handled cryptocurrencies? If not, You should implement a solution to support crypto currencies as well.
-
-2-Transaction add/edit form should have currency selector to allow user to pick transaction amount currency. see similar in Account, Assets forms
-rate small text should be displayed, this should convert in account currency when saving and apply also to split transactions amount on the form
 3- Regex search support
 4-attachments should be stored in db instead of file system
 5- Dashboard Plugin architecture
