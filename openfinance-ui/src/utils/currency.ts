@@ -51,9 +51,24 @@ export const DEFAULT_CURRENCY = 'EUR';
 const ZERO_DECIMAL_CURRENCIES = ['JPY', 'KRW', 'VND', 'CLP', 'ISK'];
 
 /**
- * Cryptocurrencies that use 8 decimal places
+ * Minimal bootstrap fallback for crypto classification, used only until the currencies API
+ * populates the dynamic set via `setCryptoCurrencyCodes`.
  */
-const CRYPTO_CURRENCIES = ['BTC', 'ETH', 'BNB', 'ADA', 'SOL', 'DOT', 'AVAX', 'MATIC', 'LINK', 'UNI'];
+const CRYPTO_CURRENCIES = ['BTC', 'ETH'];
+
+/**
+ * Dynamic set of crypto currency codes sourced from the backend `type` field. `null` means
+ * "not loaded yet — fall back to CRYPTO_CURRENCIES". Mirrors the `decimalPlacesOverride` pattern.
+ */
+let cryptoCurrencyCodes: Set<string> | null = null;
+
+/**
+ * Replace the dynamic crypto-code set. Called when the currencies query loads
+ * (see CryptoCurrenciesProvider). Passing an empty array resets to the bootstrap fallback.
+ */
+export function setCryptoCurrencyCodes(codes: string[]): void {
+  cryptoCurrencyCodes = codes && codes.length ? new Set(codes.map(c => c.toUpperCase())) : null;
+}
 
 /**
  * Currencies where symbol comes after the amount
@@ -145,7 +160,7 @@ export function getCurrencyDecimals(currencyCode: string | null | undefined): nu
   if (ZERO_DECIMAL_CURRENCIES.includes(currencyCode.toUpperCase())) {
     return 0;
   }
-  if (CRYPTO_CURRENCIES.includes(currencyCode.toUpperCase())) {
+  if (isCryptoCurrency(currencyCode)) {
     return 8;
   }
   return 2; // Default for most fiat currencies
@@ -156,7 +171,11 @@ export function getCurrencyDecimals(currencyCode: string | null | undefined): nu
  */
 export function isCryptoCurrency(currencyCode: string | null | undefined): boolean {
   currencyCode = currencyCode || DEFAULT_CURRENCY;
-  return CRYPTO_CURRENCIES.includes(currencyCode.toUpperCase());
+  const upper = currencyCode.toUpperCase();
+  if (cryptoCurrencyCodes) {
+    return cryptoCurrencyCodes.has(upper);
+  }
+  return CRYPTO_CURRENCIES.includes(upper);
 }
 
 /**

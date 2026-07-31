@@ -5,6 +5,7 @@ import {
   isValidCurrency,
   getCurrencyDecimals,
   setDecimalPlacesOverride,
+  setCryptoCurrencyCodes,
   isCryptoCurrency,
   formatCurrency,
   formatCurrencyCompact,
@@ -121,6 +122,31 @@ describe('isCryptoCurrency', () => {
   });
   it('defaults to EUR (not crypto) when null', () => {
     expect(isCryptoCurrency(null)).toBe(false);
+  });
+});
+
+describe('dynamic crypto currency codes', () => {
+  afterEach(() => {
+    // Reset module state so the hardcoded bootstrap list is used by other tests.
+    setCryptoCurrencyCodes([]);
+  });
+
+  it('treats codes from setCryptoCurrencyCodes as crypto (8 decimals)', () => {
+    setCryptoCurrencyCodes(['SUI', 'PEPE']);
+    expect(isCryptoCurrency('SUI')).toBe(true);
+    expect(isCryptoCurrency('pepe')).toBe(true);
+    expect(getCurrencyDecimals('SUI')).toBe(8);
+  });
+
+  it('once set, the dynamic list overrides the bootstrap fallback', () => {
+    setCryptoCurrencyCodes(['SUI']);
+    expect(isCryptoCurrency('DOGE')).toBe(false); // not in the dynamic set
+  });
+
+  it('falls back to the bootstrap list (BTC/ETH) before the API loads', () => {
+    // no setCryptoCurrencyCodes call -> module state is null
+    expect(isCryptoCurrency('BTC')).toBe(true);
+    expect(isCryptoCurrency('ETH')).toBe(true);
   });
 });
 
