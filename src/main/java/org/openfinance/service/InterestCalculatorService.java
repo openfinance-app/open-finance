@@ -14,7 +14,6 @@ import org.openfinance.dto.BalanceHistoryPoint;
 import org.openfinance.entity.InterestPeriod;
 import org.openfinance.entity.InterestRateVariation;
 import org.openfinance.repository.InterestRateVariationRepository;
-import org.openfinance.util.CurrencyDecimals;
 import org.openfinance.util.MathConstants;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +31,7 @@ public class InterestCalculatorService {
 
     private final InterestRateVariationRepository variationRepository;
     private final AccountService accountService;
+    private final CurrencyTypeResolver currencyTypeResolver;
 
     // -------------------------------------------------------------------------
     // Forward-looking projection (compound interest formula)
@@ -92,7 +92,7 @@ public class InterestCalculatorService {
                 balance, ratePct, n, grossInterest, taxPct, netInterest);
 
         return netInterest.setScale(
-                CurrencyDecimals.forCurrency(account.getCurrency()), RoundingMode.HALF_UP);
+                currencyTypeResolver.decimalsFor(account.getCurrency()), RoundingMode.HALF_UP);
     }
 
     // -------------------------------------------------------------------------
@@ -144,7 +144,7 @@ public class InterestCalculatorService {
         }
 
         return totalNetInterest.setScale(
-                CurrencyDecimals.forCurrency(account.getCurrency()), RoundingMode.HALF_UP);
+                currencyTypeResolver.decimalsFor(account.getCurrency()), RoundingMode.HALF_UP);
     }
 
     // -------------------------------------------------------------------------

@@ -1,11 +1,14 @@
 package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +38,27 @@ class InterestCalculatorServiceTest {
     @Mock private AccountService accountService;
 
     @InjectMocks private InterestCalculatorService service;
+
+    @Mock private CurrencyTypeResolver currencyTypeResolver;
+
+    @BeforeEach
+    void stubDecimals() {
+        // Mirror the real resolver so tests keep asserting per-currency scale (BTC=8, JPY=0,
+        // otherwise 2). lenient() because early-return tests never reach the setScale call.
+        lenient()
+                .when(currencyTypeResolver.decimalsFor(any()))
+                .thenAnswer(
+                        invocation -> {
+                            String code = invocation.getArgument(0);
+                            if ("BTC".equalsIgnoreCase(code)) {
+                                return 8;
+                            }
+                            if ("JPY".equalsIgnoreCase(code)) {
+                                return 0;
+                            }
+                            return 2;
+                        });
+    }
 
     private void givenAccount(BigDecimal balance, InterestPeriod period) {
         AccountResponse account =
