@@ -506,4 +506,46 @@ describe('SplitTransactionForm', () => {
       expect(screen.getByText((content) => content.includes('over.'))).toBeInTheDocument();
     });
   });
+
+  describe('Converted total (foreign input currency)', () => {
+    it('shows an ≈ converted total in the account currency when currency differs and a rate is given', () => {
+      renderWithProviders(
+        <SplitTransactionForm
+          totalAmount={100}
+          currency="USD"
+          accountCurrency="EUR"
+          exchangeRate={0.9}
+          transactionType="EXPENSE"
+          splits={[
+            { categoryId: 10, amount: 60 },
+            { categoryId: 20, amount: 40 },
+          ]}
+          onChange={vi.fn()}
+        />
+      );
+
+      // splitTotal = 100 USD → ≈ 90 EUR
+      const converted = screen.getByText(/≈/);
+      expect(converted.textContent).toMatch(/90/);
+    });
+
+    it('does not show a converted total when the account currency equals the input currency', () => {
+      renderWithProviders(
+        <SplitTransactionForm
+          totalAmount={100}
+          currency="EUR"
+          accountCurrency="EUR"
+          exchangeRate={undefined}
+          transactionType="EXPENSE"
+          splits={[
+            { categoryId: 10, amount: 60 },
+            { categoryId: 20, amount: 40 },
+          ]}
+          onChange={vi.fn()}
+        />
+      );
+
+      expect(screen.queryByText(/≈/)).not.toBeInTheDocument();
+    });
+  });
 });

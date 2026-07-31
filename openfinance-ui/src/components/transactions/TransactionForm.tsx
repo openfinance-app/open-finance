@@ -6,7 +6,7 @@
  * Dynamic form for creating/editing transactions with validation and tags.
  * Attachments are managed in the TransactionDetailModal, not here.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,7 +26,12 @@ import { useLiabilities } from '@/hooks/useLiabilities';
 import type { Transaction, TransactionRequest, TransactionType, Category, PaymentMethod, TransactionSplitRequest } from '@/types/transaction';
 import type { Account } from '@/types/account';
 import { formatDateForInput, getToday } from '@/utils/date';
-import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { DEFAULT_CURRENCY, getCurrencyDecimals } from '@/utils/currency';
+import { CurrencySelector } from '@/components/ui/CurrencySelector';
+import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
+import { useLatestExchangeRate } from '@/hooks/useCurrency';
+import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { multiply, roundToDecimals, sumToDecimals } from '@/utils/money';
 
 const optionalNumber = z.preprocess((value) => {
   if (value === '' || value === null || value === undefined) {
@@ -120,6 +125,8 @@ export function TransactionForm({
     formState: { errors },
     watch,
     setValue,
+    setError,
+    clearErrors,
     control,
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema(t)) as any,
@@ -168,6 +175,39 @@ export function TransactionForm({
   const selectedAccountId = watch('accountId');
   const currentCategoryId = watch('categoryId');
 
+  const inputCurrency = watch('currency');
+  const amountValue = watch('amount');
+  const { format: formatCurrency } = useFormatCurrency();
+
+  const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
+  const accountCurrency = selectedAccount?.currency ?? DEFAULT_CURRENCY;
+
+  // TRANSFER always keeps its current behavior (amount in the source account currency).
+  const needsConversion =
+    selectedType !== 'TRANSFER' &&
+    !!inputCurrency &&
+    !!accountCurrency &&
+    inputCurrency !== accountCurrency;
+
+  const { data: exchangeRate } = useLatestExchangeRate(
+    inputCurrency,
+    accountCurrency,
+    needsConversion ? 1 : 0,
+  );
+
+  const convertedPreview =
+    needsConversion && exchangeRate && Number.isFinite(amountValue) && amountValue > 0
+      ? multiply(amountValue, exchangeRate.rate)
+      : undefined;
+
+  // Clear ONLY the manual "rate unavailable" error we set, once conversion is no longer needed or
+  // the rate loads. Scoped to type === 'manual' so it never masks a zod validation error.
+  useEffect(() => {
+    if (errors.currency?.type === 'manual' && (!needsConversion || exchangeRate)) {
+      clearErrors('currency');
+    }
+  }, [errors.currency?.type, needsConversion, exchangeRate, clearErrors]);
+
   // Get payees for auto-fill logic
   const { data: payees = [] } = useActivePayees();
 
@@ -197,23 +237,55 @@ export function TransactionForm({
     }
   }, [selectedPayeeName, selectedPayee, selectedType, categories, setValue, transaction, autoFilledCategory, currentCategoryId]);
 
-  // Set currency from selected account
+  // Default the input currency to the selected account's currency, but only when the account
+  // actually changes — so a manual currency choice is not clobbered on unrelated re-renders.
+  const prevAccountIdRef = useRef<number | undefined>(selectedAccountId);
   useEffect(() => {
-    if (selectedAccountId) {
+    if (selectedAccountId && selectedAccountId !== prevAccountIdRef.current) {
       const account = accounts.find((a) => a.id === selectedAccountId);
       if (account) {
         setValue('currency', account.currency);
       }
     }
+    prevAccountIdRef.current = selectedAccountId;
   }, [selectedAccountId, accounts, setValue]);
 
   const handleFormSubmit = (data: TransactionFormData) => {
+    // The backend requires transaction.currency === account.currency for INCOME/EXPENSE, so convert
+    // the entered amount (and any split amounts) into the account currency before submitting.
+    const rate = needsConversion ? exchangeRate?.rate : undefined;
+
+    // Block submit when a conversion is required but the rate is not available yet.
+    if (needsConversion && !rate) {
+      setError('currency', { type: 'manual', message: t('form.validation.rateUnavailable') });
+      return;
+    }
+
+    const decimals = getCurrencyDecimals(accountCurrency);
+    const convert = (value: number): number =>
+      needsConversion && rate ? roundToDecimals(multiply(value, rate), decimals) : Number(value);
+
+    const inSplit = splitMode && splits.length > 0;
+    const submitSplits = inSplit
+      ? splits.map((s) => ({ ...s, amount: convert(s.amount) }))
+      : undefined;
+    // On the conversion path, set the parent to the sum of converted splits so they reconcile
+    // exactly (avoids rounding drift beyond the backend's ±0.01 tolerance). Otherwise keep today's
+    // behavior of submitting the (converted) entered amount.
+    const submitAmount =
+      needsConversion && rate && inSplit
+        ? sumToDecimals(submitSplits!.map((s) => s.amount), decimals)
+        : convert(data.amount);
+
     onSubmit({
       accountId: data.accountId,
       toAccountId: data.toAccountId,
       type: data.type,
-      amount: Number(data.amount),
-      currency: data.currency,
+      amount: submitAmount,
+      // Always submit in the account's currency (backend requires currency === account currency for
+      // INCOME/EXPENSE). For TRANSFER this normalizes any stale input-currency selection back to the
+      // source account's currency; needsConversion is false for TRANSFER so the amount is unchanged.
+      currency: accountCurrency,
       // REQ-SPL-1.5: hide parent category when split mode is active
       categoryId: splitMode ? undefined : data.categoryId,
       date: data.date,
@@ -225,14 +297,14 @@ export function TransactionForm({
       // Requirement 3.1: Only include liabilityId for EXPENSE transactions
       liabilityId: data.type === 'EXPENSE' ? data.liabilityId : undefined,
       // REQ-SPL-2.1, REQ-SPL-2.2: include splits when split mode is active
-      splits: splitMode && splits.length > 0 ? splits : undefined,
+      splits: submitSplits,
     });
   };
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-      {/* Row 1: Type, Amount, Date */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Row 1: Type & Date */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Transaction Type */}
         <div>
           <label htmlFor="type" className="block text-sm font-medium text-text-primary mb-1.5">
@@ -255,8 +327,48 @@ export function TransactionForm({
           {errors.type && <p id="type-error" className="mt-1 text-sm text-error" role="alert">{errors.type.message}</p>}
         </div>
 
-        {/* Amount */}
+        {/* Date */}
         <div>
+          <label htmlFor="date" className="block text-sm font-medium text-text-primary mb-1.5">
+            {t('form.date')} <span aria-label="required">*</span>
+          </label>
+          <Input id="date" type="date" {...register('date')} error={errors.date?.message} required />
+        </div>
+      </div>
+
+      {/* Row 2: Currency & Amount (mirrors the Account form's Currency + Balance row) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Currency — hidden for TRANSFER (amount stays in the source account currency) */}
+        {selectedType !== 'TRANSFER' && (
+          <div>
+            <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.currency')} <span aria-label="required">*</span>
+            </label>
+            <Controller
+              name="currency"
+              control={control}
+              render={({ field }) => (
+                <CurrencySelector
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  placeholder={t('form.currency')}
+                  className="w-full"
+                />
+              )}
+            />
+            {errors.currency && (
+              <p className="mt-1 text-sm text-error" role="alert">{errors.currency.message}</p>
+            )}
+            {needsConversion && (
+              <div className="mt-1.5">
+                <ExchangeRateInline from={inputCurrency} to={accountCurrency} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Amount */}
+        <div className={selectedType === 'TRANSFER' ? 'md:col-span-2' : undefined}>
           <label htmlFor="amount" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.amount')} <span aria-label="required">*</span>
           </label>
@@ -271,18 +383,15 @@ export function TransactionForm({
             error={errors.amount?.message}
             required
           />
-        </div>
-
-        {/* Date */}
-        <div>
-          <label htmlFor="date" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.date')} <span aria-label="required">*</span>
-          </label>
-          <Input id="date" type="date" {...register('date')} error={errors.date?.message} required />
+          {convertedPreview !== undefined && (
+            <p className="text-xs text-text-secondary mt-1">
+              ≈ {formatCurrency(convertedPreview, accountCurrency)}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Row 2: Accounts */}
+      {/* Row 3: Accounts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Account */}
         <div>
@@ -327,7 +436,7 @@ export function TransactionForm({
         )}
       </div>
 
-      {/* Row 3: Payee & Payment Method */}
+      {/* Row 4: Payee & Payment Method */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Payee */}
         <div>
@@ -480,7 +589,9 @@ export function TransactionForm({
           {splitMode && (
             <SplitTransactionForm
               totalAmount={watch('amount') || 0}
-              currency={watch('currency') || DEFAULT_CURRENCY}
+              currency={inputCurrency || DEFAULT_CURRENCY}
+              accountCurrency={accountCurrency}
+              exchangeRate={needsConversion ? exchangeRate?.rate : undefined}
               transactionType={selectedType}
               splits={splits}
               onChange={setSplits}
@@ -512,7 +623,7 @@ export function TransactionForm({
         </div>
       )}
 
-      {/* Row 4: Description and Tags */}
+      {/* Row 5: Description and Tags */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Description */}
         <div>

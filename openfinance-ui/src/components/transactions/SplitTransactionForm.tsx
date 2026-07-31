@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
-import { fromMinorUnits, sumToDecimals, toMinorUnits } from '@/utils/money';
+import { fromMinorUnits, multiply, sumToDecimals, toMinorUnits } from '@/utils/money';
 import type { TransactionSplitRequest } from '@/types/transaction';
 import type { TransactionType } from '@/types/transaction';
 
@@ -29,6 +29,10 @@ interface SplitTransactionFormProps {
   splits: TransactionSplitRequest[];
   /** Called whenever the split list changes */
   onChange: (splits: TransactionSplitRequest[]) => void;
+  /** Account currency to convert to on save; when different from `currency`, a converted total is shown */
+  accountCurrency?: string;
+  /** 1 unit of `currency` = `exchangeRate` units of `accountCurrency` (latest rate) */
+  exchangeRate?: number;
 }
 
 /**
@@ -55,6 +59,8 @@ export function SplitTransactionForm({
   transactionType,
   splits,
   onChange,
+  accountCurrency,
+  exchangeRate,
 }: SplitTransactionFormProps) {
   const { t } = useTranslation('transactions');
   const { format: formatCurrency } = useFormatCurrency();
@@ -63,6 +69,11 @@ export function SplitTransactionForm({
   const splitTotal = sumToDecimals(splits.map((s) => Number(s.amount) || 0));
   const remaining = fromMinorUnits(toMinorUnits(totalAmount) - toMinorUnits(splitTotal));
   const isValid = withinTolerance(splitTotal, totalAmount);
+
+  // Show an ≈ converted total in the account currency when the user is entering splits in a
+  // different currency than the account (the amounts themselves are converted on save).
+  const showConverted =
+    !!accountCurrency && accountCurrency !== currency && typeof exchangeRate === 'number';
 
   // REQ-SPL-3.7: add a new blank split line
   const handleAddSplit = () => {
@@ -196,6 +207,11 @@ export function SplitTransactionForm({
             {isValid ? '✓' : formatCurrency(Math.abs(remaining), currency)}
           </span>
         </div>
+        {showConverted && (
+          <div className="mt-1 text-right text-xs text-text-secondary font-mono">
+            ≈ {formatCurrency(multiply(splitTotal, exchangeRate as number), accountCurrency)}
+          </div>
+        )}
       </div>
 
       {/* Validation error banner — REQ-SPL-3.5 */}

@@ -53,6 +53,7 @@
   "form": {
     "type": "Type",
     "amount": "Montant",
+    "currency": "Devise",
     "date": "Date",
     "account": "Compte",
     "fromAccount": "Compte source",
@@ -85,6 +86,7 @@
       "amountPositive": "Le montant doit être positif",
       "selectAccount": "Veuillez sélectionner un compte",
       "currencyCode": "La devise doit être un code de 3 lettres",
+      "rateUnavailable": "Taux de change indisponible. Veuillez réessayer.",
       "dateRequired": "La date est obligatoire",
       "descriptionTooLong": "La description est trop longue",
       "notesTooLong": "Les notes sont trop longues",

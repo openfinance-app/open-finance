@@ -53,6 +53,7 @@
   "form": {
     "type": "Type",
     "amount": "Amount",
+    "currency": "Currency",
     "date": "Date",
     "account": "Account",
     "fromAccount": "From Account",
@@ -85,6 +86,7 @@
       "amountPositive": "Amount must be positive",
       "selectAccount": "Please select an account",
       "currencyCode": "Currency must be a 3-letter code",
+      "rateUnavailable": "Exchange rate unavailable. Please try again.",
       "dateRequired": "Date is required",
       "descriptionTooLong": "Description is too long",
       "notesTooLong": "Notes are too long",

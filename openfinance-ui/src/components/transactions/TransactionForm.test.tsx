@@ -15,6 +15,7 @@ import * as usePayeesModule from '@/hooks/usePayees';
 import * as useTransactionTagsModule from '@/hooks/useTransactionTags';
 import * as useTransactionsModule from '@/hooks/useTransactions';
 import * as useLiabilitiesModule from '@/hooks/useLiabilities';
+import * as useCurrencyModule from '@/hooks/useCurrency';
 import { renderWithProviders } from '@/test/test-utils';
 import type { Payee } from '@/types/payee';
 import type { Category, Transaction } from '@/types/transaction';
@@ -104,8 +105,40 @@ vi.mock('@/components/ui/LiabilitySelector', () => ({
   ),
 }));
 
+vi.mock('@/components/ui/CurrencySelector', () => ({
+  CurrencySelector: ({
+    value,
+    onValueChange,
+  }: {
+    value?: string;
+    onValueChange: (v: string) => void;
+  }) => (
+    <select
+      data-testid="currency-selector"
+      value={value ?? ''}
+      onChange={(e) => onValueChange(e.target.value)}
+    >
+      <option value="EUR">EUR</option>
+      <option value="USD">USD</option>
+    </select>
+  ),
+}));
+
 vi.mock('./SplitTransactionForm', () => ({
-  SplitTransactionForm: () => <div data-testid="split-form">Split Form</div>,
+  SplitTransactionForm: ({ onChange }: { onChange: (splits: unknown[]) => void }) => (
+    <button
+      type="button"
+      data-testid="set-splits"
+      onClick={() =>
+        onChange([
+          { categoryId: 10, amount: 60 },
+          { categoryId: 20, amount: 40 },
+        ])
+      }
+    >
+      Split Form
+    </button>
+  ),
 }));
 
 // ── Mock hooks ────────────────────────────────────────────────────────────────
@@ -132,12 +165,18 @@ vi.mock('@/hooks/useLiabilities', async (importOriginal) => {
   return { ...actual, useLiabilities: vi.fn() };
 });
 
+vi.mock('@/hooks/useCurrency', async (importOriginal) => {
+  const actual = await importOriginal<typeof useCurrencyModule>();
+  return { ...actual, useLatestExchangeRate: vi.fn() };
+});
+
 // ── Typed mock references ─────────────────────────────────────────────────────
 
 const mockUseActivePayees = vi.mocked(usePayeesModule.useActivePayees);
 const mockUsePopularTags = vi.mocked(useTransactionTagsModule.usePopularTags);
 const mockUseCategoryTree = vi.mocked(useTransactionsModule.useCategoryTree);
 const mockUseLiabilities = vi.mocked(useLiabilitiesModule.useLiabilities);
+const mockUseLatestExchangeRate = vi.mocked(useCurrencyModule.useLatestExchangeRate);
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -257,6 +296,12 @@ describe('TransactionForm', () => {
 
     mockUseLiabilities.mockReturnValue({
       data: [],
+      isLoading: false,
+      isError: false,
+    } as any);
+
+    mockUseLatestExchangeRate.mockReturnValue({
+      data: undefined,
       isLoading: false,
       isError: false,
     } as any);
@@ -794,6 +839,216 @@ describe('TransactionForm', () => {
       });
 
       expect(onSubmit.mock.calls[0][0].currency).toBe('EUR');
+    });
+  });
+
+  describe('Currency Selector & Conversion', () => {
+    it('renders the currency selector defaulting to the selected account currency', async () => {
+      renderForm();
+
+      await act(async () => {
+        screen.getByTestId('account-selector').click();
+      });
+
+      const currency = screen.getByTestId('currency-selector') as HTMLSelectElement;
+      expect(currency).toBeInTheDocument();
+      expect(currency.value).toBe('EUR');
+    });
+
+    it('does not render the currency selector for TRANSFER', async () => {
+      renderForm();
+
+      await act(async () => {
+        fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'TRANSFER' } });
+      });
+
+      expect(screen.queryByTestId('currency-selector')).not.toBeInTheDocument();
+    });
+
+    it('shows the rate line and a converted preview when a foreign currency is chosen', async () => {
+      mockUseLatestExchangeRate.mockReturnValue({
+        data: { rate: 0.9 },
+        isLoading: false,
+        isError: false,
+      } as any);
+
+      renderForm();
+
+      await act(async () => {
+        screen.getByTestId('account-selector').click();
+      });
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
+      fireEvent.change(screen.getByTestId('currency-selector'), { target: { value: 'USD' } });
+
+      // Rate line from ExchangeRateInline
+      expect(screen.getByText(/1 USD =/)).toBeInTheDocument();
+      // ≈ converted preview: 100 * 0.9 = 90
+      const preview = screen.getByText(/≈/);
+      expect(preview.textContent).toMatch(/90/);
+    });
+
+    it('submits the amount converted to the account currency with currency = account currency', async () => {
+      mockUseLatestExchangeRate.mockReturnValue({
+        data: { rate: 0.9 },
+        isLoading: false,
+        isError: false,
+      } as any);
+
+      const { onSubmit } = renderForm();
+
+      await act(async () => {
+        screen.getByTestId('account-selector').click();
+      });
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
+      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+      fireEvent.change(screen.getByTestId('currency-selector'), { target: { value: 'USD' } });
+
+      await act(async () => {
+        screen.getByRole('button', { name: /create transaction/i }).click();
+      });
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+      });
+
+      const submitted = onSubmit.mock.calls[0][0];
+      expect(submitted.amount).toBe(90);
+      expect(submitted.currency).toBe('EUR');
+    });
+
+    it('converts each split amount and submits a parent amount equal to their sum', async () => {
+      mockUseLatestExchangeRate.mockReturnValue({
+        data: { rate: 0.9 },
+        isLoading: false,
+        isError: false,
+      } as any);
+
+      const { onSubmit } = renderForm();
+
+      await act(async () => {
+        screen.getByTestId('account-selector').click();
+      });
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
+      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+      fireEvent.change(screen.getByTestId('currency-selector'), { target: { value: 'USD' } });
+
+      // Enter split mode, then push split values through the mocked SplitTransactionForm
+      await act(async () => {
+        screen.getByRole('button', { name: /split transaction/i }).click();
+      });
+      await act(async () => {
+        screen.getByTestId('set-splits').click();
+      });
+
+      await act(async () => {
+        screen.getByRole('button', { name: /create transaction/i }).click();
+      });
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+      });
+
+      const submitted = onSubmit.mock.calls[0][0];
+      // 60 USD → 54 EUR, 40 USD → 36 EUR, parent = 90 EUR
+      expect(submitted.currency).toBe('EUR');
+      expect(submitted.amount).toBe(90);
+      expect(submitted.splits).toEqual([
+        { categoryId: 10, amount: 54 },
+        { categoryId: 20, amount: 36 },
+      ]);
+    });
+
+    it('reconciles the parent to the sum of converted splits under rounding drift', async () => {
+      // rate 0.00135 with the mocked splits [60, 40] (parent 100):
+      //   convert(60) = round2(0.081) = 0.08 ; convert(40) = round2(0.054) = 0.05 ; sum = 0.13
+      //   naive convert(100) = round2(0.135) = 0.14 (HALF_UP)  ← what we must NOT submit
+      // So the submitted parent must be 0.13 (Σ converted splits), not 0.14.
+      mockUseLatestExchangeRate.mockReturnValue({
+        data: { rate: 0.00135 },
+        isLoading: false,
+        isError: false,
+      } as any);
+
+      const { onSubmit } = renderForm();
+
+      await act(async () => {
+        screen.getByTestId('account-selector').click();
+      });
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
+      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+      fireEvent.change(screen.getByTestId('currency-selector'), { target: { value: 'USD' } });
+
+      await act(async () => {
+        screen.getByRole('button', { name: /split transaction/i }).click();
+      });
+      await act(async () => {
+        screen.getByTestId('set-splits').click();
+      });
+
+      await act(async () => {
+        screen.getByRole('button', { name: /create transaction/i }).click();
+      });
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+      });
+
+      const submitted = onSubmit.mock.calls[0][0];
+      expect(submitted.currency).toBe('EUR');
+      expect(submitted.splits).toEqual([
+        { categoryId: 10, amount: 0.08 },
+        { categoryId: 20, amount: 0.05 },
+      ]);
+      // Reconciliation: parent = 0.08 + 0.05 = 0.13, NOT naive convert(100) = 0.14
+      expect(submitted.amount).toBe(0.13);
+    });
+
+    it('blocks submit and shows an error when a conversion is needed but no rate is available', async () => {
+      // default beforeEach mock already returns data: undefined
+      const { onSubmit } = renderForm();
+
+      await act(async () => {
+        screen.getByTestId('account-selector').click();
+      });
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
+      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+      fireEvent.change(screen.getByTestId('currency-selector'), { target: { value: 'USD' } });
+
+      await act(async () => {
+        screen.getByRole('button', { name: /create transaction/i }).click();
+      });
+
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByText(/exchange rate unavailable/i)).toBeInTheDocument();
+    });
+
+    it('does not clobber a manually chosen currency when the accounts prop identity changes', async () => {
+      const { rerender } = renderWithProviders(
+        <TransactionForm
+          accounts={[...mockAccounts]}
+          categories={mockCategories}
+          onSubmit={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      );
+
+      await act(async () => {
+        screen.getByTestId('account-selector').click(); // selects account id 1 (EUR) → currency defaults to EUR
+      });
+      fireEvent.change(screen.getByTestId('currency-selector'), { target: { value: 'USD' } });
+      expect((screen.getByTestId('currency-selector') as HTMLSelectElement).value).toBe('USD');
+
+      // Re-render with a fresh accounts array (new identity, same account id 1): must NOT reset currency.
+      rerender(
+        <TransactionForm
+          accounts={[...mockAccounts]}
+          categories={mockCategories}
+          onSubmit={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      );
+
+      expect((screen.getByTestId('currency-selector') as HTMLSelectElement).value).toBe('USD');
     });
   });
 
