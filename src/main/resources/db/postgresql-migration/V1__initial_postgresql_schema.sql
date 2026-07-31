@@ -290,6 +290,7 @@ CREATE TABLE currencies (
     symbol      VARCHAR(10) NOT NULL,
     is_active   BOOLEAN NOT NULL DEFAULT TRUE,
     name_key    VARCHAR(100),
+    type        VARCHAR(10) NOT NULL DEFAULT 'FIAT' CHECK (type IN ('FIAT','CRYPTO')),
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uk_currency_code UNIQUE (code),
@@ -969,6 +970,10 @@ INSERT INTO currencies (code, name, symbol, is_active) VALUES
     ('DOGE', 'Dogecoin',     'Ð',    TRUE),
     ('USDT', 'Tether',       'USDT', TRUE),
     ('USDC', 'USD Coin',     'USDC', TRUE);
+
+-- Classify seeded cryptocurrencies
+UPDATE currencies SET type = 'CRYPTO'
+    WHERE code IN ('BTC','ETH','BNB','XRP','ADA','SOL','DOT','DOGE','USDT','USDC');
 
 -- Backfill currency name_key values
 UPDATE currencies SET name_key = 'currency.' || LOWER(code);

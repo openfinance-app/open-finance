@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openfinance.entity.Currency;
+import org.openfinance.entity.CurrencyType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -269,6 +270,34 @@ class CurrencyRepositoryTest {
         // Assert
         Optional<Currency> deleted = currencyRepository.findById(saved.getId());
         assertThat(deleted).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should persist and read back the currency type (FIAT/CRYPTO)")
+    void shouldPersistCurrencyType() {
+        Currency crypto =
+                Currency.builder()
+                        .code("BTC")
+                        .name("Bitcoin")
+                        .symbol("BTC")
+                        .isActive(true)
+                        .type(CurrencyType.CRYPTO)
+                        .build();
+        currencyRepository.save(crypto);
+
+        Currency fiat =
+                Currency.builder().code("EUR").name("Euro").symbol("EUR").isActive(true).build();
+        currencyRepository.save(fiat);
+
+        assertThat(currencyRepository.findByCode("BTC"))
+                .isPresent()
+                .get()
+                .satisfies(c -> assertThat(c.getType()).isEqualTo(CurrencyType.CRYPTO));
+        // type defaults to FIAT via @Builder.Default when not set explicitly
+        assertThat(currencyRepository.findByCode("EUR"))
+                .isPresent()
+                .get()
+                .satisfies(c -> assertThat(c.getType()).isEqualTo(CurrencyType.FIAT));
     }
 
     // ==================== Helper Methods ====================

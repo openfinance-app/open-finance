@@ -2,6 +2,8 @@ package org.openfinance.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -62,6 +64,16 @@ public class Currency {
     @Column(name = "code", nullable = false, length = 10, unique = true)
     @EqualsAndHashCode.Include
     private String code;
+
+    /**
+     * Classifies this currency as fiat or crypto. Single source of truth used across the backend
+     * (exchange-rate fetching, decimal precision) and exposed to the frontend. Defaults to {@code
+     * FIAT} for backward compatibility.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false, length = 10)
+    @Builder.Default
+    private CurrencyType type = CurrencyType.FIAT;
 
     /** Full name of the currency. Examples: US Dollar, Euro, British Pound, Bitcoin */
     @NotBlank(message = "{currency.name.notblank}")
