@@ -1,6 +1,11 @@
 TODO:
 
-Following the implementation of currency selector in transaction form ca28bbab0d0507afc78ae7adcc86ea38718f0922
+1-Why was the 0.01 and 0.0001 tolerances put in place and isn't there a better solution?
+This is a financial app and accuracy is important and a hard requirement. We shouldn't be using random tolerances values to fix rounding issues or other issues. Why not use the amount as it is 1.5528964145744....
+
+Review the application in depth,find the problematic issues and propose a proper solution.
+
+2-Following the implementation of currency selector in transaction form ca28bbab0d0507afc78ae7adcc86ea38718f0922
 -When editing Transaction, form should display originalamount and currency in case of conversion transaction.
 Thats mean when saving maybe their should be conversionRate,originalAmount,originalCurrency fields stored.
 so that it is easier for user to not loss the original amount and currency.
