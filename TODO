@@ -1,10 +1,9 @@
 TODO:
 
-1-Folowing implementation of the crypto-list feature: shouldn't cryptolist upsert handle also name_key?
 Following the implementation of currency selector in transaction form ca28bbab0d0507afc78ae7adcc86ea38718f0922
-1-When editing Transaction, form should display originalamount and currency in case of conversion transaction.
+-When editing Transaction, form should display originalamount and currency in case of conversion transaction.
 Thats mean when saving maybe their should be conversionRate,originalAmount,originalCurrency fields stored.
-so that it is easier for user to see what was the original amount and currency.
+so that it is easier for user to not loss the original amount and currency.
 Basically:
 User add transaction with amount 100 USD, but the account is in EUR, so the transaction is stored as 90 EUR (with conversion rate 0.9).
 When user edit this transaction, the form should display in reverse:amount=originalAmount=100, currency=originalCurrency=USD, with inverse infomation in rate display layout (conversionRate=0.9, amount=90, currency=EUR).
