@@ -7,7 +7,6 @@
 
 [![Backend CI](https://github.com/openfinance-app/open-finance/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/backend-ci.yml)
 [![Frontend CI](https://github.com/openfinance-app/open-finance/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/frontend-ci.yml)
-[![Publish Docker Image](https://github.com/openfinance-app/open-finance/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/docker-publish.yml)
 [![Release](https://img.shields.io/github/v/release/albilu/open-finance)](https://github.com/openfinance-app/open-finance/releases/latest)
 [![License: ELv2](https://img.shields.io/badge/License-Elastic_v2-blue.svg)](LICENSE)
 
