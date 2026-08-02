@@ -7,7 +7,7 @@
 
 import { http, HttpResponse } from 'msw';
 
-// Use full URL to match axios requests that go to http://localhost:8080
+// Use relative URL to match axios requests
 const API_BASE_URL = '/api/v1';
 
 // Mock authentication token

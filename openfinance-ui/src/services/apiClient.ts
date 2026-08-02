@@ -2,8 +2,8 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import i18n from '../i18n';
 import { STORAGE_KEYS } from '@/constants/storage';
 
-// API base URL - defaults to backend running on port 8080
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+// API base URL - defaults to relative path for containerized deployments
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 // Create axios instance with default configuration
 const apiClient = axios.create({

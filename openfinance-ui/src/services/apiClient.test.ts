@@ -30,7 +30,7 @@ describe('apiClient', () => {
         expect(apiClient.defaults.headers['Content-Type']).toBe('application/json');
     });
 
-    it('base URL defaults to localhost:8080', async () => {
+    it('base URL defaults to /api/v1', async () => {
         const apiClient = (await import('./apiClient')).default;
         expect(apiClient.defaults.baseURL).toContain('/api/v1');
     });
