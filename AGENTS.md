@@ -50,6 +50,7 @@ See `.github/workflows/backend-ci.yml` and `frontend-ci.yml` for environment det
 - Only create commits when the user explicitly asks. Use Conventional Commits: `type(scope): short subject`.
 - Never run destructive git commands (`--hard` reset, force push) without explicit permission.
 - Do not commit secrets or credentials; warn the user and exclude them.
+- When fixing a bug/Issue, attached commit message to the Issue with a comment explaining the fix. Ask reporter to verify the fix if issue still open.
 - When a change affects DB schema, add a Flyway migration in `src/main/resources/db/migration/`.
 
 ---
