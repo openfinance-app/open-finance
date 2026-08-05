@@ -61,6 +61,7 @@ public class TransactionArchiveService {
                      is_reconciled, is_deleted, transfer_id,
                      payment_method, liability_id, external_reference,
                      payee_id, currency_id,
+                     original_amount, original_currency, conversion_rate,
                      created_at, updated_at)
                 SELECT id, user_id, account_id, to_account_id, transaction_type,
                        amount, currency, category_id, transaction_date,
@@ -68,6 +69,7 @@ public class TransactionArchiveService {
                        is_reconciled, is_deleted, transfer_id,
                        payment_method, liability_id, external_reference,
                        payee_id, currency_id,
+                       original_amount, original_currency, conversion_rate,
                        created_at, updated_at
                 FROM transactions
                 WHERE user_id = :userId
