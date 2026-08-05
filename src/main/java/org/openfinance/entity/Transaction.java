@@ -179,6 +179,32 @@ public class Transaction {
     private Currency currencyEntity;
 
     /**
+     * Original (pre-conversion) amount the user entered, expressed in {@link #originalCurrency}.
+     * Null unless a currency conversion was applied at save time (entered currency != account
+     * currency). Encrypted at rest like {@link #amount}. {@code originalAmount * conversionRate ≈
+     * amount}.
+     */
+    @Digits(integer = 15, fraction = 4, message = "{transaction.amount.digits}")
+    @Column(name = "original_amount", length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    private BigDecimal originalAmount;
+
+    /**
+     * ISO 4217 currency the user originally entered (e.g. "USD"). Null unless a conversion was
+     * applied; when set it differs from {@link #currency} (the account currency).
+     */
+    @Size(min = 3, max = 3, message = "{transaction.currency.size}")
+    @Column(name = "original_currency", length = 3)
+    private String originalCurrency;
+
+    /**
+     * Exchange rate applied at save time: {@code 1 originalCurrency = conversionRate * currency}.
+     * Plaintext (a market rate, like {@code exchange_rates.rate}). Null unless converted.
+     */
+    @Column(name = "conversion_rate", precision = 18, scale = 8)
+    private BigDecimal conversionRate;
+
+    /**
      * ID of the category this transaction belongs to (nullable).
      *
      * <p>Categories organize transactions for budgeting and reporting. Can be null for
