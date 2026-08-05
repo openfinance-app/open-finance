@@ -892,9 +892,12 @@ public class ImportService {
                                                             .build();
                                                 })
                                         .collect(Collectors.toList());
+                        List<TransactionSplitRequest> reconciledSplits =
+                                transactionSplitService.reconcileForImport(
+                                        saved.getAmount(), saved.getCurrency(), splitRequests);
                         transactionSplitService.validateSplits(
-                                saved.getAmount(), saved.getType(), splitRequests);
-                        transactionSplitService.saveSplits(saved.getId(), splitRequests);
+                                saved.getAmount(), saved.getType(), reconciledSplits);
+                        transactionSplitService.saveSplits(saved.getId(), reconciledSplits);
                         log.debug(
                                 "Saved {} split(s) for transaction {}",
                                 splitRequests.size(),
@@ -1702,9 +1705,12 @@ public class ImportService {
                     List<TransactionSplitRequest> splitRequests =
                             buildSplitRequests(
                                     importedTx, userId, categoryMappings, categoryIdsBySource);
+                    List<TransactionSplitRequest> reconciledSplits =
+                            transactionSplitService.reconcileForImport(
+                                    saved.getAmount(), saved.getCurrency(), splitRequests);
                     transactionSplitService.validateSplits(
-                            saved.getAmount(), saved.getType(), splitRequests);
-                    transactionSplitService.saveSplits(saved.getId(), splitRequests);
+                            saved.getAmount(), saved.getType(), reconciledSplits);
+                    transactionSplitService.saveSplits(saved.getId(), reconciledSplits);
                 }
                 transactionService.syncTransactionFts(
                         saved, importedTx.getPayee(), importedTx.getMemo());
@@ -1982,9 +1988,12 @@ public class ImportService {
                 if (importedTx.isSplitTransaction()) {
                     List<TransactionSplitRequest> splitRequests =
                             buildSplitRequests(importedTx, userId, categoryMappings, Map.of());
+                    List<TransactionSplitRequest> reconciledSplits =
+                            transactionSplitService.reconcileForImport(
+                                    saved.getAmount(), saved.getCurrency(), splitRequests);
                     transactionSplitService.validateSplits(
-                            saved.getAmount(), saved.getType(), splitRequests);
-                    transactionSplitService.saveSplits(saved.getId(), splitRequests);
+                            saved.getAmount(), saved.getType(), reconciledSplits);
+                    transactionSplitService.saveSplits(saved.getId(), reconciledSplits);
                 }
                 transactionService.syncTransactionFts(
                         saved, importedTx.getPayee(), importedTx.getMemo());
