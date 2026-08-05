@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   add,
+  distributeRemainder,
   divide,
   fromMinorUnits,
   multiply,
@@ -253,5 +254,31 @@ describe('money', () => {
       const higher = pow(1.05, 10);
       expect(higher).toBeGreaterThan(lower);
     });
+  });
+});
+
+describe('distributeRemainder', () => {
+  const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+
+  it('distributes a 0.01 residue so a 3-way split of 100 is exact', () => {
+    const result = distributeRemainder(100, [33.33, 33.33, 33.33], 2);
+    expect(result).toEqual([33.34, 33.33, 33.33]);
+    expect(sum(result)).toBeCloseTo(100, 10);
+  });
+
+  it('absorbs a negative residue (over-allocated) exactly', () => {
+    const result = distributeRemainder(100, [50.01, 50.0], 2);
+    expect(result).toEqual([50.0, 50.0]);
+    expect(sum(result)).toBeCloseTo(100, 10);
+  });
+
+  it('handles zero-decimal currencies (JPY)', () => {
+    const result = distributeRemainder(100, [33, 33, 33], 0);
+    expect(sum(result)).toBe(100);
+  });
+
+  it('is a no-op when the amounts already sum exactly', () => {
+    const result = distributeRemainder(100, [40, 60], 2);
+    expect(result).toEqual([40, 60]);
   });
 });

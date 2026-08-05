@@ -146,3 +146,35 @@ export function toMinorUnits(value: Numeric, decimals = 2): number {
 export function fromMinorUnits(units: Numeric, decimals = 2): number {
   return toDecimal(units).dividedBy(new Decimal(10).pow(decimals)).toNumber();
 }
+
+/**
+ * Distributes the difference between `total` and the sum of `amounts` across the amounts, using the
+ * largest-remainder method in integer minor units, so the returned array sums EXACTLY to `total`.
+ * The residue is applied one minor unit at a time to the largest-magnitude lines first (least
+ * proportional distortion); a line is never reduced below one minor unit. Returns a new array;
+ * `amounts` is not mutated.
+ *
+ * If the residue cannot be fully placed (empty input, |residue| exceeds the number of lines, or
+ * every line is already at the one-minor-unit minimum), the amounts are returned only partially
+ * adjusted; the caller's own balance check is expected to surface the remaining difference.
+ */
+export function distributeRemainder(total: Numeric, amounts: Numeric[], decimals = 2): number[] {
+  const units = amounts.map(a => toMinorUnits(a, decimals));
+  const totalUnits = toMinorUnits(total, decimals);
+  let residue = totalUnits - units.reduce((acc, u) => acc + u, 0);
+
+  const order = units
+    .map((_, i) => i)
+    .sort((a, b) => Math.abs(units[b]) - Math.abs(units[a]) || a - b);
+
+  const step = residue > 0 ? 1 : -1;
+  for (const idx of order) {
+    if (residue === 0) break;
+    const next = units[idx] + step;
+    if (next >= 1) {
+      units[idx] = next;
+      residue -= step;
+    }
+  }
+  return units.map(u => fromMinorUnits(u, decimals));
+}
