@@ -1196,4 +1196,81 @@ describe('TransactionForm', () => {
       expect(screen.getByLabelText(/notes/i)).toHaveValue('Some important note');
     });
   });
+
+  describe('Original currency conversion', () => {
+    it('submits originalAmount/originalCurrency/conversionRate when converting', async () => {
+      mockUseLatestExchangeRate.mockReturnValue({
+        data: { rate: 0.9 },
+        isLoading: false,
+        isError: false,
+      } as any);
+      const { onSubmit } = renderForm();
+
+      await act(async () => {
+        screen.getByTestId('account-selector').click(); // EUR account (id 1) -> currency=EUR
+      });
+      await act(async () => {
+        fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
+      });
+      await act(async () => {
+        const sel = screen.getByTestId('currency-selector') as HTMLSelectElement;
+        sel.value = 'USD';
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      await act(async () => {
+        screen.getByRole('button', { name: /create transaction/i }).click();
+      });
+
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currency: 'EUR',
+          amount: 90,
+          originalAmount: 100,
+          originalCurrency: 'USD',
+          conversionRate: 0.9,
+        }),
+      );
+    });
+
+    it('omits the original-* fields when no conversion is needed', async () => {
+      const { onSubmit } = renderForm();
+      await act(async () => {
+        screen.getByTestId('account-selector').click(); // EUR account, currency stays EUR
+      });
+      await act(async () => {
+        fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '50' } });
+      });
+      await act(async () => {
+        screen.getByRole('button', { name: /create transaction/i }).click();
+      });
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      const payload = onSubmit.mock.calls[0][0];
+      expect(payload.originalAmount).toBeUndefined();
+      expect(payload.originalCurrency).toBeUndefined();
+      expect(payload.conversionRate).toBeUndefined();
+    });
+
+    it('pre-fills the original amount + currency and shows the stored rate when editing', () => {
+      const converted: Transaction = {
+        id: 5,
+        userId: 1,
+        accountId: 1,
+        type: 'EXPENSE',
+        amount: 90,
+        currency: 'EUR',
+        originalAmount: 100,
+        originalCurrency: 'USD',
+        conversionRate: 0.9,
+        date: '2024-06-01',
+        isReconciled: false,
+        createdAt: '2024-06-01',
+      };
+      renderForm({ transaction: converted });
+
+      expect((screen.getByLabelText(/amount/i) as HTMLInputElement).value).toBe('100');
+      expect((screen.getByTestId('currency-selector') as HTMLSelectElement).value).toBe('USD');
+      expect(screen.getByText(/rate at time of transaction/i)).toBeInTheDocument();
+    });
+  });
 });

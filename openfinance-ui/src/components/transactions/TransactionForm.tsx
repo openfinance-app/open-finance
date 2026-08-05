@@ -136,8 +136,10 @@ export function TransactionForm({
         accountId: transaction.accountId,
         toAccountId: transaction.toAccountId,
         type: transaction.type,
-        amount: transaction.amount,
-        currency: transaction.currency,
+        amount: transaction.originalCurrency
+          ? (transaction.originalAmount ?? transaction.amount)
+          : transaction.amount,
+        currency: transaction.originalCurrency ?? transaction.currency,
         categoryId: transaction.categoryId,
         date: formatDateForInput(transaction.date),
         description: transaction.description || '',
@@ -189,24 +191,39 @@ export function TransactionForm({
     !!accountCurrency &&
     inputCurrency !== accountCurrency;
 
-  const { data: exchangeRate } = useLatestExchangeRate(
+  // When editing a previously-converted transaction, reuse the STORED historical rate as long as
+  // the user hasn't changed the currency pair from what was saved; otherwise fetch the latest rate.
+  const storedOriginalCurrency = transaction?.originalCurrency;
+  const storedConversionRate = transaction?.conversionRate;
+  const storedAccountCurrency = transaction?.currency;
+  const useStoredRate =
+    isEditing &&
+    !!storedOriginalCurrency &&
+    storedConversionRate != null &&
+    inputCurrency === storedOriginalCurrency &&
+    accountCurrency === storedAccountCurrency;
+
+  const { data: liveExchangeRate } = useLatestExchangeRate(
     inputCurrency,
     accountCurrency,
-    needsConversion ? 1 : 0,
+    needsConversion && !useStoredRate ? 1 : 0,
+    needsConversion && !useStoredRate,
   );
 
+  const effectiveRate = useStoredRate ? storedConversionRate : liveExchangeRate?.rate;
+
   const convertedPreview =
-    needsConversion && exchangeRate && Number.isFinite(amountValue) && amountValue > 0
-      ? multiply(amountValue, exchangeRate.rate)
+    needsConversion && effectiveRate != null && Number.isFinite(amountValue) && amountValue > 0
+      ? multiply(amountValue, effectiveRate)
       : undefined;
 
   // Clear ONLY the manual "rate unavailable" error we set, once conversion is no longer needed or
   // the rate loads. Scoped to type === 'manual' so it never masks a zod validation error.
   useEffect(() => {
-    if (errors.currency?.type === 'manual' && (!needsConversion || exchangeRate)) {
+    if (errors.currency?.type === 'manual' && (!needsConversion || effectiveRate != null)) {
       clearErrors('currency');
     }
-  }, [errors.currency?.type, needsConversion, exchangeRate, clearErrors]);
+  }, [errors.currency?.type, needsConversion, effectiveRate, clearErrors]);
 
   // Get payees for auto-fill logic
   const { data: payees = [] } = useActivePayees();
@@ -253,7 +270,7 @@ export function TransactionForm({
   const handleFormSubmit = (data: TransactionFormData) => {
     // The backend requires transaction.currency === account.currency for INCOME/EXPENSE, so convert
     // the entered amount (and any split amounts) into the account currency before submitting.
-    const rate = needsConversion ? exchangeRate?.rate : undefined;
+    const rate = needsConversion ? effectiveRate : undefined;
 
     // Block submit when a conversion is required but the rate is not available yet.
     if (needsConversion && !rate) {
@@ -277,6 +294,17 @@ export function TransactionForm({
         ? sumToDecimals(submitSplits!.map((s) => s.amount), decimals)
         : convert(data.amount);
 
+    // The user-entered (pre-conversion) total, in the input currency, persisted for edit restore.
+    const originalAmountForSubmit =
+      needsConversion && rate
+        ? inSplit
+          ? sumToDecimals(
+              splits.map((s) => Number(s.amount) || 0),
+              getCurrencyDecimals(inputCurrency),
+            )
+          : Number(data.amount)
+        : undefined;
+
     onSubmit({
       accountId: data.accountId,
       toAccountId: data.toAccountId,
@@ -286,6 +314,9 @@ export function TransactionForm({
       // INCOME/EXPENSE). For TRANSFER this normalizes any stale input-currency selection back to the
       // source account's currency; needsConversion is false for TRANSFER so the amount is unchanged.
       currency: accountCurrency,
+      originalAmount: originalAmountForSubmit,
+      originalCurrency: needsConversion && rate ? inputCurrency : undefined,
+      conversionRate: needsConversion && rate ? rate : undefined,
       // REQ-SPL-1.5: hide parent category when split mode is active
       categoryId: splitMode ? undefined : data.categoryId,
       date: data.date,
@@ -361,7 +392,12 @@ export function TransactionForm({
             )}
             {needsConversion && (
               <div className="mt-1.5">
-                <ExchangeRateInline from={inputCurrency} to={accountCurrency} />
+                <ExchangeRateInline
+                  from={inputCurrency}
+                  to={accountCurrency}
+                  rate={useStoredRate ? storedConversionRate : undefined}
+                  hint={useStoredRate ? t('form.rateAtTransactionTime') : undefined}
+                />
               </div>
             )}
           </div>
@@ -591,7 +627,7 @@ export function TransactionForm({
               totalAmount={watch('amount') || 0}
               currency={inputCurrency || DEFAULT_CURRENCY}
               accountCurrency={accountCurrency}
-              exchangeRate={needsConversion ? exchangeRate?.rate : undefined}
+              exchangeRate={needsConversion ? effectiveRate : undefined}
               transactionType={selectedType}
               splits={splits}
               onChange={setSplits}
