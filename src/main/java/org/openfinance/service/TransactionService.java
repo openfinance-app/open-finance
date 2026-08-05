@@ -203,6 +203,8 @@ public class TransactionService {
         // Link Currency entity
         resolveAndLinkCurrency(transaction);
 
+        applyConversionFields(transaction, request);
+
         // Encrypt sensitive fields (Requirement 2.18: Encryption at rest)
         encryptSensitiveFields(transaction, request);
 
@@ -909,6 +911,8 @@ public class TransactionService {
         // Link Currency entity
         resolveAndLinkCurrency(transaction);
 
+        applyConversionFields(transaction, request);
+
         // Re-encrypt sensitive fields (always re-encrypt the provided plaintext values)
         encryptSensitiveFields(transaction, request);
 
@@ -1541,6 +1545,25 @@ public class TransactionService {
                         accountCurrency, request.getCurrency());
             }
         }
+
+        // Original-conversion fields are persisted so the edit form can restore the pre-conversion
+        // amount/currency. The frontend sends all three together or none — enforce all-or-nothing.
+        boolean anyOriginal =
+                request.getOriginalAmount() != null
+                        || request.getOriginalCurrency() != null
+                        || request.getConversionRate() != null;
+        if (anyOriginal) {
+            boolean valid =
+                    request.getOriginalAmount() != null
+                            && request.getOriginalCurrency() != null
+                            && request.getConversionRate() != null
+                            && request.getOriginalAmount().compareTo(BigDecimal.ZERO) > 0
+                            && request.getConversionRate().compareTo(BigDecimal.ZERO) > 0
+                            && request.getOriginalCurrency().length() == 3;
+            if (!valid) {
+                throw InvalidTransactionException.incompleteConversionDetails();
+            }
+        }
     }
 
     /**
@@ -1587,6 +1610,17 @@ public class TransactionService {
         }
         transaction.setCurrencyId(
                 currencyRepository.findByCode(code).map(c -> c.getId()).orElse(null));
+    }
+
+    /**
+     * Copies the original-conversion fields from the request onto the entity. Called on both create
+     * and update so that omitting them (no conversion) writes {@code null} — clearing any prior
+     * conversion on update (the update mapper ignores nulls). Set unconditionally.
+     */
+    private void applyConversionFields(Transaction transaction, TransactionRequest request) {
+        transaction.setOriginalAmount(request.getOriginalAmount());
+        transaction.setOriginalCurrency(request.getOriginalCurrency());
+        transaction.setConversionRate(request.getConversionRate());
     }
 
     /**

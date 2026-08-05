@@ -1914,4 +1914,83 @@ class TransactionServiceTest {
         assertThat(response.getCurrency()).isEqualTo("JPY");
         assertThat(response.getAmount()).isEqualByComparingTo(new BigDecimal("50000"));
     }
+
+    // ---------- original conversion fields ----------
+
+    @Test
+    @DisplayName("Should persist original conversion fields on create")
+    void shouldPersistOriginalConversionFieldsOnCreate() {
+        TransactionRequest req = baseRequest();
+        req.setType(TransactionType.EXPENSE);
+        req.setCategoryId(null);
+        req.setCurrency("EUR");
+        req.setAmount(new BigDecimal("90.0000"));
+        req.setOriginalAmount(new BigDecimal("100.0000"));
+        req.setOriginalCurrency("USD");
+        req.setConversionRate(new BigDecimal("0.90000000"));
+
+        Account acc = accountFixture(10L, 1L, "Checking", "EUR");
+        Transaction mapped = transactionEntity(null, null, req);
+        Transaction saved = transactionEntity(100L, 1L, req);
+
+        when(accountRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(acc));
+        when(transactionMapper.toEntity(req)).thenReturn(mapped);
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(saved);
+        when(accountRepository.save(any(Account.class))).thenReturn(acc);
+        when(transactionMapper.toResponse(saved)).thenReturn(new TransactionResponse());
+
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        transactionService.createTransaction(1L, req);
+
+        verify(transactionRepository).save(captor.capture());
+        Transaction persisted = captor.getValue();
+        assertThat(persisted.getOriginalAmount()).isEqualByComparingTo("100.0000");
+        assertThat(persisted.getOriginalCurrency()).isEqualTo("USD");
+        assertThat(persisted.getConversionRate()).isEqualByComparingTo("0.9");
+    }
+
+    @Test
+    @DisplayName("Should clear original conversion fields on update when the request omits them")
+    void shouldClearOriginalConversionFieldsOnUpdate() {
+        TransactionRequest req = baseRequest();
+        req.setType(TransactionType.EXPENSE);
+        req.setCategoryId(null); // no original-* fields -> should clear
+
+        Account acc = accountFixture(10L, 1L, "Checking", "USD");
+        Transaction existing = transactionEntity(100L, 1L, req);
+        existing.setOriginalAmount(new BigDecimal("100.0000"));
+        existing.setOriginalCurrency("USD");
+        existing.setConversionRate(new BigDecimal("0.9"));
+
+        when(accountRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(acc));
+        when(transactionRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(existing));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(existing);
+        when(accountRepository.save(any(Account.class))).thenReturn(acc);
+        when(transactionMapper.toResponse(any(Transaction.class)))
+                .thenReturn(new TransactionResponse());
+
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        transactionService.updateTransaction(100L, 1L, req);
+
+        verify(transactionRepository).save(captor.capture());
+        Transaction persisted = captor.getValue();
+        assertThat(persisted.getOriginalAmount()).isNull();
+        assertThat(persisted.getOriginalCurrency()).isNull();
+        assertThat(persisted.getConversionRate()).isNull();
+    }
+
+    @Test
+    @DisplayName("Should reject partial original conversion fields (all-or-nothing)")
+    void shouldRejectPartialOriginalConversionFields() {
+        TransactionRequest req = baseRequest();
+        req.setType(TransactionType.EXPENSE);
+        req.setCategoryId(null);
+        req.setOriginalCurrency("USD"); // only one of the three -> invalid
+
+        Account acc = accountFixture(10L, 1L, "Checking", "USD");
+        when(accountRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(acc));
+
+        assertThatThrownBy(() -> transactionService.createTransaction(1L, req))
+                .isInstanceOf(InvalidTransactionException.class);
+    }
 }

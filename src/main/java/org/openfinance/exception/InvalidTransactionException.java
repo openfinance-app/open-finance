@@ -142,6 +142,17 @@ public class InvalidTransactionException extends RuntimeException implements Loc
                         transactionCurrency, accountCurrency));
     }
 
+    /**
+     * Factory method for incomplete/invalid original-conversion details (all-or-nothing).
+     *
+     * @return a new InvalidTransactionException
+     */
+    public static InvalidTransactionException incompleteConversionDetails() {
+        return new InvalidTransactionException(
+                "Conversion details must be provided together and valid: originalAmount (> 0),"
+                        + " originalCurrency (3 letters), and conversionRate (> 0).");
+    }
+
     @Override
     public String getMessageKey() {
         return messageKey;
