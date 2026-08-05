@@ -103,6 +103,14 @@ export interface Transaction {
   updatedAt?: string;
   // Requirement 3.1: Optional link to a liability for loan payment tracking
   liabilityId?: number;
+  // Original (pre-conversion) values — set only when the transaction was entered in a currency
+  // different from its account currency. Used by the edit form to restore what the user typed.
+  /** Pre-conversion amount in originalCurrency (e.g. 100) */
+  originalAmount?: number;
+  /** Currency originally entered (e.g. "USD") */
+  originalCurrency?: string;
+  /** Applied rate: 1 originalCurrency = conversionRate * currency (e.g. 0.9) */
+  conversionRate?: number;
   
   // Denormalized fields from backend
   accountName?: string;
@@ -150,6 +158,10 @@ export interface TransactionRequest {
   paymentMethod?: PaymentMethod;
   // Requirement 3.1: Optional link to a liability for EXPENSE transactions
   liabilityId?: number;
+  // Original (pre-conversion) values, submitted together when a conversion was applied.
+  originalAmount?: number;
+  originalCurrency?: string;
+  conversionRate?: number;
   // Requirement REQ-SPL-2.1, REQ-SPL-2.2: Split lines for INCOME/EXPENSE transactions
   splits?: TransactionSplitRequest[];
 }
