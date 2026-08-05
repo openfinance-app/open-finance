@@ -88,6 +88,26 @@ public class TransactionRequest {
     private String currency;
 
     /**
+     * Original (pre-conversion) amount the user entered, in {@link #originalCurrency}. Sent
+     * together with {@link #originalCurrency} and {@link #conversionRate} when the entered currency
+     * differs from the account currency; otherwise null. All three are validated all-or-nothing.
+     */
+    @Digits(integer = 15, fraction = 4, message = "{transaction.amount.digits}")
+    private BigDecimal originalAmount;
+
+    /** ISO 4217 currency originally entered (e.g. "USD"). Null when no conversion was applied. */
+    @Size(min = 3, max = 3, message = "{transaction.currency.size}")
+    private String originalCurrency;
+
+    /**
+     * Applied rate: {@code 1 originalCurrency = conversionRate * currency}. Null when no
+     * conversion.
+     */
+    @DecimalMin(value = "0", inclusive = false, message = "{transaction.amount.greater}")
+    @Digits(integer = 10, fraction = 8, message = "{transaction.amount.digits}")
+    private BigDecimal conversionRate;
+
+    /**
      * ID of the category this transaction belongs to (optional).
      *
      * <p>Category must match the transaction type (INCOME category for INCOME transaction).

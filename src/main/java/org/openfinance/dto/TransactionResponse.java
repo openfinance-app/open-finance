@@ -73,6 +73,17 @@ public class TransactionResponse {
     /** ID of the linked Currency entity (nullable). */
     private Long currencyId;
 
+    /** Original pre-conversion amount (in {@link #originalCurrency}); null if not converted. */
+    private BigDecimal originalAmount;
+
+    /** ISO 4217 currency originally entered; null if not converted. */
+    private String originalCurrency;
+
+    /**
+     * Applied rate: {@code 1 originalCurrency = conversionRate * currency}; null if not converted.
+     */
+    private BigDecimal conversionRate;
+
     /** ID of the category (null for transfers or uncategorized transactions). */
     private Long categoryId;
 
