@@ -13,9 +13,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
-import org.openfinance.util.SplitValidationConstants;
+import org.openfinance.util.MoneyAllocation;
 import org.springframework.stereotype.Component;
 
 /**
@@ -769,13 +770,20 @@ public class QifParser {
 
             if (transaction.getAmount() != null) {
                 // QIF split amounts are stored as positive values regardless of the parent
-                // transaction sign — compare absolute values to handle expense splits
-                // correctly.
-                // Allow ±0.01 tolerance to match the service-layer validation and handle
-                // rounding differences (e.g. three-way splits of non-divisible amounts).
-                BigDecimal difference =
-                        totalSplitAmount.abs().subtract(transaction.getAmount().abs()).abs();
-                if (difference.compareTo(SplitValidationConstants.SPLIT_SUM_TOLERANCE) > 0) {
+                // transaction sign — compare absolute values to handle expense splits correctly.
+                // QIF carries no currency, so use the fiat minor unit (scale 2). Legitimate
+                // per-line rounding residue is reconciled at import time; only flag a residue too
+                // large to be rounding (a gross mismatch).
+                List<BigDecimal> partAmounts =
+                        transaction.getSplits().stream()
+                                .map(ImportedTransaction.SplitEntry::getAmount)
+                                .filter(a -> a != null)
+                                .map(BigDecimal::abs)
+                                .collect(Collectors.toList());
+                boolean grossMismatch =
+                        MoneyAllocation.reconcile(transaction.getAmount().abs(), partAmounts, 2)
+                                .grossMismatch();
+                if (grossMismatch) {
                     transaction.addValidationError(
                             ImportParseSupport.message(
                                     "import.validation.split.mismatch",

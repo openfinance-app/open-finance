@@ -484,7 +484,7 @@ class QifParserTest {
     }
 
     @Test
-    @DisplayName("Should accept split amounts within ±0.01 rounding tolerance")
+    @DisplayName("Should accept split amounts within the rounding bound (reconciled at import)")
     void testSplitAmountsWithinRoundingTolerance() throws IOException {
         // Three-way split of 100.00 → 33.33 + 33.33 + 33.33 = 99.99 (off by 0.01)
         String qif =
@@ -511,7 +511,7 @@ class QifParserTest {
     }
 
     @Test
-    @DisplayName("Should reject split amounts exceeding ±0.01 rounding tolerance")
+    @DisplayName("Should flag split amounts beyond the rounding bound as a mismatch")
     void testSplitAmountsExceedingRoundingTolerance() throws IOException {
         // Splits sum to 98.00 but parent is 100.00 (off by 2.00)
         String qif =
@@ -533,6 +533,34 @@ class QifParserTest {
         assertThat(tx.hasErrors()).isTrue();
         assertThat(tx.getValidationErrors())
                 .anyMatch(err -> err.contains("Split amounts") && err.contains("do not match"));
+    }
+
+    @Test
+    @DisplayName("Should accept a multi-cent residue within the per-line bound")
+    void testSplitMultiCentResidueWithinBound() throws IOException {
+        // 4 splits of 25.00 = 100.00 vs parent 100.03 -> residue 0.03, bound = 4 * 0.01 = 0.04
+        String qif =
+                """
+                !Type:Bank
+                D01/15/2024
+                T-100.03
+                PFour-way split
+                SPart 1
+                $-25.00
+                SPart 2
+                $-25.00
+                SPart 3
+                $-25.00
+                SPart 4
+                $-25.00
+                ^
+                """;
+
+        List<ImportedTransaction> transactions = parseQif(qif);
+
+        ImportedTransaction tx = transactions.get(0);
+        assertThat(tx.hasErrors()).isFalse();
+        assertThat(tx.getSplits()).hasSize(4);
     }
 
     // ========== Edge Case Tests ==========
