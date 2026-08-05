@@ -15,7 +15,7 @@ import org.openfinance.converter.EncryptedStringConverter;
  *
  * <p>A split allows one parent {@link Transaction} to be categorized across multiple categories,
  * each with its own amount. The sum of all split amounts for a given transaction must equal the
- * parent transaction's total amount (within a ±0.01 tolerance).
+ * parent transaction's total amount exactly.
  *
  * <p><strong>Security:</strong> The {@code description} field is encrypted before storage,
  * consistent with the pattern used in {@link Transaction}.
@@ -82,7 +82,7 @@ public class TransactionSplit {
      * Amount allocated to this split line.
      *
      * <p>Must be positive. The sum of all split amounts for a transaction must equal the parent
-     * transaction amount (within ±0.01 tolerance).
+     * transaction amount exactly.
      *
      * <p>Requirement REQ-SPL-1.1: Amount field; REQ-SPL-1.2: Sum validation
      */

@@ -148,6 +148,16 @@ public class TransactionSplitService {
             return splits == null ? List.of() : splits;
         }
         int scale = Math.min(currencyTypeResolver.decimalsFor(currency), 4);
+        // A transaction amount with finer precision than the currency's minor unit cannot be split
+        // into exactly-summing minor-unit lines; reject it explicitly so a successful reconcile
+        // always satisfies the exact validateSplits check.
+        if (total.stripTrailingZeros().scale() > scale) {
+            throw new InvalidTransactionException(
+                    String.format(
+                            "Cannot reconcile split amounts: transaction amount %s has finer "
+                                    + "precision than the %s minor unit (scale %d)",
+                            total.toPlainString(), currency, scale));
+        }
         List<BigDecimal> amounts =
                 splits.stream()
                         .map(TransactionSplitRequest::getAmount)

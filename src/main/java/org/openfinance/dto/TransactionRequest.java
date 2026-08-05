@@ -207,8 +207,8 @@ public class TransactionRequest {
      * Optional list of split lines for this transaction.
      *
      * <p>When present, the transaction amount is distributed across the provided split entries. The
-     * sum of all split amounts must equal {@code amount} within a ±0.01 tolerance. Splits are only
-     * valid for INCOME and EXPENSE transactions — not TRANSFER.
+     * sum of all split amounts must equal {@code amount} exactly. Splits are only valid for INCOME
+     * and EXPENSE transactions — not TRANSFER.
      *
      * <p>Requirement REQ-SPL-2.1: Accept splits on POST
      *

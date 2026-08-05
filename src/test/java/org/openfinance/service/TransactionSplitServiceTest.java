@@ -265,6 +265,23 @@ class TransactionSplitServiceTest {
                 .hasMessageContaining("do not sum");
     }
 
+    @Test
+    @DisplayName("reconcileForImport: total with finer-than-minor-unit precision is rejected")
+    void reconcileForImportSubMinorUnitTotalThrows() {
+        when(currencyTypeResolver.decimalsFor("USD")).thenReturn(2);
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("50.00"), "a"),
+                        createSplitRequest(2L, new BigDecimal("50.00"), "b"));
+
+        assertThatThrownBy(
+                        () ->
+                                transactionSplitService.reconcileForImport(
+                                        new BigDecimal("100.0050"), "USD", splits))
+                .isInstanceOf(InvalidTransactionException.class)
+                .hasMessageContaining("finer precision");
+    }
+
     // ---------- saveSplits tests ----------
 
     @Test
