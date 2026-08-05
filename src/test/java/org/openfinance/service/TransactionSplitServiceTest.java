@@ -41,6 +41,8 @@ class TransactionSplitServiceTest {
 
     @Mock private OperationHistoryService operationHistoryService;
 
+    @Mock private CurrencyTypeResolver currencyTypeResolver;
+
     @InjectMocks private TransactionSplitService transactionSplitService;
 
     @BeforeEach
@@ -147,16 +149,14 @@ class TransactionSplitServiceTest {
     }
 
     @Test
-    @DisplayName("Should pass validation when splits sum matches within tolerance")
-    void shouldPassValidationWhenSumsWithinTolerance() {
-        // Arrange
+    @DisplayName("Should pass when sub-cent amounts sum exactly to the total")
+    void shouldPassWhenSubCentAmountsSumExactly() {
         BigDecimal totalAmount = new BigDecimal("100.00");
         List<TransactionSplitRequest> splits =
                 List.of(
                         createSplitRequest(1L, new BigDecimal("40.005"), "desc1"),
                         createSplitRequest(2L, new BigDecimal("59.995"), "desc2"));
 
-        // Act & Assert
         assertThatCode(
                         () ->
                                 transactionSplitService.validateSplits(
@@ -165,45 +165,104 @@ class TransactionSplitServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw InvalidTransactionException when splits sum exceeds tolerance above")
-    void shouldThrowWhenSumExceedsToleranceAbove() {
-        // Arrange
+    @DisplayName("Should throw when splits sum differs above the total")
+    void shouldThrowWhenSumDiffersAbove() {
         BigDecimal totalAmount = new BigDecimal("100.00");
         List<TransactionSplitRequest> splits =
                 List.of(
                         createSplitRequest(1L, new BigDecimal("50.02"), "desc1"),
                         createSplitRequest(2L, new BigDecimal("50.00"), "desc2"));
 
-        // Act & Assert
         assertThatThrownBy(
                         () ->
                                 transactionSplitService.validateSplits(
                                         totalAmount, TransactionType.EXPENSE, splits))
                 .isInstanceOf(InvalidTransactionException.class)
-                .hasMessageContaining(
-                        "Split amounts sum to 100.02 but parent transaction amount is 100.0000")
-                .hasMessageContaining("difference 0.0200 exceeds allowed tolerance of 0.01");
+                .hasMessageContaining("must sum exactly")
+                .hasMessageContaining("difference 0.02");
     }
 
     @Test
-    @DisplayName("Should throw InvalidTransactionException when splits sum exceeds tolerance below")
-    void shouldThrowWhenSumExceedsToleranceBelow() {
-        // Arrange
+    @DisplayName("Should throw when splits sum differs below the total")
+    void shouldThrowWhenSumDiffersBelow() {
         BigDecimal totalAmount = new BigDecimal("100.00");
         List<TransactionSplitRequest> splits =
                 List.of(
                         createSplitRequest(1L, new BigDecimal("49.98"), "desc1"),
                         createSplitRequest(2L, new BigDecimal("50.00"), "desc2"));
 
-        // Act & Assert
         assertThatThrownBy(
                         () ->
                                 transactionSplitService.validateSplits(
                                         totalAmount, TransactionType.INCOME, splits))
                 .isInstanceOf(InvalidTransactionException.class)
-                .hasMessageContaining(
-                        "Split amounts sum to 99.98 but parent transaction amount is 100.0000")
-                .hasMessageContaining("difference 0.0200 exceeds allowed tolerance of 0.01");
+                .hasMessageContaining("must sum exactly")
+                .hasMessageContaining("difference 0.02");
+    }
+
+    @Test
+    @DisplayName("Should throw when splits differ by exactly one cent (old tolerance boundary)")
+    void shouldThrowWhenSplitsDifferByExactlyOneCent() {
+        BigDecimal totalAmount = new BigDecimal("100.00");
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("50.01"), "desc1"),
+                        createSplitRequest(2L, new BigDecimal("50.00"), "desc2"));
+
+        assertThatThrownBy(
+                        () ->
+                                transactionSplitService.validateSplits(
+                                        totalAmount, TransactionType.EXPENSE, splits))
+                .isInstanceOf(InvalidTransactionException.class)
+                .hasMessageContaining("must sum exactly");
+    }
+
+    @Test
+    @DisplayName("reconcileForImport: rounding residue is reconciled to an exact sum")
+    void reconcileForImportFixesResidue() {
+        when(currencyTypeResolver.decimalsFor("USD")).thenReturn(2);
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("33.33"), "a"),
+                        createSplitRequest(2L, new BigDecimal("33.33"), "b"),
+                        createSplitRequest(3L, new BigDecimal("33.33"), "c"));
+
+        List<TransactionSplitRequest> fixed =
+                transactionSplitService.reconcileForImport(new BigDecimal("100.00"), "USD", splits);
+
+        BigDecimal sum =
+                fixed.stream()
+                        .map(TransactionSplitRequest::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertThat(sum).isEqualByComparingTo("100.00");
+        // largest-remainder puts the extra cent on the first line; categories/descriptions
+        // preserved
+        assertThat(fixed.get(0).getAmount()).isEqualByComparingTo("33.34");
+        assertThat(fixed.get(1).getAmount()).isEqualByComparingTo("33.33");
+        assertThat(fixed.get(2).getAmount()).isEqualByComparingTo("33.33");
+        assertThat(fixed)
+                .extracting(TransactionSplitRequest::getCategoryId)
+                .containsExactly(1L, 2L, 3L);
+        assertThat(fixed)
+                .extracting(TransactionSplitRequest::getDescription)
+                .containsExactly("a", "b", "c");
+    }
+
+    @Test
+    @DisplayName("reconcileForImport: gross mismatch throws")
+    void reconcileForImportGrossThrows() {
+        when(currencyTypeResolver.decimalsFor("USD")).thenReturn(2);
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("50.00"), "a"),
+                        createSplitRequest(2L, new BigDecimal("48.00"), "b"));
+
+        assertThatThrownBy(
+                        () ->
+                                transactionSplitService.reconcileForImport(
+                                        new BigDecimal("100.00"), "USD", splits))
+                .isInstanceOf(InvalidTransactionException.class)
+                .hasMessageContaining("do not sum");
     }
 
     // ---------- saveSplits tests ----------

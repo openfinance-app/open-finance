@@ -17,7 +17,7 @@ import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.security.EncryptionService;
-import org.openfinance.util.SplitValidationConstants;
+import org.openfinance.util.MoneyAllocation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -38,7 +38,7 @@ import org.springframework.util.CollectionUtils;
  * <p><strong>Security:</strong> Split descriptions are encrypted with the same AES-256-GCM scheme
  * used for transaction descriptions and notes.
  *
- * <p>Requirement REQ-SPL-1.2: Sum validation (±0.01 tolerance)
+ * <p>Requirement REQ-SPL-1.2: Sum validation (must sum exactly)
  *
  * <p>Requirement REQ-SPL-1.5: Splits only valid for INCOME/EXPENSE
  *
@@ -58,6 +58,7 @@ public class TransactionSplitService {
     private final TransactionSplitRepository splitRepository;
     private final CategoryRepository categoryRepository;
     private final EncryptionService encryptionService;
+    private final CurrencyTypeResolver currencyTypeResolver;
 
     // -----------------------------------------------------------------------
     // Validation
@@ -71,15 +72,14 @@ public class TransactionSplitService {
      * <ol>
      *   <li>Splits are only allowed for INCOME and EXPENSE transactions.
      *   <li>If splits are provided, there must be at least 2 entries.
-     *   <li>The sum of all split amounts must equal {@code totalAmount} within the shared tolerance
-     *       {@link org.openfinance.util.SplitValidationConstants#SPLIT_SUM_TOLERANCE} (±0.01).
+     *   <li>The sum of all split amounts must equal {@code totalAmount} exactly.
      * </ol>
      *
      * @param totalAmount the parent transaction amount
      * @param transactionType the type of the parent transaction
      * @param splits the list of split requests (may be null/empty)
      * @throws InvalidTransactionException if any validation rule is violated
-     *     <p>Requirement REQ-SPL-1.2: Sum must equal parent amount (±0.01)
+     *     <p>Requirement REQ-SPL-1.2: Sum must equal parent amount exactly
      *     <p>Requirement REQ-SPL-1.5: Splits only for INCOME/EXPENSE
      *     <p>Requirement REQ-SPL-2.6: Server-side amount validation
      */
@@ -114,15 +114,15 @@ public class TransactionSplitService {
         BigDecimal expected = totalAmount.setScale(4, RoundingMode.HALF_UP);
         BigDecimal difference = expected.subtract(splitSum).abs();
 
-        if (difference.compareTo(SplitValidationConstants.SPLIT_SUM_TOLERANCE) > 0) {
+        if (difference.compareTo(BigDecimal.ZERO) != 0) {
             throw new InvalidTransactionException(
                     String.format(
-                            "Split amounts sum to %s but parent transaction amount is %s "
-                                    + "(difference %s exceeds allowed tolerance of %s)",
-                            splitSum.stripTrailingZeros(),
-                            expected,
-                            difference,
-                            SplitValidationConstants.SPLIT_SUM_TOLERANCE));
+                            "Split amounts must sum exactly to the transaction amount: "
+                                    + "splits sum to %s but the transaction amount is %s "
+                                    + "(difference %s)",
+                            splitSum.stripTrailingZeros().toPlainString(),
+                            expected.stripTrailingZeros().toPlainString(),
+                            difference.stripTrailingZeros().toPlainString()));
         }
 
         log.debug(
@@ -130,6 +130,48 @@ public class TransactionSplitService {
                 splits.size(),
                 splitSum,
                 expected);
+    }
+
+    /**
+     * Reconciles imported split amounts so they sum EXACTLY to {@code total}, absorbing legitimate
+     * per-line rounding residue via {@link MoneyAllocation}. Differences too large to be rounding
+     * (beyond one minor unit per line) throw {@link InvalidTransactionException}.
+     *
+     * @param total the parent transaction amount (authoritative)
+     * @param currency ISO 4217 code of the transaction, used to pick the minor-unit scale
+     * @param splits the imported split requests; each split amount must be non-null
+     * @return new split requests with reconciled amounts (category/description preserved)
+     */
+    public List<TransactionSplitRequest> reconcileForImport(
+            BigDecimal total, String currency, List<TransactionSplitRequest> splits) {
+        if (CollectionUtils.isEmpty(splits)) {
+            return splits == null ? List.of() : splits;
+        }
+        int scale = Math.min(currencyTypeResolver.decimalsFor(currency), 4);
+        List<BigDecimal> amounts =
+                splits.stream()
+                        .map(TransactionSplitRequest::getAmount)
+                        .collect(Collectors.toList());
+        MoneyAllocation.ReconcileResult result = MoneyAllocation.reconcile(total, amounts, scale);
+        if (result.grossMismatch()) {
+            throw new InvalidTransactionException(
+                    String.format(
+                            "Imported split amounts do not sum to the transaction amount %s "
+                                    + "(currency %s)",
+                            total, currency));
+        }
+        List<BigDecimal> fixed = result.parts();
+        List<TransactionSplitRequest> out = new ArrayList<>(splits.size());
+        for (int i = 0; i < splits.size(); i++) {
+            TransactionSplitRequest src = splits.get(i);
+            out.add(
+                    TransactionSplitRequest.builder()
+                            .categoryId(src.getCategoryId())
+                            .amount(fixed.get(i))
+                            .description(src.getDescription())
+                            .build());
+        }
+        return out;
     }
 
     // -----------------------------------------------------------------------

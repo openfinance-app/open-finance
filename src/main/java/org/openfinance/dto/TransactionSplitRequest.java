@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
  *
  * <p>A split line represents the allocation of part of the parent transaction's total amount to a
  * specific category. The sum of all split amounts in a request must equal the parent transaction's
- * {@code amount} field (within ±0.01).
+ * {@code amount} field exactly.
  *
  * <p>Requirement REQ-SPL-2.1: Accept splits array on POST /transactions
  *
@@ -45,7 +45,7 @@ public class TransactionSplitRequest {
      * Amount allocated to this split line (required, must be &gt; 0).
      *
      * <p>The sum of all split amounts in the request must equal the parent transaction amount
-     * within ±0.01 tolerance.
+     * exactly.
      *
      * <p>Requirement REQ-SPL-1.1: Amount field; REQ-SPL-1.2: Sum constraint
      */
