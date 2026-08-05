@@ -160,6 +160,7 @@
     "removeDisabledTitle": "At least two splits are required",
     "removeTitle": "Remove this split",
     "addSplit": "Add split",
+    "distribute": "Distribute remainder",
     "transactionTotal": "Transaction total",
     "splitTotal": "Split total",
     "balanced": "Balanced",

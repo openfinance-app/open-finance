@@ -482,8 +482,7 @@ describe('SplitTransactionForm', () => {
       expect(screen.getByText('Balanced')).toBeInTheDocument();
     });
 
-    it('handles tolerance for floating point precision (±0.01)', () => {
-      // 0.1 + 0.2 = 0.30000000000000004 in JS, but should be considered equal within tolerance
+    it('treats float-safe exact sums as balanced (0.1 + 0.2 === 0.3)', () => {
       const floatingPointSplits: TransactionSplitRequest[] = [
         { categoryId: 10, amount: 0.1 },
         { categoryId: 20, amount: 0.2 },
@@ -493,6 +492,44 @@ describe('SplitTransactionForm', () => {
 
       expect(screen.getByText('Balanced')).toBeInTheDocument();
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('is NOT balanced when a 3-way split leaves a 0.01 remainder (no tolerance)', () => {
+      const splits: TransactionSplitRequest[] = [
+        { categoryId: 10, amount: 33.33 },
+        { categoryId: 20, amount: 33.33 },
+        { categoryId: 30, amount: 33.33 },
+      ];
+
+      renderForm({ totalAmount: 100, splits });
+
+      expect(screen.queryByText('Balanced')).not.toBeInTheDocument();
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+
+    it('distributes the remainder so the splits sum exactly', () => {
+      const onChange = vi.fn();
+      renderWithProviders(
+        <SplitTransactionForm
+          totalAmount={100}
+          currency="USD"
+          transactionType="EXPENSE"
+          splits={[
+            { categoryId: 10, amount: 33.33 },
+            { categoryId: 20, amount: 33.33 },
+            { categoryId: 30, amount: 33.33 },
+          ]}
+          onChange={onChange}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /distribute remainder/i }));
+
+      expect(onChange).toHaveBeenCalledWith([
+        { categoryId: 10, amount: 33.34 },
+        { categoryId: 20, amount: 33.33 },
+        { categoryId: 30, amount: 33.33 },
+      ]);
     });
 
     it('shows error when slightly over tolerance', () => {

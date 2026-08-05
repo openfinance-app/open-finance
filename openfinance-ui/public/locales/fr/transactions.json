@@ -160,6 +160,7 @@
     "removeDisabledTitle": "Au moins deux ventilations sont requises",
     "removeTitle": "Supprimer cette ventilation",
     "addSplit": "Ajouter une ventilation",
+    "distribute": "Répartir le reste",
     "transactionTotal": "Total de la transaction",
     "splitTotal": "Total des ventilations",
     "balanced": "Équilibré",

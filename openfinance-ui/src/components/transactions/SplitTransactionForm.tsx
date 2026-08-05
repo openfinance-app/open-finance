@@ -11,12 +11,16 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
-import { fromMinorUnits, multiply, sumToDecimals, toMinorUnits } from '@/utils/money';
+import {
+  fromMinorUnits,
+  multiply,
+  sumToDecimals,
+  toMinorUnits,
+  distributeRemainder,
+} from '@/utils/money';
+import { getCurrencyDecimals } from '@/utils/currency';
 import type { TransactionSplitRequest } from '@/types/transaction';
 import type { TransactionType } from '@/types/transaction';
-
-/** ±0.01 tolerance when checking split sum vs. total amount (REQ-SPL-1.2) */
-const SPLIT_TOLERANCE = 0.01;
 
 interface SplitTransactionFormProps {
   /** The parent transaction total amount */
@@ -36,15 +40,11 @@ interface SplitTransactionFormProps {
 }
 
 /**
- * Returns true when the absolute difference between two amounts is within the allowed split
- * tolerance (REQ-SPL-1.2: ±0.01) — this tolerance is an intentional business rule (it absorbs
- * legitimate fiat non-divisibility, e.g. a 3-way split of 100.00 into 33.33 + 33.33 + 33.33 =
- * 99.99), not a floating-point workaround. The comparison itself is done on exact integer minor
- * units so it can never diverge from the arithmetic used to compute `remaining`/`splitTotal`, and
- * mirrors the backend's BigDecimal-scale comparison in `TransactionSplitService`.
+ * Splits must sum EXACTLY to the total (REQ-SPL-1.2). Comparison is done on integer minor units at
+ * the currency's precision, so it is float-safe and currency-aware (JPY = 0 decimals, crypto = 8).
  */
-function withinTolerance(a: number, b: number): boolean {
-  return Math.abs(toMinorUnits(a) - toMinorUnits(b)) <= toMinorUnits(SPLIT_TOLERANCE);
+function isExactMatch(a: number, b: number, decimals: number): boolean {
+  return toMinorUnits(a, decimals) === toMinorUnits(b, decimals);
 }
 
 /**
@@ -64,11 +64,27 @@ export function SplitTransactionForm({
 }: SplitTransactionFormProps) {
   const { t } = useTranslation('transactions');
   const { format: formatCurrency } = useFormatCurrency();
-  // REQ-SPL-3.3: computed running total. Summed via exact integer minor-units arithmetic
-  // (see utils/money) to avoid float accumulation drift (e.g. 0.1 + 0.2 !== 0.3).
-  const splitTotal = sumToDecimals(splits.map((s) => Number(s.amount) || 0));
-  const remaining = fromMinorUnits(toMinorUnits(totalAmount) - toMinorUnits(splitTotal));
-  const isValid = withinTolerance(splitTotal, totalAmount);
+  const decimals = getCurrencyDecimals(currency);
+  // REQ-SPL-3.3: running total via exact integer minor-units arithmetic.
+  const splitTotal = sumToDecimals(
+    splits.map(s => Number(s.amount) || 0),
+    decimals
+  );
+  const remaining = fromMinorUnits(
+    toMinorUnits(totalAmount, decimals) - toMinorUnits(splitTotal, decimals),
+    decimals
+  );
+  const isValid = isExactMatch(splitTotal, totalAmount, decimals);
+
+  // REQ-SPL-1.2: allocate the leftover across lines so the splits sum exactly to the total.
+  const handleDistribute = () => {
+    const amounts = distributeRemainder(
+      totalAmount,
+      splits.map(s => Number(s.amount) || 0),
+      decimals
+    );
+    onChange(splits.map((s, i) => ({ ...s, amount: amounts[i] })));
+  };
 
   // Show an ≈ converted total in the account currency when the user is entering splits in a
   // different currency than the account (the amounts themselves are converted on save).
@@ -182,6 +198,18 @@ export function SplitTransactionForm({
         <Plus className="h-4 w-4 mr-2" />
         {t('splitForm.addSplit')}
       </Button>
+
+      {splits.length >= 2 && !isValid && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleDistribute}
+          className="w-full border border-dashed border-border hover:border-primary text-text-secondary hover:text-primary"
+        >
+          {t('splitForm.distribute')}
+        </Button>
+      )}
 
       {/* Running total summary — REQ-SPL-3.3, REQ-SPL-3.4 */}
       <div className="rounded-lg border border-border bg-surface-elevated p-3 text-sm">
