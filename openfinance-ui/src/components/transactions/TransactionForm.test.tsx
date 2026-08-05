@@ -10,7 +10,7 @@
  */
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { TransactionForm } from './TransactionForm';
+import { TransactionForm, reconstructInitialSplits } from './TransactionForm';
 import * as usePayeesModule from '@/hooks/usePayees';
 import * as useTransactionTagsModule from '@/hooks/useTransactionTags';
 import * as useTransactionsModule from '@/hooks/useTransactions';
@@ -1271,6 +1271,37 @@ describe('TransactionForm', () => {
       expect((screen.getByLabelText(/amount/i) as HTMLInputElement).value).toBe('100');
       expect((screen.getByTestId('currency-selector') as HTMLSelectElement).value).toBe('USD');
       expect(screen.getByText(/rate at time of transaction/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('reconstructInitialSplits', () => {
+    it('returns split amounts unchanged when the transaction was not converted', () => {
+      const txn = {
+        splits: [
+          { id: 1, transactionId: 9, categoryId: 10, amount: 30 },
+          { id: 2, transactionId: 9, categoryId: 20, amount: 60 },
+        ],
+      } as any;
+      const rows = reconstructInitialSplits(txn);
+      expect(rows.map((r) => r.amount)).toEqual([30, 60]);
+    });
+
+    it('reconstructs original split amounts summing exactly to originalAmount', () => {
+      const txn = {
+        originalCurrency: 'USD',
+        originalAmount: 100,
+        conversionRate: 0.9,
+        splits: [
+          { id: 1, transactionId: 9, categoryId: 10, amount: 30 }, // EUR (account)
+          { id: 2, transactionId: 9, categoryId: 20, amount: 60 },
+        ],
+      } as any;
+      const rows = reconstructInitialSplits(txn);
+      expect(rows).toHaveLength(2);
+      const sum = Math.round(rows.reduce((a, r) => a + r.amount, 0) * 100) / 100;
+      expect(sum).toBe(100); // last split adjusted so the total is exact
+      expect(rows[0].amount).toBeCloseTo(33.33, 2); // 30 / 0.9
+      expect(rows[1].amount).toBeCloseTo(66.67, 2); // 100 - 33.33
     });
   });
 });

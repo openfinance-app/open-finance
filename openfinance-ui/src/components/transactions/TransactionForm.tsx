@@ -83,6 +83,42 @@ const PAYMENT_METHOD_VALUES: Array<PaymentMethod | ''> = [
   'DEPOSIT', 'STANDING_ORDER', 'DIRECT_DEBIT', 'ONLINE', 'OTHER',
 ];
 
+/**
+ * Builds the initial split rows for the form. For a converted transaction (originalCurrency set),
+ * the stored split amounts are in the ACCOUNT currency, so each split's original amount is
+ * reconstructed by dividing by the stored conversionRate; the last split is set to
+ * originalAmount − sum(others) so the reconstructed splits sum exactly to originalAmount.
+ */
+export function reconstructInitialSplits(transaction?: Transaction): TransactionSplitRequest[] {
+  const rows: TransactionSplitRequest[] =
+    transaction?.splits?.map((s) => ({
+      categoryId: s.categoryId,
+      amount: s.amount,
+      description: s.description,
+    })) ?? [];
+
+  const rate = transaction?.conversionRate;
+  const originalCurrency = transaction?.originalCurrency;
+  const originalAmount = transaction?.originalAmount;
+  if (!rate || rate <= 0 || !originalCurrency || originalAmount == null || rows.length === 0) {
+    return rows;
+  }
+
+  const decimals = getCurrencyDecimals(originalCurrency);
+  const reconstructed = rows.map((s, i) =>
+    i < rows.length - 1 ? { ...s, amount: roundToDecimals(s.amount / rate, decimals) } : { ...s },
+  );
+  const sumOthers = sumToDecimals(
+    reconstructed.slice(0, -1).map((s) => s.amount),
+    decimals,
+  );
+  reconstructed[reconstructed.length - 1] = {
+    ...reconstructed[reconstructed.length - 1],
+    amount: roundToDecimals(originalAmount - sumOthers, decimals),
+  };
+  return reconstructed;
+}
+
 export function TransactionForm({
   transaction,
   accounts,
@@ -104,12 +140,8 @@ export function TransactionForm({
   const [splitMode, setSplitMode] = useState<boolean>(
     !!(transaction?.hasSplits && transaction.splits && transaction.splits.length > 0),
   );
-  const [splits, setSplits] = useState<TransactionSplitRequest[]>(
-    transaction?.splits?.map((s) => ({
-      categoryId: s.categoryId,
-      amount: s.amount,
-      description: s.description,
-    })) ?? [],
+  const [splits, setSplits] = useState<TransactionSplitRequest[]>(() =>
+    reconstructInitialSplits(transaction),
   );
 
   // State for auto-filled category from payee
