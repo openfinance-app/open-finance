@@ -64,7 +64,9 @@ export function SplitTransactionForm({
 }: SplitTransactionFormProps) {
   const { t } = useTranslation('transactions');
   const { format: formatCurrency } = useFormatCurrency();
-  const decimals = getCurrencyDecimals(currency);
+  // Cap at 4 dp to mirror the backend split scale (@Digits(fraction = 4)); crypto's 8-dp display
+  // precision is not usable for split line amounts.
+  const decimals = Math.min(getCurrencyDecimals(currency), 4);
   // REQ-SPL-3.3: running total via exact integer minor-units arithmetic.
   const splitTotal = sumToDecimals(
     splits.map(s => Number(s.amount) || 0),

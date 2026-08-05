@@ -532,9 +532,9 @@ describe('SplitTransactionForm', () => {
       ]);
     });
 
-    it('shows error when slightly over tolerance', () => {
+    it('shows error when splits exceed the total', () => {
       const overToleranceSplits: TransactionSplitRequest[] = [
-        { categoryId: 10, amount: 50.02 }, // 50.02 - 50.00 = 0.02 > 0.01 tolerance
+        { categoryId: 10, amount: 50.02 }, // 50.02 vs total 50.00 -> not balanced
       ];
 
       renderForm({ totalAmount: 50, splits: overToleranceSplits });

@@ -319,7 +319,7 @@ export function TransactionForm({
       ? splits.map((s) => ({ ...s, amount: convert(s.amount) }))
       : undefined;
     // On the conversion path, set the parent to the sum of converted splits so they reconcile
-    // exactly (avoids rounding drift beyond the backend's ±0.01 tolerance). Otherwise keep today's
+    // exactly with the parent (the backend requires an exact split sum). Otherwise keep today's
     // behavior of submitting the (converted) entered amount.
     const submitAmount =
       needsConversion && rate && inSplit
