@@ -70,7 +70,12 @@ export function useExchangeRate(from: string, to: string, date?: string) {
  * @param to - Target currency code
  * @param refreshKey - Optional key to force refetch (increment to refresh)
  */
-export function useLatestExchangeRate(from: string, to: string, refreshKey?: number) {
+export function useLatestExchangeRate(
+  from: string,
+  to: string,
+  refreshKey?: number,
+  enabled: boolean = true,
+) {
   return useQuery({
     queryKey: ['exchangeRate', 'latest', from, to, refreshKey],
     queryFn: async () => {
@@ -78,7 +83,7 @@ export function useLatestExchangeRate(from: string, to: string, refreshKey?: num
       const response = await apiClient.get<ExchangeRate>('/currencies/exchange-rates/latest', { params });
       return response.data;
     },
-    enabled: !!from && !!to && from !== to, // Don't fetch if same currency
+    enabled: !!from && !!to && from !== to && enabled, // Don't fetch if same currency or disabled
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
 }

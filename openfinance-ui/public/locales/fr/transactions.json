@@ -82,6 +82,7 @@
     "createTransaction": "Créer la transaction",
     "updateTransaction": "Mettre à jour la transaction",
     "cancel": "Annuler",
+    "rateAtTransactionTime": "taux au moment de la transaction",
     "validation": {
       "amountPositive": "Le montant doit être positif",
       "selectAccount": "Veuillez sélectionner un compte",

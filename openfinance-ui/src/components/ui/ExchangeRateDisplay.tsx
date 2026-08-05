@@ -239,29 +239,38 @@ export function ExchangeRateDisplay({
 export function ExchangeRateInline({
   from,
   to,
+  rate,
+  hint,
   className = '',
-}: Pick<ExchangeRateDisplayProps, 'from' | 'to' | 'className'>) {
-  const { data: exchangeRate, isLoading, isError } = useLatestExchangeRate(from, to);
+}: Pick<ExchangeRateDisplayProps, 'from' | 'to' | 'className'> & {
+  /** When provided, render this fixed rate instead of fetching the latest one. */
+  rate?: number;
+  /** Optional muted suffix, e.g. "(rate at time of transaction)". */
+  hint?: string;
+}) {
+  const hasFixedRate = rate !== undefined;
+  const { data: exchangeRate, isLoading, isError } = useLatestExchangeRate(
+    from,
+    to,
+    undefined,
+    !hasFixedRate,
+  );
 
   if (from === to) return null;
-  if (isLoading) {
-    return (
-      <span className={`text-xs text-text-muted ${className}`}>
-        Loading rate...
-      </span>
-    );
+
+  const effectiveRate = hasFixedRate ? rate : exchangeRate?.rate;
+
+  if (!hasFixedRate && isLoading) {
+    return <span className={`text-xs text-text-muted ${className}`}>Loading rate...</span>;
   }
-  if (isError || !exchangeRate) {
-    return (
-      <span className={`text-xs text-error ${className}`}>
-        Rate unavailable
-      </span>
-    );
+  if (effectiveRate === undefined || (!hasFixedRate && isError)) {
+    return <span className={`text-xs text-error ${className}`}>Rate unavailable</span>;
   }
 
   return (
     <span className={`text-xs text-text-muted ${className}`}>
-      1 {from} = {formatExchangeRate(exchangeRate.rate)} {to}
+      1 {from} = {formatExchangeRate(effectiveRate)} {to}
+      {hint ? <span className="ml-1 text-text-tertiary">({hint})</span> : null}
     </span>
   );
 }

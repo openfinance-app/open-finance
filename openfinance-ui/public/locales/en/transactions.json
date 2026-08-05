@@ -82,6 +82,7 @@
     "createTransaction": "Create Transaction",
     "updateTransaction": "Update Transaction",
     "cancel": "Cancel",
+    "rateAtTransactionTime": "rate at time of transaction",
     "validation": {
       "amountPositive": "Amount must be positive",
       "selectAccount": "Please select an account",

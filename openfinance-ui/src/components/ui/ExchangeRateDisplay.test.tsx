@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
-import { ExchangeRateDisplay } from './ExchangeRateDisplay';
+import { ExchangeRateDisplay, ExchangeRateInline } from './ExchangeRateDisplay';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 
 const defaultRate = {
@@ -199,5 +199,24 @@ describe('ExchangeRateDisplay', () => {
       <ExchangeRateDisplay from="USD" to="EUR" showRefresh />
     );
     expect(screen.getByText('Refresh')).toBeInTheDocument();
+  });
+});
+
+describe('ExchangeRateInline', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockAuthentication();
+    const { useLatestExchangeRate } = await import('@/hooks/useCurrency');
+    (useLatestExchangeRate as ReturnType<typeof vi.fn>).mockReturnValue(defaultRate);
+  });
+
+  it('renders a provided fixed rate with the hint and does not depend on the fetched rate', () => {
+    // Fixed-rate mode ignores the fetched rate (mocked to undefined above).
+    // formatExchangeRate is mocked to toFixed(4) in this file, so 0.9 renders as "0.9000".
+    renderWithProviders(
+      <ExchangeRateInline from="USD" to="EUR" rate={0.9} hint="rate at time of transaction" />
+    );
+    expect(screen.getByText(/1\s*USD\s*=\s*0\.9000\s*EUR/)).toBeInTheDocument();
+    expect(screen.getByText(/rate at time of transaction/)).toBeInTheDocument();
   });
 });
