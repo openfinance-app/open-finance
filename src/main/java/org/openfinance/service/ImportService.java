@@ -900,7 +900,7 @@ public class ImportService {
                         transactionSplitService.saveSplits(saved.getId(), reconciledSplits);
                         log.debug(
                                 "Saved {} split(s) for transaction {}",
-                                splitRequests.size(),
+                                reconciledSplits.size(),
                                 saved.getId());
                     }
                     // Index in FTS ΓÇö importedTx has plain-text description (payee) and memo

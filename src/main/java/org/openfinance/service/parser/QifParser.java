@@ -769,8 +769,8 @@ public class QifParser {
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             if (transaction.getAmount() != null) {
-                // QIF split amounts are stored as positive values regardless of the parent
-                // transaction sign — compare absolute values to handle expense splits correctly.
+                // QIF split lines may carry the parent's sign — compare absolute values so
+                // expense splits reconcile correctly.
                 // QIF carries no currency, so use the fiat minor unit (scale 2). Legitimate
                 // per-line rounding residue is reconciled at import time; only flag a residue too
                 // large to be rounding (a gross mismatch).
