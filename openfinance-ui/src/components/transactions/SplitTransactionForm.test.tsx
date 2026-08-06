@@ -533,11 +533,11 @@ describe('SplitTransactionForm', () => {
     });
 
     it('shows error when splits exceed the total', () => {
-      const overToleranceSplits: TransactionSplitRequest[] = [
+      const overAllocatedSplits: TransactionSplitRequest[] = [
         { categoryId: 10, amount: 50.02 }, // 50.02 vs total 50.00 -> not balanced
       ];
 
-      renderForm({ totalAmount: 50, splits: overToleranceSplits });
+      renderForm({ totalAmount: 50, splits: overAllocatedSplits });
 
       expect(screen.getByRole('alert')).toBeInTheDocument();
       expect(screen.getByText((content) => content.includes('over.'))).toBeInTheDocument();
