@@ -59,17 +59,22 @@ describe('getDaysAgo', () => {
 });
 
 describe('getStartOfMonth', () => {
-  it('returns 1st of current month in YYYY-MM-DD format', () => {
-    const result = getStartOfMonth();
-    expect(result).toMatch(/^\d{4}-\d{2}-01$/);
+  it('returns the 1st of the current month in local time', () => {
+    vi.useFakeTimers();
+    // Early-morning local time: a UTC-based formatter would roll this back to the previous month.
+    vi.setSystemTime(new Date(2026, 5, 15, 1, 30, 0));
+    expect(getStartOfMonth()).toBe('2026-06-01');
+    vi.useRealTimers();
   });
 });
 
 describe('getStartOfYear', () => {
-  it('returns Jan 1st of current year', () => {
-    const result = getStartOfYear();
-    const year = new Date().getFullYear();
-    expect(result).toBe(`${year}-01-01`);
+  it('returns Jan 1st of the current year in local time', () => {
+    vi.useFakeTimers();
+    // Just after local midnight on Jan 1: a UTC-based formatter would roll this back to Dec 31.
+    vi.setSystemTime(new Date(2026, 0, 1, 0, 30, 0));
+    expect(getStartOfYear()).toBe('2026-01-01');
+    vi.useRealTimers();
   });
 });
 

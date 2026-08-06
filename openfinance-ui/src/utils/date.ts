@@ -92,37 +92,53 @@ export function useRelativeDateFormatter(): (date: string | Date) => string {
 }
 
 /**
- * Get the start of today in ISO format (YYYY-MM-DD)
+ * Format a Date using its LOCAL calendar components as YYYY-MM-DD.
+ *
+ * Unlike {@link formatDateForInput} (which serialises via `toISOString()` in UTC), this preserves
+ * the local date. Use it for "now"-derived values so a user in a non-UTC timezone gets their own
+ * calendar date rather than a UTC-shifted one — otherwise, at certain times of day, the UTC date
+ * rolls to the previous/next day (e.g. local "1st of the month" 00:30 becomes the prior month's
+ * last day in UTC+n).
  */
-export function getToday(): string {
-  return formatDateForInput(new Date());
+function toLocalISODate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
- * Get a date N days ago in ISO format (YYYY-MM-DD)
+ * Get the start of today in ISO format (YYYY-MM-DD), in the user's local timezone.
+ */
+export function getToday(): string {
+  return toLocalISODate(new Date());
+}
+
+/**
+ * Get a date N days ago in ISO format (YYYY-MM-DD), in the user's local timezone.
  */
 export function getDaysAgo(days: number): string {
   const date = new Date();
   date.setDate(date.getDate() - days);
-  return formatDateForInput(date);
+  return toLocalISODate(date);
 }
 
 /**
- * Get the first day of the current month in ISO format
+ * Get the first day of the current month in ISO format, in the user's local timezone.
  */
 export function getStartOfMonth(): string {
   const date = new Date();
   date.setDate(1);
-  return formatDateForInput(date);
+  return toLocalISODate(date);
 }
 
 /**
- * Get the first day of the current year in ISO format
+ * Get the first day of the current year in ISO format, in the user's local timezone.
  */
 export function getStartOfYear(): string {
   const date = new Date();
   date.setMonth(0, 1);
-  return formatDateForInput(date);
+  return toLocalISODate(date);
 }
 
 /**
