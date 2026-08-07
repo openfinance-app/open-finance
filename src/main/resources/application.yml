@@ -84,7 +84,7 @@ application:
   test-data-seed:
     enabled: false
   logo-fetch:
-    enabled: false          # set to true to enable automatic logo fetching on creation
+    enabled: true          # set to true to enable automatic logo fetching on creation
     timeout-seconds: 5      # HTTP connect + read timeout per request
     min-response-bytes: 100 # reject responses smaller than this (generic/empty icons)
     default-tld: com        # TLD appended to a name-derived slug when no override matches

@@ -1,17 +1,10 @@
 TODO:
 
-1-Why was the 0.01 and 0.0001 tolerances put in place and isn't there a better solution?
-This is a financial app and accuracy is important and a hard requirement. We shouldn't be using random tolerances values to fix rounding issues or other issues. Why not use the amount as it is 1.5528964145744....
-
-Review the application in depth,find the problematic issues and propose a proper solution.
-
-2-Following the implementation of currency selector in transaction form ca28bbab0d0507afc78ae7adcc86ea38718f0922
--When editing Transaction, form should display originalamount and currency in case of conversion transaction.
-Thats mean when saving maybe their should be conversionRate,originalAmount,originalCurrency fields stored.
-so that it is easier for user to not loss the original amount and currency.
-Basically:
-User add transaction with amount 100 USD, but the account is in EUR, so the transaction is stored as 90 EUR (with conversion rate 0.9).
-When user edit this transaction, the form should display in reverse:amount=originalAmount=100, currency=originalCurrency=USD, with inverse infomation in rate display layout (conversionRate=0.9, amount=90, currency=EUR).
+1-importing account logos not well handled:
+Hello bank! BNPAFRPPXXX FR /logos/institutions/hellobank.png 1
+hellobank hellobank.png 0
+2-imported institutions is_system=0 but user_id=NULL should be user_id importing
+3-can not edit account with amount 6322,1899 requiring 6322,18 or 6322,19
 
 3- Regex search support
 4-attachments should be stored in db instead of file system
