@@ -244,7 +244,7 @@ class ImportServiceSkroogeJsonTest {
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
         when(importSessionRepository.save(any(ImportSession.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of());
         when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
         when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
         when(accountService.createAccount(eq(USER_ID), any()))
@@ -368,7 +368,7 @@ class ImportServiceSkroogeJsonTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         Institution fallbackInstitution =
                 Institution.builder().id(401L).name("Institution 99").isSystem(false).build();
-        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of());
         when(institutionRepository.save(any(Institution.class))).thenReturn(fallbackInstitution);
         when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
         when(accountService.createAccount(eq(USER_ID), any()))
@@ -446,7 +446,7 @@ class ImportServiceSkroogeJsonTest {
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
         when(importSessionRepository.save(any(ImportSession.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of());
         when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
         when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
         when(accountService.createAccount(eq(USER_ID), any()))
@@ -528,7 +528,7 @@ class ImportServiceSkroogeJsonTest {
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
         when(importSessionRepository.save(any(ImportSession.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of());
         when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
         when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
         when(accountService.createAccount(eq(USER_ID), any()))
@@ -594,7 +594,7 @@ class ImportServiceSkroogeJsonTest {
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
         when(importSessionRepository.save(any(ImportSession.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of());
         when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
         when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
         when(accountService.createAccount(eq(USER_ID), any()))
@@ -667,7 +667,7 @@ class ImportServiceSkroogeJsonTest {
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
         when(importSessionRepository.save(any(ImportSession.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of());
         when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
         when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
         when(accountService.createAccount(eq(USER_ID), any()))
@@ -729,7 +729,7 @@ class ImportServiceSkroogeJsonTest {
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
         when(importSessionRepository.save(any(ImportSession.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of());
         when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
         when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
         when(accountService.createAccount(eq(USER_ID), any()))
@@ -803,7 +803,7 @@ class ImportServiceSkroogeJsonTest {
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
         when(importSessionRepository.save(any(ImportSession.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of());
         when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
         when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
         when(accountService.createAccount(eq(USER_ID), any()))
@@ -898,7 +898,7 @@ class ImportServiceSkroogeJsonTest {
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
         when(importSessionRepository.save(any(ImportSession.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(institutionRepository.findAll()).thenReturn(List.of());
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of());
         when(institutionRepository.save(any(Institution.class))).thenReturn(institution);
         when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
         when(accountService.createAccount(eq(USER_ID), any()))
