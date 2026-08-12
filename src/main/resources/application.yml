@@ -95,7 +95,7 @@ application:
     # Set to true only in development/demo environments.
     # When enabled, seeds a complete realistic dataset for the 'demo' user on first startup.
     # Must be false (or absent) in production.
-    enabled: false
+    enabled: true
   security:
     session-timeout: 900000
     pbkdf2-iterations: 100000
