@@ -12,33 +12,39 @@ import org.openfinance.converter.EncryptedStringConverter;
 /**
  * JPA entity representing a recurring financial transaction template.
  *
- * <p>A recurring transaction is a template that automatically generates actual transactions at
- * regular intervals (daily, weekly, monthly, etc.). This is useful for modeling regular income
+ * <p>
+ * A recurring transaction is a template that automatically generates actual
+ * transactions at
+ * regular intervals (daily, weekly, monthly, etc.). This is useful for modeling
+ * regular income
  * (salary) or expenses (rent, subscriptions, bills).
  *
- * <p><strong>Lifecycle:</strong>
+ * <p>
+ * <strong>Lifecycle:</strong>
  *
  * <ul>
- *   <li>Created with a frequency (DAILY, WEEKLY, MONTHLY, etc.)
- *   <li>Scheduled job runs daily to check for due recurring transactions
- *   <li>When due, creates an actual Transaction and updates nextOccurrence
- *   <li>Can be paused (isActive=false) or ended (endDate reached)
+ * <li>Created with a frequency (DAILY, WEEKLY, MONTHLY, etc.)
+ * <li>Scheduled job runs daily to check for due recurring transactions
+ * <li>When due, creates an actual Transaction and updates nextOccurrence
+ * <li>Can be paused (isActive=false) or ended (endDate reached)
  * </ul>
  *
- * <p><strong>Security:</strong>
+ * <p>
+ * <strong>Security:</strong>
  *
  * <ul>
- *   <li>Description and notes fields are encrypted for privacy
- *   <li>All recurring transactions are user-specific and access-controlled
+ * <li>Description and notes fields are encrypted for privacy
+ * <li>All recurring transactions are user-specific and access-controlled
  * </ul>
  *
- * <p><strong>Requirements:</strong>
+ * <p>
+ * <strong>Requirements:</strong>
  *
  * <ul>
- *   <li>REQ-2.3.6: Recurring transactions with configurable frequency
- *   <li>REQ-2.3.6.1: Support for DAILY, WEEKLY, MONTHLY, YEARLY frequencies
- *   <li>REQ-2.3.6.2: Optional end date for recurring transactions
- *   <li>REQ-2.3.6.3: Ability to pause/resume recurring transactions
+ * <li>REQ-2.3.6: Recurring transactions with configurable frequency
+ * <li>REQ-2.3.6.1: Support for DAILY, WEEKLY, MONTHLY, YEARLY frequencies
+ * <li>REQ-2.3.6.2: Optional end date for recurring transactions
+ * <li>REQ-2.3.6.3: Ability to pause/resume recurring transactions
  * </ul>
  *
  * @see RecurringFrequency
@@ -48,14 +54,12 @@ import org.openfinance.converter.EncryptedStringConverter;
  * @since 1.0
  */
 @Entity
-@Table(
-        name = "recurring_transactions",
-        indexes = {
-            @Index(name = "idx_recurring_user_id", columnList = "user_id"),
-            @Index(name = "idx_recurring_account_id", columnList = "account_id"),
-            @Index(name = "idx_recurring_next_occurrence", columnList = "next_occurrence"),
-            @Index(name = "idx_recurring_is_active", columnList = "is_active")
-        })
+@Table(name = "recurring_transactions", indexes = {
+        @Index(name = "idx_recurring_user_id", columnList = "user_id"),
+        @Index(name = "idx_recurring_account_id", columnList = "account_id"),
+        @Index(name = "idx_recurring_next_occurrence", columnList = "next_occurrence"),
+        @Index(name = "idx_recurring_is_active", columnList = "is_active")
+})
 @Getter
 @Setter
 @Builder
@@ -75,10 +79,13 @@ public class RecurringTransaction {
     /**
      * ID of the user who owns this recurring transaction.
      *
-     * <p>Foreign key reference to the users table. Required for access control and multi-user
+     * <p>
+     * Foreign key reference to the users table. Required for access control and
+     * multi-user
      * isolation.
      *
-     * <p>Requirement REQ-3.2: User-specific data isolation
+     * <p>
+     * Requirement REQ-3.2: User-specific data isolation
      */
     @NotNull(message = "{recurringTransaction.userId.notnull}")
     @Column(name = "user_id", nullable = false)
@@ -87,7 +94,9 @@ public class RecurringTransaction {
     /**
      * ID of the account associated with this recurring transaction.
      *
-     * <p>Foreign key reference to the accounts table. For TRANSFER type transactions, this
+     * <p>
+     * Foreign key reference to the accounts table. For TRANSFER type transactions,
+     * this
      * represents the source account (money leaves this account).
      */
     @NotNull(message = "{recurringTransaction.accountId.notnull}")
@@ -97,7 +106,9 @@ public class RecurringTransaction {
     /**
      * ID of the destination account for TRANSFER type transactions.
      *
-     * <p>Only populated when type = TRANSFER. Money is transferred FROM accountId TO toAccountId.
+     * <p>
+     * Only populated when type = TRANSFER. Money is transferred FROM accountId TO
+     * toAccountId.
      */
     @Column(name = "to_account_id")
     private Long toAccountId;
@@ -105,12 +116,13 @@ public class RecurringTransaction {
     /**
      * Type of transaction: INCOME, EXPENSE, or TRANSFER.
      *
-     * <p>Determines the financial impact:
+     * <p>
+     * Determines the financial impact:
      *
      * <ul>
-     *   <li>INCOME: Increases account balance
-     *   <li>EXPENSE: Decreases account balance
-     *   <li>TRANSFER: Moves money between accounts (requires toAccountId)
+     * <li>INCOME: Increases account balance
+     * <li>EXPENSE: Decreases account balance
+     * <li>TRANSFER: Moves money between accounts (requires toAccountId)
      * </ul>
      */
     @NotNull(message = "{recurringTransaction.type.notnull}")
@@ -122,11 +134,12 @@ public class RecurringTransaction {
     /**
      * Transaction amount in the specified currency.
      *
-     * <p>Always positive. The transaction type determines debit/credit behavior.
+     * <p>
+     * Always positive. The transaction type determines debit/credit behavior.
      */
     @NotNull(message = "{recurringTransaction.amount.notnull}")
     @DecimalMin(value = "0.01", message = "{recurringTransaction.amount.decimalMin}")
-    @Digits(integer = 15, fraction = 2, message = "{recurringTransaction.amount.digits}")
+    @Digits(integer = 26, fraction = 18, message = "{recurringTransaction.amount.digits}")
     @Column(nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     @ToString.Include
@@ -135,7 +148,9 @@ public class RecurringTransaction {
     /**
      * ISO 4217 currency code (e.g., USD, EUR, GBP).
      *
-     * <p>Three-letter uppercase code. Defaults to user's base currency if not specified.
+     * <p>
+     * Three-letter uppercase code. Defaults to user's base currency if not
+     * specified.
      */
     @NotNull(message = "{recurringTransaction.currency.notnull}")
     @Size(min = 3, max = 3, message = "{recurringTransaction.currency.size}")
@@ -154,10 +169,13 @@ public class RecurringTransaction {
     /**
      * ID of the category associated with this recurring transaction.
      *
-     * <p>Foreign key reference to the categories table. Helps organize transactions for budgeting
+     * <p>
+     * Foreign key reference to the categories table. Helps organize transactions
+     * for budgeting
      * and reporting.
      *
-     * <p>Not required for TRANSFER transactions.
+     * <p>
+     * Not required for TRANSFER transactions.
      */
     @Column(name = "category_id")
     private Long categoryId;
@@ -165,14 +183,21 @@ public class RecurringTransaction {
     /**
      * Brief description of the recurring transaction (ENCRYPTED).
      *
-     * <p>Stored encrypted in the database for privacy. Examples: "Monthly Rent", "Weekly Grocery
+     * <p>
+     * Stored encrypted in the database for privacy. Examples: "Monthly Rent",
+     * "Weekly Grocery
      * Budget", "Biweekly Paycheck".
      *
-     * <p><strong>Security:</strong> Encrypted before persistence, decrypted after retrieval
+     * <p>
+     * <strong>Security:</strong> Encrypted before persistence, decrypted after
+     * retrieval
      *
-     * <p><strong>Validation Note:</strong> Validation is performed at the DTO layer
-     * (RecurringTransactionRequest) on the plaintext value BEFORE encryption. Do NOT add @NotBlank
-     * or @Size here as they would validate the encrypted Base64 string, which has unpredictable
+     * <p>
+     * <strong>Validation Note:</strong> Validation is performed at the DTO layer
+     * (RecurringTransactionRequest) on the plaintext value BEFORE encryption. Do
+     * NOT add @NotBlank
+     * or @Size here as they would validate the encrypted Base64 string, which has
+     * unpredictable
      * length and may cause decryption failures.
      *
      * @see org.openfinance.security.EncryptionService
@@ -185,13 +210,20 @@ public class RecurringTransaction {
     /**
      * Additional notes or details about the recurring transaction (ENCRYPTED).
      *
-     * <p>Stored encrypted in the database for privacy. Use for longer explanations, reminders, or
+     * <p>
+     * Stored encrypted in the database for privacy. Use for longer explanations,
+     * reminders, or
      * context.
      *
-     * <p><strong>Security:</strong> Encrypted before persistence, decrypted after retrieval
+     * <p>
+     * <strong>Security:</strong> Encrypted before persistence, decrypted after
+     * retrieval
      *
-     * <p><strong>Validation Note:</strong> Validation is performed at the DTO layer on the
-     * plaintext value BEFORE encryption. Do NOT add @Size here as it would validate the encrypted
+     * <p>
+     * <strong>Validation Note:</strong> Validation is performed at the DTO layer on
+     * the
+     * plaintext value BEFORE encryption. Do NOT add @Size here as it would validate
+     * the encrypted
      * Base64 string.
      *
      * @see org.openfinance.security.EncryptionService
@@ -203,9 +235,11 @@ public class RecurringTransaction {
     /**
      * Frequency at which the transaction recurs.
      *
-     * <p>Options: DAILY, WEEKLY, BIWEEKLY, MONTHLY, QUARTERLY, YEARLY
+     * <p>
+     * Options: DAILY, WEEKLY, BIWEEKLY, MONTHLY, QUARTERLY, YEARLY
      *
-     * <p>Determines how nextOccurrence is calculated after each transaction.
+     * <p>
+     * Determines how nextOccurrence is calculated after each transaction.
      */
     @NotNull(message = "{recurringTransaction.frequency.notnull}")
     @Enumerated(EnumType.STRING)
@@ -216,7 +250,9 @@ public class RecurringTransaction {
     /**
      * Date when the next transaction should be created.
      *
-     * <p>The scheduled job checks this date daily. When current date >= nextOccurrence, a new
+     * <p>
+     * The scheduled job checks this date daily. When current date >=
+     * nextOccurrence, a new
      * transaction is created and this date is updated based on frequency.
      */
     @NotNull(message = "{recurringTransaction.nextOccurrence.notnull}")
@@ -227,7 +263,9 @@ public class RecurringTransaction {
     /**
      * Optional end date for the recurring transaction.
      *
-     * <p>When current date > endDate, no more transactions are created and isActive is set to
+     * <p>
+     * When current date > endDate, no more transactions are created and isActive is
+     * set to
      * false. Leave null for indefinite recurrence.
      */
     @Column(name = "end_date")
@@ -236,10 +274,13 @@ public class RecurringTransaction {
     /**
      * Indicates whether the recurring transaction is currently active.
      *
-     * <p>When false, the scheduled job skips this recurring transaction. Users can pause/resume
+     * <p>
+     * When false, the scheduled job skips this recurring transaction. Users can
+     * pause/resume
      * transactions by toggling this flag.
      *
-     * <p>Default: true
+     * <p>
+     * Default: true
      */
     @NotNull(message = "{recurringTransaction.isActive.notnull}")
     @Column(name = "is_active", nullable = false)
@@ -249,7 +290,8 @@ public class RecurringTransaction {
     /**
      * Timestamp when this recurring transaction was created.
      *
-     * <p>Automatically set by Hibernate on persist.
+     * <p>
+     * Automatically set by Hibernate on persist.
      */
     @Column(name = "created_at", nullable = false, updatable = false)
     @org.hibernate.annotations.CreationTimestamp
@@ -258,7 +300,8 @@ public class RecurringTransaction {
     /**
      * Timestamp when this recurring transaction was last updated.
      *
-     * <p>Automatically set by Hibernate on update.
+     * <p>
+     * Automatically set by Hibernate on update.
      */
     @Column(name = "updated_at", nullable = false)
     @org.hibernate.annotations.UpdateTimestamp
@@ -267,12 +310,13 @@ public class RecurringTransaction {
     /**
      * Checks if the recurring transaction is due to generate a new transaction.
      *
-     * <p>Returns true if:
+     * <p>
+     * Returns true if:
      *
      * <ul>
-     *   <li>isActive is true
-     *   <li>current date >= nextOccurrence
-     *   <li>endDate is null OR current date <= endDate
+     * <li>isActive is true
+     * <li>current date >= nextOccurrence
+     * <li>endDate is null OR current date <= endDate
      * </ul>
      *
      * @return true if a transaction should be generated, false otherwise
@@ -298,7 +342,8 @@ public class RecurringTransaction {
     /**
      * Checks if the recurring transaction has ended.
      *
-     * <p>Returns true if endDate is set and current date > endDate.
+     * <p>
+     * Returns true if endDate is set and current date > endDate.
      *
      * @return true if ended, false otherwise
      */
@@ -307,9 +352,11 @@ public class RecurringTransaction {
     }
 
     /**
-     * Calculates the next occurrence date based on current nextOccurrence and frequency.
+     * Calculates the next occurrence date based on current nextOccurrence and
+     * frequency.
      *
-     * <p>This method is called after creating a transaction to schedule the next one.
+     * <p>
+     * This method is called after creating a transaction to schedule the next one.
      *
      * @return the new next occurrence date
      */

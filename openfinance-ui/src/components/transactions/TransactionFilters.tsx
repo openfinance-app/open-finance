@@ -185,7 +185,7 @@ export function TransactionFilters({
               data-testid="filter-min-amount"
               type="number"
               min="0"
-              step="0.01"
+              step="any"
               placeholder="0.00"
               value={filters.minAmount ?? ''}
               onChange={(e) => handleChange('minAmount', e.target.value ? parseFloat(e.target.value) : undefined)}
@@ -201,7 +201,7 @@ export function TransactionFilters({
               data-testid="filter-max-amount"
               type="number"
               min="0"
-              step="0.01"
+              step="any"
               placeholder="0.00"
               value={filters.maxAmount ?? ''}
               onChange={(e) => handleChange('maxAmount', e.target.value ? parseFloat(e.target.value) : undefined)}

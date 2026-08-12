@@ -214,7 +214,7 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
             ) : (
               <Input
                 type={isAmountField ? 'number' : 'text'}
-                step={isAmountField ? '0.01' : undefined}
+                step={isAmountField ? 'any' : undefined}
                 min={isAmountField ? '0' : undefined}
                 placeholder={isAmountField ? '0.00' : t('form.conditions.enterValue')}
                 value={condition.value}

@@ -233,7 +233,7 @@ describe('RuleConditionBuilder', () => {
 
     const valueInput = screen.getByRole('spinbutton', { name: 'Condition value' });
     expect(valueInput).toHaveAttribute('type', 'number');
-    expect(valueInput).toHaveAttribute('step', '0.01');
+    expect(valueInput).toHaveAttribute('step', 'any');
   });
 
   it('should filter operators based on field type', () => {

@@ -249,7 +249,7 @@ export function RecurringTransactionForm({
           <Input
             id="amount"
             type="number"
-            step="0.01"
+            step="any"
             {...register('amount', { valueAsNumber: true })}
             error={errors.amount?.message}
           />

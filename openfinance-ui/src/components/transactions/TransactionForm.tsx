@@ -443,7 +443,7 @@ export function TransactionForm({
           <Input
             id="amount"
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             {...register('amount', { valueAsNumber: true })}
             onFocus={(e) => e.target.select()}

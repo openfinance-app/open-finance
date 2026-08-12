@@ -146,7 +146,7 @@ export function SplitTransactionForm({
           <div>
             <Input
               type="number"
-              step="0.01"
+              step="any"
               min="0.01"
               value={split.amount === 0 ? '' : split.amount.toString()}
               onChange={(e) =>

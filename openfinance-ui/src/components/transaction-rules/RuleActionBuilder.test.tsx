@@ -310,7 +310,7 @@ describe('RuleActionBuilder', () => {
 
     const amountInput = screen.getByRole('spinbutton', { name: 'Amount' });
     expect(amountInput).toHaveAttribute('type', 'number');
-    expect(amountInput).toHaveAttribute('step', '0.01');
+    expect(amountInput).toHaveAttribute('step', 'any');
   });
 
   it('should render multiple inputs for ADD_SPLIT action', () => {

@@ -200,7 +200,7 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           <Input
             id="purchasePrice"
             type="number"
-            step="0.01"
+            step="any"
             min="0.01"
             {...register('purchasePrice', { valueAsNumber: true })}
             placeholder="0.00"
@@ -230,7 +230,7 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           <Input
             id="currentValue"
             type="number"
-            step="0.01"
+            step="any"
             min="0.01"
             {...register('currentValue', { valueAsNumber: true })}
             placeholder="0.00"
@@ -298,7 +298,7 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           <Input
             id="rentalIncome"
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             {...register('rentalIncome', { valueAsNumber: true })}
             placeholder="0.00"

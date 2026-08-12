@@ -387,7 +387,7 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
             <Input
               id="quantity"
               type="number"
-              step="0.000001"
+              step="any"
               min="0.000001"
               {...register('quantity', { valueAsNumber: true })}
               placeholder="0.00"
@@ -403,7 +403,7 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
             <Input
               id="purchasePrice"
               type="number"
-              step="0.01"
+              step="any"
               min="0.01"
               {...register('purchasePrice', { valueAsNumber: true })}
               placeholder="0.00"
@@ -419,7 +419,7 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
             <Input
               id="currentPrice"
               type="number"
-              step="0.01"
+              step="any"
               min="0.01"
               {...register('currentPrice', { valueAsNumber: true })}
               placeholder="0.00"

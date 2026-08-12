@@ -196,7 +196,7 @@ export function AccountFilters({
               data-testid="filter-min-balance"
               type="number"
               min="0"
-              step="0.01"
+              step="any"
               placeholder="0.00"
               value={filters.balanceMin ?? ''}
               onChange={(e) =>
@@ -214,7 +214,7 @@ export function AccountFilters({
               data-testid="filter-max-balance"
               type="number"
               min="0"
-              step="0.01"
+              step="any"
               placeholder="0.00"
               value={filters.balanceMax ?? ''}
               onChange={(e) =>

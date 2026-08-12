@@ -282,7 +282,7 @@ export function InterestRateVariationsSection({ accountId, accountBalance = 0, a
                                 <Input
                                     id="rate"
                                     type="number"
-                                    step="0.01"
+                                    step="any"
                                     {...register('rate', { valueAsNumber: true })}
                                     placeholder="0.00"
                                     error={errors.rate?.message}
@@ -295,7 +295,7 @@ export function InterestRateVariationsSection({ accountId, accountBalance = 0, a
                                 <Input
                                     id="taxRate"
                                     type="number"
-                                    step="0.01"
+                                    step="any"
                                     {...register('taxRate', { valueAsNumber: true })}
                                     placeholder="0.00"
                                     error={errors.taxRate?.message}

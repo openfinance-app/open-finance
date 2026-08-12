@@ -199,7 +199,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <Input
             id="principal"
             type="number"
-            step="0.01"
+            step="any"
             min="0.01"
             {...register('principal', { valueAsNumber: true })}
             placeholder="0.00"
@@ -215,7 +215,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <Input
             id="currentBalance"
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             {...register('currentBalance', { valueAsNumber: true })}
             placeholder="0.00"
@@ -262,7 +262,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <Input
             id="interestRate"
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             max="100"
             {...register('interestRate', { valueAsNumber: true })}
@@ -279,7 +279,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <Input
             id="insurancePercentage"
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             max="100"
             {...register('insurancePercentage', { valueAsNumber: true })}
@@ -296,7 +296,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <Input
             id="minimumPayment"
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             {...register('minimumPayment', { valueAsNumber: true })}
             placeholder="0.00"
@@ -315,7 +315,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <Input
             id="additionalFees"
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             {...register('additionalFees', { valueAsNumber: true })}
             placeholder="0.00"

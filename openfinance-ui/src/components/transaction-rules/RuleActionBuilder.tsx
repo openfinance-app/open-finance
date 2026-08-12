@@ -134,7 +134,7 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
       return (
         <Input
           type="number"
-          step="0.01"
+          step="any"
           placeholder="0.00"
           value={action.actionValue ?? ''}
           onChange={(e) => onChange(index, { actionValue: e.target.value })}
@@ -154,7 +154,7 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
           />
           <Input
             type="number"
-            step="0.01"
+            step="any"
             placeholder={t('form.actions.placeholders.splitAmount')}
             value={action.actionValue2 ?? ''}
             onChange={(e) => onChange(index, { actionValue2: e.target.value })}

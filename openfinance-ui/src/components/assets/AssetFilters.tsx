@@ -167,7 +167,7 @@ export function AssetFilters({
               data-testid="filter-min-value"
               type="number"
               min="0"
-              step="0.01"
+              step="any"
               placeholder="0.00"
               value={filters.valueMin ?? ''}
               onChange={(e) =>
@@ -185,7 +185,7 @@ export function AssetFilters({
               data-testid="filter-max-value"
               type="number"
               min="0"
-              step="0.01"
+              step="any"
               placeholder="0.00"
               value={filters.valueMax ?? ''}
               onChange={(e) =>

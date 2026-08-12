@@ -301,7 +301,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
           <Input
             id="initialBalance"
             type="number"
-            step="0.01"
+            step="any"
             {...register('initialBalance', { valueAsNumber: true })}
             onFocus={(e) => e.target.select()}
             placeholder="0.00"
@@ -392,7 +392,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
                     <Input
                       id="interestRate"
                       type="number"
-                      step="0.01"
+                      step="any"
                       min="0"
                       {...register('interestRate', { valueAsNumber: true })}
                       onFocus={(e) => e.target.select()}
@@ -408,7 +408,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
                     <Input
                       id="taxRate"
                       type="number"
-                      step="0.01"
+                      step="any"
                       min="0"
                       max="100"
                       {...register('taxRate', { valueAsNumber: true })}
