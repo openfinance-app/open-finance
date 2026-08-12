@@ -10,6 +10,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -96,6 +97,13 @@ public class ImportService {
     private static final int TRANSACTION_NOTES_MAX_LENGTH = 1000;
     private static final int TRANSACTION_PAYEE_MAX_LENGTH = 100;
     private static final int TRANSACTION_TAGS_MAX_LENGTH = 500;
+
+    /** Prefixes the frontend can render directly in an {@code <img>} element. */
+    private static final Set<String> DISPLAYABLE_LOGO_PREFIXES =
+            Set.of("data:", "http://", "https://", "/logos/");
+
+    /** Minimum existing-institution slug length for a containment match. */
+    private static final int MIN_CONTAINMENT_SLUG_LENGTH = 4;
 
     private final ImportSessionRepository importSessionRepository;
     private final TransactionRepository transactionRepository;
@@ -2069,7 +2077,8 @@ public class ImportService {
 
     private Map<Long, Long> ensureInstitutions(SkroogeImportMetadata metadata, Long userId) {
         Map<Long, Long> institutionIdsBySource = new HashMap<>();
-        List<Institution> existingInstitutions = institutionRepository.findAllByUser(userId);
+        List<Institution> existingInstitutions =
+                new ArrayList<>(institutionRepository.findAllByUser(userId));
         for (SkroogeImportMetadata.SkroogeInstitution institution : metadata.getInstitutions()) {
             String rawName = institution.getName();
             final String institutionName = (rawName == null || rawName.isBlank())
@@ -2080,25 +2089,101 @@ public class ImportService {
                         "Using fallback name for Skrooge institution {} (no usable name in export)",
                         institution.getSourceId());
             }
-            Institution existing = existingInstitutions.stream()
-                    .filter(
-                            candidate -> candidate.getName() != null
-                                    && candidate
-                                            .getName()
-                                            .equalsIgnoreCase(institutionName))
-                    .findFirst()
+            Institution existing = findMatchingInstitution(existingInstitutions, institutionName)
                     .orElseGet(
-                            () -> institutionRepository.save(
-                                    Institution.builder()
-                                            .name(institutionName)
-                                            .country(institution.getCountry())
-                                            .logo(institution.getLogo())
-                                            .isSystem(false)
-                                            .userId(userId)
-                                            .build()));
+                            () -> {
+                                Institution created =
+                                        institutionRepository.save(
+                                                Institution.builder()
+                                                        .name(institutionName)
+                                                        .country(institution.getCountry())
+                                                        .logo(sanitizeLogo(institution.getLogo()))
+                                                        .isSystem(false)
+                                                        .userId(userId)
+                                                        .build());
+                                existingInstitutions.add(created);
+                                return created;
+                            });
             institutionIdsBySource.put(institution.getSourceId(), existing.getId());
         }
         return institutionIdsBySource;
+    }
+
+    /**
+     * Find an existing institution (system or the user's own) that best matches the given name.
+     *
+     * <p>Names are compared as normalized slugs (accent-stripped, lower-case, alphanumeric only)
+     * so Skrooge export names such as "hellobank" or "boursorama banque" resolve to the seeded
+     * "Hello bank!"/ "Boursorama" institutions instead of creating duplicates with broken logos.
+     * Falls back to a containment match (the longest existing slug fully contained in the imported
+     * slug) for names that append a qualifier, e.g. "boursorama banque" &rarr; "boursorama".
+     */
+    private Optional<Institution> findMatchingInstitution(
+            List<Institution> existingInstitutions, String name) {
+        String slug = normalizeInstitutionName(name);
+        if (slug.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<Institution> exact = existingInstitutions.stream()
+                .filter(
+                        candidate ->
+                                candidate.getName() != null
+                                        && normalizeInstitutionName(candidate.getName())
+                                                .equals(slug))
+                .findFirst();
+        if (exact.isPresent()) {
+            return exact;
+        }
+        return existingInstitutions.stream()
+                .filter(
+                        candidate -> {
+                            String candidateSlug = normalizeInstitutionName(candidate.getName());
+                            return candidateSlug.length() >= MIN_CONTAINMENT_SLUG_LENGTH
+                                    && slug.length() > candidateSlug.length()
+                                    && slug.contains(candidateSlug);
+                        })
+                .max(Comparator.comparingInt(this::normalizedNameLength));
+    }
+
+    /**
+     * Normalize an institution name into a comparison slug: accent-stripped, lower-cased
+     * (locale-independent), and reduced to alphanumerics. "Hello bank!" and "hellobank" both map to
+     * "hellobank".
+     */
+    static String normalizeInstitutionName(String name) {
+        if (name == null) {
+            return "";
+        }
+        return java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]", "");
+    }
+
+    private int normalizedNameLength(Institution institution) {
+        return normalizeInstitutionName(institution.getName()).length();
+    }
+
+    /**
+     * Keep only logos the frontend can actually render: data URIs, absolute http(s) URLs, or the
+     * bundled {@code /logos/...} paths. Skrooge exports carry bare icon filenames
+     * ("hellobank.png") or host-specific absolute paths ("/usr/share/skrooge/images/logo/...")
+     * which are unusable, so they are dropped in favor of the frontend placeholder.
+     */
+    static String sanitizeLogo(String rawLogo) {
+        if (rawLogo == null) {
+            return null;
+        }
+        String trimmed = rawLogo.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        for (String prefix : DISPLAYABLE_LOGO_PREFIXES) {
+            if (trimmed.startsWith(prefix)) {
+                return trimmed;
+            }
+        }
+        return null;
     }
 
     /**
@@ -2118,17 +2203,20 @@ public class ImportService {
             return null;
         }
         String trimmed = name.trim();
-        List<Institution> existing = institutionRepository.findAllByUser(userId);
-        Institution match = existing.stream()
-                .filter(i -> i.getName() != null && i.getName().equalsIgnoreCase(trimmed))
-                .findFirst()
+        List<Institution> existing = new ArrayList<>(institutionRepository.findAllByUser(userId));
+        Institution match = findMatchingInstitution(existing, trimmed)
                 .orElseGet(
-                        () -> institutionRepository.save(
-                                Institution.builder()
-                                        .name(trimmed)
-                                        .isSystem(false)
-                                        .userId(userId)
-                                        .build()));
+                        () -> {
+                            Institution created =
+                                    institutionRepository.save(
+                                            Institution.builder()
+                                                    .name(trimmed)
+                                                    .isSystem(false)
+                                                    .userId(userId)
+                                                    .build());
+                            existing.add(created);
+                            return created;
+                        });
         return match.getId();
     }
 

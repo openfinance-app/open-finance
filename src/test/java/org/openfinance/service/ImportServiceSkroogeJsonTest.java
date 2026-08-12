@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,6 +35,7 @@ import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.SkroogeImportMetadata;
 import org.openfinance.dto.SkroogeImportParseResult;
 import org.openfinance.dto.TransactionRequest;
+import org.openfinance.dto.AccountRequest;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Category;
@@ -390,6 +392,336 @@ class ImportServiceSkroogeJsonTest {
         assertThat(institutionCaptor.getValue().getName()).isEqualTo("Institution 99");
         assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
         assertThat(result.getImportedCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Should reuse a system institution when the Skrooge name matches by normalized slug")
+    void shouldReuseSystemInstitutionWhenSkroogeNameMatchesByNormalizedSlug() throws Exception {
+        SkroogeImportMetadata metadata =
+                SkroogeImportMetadata.builder()
+                        .institutions(
+                                List.of(
+                                        SkroogeImportMetadata.SkroogeInstitution.builder()
+                                                .sourceId(1L)
+                                                .name("hellobank")
+                                                .logo("hellobank.png")
+                                                .build()))
+                        .accounts(
+                                List.of(
+                                        SkroogeImportMetadata.SkroogeAccount.builder()
+                                                .sourceId(30L)
+                                                .sourceInstitutionId(1L)
+                                                .name("Hello Checking")
+                                                .currency("EUR")
+                                                .accountType(AccountType.CHECKING)
+                                                .openingBalance(BigDecimal.ZERO)
+                                                .openingDate(LocalDate.of(2024, 1, 1))
+                                                .active(true)
+                                                .build()))
+                        .categories(List.of())
+                        .build();
+
+        ImportedTransaction transaction =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 10))
+                        .payee("Salary")
+                        .amount(new BigDecimal("100.00"))
+                        .sourceAccountId(30L)
+                        .accountName("Hello Checking")
+                        .currency("EUR")
+                        .referenceNumber("skrooge:operation:reuse-system")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+
+        ImportSession session = buildSession(metadata, List.of(transaction));
+        Institution systemHelloBank =
+                Institution.builder()
+                        .id(500L)
+                        .name("Hello bank!")
+                        .bic("BNPAFRPPXXX")
+                        .country("FR")
+                        .logo("/logos/institutions/hellobank.png")
+                        .isSystem(true)
+                        .build();
+        Account helloAccount =
+                Account.builder()
+                        .id(103L)
+                        .userId(USER_ID)
+                        .name("encrypted-hello")
+                        .currency("EUR")
+                        .type(AccountType.CHECKING)
+                        .isActive(true)
+                        .build();
+
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
+        when(importSessionRepository.save(any(ImportSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of(systemHelloBank));
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(accountService.createAccount(eq(USER_ID), any()))
+                .thenAnswer(
+                        invocation -> {
+                            AccountRequest req = invocation.getArgument(1);
+                            assertThat(req.getInstitutionId()).isEqualTo(500L);
+                            return AccountResponse.builder().id(103L).build();
+                        });
+        when(accountRepository.findById(103L)).thenReturn(Optional.of(helloAccount));
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Transaction saved = invocation.getArgument(0);
+                            saved.setId(701L);
+                            return saved;
+                        });
+
+        importService.confirmImport(1L, USER_ID, null, Map.of(), true);
+
+        // Reuses the seeded "Hello bank!" system institution: no duplicate custom institution and
+        // no raw Skrooge icon filename is ever persisted as a logo.
+        verify(institutionRepository, never()).save(any(Institution.class));
+    }
+
+    @Test
+    @DisplayName("Should reuse a system institution whose slug is contained in the Skrooge name")
+    void shouldReuseSystemInstitutionMatchingByContainment() throws Exception {
+        SkroogeImportMetadata metadata =
+                SkroogeImportMetadata.builder()
+                        .institutions(
+                                List.of(
+                                        SkroogeImportMetadata.SkroogeInstitution.builder()
+                                                .sourceId(1L)
+                                                .name("boursorama banque")
+                                                .logo("boursorama_banque.png")
+                                                .build()))
+                        .accounts(
+                                List.of(
+                                        SkroogeImportMetadata.SkroogeAccount.builder()
+                                                .sourceId(30L)
+                                                .sourceInstitutionId(1L)
+                                                .name("Boursorama Checking")
+                                                .currency("EUR")
+                                                .accountType(AccountType.CHECKING)
+                                                .openingBalance(BigDecimal.ZERO)
+                                                .openingDate(LocalDate.of(2024, 1, 1))
+                                                .active(true)
+                                                .build()))
+                        .categories(List.of())
+                        .build();
+
+        ImportedTransaction transaction =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 10))
+                        .payee("Salary")
+                        .amount(new BigDecimal("100.00"))
+                        .sourceAccountId(30L)
+                        .accountName("Boursorama Checking")
+                        .currency("EUR")
+                        .referenceNumber("skrooge:operation:reuse-boursorama")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+
+        ImportSession session = buildSession(metadata, List.of(transaction));
+        Institution systemBoursorama =
+                Institution.builder()
+                        .id(501L)
+                        .name("Boursorama")
+                        .country("FR")
+                        .logo("/logos/institutions/boursorama.png")
+                        .isSystem(true)
+                        .build();
+        Account boursoramaAccount =
+                Account.builder()
+                        .id(103L)
+                        .userId(USER_ID)
+                        .name("encrypted-boursorama")
+                        .currency("EUR")
+                        .type(AccountType.CHECKING)
+                        .isActive(true)
+                        .build();
+
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
+        when(importSessionRepository.save(any(ImportSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of(systemBoursorama));
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(accountService.createAccount(eq(USER_ID), any()))
+                .thenAnswer(
+                        invocation -> {
+                            AccountRequest req = invocation.getArgument(1);
+                            assertThat(req.getInstitutionId()).isEqualTo(501L);
+                            return AccountResponse.builder().id(103L).build();
+                        });
+        when(accountRepository.findById(103L)).thenReturn(Optional.of(boursoramaAccount));
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Transaction saved = invocation.getArgument(0);
+                            saved.setId(702L);
+                            return saved;
+                        });
+
+        importService.confirmImport(1L, USER_ID, null, Map.of(), true);
+
+        verify(institutionRepository, never()).save(any(Institution.class));
+    }
+
+    @Test
+    @DisplayName("Should not persist non-displayable Skrooge icon paths as institution logos")
+    void shouldNotPersistNonDisplayableSkroogeIconAsLogo() throws Exception {
+        SkroogeImportMetadata metadata =
+                SkroogeImportMetadata.builder()
+                        .institutions(
+                                List.of(
+                                        SkroogeImportMetadata.SkroogeInstitution.builder()
+                                                .sourceId(1L)
+                                                .name("CPF Compte")
+                                                .logo("/usr/share/skrooge/images/logo/cpf.png")
+                                                .build()))
+                        .accounts(
+                                List.of(
+                                        SkroogeImportMetadata.SkroogeAccount.builder()
+                                                .sourceId(30L)
+                                                .sourceInstitutionId(1L)
+                                                .name("CPF Checking")
+                                                .currency("EUR")
+                                                .accountType(AccountType.CASH)
+                                                .openingBalance(BigDecimal.ZERO)
+                                                .openingDate(LocalDate.of(2024, 1, 1))
+                                                .active(true)
+                                                .build()))
+                        .categories(List.of())
+                        .build();
+
+        ImportedTransaction transaction =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 10))
+                        .payee("Salary")
+                        .amount(new BigDecimal("100.00"))
+                        .sourceAccountId(30L)
+                        .accountName("CPF Checking")
+                        .currency("EUR")
+                        .referenceNumber("skrooge:operation:cpf-logo")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+
+        ImportSession session = buildSession(metadata, List.of(transaction));
+        Institution savedInstitution =
+                Institution.builder().id(510L).name("CPF Compte").isSystem(false).build();
+        Account cpfAccount =
+                Account.builder()
+                        .id(103L)
+                        .userId(USER_ID)
+                        .name("encrypted-cpf")
+                        .currency("EUR")
+                        .type(AccountType.CASH)
+                        .isActive(true)
+                        .build();
+
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
+        when(importSessionRepository.save(any(ImportSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of());
+        when(institutionRepository.save(any(Institution.class))).thenReturn(savedInstitution);
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(accountService.createAccount(eq(USER_ID), any()))
+                .thenReturn(AccountResponse.builder().id(103L).build());
+        when(accountRepository.findById(103L)).thenReturn(Optional.of(cpfAccount));
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Transaction saved = invocation.getArgument(0);
+                            saved.setId(703L);
+                            return saved;
+                        });
+
+        importService.confirmImport(1L, USER_ID, null, Map.of(), true);
+
+        ArgumentCaptor<Institution> institutionCaptor = ArgumentCaptor.forClass(Institution.class);
+        verify(institutionRepository).save(institutionCaptor.capture());
+        assertThat(institutionCaptor.getValue().getName()).isEqualTo("CPF Compte");
+        assertThat(institutionCaptor.getValue().getLogo()).isNull();
+    }
+
+    @Test
+    @DisplayName("Should preserve a displayable (data URI) logo on imported institutions")
+    void shouldPreserveDisplayableLogoOnImportedInstitutions() throws Exception {
+        String dataUriLogo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==";
+        SkroogeImportMetadata metadata =
+                SkroogeImportMetadata.builder()
+                        .institutions(
+                                List.of(
+                                        SkroogeImportMetadata.SkroogeInstitution.builder()
+                                                .sourceId(1L)
+                                                .name("Custom Crypto")
+                                                .logo(dataUriLogo)
+                                                .build()))
+                        .accounts(
+                                List.of(
+                                        SkroogeImportMetadata.SkroogeAccount.builder()
+                                                .sourceId(30L)
+                                                .sourceInstitutionId(1L)
+                                                .name("Crypto Wallet")
+                                                .currency("EUR")
+                                                .accountType(AccountType.CASH)
+                                                .openingBalance(BigDecimal.ZERO)
+                                                .openingDate(LocalDate.of(2024, 1, 1))
+                                                .active(true)
+                                                .build()))
+                        .categories(List.of())
+                        .build();
+
+        ImportedTransaction transaction =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 10))
+                        .payee("Buy")
+                        .amount(new BigDecimal("50.00"))
+                        .sourceAccountId(30L)
+                        .accountName("Crypto Wallet")
+                        .currency("EUR")
+                        .referenceNumber("skrooge:operation:data-logo")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+
+        ImportSession session = buildSession(metadata, List.of(transaction));
+        Institution savedInstitution =
+                Institution.builder().id(511L).name("Custom Crypto").isSystem(false).build();
+        Account cryptoAccount =
+                Account.builder()
+                        .id(103L)
+                        .userId(USER_ID)
+                        .name("encrypted-crypto")
+                        .currency("EUR")
+                        .type(AccountType.CASH)
+                        .isActive(true)
+                        .build();
+
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
+        when(importSessionRepository.save(any(ImportSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(institutionRepository.findAllByUser(USER_ID)).thenReturn(List.of());
+        when(institutionRepository.save(any(Institution.class))).thenReturn(savedInstitution);
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(accountService.createAccount(eq(USER_ID), any()))
+                .thenReturn(AccountResponse.builder().id(103L).build());
+        when(accountRepository.findById(103L)).thenReturn(Optional.of(cryptoAccount));
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Transaction saved = invocation.getArgument(0);
+                            saved.setId(704L);
+                            return saved;
+                        });
+
+        importService.confirmImport(1L, USER_ID, null, Map.of(), true);
+
+        ArgumentCaptor<Institution> institutionCaptor = ArgumentCaptor.forClass(Institution.class);
+        verify(institutionRepository).save(institutionCaptor.capture());
+        assertThat(institutionCaptor.getValue().getName()).isEqualTo("Custom Crypto");
+        assertThat(institutionCaptor.getValue().getLogo()).isEqualTo(dataUriLogo);
     }
 
     @Test

@@ -1,8 +1,5 @@
 TODO:
 
-1-importing account logos not well handled:
-Hello bank! BNPAFRPPXXX FR /logos/institutions/hellobank.png 1
-hellobank hellobank.png 0
 3-can not edit account with amount 6322,1899 requiring 6322,18 or 6322,19
 root cause step="0.01"
 They were previous work to remove any arbitrary rounding tolerance from eaf8d807525e940ef006d897cf657f6660b7051a to 5ee8cf2247123c24cfac42a72256ebad9618b2a7
@@ -12,7 +9,7 @@ This is a financial app and amount should be exact. I don't know why gate like 0
 Review in depth the code base and propose a solution.
 
 3- Regex search support
-4-attachments should be stored in db instead of file system
+4- attachments should be stored in db instead of file system
 5- Dashboard Plugin architecture
 
 1-create rules from Import view
@@ -22,6 +19,8 @@ Review in depth the code base and propose a solution.
         - Design sure
         - Capture screenshot
         - Live demo
+    - Waiting list
+        - Email capture
     - Stripe
         - 1 month trial
             - Custom Features available only via subscription
