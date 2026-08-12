@@ -179,6 +179,7 @@
     "accountNumberTooLong": "Account number is too long",
     "descriptionTooLong": "Description is too long",
     "balanceNegative": "Balance cannot be negative for this account type",
+    "balanceInvalid": "Enter a valid amount (e.g. 1234.56)",
     "interestRatePositive": "Interest rate must be greater than 0",
     "interestRateMustBePositive": "Rate must be positive",
     "taxRateMustBePositive": "Tax rate must be positive",

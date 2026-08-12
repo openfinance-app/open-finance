@@ -88,6 +88,7 @@
     "validation": {
       "accountRequired": "Account is required",
       "amountPositive": "Amount must be positive",
+      "amountInvalid": "Enter a valid amount (e.g. 1234.56)",
       "currencyLength": "Currency must be a 3-letter code",
       "descriptionRequired": "Description is required",
       "descriptionTooLong": "Description is too long",

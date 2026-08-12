@@ -292,12 +292,12 @@ describe('LiabilityForm', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           name: 'Test Mortgage',
           type: 'OTHER',
-          principal: 300000,
-          currentBalance: 250000,
+          principal: '300000',
+          currentBalance: '250000',
           startDate: '2020-01-01',
           currency: 'USD',
           insurancePercentage: 0.5,
-          additionalFees: 500,
+          additionalFees: '500',
         });
       });
     });
@@ -322,16 +322,16 @@ describe('LiabilityForm', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           name: 'Test Mortgage',
           type: 'MORTGAGE',
-          principal: 300000,
-          currentBalance: 250000,
+          principal: '300000',
+          currentBalance: '250000',
           interestRate: 3.5,
           startDate: '2020-01-01',
           endDate: '2050-01-01',
-          minimumPayment: 1500,
+          minimumPayment: '1500',
           currency: 'USD',
           notes: 'Test liability',
           insurancePercentage: 0.75,
-          additionalFees: 500,
+          additionalFees: '500',
         });
       });
     });

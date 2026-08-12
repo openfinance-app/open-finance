@@ -20,7 +20,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useActivePayees } from '@/hooks/usePayees';
 import { useLatestExchangeRate, useCurrencyFormat } from '@/hooks/useCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { multiply } from '@/utils/money';
+import { isValidDecimalString, multiply } from '@/utils/money';
 import type {
   RecurringTransaction,
   RecurringTransactionRequest,
@@ -44,7 +44,7 @@ const _recurringTransactionSchemaShape = z.object({
   accountId: z.number(),
   toAccountId: optionalNumber,
   type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
-  amount: z.number(),
+  amount: z.string(),
   currency: z.string(),
   categoryId: optionalNumber,
   payee: z.string().optional(),
@@ -62,7 +62,7 @@ function createRecurringTransactionSchema(t: (key: string) => string) {
     accountId: z.number({ message: t('form.validation.accountRequired') }),
     toAccountId: optionalNumber,
     type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
-    amount: z.number().positive(t('form.validation.amountPositive')),
+    amount: z.string().min(1, t('form.validation.amountInvalid')).refine(isValidDecimalString, t('form.validation.amountInvalid')).refine((v) => Number(v) > 0, t('form.validation.amountPositive')),
     currency: z.string().length(3, t('form.validation.currencyLength')),
     categoryId: optionalNumber,
     payee: z.string().optional(),
@@ -143,7 +143,7 @@ export function RecurringTransactionForm({
         accountId: recurringTransaction.accountId,
         toAccountId: recurringTransaction.toAccountId || undefined,
         type: recurringTransaction.type,
-        amount: recurringTransaction.amount,
+        amount: String(recurringTransaction.amount),
         currency: recurringTransaction.currency,
         categoryId: recurringTransaction.categoryId || undefined,
         payee: recurringTransaction.payee || undefined,
@@ -158,7 +158,7 @@ export function RecurringTransactionForm({
         currency: baseCurrency || DEFAULT_CURRENCY,
         frequency: 'MONTHLY',
         nextOccurrence: new Date().toISOString().split('T')[0],
-        amount: 0,
+        amount: '0',
         description: '',
         payee: undefined,
       },
@@ -172,7 +172,7 @@ export function RecurringTransactionForm({
   // Currency conversion for preview
   const { data: exchangeRate } = useLatestExchangeRate(currency || DEFAULT_CURRENCY, baseCurrency || DEFAULT_CURRENCY);
   const formatBaseCurrency = useCurrencyFormat(baseCurrency || DEFAULT_CURRENCY);
-  const convertedAmount = amount && exchangeRate && currency !== baseCurrency ? multiply(amount, exchangeRate.rate) : null;
+  const convertedAmount = amount && exchangeRate && currency !== baseCurrency ? multiply(Number(amount), exchangeRate.rate) : null;
 
   // Get payees for auto-fill logic
   const { data: payees = [] } = useActivePayees();
@@ -208,7 +208,7 @@ export function RecurringTransactionForm({
       accountId: data.accountId,
       toAccountId: data.toAccountId || null,
       type: data.type,
-      amount: Number(data.amount),
+      amount: data.amount.trim(),
       currency: data.currency,
       categoryId: data.categoryId || null,
       payee: data.payee || null,
@@ -250,7 +250,7 @@ export function RecurringTransactionForm({
             id="amount"
             type="number"
             step="any"
-            {...register('amount', { valueAsNumber: true })}
+            {...register('amount')}
             error={errors.amount?.message}
           />
           {convertedAmount !== null && (

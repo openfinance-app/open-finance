@@ -111,6 +111,7 @@
   "validation": {
     "categoryRequired": "La catégorie est obligatoire",
     "amountPositive": "Le montant doit être supérieur à 0",
+    "amountInvalid": "Saisissez un montant valide (ex. 1234,56)",
     "endDateAfterStart": "La date de fin doit être au moins 1 jour après la date de début",
     "currencyRequired": "La devise doit être un code de 3 lettres",
     "startDateRequired": "La date de début est obligatoire",

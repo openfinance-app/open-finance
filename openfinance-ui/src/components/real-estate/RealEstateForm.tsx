@@ -15,6 +15,7 @@ import { LiabilitySelector } from '@/components/ui/LiabilitySelector';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { useAuthContext } from '@/context/AuthContext';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { isValidDecimalString } from '@/utils/money';
 import type { RealEstateProperty, RealEstatePropertyRequest } from '@/types/realEstate';
 import { PropertyType, getPropertyTypeName } from '@/types/realEstate';
 
@@ -31,12 +32,12 @@ const propertySchema = (tv: (key: string) => string) => z.object({
   name: z.string().min(1, tv('form.validation.nameRequired')).max(500, tv('form.validation.nameTooLong')),
   address: z.string().min(1, tv('form.validation.addressRequired')).max(1000, tv('form.validation.addressTooLong')),
   propertyType: z.enum([PropertyType.RESIDENTIAL, PropertyType.COMMERCIAL, PropertyType.LAND, PropertyType.MIXED_USE, PropertyType.INDUSTRIAL, PropertyType.OTHER] as const),
-  purchasePrice: z.number().positive(tv('form.validation.purchasePricePositive')).min(0.01, tv('form.validation.priceTooSmall')),
+  purchasePrice: z.string().min(1, tv('form.validation.priceInvalid')).refine(isValidDecimalString, tv('form.validation.priceInvalid')).refine((v) => Number(v) >= 0.01, tv('form.validation.priceTooSmall')),
   purchaseDate: z.string().min(1, tv('form.validation.purchaseDateRequired')).regex(/^\d{4}-\d{2}-\d{2}$/, tv('form.validation.invalidDateFormat')),
-  currentValue: z.number().positive(tv('form.validation.currentValuePositive')).min(0.01, tv('form.validation.valueTooSmall')),
+  currentValue: z.string().min(1, tv('form.validation.priceInvalid')).refine(isValidDecimalString, tv('form.validation.priceInvalid')).refine((v) => Number(v) >= 0.01, tv('form.validation.valueTooSmall')),
   currency: z.string().length(3, tv('form.validation.currencyCode')),
   mortgageId: z.number().optional(),
-  rentalIncome: z.number().min(0, tv('form.validation.rentalIncomeNonNegative')).optional().or(z.literal(0)),
+  rentalIncome: z.string().refine((v) => v === '' || isValidDecimalString(v), tv('form.validation.rentalIncomeInvalid')).refine((v) => v === '' || Number(v) >= 0, tv('form.validation.rentalIncomeNonNegative')).optional().or(z.literal('')),
   notes: z.string().max(2048, tv('form.validation.notesTooLong')).optional().or(z.literal('')),
   latitude: z.number().min(-90, tv('form.validation.latitudeRange')).max(90, tv('form.validation.latitudeRange')).optional(),
   longitude: z.number().min(-180, tv('form.validation.longitudeRange')).max(180, tv('form.validation.longitudeRange')).optional(),
@@ -80,12 +81,12 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
         name: property.name,
         address: property.address,
         propertyType: property.propertyType,
-        purchasePrice: property.purchasePrice,
+        purchasePrice: String(property.purchasePrice),
         purchaseDate: property.purchaseDate,
-        currentValue: property.currentValue,
+        currentValue: String(property.currentValue),
         currency: property.currency,
         mortgageId: property.mortgageId || undefined,
-        rentalIncome: property.rentalIncome || 0,
+        rentalIncome: property.rentalIncome !== undefined && property.rentalIncome !== null ? String(property.rentalIncome) : '',
         notes: property.notes || '',
         latitude: property.latitude || undefined,
         longitude: property.longitude || undefined,
@@ -95,12 +96,12 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
         name: '',
         address: '',
         propertyType: PropertyType.RESIDENTIAL,
-        purchasePrice: 0,
+        purchasePrice: '0',
         purchaseDate: today,
-        currentValue: 0,
+        currentValue: '0',
         currency: baseCurrency || DEFAULT_CURRENCY,
         mortgageId: undefined,
-        rentalIncome: 0,
+        rentalIncome: '',
         notes: '',
         latitude: undefined,
         longitude: undefined,
@@ -115,12 +116,12 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
       name: data.name,
       address: data.address,
       propertyType: data.propertyType,
-      purchasePrice: Number(data.purchasePrice),
+      purchasePrice: data.purchasePrice.trim(),
       purchaseDate: data.purchaseDate,
-      currentValue: Number(data.currentValue),
+      currentValue: data.currentValue.trim(),
       currency: data.currency,
       mortgageId: data.mortgageId || null,
-      rentalIncome: data.rentalIncome && data.rentalIncome > 0 ? Number(data.rentalIncome) : null,
+      rentalIncome: data.rentalIncome && data.rentalIncome !== '' && Number(data.rentalIncome) > 0 ? data.rentalIncome.trim() : null,
       notes: data.notes && data.notes !== '' ? data.notes : null,
       documents: null,
       latitude: data.latitude || null,
@@ -202,7 +203,7 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
             type="number"
             step="any"
             min="0.01"
-            {...register('purchasePrice', { valueAsNumber: true })}
+            {...register('purchasePrice')}
             placeholder="0.00"
             error={errors.purchasePrice?.message}
           />
@@ -232,7 +233,7 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
             type="number"
             step="any"
             min="0.01"
-            {...register('currentValue', { valueAsNumber: true })}
+            {...register('currentValue')}
             placeholder="0.00"
             error={errors.currentValue?.message}
           />
@@ -300,7 +301,7 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
             type="number"
             step="any"
             min="0"
-            {...register('rentalIncome', { valueAsNumber: true })}
+            {...register('rentalIncome')}
             placeholder="0.00"
             error={errors.rentalIncome?.message}
           />

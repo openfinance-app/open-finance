@@ -60,7 +60,8 @@ export interface RecurringTransactionRequest {
   accountId: number;
   toAccountId?: number | null;
   type: TransactionType;
-  amount: number;
+  /** Exact decimal string as entered by the user — never a JS number. */
+  amount: string;
   currency: string;
   categoryId?: number | null;
   payee?: string | null;

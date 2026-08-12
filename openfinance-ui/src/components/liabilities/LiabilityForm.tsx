@@ -19,6 +19,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { getLiabilityTypeName } from '@/hooks/useLiabilities';
 import { useProperties } from '@/hooks/useRealEstate';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { isValidDecimalString } from '@/utils/money';
 import type { Liability, LiabilityRequest, LiabilityType } from '@/types/liability';
 
 const liabilityTypes: LiabilityType[] = [
@@ -42,18 +43,18 @@ const liabilitySchema = (tv: (key: string) => string) => z.object({
     'PERSONAL_LOAN',
     'OTHER',
   ]),
-  principal: z.number().positive(tv('form.validation.principalPositive')).min(0.01, tv('form.validation.principalTooSmall')),
-  currentBalance: z.number().min(0, tv('form.validation.balanceNonNegative')),
+  principal: z.string().min(1, tv('form.validation.principalInvalid')).refine(isValidDecimalString, tv('form.validation.principalInvalid')).refine((v) => Number(v) >= 0.01, tv('form.validation.principalTooSmall')),
+  currentBalance: z.string().min(1, tv('form.validation.balanceInvalid')).refine(isValidDecimalString, tv('form.validation.balanceInvalid')).refine((v) => Number(v) >= 0, tv('form.validation.balanceNonNegative')),
   interestRate: z.number().min(0, tv('form.validation.interestRateNonNegative')).max(100, tv('form.validation.interestRateMax')).optional().or(z.literal(0)),
   startDate: z.string().min(1, tv('form.validation.startDateRequired')).regex(/^\d{4}-\d{2}-\d{2}$/, tv('form.validation.invalidDateFormat')),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, tv('form.validation.invalidDateFormat')).optional().or(z.literal('')),
-  minimumPayment: z.number().min(0, tv('form.validation.paymentNonNegative')).optional().or(z.literal(0)),
+  minimumPayment: z.string().refine((v) => v === '' || isValidDecimalString(v), tv('form.validation.paymentInvalid')).refine((v) => v === '' || Number(v) >= 0, tv('form.validation.paymentNonNegative')).optional().or(z.literal('')),
   currency: z.string().length(3, tv('form.validation.currencyCode')),
   notes: z.string().max(500, tv('form.validation.notesTooLong')).optional().or(z.literal('')),
   institutionId: z.string().optional(),
   // Requirement 1.1: Insurance percentage (annual, 0–100%) and one-time/periodic additional fees
   insurancePercentage: z.number().min(0, tv('form.validation.insuranceRateNonNegative')).max(100, tv('form.validation.insuranceRateMax')).optional().or(z.literal(0)),
-  additionalFees: z.number().min(0, tv('form.validation.feesNonNegative')).optional().or(z.literal(0)),
+  additionalFees: z.string().refine((v) => v === '' || isValidDecimalString(v), tv('form.validation.feesInvalid')).refine((v) => v === '' || Number(v) >= 0, tv('form.validation.feesNonNegative')).optional().or(z.literal('')),
   realEstateId: z.number().optional(),
 }).refine(
   (data) => {
@@ -96,33 +97,33 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
       ? {
         name: liability.name,
         type: liability.type,
-        principal: liability.principal,
-        currentBalance: liability.currentBalance,
+        principal: String(liability.principal),
+        currentBalance: String(liability.currentBalance),
         interestRate: liability.interestRate || 0,
         startDate: liability.startDate,
         endDate: liability.endDate || '',
-        minimumPayment: liability.minimumPayment || 0,
+        minimumPayment: liability.minimumPayment !== undefined && liability.minimumPayment !== null ? String(liability.minimumPayment) : '',
         currency: liability.currency,
         notes: liability.notes || '',
         institutionId: liability.institution?.id?.toString() || '',
         insurancePercentage: liability.insurancePercentage || 0,
-        additionalFees: liability.additionalFees || 0,
+        additionalFees: liability.additionalFees !== undefined && liability.additionalFees !== null ? String(liability.additionalFees) : '',
         realEstateId: undefined,
       }
       : {
         name: '',
         type: 'OTHER',
-        principal: 0,
-        currentBalance: 0,
+        principal: '0',
+        currentBalance: '0',
         interestRate: 0,
         startDate: today,
         endDate: '',
-        minimumPayment: 0,
+        minimumPayment: '',
         currency: baseCurrency || DEFAULT_CURRENCY,
         notes: '',
         institutionId: '',
         insurancePercentage: 0,
-        additionalFees: 0,
+        additionalFees: '',
         realEstateId: undefined,
       },
   });
@@ -134,18 +135,18 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
     onSubmit({
       name: data.name,
       type: data.type,
-      principal: Number(data.principal),
-      currentBalance: Number(data.currentBalance),
+      principal: data.principal.trim(),
+      currentBalance: data.currentBalance.trim(),
       interestRate: data.interestRate && data.interestRate > 0 ? Number(data.interestRate) : undefined,
       startDate: data.startDate,
       endDate: data.endDate && data.endDate !== '' ? data.endDate : undefined,
-      minimumPayment: data.minimumPayment && data.minimumPayment > 0 ? Number(data.minimumPayment) : undefined,
+      minimumPayment: data.minimumPayment && data.minimumPayment !== '' && Number(data.minimumPayment) > 0 ? data.minimumPayment.trim() : undefined,
       currency: data.currency,
       notes: data.notes && data.notes !== '' ? data.notes : undefined,
       institutionId: data.institutionId && data.institutionId !== '__none__' && data.institutionId !== '' ? Number(data.institutionId) : undefined,
       // Requirement 1.1: Pass insurance percentage and fees (omit if zero/unset)
       insurancePercentage: data.insurancePercentage && data.insurancePercentage > 0 ? Number(data.insurancePercentage) : undefined,
-      additionalFees: data.additionalFees && data.additionalFees > 0 ? Number(data.additionalFees) : undefined,
+      additionalFees: data.additionalFees && data.additionalFees !== '' && Number(data.additionalFees) > 0 ? data.additionalFees.trim() : undefined,
       realEstateId: data.realEstateId,
     });
   });
@@ -201,7 +202,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
             type="number"
             step="any"
             min="0.01"
-            {...register('principal', { valueAsNumber: true })}
+            {...register('principal')}
             placeholder="0.00"
             error={errors.principal?.message}
           />
@@ -217,7 +218,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
             type="number"
             step="any"
             min="0"
-            {...register('currentBalance', { valueAsNumber: true })}
+            {...register('currentBalance')}
             placeholder="0.00"
             error={errors.currentBalance?.message}
           />
@@ -298,7 +299,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
             type="number"
             step="any"
             min="0"
-            {...register('minimumPayment', { valueAsNumber: true })}
+            {...register('minimumPayment')}
             placeholder="0.00"
             error={errors.minimumPayment?.message}
           />
@@ -317,7 +318,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
             type="number"
             step="any"
             min="0"
-            {...register('additionalFees', { valueAsNumber: true })}
+            {...register('additionalFees')}
             placeholder="0.00"
             error={errors.additionalFees?.message}
           />

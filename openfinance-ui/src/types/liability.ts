@@ -59,18 +59,19 @@ export interface Liability {
 export interface LiabilityRequest {
   name: string;
   type: LiabilityType;
-  principal: number;
-  currentBalance: number;
+  // Exact decimal strings as entered by the user — never JS numbers.
+  principal: string;
+  currentBalance: string;
   interestRate?: number;
   startDate: string; // ISO date string (YYYY-MM-DD)
   endDate?: string; // ISO date string (YYYY-MM-DD)
-  minimumPayment?: number;
+  minimumPayment?: string;
   currency: string;
   notes?: string;
   institutionId?: number;
   // Requirement 1.1: Insurance percentage and additional fees fields
   insurancePercentage?: number;
-  additionalFees?: number;
+  additionalFees?: string;
   /** Optional real estate property ID to link this mortgage to on creation */
   realEstateId?: number;
 }

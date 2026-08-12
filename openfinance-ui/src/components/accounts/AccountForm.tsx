@@ -25,7 +25,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { add, divide, multiply, percentage, pow, subtract } from '@/utils/money';
+import { add, divide, isValidDecimalString, multiply, percentage, pow, subtract } from '@/utils/money';
 import type { Account, AccountRequest, AccountType, InterestPeriod } from '@/types/account';
 
 const ACCOUNT_TYPES: AccountType[] = ['CHECKING', 'SAVINGS', 'CREDIT_CARD', 'INVESTMENT', 'CASH', 'OTHER'];
@@ -42,7 +42,8 @@ type AccountFormData = {
   accountNumber?: string;
   type: AccountType;
   currency: string;
-  initialBalance: number;
+  /** Raw decimal string as entered by the user — preserved exactly through submission. */
+  initialBalance: string;
   description?: string;
   institutionId?: string;
   isInterestEnabled?: boolean;
@@ -89,7 +90,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
     accountNumber: z.string().max(50, t('validation.accountNumberTooLong')).optional(),
     type: z.enum(['CHECKING', 'SAVINGS', 'CREDIT_CARD', 'INVESTMENT', 'CASH', 'OTHER']),
     currency: z.string().length(3),
-    initialBalance: z.coerce.number(),
+    initialBalance: z.string().min(1, t('validation.balanceInvalid')).refine(isValidDecimalString, t('validation.balanceInvalid')),
     description: z.string().max(500, t('validation.descriptionTooLong')).optional(),
     institutionId: z.string().optional(),
     isInterestEnabled: z.boolean().optional(),
@@ -97,7 +98,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
     interestRate: z.coerce.number().min(0, t('validation.interestRateMustBePositive')).optional(),
     taxRate: z.coerce.number().min(0, t('validation.taxRateMustBePositive')).max(100, t('validation.taxRateMax')).optional(),
   }).superRefine((data, ctx) => {
-    if (data.type !== 'CREDIT_CARD' && data.initialBalance < 0) {
+    if (data.type !== 'CREDIT_CARD' && Number(data.initialBalance) < 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: t('validation.balanceNegative'),
@@ -129,7 +130,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
         accountNumber: account.accountNumber || '',
         type: account.type,
         currency: account.currency,
-        initialBalance: account.balance,
+        initialBalance: String(account.balance),
         description: account.description || '',
         institutionId: account.institution?.id?.toString() || '',
         isInterestEnabled: account.isInterestEnabled || false,
@@ -142,7 +143,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
         accountNumber: '',
         type: 'CHECKING',
         currency: baseCurrency || DEFAULT_CURRENCY,
-        initialBalance: 0,
+        initialBalance: '0',
         description: '',
         institutionId: '',
         isInterestEnabled: false,
@@ -165,20 +166,22 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
     selectedCurrency !== baseCurrency ? 1 : 0
   );
 
+  const initialBalanceNumeric = Number(initialBalance || 0);
+
   const convertedAmount =
     selectedCurrency &&
       selectedCurrency !== baseCurrency &&
       exchangeRate &&
       initialBalance
-      ? multiply(initialBalance, exchangeRate.rate)
+      ? multiply(initialBalanceNumeric, exchangeRate.rate)
       : undefined;
 
   // Live interest preview computation
   const interestPreview = useMemo(() => {
     const periodInfo = INTEREST_PERIODS.find(p => p.value === interestPeriod);
     const n = periodInfo?.compoundsPerYear ?? 1;
-    return calcInterestPreview(initialBalance ?? 0, interestRate, taxRate, n);
-  }, [initialBalance, interestRate, taxRate, interestPeriod]);
+    return calcInterestPreview(initialBalanceNumeric, interestRate, taxRate, n);
+  }, [initialBalanceNumeric, interestRate, taxRate, interestPeriod]);
 
   const handleFormSubmit = handleSubmit((data: AccountFormData) => {
     onSubmit({
@@ -186,7 +189,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
       accountNumber: data.accountNumber || undefined,
       type: data.type,
       currency: data.currency,
-      initialBalance: Number(data.initialBalance),
+      initialBalance: data.initialBalance.trim(),
       description: data.description || undefined,
       institutionId: data.institutionId ? parseInt(data.institutionId, 10) : undefined,
       isInterestEnabled: data.isInterestEnabled,
@@ -302,7 +305,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
             id="initialBalance"
             type="number"
             step="any"
-            {...register('initialBalance', { valueAsNumber: true })}
+            {...register('initialBalance')}
             onFocus={(e) => e.target.select()}
             placeholder="0.00"
             error={errors.initialBalance?.message}
@@ -421,7 +424,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
                 </div>
 
                 {/* Live Calculation Preview */}
-                {interestRate > 0 && (initialBalance ?? 0) > 0 ? (
+                {interestRate > 0 && initialBalanceNumeric > 0 ? (
                   <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
                     <p className="text-xs font-semibold text-primary mb-2 flex items-center gap-1">
                       <TrendingUp className="h-3.5 w-3.5" />
@@ -445,15 +448,15 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
                         <p className="text-sm font-bold font-mono text-primary">
                           +{formatCurrency(interestPreview.netInterest, selectedCurrency)}
                         </p>
-                        {(initialBalance ?? 0) > 0 && (
+                        {initialBalanceNumeric > 0 && (
                           <p className="text-xs font-medium text-primary/70 mt-0.5">
-                            ({percentage(interestPreview.netInterest, initialBalance ?? 1).toFixed(2)}%)
+                            ({percentage(interestPreview.netInterest, initialBalanceNumeric || 1).toFixed(2)}%)
                           </p>
                         )}
                       </div>
                     </div>
                     <p className="text-xs text-text-muted mt-2 text-center">
-                      Based on {formatCurrency(initialBalance ?? 0, selectedCurrency)} balance · {interestRate}% {t(`form.periods.${interestPeriod}`)} compounding
+                      Based on {formatCurrency(initialBalanceNumeric, selectedCurrency)} balance · {interestRate}% {t(`form.periods.${interestPeriod}`)} compounding
                       {taxRate > 0 ? ` · ${taxRate}% tax` : ''}
                     </p>
                   </div>

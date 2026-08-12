@@ -10,7 +10,8 @@ export type BudgetStatus = 'ON_TRACK' | 'WARNING' | 'EXCEEDED';
 
 export interface BudgetRequest {
   categoryId: number;
-  amount: number;
+  /** Exact decimal string as entered by the user — never a JS number. */
+  amount: string;
   currency: string;
   period: BudgetPeriod;
   startDate: string; // ISO date format "YYYY-MM-DD"

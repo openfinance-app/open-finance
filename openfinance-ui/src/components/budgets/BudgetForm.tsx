@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { useAuthContext } from '@/context/AuthContext';
+import { isValidDecimalString } from '@/utils/money';
 import type { BudgetRequest, BudgetResponse, BudgetPeriod } from '@/types/budget';
 
 const BUDGET_PERIODS: BudgetPeriod[] = ['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY'];
@@ -22,7 +23,7 @@ function createBudgetSchema(t: (key: string) => string) {
   return z
     .object({
       categoryId: z.number().min(1, t('validation.categoryRequired')),
-      amount: z.number().positive(t('validation.amountPositive')),
+      amount: z.string().min(1, t('validation.amountInvalid')).refine(isValidDecimalString, t('validation.amountInvalid')).refine((v) => Number(v) > 0, t('validation.amountPositive')),
       currency: z.string().length(3, t('validation.currencyRequired')),
       period: z.enum(['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']),
       startDate: z.string().min(1, t('validation.startDateRequired')),
@@ -71,7 +72,7 @@ export function BudgetForm({ budget, onSubmit, onCancel, isLoading, serverError 
     values: budget
       ? {
         categoryId: budget.categoryId,
-        amount: budget.amount,
+        amount: String(budget.amount),
         currency: budget.currency,
         period: budget.period,
         startDate: budget.startDate,
@@ -81,7 +82,7 @@ export function BudgetForm({ budget, onSubmit, onCancel, isLoading, serverError 
       }
       : {
         categoryId: 0,
-        amount: 0,
+        amount: '0',
         currency: baseCurrency,
         period: 'MONTHLY',
         startDate: new Date().toISOString().split('T')[0],
@@ -121,7 +122,7 @@ export function BudgetForm({ budget, onSubmit, onCancel, isLoading, serverError 
   const handleFormSubmit = handleSubmit((data: BudgetFormData) => {
     onSubmit({
       categoryId: data.categoryId,
-      amount: Number(data.amount),
+      amount: data.amount.trim(),
       currency: data.currency,
       period: data.period,
       startDate: data.startDate,
@@ -197,7 +198,7 @@ export function BudgetForm({ budget, onSubmit, onCancel, isLoading, serverError 
             type="number"
             step="any"
             min="0"
-            {...register('amount', { valueAsNumber: true })}
+            {...register('amount')}
             placeholder="0.00"
             error={errors.amount?.message}
           />

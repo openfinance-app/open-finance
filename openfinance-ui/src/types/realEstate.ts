@@ -72,12 +72,14 @@ export interface RealEstatePropertyRequest {
   name: string;
   address: string;
   propertyType: PropertyType;
-  purchasePrice: number;
+  /** Exact decimal string as entered by the user — never a JS number. */
+  purchasePrice: string;
   purchaseDate: string; // ISO date format (YYYY-MM-DD)
-  currentValue: number;
+  /** Exact decimal string as entered by the user — never a JS number. */
+  currentValue: string;
   currency: string; // ISO 4217 currency code (e.g., "USD")
   mortgageId?: number | null;
-  rentalIncome?: number | null;
+  rentalIncome?: string | null;
   notes?: string | null;
   documents?: string | null; // JSON string
   latitude?: number | null;

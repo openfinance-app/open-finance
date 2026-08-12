@@ -89,7 +89,8 @@ export interface AccountRequest {
   accountNumber?: string;
   type: AccountType;
   currency: string;
-  initialBalance: number;
+  /** Exact decimal string as entered by the user (e.g. "6322.1899") — never a JS number. */
+  initialBalance: string;
   description?: string;
   institutionId?: number;
   isInterestEnabled?: boolean;

@@ -67,7 +67,7 @@ export interface Asset {
   unrealizedGain: number;  // Calculated: totalValue - totalCost
   gainPercentage: number;  // Calculated: (unrealizedGain / totalCost) * 100
   holdingDays: number;     // Calculated: days since purchase
-  
+
   // Physical asset fields (Task 9.2.5)
   serialNumber?: string;
   brand?: string;
@@ -97,13 +97,14 @@ export interface AssetRequest {
   name: string;
   type: AssetType;
   symbol?: string;
-  quantity: number;
-  purchasePrice: number;
-  currentPrice: number;
+  /** Exact decimal strings as entered by the user — never JS numbers. */
+  quantity: string;
+  purchasePrice: string;
+  currentPrice: string;
   currency: string;
   purchaseDate: string;
   notes?: string;
-  
+
   // Physical asset fields (Task 9.2.5)
   serialNumber?: string;
   brand?: string;

@@ -21,6 +21,7 @@ import { AccountSelector } from '@/components/ui/AccountSelector';
 import { useAuthContext } from '@/context/AuthContext';
 import { getAssetTypeName } from '@/hooks/useAssets';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { isValidDecimalString } from '@/utils/money';
 import type { Asset, AssetRequest, AssetType, AssetCondition } from '@/types/asset';
 
 const assetTypes: AssetType[] = [
@@ -83,9 +84,9 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
       'OTHER',
     ]),
     symbol: z.string().max(20, t('validation.symbolTooLong')).optional().or(z.literal('')),
-    quantity: z.coerce.number().min(0.000001, t('validation.quantityRequired')),
-    purchasePrice: z.coerce.number().min(0.000001, t('validation.purchasePriceRequired')),
-    currentPrice: z.coerce.number().min(0.000001, t('validation.currentPriceRequired')),
+    quantity: z.string().min(1, t('validation.quantityInvalid')).refine(isValidDecimalString, t('validation.quantityInvalid')).refine((v) => Number(v) >= 0.000001, t('validation.quantityRequired')),
+    purchasePrice: z.string().min(1, t('validation.purchasePriceInvalid')).refine(isValidDecimalString, t('validation.purchasePriceInvalid')).refine((v) => Number(v) >= 0.000001, t('validation.purchasePriceRequired')),
+    currentPrice: z.string().min(1, t('validation.currentPriceInvalid')).refine(isValidDecimalString, t('validation.currentPriceInvalid')).refine((v) => Number(v) >= 0.000001, t('validation.currentPriceRequired')),
     currency: z.string().length(3, t('validation.currencyInvalid')),
     purchaseDate: z.string().min(1, t('validation.purchaseDateRequired')),
     notes: z.string().max(500, t('validation.notesTooLong')).optional().or(z.literal('')),
@@ -115,9 +116,9 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
           name: asset.name,
           type: asset.type as any, // Cast to avoid type mismatch if asset is REAL_ESTATE
           symbol: asset.symbol || '',
-          quantity: asset.quantity,
-          purchasePrice: asset.purchasePrice,
-          currentPrice: asset.currentPrice,
+          quantity: String(asset.quantity),
+          purchasePrice: String(asset.purchasePrice),
+          currentPrice: String(asset.currentPrice),
           currency: asset.currency,
           purchaseDate: asset.purchaseDate,
           notes: asset.notes || '',
@@ -133,9 +134,9 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
           name: '',
           type: 'STOCK',
           symbol: '',
-          quantity: 0,
-          purchasePrice: 0,
-          currentPrice: 0,
+          quantity: '0',
+          purchasePrice: '0',
+          currentPrice: '0',
           currency: baseCurrency || DEFAULT_CURRENCY,
           purchaseDate: today,
           notes: '',
@@ -176,9 +177,9 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
         name: data.name,
         type: data.type,
         symbol: data.symbol || undefined,
-        quantity: Number(data.quantity),
-        purchasePrice: Number(data.purchasePrice),
-        currentPrice: Number(data.currentPrice),
+        quantity: data.quantity.trim(),
+        purchasePrice: data.purchasePrice.trim(),
+        currentPrice: data.currentPrice.trim(),
         currency: data.currency,
         purchaseDate: data.purchaseDate,
         notes: data.notes || undefined,
@@ -389,7 +390,7 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
               type="number"
               step="any"
               min="0.000001"
-              {...register('quantity', { valueAsNumber: true })}
+              {...register('quantity')}
               placeholder="0.00"
               error={errors.quantity?.message}
             />
@@ -405,7 +406,7 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
               type="number"
               step="any"
               min="0.01"
-              {...register('purchasePrice', { valueAsNumber: true })}
+              {...register('purchasePrice')}
               placeholder="0.00"
               error={errors.purchasePrice?.message}
             />
@@ -421,7 +422,7 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
               type="number"
               step="any"
               min="0.01"
-              {...register('currentPrice', { valueAsNumber: true })}
+              {...register('currentPrice')}
               placeholder="0.00"
               error={errors.currentPrice?.message}
             />

@@ -33,6 +33,23 @@ Decimal.set({ rounding: Decimal.ROUND_HALF_UP });
 type Numeric = number | string | Decimal | null | undefined;
 
 /**
+ * Plain (non-exponential) decimal string: optional leading `-`, at least one digit, optional
+ * `.` + digits. Matches what the backend `BigDecimal`/`@Digits` boundary accepts.
+ */
+const DECIMAL_STRING_PATTERN = /^-?\d+(\.\d+)?$/;
+
+/**
+ * Validates that `value` is a plain decimal string (no scientific notation, no thousands
+ * separators) safe to carry an amount end-to-end as text — from a form input, through the
+ * request payload, into a backend `BigDecimal` — without ever being parsed into a lossy JS
+ * `number` along the way. Used by form zod schemas in place of `z.coerce.number()` for amount
+ * fields where arbitrary user-entered precision must be preserved exactly.
+ */
+export function isValidDecimalString(value: string): boolean {
+  return DECIMAL_STRING_PATTERN.test(value.trim());
+}
+
+/**
  * Converts `value` to a `Decimal`, tolerating missing/invalid input the same way native
  * arithmetic does.
  *
