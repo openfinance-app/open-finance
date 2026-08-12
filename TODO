@@ -7,6 +7,7 @@ They were previous work to remove any arbitrary rounding tolerance from eaf8d807
 This is a financial app and amount should be exact. I don't know why gate like 0.01 or 0.001 were added in the first place.
 
 Review in depth the code base and propose a solution.
+Any amount should be able to be inserted in the system, user set his preferred precision for display only using the Decimal Places setting
 
 3- Regex search support
 4- attachments should be stored in db instead of file system
