@@ -1,17 +1,8 @@
 TODO:
 
-3-can not edit account with amount 6322,1899 requiring 6322,18 or 6322,19
-root cause step="0.01"
-They were previous work to remove any arbitrary rounding tolerance from eaf8d807525e940ef006d897cf657f6660b7051a to 5ee8cf2247123c24cfac42a72256ebad9618b2a7
-
-This is a financial app and amount should be exact. I don't know why gate like 0.01 or 0.001 were added in the first place.
-
-Review in depth the code base and propose a solution.
-Any amount should be able to be inserted in the system, user set his preferred precision for display only using the Decimal Places setting
-
 3- Regex search support
 4- attachments should be stored in db instead of file system
-5- Dashboard Plugin architecture
+5- financial map dashboard card
 
 1-create rules from Import view
 
