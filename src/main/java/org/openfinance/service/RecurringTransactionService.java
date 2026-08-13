@@ -394,6 +394,7 @@ public class RecurringTransactionService {
             RecurringFrequency frequency,
             Boolean isActive,
             String search,
+            boolean searchRegex,
             Pageable pageable) {
 
         if (userId == null) {
@@ -426,17 +427,12 @@ public class RecurringTransactionService {
                                     if (search == null || search.trim().isEmpty()) {
                                         return true;
                                     }
-                                    String searchTerm = search.toLowerCase();
                                     boolean matchDescription =
-                                            resp.getDescription() != null
-                                                    && resp.getDescription()
-                                                            .toLowerCase()
-                                                            .contains(searchTerm);
+                                            org.openfinance.util.RegexSearchUtil.matches(
+                                                    resp.getDescription(), search, searchRegex);
                                     boolean matchNotes =
-                                            resp.getNotes() != null
-                                                    && resp.getNotes()
-                                                            .toLowerCase()
-                                                            .contains(searchTerm);
+                                            org.openfinance.util.RegexSearchUtil.matches(
+                                                    resp.getNotes(), search, searchRegex);
                                     return matchDescription || matchNotes;
                                 })
                         .collect(Collectors.toList());

@@ -84,6 +84,7 @@ async function fetchPropertiesSearch(
 }> {
   const params = new URLSearchParams();
   if (filters?.keyword) params.append('keyword', filters.keyword);
+  if (filters?.keyword && filters?.keywordRegex) params.append('keywordRegex', 'true');
   if (filters?.propertyType) params.append('propertyType', filters.propertyType);
   if (filters?.currency) params.append('currency', filters.currency);
   if (filters?.isActive !== undefined) params.append('isActive', filters.isActive.toString());

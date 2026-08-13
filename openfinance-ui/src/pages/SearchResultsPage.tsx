@@ -15,6 +15,7 @@ import { LoadingSkeleton } from '@/components/LoadingComponents';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
+import { RegexToggle } from '@/components/ui/RegexToggle';
 import { AdvancedFilterPanel } from '@/components/search/AdvancedFilterPanel';
 import { SavedSearchesDropdown } from '@/components/search/SavedSearchesDropdown';
 import { SaveSearchDialog } from '@/components/search/SaveSearchDialog';
@@ -82,7 +83,7 @@ export default function SearchResultsPage() {
   const { savedSearches, saveSearch, deleteSearch, updateLastUsed } = useSavedSearches();
 
   // Use simple search for initial load from URL, advanced search for filtered results
-  const simpleSearch = useGlobalSearch(queryParam, 100, queryParam.length >= 2);
+  const simpleSearch = useGlobalSearch(queryParam, 100, queryParam.length >= 2, !!filters.regex);
   const advancedSearch = useAdvancedSearch();
 
   // Update query from URL param
@@ -226,8 +227,13 @@ export default function SearchResultsPage() {
               placeholder={t('errors:search.placeholder')}
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
-              className="pl-10"
+              className="pl-10 pr-10"
               autoFocus
+            />
+            <RegexToggle
+              enabled={!!filters.regex}
+              onChange={(val) => setFilters((prev) => ({ ...prev, regex: val || undefined }))}
+              className="absolute right-2 top-1/2 -translate-y-1/2"
             />
           </div>
           <button

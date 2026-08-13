@@ -45,6 +45,12 @@ public class AccountSearchCriteria {
     private String keyword;
 
     /**
+     * When true, {@link #keyword} is treated as a case-insensitive regular expression instead of a
+     * plain substring. Invalid patterns simply match nothing.
+     */
+    @Builder.Default private boolean keywordRegex = false;
+
+    /**
      * Filter by account type.
      *
      * <p>If null, includes all account types.

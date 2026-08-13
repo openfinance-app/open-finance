@@ -10,6 +10,12 @@
   "search": "Rechercher",
   "filter": "Filtrer",
   "filters": "Filtres",
+  "regexSearch": {
+    "toggleLabel": "Regex",
+    "enabledTooltip": "Recherche par expression régulière activée. Cliquez pour revenir à la recherche simple.",
+    "disabledTooltip": "Utiliser une expression régulière, ex. boa|taxi",
+    "invalidPattern": "Expression régulière invalide"
+  },
   "noResults": "Aucun résultat trouvé",
   "error": "Une erreur s'est produite",
   "loadError": "Échec du chargement des données",

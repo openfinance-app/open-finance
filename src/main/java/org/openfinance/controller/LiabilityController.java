@@ -286,6 +286,8 @@ public class LiabilityController {
             @RequestParam(value = "size", defaultValue = "20") int size,
             @RequestParam(value = "type", required = false) LiabilityType type,
             @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "searchRegex", required = false, defaultValue = "false")
+                    boolean searchRegex,
             @RequestParam(value = "sort", defaultValue = "createdAt,desc") String sort,
             Authentication authentication) {
 
@@ -308,7 +310,8 @@ public class LiabilityController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
 
         Page<LiabilityResponse> liabilitiesPage =
-                liabilityService.getLiabilitiesWithFilters(user.getId(), type, search, pageable);
+                liabilityService.getLiabilitiesWithFilters(
+                        user.getId(), type, search, searchRegex, pageable);
 
         log.info(
                 "Retrieved liabilities page {} of {} (total: {}) for user",

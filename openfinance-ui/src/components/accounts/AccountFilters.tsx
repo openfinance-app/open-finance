@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, X } from 'lucide-react';
 import { Input, Button, Badge } from '@/components/ui';
+import { RegexToggle } from '@/components/ui/RegexToggle';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import type { AccountFilters, AccountType } from '@/types/account';
 
@@ -98,7 +99,12 @@ export function AccountFilters({
             placeholder={t('form.searchPlaceholder')}
             value={localKeyword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleKeywordChange(e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-10"
+          />
+          <RegexToggle
+            enabled={!!filters.keywordRegex}
+            onChange={(val) => handleChange('keywordRegex', val || undefined)}
+            className="absolute right-2 top-1/2 -translate-y-1/2"
           />
         </div>
       </div>

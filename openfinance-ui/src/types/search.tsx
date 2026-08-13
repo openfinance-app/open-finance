@@ -55,6 +55,8 @@ export interface GlobalSearchResponse {
  */
 export interface AdvancedSearchRequest {
   query: string;
+  /** When true, `query` is treated as a regular expression instead of a plain substring. */
+  regex?: boolean;
   entityTypes?: SearchResultType[];
   accountIds?: number[];
   categoryIds?: number[];

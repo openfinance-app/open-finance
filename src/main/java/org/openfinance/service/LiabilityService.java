@@ -528,7 +528,11 @@ public class LiabilityService {
      */
     @Transactional(readOnly = true)
     public Page<LiabilityResponse> getLiabilitiesWithFilters(
-            Long userId, LiabilityType type, String search, Pageable pageable) {
+            Long userId,
+            LiabilityType type,
+            String search,
+            boolean searchRegex,
+            Pageable pageable) {
 
         log.debug(
                 "Retrieving liabilities for user {} with filters: type={}, search={}, page={}, size={}",
@@ -558,15 +562,12 @@ public class LiabilityService {
 
             // Apply search filter on decrypted name
             if (hasSearch) {
-                String searchLower = search.toLowerCase();
                 responses =
                         responses.stream()
                                 .filter(
                                         r ->
-                                                r.getName() != null
-                                                        && r.getName()
-                                                                .toLowerCase()
-                                                                .contains(searchLower))
+                                                org.openfinance.util.RegexSearchUtil.matches(
+                                                        r.getName(), search, searchRegex))
                                 .collect(Collectors.toList());
             }
 

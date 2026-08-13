@@ -156,6 +156,7 @@ public class SearchController {
                     @Min(value = 1, message = "Limit must be at least 1")
                     @Max(value = 100, message = "Limit cannot exceed 100")
                     Integer limit,
+            @RequestParam(value = "regex", required = false, defaultValue = "false") boolean regex,
             Authentication authentication) {
 
         // Extract user ID from authenticated principal
@@ -170,7 +171,7 @@ public class SearchController {
         try {
             // Decode encryption key
             // Perform search
-            GlobalSearchResponse response = searchService.globalSearch(userId, query, limit);
+            GlobalSearchResponse response = searchService.globalSearch(userId, query, limit, regex);
 
             log.info(
                     "Global search completed for user {} in {}ms: {} results found",

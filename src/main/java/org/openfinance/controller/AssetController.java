@@ -306,6 +306,7 @@ public class AssetController {
                     LocalDate purchaseDateTo,
             @RequestParam(required = false) BigDecimal valueMin,
             @RequestParam(required = false) BigDecimal valueMax,
+            @RequestParam(required = false, defaultValue = "false") boolean keywordRegex,
             @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
                     Pageable pageable,
             Authentication authentication) {
@@ -322,6 +323,7 @@ public class AssetController {
         AssetSearchCriteria criteria =
                 AssetSearchCriteria.builder()
                         .keyword(keyword)
+                        .keywordRegex(keywordRegex)
                         .type(type)
                         .accountId(accountId)
                         .currency(currency)

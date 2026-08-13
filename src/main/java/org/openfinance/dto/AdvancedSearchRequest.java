@@ -86,6 +86,12 @@ public class AdvancedSearchRequest {
     private String query;
 
     /**
+     * When true, {@link #query} is treated as a case-insensitive regular expression instead of a
+     * plain substring/FTS5 match. Invalid patterns simply match nothing.
+     */
+    @Builder.Default private boolean regex = false;
+
+    /**
      * List of entity types to search (optional).
      *
      * <p>If null or empty, searches across all entity types. Use this to narrow down search to

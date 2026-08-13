@@ -37,6 +37,7 @@ import {
 } from '@/hooks/useBudgets';
 import type { BudgetRequest, BudgetResponse } from '@/types/budget';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '@/constants/pagination';
+import { matchesQuery } from '@/utils/searchMatch';
 
 
 export default function BudgetsPage() {
@@ -91,14 +92,14 @@ export default function BudgetsPage() {
     return summary.budgets;
   }, [summary]);
 
-  // Apply keyword filter (client-side, case-insensitive match on category name)
+  // Apply keyword filter (client-side, case-insensitive or regex match on category name)
   const filteredBudgets = useMemo(() => {
-    const query = (filters.keyword || '').trim().toLowerCase();
+    const query = (filters.keyword || '').trim();
     if (!query) return allBudgetProgress;
     return allBudgetProgress.filter((b) =>
-      b.categoryName.toLowerCase().includes(query)
+      matchesQuery(b.categoryName, query, !!filters.keywordRegex)
     );
-  }, [allBudgetProgress, filters.keyword]);
+  }, [allBudgetProgress, filters.keyword, filters.keywordRegex]);
 
   // Paginate the filtered results
   const totalElements = filteredBudgets.length;

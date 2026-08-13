@@ -518,16 +518,16 @@ public class AssetService {
                     AssetSpecification.buildSpecification(userId, criteriaWithoutKeyword);
             List<Asset> allMatching = assetRepository.findAll(specWithoutKeyword);
 
-            String lowerKeyword = criteria.getKeyword().trim().toLowerCase();
+            boolean keywordRegex = criteria.isKeywordRegex();
             List<AssetResponse> filtered =
                     allMatching.stream()
                             .map(asset -> toResponseWithDecryption(asset))
                             .filter(
                                     response ->
-                                            response.getName() != null
-                                                    && response.getName()
-                                                            .toLowerCase()
-                                                            .contains(lowerKeyword))
+                                            org.openfinance.util.RegexSearchUtil.matches(
+                                                    response.getName(),
+                                                    criteria.getKeyword(),
+                                                    keywordRegex))
                             .collect(Collectors.toList());
 
             // Apply sorting from pageable

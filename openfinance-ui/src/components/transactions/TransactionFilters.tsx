@@ -8,6 +8,7 @@
 import { Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Input, Button, Badge } from '@/components/ui';
+import { RegexToggle } from '@/components/ui/RegexToggle';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { AccountSelector } from '@/components/ui/AccountSelector';
@@ -87,7 +88,12 @@ export function TransactionFilters({
             placeholder={t('filterKeys.searchPlaceholder')}
             value={filters.keyword || ''}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('keyword', e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-10"
+          />
+          <RegexToggle
+            enabled={!!filters.keywordRegex}
+            onChange={(val) => handleChange('keywordRegex', val || undefined)}
+            className="absolute right-2 top-1/2 -translate-y-1/2"
           />
         </div>
       </div>

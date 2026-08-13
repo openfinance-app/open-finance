@@ -1360,25 +1360,19 @@ public class TransactionService {
 
             // Keyword filter (description, notes, payee, tags)
             if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
-                String lowerKeyword = criteria.getKeyword().trim().toLowerCase();
+                String keyword = criteria.getKeyword();
+                boolean keywordRegex = criteria.isKeywordRegex();
                 stream =
                         stream.filter(
-                                t -> {
-                                    if (t.getDescription() != null
-                                            && t.getDescription()
-                                                    .toLowerCase()
-                                                    .contains(lowerKeyword)) return true;
-                                    if (t.getNotes() != null
-                                            && t.getNotes().toLowerCase().contains(lowerKeyword))
-                                        return true;
-                                    if (t.getPayee() != null
-                                            && t.getPayee().toLowerCase().contains(lowerKeyword))
-                                        return true;
-                                    if (t.getTags() != null
-                                            && t.getTags().toLowerCase().contains(lowerKeyword))
-                                        return true;
-                                    return false;
-                                });
+                                t ->
+                                        org.openfinance.util.RegexSearchUtil.matches(
+                                                        t.getDescription(), keyword, keywordRegex)
+                                                || org.openfinance.util.RegexSearchUtil.matches(
+                                                        t.getNotes(), keyword, keywordRegex)
+                                                || org.openfinance.util.RegexSearchUtil.matches(
+                                                        t.getPayee(), keyword, keywordRegex)
+                                                || org.openfinance.util.RegexSearchUtil.matches(
+                                                        t.getTags(), keyword, keywordRegex));
             }
 
             // Amount range filter (amount is encrypted, SQL comparison is meaningless)

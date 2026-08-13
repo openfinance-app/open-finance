@@ -95,10 +95,12 @@ public class SearchService {
      * @param query Search query string (supports FTS5 syntax for transactions)
      * @param encryptionKey User's encryption key for decrypting sensitive fields
      * @param limit Maximum number of results to return (default 50, max 100)
+     * @param regex when true, treat {@code query} as a case-insensitive regular expression
      * @return GlobalSearchResponse containing grouped search results with metadata
      * @throws IllegalArgumentException if query is empty or limit is invalid
      */
-    public GlobalSearchResponse globalSearch(Long userId, String query, Integer limit) {
+    public GlobalSearchResponse globalSearch(
+            Long userId, String query, Integer limit, boolean regex) {
         long startTime = System.currentTimeMillis();
 
         // Validate input
@@ -121,36 +123,45 @@ public class SearchService {
                         () ->
                                 withEncryptionKey(
                                         encKey,
-                                        () -> searchTransactions(userId, query, effectiveLimit)));
+                                        () ->
+                                                searchTransactions(
+                                                        userId, query, effectiveLimit, regex)));
         CompletableFuture<List<SearchResultDto>> accountsFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
                                         encKey,
-                                        () -> searchAccounts(userId, query, effectiveLimit)));
+                                        () ->
+                                                searchAccounts(
+                                                        userId, query, effectiveLimit, regex)));
         CompletableFuture<List<SearchResultDto>> assetsFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
-                                        encKey, () -> searchAssets(userId, query, effectiveLimit)));
+                                        encKey,
+                                        () -> searchAssets(userId, query, effectiveLimit, regex)));
         CompletableFuture<List<SearchResultDto>> realEstateFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
                                         encKey,
-                                        () -> searchRealEstate(userId, query, effectiveLimit)));
+                                        () ->
+                                                searchRealEstate(
+                                                        userId, query, effectiveLimit, regex)));
         CompletableFuture<List<SearchResultDto>> liabilitiesFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
                                         encKey,
-                                        () -> searchLiabilities(userId, query, effectiveLimit)));
+                                        () ->
+                                                searchLiabilities(
+                                                        userId, query, effectiveLimit, regex)));
         CompletableFuture<List<SearchResultDto>> budgetsFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
                                         encKey,
-                                        () -> searchBudgets(userId, query, effectiveLimit)));
+                                        () -> searchBudgets(userId, query, effectiveLimit, regex)));
         CompletableFuture<List<SearchResultDto>> recurringFuture =
                 CompletableFuture.supplyAsync(
                         () ->
@@ -158,13 +169,15 @@ public class SearchService {
                                         encKey,
                                         () ->
                                                 searchRecurringTransactions(
-                                                        userId, query, effectiveLimit)));
+                                                        userId, query, effectiveLimit, regex)));
         CompletableFuture<List<SearchResultDto>> categoriesFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
                                         encKey,
-                                        () -> searchCategories(userId, query, effectiveLimit)));
+                                        () ->
+                                                searchCategories(
+                                                        userId, query, effectiveLimit, regex)));
 
         // Wait for all to complete
         CompletableFuture.allOf(
@@ -276,6 +289,7 @@ public class SearchService {
 
         // Search across specified entity types
         List<SearchResultDto> allResults = new ArrayList<>();
+        boolean regex = request.isRegex();
 
         // Search transactions with filters
         if (entityTypesToSearch.contains(SearchResultType.TRANSACTION)) {
@@ -301,35 +315,35 @@ public class SearchService {
         // Search real estate (no additional filters)
         if (entityTypesToSearch.contains(SearchResultType.REAL_ESTATE)) {
             List<SearchResultDto> realEstateResults =
-                    searchRealEstate(userId, request.getQuery(), effectiveLimit);
+                    searchRealEstate(userId, request.getQuery(), effectiveLimit, regex);
             allResults.addAll(realEstateResults);
         }
 
         // Search liabilities (no additional filters)
         if (entityTypesToSearch.contains(SearchResultType.LIABILITY)) {
             List<SearchResultDto> liabilityResults =
-                    searchLiabilities(userId, request.getQuery(), effectiveLimit);
+                    searchLiabilities(userId, request.getQuery(), effectiveLimit, regex);
             allResults.addAll(liabilityResults);
         }
 
         // Search budgets
         if (entityTypesToSearch.contains(SearchResultType.BUDGET)) {
             List<SearchResultDto> budgetResults =
-                    searchBudgets(userId, request.getQuery(), effectiveLimit);
+                    searchBudgets(userId, request.getQuery(), effectiveLimit, regex);
             allResults.addAll(budgetResults);
         }
 
         // Search recurring transactions
         if (entityTypesToSearch.contains(SearchResultType.RECURRING_TRANSACTION)) {
             List<SearchResultDto> recurringResults =
-                    searchRecurringTransactions(userId, request.getQuery(), effectiveLimit);
+                    searchRecurringTransactions(userId, request.getQuery(), effectiveLimit, regex);
             allResults.addAll(recurringResults);
         }
 
         // Search categories
         if (entityTypesToSearch.contains(SearchResultType.CATEGORY)) {
             List<SearchResultDto> categoryResults =
-                    searchCategories(userId, request.getQuery(), effectiveLimit);
+                    searchCategories(userId, request.getQuery(), effectiveLimit, regex);
             allResults.addAll(categoryResults);
         }
 
@@ -378,9 +392,10 @@ public class SearchService {
                             .toList();
 
             String lowerQuery = request.getQuery().toLowerCase();
+            boolean regex = request.isRegex();
 
             return transactions.stream()
-                    .filter(t -> matchesTextQuery(t, lowerQuery))
+                    .filter(t -> matchesTextQuery(t, request.getQuery(), regex))
                     .filter(
                             t -> {
                                 if (request.getAccountIds() != null
@@ -489,8 +504,10 @@ public class SearchService {
                                         account.getDescription() != null
                                                 ? account.getDescription()
                                                 : "";
-                                String searchText = (name + " " + description).toLowerCase();
-                                return searchText.contains(request.getQuery().toLowerCase());
+                                return org.openfinance.util.RegexSearchUtil.matches(
+                                        name + " " + description,
+                                        request.getQuery(),
+                                        request.isRegex());
                             })
                     .map(
                             account -> {
@@ -588,8 +605,8 @@ public class SearchService {
                                 // Match query
                                 String name = asset.getName() != null ? asset.getName() : "";
                                 String symbol = asset.getSymbol() != null ? asset.getSymbol() : "";
-                                String searchText = (name + " " + symbol).toLowerCase();
-                                return searchText.contains(request.getQuery().toLowerCase());
+                                return org.openfinance.util.RegexSearchUtil.matches(
+                                        name + " " + symbol, request.getQuery(), request.isRegex());
                             })
                     .map(
                             asset -> {
@@ -648,35 +665,40 @@ public class SearchService {
      * @param limit Maximum results
      * @return List of transaction search results
      */
-    private List<SearchResultDto> searchTransactions(Long userId, String query, int limit) {
+    private List<SearchResultDto> searchTransactions(
+            Long userId, String query, int limit, boolean regex) {
         try {
             String lowerQuery = query.toLowerCase();
 
-            // Use token-based search if encryption key is available
-            SecretKey contextKey = org.openfinance.security.EncryptionContext.getKey();
-            if (contextKey != null) {
-                SecretKey searchKey = searchTokenService.deriveSearchKey(contextKey);
-                List<Long> matchingIds =
-                        searchTokenService.search(userId, "TRANSACTION", query, searchKey, limit);
-                if (!matchingIds.isEmpty()) {
-                    return matchingIds.stream()
-                            .map(id -> transactionRepository.findById(id).orElse(null))
-                            .filter(Objects::nonNull)
-                            .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
-                            .map(t -> buildTransactionSearchResult(t, lowerQuery))
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toList());
+            // Token-based search does not support regex; skip straight to in-memory scan.
+            if (!regex) {
+                // Use token-based search if encryption key is available
+                SecretKey contextKey = org.openfinance.security.EncryptionContext.getKey();
+                if (contextKey != null) {
+                    SecretKey searchKey = searchTokenService.deriveSearchKey(contextKey);
+                    List<Long> matchingIds =
+                            searchTokenService.search(
+                                    userId, "TRANSACTION", query, searchKey, limit);
+                    if (!matchingIds.isEmpty()) {
+                        return matchingIds.stream()
+                                .map(id -> transactionRepository.findById(id).orElse(null))
+                                .filter(Objects::nonNull)
+                                .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
+                                .map(t -> buildTransactionSearchResult(t, lowerQuery))
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList());
+                    }
                 }
             }
 
-            // Fallback: in-memory search (for entities not yet indexed)
+            // Fallback: in-memory search (for entities not yet indexed, or when using regex)
             List<org.openfinance.entity.Transaction> transactions =
                     transactionRepository.findByUserId(userId).stream()
                             .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
                             .toList();
 
             return transactions.stream()
-                    .filter(t -> matchesTextQuery(t, lowerQuery))
+                    .filter(t -> matchesTextQuery(t, query, regex))
                     .limit(limit)
                     .map(t -> buildTransactionSearchResult(t, lowerQuery))
                     .filter(Objects::nonNull)
@@ -689,7 +711,8 @@ public class SearchService {
     }
 
     /** Searches accounts by name. */
-    private List<SearchResultDto> searchAccounts(Long userId, String query, int limit) {
+    private List<SearchResultDto> searchAccounts(
+            Long userId, String query, int limit, boolean regex) {
         try {
             List<Account> accounts = accountRepository.findByUserId(userId);
 
@@ -701,12 +724,10 @@ public class SearchService {
                                     String decryptedDesc = account.getDescription();
 
                                     // Check if query matches name or description
-                                    String lowerQuery = query.toLowerCase();
-                                    if (decryptedName.toLowerCase().contains(lowerQuery)
-                                            || (decryptedDesc != null
-                                                    && decryptedDesc
-                                                            .toLowerCase()
-                                                            .contains(lowerQuery))) {
+                                    if (org.openfinance.util.RegexSearchUtil.matches(
+                                                    decryptedName, query, regex)
+                                            || org.openfinance.util.RegexSearchUtil.matches(
+                                                    decryptedDesc, query, regex)) {
 
                                         return SearchResultDto.builder()
                                                 .resultType(SearchResultType.ACCOUNT)
@@ -738,10 +759,10 @@ public class SearchService {
     }
 
     /** Searches assets by name and ticker symbol. */
-    private List<SearchResultDto> searchAssets(Long userId, String query, int limit) {
+    private List<SearchResultDto> searchAssets(
+            Long userId, String query, int limit, boolean regex) {
         try {
             List<Asset> assets = assetRepository.findByUserId(userId);
-            String lowerQuery = query.toLowerCase();
 
             return assets.parallelStream()
                     .map(
@@ -750,11 +771,10 @@ public class SearchService {
                                     String decryptedName = asset.getName();
 
                                     // Check if query matches name or symbol
-                                    if (decryptedName.toLowerCase().contains(lowerQuery)
-                                            || (asset.getSymbol() != null
-                                                    && asset.getSymbol()
-                                                            .toLowerCase()
-                                                            .contains(lowerQuery))) {
+                                    if (org.openfinance.util.RegexSearchUtil.matches(
+                                                    decryptedName, query, regex)
+                                            || org.openfinance.util.RegexSearchUtil.matches(
+                                                    asset.getSymbol(), query, regex)) {
 
                                         BigDecimal value =
                                                 asset.getQuantity()
@@ -794,10 +814,10 @@ public class SearchService {
     }
 
     /** Searches real estate properties by name and address. */
-    private List<SearchResultDto> searchRealEstate(Long userId, String query, int limit) {
+    private List<SearchResultDto> searchRealEstate(
+            Long userId, String query, int limit, boolean regex) {
         try {
             List<RealEstateProperty> properties = realEstateRepository.findByUserId(userId);
-            String lowerQuery = query.toLowerCase();
 
             return properties.parallelStream()
                     .filter(RealEstateProperty::isActive)
@@ -808,10 +828,10 @@ public class SearchService {
                                     String decryptedAddress = property.getAddress();
 
                                     // Check if query matches name or address
-                                    if (decryptedName.toLowerCase().contains(lowerQuery)
-                                            || decryptedAddress
-                                                    .toLowerCase()
-                                                    .contains(lowerQuery)) {
+                                    if (org.openfinance.util.RegexSearchUtil.matches(
+                                                    decryptedName, query, regex)
+                                            || org.openfinance.util.RegexSearchUtil.matches(
+                                                    decryptedAddress, query, regex)) {
 
                                         BigDecimal currentValue =
                                                 new BigDecimal(property.getCurrentValue());
@@ -847,11 +867,11 @@ public class SearchService {
     }
 
     /** Searches liabilities by name. */
-    private List<SearchResultDto> searchLiabilities(Long userId, String query, int limit) {
+    private List<SearchResultDto> searchLiabilities(
+            Long userId, String query, int limit, boolean regex) {
         try {
             List<Liability> liabilities =
                     liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId);
-            String lowerQuery = query.toLowerCase();
 
             return liabilities.parallelStream()
                     .map(
@@ -860,7 +880,8 @@ public class SearchService {
                                     String decryptedName = liability.getName();
 
                                     // Check if query matches name
-                                    if (decryptedName.toLowerCase().contains(lowerQuery)) {
+                                    if (org.openfinance.util.RegexSearchUtil.matches(
+                                            decryptedName, query, regex)) {
 
                                         BigDecimal currentBalance =
                                                 new BigDecimal(liability.getCurrentBalance());
@@ -896,10 +917,10 @@ public class SearchService {
     }
 
     /** Searches budgets by notes or category name. */
-    private List<SearchResultDto> searchBudgets(Long userId, String query, int limit) {
+    private List<SearchResultDto> searchBudgets(
+            Long userId, String query, int limit, boolean regex) {
         try {
             List<Budget> budgets = budgetRepository.findByUserId(userId);
-            String lowerQuery = query.toLowerCase();
 
             return budgets.parallelStream()
                     .map(
@@ -912,9 +933,12 @@ public class SearchService {
                                     categoryName = category.getName();
                                     String period = budget.getPeriod().name();
 
-                                    if ((notes != null && notes.toLowerCase().contains(lowerQuery))
-                                            || categoryName.toLowerCase().contains(lowerQuery)
-                                            || period.toLowerCase().contains(lowerQuery)) {
+                                    if (org.openfinance.util.RegexSearchUtil.matches(
+                                                    notes, query, regex)
+                                            || org.openfinance.util.RegexSearchUtil.matches(
+                                                    categoryName, query, regex)
+                                            || org.openfinance.util.RegexSearchUtil.matches(
+                                                    period, query, regex)) {
 
                                         BigDecimal amount = new BigDecimal(budget.getAmount());
 
@@ -951,11 +975,10 @@ public class SearchService {
 
     /** Searches recurring transactions by description or notes. */
     private List<SearchResultDto> searchRecurringTransactions(
-            Long userId, String query, int limit) {
+            Long userId, String query, int limit, boolean regex) {
         try {
             List<RecurringTransaction> recurring =
                     recurringTransactionRepository.findByUserId(userId);
-            String lowerQuery = query.toLowerCase();
 
             return recurring.stream()
                     .map(
@@ -964,9 +987,10 @@ public class SearchService {
                                     String description = rt.getDescription();
                                     String notes = rt.getNotes();
 
-                                    if (description.toLowerCase().contains(lowerQuery)
-                                            || (notes != null
-                                                    && notes.toLowerCase().contains(lowerQuery))) {
+                                    if (org.openfinance.util.RegexSearchUtil.matches(
+                                                    description, query, regex)
+                                            || org.openfinance.util.RegexSearchUtil.matches(
+                                                    notes, query, regex)) {
 
                                         return SearchResultDto.builder()
                                                 .resultType(SearchResultType.RECURRING_TRANSACTION)
@@ -1007,10 +1031,10 @@ public class SearchService {
     }
 
     /** Searches categories by name. */
-    private List<SearchResultDto> searchCategories(Long userId, String query, int limit) {
+    private List<SearchResultDto> searchCategories(
+            Long userId, String query, int limit, boolean regex) {
         try {
             List<Category> categories = categoryRepository.findByUserId(userId);
-            String lowerQuery = query.toLowerCase();
 
             return categories.parallelStream()
                     .map(
@@ -1019,7 +1043,8 @@ public class SearchService {
                                     String name;
                                     name = category.getName();
 
-                                    if (name.toLowerCase().contains(lowerQuery)) {
+                                    if (org.openfinance.util.RegexSearchUtil.matches(
+                                            name, query, regex)) {
                                         return SearchResultDto.builder()
                                                 .resultType(SearchResultType.CATEGORY)
                                                 .id(category.getId())
@@ -1078,13 +1103,12 @@ public class SearchService {
     }
 
     /** Checks if a transaction's text fields match the search query. */
-    private boolean matchesTextQuery(org.openfinance.entity.Transaction t, String lowerQuery) {
-        if (t.getDescription() != null && t.getDescription().toLowerCase().contains(lowerQuery))
-            return true;
-        if (t.getNotes() != null && t.getNotes().toLowerCase().contains(lowerQuery)) return true;
-        if (t.getPayee() != null && t.getPayee().toLowerCase().contains(lowerQuery)) return true;
-        if (t.getTags() != null && t.getTags().toLowerCase().contains(lowerQuery)) return true;
-        return false;
+    private boolean matchesTextQuery(
+            org.openfinance.entity.Transaction t, String query, boolean regex) {
+        return org.openfinance.util.RegexSearchUtil.matches(t.getDescription(), query, regex)
+                || org.openfinance.util.RegexSearchUtil.matches(t.getNotes(), query, regex)
+                || org.openfinance.util.RegexSearchUtil.matches(t.getPayee(), query, regex)
+                || org.openfinance.util.RegexSearchUtil.matches(t.getTags(), query, regex);
     }
 
     /** Builds a SearchResultDto from a Transaction entity. */

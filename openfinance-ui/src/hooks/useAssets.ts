@@ -51,6 +51,7 @@ export function useAssetsSearch(filters?: AssetFilters) {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.keyword) params.append('keyword', filters.keyword);
+      if (filters?.keyword && filters?.keywordRegex) params.append('keywordRegex', 'true');
       if (filters?.type) params.append('type', filters.type);
       if (filters?.accountId) params.append('accountId', filters.accountId.toString());
       if (filters?.currency) params.append('currency', filters.currency);

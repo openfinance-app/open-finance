@@ -36,6 +36,7 @@ import type {
 import { Badge } from '@/components/ui/Badge';
 import { RecurringTransactionForm } from '@/components/transactions/RecurringTransactionForm';
 import { Input } from '@/components/ui/Input';
+import { RegexToggle } from '@/components/ui/RegexToggle';
 import { FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
 
 export default function RecurringTransactionsPage() {
@@ -256,7 +257,12 @@ export default function RecurringTransactionsPage() {
                 placeholder={t('filters.searchPlaceholder')}
                 value={filters.search || ''}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFiltersChange({ ...filters, search: e.target.value })}
-                className="pl-10"
+                className="pl-10 pr-10"
+              />
+              <RegexToggle
+                enabled={!!filters.searchRegex}
+                onChange={(val) => handleFiltersChange({ ...filters, searchRegex: val || undefined })}
+                className="absolute right-2 top-1/2 -translate-y-1/2"
               />
             </div>
           </div>

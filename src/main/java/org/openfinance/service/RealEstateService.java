@@ -576,22 +576,22 @@ public class RealEstateService {
             List<RealEstateProperty> allMatching = realEstateRepository.findAll(specWithoutKeyword);
 
             // Decrypt and apply keyword filter in memory
-            final String lowerKeyword =
-                    hasKeyword ? criteria.getKeyword().trim().toLowerCase() : null;
+            final String keyword = hasKeyword ? criteria.getKeyword() : null;
+            final boolean keywordRegex = criteria.isKeywordRegex();
             List<RealEstatePropertyResponse> filtered =
                     allMatching.stream()
                             .map(property -> toResponseWithDecryption(property))
                             .filter(
                                     response ->
-                                            lowerKeyword == null
-                                                    || (response.getName() != null
-                                                            && response.getName()
-                                                                    .toLowerCase()
-                                                                    .contains(lowerKeyword))
-                                                    || (response.getAddress() != null
-                                                            && response.getAddress()
-                                                                    .toLowerCase()
-                                                                    .contains(lowerKeyword)))
+                                            keyword == null
+                                                    || org.openfinance.util.RegexSearchUtil.matches(
+                                                            response.getName(),
+                                                            keyword,
+                                                            keywordRegex)
+                                                    || org.openfinance.util.RegexSearchUtil.matches(
+                                                            response.getAddress(),
+                                                            keyword,
+                                                            keywordRegex))
                             .collect(Collectors.toList());
 
             // Apply in-memory sort (handles encrypted sort fields correctly)

@@ -45,7 +45,7 @@ export function useLiabilities(filters?: LiabilityFilters) {
  * Fetch liabilities with pagination for the current user
  */
 export function useLiabilitiesPaged(filters: LiabilityFilters = {}) {
-  const { page = 0, size = 20, type, search, sort = 'createdAt,desc' } = filters;
+  const { page = 0, size = 20, type, search, searchRegex, sort = 'createdAt,desc' } = filters;
 
   return useQuery({
     queryKey: ['liabilities', 'paged', filters],
@@ -56,6 +56,7 @@ export function useLiabilitiesPaged(filters: LiabilityFilters = {}) {
       params.append('sort', sort);
       if (type) params.append('type', type);
       if (search) params.append('search', search);
+      if (search && searchRegex) params.append('searchRegex', 'true');
 
       const response = await apiClient.get<{
         content: Liability[];

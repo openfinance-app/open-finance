@@ -6,6 +6,7 @@
 import { Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Input, Button } from '@/components/ui';
+import { RegexToggle } from '@/components/ui/RegexToggle';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import type { AssetFilters, AssetType } from '@/types/asset';
 
@@ -47,10 +48,10 @@ export function AssetFilters({
   onFiltersChange,
 }: AssetFiltersProps) {
   const { t } = useTranslation('assets');
-  const handleChange = (key: keyof AssetFilters, value: string | number | undefined) => {
+  const handleChange = (key: keyof AssetFilters, value: string | number | boolean | undefined) => {
     onFiltersChange({
       ...filters,
-      [key]: value || undefined,
+      [key]: value || value === false ? value : undefined,
     });
   };
 
@@ -84,7 +85,12 @@ export function AssetFilters({
             placeholder={t('form.searchPlaceholder')}
             value={filters.keyword || ''}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('keyword', e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-10"
+          />
+          <RegexToggle
+            enabled={!!filters.keywordRegex}
+            onChange={(val) => handleChange('keywordRegex', val || undefined)}
+            className="absolute right-2 top-1/2 -translate-y-1/2"
           />
         </div>
       </div>

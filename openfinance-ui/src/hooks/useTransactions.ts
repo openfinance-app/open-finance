@@ -82,6 +82,7 @@ export function useTransactions(filters?: TransactionFilters) {
       if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
       if (filters?.dateTo) params.append('dateTo', filters.dateTo);
       if (filters?.keyword) params.append('keyword', filters.keyword);
+      if (filters?.keyword && filters?.keywordRegex) params.append('keywordRegex', 'true');
       if (filters?.minAmount !== undefined)
         params.append('amountMin', filters.minAmount.toString());
       if (filters?.maxAmount !== undefined)

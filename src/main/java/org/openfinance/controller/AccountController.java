@@ -275,6 +275,7 @@ public class AccountController {
             @RequestParam(required = false) java.math.BigDecimal balanceMax,
             @RequestParam(required = false) String institution,
             @RequestParam(required = false) Boolean lowBalance,
+            @RequestParam(required = false, defaultValue = "false") boolean keywordRegex,
             @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
                     Pageable pageable,
             Authentication authentication) {
@@ -292,6 +293,7 @@ public class AccountController {
         AccountSearchCriteria criteria =
                 AccountSearchCriteria.builder()
                         .keyword(keyword)
+                        .keywordRegex(keywordRegex)
                         .type(type)
                         .currency(currency)
                         .isActive(isActive)

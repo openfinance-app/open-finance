@@ -7,11 +7,14 @@
 import { Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Input, Button } from '@/components/ui';
+import { RegexToggle } from '@/components/ui/RegexToggle';
 import type { BudgetPeriod } from '@/types/budget';
 
 /** Shape of the active budget filters. */
 export interface BudgetFiltersState {
   keyword?: string;
+  /** When true, `keyword` is treated as a regular expression instead of a plain substring. */
+  keywordRegex?: boolean;
   period?: BudgetPeriod | '';
 }
 
@@ -28,11 +31,11 @@ export function BudgetFilters({ filters, onFiltersChange }: BudgetFiltersProps) 
   const { t } = useTranslation('budgets');
   const handleChange = (
     key: keyof BudgetFiltersState,
-    value: string | undefined
+    value: string | boolean | undefined
   ) => {
     onFiltersChange({
       ...filters,
-      [key]: value || undefined,
+      [key]: value || value === false ? value : undefined,
     });
   };
 
@@ -70,7 +73,12 @@ export function BudgetFilters({ filters, onFiltersChange }: BudgetFiltersProps) 
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               handleChange('keyword', e.target.value)
             }
-            className="pl-10"
+            className="pl-10 pr-10"
+          />
+          <RegexToggle
+            enabled={!!filters.keywordRegex}
+            onChange={(val) => handleChange('keywordRegex', val || undefined)}
+            className="absolute right-2 top-1/2 -translate-y-1/2"
           />
         </div>
       </div>

@@ -81,6 +81,8 @@ export interface RecurringTransactionFilters {
   frequency?: RecurringFrequency;
   isActive?: boolean;
   search?: string;
+  /** When true, `search` is treated as a regular expression instead of a plain substring. */
+  searchRegex?: boolean;
   page?: number;
   size?: number;
   sort?: string;

@@ -315,6 +315,7 @@ public class RealEstateController {
             @RequestParam(required = false) BigDecimal priceMin,
             @RequestParam(required = false) BigDecimal priceMax,
             @RequestParam(required = false) BigDecimal rentalIncomeMin,
+            @RequestParam(required = false, defaultValue = "false") boolean keywordRegex,
             @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
                     Pageable pageable,
             Authentication authentication) {
@@ -330,6 +331,7 @@ public class RealEstateController {
         RealEstateSearchCriteria criteria =
                 RealEstateSearchCriteria.builder()
                         .keyword(keyword)
+                        .keywordRegex(keywordRegex)
                         .propertyType(propertyType)
                         .currency(currency)
                         .isActive(isActive)

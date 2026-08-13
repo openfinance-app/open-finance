@@ -139,6 +139,8 @@ export interface PropertyFilters {
  */
 export interface PropertySearchFilters {
   keyword?: string;
+  /** When true, `keyword` is treated as a regular expression instead of a plain substring. */
+  keywordRegex?: boolean;
   propertyType?: PropertyType;
   currency?: string;
   isActive?: boolean;

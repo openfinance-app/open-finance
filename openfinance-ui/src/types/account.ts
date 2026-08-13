@@ -17,6 +17,8 @@ export type InterestPeriod = 'ANNUAL' | 'HALF_YEARLY' | 'QUARTERLY' | 'MONTHLY' 
  */
 export interface AccountFilters {
   keyword?: string;
+  /** When true, `keyword` is treated as a regular expression instead of a plain substring. */
+  keywordRegex?: boolean;
   type?: AccountType;
   currency?: string;
   isActive?: boolean;

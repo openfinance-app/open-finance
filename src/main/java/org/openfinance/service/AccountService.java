@@ -794,28 +794,27 @@ public class AccountService {
         if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
             // Keyword search must be done in-memory because the name is encrypted in DB
             List<Account> allAccounts = accountRepository.findAll(spec, pageable.getSort());
-            String searchStr = criteria.getKeyword().toLowerCase();
+            String keyword = criteria.getKeyword();
+            boolean keywordRegex = criteria.isKeywordRegex();
 
             List<AccountResponse> filteredList =
                     allAccounts.stream()
                             .map(account -> toResponseWithDecryption(account))
                             .filter(
                                     res ->
-                                            (res.getName() != null
-                                                            && res.getName()
-                                                                    .toLowerCase()
-                                                                    .contains(searchStr))
+                                            org.openfinance.util.RegexSearchUtil.matches(
+                                                            res.getName(), keyword, keywordRegex)
                                                     || (res.getInstitution() != null
-                                                            && res.getInstitution().getName()
-                                                                    != null
-                                                            && res.getInstitution()
-                                                                    .getName()
-                                                                    .toLowerCase()
-                                                                    .contains(searchStr))
-                                                    || (res.getAccountNumber() != null
-                                                            && res.getAccountNumber()
-                                                                    .toLowerCase()
-                                                                    .contains(searchStr)))
+                                                            && org.openfinance.util.RegexSearchUtil
+                                                                    .matches(
+                                                                            res.getInstitution()
+                                                                                    .getName(),
+                                                                            keyword,
+                                                                            keywordRegex))
+                                                    || org.openfinance.util.RegexSearchUtil.matches(
+                                                            res.getAccountNumber(),
+                                                            keyword,
+                                                            keywordRegex))
                             .collect(Collectors.toList());
 
             int start = (int) pageable.getOffset();

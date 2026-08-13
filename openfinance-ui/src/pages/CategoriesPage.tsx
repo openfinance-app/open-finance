@@ -26,6 +26,8 @@ import {
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useCategoryTree, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/hooks/useTransactions';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { RegexToggle } from '@/components/ui/RegexToggle';
+import { matchesQuery } from '@/utils/searchMatch';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { useAuthContext } from '@/context/AuthContext';
 import type { CategoryTreeNode, TransactionType } from '@/types/transaction';
@@ -412,6 +414,7 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<CategoryTreeNode | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<CategoryTreeNode | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchRegex, setSearchRegex] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -450,11 +453,11 @@ export default function CategoriesPage() {
     const result = filterTree(categories);
 
     // 2. Search and Sort
-    const searchLower = searchQuery.toLowerCase().trim();
-    if (searchLower) {
+    const searchTrimmed = searchQuery.trim();
+    if (searchTrimmed) {
       // If searching, flatten the tree, filter by name, then sort the flat list
       const flat = flattenCategories(result);
-      const filtered = flat.filter(c => (c.name || '').toLowerCase().includes(searchLower));
+      const filtered = flat.filter(c => matchesQuery(c.name, searchTrimmed, searchRegex));
 
       return filtered.sort((a, b) => {
         switch (sortBy) {
@@ -480,7 +483,7 @@ export default function CategoriesPage() {
       };
       return sortTree(result);
     }
-  }, [categories, activeTab, searchQuery, sortBy]);
+  }, [categories, activeTab, searchQuery, searchRegex, sortBy]);
 
   const displayCategories = filteredCategories;
 
@@ -624,9 +627,14 @@ export default function CategoriesPage() {
             placeholder={t('search.placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-10"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+          <RegexToggle
+            enabled={searchRegex}
+            onChange={setSearchRegex}
+            className="absolute right-2 top-1/2 -translate-y-1/2"
+          />
         </div>
 
         <DropdownMenu>

@@ -75,7 +75,7 @@ describe('useSearch hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockSearchResponse);
       expect(mockedApiClient.get).toHaveBeenCalledWith('/search', {
-        params: { q: 'test', limit: 50 },
+        params: { q: 'test', limit: 50, regex: false },
         headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });
@@ -98,7 +98,7 @@ describe('useSearch hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(mockedApiClient.get).toHaveBeenCalledWith('/search', {
-        params: { q: 'test', limit: 10 },
+        params: { q: 'test', limit: 10, regex: false },
         headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
     });

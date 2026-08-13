@@ -10,6 +10,12 @@
   "search": "Search",
   "filter": "Filter",
   "filters": "Filters",
+  "regexSearch": {
+    "toggleLabel": "Regex",
+    "enabledTooltip": "Regular expression search enabled. Click to use plain text search.",
+    "disabledTooltip": "Use a regular expression, e.g. boa|taxi",
+    "invalidPattern": "Invalid regular expression"
+  },
   "noResults": "No results found",
   "error": "An error occurred",
   "loadError": "Failed to load data",

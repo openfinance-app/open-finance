@@ -198,7 +198,9 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
 
     const budgets = selected.map((s) => ({
       categoryId: s.categoryId,
-      amount: parseFloat(editedAmounts[s.categoryId] ?? String(s.suggestedAmount)) || s.suggestedAmount,
+      amount: String(
+        parseFloat(editedAmounts[s.categoryId] ?? String(s.suggestedAmount)) || s.suggestedAmount
+      ),
       currency: s.currency,
       period: s.period,
       startDate,

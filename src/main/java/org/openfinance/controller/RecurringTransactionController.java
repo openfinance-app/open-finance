@@ -289,6 +289,8 @@ public class RecurringTransactionController {
             @RequestParam(value = "frequency", required = false) RecurringFrequency frequency,
             @RequestParam(value = "isActive", required = false) Boolean isActive,
             @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "searchRegex", required = false, defaultValue = "false")
+                    boolean searchRegex,
             @RequestParam(value = "sort", defaultValue = "nextOccurrence,asc") String sort,
             Authentication authentication) {
 
@@ -314,7 +316,7 @@ public class RecurringTransactionController {
 
         Page<RecurringTransactionResponse> recurringTransactionsPage =
                 recurringTransactionService.getRecurringTransactionsWithFilters(
-                        user.getId(), type, frequency, isActive, search, pageable);
+                        user.getId(), type, frequency, isActive, search, searchRegex, pageable);
 
         log.info(
                 "Retrieved recurring transactions page {} of {} (total: {}) for user",

@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useSearchWithDebounce } from '../../hooks/useSearch';
 import { useNumberFormat } from '../../context/NumberFormatContext';
 import { DEFAULT_CURRENCY, formatCurrency } from '@/utils/currency';
+import { RegexToggle } from '@/components/ui/RegexToggle';
 import type { SearchResult } from '../../types/search';
 import {
   getResultTypeDisplayName,
@@ -53,6 +54,8 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
     debouncedQuery: _debouncedQuery,
     isDebouncing,
     updateQuery,
+    isRegex,
+    setIsRegex,
     searchResult,
     saveRecentSearch,
     getRecentSearches,
@@ -222,10 +225,15 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
             setTimeout(() => setIsFocused(false), SEARCH_BLUR_DELAY_MS);
           }}
           onKeyDown={handleKeyDown}
-          className="w-full pl-10 pr-10 py-2 border border-border rounded-lg 
+          className="w-full pl-10 pr-16 py-2 border border-border rounded-lg 
                      bg-surface text-text-primary
                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                      placeholder:text-text-muted"
+        />
+        <RegexToggle
+          enabled={isRegex}
+          onChange={setIsRegex}
+          className="absolute right-9 top-1/2 -translate-y-1/2"
         />
         {(isDebouncing || searchResult.isLoading) && (
           <Loader className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-text-muted animate-spin" />

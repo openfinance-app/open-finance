@@ -6,6 +6,7 @@
 import { Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Input, Button } from '@/components/ui';
+import { RegexToggle } from '@/components/ui/RegexToggle';
 import type { LiabilityFilters as Filters, LiabilityType } from '@/types/liability';
 
 interface LiabilityFiltersProps {
@@ -39,10 +40,10 @@ export function LiabilityFilters({
   onFiltersChange,
 }: LiabilityFiltersProps) {
   const { t } = useTranslation('liabilities');
-  const handleChange = (key: keyof Filters, value: string | number | undefined) => {
+  const handleChange = (key: keyof Filters, value: string | number | boolean | undefined) => {
     onFiltersChange({
       ...filters,
-      [key]: value || undefined,
+      [key]: value || value === false ? value : undefined,
     });
   };
 
@@ -71,7 +72,12 @@ export function LiabilityFilters({
             placeholder={t('form.searchPlaceholder')}
             value={filters.search || ''}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('search', e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-10"
+          />
+          <RegexToggle
+            enabled={!!filters.searchRegex}
+            onChange={(val) => handleChange('searchRegex', val || undefined)}
+            className="absolute right-2 top-1/2 -translate-y-1/2"
           />
         </div>
       </div>

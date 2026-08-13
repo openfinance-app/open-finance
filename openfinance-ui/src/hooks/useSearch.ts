@@ -24,12 +24,17 @@ const SEARCH_KEYS = {
 /**
  * Hook for global search with debounce
  */
-export const useGlobalSearch = (query: string, limit: number = 50, enabled: boolean = true) => {
+export const useGlobalSearch = (
+  query: string,
+  limit: number = 50,
+  enabled: boolean = true,
+  regex: boolean = false
+) => {
   return useQuery({
-    queryKey: SEARCH_KEYS.global(query),
+    queryKey: SEARCH_KEYS.global(regex ? `${query}::regex` : query),
     queryFn: async () => {
       const response = await apiClient.get<GlobalSearchResponse>('/search', {
-        params: { q: query, limit },
+        params: { q: query, limit, regex },
         headers: buildEncryptionHeaders(),
       });
 
@@ -131,6 +136,7 @@ export const useSearchWithDebounce = (initialQuery: string = '') => {
   const [query, setQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [isDebouncing, setIsDebouncing] = useState(false);
+  const [isRegex, setIsRegex] = useState(false);
 
   // Debounce query changes
   const updateQuery = useCallback((newQuery: string) => {
@@ -149,7 +155,8 @@ export const useSearchWithDebounce = (initialQuery: string = '') => {
   const searchResult = useGlobalSearch(
     debouncedQuery.trim(),
     50,
-    debouncedQuery.trim().length >= 2
+    debouncedQuery.trim().length >= 2,
+    isRegex
   );
 
   // Save recent searches to localStorage
@@ -190,6 +197,8 @@ export const useSearchWithDebounce = (initialQuery: string = '') => {
     debouncedQuery,
     isDebouncing,
     updateQuery,
+    isRegex,
+    setIsRegex,
     searchResult,
     saveRecentSearch,
     getRecentSearches,

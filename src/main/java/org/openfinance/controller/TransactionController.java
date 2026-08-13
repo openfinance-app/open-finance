@@ -666,6 +666,7 @@ public class TransactionController {
             @RequestParam(required = false) Boolean noCategory,
             @RequestParam(required = false) Boolean noPayee,
             @RequestParam(required = false) String payee,
+            @RequestParam(required = false, defaultValue = "false") boolean keywordRegex,
             Pageable pageable,
             Authentication authentication) {
 
@@ -681,6 +682,7 @@ public class TransactionController {
         org.openfinance.dto.TransactionSearchCriteria criteria =
                 org.openfinance.dto.TransactionSearchCriteria.builder()
                         .keyword(keyword)
+                        .keywordRegex(keywordRegex)
                         .accountId(accountId)
                         .categoryId(categoryId)
                         .type(type)

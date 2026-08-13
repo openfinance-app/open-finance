@@ -111,7 +111,7 @@ export interface Transaction {
   originalCurrency?: string;
   /** Applied rate: 1 originalCurrency = conversionRate * currency (e.g. 0.9) */
   conversionRate?: number;
-  
+
   // Denormalized fields from backend
   accountName?: string;
   toAccountName?: string;
@@ -120,7 +120,7 @@ export interface Transaction {
   categoryColor?: string;
   transferId?: string;
   isDeleted?: boolean;
-  
+
   // Populated fields (for local use)
   account?: { id: number; name: string };
   toAccount?: { id: number; name: string };
@@ -196,6 +196,8 @@ export interface TransactionFilters {
   dateFrom?: string;
   dateTo?: string;
   keyword?: string;
+  /** When true, `keyword` is treated as a regular expression instead of a plain substring. */
+  keywordRegex?: boolean;
   tag?: string;
   minAmount?: number;
   maxAmount?: number;

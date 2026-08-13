@@ -24,6 +24,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { usePropertiesSearch, useCreateProperty, useUpdateProperty } from '@/hooks/useRealEstate';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { RegexToggle } from '@/components/ui/RegexToggle';
 import { useAuthContext } from '@/context/AuthContext';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { sum, multiply, subtract } from '@/utils/money';
@@ -302,7 +303,12 @@ export default function RealEstatePage() {
                   placeholder={t('filters.searchPlaceholder')}
                   value={searchFilters.keyword || ''}
                   onChange={(e) => handleFiltersChange('keyword', e.target.value)}
-                  className="w-full h-10 pl-10 pr-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full h-10 pl-10 pr-10 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+                <RegexToggle
+                  enabled={!!searchFilters.keywordRegex}
+                  onChange={(val) => handleFiltersChange('keywordRegex', val || undefined)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2"
                 />
               </div>
             </div>

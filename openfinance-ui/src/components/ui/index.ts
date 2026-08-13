@@ -9,3 +9,4 @@ export * from './Tooltip';
 export * from './HelpTooltip';
 export * from './Progress';
 export * from './Alert';
+export * from './RegexToggle';
