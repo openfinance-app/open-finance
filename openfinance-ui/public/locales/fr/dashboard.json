@@ -42,6 +42,10 @@
       "label": "Avancement du budget",
       "description": "Suivi du budget pour la période en cours"
     },
+    "financialMap": {
+      "label": "Carte financière",
+      "description": "Où se situent vos finances dans le monde"
+    },
     "budgetCard": {
       "title": "Avancement du budget",
       "tooltip": "Suivez vos dépenses par rapport aux budgets définis pour la période en cours.",
@@ -99,18 +103,18 @@
       "label": "Intérêts estimés",
       "description": "Intérêts perçus sur l'ensemble des comptes"
     },
-  "rssFeed": {
-    "title": "Actualités financières",
-    "loadError": "Échec du chargement des actualités",
-    "empty": "Aucune actualité trouvée",
-    "allDiscarded": "Toutes les actualités ont été supprimées.",
-    "readArticle": "Lire l'article complet",
-    "discard": "Supprimer cette actualité",
-    "recently": "Récemment",
-    "unknownSource": "Source inconnue",
-    "rssTooltip": "Dernières actualités financières issues des sources RSS configurées."
-  },
-  "balanceVariation": {
+    "rssFeed": {
+      "title": "Actualités financières",
+      "loadError": "Échec du chargement des actualités",
+      "empty": "Aucune actualité trouvée",
+      "allDiscarded": "Toutes les actualités ont été supprimées.",
+      "readArticle": "Lire l'article complet",
+      "discard": "Supprimer cette actualité",
+      "recently": "Récemment",
+      "unknownSource": "Source inconnue",
+      "rssTooltip": "Dernières actualités financières issues des sources RSS configurées."
+    },
+    "balanceVariation": {
       "label": "Solde annuel",
       "description": "Variations du solde d'année en année"
     }
@@ -228,6 +232,21 @@
     "accountCount_other": "{{count}} comptes",
     "accountCount_plural": "{{count}} comptes",
     "percentOfTotal": "{{percent}} % du total"
+  },
+  "financialMap": {
+    "title": "Carte financière",
+    "empty": "Ajoutez des institutions ou des biens immobiliers localisés pour voir vos finances sur la carte.",
+    "loadError": "Impossible de charger la carte financière.",
+    "you": "Vous",
+    "institutionsLine": "{{count}} via des institutions",
+    "institutionsLine_one": "{{count}} compte via des institutions",
+    "institutionsLine_other": "{{count}} comptes via des institutions",
+    "realEstateLine": "{{count}} bien immobilier",
+    "realEstateLine_one": "{{count}} bien immobilier",
+    "realEstateLine_other": "{{count}} biens immobiliers",
+    "unmapped": "{{count}} bien sans localisation connue",
+    "unmapped_one": "{{count}} bien sans localisation connue",
+    "unmapped_other": "{{count}} biens sans localisation connue"
   },
   "cashflowSankey": {
     "title": "Flux de trésorerie",

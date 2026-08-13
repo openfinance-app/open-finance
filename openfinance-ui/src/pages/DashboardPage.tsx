@@ -37,6 +37,7 @@ import PeriodSelector, { type Period, type DateRange, dateRangeToDays } from '..
 import BudgetProgressCard from '../components/dashboard/BudgetProgressCard';
 import RssFeedCard from '../components/dashboard/RssFeedCard';
 import BalanceVariationCard from '../components/dashboard/BalanceVariationCard';
+import FinancialMap from '../components/dashboard/FinancialMap';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { subtract, percentage } from '@/utils/money';
@@ -61,6 +62,7 @@ type DashboardCardId =
   | 'institutionBreakdown'
   | 'budgetProgress'
   | 'financeNews'
+  | 'financialMap'
   | 'balanceVariation';
 
 interface DashboardCardConfig {
@@ -77,6 +79,7 @@ const DEFAULT_CARD_ORDER: DashboardCardId[] = [
   'financeNews',
   'currency',
   'budgetProgress',
+  'financialMap',
   'cashFlow',
   'cashflowSankey',
   'dailyCashFlow',
@@ -105,33 +108,36 @@ const generateDefaultLayouts = (): Record<string, any> => ({
     // Budget Progress (y=5 to y=12) — spans 8 cols next to institutionBreakdown
     { i: 'budgetProgress', x: 4, y: 5, w: 8, h: 7, minW: 4, minH: 5 },
 
-    // Row 2 (y=12 to y=19)
-    { i: 'cashFlow', x: 0, y: 12, w: 12, h: 7, minW: 6, minH: 6 },
+    // Financial Map — full-width glance of finances across the globe (y=12 to y=21)
+    { i: 'financialMap', x: 0, y: 12, w: 12, h: 9, minW: 4, minH: 7 },
 
-    // Row 3 - Sankey (y=19 to y=29)
-    { i: 'cashflowSankey', x: 0, y: 19, w: 12, h: 10, minW: 6, minH: 6 },
+    // Row 2 (y=21 to y=28)
+    { i: 'cashFlow', x: 0, y: 21, w: 12, h: 7, minW: 6, minH: 6 },
 
-    // Row 4 (y=29 to y=38)
-    { i: 'dailyCashFlow', x: 0, y: 29, w: 12, h: 9, minW: 6, minH: 6 },
+    // Row 3 - Sankey (y=28 to y=38)
+    { i: 'cashflowSankey', x: 0, y: 28, w: 12, h: 10, minW: 6, minH: 6 },
 
-    // Row 5 (y=38 to y=46)
-    { i: 'recentTransactions', x: 0, y: 38, w: 4, h: 8, minW: 3, minH: 5 },
-    { i: 'netWorthTrend', x: 4, y: 38, w: 8, h: 8, minW: 4, minH: 5 },
+    // Row 4 (y=38 to y=47)
+    { i: 'dailyCashFlow', x: 0, y: 38, w: 12, h: 9, minW: 6, minH: 6 },
 
-    // Row 6 (y=46 to y=54)
-    { i: 'portfolioPerformance', x: 0, y: 46, w: 12, h: 8, minW: 6, minH: 6 },
+    // Row 5 (y=47 to y=55)
+    { i: 'recentTransactions', x: 0, y: 47, w: 4, h: 8, minW: 3, minH: 5 },
+    { i: 'netWorthTrend', x: 4, y: 47, w: 8, h: 8, minW: 4, minH: 5 },
 
-    // Row 7 (y=54 to y=63)
-    { i: 'assetAllocation', x: 0, y: 54, w: 4, h: 9, minW: 3, minH: 6 },
-    { i: 'netWorthAllocation', x: 4, y: 54, w: 4, h: 9, minW: 3, minH: 6 },
-    { i: 'borrowingCapacity', x: 8, y: 54, w: 4, h: 9, minW: 3, minH: 6 },
+    // Row 6 (y=55 to y=63)
+    { i: 'portfolioPerformance', x: 0, y: 55, w: 12, h: 8, minW: 6, minH: 6 },
 
-    // Row 8 (y=63 to y=72)
-    { i: 'estimatedInterest', x: 0, y: 63, w: 4, h: 9, minW: 3, minH: 6 },
-    { i: 'financeNews', x: 4, y: 63, w: 4, h: 9, minW: 3, minH: 6 },
+    // Row 7 (y=63 to y=72)
+    { i: 'assetAllocation', x: 0, y: 63, w: 4, h: 9, minW: 3, minH: 6 },
+    { i: 'netWorthAllocation', x: 4, y: 63, w: 4, h: 9, minW: 3, minH: 6 },
+    { i: 'borrowingCapacity', x: 8, y: 63, w: 4, h: 9, minW: 3, minH: 6 },
 
-    // Row 9 (y=72 to y=82)
-    { i: 'balanceVariation', x: 0, y: 72, w: 12, h: 10, minW: 6, minH: 7 },
+    // Row 8 (y=72 to y=81)
+    { i: 'estimatedInterest', x: 0, y: 72, w: 4, h: 9, minW: 3, minH: 6 },
+    { i: 'financeNews', x: 4, y: 72, w: 4, h: 9, minW: 3, minH: 6 },
+
+    // Row 9 (y=81 to y=91)
+    { i: 'balanceVariation', x: 0, y: 81, w: 12, h: 10, minW: 6, minH: 7 },
   ]
 });
 
@@ -364,6 +370,13 @@ export default function DashboardPage() {
         description: t('cards.budgetProgress.description'),
         isAvailable: true,
         render: () => <BudgetProgressCard />,
+      },
+      {
+        id: 'financialMap',
+        label: t('cards.financialMap.label'),
+        description: t('cards.financialMap.description'),
+        isAvailable: true,
+        render: () => <FinancialMap baseCurrency={summary.baseCurrency} />,
       },
       {
         id: 'cashFlow',

@@ -42,6 +42,10 @@
       "label": "Budget Progress",
       "description": "Current period budget tracking"
     },
+    "financialMap": {
+      "label": "Financial Map",
+      "description": "Where your finances are located worldwide"
+    },
     "budgetCard": {
       "title": "Budget Progress",
       "tooltip": "Track your spending against set budgets for the current period.",
@@ -99,18 +103,18 @@
       "label": "Estimated Interest",
       "description": "Interest earned across accounts"
     },
-  "rssFeed": {
-    "title": "Finance News",
-    "loadError": "Failed to load news",
-    "empty": "No news items found",
-    "allDiscarded": "All news items have been discarded.",
-    "readArticle": "Read Full Article",
-    "discard": "Discard this feed item",
-    "recently": "Recently",
-    "unknownSource": "Unknown Source",
-    "rssTooltip": "Latest top finance news items from configured RSS sources."
-  },
-  "balanceVariation": {
+    "rssFeed": {
+      "title": "Finance News",
+      "loadError": "Failed to load news",
+      "empty": "No news items found",
+      "allDiscarded": "All news items have been discarded.",
+      "readArticle": "Read Full Article",
+      "discard": "Discard this feed item",
+      "recently": "Recently",
+      "unknownSource": "Unknown Source",
+      "rssTooltip": "Latest top finance news items from configured RSS sources."
+    },
+    "balanceVariation": {
       "label": "Yearly Balance",
       "description": "Year-over-year balance variations"
     }
@@ -228,6 +232,21 @@
     "accountCount_other": "{{count}} accounts",
     "accountCount_plural": "{{count}} accounts",
     "percentOfTotal": "{{percent}}% of total"
+  },
+  "financialMap": {
+    "title": "Financial Map",
+    "empty": "Add institutions or real estate with a location to see your finances on the map.",
+    "loadError": "Unable to load the financial map.",
+    "you": "You",
+    "institutionsLine": "{{count}} from institutions",
+    "institutionsLine_one": "{{count}} account from institutions",
+    "institutionsLine_other": "{{count}} accounts from institutions",
+    "realEstateLine": "{{count}} real estate",
+    "realEstateLine_one": "{{count}} property",
+    "realEstateLine_other": "{{count}} properties",
+    "unmapped": "{{count}} property without a known location",
+    "unmapped_one": "{{count}} property without a known location",
+    "unmapped_other": "{{count}} properties without a known location"
   },
   "cashflowSankey": {
     "title": "Cash Flow",
