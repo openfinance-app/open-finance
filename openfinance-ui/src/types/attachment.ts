@@ -30,7 +30,6 @@ export interface Attachment {
   fileName: string;
   fileType: string;
   fileSize: number;
-  filePath: string;
   uploadedAt: string;
   description?: string;
   // Helper properties from backend

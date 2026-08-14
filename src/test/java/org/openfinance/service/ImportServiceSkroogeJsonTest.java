@@ -30,12 +30,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.SkroogeImportMetadata;
 import org.openfinance.dto.SkroogeImportParseResult;
 import org.openfinance.dto.TransactionRequest;
-import org.openfinance.dto.AccountRequest;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Category;
@@ -395,7 +395,8 @@ class ImportServiceSkroogeJsonTest {
     }
 
     @Test
-    @DisplayName("Should reuse a system institution when the Skrooge name matches by normalized slug")
+    @DisplayName(
+            "Should reuse a system institution when the Skrooge name matches by normalized slug")
     void shouldReuseSystemInstitutionWhenSkroogeNameMatchesByNormalizedSlug() throws Exception {
         SkroogeImportMetadata metadata =
                 SkroogeImportMetadata.builder()

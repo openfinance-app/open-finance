@@ -1,15 +1,8 @@
 package org.openfinance.service;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.config.EncryptionProperties;
@@ -31,24 +24,8 @@ import org.springframework.web.multipart.MultipartFile;
  * Service for managing file attachments associated with financial entities.
  *
  * <p>This service handles uploading, downloading, and deleting file attachments for transactions,
- * assets, real estate properties, and liabilities. Files are stored encrypted on the filesystem
- * using AES-256-GCM encryption.
- *
- * <p><strong>File Storage Organization:</strong>
- *
- * <pre>
- * attachments/
- *   ├── {userId}/
- *   │   ├── TRANSACTION/
- *   │   │   ├── {uuid}.enc
- *   │   │   └── {uuid}.enc
- *   │   ├── ASSET/
- *   │   │   └── {uuid}.enc
- *   │   ├── REAL_ESTATE/
- *   │   │   └── {uuid}.enc
- *   │   └── LIABILITY/
- *   │       └── {uuid}.enc
- * </pre>
+ * assets, real estate properties, and liabilities. File contents are encrypted with AES-256-GCM and
+ * stored directly in the {@code attachments.file_data} database column.
  *
  * <p><strong>Security Features:</strong>
  *
@@ -57,7 +34,6 @@ import org.springframework.web.multipart.MultipartFile;
  *   <li>User isolation - users can only access their own attachments
  *   <li>File type validation - only allowed MIME types accepted
  *   <li>File size limits - maximum 10MB per file
- *   <li>Automatic cleanup of orphaned attachments
  * </ul>
  *
  * <p>Requirement REQ-2.12: File Attachment System
@@ -76,25 +52,19 @@ public class AttachmentService {
     private final EncryptionService encryptionService;
     private final EncryptionProperties encryptionProperties;
 
-    @Value("${application.attachment.storage-path:./attachments}")
-    private String storagePath;
-
     @Value("${application.attachment.max-file-size:10485760}")
     private long maxFileSize;
 
     @Value("${application.attachment.allowed-types}")
     private String allowedTypesConfig;
 
-    @Value("${application.attachment.cleanup-orphaned-after-days:30}")
-    private int cleanupOrphanedAfterDays;
-
     private Set<String> allowedTypes;
 
     /**
      * Uploads a new file attachment.
      *
-     * <p>Validates the file, encrypts its contents, stores it on the filesystem, and creates a
-     * database record with metadata.
+     * <p>Validates the file, encrypts its contents, and stores it in the database along with a
+     * metadata record.
      *
      * <p>Requirement REQ-2.12.1: Users can upload files
      *
@@ -106,7 +76,6 @@ public class AttachmentService {
      * @param userId ID of the user uploading the file
      * @param entityType Type of entity (TRANSACTION, ASSET, etc.)
      * @param entityId ID of the entity to attach file to
-     * @param encryptionKey User's encryption key for encrypting file
      * @param description Optional description/notes about the file
      * @return Created Attachment entity with metadata
      * @throws IllegalArgumentException if file validation fails
@@ -127,17 +96,6 @@ public class AttachmentService {
         validateFile(file);
 
         try {
-            // Generate unique file path
-            String fileName = file.getOriginalFilename();
-            String fileExtension = getFileExtension(fileName);
-            String uniqueFileName = UUID.randomUUID().toString() + ".enc";
-
-            // Create directory structure: attachments/{userId}/{entityType}/
-            Path userDirectory = Paths.get(storagePath, userId.toString(), entityType.name());
-            Files.createDirectories(userDirectory);
-
-            Path filePath = userDirectory.resolve(uniqueFileName);
-
             // Store plaintext only when application-layer encryption is explicitly disabled.
             byte[] fileBytes = file.getBytes();
             byte[] storedBytes =
@@ -145,19 +103,16 @@ public class AttachmentService {
                             ? encryptionService.encryptBytes(fileBytes, EncryptionContext.getKey())
                             : fileBytes;
 
-            // Write file bytes to disk
-            Files.write(filePath, storedBytes, StandardOpenOption.CREATE_NEW);
-
-            // Create attachment metadata
+            // Create attachment metadata + encrypted file contents
             Attachment attachment =
                     Attachment.builder()
                             .userId(userId)
                             .entityType(entityType)
                             .entityId(entityId)
-                            .fileName(fileName)
+                            .fileName(file.getOriginalFilename())
                             .fileType(file.getContentType())
                             .fileSize(file.getSize())
-                            .filePath(filePath.toString())
+                            .fileData(storedBytes)
                             .description(description)
                             .build();
 
@@ -165,7 +120,7 @@ public class AttachmentService {
 
             log.info(
                     "Successfully uploaded attachment {} (ID: {}) - {} bytes, type: {}",
-                    fileName,
+                    file.getOriginalFilename(),
                     savedAttachment.getId(),
                     file.getSize(),
                     file.getContentType());
@@ -173,7 +128,7 @@ public class AttachmentService {
             return savedAttachment;
 
         } catch (IOException e) {
-            log.error("Failed to store attachment file", e);
+            log.error("Failed to read uploaded attachment file", e);
             throw new FileStorageException("Failed to store attachment", e);
         }
     }
@@ -181,8 +136,8 @@ public class AttachmentService {
     /**
      * Downloads an attachment file.
      *
-     * <p>Retrieves the encrypted file from filesystem, decrypts it, and returns as a Spring
-     * Resource for streaming to the client.
+     * <p>Retrieves the encrypted file contents from the database, decrypts them, and returns as a
+     * Spring Resource for streaming to the client.
      *
      * <p>Requirement REQ-2.12.2: Users can download attachments
      *
@@ -190,10 +145,9 @@ public class AttachmentService {
      *
      * @param attachmentId ID of the attachment to download
      * @param userId ID of the user requesting the file (for authorization)
-     * @param encryptionKey User's encryption key for decrypting file
      * @return Resource containing decrypted file bytes
      * @throws AttachmentNotFoundException if attachment not found or unauthorized
-     * @throws FileStorageException if file cannot be read or decrypted
+     * @throws FileStorageException if file cannot be decrypted
      */
     @Transactional(readOnly = true)
     public Resource downloadAttachment(Long attachmentId, Long userId) {
@@ -209,23 +163,15 @@ public class AttachmentService {
                                                 "Attachment not found or you don't have permission to access it: "
                                                         + attachmentId));
 
+        byte[] storedBytes = attachment.getFileData();
+
         try {
-            // Read encrypted file from disk
-            Path filePath = Paths.get(attachment.getFilePath());
-
-            if (!Files.exists(filePath)) {
-                log.error("Attachment file not found on disk: {}", filePath);
-                throw new FileStorageException("Attachment file not found on disk");
-            }
-
-            byte[] encryptedBytes = Files.readAllBytes(filePath);
-
             // Return plaintext bytes directly when encryption is explicitly disabled.
             byte[] decryptedBytes =
                     encryptionProperties.isEnabled()
                             ? encryptionService.decryptBytes(
-                                    encryptedBytes, EncryptionContext.getKey())
-                            : encryptedBytes;
+                                    storedBytes, EncryptionContext.getKey())
+                            : storedBytes;
 
             log.info(
                     "Successfully downloaded attachment {} - {} bytes",
@@ -235,9 +181,6 @@ public class AttachmentService {
             // Return as Resource for streaming
             return new ByteArrayResource(decryptedBytes);
 
-        } catch (IOException e) {
-            log.error("Failed to read attachment file: {}", attachment.getFilePath(), e);
-            throw new FileStorageException("Failed to read attachment file", e);
         } catch (Exception e) {
             log.error("Failed to decrypt attachment file", e);
             throw new FileStorageException("Failed to decrypt attachment file", e);
@@ -247,8 +190,7 @@ public class AttachmentService {
     /**
      * Deletes an attachment.
      *
-     * <p>Removes the attachment record from database and deletes the encrypted file from the
-     * filesystem.
+     * <p>Removes the attachment record from the database.
      *
      * <p>Requirement REQ-2.12.3: Users can delete attachments
      *
@@ -257,7 +199,6 @@ public class AttachmentService {
      * @param attachmentId ID of the attachment to delete
      * @param userId ID of the user requesting deletion (for authorization)
      * @throws AttachmentNotFoundException if attachment not found or unauthorized
-     * @throws FileStorageException if file deletion fails
      */
     @Transactional
     public void deleteAttachment(Long attachmentId, Long userId) {
@@ -273,23 +214,10 @@ public class AttachmentService {
                                                 "Attachment not found or you don't have permission to delete it: "
                                                         + attachmentId));
 
-        try {
-            // Delete file from disk
-            Path filePath = Paths.get(attachment.getFilePath());
-            Files.deleteIfExists(filePath);
+        // Delete database record
+        attachmentRepository.delete(attachment);
 
-            // Delete database record
-            attachmentRepository.delete(attachment);
-
-            log.info(
-                    "Successfully deleted attachment {} ({})",
-                    attachmentId,
-                    attachment.getFileName());
-
-        } catch (IOException e) {
-            log.error("Failed to delete attachment file: {}", attachment.getFilePath(), e);
-            throw new FileStorageException("Failed to delete attachment file", e);
-        }
+        log.info("Successfully deleted attachment {} ({})", attachmentId, attachment.getFileName());
     }
 
     /**
@@ -416,60 +344,11 @@ public class AttachmentService {
 
         List<Attachment> attachments = listAttachments(entityType, entityId, userId);
 
-        for (Attachment attachment : attachments) {
-            try {
-                Path filePath = Paths.get(attachment.getFilePath());
-                Files.deleteIfExists(filePath);
-            } catch (IOException e) {
-                log.warn("Failed to delete attachment file: {}", attachment.getFilePath(), e);
-            }
-        }
-
         int count = attachments.size();
         attachmentRepository.deleteAll(attachments);
 
         log.info("Deleted {} attachments for entity {} ({})", count, entityType, entityId);
         return count;
-    }
-
-    /**
-     * Cleans up orphaned attachment files.
-     *
-     * <p>Finds attachment records in database with missing files on disk, and files on disk with no
-     * database records. Removes orphaned entries.
-     *
-     * <p>This method should be called periodically by a scheduled task.
-     *
-     * <p>Requirement REQ-2.12.8: Automatic cleanup of orphaned attachments
-     *
-     * @return Number of orphaned attachments cleaned up
-     */
-    @Transactional
-    public int cleanupOrphanedAttachments() {
-        log.info("Starting cleanup of orphaned attachments");
-
-        int cleanedCount = 0;
-        List<Attachment> allAttachments = attachmentRepository.findAll();
-
-        // Find attachments with missing files
-        for (Attachment attachment : allAttachments) {
-            Path filePath = Paths.get(attachment.getFilePath());
-            if (!Files.exists(filePath)) {
-                log.warn("Attachment {} has missing file: {}", attachment.getId(), filePath);
-
-                // Only delete if attachment is old enough
-                LocalDateTime cutoffDate =
-                        LocalDateTime.now().minus(cleanupOrphanedAfterDays, ChronoUnit.DAYS);
-                if (attachment.getUploadedAt().isBefore(cutoffDate)) {
-                    attachmentRepository.delete(attachment);
-                    cleanedCount++;
-                    log.info("Deleted orphaned attachment record: {}", attachment.getId());
-                }
-            }
-        }
-
-        log.info("Cleanup completed: removed {} orphaned attachment records", cleanedCount);
-        return cleanedCount;
     }
 
     /**
@@ -526,19 +405,6 @@ public class AttachmentService {
 
         log.debug(
                 "File validation passed: {} ({}, {} bytes)", fileName, contentType, file.getSize());
-    }
-
-    /**
-     * Extracts file extension from filename.
-     *
-     * @param fileName The filename
-     * @return File extension (including dot) or empty string if no extension
-     */
-    private String getFileExtension(String fileName) {
-        if (fileName == null || !fileName.contains(".")) {
-            return "";
-        }
-        return fileName.substring(fileName.lastIndexOf('.'));
     }
 
     /**

@@ -408,7 +408,6 @@ class AttachmentTest {
                             .fileName("receipt.pdf")
                             .fileType("application/pdf")
                             .fileSize(1048576L) // 1 MB
-                            .filePath("attachments/100/TRANSACTION/abc123.enc")
                             .uploadedAt(uploadTime)
                             .description("Receipt for office supplies")
                             .build();
@@ -421,8 +420,6 @@ class AttachmentTest {
             assertThat(attachment.getFileName()).isEqualTo("receipt.pdf");
             assertThat(attachment.getFileType()).isEqualTo("application/pdf");
             assertThat(attachment.getFileSize()).isEqualTo(1048576L);
-            assertThat(attachment.getFilePath())
-                    .isEqualTo("attachments/100/TRANSACTION/abc123.enc");
             assertThat(attachment.getUploadedAt()).isEqualTo(uploadTime);
             assertThat(attachment.getDescription()).isEqualTo("Receipt for office supplies");
         }
@@ -439,7 +436,6 @@ class AttachmentTest {
                             .fileName("photo.jpg")
                             .fileType("image/jpeg")
                             .fileSize(524288L)
-                            .filePath("attachments/200/ASSET/xyz789.enc")
                             .build();
 
             // Assert
@@ -450,7 +446,6 @@ class AttachmentTest {
             assertThat(attachment.getFileName()).isEqualTo("photo.jpg");
             assertThat(attachment.getFileType()).isEqualTo("image/jpeg");
             assertThat(attachment.getFileSize()).isEqualTo(524288L);
-            assertThat(attachment.getFilePath()).isEqualTo("attachments/200/ASSET/xyz789.enc");
             assertThat(attachment.getUploadedAt()).isNull(); // Not set automatically in builder
             assertThat(attachment.getDescription()).isNull();
         }
@@ -467,7 +462,6 @@ class AttachmentTest {
                             .fileName("deed.pdf")
                             .fileType("application/pdf")
                             .fileSize(2097152L) // 2 MB
-                            .filePath("attachments/300/REAL_ESTATE/deed123.enc")
                             .description("Property deed and title documents")
                             .build();
 
@@ -490,7 +484,6 @@ class AttachmentTest {
                             .fileType(
                                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                             .fileSize(512000L)
-                            .filePath("attachments/400/LIABILITY/loan456.enc")
                             .description("Mortgage loan agreement")
                             .build();
 
@@ -565,7 +558,6 @@ class AttachmentTest {
                             .fileName("receipt.pdf")
                             .fileType("application/pdf")
                             .fileSize(1024L)
-                            .filePath("attachments/100/TRANSACTION/abc.enc")
                             .build();
 
             String toString = attachment.toString();

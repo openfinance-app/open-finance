@@ -120,7 +120,6 @@ public class AttachmentController {
      * "fileName": "receipt.pdf",
      * "fileType": "application/pdf",
      * "fileSize": 245678,
-     * "filePath": "attachments/1/TRANSACTION/uuid.enc",
      * "uploadedAt": "2026-02-03T15:30:00",
      * "description": "Receipt for grocery purchase"
      * }
@@ -358,7 +357,6 @@ public class AttachmentController {
      * "fileName": "receipt.pdf",
      * "fileType": "application/pdf",
      * "fileSize": 245678,
-     * "filePath": "attachments/1/TRANSACTION/uuid.enc",
      * "uploadedAt": "2026-02-03T15:30:00",
      * "description": "Receipt for grocery purchase"
      * },
@@ -370,7 +368,6 @@ public class AttachmentController {
      * "fileName": "invoice.jpg",
      * "fileType": "image/jpeg",
      * "fileSize": 156789,
-     * "filePath": "attachments/1/TRANSACTION/uuid2.enc",
      * "uploadedAt": "2026-02-03T16:00:00",
      * "description": null
      * }
@@ -458,7 +455,6 @@ public class AttachmentController {
      * "fileName": "receipt.pdf",
      * "fileType": "application/pdf",
      * "fileSize": 245678,
-     * "filePath": "attachments/1/TRANSACTION/uuid.enc",
      * "uploadedAt": "2026-02-03T15:30:00",
      * "description": "Receipt for grocery purchase"
      * }

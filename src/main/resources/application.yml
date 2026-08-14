@@ -156,11 +156,8 @@ application:
     temp-directory: ./temp/imports
     cleanup-after-hours: 24
   attachment:
-    storage-path: ./attachments
     max-file-size: 10485760
     allowed-types: application/pdf,image/jpeg,image/jpg,image/png,image/gif,image/webp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv
-    encrypt-files: true
-    cleanup-orphaned-after-days: 30
   scheduled:
     # Scheduling mode options for each scheduler:
     #   DEFAULT                   - use the built-in default cron for that scheduler

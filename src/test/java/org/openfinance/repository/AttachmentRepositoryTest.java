@@ -97,7 +97,7 @@ class AttachmentRepositoryTest {
                         .fileName("receipt.pdf")
                         .fileType("application/pdf")
                         .fileSize(1048576L) // 1 MB
-                        .filePath("attachments/user1/TRANSACTION/abc123.enc")
+                        .fileData("pdf receipt contents".getBytes())
                         .uploadedAt(
                                 LocalDateTime.of(
                                         2026, 2, 1, 10, 0)) // Fixed date: Feb 1, 2026 10:00 AM
@@ -112,7 +112,7 @@ class AttachmentRepositoryTest {
                         .fileName("photo.jpg")
                         .fileType("image/jpeg")
                         .fileSize(524288L) // 512 KB
-                        .filePath("attachments/user1/ASSET/def456.enc")
+                        .fileData("jpeg photo contents".getBytes())
                         .uploadedAt(
                                 LocalDateTime.of(
                                         2026, 2, 2, 10, 0)) // Fixed date: Feb 2, 2026 10:00 AM
@@ -127,7 +127,7 @@ class AttachmentRepositoryTest {
                         .fileName("deed.png")
                         .fileType("image/png")
                         .fileSize(2097152L) // 2 MB
-                        .filePath("attachments/user1/REAL_ESTATE/ghi789.enc")
+                        .fileData("png document contents".getBytes())
                         .uploadedAt(
                                 LocalDateTime.of(
                                         2026, 2, 3, 10, 0)) // Fixed date: Feb 3, 2026 10:00 AM
@@ -143,7 +143,7 @@ class AttachmentRepositoryTest {
                         .fileType(
                                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                         .fileSize(307200L) // 300 KB
-                        .filePath("attachments/user1/LIABILITY/jkl012.enc")
+                        .fileData("excel spreadsheet contents".getBytes())
                         .uploadedAt(
                                 LocalDateTime.of(
                                         2026, 2, 4, 10, 0)) // Fixed date: Feb 4, 2026 10:00 AM
@@ -168,8 +168,6 @@ class AttachmentRepositoryTest {
         assertThat(savedAttachment.getFileName()).isEqualTo("receipt.pdf");
         assertThat(savedAttachment.getFileType()).isEqualTo("application/pdf");
         assertThat(savedAttachment.getFileSize()).isEqualTo(1048576L);
-        assertThat(savedAttachment.getFilePath())
-                .isEqualTo("attachments/user1/TRANSACTION/abc123.enc");
         assertThat(savedAttachment.getUploadedAt()).isNotNull();
         assertThat(savedAttachment.getDescription()).isEqualTo("Purchase receipt");
     }
@@ -271,7 +269,7 @@ class AttachmentRepositoryTest {
                         .fileName("user2-file.pdf")
                         .fileType("application/pdf")
                         .fileSize(100000L)
-                        .filePath("attachments/user2/TRANSACTION/xyz.enc")
+                        .fileData("user2 file contents".getBytes())
                         .uploadedAt(LocalDateTime.now())
                         .build();
         attachmentRepository.save(user2Attachment);
@@ -306,7 +304,7 @@ class AttachmentRepositoryTest {
                         .fileName("receipt2.pdf")
                         .fileType("application/pdf")
                         .fileSize(500000L)
-                        .filePath("attachments/user1/TRANSACTION/zzz.enc")
+                        .fileData("another receipt contents".getBytes())
                         .uploadedAt(LocalDateTime.now())
                         .build();
         attachmentRepository.save(anotherReceipt);
@@ -357,7 +355,7 @@ class AttachmentRepositoryTest {
                         .fileName("user2-receipt.pdf")
                         .fileType("application/pdf")
                         .fileSize(100000L)
-                        .filePath("attachments/user2/TRANSACTION/aaa.enc")
+                        .fileData("user2 same entity contents".getBytes())
                         .uploadedAt(LocalDateTime.now())
                         .build();
         attachmentRepository.save(user2SameEntity);
@@ -530,7 +528,7 @@ class AttachmentRepositoryTest {
                         .fileName("receipt2.pdf")
                         .fileType("application/pdf")
                         .fileSize(500000L)
-                        .filePath("attachments/user1/TRANSACTION/zzz.enc")
+                        .fileData("another receipt contents".getBytes())
                         .uploadedAt(LocalDateTime.now())
                         .build();
         attachmentRepository.save(anotherReceipt);
@@ -677,7 +675,7 @@ class AttachmentRepositoryTest {
                         .fileName("another-receipt.pdf")
                         .fileType("application/pdf")
                         .fileSize(100000L)
-                        .filePath("attachments/user1/TRANSACTION/bbb.enc")
+                        .fileData("another transaction attachment contents".getBytes())
                         .uploadedAt(LocalDateTime.now())
                         .build();
         attachmentRepository.save(anotherTransactionAttachment);

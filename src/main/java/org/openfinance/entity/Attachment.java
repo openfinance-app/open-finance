@@ -1,6 +1,7 @@
 package org.openfinance.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -12,6 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
@@ -39,9 +41,8 @@ import org.openfinance.converter.EncryptedStringConverter;
  * <p>Requirement REQ-2.12: File Attachment System - Users can attach files to transactions, assets,
  * real estate properties, and liabilities for record-keeping and documentation purposes.
  *
- * <p><strong>Security Note:</strong> Files are stored encrypted at rest on the filesystem using the
- * AttachmentService. The {@code filePath} field contains the encrypted file's storage path, not the
- * original file content.
+ * <p><strong>Security Note:</strong> File contents are stored encrypted at rest in the {@code
+ * file_data} column using the AttachmentService.
  *
  * @author Open-Finance Development Team
  * @since Sprint 12
@@ -143,20 +144,16 @@ public class Attachment {
     private Long fileSize;
 
     /**
-     * Path to the encrypted file in the filesystem. This path is relative to the configured
-     * attachment storage directory. Files are organized by user ID and entity type to improve
-     * security and organization.
+     * Encrypted file contents, stored directly in the database.
      *
-     * <p>Example format: "attachments/userId/entityType/generatedFileName.enc"
-     *
-     * <p><strong>Security Note:</strong> Files are encrypted at rest. This path points to the
-     * encrypted version of the file, not the original unencrypted file. Requirement REQ-2.12.6:
-     * Files stored encrypted at rest on filesystem
+     * <p>Requirement REQ-2.12.6: Files stored encrypted at rest
      */
-    @NotNull(message = "{attachment.filePath.notnull}")
-    @Size(min = 1, max = 500, message = "{attachment.filePath.size}")
-    @Column(name = "file_path", nullable = false, length = 500, unique = true)
-    private String filePath;
+    @NotNull(message = "{attachment.fileData.notnull}")
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "file_data", nullable = false)
+    @JsonIgnore
+    private byte[] fileData;
 
     /**
      * Timestamp when the file was uploaded. Automatically set by Hibernate on entity creation.

@@ -145,7 +145,7 @@ class AttachmentControllerIntegrationTest {
                 .andExpect(jsonPath("$.fileName").value("receipt.pdf"))
                 .andExpect(jsonPath("$.fileType").value("application/pdf"))
                 .andExpect(jsonPath("$.fileSize").isNumber())
-                .andExpect(jsonPath("$.filePath").isString())
+                .andExpect(jsonPath("$.filePath").doesNotExist())
                 .andExpect(jsonPath("$.uploadedAt").isString())
                 .andExpect(jsonPath("$.description").value("Receipt for grocery purchase"));
     }

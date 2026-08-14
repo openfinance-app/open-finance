@@ -5,14 +5,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.AfterEach;
@@ -41,14 +37,13 @@ import org.springframework.web.multipart.MultipartFile;
  * <p>Tests cover:
  *
  * <ul>
- *   <li>Upload operations (validation, encryption, filesystem storage)
+ *   <li>Upload operations (validation, encryption, database storage)
  *   <li>Download operations (decryption, authorization)
- *   <li>Delete operations (authorization, filesystem cleanup)
+ *   <li>Delete operations (authorization)
  *   <li>List/filter operations (by entity, by user)
  *   <li>Metadata retrieval operations
  *   <li>Storage statistics calculations
  *   <li>Cascade deletion of entity attachments
- *   <li>Orphaned attachment cleanup
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
@@ -72,10 +67,9 @@ class AttachmentServiceTest {
     private static final Long TEST_ENTITY_ID = 500L;
     private static final String TEST_FILE_NAME = "receipt.pdf";
     private static final String TEST_FILE_TYPE = "application/pdf";
-    private static final String TEST_STORAGE_PATH = "./test-attachments";
 
     @BeforeEach
-    void setUp() throws IOException {
+    void setUp() {
         encryptionProperties = new EncryptionProperties();
         encryptionProperties.setEnabled(true);
         attachmentService =
@@ -86,7 +80,6 @@ class AttachmentServiceTest {
         EncryptionContext.setKey(new SecretKeySpec(new byte[32], "AES"));
 
         // Configure service with test values
-        ReflectionTestUtils.setField(attachmentService, "storagePath", TEST_STORAGE_PATH);
         ReflectionTestUtils.setField(attachmentService, "maxFileSize", 10485760L); // 10MB
         ReflectionTestUtils.setField(
                 attachmentService,
@@ -94,7 +87,6 @@ class AttachmentServiceTest {
                 "application/pdf,image/jpeg,image/png,image/gif,image/webp,"
                         + "application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
                         + "application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        ReflectionTestUtils.setField(attachmentService, "cleanupOrphanedAfterDays", 30);
 
         // Create test file
         testFile =
@@ -114,11 +106,7 @@ class AttachmentServiceTest {
                         .fileName(TEST_FILE_NAME)
                         .fileType(TEST_FILE_TYPE)
                         .fileSize(1024L)
-                        .filePath(
-                                TEST_STORAGE_PATH
-                                        + "/"
-                                        + TEST_USER_ID
-                                        + "/TRANSACTION/uuid-test.enc")
+                        .fileData("encrypted-file-content".getBytes())
                         .description("Test receipt")
                         .uploadedAt(LocalDateTime.now())
                         .build();
@@ -157,22 +145,10 @@ class AttachmentServiceTest {
         assertThat(result.getFileType()).isEqualTo(TEST_FILE_TYPE);
 
         verify(encryptionService).encryptBytes(any(byte[].class), any(SecretKey.class));
-        verify(attachmentRepository).save(any(Attachment.class));
 
-        // Cleanup - delete created directory
-        Path userDirectory = Paths.get(TEST_STORAGE_PATH, TEST_USER_ID.toString(), "TRANSACTION");
-        if (Files.exists(userDirectory)) {
-            Files.walk(userDirectory)
-                    .sorted((a, b) -> b.compareTo(a))
-                    .forEach(
-                            path -> {
-                                try {
-                                    Files.deleteIfExists(path);
-                                } catch (IOException e) {
-                                    // Ignore cleanup errors
-                                }
-                            });
-        }
+        var attachmentCaptor = org.mockito.ArgumentCaptor.forClass(Attachment.class);
+        verify(attachmentRepository).save(attachmentCaptor.capture());
+        assertThat(attachmentCaptor.getValue().getFileData()).isEqualTo(encryptedBytes);
     }
 
     @Test
@@ -194,18 +170,10 @@ class AttachmentServiceTest {
         // Then
         assertThat(result).isNotNull();
         verify(encryptionService, never()).encryptBytes(any(byte[].class), any(SecretKey.class));
-        verify(attachmentRepository).save(any(Attachment.class));
 
-        Path userDirectory = Paths.get(TEST_STORAGE_PATH, TEST_USER_ID.toString(), "TRANSACTION");
-        assertThat(Files.exists(userDirectory)).isTrue();
-        try (Stream<Path> files = Files.list(userDirectory)) {
-            Path storedFile = files.findFirst().orElseThrow();
-            assertThat(Files.readAllBytes(storedFile)).isEqualTo(testFile.getBytes());
-
-            Files.deleteIfExists(storedFile);
-        }
-        Files.deleteIfExists(userDirectory);
-        Files.deleteIfExists(userDirectory.getParent());
+        var attachmentCaptor = org.mockito.ArgumentCaptor.forClass(Attachment.class);
+        verify(attachmentRepository).save(attachmentCaptor.capture());
+        assertThat(attachmentCaptor.getValue().getFileData()).isEqualTo(testFile.getBytes());
     }
 
     @Test
@@ -383,7 +351,7 @@ class AttachmentServiceTest {
                         .fileName("photo.jpg")
                         .fileType("image/jpeg")
                         .fileSize(imageFile.getSize())
-                        .filePath(TEST_STORAGE_PATH + "/" + TEST_USER_ID + "/ASSET/uuid-image.enc")
+                        .fileData("encrypted-image".getBytes())
                         .uploadedAt(LocalDateTime.now())
                         .build();
 
@@ -402,21 +370,6 @@ class AttachmentServiceTest {
         assertThat(result.getFileType()).isEqualTo("image/jpeg");
 
         verify(attachmentRepository).save(any(Attachment.class));
-
-        // Cleanup
-        Path userDirectory = Paths.get(TEST_STORAGE_PATH, TEST_USER_ID.toString(), "ASSET");
-        if (Files.exists(userDirectory)) {
-            Files.walk(userDirectory)
-                    .sorted((a, b) -> b.compareTo(a))
-                    .forEach(
-                            path -> {
-                                try {
-                                    Files.deleteIfExists(path);
-                                } catch (IOException e) {
-                                    // Ignore cleanup errors
-                                }
-                            });
-        }
     }
 
     @Test
@@ -440,8 +393,7 @@ class AttachmentServiceTest {
                         .fileType(
                                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                         .fileSize(wordFile.getSize())
-                        .filePath(
-                                TEST_STORAGE_PATH + "/" + TEST_USER_ID + "/LIABILITY/uuid-word.enc")
+                        .fileData("encrypted-word".getBytes())
                         .uploadedAt(LocalDateTime.now())
                         .build();
 
@@ -459,34 +411,14 @@ class AttachmentServiceTest {
         assertThat(result.getFileName()).isEqualTo("contract.docx");
 
         verify(attachmentRepository).save(any(Attachment.class));
-
-        // Cleanup
-        Path userDirectory = Paths.get(TEST_STORAGE_PATH, TEST_USER_ID.toString(), "LIABILITY");
-        if (Files.exists(userDirectory)) {
-            Files.walk(userDirectory)
-                    .sorted((a, b) -> b.compareTo(a))
-                    .forEach(
-                            path -> {
-                                try {
-                                    Files.deleteIfExists(path);
-                                } catch (IOException e) {
-                                    // Ignore cleanup errors
-                                }
-                            });
-        }
     }
 
-    // ========== DOWNLOAD TESTS (5 tests) ==========
+    // ========== DOWNLOAD TESTS (4 tests) ==========
 
     @Test
     @DisplayName("Should download attachment successfully with decryption")
-    void shouldDownloadAttachmentSuccessfully() throws Exception {
-        // Given - Create actual encrypted file for download
-        Path testFilePath = Paths.get(testAttachment.getFilePath());
-        Files.createDirectories(testFilePath.getParent());
-        byte[] encryptedContent = "encrypted-file-content".getBytes();
-        Files.write(testFilePath, encryptedContent);
-
+    void shouldDownloadAttachmentSuccessfully() throws IOException {
+        // Given
         byte[] decryptedContent = "original file content".getBytes();
 
         when(attachmentRepository.findByIdAndUserId(1L, TEST_USER_ID))
@@ -502,25 +434,16 @@ class AttachmentServiceTest {
         assertThat(result.getInputStream().readAllBytes()).isEqualTo(decryptedContent);
 
         verify(attachmentRepository).findByIdAndUserId(1L, TEST_USER_ID);
-        verify(encryptionService).decryptBytes(any(byte[].class), any());
-
-        // Cleanup
-        Files.deleteIfExists(testFilePath);
-        Files.deleteIfExists(testFilePath.getParent());
-        Files.deleteIfExists(testFilePath.getParent().getParent());
+        verify(encryptionService).decryptBytes(eq(testAttachment.getFileData()), any());
     }
 
     @Test
     @DisplayName(
             "Should return stored attachment bytes without decryption when encryption is disabled")
     void shouldReturnStoredAttachmentBytesWithoutDecryptionWhenEncryptionDisabled()
-            throws Exception {
+            throws IOException {
         // Given
         encryptionProperties.setEnabled(false);
-        Path testFilePath = Paths.get(testAttachment.getFilePath());
-        Files.createDirectories(testFilePath.getParent());
-        byte[] storedContent = "plain-file-content".getBytes();
-        Files.write(testFilePath, storedContent);
         when(attachmentRepository.findByIdAndUserId(1L, TEST_USER_ID))
                 .thenReturn(Optional.of(testAttachment));
 
@@ -529,12 +452,8 @@ class AttachmentServiceTest {
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getInputStream().readAllBytes()).isEqualTo(storedContent);
+        assertThat(result.getInputStream().readAllBytes()).isEqualTo(testAttachment.getFileData());
         verify(encryptionService, never()).decryptBytes(any(byte[].class), any());
-
-        Files.deleteIfExists(testFilePath);
-        Files.deleteIfExists(testFilePath.getParent());
-        Files.deleteIfExists(testFilePath.getParent().getParent());
     }
 
     @Test
@@ -573,40 +492,9 @@ class AttachmentServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw exception when file not found on filesystem")
-    void shouldThrowExceptionWhenFileNotFoundOnFilesystem() {
-        // Given - Attachment exists in DB but file missing on disk
-        when(attachmentRepository.findByIdAndUserId(1L, TEST_USER_ID))
-                .thenReturn(Optional.of(testAttachment));
-
-        // When/Then - FileStorageException thrown directly from Files.exists check
-        assertThatThrownBy(() -> attachmentService.downloadAttachment(1L, TEST_USER_ID))
-                .isInstanceOf(FileStorageException.class)
-                .satisfies(
-                        ex -> {
-                            // The exception might be the original or wrapped
-                            String message = ex.getMessage();
-                            String causeMessage =
-                                    ex.getCause() != null ? ex.getCause().getMessage() : "";
-                            assertThat(message + " " + causeMessage)
-                                    .containsAnyOf(
-                                            "Attachment file not found on disk",
-                                            "Failed to decrypt");
-                        });
-
-        verify(attachmentRepository).findByIdAndUserId(1L, TEST_USER_ID);
-        verify(encryptionService, never()).decryptBytes(any(), any());
-    }
-
-    @Test
     @DisplayName("Should throw exception when decryption fails")
-    void shouldThrowExceptionWhenDecryptionFails() throws Exception {
-        // Given - Create file but decryption fails
-        Path testFilePath = Paths.get(testAttachment.getFilePath());
-        Files.createDirectories(testFilePath.getParent());
-        byte[] encryptedContent = "encrypted-file-content".getBytes();
-        Files.write(testFilePath, encryptedContent);
-
+    void shouldThrowExceptionWhenDecryptionFails() {
+        // Given
         when(attachmentRepository.findByIdAndUserId(1L, TEST_USER_ID))
                 .thenReturn(Optional.of(testAttachment));
         when(encryptionService.decryptBytes(any(byte[].class), any()))
@@ -618,23 +506,14 @@ class AttachmentServiceTest {
                 .hasMessageContaining("Failed to decrypt attachment file");
 
         verify(encryptionService).decryptBytes(any(byte[].class), any());
-
-        // Cleanup
-        Files.deleteIfExists(testFilePath);
-        Files.deleteIfExists(testFilePath.getParent());
-        Files.deleteIfExists(testFilePath.getParent().getParent());
     }
 
-    // ========== DELETE TESTS (4 tests) ==========
+    // ========== DELETE TESTS (3 tests) ==========
 
     @Test
     @DisplayName("Should delete attachment successfully")
-    void shouldDeleteAttachmentSuccessfully() throws Exception {
-        // Given - Create actual file to delete
-        Path testFilePath = Paths.get(testAttachment.getFilePath());
-        Files.createDirectories(testFilePath.getParent());
-        Files.write(testFilePath, "test content".getBytes());
-
+    void shouldDeleteAttachmentSuccessfully() {
+        // Given
         when(attachmentRepository.findByIdAndUserId(1L, TEST_USER_ID))
                 .thenReturn(Optional.of(testAttachment));
         doNothing().when(attachmentRepository).delete(testAttachment);
@@ -643,13 +522,8 @@ class AttachmentServiceTest {
         attachmentService.deleteAttachment(1L, TEST_USER_ID);
 
         // Then
-        assertThat(Files.exists(testFilePath)).isFalse();
         verify(attachmentRepository).findByIdAndUserId(1L, TEST_USER_ID);
         verify(attachmentRepository).delete(testAttachment);
-
-        // Cleanup
-        Files.deleteIfExists(testFilePath.getParent());
-        Files.deleteIfExists(testFilePath.getParent().getParent());
     }
 
     @Test
@@ -687,22 +561,6 @@ class AttachmentServiceTest {
         verify(attachmentRepository, never()).delete(any());
     }
 
-    @Test
-    @DisplayName("Should complete deletion even when file deletion fails")
-    void shouldCompleteDeleteEvenWhenFileDeletionFails() {
-        // Given - File doesn't exist (already deleted or never created)
-        when(attachmentRepository.findByIdAndUserId(1L, TEST_USER_ID))
-                .thenReturn(Optional.of(testAttachment));
-        doNothing().when(attachmentRepository).delete(testAttachment);
-
-        // When - Should not throw exception even if file missing
-        attachmentService.deleteAttachment(1L, TEST_USER_ID);
-
-        // Then - Database record should still be deleted
-        verify(attachmentRepository).findByIdAndUserId(1L, TEST_USER_ID);
-        verify(attachmentRepository).delete(testAttachment);
-    }
-
     // ========== LIST/FILTER TESTS (5 tests) ==========
 
     @Test
@@ -718,8 +576,6 @@ class AttachmentServiceTest {
                         .fileName("invoice.pdf")
                         .fileType("application/pdf")
                         .fileSize(2048L)
-                        .filePath(
-                                TEST_STORAGE_PATH + "/" + TEST_USER_ID + "/TRANSACTION/uuid-2.enc")
                         .uploadedAt(LocalDateTime.now())
                         .build();
 
@@ -756,7 +612,6 @@ class AttachmentServiceTest {
                         .fileName("photo.jpg")
                         .fileType("image/jpeg")
                         .fileSize(5120L)
-                        .filePath(TEST_STORAGE_PATH + "/" + TEST_USER_ID + "/ASSET/uuid-photo.enc")
                         .uploadedAt(LocalDateTime.now().minusDays(1))
                         .build();
 
@@ -807,11 +662,6 @@ class AttachmentServiceTest {
                         .fileName("new-receipt.pdf")
                         .fileType("application/pdf")
                         .fileSize(1500L)
-                        .filePath(
-                                TEST_STORAGE_PATH
-                                        + "/"
-                                        + TEST_USER_ID
-                                        + "/TRANSACTION/uuid-new.enc")
                         .uploadedAt(LocalDateTime.now())
                         .build();
 
@@ -824,11 +674,6 @@ class AttachmentServiceTest {
                         .fileName("old-receipt.pdf")
                         .fileType("application/pdf")
                         .fileSize(1200L)
-                        .filePath(
-                                TEST_STORAGE_PATH
-                                        + "/"
-                                        + TEST_USER_ID
-                                        + "/TRANSACTION/uuid-old.enc")
                         .uploadedAt(LocalDateTime.now().minusMonths(1))
                         .build();
 
@@ -999,8 +844,8 @@ class AttachmentServiceTest {
 
     @Test
     @DisplayName("Should delete all attachments for entity")
-    void shouldDeleteAllAttachmentsForEntity() throws Exception {
-        // Given - Create files for cascade delete
+    void shouldDeleteAllAttachmentsForEntity() {
+        // Given
         Attachment attachment2 =
                 Attachment.builder()
                         .id(2L)
@@ -1010,18 +855,11 @@ class AttachmentServiceTest {
                         .fileName("invoice.pdf")
                         .fileType("application/pdf")
                         .fileSize(2048L)
-                        .filePath(
-                                TEST_STORAGE_PATH + "/" + TEST_USER_ID + "/TRANSACTION/uuid-2.enc")
+                        .fileData("encrypted-invoice".getBytes())
                         .uploadedAt(LocalDateTime.now())
                         .build();
 
         List<Attachment> attachments = Arrays.asList(testAttachment, attachment2);
-
-        Path file1 = Paths.get(testAttachment.getFilePath());
-        Path file2 = Paths.get(attachment2.getFilePath());
-        Files.createDirectories(file1.getParent());
-        Files.write(file1, "content1".getBytes());
-        Files.write(file2, "content2".getBytes());
 
         when(attachmentRepository.findByUserIdAndEntityTypeAndEntityIdOrderByUploadedAtDesc(
                         TEST_USER_ID, EntityType.TRANSACTION, TEST_ENTITY_ID))
@@ -1035,13 +873,7 @@ class AttachmentServiceTest {
 
         // Then
         assertThat(deletedCount).isEqualTo(2);
-        assertThat(Files.exists(file1)).isFalse();
-        assertThat(Files.exists(file2)).isFalse();
         verify(attachmentRepository).deleteAll(attachments);
-
-        // Cleanup
-        Files.deleteIfExists(file1.getParent());
-        Files.deleteIfExists(file1.getParent().getParent());
     }
 
     @Test
@@ -1061,85 +893,5 @@ class AttachmentServiceTest {
         assertThat(deletedCount).isZero();
         // deleteAll is called with empty list - this is OK
         verify(attachmentRepository).deleteAll(List.of());
-    }
-
-    // ========== CLEANUP TESTS (3 tests) ==========
-
-    @Test
-    @DisplayName("Should cleanup old orphaned attachments with missing files")
-    void shouldCleanupOldOrphanedAttachments() {
-        // Given - Old attachment (40 days ago) with missing file
-        Attachment oldOrphanedAttachment =
-                Attachment.builder()
-                        .id(5L)
-                        .userId(TEST_USER_ID)
-                        .entityType(EntityType.TRANSACTION)
-                        .entityId(TEST_ENTITY_ID)
-                        .fileName("old-missing.pdf")
-                        .fileType("application/pdf")
-                        .fileSize(1024L)
-                        .filePath("/nonexistent/path/old-missing.enc")
-                        .uploadedAt(LocalDateTime.now().minusDays(40))
-                        .build();
-
-        when(attachmentRepository.findAll()).thenReturn(List.of(oldOrphanedAttachment));
-        doNothing().when(attachmentRepository).delete(oldOrphanedAttachment);
-
-        // When
-        int cleanedCount = attachmentService.cleanupOrphanedAttachments();
-
-        // Then
-        assertThat(cleanedCount).isEqualTo(1);
-        verify(attachmentRepository).delete(oldOrphanedAttachment);
-    }
-
-    @Test
-    @DisplayName("Should not delete recent orphans less than 30 days old")
-    void shouldNotDeleteRecentOrphans() {
-        // Given - Recent attachment (10 days ago) with missing file
-        Attachment recentOrphanedAttachment =
-                Attachment.builder()
-                        .id(6L)
-                        .userId(TEST_USER_ID)
-                        .entityType(EntityType.TRANSACTION)
-                        .entityId(TEST_ENTITY_ID)
-                        .fileName("recent-missing.pdf")
-                        .fileType("application/pdf")
-                        .fileSize(1024L)
-                        .filePath("/nonexistent/path/recent-missing.enc")
-                        .uploadedAt(LocalDateTime.now().minusDays(10))
-                        .build();
-
-        when(attachmentRepository.findAll()).thenReturn(List.of(recentOrphanedAttachment));
-
-        // When
-        int cleanedCount = attachmentService.cleanupOrphanedAttachments();
-
-        // Then
-        assertThat(cleanedCount).isZero();
-        verify(attachmentRepository, never()).delete(any());
-    }
-
-    @Test
-    @DisplayName("Should skip cleanup when files exist on disk")
-    void shouldSkipCleanupWhenFilesExist() throws Exception {
-        // Given - Attachment with existing file
-        Path existingFile = Paths.get(testAttachment.getFilePath());
-        Files.createDirectories(existingFile.getParent());
-        Files.write(existingFile, "existing content".getBytes());
-
-        when(attachmentRepository.findAll()).thenReturn(List.of(testAttachment));
-
-        // When
-        int cleanedCount = attachmentService.cleanupOrphanedAttachments();
-
-        // Then
-        assertThat(cleanedCount).isZero();
-        verify(attachmentRepository, never()).delete(any());
-
-        // Cleanup
-        Files.deleteIfExists(existingFile);
-        Files.deleteIfExists(existingFile.getParent());
-        Files.deleteIfExists(existingFile.getParent().getParent());
     }
 }
