@@ -11,7 +11,7 @@ FROM node:20-alpine AS frontend-build
 WORKDIR /app
 
 # Cache npm install layer separately from the source copy.
-COPY openfinance-ui/package.json openfinance-ui/package-lock.json ./
+COPY openfinance-ui/package.json openfinance-ui/package-lock.json openfinance-ui/.npmrc ./
 RUN npm ci
 
 # Copy full frontend source and build.
