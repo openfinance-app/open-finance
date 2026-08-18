@@ -592,6 +592,64 @@ class DashboardControllerTest {
         }
     }
 
+    @Nested
+    @DisplayName("GET /api/v1/dashboard/networth-history")
+    class NetWorthHistoryEndpointTests {
+
+        @Test
+        @DisplayName("Should return 403 when not authenticated")
+        void shouldReturn403WhenNotAuthenticated() throws Exception {
+            mockMvc.perform(get("/api/v1/dashboard/networth-history?period=365"))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName(
+                "Should backfill earlier months when the requested window is widened beyond"
+                        + " existing snapshots")
+        void shouldBackfillEarlierMonthsWhenWindowWidened() throws Exception {
+            // Create an account whose activity predates the 1Y window so backfill can
+            // reconstruct earlier monthly snapshots.
+            AccountRequest oldAccountReq =
+                    AccountRequest.builder()
+                            .name("Legacy Savings")
+                            .type(AccountType.SAVINGS)
+                            .currency("EUR")
+                            .initialBalance(new BigDecimal("5000.00"))
+                            .openingDate(LocalDate.now().minusDays(400))
+                            .build();
+            mockMvc.perform(
+                            post("/api/v1/accounts")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Session", encKey)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(oldAccountReq)))
+                    .andExpect(status().isCreated());
+
+            // Seed three recent non-zero snapshots, mimicking an earlier narrow (1M)
+            // backfill. These make the "sparse" guard (< 3 non-zero points) false, so the
+            // fix must rely on the "start uncovered" trigger to widen the history.
+            createNetWorthSnapshot(LocalDate.now(), new BigDecimal("15000.00"));
+            createNetWorthSnapshot(LocalDate.now().minusMonths(1), new BigDecimal("15000.00"));
+            createNetWorthSnapshot(LocalDate.now().minusMonths(2), new BigDecimal("15000.00"));
+
+            // Request the 1Y window: the earliest stored snapshot (~2 months ago) does not
+            // reach effectiveStart, so backfill must reconstruct the earlier months.
+            mockMvc.perform(
+                            get("/api/v1/dashboard/networth-history?period=365")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Session", encKey))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(greaterThan(5))))
+                    // The earliest returned data point now predates the seeded snapshots,
+                    // proving the widened window triggered a backfill of earlier months.
+                    .andExpect(
+                            jsonPath(
+                                    "$[0].date",
+                                    lessThan(LocalDate.now().minusMonths(6).toString())));
+        }
+    }
+
     // ==================== Helper Methods ====================
     private void createTransaction(
             BigDecimal amount, TransactionType type, LocalDate date, String description)

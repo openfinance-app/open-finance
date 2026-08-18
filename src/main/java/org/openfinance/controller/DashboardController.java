@@ -546,12 +546,24 @@ public class DashboardController {
         List<NetWorth> history =
                 netWorthService.getNetWorthHistory(userId, effectiveStart, effectiveEnd);
 
-        // Auto-backfill if sparse (fewer than 3 meaningful data points)
-        if (!recalculate
-                && history.stream()
+        // Auto-backfill when the stored history doesn't cover the requested window.
+        // Two triggers: (1) sparse — fewer than 3 meaningful data points; or
+        // (2) the earliest snapshot starts well after effectiveStart, which happens
+        // when the user widens the period (e.g. 1M → 1Y) after an earlier, narrower
+        // backfill. Without (2) the chart stays stuck on the originally backfilled
+        // window and never reconstructs the earlier months. Backfill is idempotent
+        // (only creates missing month-start snapshots) and self-limits to each
+        // account's earliest activity, so re-running is safe and cheap.
+        boolean sparse =
+                history.stream()
                                 .filter(nw -> nw.getNetWorth().compareTo(BigDecimal.ZERO) != 0)
                                 .count()
-                        < 3) {
+                        < 3;
+        // history is ordered ascending, so the first element is the earliest snapshot.
+        boolean startUncovered =
+                history.isEmpty()
+                        || history.get(0).getSnapshotDate().isAfter(effectiveStart.plusDays(35));
+        if (!recalculate && (sparse || startUncovered)) {
             int backfilled =
                     netWorthService.backfillNetWorthHistory(
                             userId, effectiveStart, effectiveEnd, userCurrency);
