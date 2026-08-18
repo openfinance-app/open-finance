@@ -142,6 +142,19 @@ const generateDefaultLayouts = (): Record<string, any> => ({
   ]
 });
 
+// Default geometry per card, used as the react-grid-layout `data-grid` fallback so
+// cards whose data loads late (or that appear in a lazily-generated breakpoint) are
+// placed at their intended size instead of RGL's collapsed 1x1 default.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const DEFAULT_LAYOUT_BY_ID: Record<string, any> = generateDefaultLayouts().lg.reduce(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (acc: Record<string, any>, item: any) => {
+    acc[item.i] = item;
+    return acc;
+  },
+  {}
+);
+
 export default function DashboardPage() {
 
   const { t } = useTranslation('dashboard');
@@ -174,6 +187,11 @@ export default function DashboardPage() {
   // ── Layout / UI state ───────────────────────────────────────────────────────
   const [isCardMenuOpen, setIsCardMenuOpen] = useState(false);
   const cardMenuRef = useRef<HTMLDivElement>(null);
+  // True once the user actually drags/resizes a card. Mount-time and breakpoint
+  // auto-generation echoes from react-grid-layout must NOT overwrite the saved
+  // layout (they arrive compacted/regenerated and would clobber the user's
+  // arrangement on refresh); only genuine interactions are persisted.
+  const layoutInteractedRef = useRef(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [layouts, setLayouts] = useState<Record<string, any>>(() => {
@@ -204,6 +222,20 @@ export default function DashboardPage() {
           parsed.lg = Array.from(map.values());
         }
         
+        // A collapsed (1x1) card in ANY non-lg breakpoint means that breakpoint was
+        // generated before a late-loading card mounted. Flag it so those breakpoints
+        // are dropped and regenerated from the repaired lg (data-grid keeps late
+        // cards correctly sized during regeneration).
+        if (!repaired) {
+          repaired = Object.keys(parsed).some(
+            (k) =>
+              k !== 'lg' &&
+              Array.isArray(parsed[k]) &&
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              parsed[k].some((it: any) => it.w === 1 && it.h === 1)
+          );
+        }
+
         if (repaired) {
           // If we repaired items, clear other breakpoints so they regenerate based on lg
           Object.keys(parsed).forEach(k => {
@@ -543,7 +575,12 @@ export default function DashboardPage() {
         });
         merged[bp] = mergedItems;
       });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      // Persist only after a real user drag/resize. Mount-time / breakpoint
+      // regeneration echoes update in-memory state for a smooth render but must
+      // never be written back, or the saved arrangement is lost on refresh.
+      if (layoutInteractedRef.current) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      }
       return merged;
     });
   };
@@ -704,6 +741,12 @@ export default function DashboardPage() {
           cols={GRID_LAYOUT_COLS}
           rowHeight={40}
           onLayoutChange={handleLayoutChange}
+          onDragStart={() => {
+            layoutInteractedRef.current = true;
+          }}
+          onResizeStart={() => {
+            layoutInteractedRef.current = true;
+          }}
           draggableHandle=".drag-handle"
           margin={[16, 16]}
         >
@@ -713,7 +756,7 @@ export default function DashboardPage() {
           }).map((cardId) => {
             const card = cardById[cardId];
             return (
-              <div key={card.id} className="relative group flex flex-col h-full rounded-lg overflow-hidden">
+              <div key={card.id} data-grid={DEFAULT_LAYOUT_BY_ID[card.id]} className="relative group flex flex-col h-full rounded-lg overflow-hidden">
                 <div className="drag-handle absolute right-3 top-3 z-10 p-1 bg-surface/80 rounded cursor-move text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary">
                   <GripVertical className="h-4 w-4" />
                 </div>
