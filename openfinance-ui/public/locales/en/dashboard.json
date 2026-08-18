@@ -238,6 +238,7 @@
     "empty": "Add institutions or real estate with a location to see your finances on the map.",
     "loadError": "Unable to load the financial map.",
     "you": "You",
+    "toggleLegend": "Toggle legend",
     "institutions": "Institutions",
     "realEstate": "Real estate",
     "total": "Total",

@@ -15,7 +15,7 @@
  */
 
 import { useMemo, useRef, useState, type MouseEvent } from 'react';
-import { Globe2, Building2, Home } from 'lucide-react';
+import { Globe2, Building2, Home, Eye, EyeOff } from 'lucide-react';
 import {
   ComposableMap,
   Geographies,
@@ -94,6 +94,7 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
   } = useSecondaryConversion(baseCurrency);
 
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [showLegend, setShowLegend] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // Coordinates relative to the map container (not the viewport): the dashboard
@@ -283,6 +284,18 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
       <div className="flex items-center gap-2 mb-4">
         <Globe2 className="h-5 w-5 text-primary" />
         <h3 className="text-lg font-semibold text-text-primary">{t('financialMap.title')}</h3>
+        {hasData && (
+          <button
+            type="button"
+            onClick={() => setShowLegend((v) => !v)}
+            aria-pressed={showLegend}
+            title={t('financialMap.toggleLegend')}
+            className="inline-flex items-center justify-center rounded-md p-1 text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
+          >
+            {showLegend ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            <span className="sr-only">{t('financialMap.toggleLegend')}</span>
+          </button>
+        )}
       </div>
 
       {/* Map */}
@@ -452,7 +465,7 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
       </div>
 
       {/* Legend — overall aggregates */}
-      {hasData && (
+      {hasData && showLegend && (
         <div className="mt-4 space-y-2 w-full max-w-xs">
           <div className="flex items-center justify-between gap-2">
             <span className="flex items-center gap-1.5 text-sm text-text-secondary">

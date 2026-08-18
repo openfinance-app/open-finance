@@ -238,6 +238,7 @@
     "empty": "Ajoutez des institutions ou des biens immobiliers localisés pour voir vos finances sur la carte.",
     "loadError": "Impossible de charger la carte financière.",
     "you": "Vous",
+    "toggleLegend": "Afficher/masquer la l\u00e9gende",
     "institutions": "Institutions",
     "realEstate": "Immobilier",
     "total": "Total",
