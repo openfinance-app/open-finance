@@ -282,7 +282,13 @@ export function PayeeSelector({
         </div>
 
         {/* Scrollable list */}
-        <div className="max-h-72 overflow-y-auto p-1">
+        {/* Stop wheel/touch bubbling so the Radix Dialog's react-remove-scroll
+            lock doesn't cancel scrolling inside this portaled popover. */}
+        <div
+          className="max-h-72 overflow-y-auto p-1"
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           {/* "None" option */}
           {allowNone && (
             <button

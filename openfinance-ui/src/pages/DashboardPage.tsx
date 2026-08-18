@@ -95,6 +95,7 @@ const DEFAULT_CARD_ORDER: DashboardCardId[] = [
 ];
 
 const STORAGE_KEY = 'open_finance_dashboard_layouts';
+const VISIBILITY_STORAGE_KEY = 'open_finance_dashboard_card_visibility';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const generateDefaultLayouts = (): Record<string, any> => ({
@@ -219,12 +220,21 @@ export default function DashboardPage() {
     return defaultLayouts;
   });
 
-  const [cardVisibility, setCardVisibility] = useState<Record<DashboardCardId, boolean>>(() =>
-    DEFAULT_CARD_ORDER.reduce((acc, cardId) => {
+  const [cardVisibility, setCardVisibility] = useState<Record<DashboardCardId, boolean>>(() => {
+    const defaults = DEFAULT_CARD_ORDER.reduce((acc, cardId) => {
       acc[cardId] = true;
       return acc;
-    }, {} as Record<DashboardCardId, boolean>)
-  );
+    }, {} as Record<DashboardCardId, boolean>);
+    const saved = localStorage.getItem(VISIBILITY_STORAGE_KEY);
+    if (saved) {
+      try {
+        return { ...defaults, ...(JSON.parse(saved) as Record<DashboardCardId, boolean>) };
+      } catch {
+        // ignore malformed persisted visibility
+      }
+    }
+    return defaults;
+  });
 
   // ── Period change handler ───────────────────────────────────────────────────
   const handlePeriodChange = (period: Period, days: number | null, dateRange?: DateRange) => {
@@ -505,16 +515,49 @@ export default function DashboardPage() {
     [dashboardCards]);
 
   // ── Layout handlers ─────────────────────────────────────────────────────────
+  // react-grid-layout reports only the currently-rendered cards. Cards that are
+  // hidden, unavailable for the selected period, or absent during loading are
+  // omitted from `allLayouts`. Merge incoming positions onto the previously saved
+  // layout so those absent cards keep their slots instead of being auto-placed at
+  // the bottom when they reappear (fixes layout loss on navigation & period change).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleLayoutChange = (_currentLayout: any, allLayouts: any) => {
-    setLayouts(allLayouts);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(allLayouts));
+  const handleLayoutChange = (currentLayout: any, allLayouts: any) => {
+    // Ignore the transient empty layout RGL emits before children mount / while data loads.
+    if (!currentLayout || currentLayout.length === 0) return;
+
+    setLayouts((prev) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const merged: Record<string, any> = { ...prev };
+      Object.keys(allLayouts).forEach((bp) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const incoming: any[] = allLayouts[bp] ?? [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const prevItems: any[] = prev[bp] ?? [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const incomingById = new Map<string, any>(incoming.map((it) => [it.i, it]));
+        // Keep every previously-known card, updating positions for the ones RGL reported.
+        const mergedItems = prevItems.map((it) => incomingById.get(it.i) ?? it);
+        // Append any brand-new cards not present in the previous layout.
+        incoming.forEach((it) => {
+          if (!mergedItems.some((m) => m.i === it.i)) mergedItems.push(it);
+        });
+        merged[bp] = mergedItems;
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      return merged;
+    });
   };
 
   const handleResetLayout = () => {
     const defaultLayout = generateDefaultLayouts();
     setLayouts(defaultLayout);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultLayout));
+    const allVisible = DEFAULT_CARD_ORDER.reduce((acc, cardId) => {
+      acc[cardId] = true;
+      return acc;
+    }, {} as Record<DashboardCardId, boolean>);
+    setCardVisibility(allVisible);
+    localStorage.removeItem(VISIBILITY_STORAGE_KEY);
   };
 
   // ── Loading skeleton ────────────────────────────────────────────────────────
@@ -616,7 +659,11 @@ export default function DashboardPage() {
                         className="mt-1 accent-primary"
                         checked={cardVisibility[card.id]}
                         onChange={() => {
-                          setCardVisibility((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
+                          setCardVisibility((prev) => {
+                            const next = { ...prev, [card.id]: !prev[card.id] };
+                            localStorage.setItem(VISIBILITY_STORAGE_KEY, JSON.stringify(next));
+                            return next;
+                          });
                           setTimeout(() => window.dispatchEvent(new Event('resize')), RESIZE_EVENT_DELAY_MS);
                         }}
                         disabled={!card.isAvailable}
