@@ -15,7 +15,7 @@
  */
 
 import { useMemo, useRef, useState, type MouseEvent } from 'react';
-import { Globe2, MapPin, Building2, Home } from 'lucide-react';
+import { Globe2, Building2, Home } from 'lucide-react';
 import {
   ComposableMap,
   Geographies,
@@ -78,9 +78,8 @@ interface TooltipState {
   y: number;
 }
 
-const MIN_DOT_RADIUS = 4;
-const MAX_DOT_RADIUS = 20;
-const TOP_COUNTRIES = 6;
+const MIN_DOT_RADIUS = 1;
+const MAX_DOT_RADIUS = 12;
 
 export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: FinancialMapProps) {
   const { t } = useTranslation('dashboard');
@@ -237,7 +236,8 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
     );
   }
 
-  const { countries, maxAbs, userCountry, unmappedPropertyCount } = aggregation;
+  const { countries, maxAbs, userCountry, unmappedPropertyCount, unmappedPropertyAmount } =
+    aggregation;
   const userCentroid = userCountry ? countryCentroid(userCountry) : null;
 
   const dotRadius = (amount: number): number => {
@@ -251,6 +251,17 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
 
   const hasData = countries.length > 0;
   const tooltipDatum = tooltip ? countries.find((c) => c.code === tooltip.code) : undefined;
+
+  // Overall aggregates for the legend (not a per-country breakdown).
+  const institutionsTotal = countries.reduce((s, c) => add(s, c.institutionsAmount), 0);
+  const realEstateTotal = add(
+    countries.reduce((s, c) => add(s, c.realEstateAmount), 0),
+    unmappedPropertyAmount,
+  );
+  const grandTotal = add(institutionsTotal, realEstateTotal);
+  const totalAccounts = countries.reduce((s, c) => s + c.accountCount, 0);
+  const totalProperties =
+    countries.reduce((s, c) => s + c.propertyCount, 0) + unmappedPropertyCount;
 
   /* ── Empty ───────────────────────────────────────────────────────────────── */
   if (!hasData && !userCentroid) {
@@ -333,22 +344,49 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
                   />
                 ))}
 
-            {/* Highlight dots sized by amount */}
-            {markers.map((m) => (
-              <Marker key={`dot-${m.datum.code}`} coordinates={m.centroid}>
-                <circle
-                  r={dotRadius(m.datum.amount)}
-                  fill="var(--color-primary)"
-                  fillOpacity={0.35}
-                  stroke="var(--color-primary)"
-                  strokeWidth={1}
-                  style={{ cursor: 'pointer' }}
-                  onMouseEnter={(e) => showTip(m.datum.code, e)}
-                  onMouseMove={(e) => showTip(m.datum.code, e)}
-                  onMouseLeave={() => setTooltip(null)}
-                />
-              </Marker>
-            ))}
+            {/* Highlight dots sized by amount — glowing, pulsing markers */}
+            {markers.map((m, idx) => {
+              const r = dotRadius(m.datum.amount);
+              const core = Math.max(1.5, r * 0.6);
+              // Stagger each pulse so the map feels alive rather than synchronized.
+              const begin = `${(idx % 6) * 0.35}s`;
+              return (
+                <Marker key={`dot-${m.datum.code}`} coordinates={m.centroid}>
+                  <g
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={(e) => showTip(m.datum.code, e)}
+                    onMouseMove={(e) => showTip(m.datum.code, e)}
+                    onMouseLeave={() => setTooltip(null)}
+                  >
+                    {/* Expanding, fading pulse ring */}
+                    <circle r={core} fill="var(--color-primary)" pointerEvents="none">
+                      <animate
+                        attributeName="r"
+                        values={`${core};${r * 1.8}`}
+                        dur="2.4s"
+                        begin={begin}
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="opacity"
+                        values="0.5;0"
+                        dur="2.4s"
+                        begin={begin}
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                    {/* Glowing core dot */}
+                    <circle
+                      r={core}
+                      fill="var(--color-primary)"
+                      stroke="var(--color-surface)"
+                      strokeWidth={0.5}
+                      style={{ filter: 'drop-shadow(0 0 3px var(--color-primary))' }}
+                    />
+                  </g>
+                </Marker>
+              );
+            })}
 
             {/* User location marker */}
             {userCentroid && (
@@ -413,45 +451,65 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
         )}
       </div>
 
-      {/* Legend / top countries */}
+      {/* Legend — overall aggregates */}
       {hasData && (
-        <div className="mt-4 space-y-2">
-          {countries.slice(0, TOP_COUNTRIES).map((c) => (
-            <div key={c.code} className="px-1 py-0.5 -mx-1">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className={`${countryFlagClass(c.code)} shrink-0`} />
-                <span className="text-sm text-text-primary truncate">
-                  {countryDisplayName(c.code)}
-                </span>
-                {c.code === userCountry && <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />}
-                <span className="flex items-center gap-1.5 text-text-secondary shrink-0">
-                  {c.accountCount > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-xs">
-                      <Building2 className="h-3 w-3" />
-                      {c.accountCount}
-                    </span>
-                  )}
-                  {c.propertyCount > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-xs">
-                      <Home className="h-3 w-3" />
-                      {c.propertyCount}
-                    </span>
-                  )}
-                </span>
-              </div>
-              <div className="text-sm font-mono text-text-primary mt-0.5">
-                <ConvertedAmount
-                  amount={c.amount}
-                  currency={baseCurrency}
-                  isConverted={false}
-                  secondaryAmount={convert(c.amount)}
-                  secondaryCurrency={secCurrency}
-                  secondaryExchangeRate={secondaryExchangeRate}
-                  inline
-                />
-              </div>
-            </div>
-          ))}
+        <div className="mt-4 space-y-2 w-full max-w-xs">
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5 text-sm text-text-secondary">
+              <Building2 className="h-3.5 w-3.5" />
+              {t('financialMap.institutions')}
+              {totalAccounts > 0 && (
+                <span className="text-xs text-text-muted">({totalAccounts})</span>
+              )}
+            </span>
+            <span className="text-sm font-mono text-text-primary">
+              <ConvertedAmount className='z-50 relative'
+                amount={institutionsTotal}
+                currency={baseCurrency}
+                isConverted={false}
+                secondaryAmount={convert(institutionsTotal)}
+                secondaryCurrency={secCurrency}
+                secondaryExchangeRate={secondaryExchangeRate}
+                inline
+              />
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5 text-sm text-text-secondary">
+              <Home className="h-3.5 w-3.5" />
+              {t('financialMap.realEstate')}
+              {totalProperties > 0 && (
+                <span className="text-xs text-text-muted">({totalProperties})</span>
+              )}
+            </span>
+            <span className="text-sm font-mono text-text-primary">
+              <ConvertedAmount className='z-50 relative'
+                amount={realEstateTotal}
+                currency={baseCurrency}
+                isConverted={false}
+                secondaryAmount={convert(realEstateTotal)}
+                secondaryCurrency={secCurrency}
+                secondaryExchangeRate={secondaryExchangeRate}
+                inline
+              />
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2 border-t border-border pt-2">
+            <span className="text-sm font-medium text-text-primary">
+              {t('financialMap.total')}
+            </span>
+            <span className="text-sm font-mono font-semibold text-text-primary">
+              <ConvertedAmount className='z-50 relative'
+                amount={grandTotal}
+                currency={baseCurrency}
+                isConverted={false}
+                secondaryAmount={convert(grandTotal)}
+                secondaryCurrency={secCurrency}
+                secondaryExchangeRate={secondaryExchangeRate}
+                inline
+              />
+            </span>
+          </div>
           {unmappedPropertyCount > 0 && (
             <p className="text-xs text-text-muted pt-1">
               {t('financialMap.unmapped', { count: unmappedPropertyCount })}
