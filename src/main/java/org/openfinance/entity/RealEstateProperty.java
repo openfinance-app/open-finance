@@ -15,19 +15,31 @@ import org.openfinance.util.MathConstants;
 /**
  * Entity representing a real estate property in the Open-Finance system.
  *
- * <p>Real estate properties include residential homes, commercial buildings, land parcels, and
- * other types of real property. Each property belongs to a user and optionally links to a mortgage
+ * <p>
+ * Real estate properties include residential homes, commercial buildings, land
+ * parcels, and
+ * other types of real property. Each property belongs to a user and optionally
+ * links to a mortgage
  * liability.
  *
- * <p>Requirement REQ-2.16: Real Estate Management - Users can track real estate properties
- * including purchase price, current value, rental income, and associated mortgages.
+ * <p>
+ * Requirement REQ-2.16: Real Estate Management - Users can track real estate
+ * properties
+ * including purchase price, current value, rental income, and associated
+ * mortgages.
  *
- * <p><strong>Security Note:</strong> The {@code name}, {@code address}, {@code notes}, and {@code
- * documents} fields will be encrypted by the RealEstateService before persisting to the database to
+ * <p>
+ * <strong>Security Note:</strong> The {@code name}, {@code address},
+ * {@code notes}, and {@code
+ * documents} fields will be encrypted by the RealEstateService before
+ * persisting to the database to
  * protect sensitive personal information.
  *
- * <p><strong>Location Data:</strong> Latitude and longitude are stored for future mapping features
- * but are not encrypted as they don't directly reveal personal information when stored separately
+ * <p>
+ * <strong>Location Data:</strong> Latitude and longitude are stored for future
+ * mapping features
+ * but are not encrypted as they don't directly reveal personal information when
+ * stored separately
  * from the address.
  *
  * @author Open-Finance Development Team
@@ -35,15 +47,13 @@ import org.openfinance.util.MathConstants;
  * @since 1.0
  */
 @Entity
-@Table(
-        name = "real_estate_properties",
-        indexes = {
-            @Index(name = "idx_real_estate_user_id", columnList = "user_id"),
-            @Index(name = "idx_real_estate_property_type", columnList = "property_type"),
-            @Index(name = "idx_real_estate_user_type", columnList = "user_id, property_type"),
-            @Index(name = "idx_real_estate_mortgage_id", columnList = "mortgage_id"),
-            @Index(name = "idx_real_estate_purchase_date", columnList = "purchase_date")
-        })
+@Table(name = "real_estate_properties", indexes = {
+        @Index(name = "idx_real_estate_user_id", columnList = "user_id"),
+        @Index(name = "idx_real_estate_property_type", columnList = "property_type"),
+        @Index(name = "idx_real_estate_user_type", columnList = "user_id, property_type"),
+        @Index(name = "idx_real_estate_mortgage_id", columnList = "mortgage_id"),
+        @Index(name = "idx_real_estate_purchase_date", columnList = "purchase_date")
+})
 @Getter
 @Setter
 @Builder
@@ -60,7 +70,8 @@ public class RealEstateProperty {
     private Long id;
 
     /**
-     * The user who owns this property. Requirement REQ-2.16.1: Each property belongs to a single
+     * The user who owns this property. Requirement REQ-2.16.1: Each property
+     * belongs to a single
      * user
      */
     @NotNull(message = "{realEstateProperty.userId.notnull}")
@@ -76,8 +87,11 @@ public class RealEstateProperty {
     /**
      * Name of the property (e.g., "Main Residence", "Rental Property #1").
      *
-     * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database. The
-     * RealEstateService handles encryption/decryption transparently. Requirement REQ-2.16.2:
+     * <p>
+     * <strong>Encrypted Field:</strong> This field is stored encrypted in the
+     * database. The
+     * RealEstateService handles encryption/decryption transparently. Requirement
+     * REQ-2.16.2:
      * Property must have a descriptive name
      */
     @NotNull(message = "{realEstateProperty.name.notnull}")
@@ -89,8 +103,11 @@ public class RealEstateProperty {
     /**
      * Full address of the property.
      *
-     * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database to
-     * protect the user's property location information. Requirement REQ-2.16.3: Property must have
+     * <p>
+     * <strong>Encrypted Field:</strong> This field is stored encrypted in the
+     * database to
+     * protect the user's property location information. Requirement REQ-2.16.3:
+     * Property must have
      * a full address
      */
     @NotNull(message = "{realEstateProperty.address.notnull}")
@@ -100,7 +117,8 @@ public class RealEstateProperty {
     private String address;
 
     /**
-     * Type of property (RESIDENTIAL, COMMERCIAL, LAND, etc.). Requirement REQ-2.16: Property type
+     * Type of property (RESIDENTIAL, COMMERCIAL, LAND, etc.). Requirement REQ-2.16:
+     * Property type
      * categorization
      */
     @NotNull(message = "{realEstateProperty.propertyType.notnull}")
@@ -109,10 +127,13 @@ public class RealEstateProperty {
     private PropertyType propertyType;
 
     /**
-     * Purchase price of the property. Stored as encrypted string to protect financial information.
+     * Purchase price of the property. Stored as encrypted string to protect
+     * financial information.
      *
-     * <p><strong>Encrypted Field:</strong> Stored as encrypted string. Use
-     * getPurchasePriceDecimal() after decryption for calculations. Requirement REQ-2.16.4: Track
+     * <p>
+     * <strong>Encrypted Field:</strong> Stored as encrypted string. Use
+     * getPurchasePriceDecimal() after decryption for calculations. Requirement
+     * REQ-2.16.4: Track
      * purchase price with high precision
      */
     @NotNull(message = "{realEstateProperty.purchasePrice.notnull}")
@@ -121,18 +142,25 @@ public class RealEstateProperty {
     @Convert(converter = EncryptedStringConverter.class)
     private String purchasePrice;
 
-    /** Date when the property was purchased. Requirement REQ-2.16.5: Track purchase date */
+    /**
+     * Date when the property was purchased. Requirement REQ-2.16.5: Track purchase
+     * date
+     */
     @NotNull(message = "{realEstateProperty.purchaseDate.notnull}")
     @PastOrPresent(message = "{realEstateProperty.purchaseDate.pastOrPresent}")
     @Column(name = "purchase_date", nullable = false)
     private LocalDate purchaseDate;
 
     /**
-     * Current estimated value of the property. Stored as encrypted string to protect financial
+     * Current estimated value of the property. Stored as encrypted string to
+     * protect financial
      * information.
      *
-     * <p><strong>Encrypted Field:</strong> Stored as encrypted string. Use getCurrentValueDecimal()
-     * after decryption for calculations. Requirement REQ-2.16.6: Track current estimated value
+     * <p>
+     * <strong>Encrypted Field:</strong> Stored as encrypted string. Use
+     * getCurrentValueDecimal()
+     * after decryption for calculations. Requirement REQ-2.16.6: Track current
+     * estimated value
      */
     @NotNull(message = "{realEstateProperty.currentValue.notnull}")
     @Size(max = 500, message = "{realEstateProperty.currentValue.size}")
@@ -141,7 +169,8 @@ public class RealEstateProperty {
     private String currentValue;
 
     /**
-     * Currency code for monetary amounts (ISO 4217). Requirement REQ-2.8: Multi-currency support
+     * Currency code for monetary amounts (ISO 4217). Requirement REQ-2.8:
+     * Multi-currency support
      */
     @NotNull(message = "{realEstateProperty.currency.notnull}")
     @Pattern(regexp = "[A-Z]{3}", message = "{realEstateProperty.currency.pattern}")
@@ -158,19 +187,24 @@ public class RealEstateProperty {
     private Currency currencyEntity;
 
     /**
-     * Optional link to associated mortgage liability. Requirement REQ-2.16.7: Link property to
+     * Optional link to associated mortgage liability. Requirement REQ-2.16.7: Link
+     * property to
      * mortgage for equity calculation
      */
     @Column(name = "mortgage_id")
     private Long mortgageId;
 
-    /** Relationship to the Liability entity (mortgage). Lazy-loaded to optimize performance. */
+    /**
+     * Relationship to the Liability entity (mortgage). Lazy-loaded to optimize
+     * performance.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "mortgage_id", insertable = false, updatable = false)
     private Liability mortgage;
 
     /**
-     * ID of the associated generic Asset record. Links this property to the centralized portfolio
+     * ID of the associated generic Asset record. Links this property to the
+     * centralized portfolio
      * tracking.
      */
     @Column(name = "asset_id")
@@ -182,11 +216,15 @@ public class RealEstateProperty {
     private Asset asset;
 
     /**
-     * Monthly rental income generated by this property (if applicable). Stored as encrypted string
+     * Monthly rental income generated by this property (if applicable). Stored as
+     * encrypted string
      * to protect financial information. Can be null if property is not rented.
      *
-     * <p><strong>Encrypted Field:</strong> Stored as encrypted string. Use getRentalIncomeDecimal()
-     * after decryption for calculations. Requirement REQ-2.16.8: Track rental income for investment
+     * <p>
+     * <strong>Encrypted Field:</strong> Stored as encrypted string. Use
+     * getRentalIncomeDecimal()
+     * after decryption for calculations. Requirement REQ-2.16.8: Track rental
+     * income for investment
      * properties
      */
     @Size(max = 500, message = "{realEstateProperty.rentalIncome.size}")
@@ -197,7 +235,9 @@ public class RealEstateProperty {
     /**
      * Additional notes about the property.
      *
-     * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database.
+     * <p>
+     * <strong>Encrypted Field:</strong> This field is stored encrypted in the
+     * database.
      * Requirement REQ-2.16.9: Allow additional notes for property details
      */
     @Size(max = 2000, message = "{realEstateProperty.notes.size}")
@@ -206,11 +246,16 @@ public class RealEstateProperty {
     private String notes;
 
     /**
-     * JSON string containing references to attached documents (e.g., deeds, contracts).
+     * JSON string containing references to attached documents (e.g., deeds,
+     * contracts).
      *
-     * <p><strong>Encrypted Field:</strong> This field is stored encrypted in the database.
+     * <p>
+     * <strong>Encrypted Field:</strong> This field is stored encrypted in the
+     * database.
      *
-     * <p>Format: JSON array of document metadata (file IDs, names, types) Requirement REQ-2.12:
+     * <p>
+     * Format: JSON array of document metadata (file IDs, names, types) Requirement
+     * REQ-2.12:
      * File attachment support for real estate documents
      */
     @Size(max = 2000, message = "{realEstateProperty.documents.size}")
@@ -221,8 +266,11 @@ public class RealEstateProperty {
     /**
      * Latitude coordinate for property location. Used for future mapping features.
      *
-     * <p>Not encrypted as it doesn't directly reveal personal information when stored separately
-     * from the address. Requirement REQ-2.16.10: Store location coordinates for mapping
+     * <p>
+     * Not encrypted as it doesn't directly reveal personal information when stored
+     * separately
+     * from the address. Requirement REQ-2.16.10: Store location coordinates for
+     * mapping
      */
     @DecimalMin(value = "-90.0", message = "{realEstateProperty.latitude.decimalMin}")
     @DecimalMax(value = "90.0", message = "{realEstateProperty.latitude.decimalMax}")
@@ -232,8 +280,11 @@ public class RealEstateProperty {
     /**
      * Longitude coordinate for property location. Used for future mapping features.
      *
-     * <p>Not encrypted as it doesn't directly reveal personal information when stored separately
-     * from the address. Requirement REQ-2.16.10: Store location coordinates for mapping
+     * <p>
+     * Not encrypted as it doesn't directly reveal personal information when stored
+     * separately
+     * from the address. Requirement REQ-2.16.10: Store location coordinates for
+     * mapping
      */
     @DecimalMin(value = "-180.0", message = "{realEstateProperty.longitude.decimalMin}")
     @DecimalMax(value = "180.0", message = "{realEstateProperty.longitude.decimalMax}")
@@ -241,7 +292,8 @@ public class RealEstateProperty {
     private BigDecimal longitude;
 
     /**
-     * Indicates whether this property record is active. Soft delete: inactive properties are
+     * Indicates whether this property record is active. Soft delete: inactive
+     * properties are
      * excluded from net worth calculations.
      */
     @Column(name = "is_active", nullable = false)
@@ -261,10 +313,12 @@ public class RealEstateProperty {
     // ==================== Helper Methods ====================
 
     /**
-     * Parses the decrypted purchase price string to BigDecimal. This method should be called AFTER
+     * Parses the decrypted purchase price string to BigDecimal. This method should
+     * be called AFTER
      * the purchasePrice has been decrypted.
      *
-     * @return the purchase price as BigDecimal, or null if purchase price is null/empty
+     * @return the purchase price as BigDecimal, or null if purchase price is
+     *         null/empty
      * @throws NumberFormatException if the decrypted string is not a valid number
      */
     public BigDecimal getPurchasePriceDecimal() {
@@ -275,10 +329,12 @@ public class RealEstateProperty {
     }
 
     /**
-     * Parses the decrypted current value string to BigDecimal. This method should be called AFTER
+     * Parses the decrypted current value string to BigDecimal. This method should
+     * be called AFTER
      * the currentValue has been decrypted.
      *
-     * @return the current value as BigDecimal, or null if current value is null/empty
+     * @return the current value as BigDecimal, or null if current value is
+     *         null/empty
      * @throws NumberFormatException if the decrypted string is not a valid number
      */
     public BigDecimal getCurrentValueDecimal() {
@@ -289,10 +345,12 @@ public class RealEstateProperty {
     }
 
     /**
-     * Parses the decrypted rental income string to BigDecimal. This method should be called AFTER
+     * Parses the decrypted rental income string to BigDecimal. This method should
+     * be called AFTER
      * the rentalIncome has been decrypted.
      *
-     * @return the rental income as BigDecimal, or null if rental income is null/empty
+     * @return the rental income as BigDecimal, or null if rental income is
+     *         null/empty
      * @throws NumberFormatException if the decrypted string is not a valid number
      */
     public BigDecimal getRentalIncomeDecimal() {
@@ -303,12 +361,15 @@ public class RealEstateProperty {
     }
 
     /**
-     * Calculates the total appreciation/depreciation of the property. This method should be called
+     * Calculates the total appreciation/depreciation of the property. This method
+     * should be called
      * AFTER decryption.
      *
-     * <p>Formula: Current Value - Purchase Price
+     * <p>
+     * Formula: Current Value - Purchase Price
      *
-     * @return appreciation (positive) or depreciation (negative), or null if values are missing
+     * @return appreciation (positive) or depreciation (negative), or null if values
+     *         are missing
      */
     public BigDecimal getAppreciation() {
         BigDecimal current = getCurrentValueDecimal();
@@ -322,11 +383,14 @@ public class RealEstateProperty {
     }
 
     /**
-     * Calculates the appreciation percentage. This method should be called AFTER decryption.
+     * Calculates the appreciation percentage. This method should be called AFTER
+     * decryption.
      *
-     * <p>Formula: ((Current Value - Purchase Price) / Purchase Price) * 100
+     * <p>
+     * Formula: ((Current Value - Purchase Price) / Purchase Price) * 100
      *
-     * @return appreciation percentage, or null if values are missing or purchase price is zero
+     * @return appreciation percentage, or null if values are missing or purchase
+     *         price is zero
      */
     public BigDecimal getAppreciationPercentage() {
         BigDecimal appreciation = getAppreciation();
@@ -343,13 +407,16 @@ public class RealEstateProperty {
     }
 
     /**
-     * Calculates the annual rental yield (if property generates rental income). This method should
+     * Calculates the annual rental yield (if property generates rental income).
+     * This method should
      * be called AFTER decryption.
      *
-     * <p>Formula: (Monthly Rental Income * 12 / Current Value) * 100
+     * <p>
+     * Formula: (Monthly Rental Income * 12 / Current Value) * 100
      *
-     * @return annual rental yield percentage, or null if values are missing or current value is
-     *     zero
+     * @return annual rental yield percentage, or null if values are missing or
+     *         current value is
+     *         zero
      */
     public BigDecimal getRentalYield() {
         BigDecimal monthly = getRentalIncomeDecimal();

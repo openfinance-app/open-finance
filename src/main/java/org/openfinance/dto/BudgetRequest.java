@@ -13,12 +13,17 @@ import org.openfinance.validation.ValidCurrency;
 /**
  * Data Transfer Object for creating or updating a budget.
  *
- * <p>This DTO is used for both POST (create) and PUT (update) operations. Validation annotations
+ * <p>
+ * This DTO is used for both POST (create) and PUT (update) operations.
+ * Validation annotations
  * ensure data integrity before processing.
  *
- * <p>Requirement REQ-2.9.1.1: Budget creation with category, period, amount, rollover
+ * <p>
+ * Requirement REQ-2.9.1.1: Budget creation with category, period, amount,
+ * rollover
  *
- * <p>Requirement REQ-2.9.1.2: Budget tracking and management
+ * <p>
+ * Requirement REQ-2.9.1.2: Budget tracking and management
  *
  * @see org.openfinance.entity.Budget
  * @see BudgetResponse
@@ -32,10 +37,13 @@ public class BudgetRequest {
     /**
      * ID of the category this budget applies to.
      *
-     * <p>Each budget is associated with a single category. The category must exist and belong to
+     * <p>
+     * Each budget is associated with a single category. The category must exist and
+     * belong to
      * the user.
      *
-     * <p>Requirement REQ-2.9.1.1: Category-based budgets
+     * <p>
+     * Requirement REQ-2.9.1.1: Category-based budgets
      */
     @NotNull(message = "{budget.category.required}")
     @Positive(message = "{budget.category.positive}")
@@ -44,10 +52,13 @@ public class BudgetRequest {
     /**
      * Budget amount in the user's chosen currency.
      *
-     * <p>This field will be encrypted before storing in the database. Must be positive and have at
+     * <p>
+     * This field will be encrypted before storing in the database. Must be positive
+     * and have at
      * most 4 decimal places.
      *
-     * <p>Requirement REQ-2.9.1.1: Budget amount specification
+     * <p>
+     * Requirement REQ-2.9.1.1: Budget amount specification
      */
     @NotNull(message = "{budget.amount.required}")
     @DecimalMin(value = "0.01", message = "{budget.amount.min}")
@@ -58,10 +69,13 @@ public class BudgetRequest {
     /**
      * Currency code in ISO 4217 format (e.g., "USD", "EUR", "GBP").
      *
-     * <p>Should match the user's base currency or the category's typical currency. Defaults to
+     * <p>
+     * Should match the user's base currency or the category's typical currency.
+     * Defaults to
      * user's base currency if not specified.
      *
-     * <p>Requirement REQ-2.8: Multi-currency support
+     * <p>
+     * Requirement REQ-2.8: Multi-currency support
      */
     @NotBlank(message = "{account.currency.required}")
     @ValidCurrency
@@ -70,9 +84,12 @@ public class BudgetRequest {
     /**
      * Budget period type (WEEKLY, MONTHLY, QUARTERLY, YEARLY).
      *
-     * <p>Determines the time frame for this budget. Cannot be changed after budget creation.
+     * <p>
+     * Determines the time frame for this budget. Cannot be changed after budget
+     * creation.
      *
-     * <p>Requirement REQ-2.9.1.1: Period type selection
+     * <p>
+     * Requirement REQ-2.9.1.1: Period type selection
      */
     @NotNull(message = "{budget.period.required}")
     private BudgetPeriod period;
@@ -80,9 +97,12 @@ public class BudgetRequest {
     /**
      * Start date of the budget period.
      *
-     * <p>Budget tracking begins on this date (inclusive). Must be before or equal to endDate.
+     * <p>
+     * Budget tracking begins on this date (inclusive). Must be before or equal to
+     * endDate.
      *
-     * <p>Requirement REQ-2.9.1.2: Budget period date range
+     * <p>
+     * Requirement REQ-2.9.1.2: Budget period date range
      */
     @NotNull(message = "{budget.start.required}")
     private LocalDate startDate;
@@ -90,9 +110,12 @@ public class BudgetRequest {
     /**
      * End date of the budget period.
      *
-     * <p>Budget tracking ends on this date (inclusive). Must be after or equal to startDate.
+     * <p>
+     * Budget tracking ends on this date (inclusive). Must be after or equal to
+     * startDate.
      *
-     * <p>Requirement REQ-2.9.1.2: Budget period date range
+     * <p>
+     * Requirement REQ-2.9.1.2: Budget period date range
      */
     @NotNull(message = "{budget.end.required}")
     private LocalDate endDate;
@@ -100,12 +123,17 @@ public class BudgetRequest {
     /**
      * Whether to carry unused budget amount to the next period.
      *
-     * <p>If true and user spends less than budgeted, the remaining amount will be added to the next
+     * <p>
+     * If true and user spends less than budgeted, the remaining amount will be
+     * added to the next
      * period's budget.
      *
-     * <p>Example: Budget $500, spent $400, rollover=true → next period starts with $600
+     * <p>
+     * Example: Budget $500, spent $400, rollover=true → next period starts with
+     * $600
      *
-     * <p>Requirement REQ-2.9.1.1: Rollover option support
+     * <p>
+     * Requirement REQ-2.9.1.1: Rollover option support
      */
     @NotNull(message = "{budget.rollover.required}")
     private Boolean rollover;
@@ -113,7 +141,8 @@ public class BudgetRequest {
     /**
      * Optional notes or description for the budget.
      *
-     * <p>Can include budget goals, strategies, or reminders. Maximum 500 characters.
+     * <p>
+     * Can include budget goals, strategies, or reminders. Maximum 500 characters.
      */
     @Size(max = 500, message = "{budget.notes.max}")
     private String notes;
@@ -121,7 +150,8 @@ public class BudgetRequest {
     /**
      * Validates that end date is not before start date.
      *
-     * <p>Called by Jakarta Validation after field validation.
+     * <p>
+     * Called by Jakarta Validation after field validation.
      *
      * @return true if dates are valid, false otherwise
      */

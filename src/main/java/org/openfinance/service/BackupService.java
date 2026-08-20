@@ -17,12 +17,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.Backup;
 import org.openfinance.exception.BackupException;
 import org.openfinance.repository.BackupRepository;
+import org.sqlite.SQLiteConnection;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.sqlite.SQLiteConnection;
 
 /**
  * Service for managing database backups. Handles backup creation, restoration, validation, and
@@ -242,15 +242,16 @@ public class BackupService {
     }
 
     /**
-     * Replaces the live SQLite database file with the contents of a gzip-compressed backup stream.
+     * Replaces the live SQLite database file with the contents of a gzip-compressed backup
+     * stream.
      *
-     * <p>Writing directly into the live database file (truncate-then-overwrite) is unsafe: a pooled
-     * connection can observe a partially-written (torn) file mid-copy and raise {@code
-     * SQLITE_CORRUPT}. A plain OS-level rename swap isn't reliable either, since Windows refuses to
-     * replace a file that still has open handles from pooled connections. Instead, the decompressed
-     * backup is opened as its own SQLite database and copied into the live file using SQLite's
-     * native online backup API (via sqlite-jdbc's {@code DB#backup}), which performs the copy under
-     * SQLite's own locking so concurrent readers/writers never observe a torn file.
+     * <p>Writing directly into the live database file (truncate-then-overwrite) is unsafe: a
+     * pooled connection can observe a partially-written (torn) file mid-copy and raise {@code
+     * SQLITE_CORRUPT}. A plain OS-level rename swap isn't reliable either, since Windows refuses
+     * to replace a file that still has open handles from pooled connections. Instead, the
+     * decompressed backup is opened as its own SQLite database and copied into the live file using
+     * SQLite's native online backup API (via sqlite-jdbc's {@code DB#backup}), which performs the
+     * copy under SQLite's own locking so concurrent readers/writers never observe a torn file.
      *
      * @param targetPath the live database file to replace
      * @param compressedIn the gzip-compressed backup content
@@ -270,7 +271,8 @@ public class BackupService {
                 }
             }
 
-            try (Connection backupConn = DriverManager.getConnection("jdbc:sqlite:" + tempDb)) {
+            try (Connection backupConn =
+                    DriverManager.getConnection("jdbc:sqlite:" + tempDb)) {
                 backupConn
                         .unwrap(SQLiteConnection.class)
                         .getDatabase()
@@ -286,8 +288,8 @@ public class BackupService {
     }
 
     /**
-     * Evicts pooled connections after a restore so subsequent requests don't keep using connections
-     * opened against pre-restore state.
+     * Evicts pooled connections after a restore so subsequent requests don't keep using
+     * connections opened against pre-restore state.
      */
     private void evictConnectionPool() {
         if (dataSource instanceof HikariDataSource hikariDataSource) {

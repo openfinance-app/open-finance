@@ -15,9 +15,9 @@ import org.springframework.context.annotation.Primary;
 /**
  * Test database configuration that overrides the production SQLite datasource properties.
  *
- * <p>This configuration builds a {@link DataSource} as an explicit {@code @Primary} bean. It exists
- * for {@code @SpringBootTest} classes that need a guaranteed-available bean reference (e.g. for
- * direct JDBC cleanup) rather than relying purely on property-driven auto-configuration.
+ * <p>This configuration builds a {@link DataSource} as an explicit {@code @Primary} bean. It
+ * exists for {@code @SpringBootTest} classes that need a guaranteed-available bean reference
+ * (e.g. for direct JDBC cleanup) rather than relying purely on property-driven auto-configuration.
  *
  * <p>Usage: Include this configuration in test classes with
  * {@code @Import(TestDatabaseConfig.class)} together with {@code @ActiveProfiles("test")}.
@@ -25,8 +25,9 @@ import org.springframework.context.annotation.Primary;
  * <p>By default this builds a SQLite file unique to the Spring context (see {@link
  * UniqueTestDatabaseEnvironmentPostProcessor} for why). The CI Postgres job overrides {@code
  * spring.datasource.*} via environment variables (see {@code backend-postgres.yml}); when those
- * properties resolve to a non-SQLite URL, this bean connects to that datasource directly instead of
- * allocating a SQLite file, so the exact same test classes run unmodified against either database.
+ * properties resolve to a non-SQLite URL, this bean connects to that datasource directly instead
+ * of allocating a SQLite file, so the exact same test classes run unmodified against either
+ * database.
  *
  * @author Open-Finance Development Team
  * @version 3.0
@@ -89,3 +90,4 @@ public class TestDatabaseConfig {
         }
     }
 }
+

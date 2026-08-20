@@ -20,12 +20,17 @@ import org.openfinance.validation.ValidCurrency;
 /**
  * Data Transfer Object for creating or updating a liability.
  *
- * <p>This DTO is used for both POST (create) and PUT (update) operations. Validation annotations
+ * <p>
+ * This DTO is used for both POST (create) and PUT (update) operations.
+ * Validation annotations
  * ensure data integrity before processing.
  *
- * <p>Requirement REQ-6.1: Liability creation and management
+ * <p>
+ * Requirement REQ-6.1: Liability creation and management
  *
- * <p>Requirement REQ-6.1.2: Liability tracking with name, type, balances, and interest rates
+ * <p>
+ * Requirement REQ-6.1.2: Liability tracking with name, type, balances, and
+ * interest rates
  *
  * @see org.openfinance.entity.Liability
  */
@@ -36,11 +41,14 @@ import org.openfinance.validation.ValidCurrency;
 public class LiabilityRequest {
 
     /**
-     * Name of the liability (e.g., "Home Mortgage", "Student Loan", "Visa Credit Card").
+     * Name of the liability (e.g., "Home Mortgage", "Student Loan", "Visa Credit
+     * Card").
      *
-     * <p>This field will be encrypted before storing in the database.
+     * <p>
+     * This field will be encrypted before storing in the database.
      *
-     * <p>Requirement REQ-6.1.2: Liability must have a descriptive name
+     * <p>
+     * Requirement REQ-6.1.2: Liability must have a descriptive name
      */
     @NotBlank(message = "{liability.name.required}")
     @Size(min = 1, max = 255, message = "{liability.name.between}")
@@ -49,7 +57,8 @@ public class LiabilityRequest {
     /**
      * Type of liability (LOAN, MORTGAGE, CREDIT_CARD, PERSONAL_LOAN, OTHER).
      *
-     * <p>Requirement REQ-6.1: Liability type categorization
+     * <p>
+     * Requirement REQ-6.1: Liability type categorization
      */
     @NotNull(message = "{liability.type.required}")
     private LiabilityType type;
@@ -57,17 +66,20 @@ public class LiabilityRequest {
     /**
      * Original principal amount borrowed.
      *
-     * <p>This field will be encrypted before storing in the database.
+     * <p>
+     * This field will be encrypted before storing in the database.
      *
-     * <p>Examples:
+     * <p>
+     * Examples:
      *
      * <ul>
-     *   <li>$300,000 for a mortgage
-     *   <li>$50,000 for a student loan
-     *   <li>$5,000 for a personal loan
+     * <li>$300,000 for a mortgage
+     * <li>$50,000 for a student loan
+     * <li>$5,000 for a personal loan
      * </ul>
      *
-     * <p>Requirement REQ-6.1.2: Track original principal amount
+     * <p>
+     * Requirement REQ-6.1.2: Track original principal amount
      */
     @NotNull(message = "{liability.principal.required}")
     @DecimalMin(value = "0.01", message = "{liability.principal.min}")
@@ -77,12 +89,16 @@ public class LiabilityRequest {
     /**
      * Current outstanding balance owed.
      *
-     * <p>This field will be encrypted before storing in the database.
+     * <p>
+     * This field will be encrypted before storing in the database.
      *
-     * <p>Current balance is typically less than or equal to principal (unless interest has accrued
+     * <p>
+     * Current balance is typically less than or equal to principal (unless interest
+     * has accrued
      * and been capitalized).
      *
-     * <p>Requirement REQ-6.1.2: Track remaining balance
+     * <p>
+     * Requirement REQ-6.1.2: Track remaining balance
      */
     @NotNull(message = "{liability.balance.required}")
     @DecimalMin(value = "0.00", message = "{liability.balance.min}")
@@ -92,11 +108,14 @@ public class LiabilityRequest {
     /**
      * Annual interest rate as a percentage (e.g., 5.25 for 5.25% APR).
      *
-     * <p>This field will be encrypted before storing in the database.
+     * <p>
+     * This field will be encrypted before storing in the database.
      *
-     * <p>Optional field. Can be null for interest-free loans or promotional periods.
+     * <p>
+     * Optional field. Can be null for interest-free loans or promotional periods.
      *
-     * <p>Requirement REQ-6.1.3: Track interest rate for amortization calculations
+     * <p>
+     * Requirement REQ-6.1.3: Track interest rate for amortization calculations
      */
     @DecimalMin(value = "0.00", message = "{liability.interest.min}")
     @DecimalMax(value = "100.00", message = "{liability.interest.max}")
@@ -106,9 +125,11 @@ public class LiabilityRequest {
     /**
      * Date when the loan or debt started.
      *
-     * <p>Used for calculating loan age and payment schedules.
+     * <p>
+     * Used for calculating loan age and payment schedules.
      *
-     * <p>Requirement REQ-6.1.2: Track start date
+     * <p>
+     * Requirement REQ-6.1.2: Track start date
      */
     @NotNull(message = "{liability.start.required}")
     @PastOrPresent(message = "{liability.start.future}")
@@ -117,10 +138,13 @@ public class LiabilityRequest {
     /**
      * Expected date when the loan will be fully paid off.
      *
-     * <p>Optional field. Can be null for revolving credit (e.g., credit cards) or liabilities
+     * <p>
+     * Optional field. Can be null for revolving credit (e.g., credit cards) or
+     * liabilities
      * without a fixed payoff schedule.
      *
-     * <p>Requirement REQ-6.1.2: Track expected payoff date
+     * <p>
+     * Requirement REQ-6.1.2: Track expected payoff date
      */
     @Future(message = "{liability.end.past}")
     private LocalDate endDate;
@@ -128,11 +152,14 @@ public class LiabilityRequest {
     /**
      * Minimum monthly payment required.
      *
-     * <p>This field will be encrypted before storing in the database.
+     * <p>
+     * This field will be encrypted before storing in the database.
      *
-     * <p>Optional field. Can be null if there's no regular payment schedule.
+     * <p>
+     * Optional field. Can be null if there's no regular payment schedule.
      *
-     * <p>Requirement REQ-6.1.3: Track minimum payment for budgeting
+     * <p>
+     * Requirement REQ-6.1.3: Track minimum payment for budgeting
      */
     @DecimalMin(value = "0.00", message = "{liability.min.payment.min}")
     @Digits(integer = 26, fraction = 18, message = "{liability.min.payment.digits}")
@@ -141,17 +168,20 @@ public class LiabilityRequest {
     /**
      * Currency code in ISO 4217 format (e.g., "USD", "EUR", "GBP").
      *
-     * <p>Requirement REQ-6.2: Multi-currency support for liabilities
+     * <p>
+     * Requirement REQ-6.2: Multi-currency support for liabilities
      */
     @NotBlank(message = "{account.currency.required}")
     @ValidCurrency
     private String currency;
 
     /**
-     * Optional notes about the liability (e.g., lender info, payment schedule, refinancing
+     * Optional notes about the liability (e.g., lender info, payment schedule,
+     * refinancing
      * history).
      *
-     * <p>This field will be encrypted before storing in the database.
+     * <p>
+     * This field will be encrypted before storing in the database.
      */
     @Size(max = 1000, message = "{liability.notes.max}")
     private String notes;
@@ -162,13 +192,17 @@ public class LiabilityRequest {
     /**
      * Annual insurance rate as a percentage of the principal amount.
      *
-     * <p>Example: 0.5 means 0.5% of principal per year for insurance cost.
+     * <p>
+     * Example: 0.5 means 0.5% of principal per year for insurance cost.
      *
-     * <p>Monthly insurance cost = principal × (insurancePercentage / 100) / 12
+     * <p>
+     * Monthly insurance cost = principal × (insurancePercentage / 100) / 12
      *
-     * <p>This field will be encrypted before storing in the database.
+     * <p>
+     * This field will be encrypted before storing in the database.
      *
-     * <p>Requirement REQ-LIA-1: Insurance Percentage Field
+     * <p>
+     * Requirement REQ-LIA-1: Insurance Percentage Field
      */
     @DecimalMin(value = "0.00", message = "{liability.insurance.min}")
     @DecimalMax(value = "100.00", message = "{liability.insurance.max}")
@@ -178,20 +212,26 @@ public class LiabilityRequest {
     /**
      * Additional fees associated with this liability.
      *
-     * <p>Covers one-time or periodic fees such as processing fees, origination fees, or late
+     * <p>
+     * Covers one-time or periodic fees such as processing fees, origination fees,
+     * or late
      * payment fees already incurred.
      *
-     * <p>This field will be encrypted before storing in the database.
+     * <p>
+     * This field will be encrypted before storing in the database.
      *
-     * <p>Requirement REQ-LIA-2: Additional Fees Field
+     * <p>
+     * Requirement REQ-LIA-2: Additional Fees Field
      */
     @DecimalMin(value = "0.00", message = "{liability.fees.min}")
     @Digits(integer = 26, fraction = 18, message = "{liability.fees.digits}")
     private BigDecimal additionalFees;
 
     /**
-     * Optional ID of the real estate property to link this mortgage to. When provided and the
-     * liability type is MORTGAGE, the property's mortgageId will be set to this liability's ID
+     * Optional ID of the real estate property to link this mortgage to. When
+     * provided and the
+     * liability type is MORTGAGE, the property's mortgageId will be set to this
+     * liability's ID
      * after creation.
      */
     private Long realEstateId;
