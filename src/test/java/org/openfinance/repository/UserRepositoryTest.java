@@ -237,7 +237,8 @@ class UserRepositoryTest {
         // DataIntegrityViolationException) since different DB dialects/drivers translate a
         // unique-constraint violation into different Spring DataAccessException subtypes
         // (e.g. SQLite's driver produces a JpaSystemException here, not a
-        // ConstraintViolationException) - see AGENTS.md dual-database (SQLite/Postgres) test matrix.
+        // ConstraintViolationException) - see AGENTS.md dual-database (SQLite/Postgres) test
+        // matrix.
         assertThatThrownBy(
                         () -> {
                             userRepository.save(duplicateUser);

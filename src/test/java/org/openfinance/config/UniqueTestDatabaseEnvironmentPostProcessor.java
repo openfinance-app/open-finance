@@ -38,7 +38,9 @@ public class UniqueTestDatabaseEnvironmentPostProcessor implements EnvironmentPo
             Files.createDirectories(dir);
             Path dbFile = Files.createTempFile(dir, "test-", ".db");
             String url =
-                    "jdbc:sqlite:" + dbFile + "?foreign_keys=on&journal_mode=DELETE&busy_timeout=10000";
+                    "jdbc:sqlite:"
+                            + dbFile
+                            + "?foreign_keys=on&journal_mode=DELETE&busy_timeout=10000";
             environment
                     .getPropertySources()
                     .addFirst(
