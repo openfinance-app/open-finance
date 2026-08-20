@@ -4,7 +4,9 @@
 --
 -- This single migration creates the complete database schema on a fresh
 -- PostgreSQL instance. It is NOT meant to run against the SQLite database.
--- Activate with: spring.flyway.locations=classpath:db/migration/postgresql
+-- Activate with: spring.flyway.locations=classpath:db/postgresql-migration
+-- See V2 in this same directory for the schema deltas from later SQLite
+-- migrations (V58-V77) that keep this schema equivalent to the SQLite one.
 -- =============================================================================
 
 -- ── 1. schema_info ──────────────────────────────────────────────────────────
@@ -178,7 +180,8 @@ CREATE TABLE transactions (
     FOREIGN KEY (account_id)    REFERENCES accounts(id)     ON DELETE RESTRICT,
     FOREIGN KEY (to_account_id) REFERENCES accounts(id)     ON DELETE RESTRICT,
     FOREIGN KEY (category_id)   REFERENCES categories(id)   ON DELETE SET NULL,
-    FOREIGN KEY (liability_id)  REFERENCES liabilities(id)  ON DELETE SET NULL,
+    -- liability_id -> liabilities(id) FK added after the liabilities table
+    -- is created below (liabilities is defined later in this file).
     CHECK (amount > 0),
     CHECK (LENGTH(currency) = 3)
 );
@@ -284,6 +287,10 @@ CREATE TABLE liabilities (
     CONSTRAINT chk_liability_type_valid      CHECK (type IN ('LOAN', 'MORTGAGE', 'CREDIT_CARD', 'PERSONAL_LOAN', 'OTHER')),
     CONSTRAINT chk_liability_dates_logical   CHECK (end_date IS NULL OR end_date >= start_date)
 );
+
+-- Deferred FK from transactions (created earlier in this file, before this table existed)
+ALTER TABLE transactions ADD CONSTRAINT fk_transaction_liability
+    FOREIGN KEY (liability_id) REFERENCES liabilities(id) ON DELETE SET NULL;
 
 -- ── 12. currencies ──────────────────────────────────────────────────────────
 CREATE TABLE currencies (

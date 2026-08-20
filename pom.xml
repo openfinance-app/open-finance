@@ -220,12 +220,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <version>${rest-assured.version}</version>
@@ -447,6 +441,33 @@
                 <groupId>io.github.albilu</groupId>
                 <artifactId>test-watch-maven-plugin</artifactId>
                 <version>1.0.0</version>
+            </plugin>
+
+            <!-- Wipe leftover per-context SQLite test database files before every test run. -->
+            <!-- Each Spring test context gets its own randomly-named file under -->
+            <!-- target/test-dbs/ (see UniqueTestDatabaseEnvironmentPostProcessor / -->
+            <!-- TestDatabaseConfig) rather than sharing one file, so this just reclaims disk -->
+            <!-- space (plain "mvn test" does not run the "clean" lifecycle). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>clean-test-db</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.build.directory}/test-dbs</directory>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Line count stats & max file size enforcement -->

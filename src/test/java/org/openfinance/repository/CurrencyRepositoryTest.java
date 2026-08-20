@@ -40,8 +40,13 @@ class CurrencyRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // Clean database before each test
+        // Clean database before each test. Flyway seeds default reference currencies
+        // (USD, EUR, etc.) at startup, so an explicit flush() is required here: Hibernate's
+        // flush action-queue executes inserts before deletes within a single flush, and
+        // without this the deleteAll() would still be pending when a test's saveAll() with
+        // the same currency codes flushes, causing a spurious UNIQUE constraint violation.
         currencyRepository.deleteAll();
+        currencyRepository.flush();
     }
 
     // ==================== findByCode() Tests ====================

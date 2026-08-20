@@ -1,4 +1,4 @@
-name: Backend CI
+name: Backend CI (SQLite)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
     paths:
       - 'src/**'
       - 'pom.xml'
-      - '.github/workflows/backend-ci.yml'
+      - '.github/workflows/backend-sqlite.yml'
   pull_request:
     branches:
       - main
@@ -16,7 +16,7 @@ on:
     paths:
       - 'src/**'
       - 'pom.xml'
-      - '.github/workflows/backend-ci.yml'
+      - '.github/workflows/backend-sqlite.yml'
 
 jobs:
   build:

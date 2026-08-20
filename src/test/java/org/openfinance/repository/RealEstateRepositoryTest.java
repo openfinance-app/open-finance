@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.openfinance.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * Integration tests for RealEstateRepository.
@@ -26,13 +26,8 @@ import org.springframework.test.context.TestPropertySource;
  * <p>Requirement REQ-2.16: Real Estate repository tests covering CRUD and custom queries
  */
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@TestPropertySource(
-        properties = {
-            "spring.flyway.enabled=false",
-            "spring.jpa.hibernate.ddl-auto=create-drop",
-            "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
-        })
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
 @DisplayName("RealEstateRepository Integration Tests")
 class RealEstateRepositoryTest {
 

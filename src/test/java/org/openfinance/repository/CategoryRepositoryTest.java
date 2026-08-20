@@ -12,8 +12,8 @@ import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * Integration tests for CategoryRepository.
@@ -35,13 +35,8 @@ import org.springframework.test.context.TestPropertySource;
  * <p>Requirement REQ-2.10: Category management and organization
  */
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@TestPropertySource(
-        properties = {
-            "spring.flyway.enabled=false",
-            "spring.jpa.hibernate.ddl-auto=create-drop",
-            "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
-        })
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
 @DisplayName("CategoryRepository Integration Tests")
 class CategoryRepositoryTest {
 

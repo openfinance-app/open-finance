@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.openfinance.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * Integration tests for the unusual-transaction-detection queries added to {@link
@@ -33,13 +33,8 @@ import org.springframework.test.context.TestPropertySource;
  * needed.
  */
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@TestPropertySource(
-        properties = {
-            "spring.flyway.enabled=false",
-            "spring.jpa.hibernate.ddl-auto=create-drop",
-            "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
-        })
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
 @DisplayName("TransactionRepository — unusual transaction detection queries")
 class UnusualTransactionRepositoryTest {
 

@@ -2,13 +2,17 @@ package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
@@ -18,19 +22,24 @@ class SearchTokenServiceTest {
     private SearchTokenService searchTokenService;
     private SecretKey searchKey;
 
+    @TempDir private Path tempDir;
+
     @BeforeEach
-    void setUp() {
+    void setUp() throws IOException {
+        // A real temp file is used (rather than an in-memory DB) because DriverManagerDataSource
+        // opens and closes a new physical connection per call, and a SQLite in-memory database
+        // is destroyed the moment its last open connection closes.
+        Path dbFile = Files.createTempFile(tempDir, "search-tokens-", ".db");
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName("org.h2.Driver");
-        dataSource.setUrl(
-                "jdbc:h2:mem:search-tokens-" + System.nanoTime() + ";DB_CLOSE_DELAY=-1;MODE=MySQL");
-        dataSource.setUsername("sa");
+        dataSource.setDriverClassName("org.sqlite.JDBC");
+        dataSource.setUrl("jdbc:sqlite:" + dbFile);
+        dataSource.setUsername("");
         dataSource.setPassword("");
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         jdbcTemplate.execute(
                 "CREATE TABLE search_tokens ("
-                        + "id BIGINT AUTO_INCREMENT PRIMARY KEY, "
+                        + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                         + "user_id BIGINT NOT NULL, "
                         + "entity_type VARCHAR(30) NOT NULL, "
                         + "entity_id BIGINT NOT NULL, "

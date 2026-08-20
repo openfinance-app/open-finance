@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.openfinance.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * Integration tests for TransactionRepository.
@@ -37,13 +37,8 @@ import org.springframework.test.context.TestPropertySource;
  * <p>Requirement REQ-2.4: Transaction management and data access
  */
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@TestPropertySource(
-        properties = {
-            "spring.flyway.enabled=false",
-            "spring.jpa.hibernate.ddl-auto=create-drop",
-            "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
-        })
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
 @DisplayName("TransactionRepository Integration Tests")
 class TransactionRepositoryTest {
 

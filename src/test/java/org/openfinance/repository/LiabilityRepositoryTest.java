@@ -12,22 +12,17 @@ import org.openfinance.entity.LiabilityType;
 import org.openfinance.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * Integration tests for LiabilityRepository. Tests CRUD operations, custom queries, and user
  * isolation.
  */
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@TestPropertySource(
-        properties = {
-            "spring.flyway.enabled=false",
-            "spring.jpa.hibernate.ddl-auto=create-drop",
-            "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
-        })
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
 class LiabilityRepositoryTest {
 
     @Autowired private TestEntityManager entityManager;

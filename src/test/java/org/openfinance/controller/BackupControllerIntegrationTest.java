@@ -79,32 +79,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 @SpringBootTest
 @org.springframework.test.context.ActiveProfiles("test")
 @AutoConfigureMockMvc
-@org.springframework.test.context.TestPropertySource(
-        properties = {
-            "spring.datasource.url=jdbc:h2:file:./target/test-db/backup-integration-test;MODE=MySQL",
-            "spring.datasource.driver-class-name=org.h2.Driver",
-            "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-            "spring.jpa.hibernate.ddl-auto=create-drop",
-            "spring.flyway.enabled=false",
-            "spring.main.allow-bean-definition-overriding=true",
-            "jwt.secret=TEST_SECRET_KEY_FOR_TESTING_ONLY",
-            "jwt.expiration=3600000"
-        })
 @DisplayName("BackupController Integration Tests")
 class BackupControllerIntegrationTest {
-
-    static {
-        try {
-            // Delete any existing (potentially corrupt) H2 file before the Spring context
-            // loads
-            java.nio.file.Path dbDir = java.nio.file.Paths.get("./target/test-db");
-            java.nio.file.Files.createDirectories(dbDir);
-            java.nio.file.Files.deleteIfExists(dbDir.resolve("backup-integration-test.mv.db"));
-            java.nio.file.Files.deleteIfExists(dbDir.resolve("backup-integration-test.trace.db"));
-        } catch (java.io.IOException e) {
-            throw new RuntimeException("Failed to prepare test-db directory", e);
-        }
-    }
 
     @MockBean private OperationHistoryService operationHistoryService;
 
@@ -144,12 +120,6 @@ class BackupControllerIntegrationTest {
             Files.createDirectories(backupPath);
         }
 
-        // Ensure database file directory exists (SQLite)
-        Path dbPath = Paths.get("./target/test-db");
-        if (!Files.exists(dbPath)) {
-            Files.createDirectories(dbPath);
-        }
-
         // Register user and flush to ensure database file is written
         UserRegistrationRequest reg =
                 UserRegistrationRequest.builder()
@@ -187,12 +157,6 @@ class BackupControllerIntegrationTest {
                         .findByUsername("alice")
                         .orElseThrow(() -> new RuntimeException("User not found"));
         userId = user.getId();
-
-        // Verify database file exists
-        Path dbFilePath = Paths.get("./target/test-db/backup-integration-test.mv.db");
-        if (!Files.exists(dbFilePath)) {
-            throw new IllegalStateException("H2 database file was not created: " + dbFilePath);
-        }
     }
 
     @AfterEach

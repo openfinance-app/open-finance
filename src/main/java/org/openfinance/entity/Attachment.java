@@ -13,7 +13,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
@@ -147,9 +146,14 @@ public class Attachment {
      * Encrypted file contents, stored directly in the database.
      *
      * <p>Requirement REQ-2.12.6: Files stored encrypted at rest
+     *
+     * <p>Mapped as plain binary ({@code byte[]}) rather than {@code @Lob}. The xerial SQLite JDBC
+     * driver does not implement {@code ResultSet.getBlob()}, so a {@code @Lob} mapping fails at
+     * read time with {@code SQLFeatureNotSupportedException}; a binary mapping uses {@code
+     * getBytes()}, which SQLite supports, and remains compatible with the existing {@code BLOB}
+     * column.
      */
     @NotNull(message = "{attachment.fileData.notnull}")
-    @Lob
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "file_data", nullable = false)
     @JsonIgnore

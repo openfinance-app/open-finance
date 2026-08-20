@@ -1,8 +1,12 @@
 package org.openfinance.service;
 
+import com.zaxxer.hikari.HikariDataSource;
 import java.io.*;
 import java.nio.file.*;
 import java.security.MessageDigest;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -13,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.Backup;
 import org.openfinance.exception.BackupException;
 import org.openfinance.repository.BackupRepository;
+import org.sqlite.SQLiteConnection;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -236,6 +241,62 @@ public class BackupService {
         log.info("H2 restore validated from: {}", backupPath);
     }
 
+    /**
+     * Replaces the live SQLite database file with the contents of a gzip-compressed backup
+     * stream.
+     *
+     * <p>Writing directly into the live database file (truncate-then-overwrite) is unsafe: a
+     * pooled connection can observe a partially-written (torn) file mid-copy and raise {@code
+     * SQLITE_CORRUPT}. A plain OS-level rename swap isn't reliable either, since Windows refuses
+     * to replace a file that still has open handles from pooled connections. Instead, the
+     * decompressed backup is opened as its own SQLite database and copied into the live file using
+     * SQLite's native online backup API (via sqlite-jdbc's {@code DB#backup}), which performs the
+     * copy under SQLite's own locking so concurrent readers/writers never observe a torn file.
+     *
+     * @param targetPath the live database file to replace
+     * @param compressedIn the gzip-compressed backup content
+     * @throws IOException if the temp file cannot be written or the restore fails
+     */
+    private void replaceDatabaseFile(Path targetPath, InputStream compressedIn) throws IOException {
+        Path parentDir = targetPath.toAbsolutePath().getParent();
+        Path tempDb = Files.createTempFile(parentDir, "restore-", ".db");
+        try {
+            try (GZIPInputStream gzipIn = new GZIPInputStream(compressedIn);
+                    OutputStream out =
+                            Files.newOutputStream(tempDb, StandardOpenOption.TRUNCATE_EXISTING)) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = gzipIn.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+            }
+
+            try (Connection backupConn =
+                    DriverManager.getConnection("jdbc:sqlite:" + tempDb)) {
+                backupConn
+                        .unwrap(SQLiteConnection.class)
+                        .getDatabase()
+                        .backup("main", targetPath.toAbsolutePath().toString(), null);
+            } catch (SQLException e) {
+                throw new IOException("Failed to restore database via SQLite backup API", e);
+            }
+
+            evictConnectionPool();
+        } finally {
+            Files.deleteIfExists(tempDb);
+        }
+    }
+
+    /**
+     * Evicts pooled connections after a restore so subsequent requests don't keep using
+     * connections opened against pre-restore state.
+     */
+    private void evictConnectionPool() {
+        if (dataSource instanceof HikariDataSource hikariDataSource) {
+            hikariDataSource.getHikariPoolMXBean().softEvictConnections();
+        }
+    }
+
     private void performFileBackup(Path targetPath) throws IOException {
         // Extract database file path from JDBC URL
         String dbFilePath = extractDatabasePath(databaseUrl);
@@ -316,18 +377,8 @@ public class BackupService {
                 String dbFilePath = extractDatabasePath(databaseUrl);
                 Path targetPath = Paths.get(dbFilePath);
 
-                // Decompress and restore
-                try (InputStream in = Files.newInputStream(backupPath);
-                        GZIPInputStream gzipIn = new GZIPInputStream(in);
-                        OutputStream out =
-                                Files.newOutputStream(
-                                        targetPath, StandardOpenOption.TRUNCATE_EXISTING)) {
-
-                    byte[] buffer = new byte[8192];
-                    int bytesRead;
-                    while ((bytesRead = gzipIn.read(buffer)) != -1) {
-                        out.write(buffer, 0, bytesRead);
-                    }
+                try (InputStream in = Files.newInputStream(backupPath)) {
+                    replaceDatabaseFile(targetPath, in);
                 }
             }
 
@@ -380,18 +431,8 @@ public class BackupService {
                 String dbFilePath = extractDatabasePath(databaseUrl);
                 Path targetPath = Paths.get(dbFilePath);
 
-                // Decompress and restore
-                try (InputStream in = Files.newInputStream(tempPath);
-                        GZIPInputStream gzipIn = new GZIPInputStream(in);
-                        OutputStream out =
-                                Files.newOutputStream(
-                                        targetPath, StandardOpenOption.TRUNCATE_EXISTING)) {
-
-                    byte[] buffer = new byte[8192];
-                    int bytesRead;
-                    while ((bytesRead = gzipIn.read(buffer)) != -1) {
-                        out.write(buffer, 0, bytesRead);
-                    }
+                try (InputStream in = Files.newInputStream(tempPath)) {
+                    replaceDatabaseFile(targetPath, in);
                 }
             }
 

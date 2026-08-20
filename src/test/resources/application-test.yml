@@ -1,39 +1,46 @@
-# Conversion to YAML from Properties formar report
-# Warnings:
-# - The yaml file had comments which are lost in the refactoring!
+# Test datasource: SQLite, matching production so tests exercise the real dialect,
+# Flyway migrations (classpath:db/migration) and JDBC driver behavior instead of H2's.
+#
+# The URL below is only a marker: UniqueTestDatabaseEnvironmentPostProcessor (registered via
+# META-INF/spring/org.springframework.boot.env.EnvironmentPostProcessor.imports) rewrites it to a
+# fresh randomly-named file under target/test-dbs/ for every distinct Spring test context. Sharing
+# one file across the ~30 contexts Spring's test-context cache keeps alive simultaneously let
+# concurrent HikariCP pools corrupt it (SQLITE_CORRUPT), so each context now gets its own file.
+# target/test-dbs/ is wiped at the start of every test run by the maven-clean-plugin
+# "clean-test-db" execution (see pom.xml).
+#
+# The PostgreSQL CI job overrides spring.datasource.*, spring.jpa.database-platform and
+# spring.flyway.locations via environment variables (see backend-postgres.yml) so the
+# exact same test classes run unmodified against both databases.
 spring:
   application:
     name: open-finance-backend-test
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
-    driver-class-name: org.h2.Driver
-    username: sa
+    url: jdbc:sqlite:target/openfinance-test.db?foreign_keys=on&journal_mode=DELETE&busy_timeout=10000
+    driver-class-name: org.sqlite.JDBC
+    username: ''
     password: ''
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 0
   main:
     allow-bean-definition-overriding: true
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: none
     show-sql: true
-    defer-datasource-initialization: true
     properties:
       hibernate:
         format_sql: true
-        # Generate DDL column lengths from @Column(length=...) rather than Bean Validation
-        # @Size(max=...). Encrypted columns declare length=512 but carry a @Size on the plaintext
-        # (e.g. Payee.name @Size(max=100)); without this the H2 test schema would shrink those
-        # columns and overflow on encrypted values, diverging from the production schema.
-        validator:
-          apply_to_ddl: false
-        id:
-          new_generator_mappings: true
-          db_structure_naming_strategy: single
-  flyway:
-    enabled: false
-  sql:
-    init:
-      mode: always
+        # Match production's batch settings (application.yml) - batching changes which
+        # Hibernate identity-insert delegate is used, avoiding a literal "default" keyword
+        # in the INSERT that this SQLite JDBC driver version cannot parse.
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
   test:
     mockmvc:
       print: default

@@ -2,56 +2,75 @@ package org.openfinance.config;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import javax.sql.DataSource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
 /**
- * Test database configuration that overrides the production SQLite configuration.
+ * Test database configuration that overrides the production SQLite datasource properties.
  *
- * <p>This configuration provides an H2 in-memory database for integration tests, avoiding JDBC
- * driver conflicts with SQLite. The {@code @Primary} annotation ensures this DataSource bean takes
- * precedence over the production DataSource.
+ * <p>This configuration builds a {@link DataSource} as an explicit {@code @Primary} bean. It
+ * exists for {@code @SpringBootTest} classes that need a guaranteed-available bean reference
+ * (e.g. for direct JDBC cleanup) rather than relying purely on property-driven auto-configuration.
  *
  * <p>Usage: Include this configuration in test classes with
- * {@code @Import(TestDatabaseConfig.class)} or activate the 'test' profile which auto-configures
- * H2.
+ * {@code @Import(TestDatabaseConfig.class)} together with {@code @ActiveProfiles("test")}.
+ *
+ * <p>By default this builds a SQLite file unique to the Spring context (see {@link
+ * UniqueTestDatabaseEnvironmentPostProcessor} for why). The CI Postgres job overrides {@code
+ * spring.datasource.*} via environment variables (see {@code backend-postgres.yml}); when those
+ * properties resolve to a non-SQLite URL, this bean connects to that datasource directly instead
+ * of allocating a SQLite file, so the exact same test classes run unmodified against either
+ * database.
  *
  * @author Open-Finance Development Team
- * @version 1.0
+ * @version 3.0
  * @since 2026-01-30
  */
 @TestConfiguration
 public class TestDatabaseConfig {
 
+    @Value("${spring.datasource.url}")
+    private String configuredUrl;
+
+    @Value("${spring.datasource.driver-class-name:org.sqlite.JDBC}")
+    private String driverClassName;
+
+    @Value("${spring.datasource.username:}")
+    private String username;
+
+    @Value("${spring.datasource.password:}")
+    private String password;
+
     /**
-     * Creates an H2 in-memory DataSource for testing.
+     * Creates the test DataSource. When {@code spring.datasource.url} has been overridden (e.g. by
+     * the Postgres CI job's environment variables) to a non-SQLite URL, connects to it directly.
+     * Otherwise allocates a SQLite file unique to this Spring context.
      *
-     * <p>Configuration:
-     *
-     * <ul>
-     *   <li>JDBC URL: jdbc:h2:mem:testdb (in-memory database)
-     *   <li>DB_CLOSE_DELAY=-1: Keep database alive until JVM exits
-     *   <li>MODE=MySQL: Use MySQL compatibility mode for broader SQL support
-     *   <li>Connection pool size: 5 (sufficient for tests)
-     * </ul>
-     *
-     * <p>The {@code @Primary} annotation ensures this bean takes precedence over the production
-     * SQLite DataSource defined in {@link DatabaseConfig}.
-     *
-     * @return configured H2 DataSource for testing
+     * @return configured DataSource for testing
      */
     @Bean
     @Primary
     public DataSource dataSource() {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false;MODE=MySQL");
-        config.setDriverClassName("org.h2.Driver");
-        config.setUsername("sa");
-        config.setPassword("");
+        boolean isSqlite = configuredUrl.startsWith("jdbc:sqlite:");
+        config.setJdbcUrl(
+                isSqlite
+                        ? "jdbc:sqlite:"
+                                + allocateDbFile()
+                                + "?foreign_keys=on&journal_mode=DELETE&busy_timeout=10000"
+                        : configuredUrl);
+        config.setDriverClassName(driverClassName);
+        config.setUsername(username);
+        config.setPassword(password);
         config.setMaximumPoolSize(5);
-        config.setMinimumIdle(2);
+        config.setMinimumIdle(1);
         config.setConnectionTimeout(10000);
         config.setIdleTimeout(30000);
         config.setMaxLifetime(600000);
@@ -60,4 +79,15 @@ public class TestDatabaseConfig {
 
         return new HikariDataSource(config);
     }
+
+    private static Path allocateDbFile() {
+        try {
+            Path dir = Path.of("target", "test-dbs");
+            Files.createDirectories(dir);
+            return Files.createTempFile(dir, "test-", ".db");
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to allocate a unique test SQLite file", e);
+        }
+    }
 }
+

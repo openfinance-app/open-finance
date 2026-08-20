@@ -1,0 +1,77 @@
+name: Backend CI (PostgreSQL)
+
+# Runs the exact same backend test suite as backend-sqlite.yml against a real
+# PostgreSQL service container instead of SQLite. No code or test changes are
+# needed for this: TestDatabaseConfig picks up the spring.datasource.* overrides
+# below instead of allocating a SQLite file, and Flyway is pointed at the
+# db/postgresql-migration schema (see src/main/resources/db/postgresql-migration).
+
+on:
+    push:
+        branches:
+            - main
+            - develop
+        paths:
+            - "src/**"
+            - "pom.xml"
+            - ".github/workflows/backend-postgres.yml"
+    pull_request:
+        branches:
+            - main
+            - develop
+        paths:
+            - "src/**"
+            - "pom.xml"
+            - ".github/workflows/backend-postgres.yml"
+
+jobs:
+    build:
+        name: Build and Test Backend (PostgreSQL)
+        runs-on: ubuntu-latest
+
+        services:
+            postgres:
+                image: postgres:16-alpine
+                env:
+                    POSTGRES_USER: openfinance
+                    POSTGRES_PASSWORD: openfinance
+                    POSTGRES_DB: openfinance
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U openfinance"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 10
+
+        env:
+            SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/openfinance
+            SPRING_DATASOURCE_USERNAME: openfinance
+            SPRING_DATASOURCE_PASSWORD: openfinance
+            SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+            SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+            SPRING_FLYWAY_LOCATIONS: classpath:db/postgresql-migration
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Java 21
+              uses: actions/setup-java@v4
+              with:
+                  java-version: "21"
+                  distribution: "temurin"
+                  cache: "maven"
+
+            - name: Ensure Maven is available
+              run: command -v mvn || (apt-get update -qq && apt-get install -y maven)
+
+            - name: Run tests against PostgreSQL
+              run: mvn test -B
+
+            - name: Archive test results
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: test-results-postgres
+                  path: target/surefire-reports/
