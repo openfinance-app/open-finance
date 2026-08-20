@@ -8,6 +8,7 @@ import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,15 @@ class RateLimitInterceptorTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.setContext(securityContext);
+    }
+
+    @AfterEach
+    void tearDown() {
+        // SecurityContextHolder is a static/thread-local singleton: restoring a Mockito-mocked
+        // SecurityContext here leaks the mock (Authentication principal "user" String) into the
+        // next test class running on this thread, where the JWT filter then skips authentication
+        // and controllers fail with ClassCastException: String cannot be cast to User.
+        SecurityContextHolder.clearContext();
     }
 
     @Test

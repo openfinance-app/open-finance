@@ -15,7 +15,7 @@ class DatabaseConfigTest {
         NullPointerException ex =
                 assertThrows(
                         NullPointerException.class,
-                        () -> new DatabaseConfig(null, "org.sqlite.JDBC"));
+                        () -> new DatabaseConfig(null, "org.sqlite.JDBC", "", ""));
         assertThat(ex).hasMessageContaining("spring.datasource.url must be set");
     }
 
@@ -25,7 +25,7 @@ class DatabaseConfigTest {
         NullPointerException ex =
                 assertThrows(
                         NullPointerException.class,
-                        () -> new DatabaseConfig("jdbc:sqlite::memory:", null));
+                        () -> new DatabaseConfig("jdbc:sqlite::memory:", null, "", ""));
         assertThat(ex).hasMessageContaining("spring.datasource.driver-class-name must be set");
     }
 
@@ -34,7 +34,7 @@ class DatabaseConfigTest {
         // Arrange
         String url = "jdbc:sqlite::memory:";
         String driver = "org.sqlite.JDBC";
-        DatabaseConfig config = new DatabaseConfig(url, driver);
+        DatabaseConfig config = new DatabaseConfig(url, driver, "", "");
 
         // Act
         DataSource ds = config.dataSource();

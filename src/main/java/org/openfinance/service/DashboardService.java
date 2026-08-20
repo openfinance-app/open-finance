@@ -47,6 +47,7 @@ import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -127,6 +128,7 @@ public class DashboardService {
      * @throws IllegalArgumentException if userId or encryptionKey is null
      */
     @Cacheable(value = "dashboardSummary", key = "#userId")
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public DashboardSummary getDashboardSummary(Long userId) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -194,6 +196,7 @@ public class DashboardService {
      * @throws IllegalArgumentException if userId is null
      */
     @Cacheable(value = "netWorthSummary", key = "#userId")
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public NetWorthSummary getNetWorthSummary(Long userId) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");

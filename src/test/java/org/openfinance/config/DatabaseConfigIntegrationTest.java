@@ -1,7 +1,7 @@
 package org.openfinance.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-// Removed unused static import
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -66,6 +66,7 @@ class DatabaseConfigIntegrationTest {
     @Test
     @DisplayName("Should have SQLite as database product")
     void shouldHaveSQLiteAsDatabase() throws SQLException {
+        assumeTrue(isSQLite(), "SQLite-only assertion");
         try (Connection connection = dataSource.getConnection()) {
             String databaseProductName =
                     connection.getMetaData().getDatabaseProductName().toLowerCase();
@@ -76,6 +77,7 @@ class DatabaseConfigIntegrationTest {
     @Test
     @DisplayName("Should have SQLite version 3.x or higher")
     void shouldHaveValidSQLiteVersion() throws SQLException {
+        assumeTrue(isSQLite(), "SQLite-only assertion");
         try (Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement();
                 ResultSet rs = statement.executeQuery("SELECT sqlite_version()")) {
@@ -95,6 +97,7 @@ class DatabaseConfigIntegrationTest {
     @Test
     @DisplayName("Should have WAL journal mode enabled")
     void shouldHaveWALModeEnabled() throws SQLException {
+        assumeTrue(isSQLite(), "SQLite-only assertion");
         try (Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement();
                 ResultSet rs = statement.executeQuery("PRAGMA journal_mode")) {
@@ -108,6 +111,7 @@ class DatabaseConfigIntegrationTest {
     @Test
     @DisplayName("Should have foreign keys enabled")
     void shouldHaveForeignKeysEnabled() throws SQLException {
+        assumeTrue(isSQLite(), "SQLite-only assertion");
         try (Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement();
                 ResultSet rs = statement.executeQuery("PRAGMA foreign_keys")) {
@@ -222,6 +226,7 @@ class DatabaseConfigIntegrationTest {
     @Test
     @DisplayName("Should pass database integrity check")
     void shouldPassIntegrityCheck() throws SQLException {
+        assumeTrue(isSQLite(), "SQLite-only assertion");
         try (Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement();
                 ResultSet rs = statement.executeQuery("PRAGMA integrity_check")) {
@@ -305,6 +310,25 @@ class DatabaseConfigIntegrationTest {
             // Re-enable auto-commit
             connection.setAutoCommit(true);
             assertThat(connection.getAutoCommit()).isTrue();
+        }
+    }
+
+    /**
+     * Returns whether the configured datasource is SQLite. The Postgres CI job overrides {@code
+     * spring.datasource.url} via environment variables, so this class's SQLite-only assertions
+     * must be skipped there.
+     *
+     * @return true when the datasource URL points at SQLite
+     */
+    private boolean isSQLite() {
+        return dataSource != null && dataSourceUrlIsSqlite();
+    }
+
+    private boolean dataSourceUrlIsSqlite() {
+        try (Connection connection = dataSource.getConnection()) {
+            return connection.getMetaData().getDatabaseProductName().toLowerCase().contains("sqlite");
+        } catch (SQLException e) {
+            return false;
         }
     }
 }

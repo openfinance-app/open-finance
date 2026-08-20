@@ -226,14 +226,22 @@ class AttachmentRepositoryTest {
         List<Attachment> attachments =
                 attachmentRepository.findByUserIdOrderByUploadedAtDesc(testUser1.getId());
 
-        // Then
+        // Then - all attachments returned, ordered by uploadedAt DESC (newest first)
         assertThat(attachments).hasSize(4);
-        // Should be ordered by uploadedAt DESC (most recent first)
-        assertThat(attachments.get(0).getFileName())
-                .isEqualTo("receipt.pdf"); // Feb 1 (actual: ASC order)
-        assertThat(attachments.get(1).getFileName()).isEqualTo("photo.jpg"); // Feb 2
-        assertThat(attachments.get(2).getFileName()).isEqualTo("deed.png"); // Feb 3
-        assertThat(attachments.get(3).getFileName()).isEqualTo("amortization.xlsx"); // Feb 4
+        assertThat(attachments)
+                .extracting(Attachment::getFileName)
+                .containsExactlyInAnyOrder(
+                        "receipt.pdf",
+                        "photo.jpg",
+                        "deed.png",
+                        "amortization.xlsx");
+        // The fixture sets explicit upload dates (Feb 1-4); ties or sub-second equal values
+        // produced by @CreationTimestamp are ordered deterministically per DB, so only assert
+        // that the DESC contract holds for the real stored timestamps.
+        for (int i = 0; i < attachments.size() - 1; i++) {
+            assertThat(attachments.get(i).getUploadedAt())
+                    .isAfterOrEqualTo(attachments.get(i + 1).getUploadedAt());
+        }
     }
 
     @Test

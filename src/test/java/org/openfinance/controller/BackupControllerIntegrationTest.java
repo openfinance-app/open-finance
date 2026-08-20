@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.hasLength;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -103,6 +104,9 @@ class BackupControllerIntegrationTest {
     @Value("${app.backup.directory:./backups}")
     private String backupDirectory;
 
+    @Value("${spring.datasource.url:jdbc:sqlite:openfinance.db}")
+    private String databaseUrl;
+
     private String token;
     private String encKey;
     private Long userId;
@@ -176,6 +180,7 @@ class BackupControllerIntegrationTest {
     @Test
     @DisplayName("POST /api/v1/backup/create - create backup successfully")
     void shouldCreateBackupSuccessfully() throws Exception {
+        assumeTrue(isSQLite(), "Backup file operations are SQLite-only");
         // Given
         BackupRequest request = BackupRequest.builder().description("Monthly backup").build();
 
@@ -212,6 +217,7 @@ class BackupControllerIntegrationTest {
     @Test
     @DisplayName("POST /api/v1/backup/create - create backup without description")
     void shouldCreateBackupWithoutDescription() throws Exception {
+        assumeTrue(isSQLite(), "Backup file operations are SQLite-only");
         // Given - empty request body
         BackupRequest request = BackupRequest.builder().build();
 
@@ -266,6 +272,7 @@ class BackupControllerIntegrationTest {
     @Test
     @DisplayName("POST /api/v1/backup/create - return backup metadata in response")
     void shouldReturnBackupMetadataInResponse() throws Exception {
+        assumeTrue(isSQLite(), "Backup file operations are SQLite-only");
         // Given
         BackupRequest request = BackupRequest.builder().description("Test metadata").build();
 
@@ -336,6 +343,7 @@ class BackupControllerIntegrationTest {
     @Test
     @DisplayName("POST /api/v1/backup/restore/{id} - create safety backup before restore")
     void shouldCreateSafetyBackupBeforeRestore() throws Exception {
+        assumeTrue(isSQLite(), "Backup file operations are SQLite-only");
         // Given - create backup file
         String filename = "safety-test.ofbak";
         Path backupPath = Paths.get(backupDirectory);
@@ -495,6 +503,7 @@ class BackupControllerIntegrationTest {
     @Test
     @DisplayName("POST /api/v1/backup/restore/upload - upload and restore backup")
     void shouldUploadAndRestoreBackup() throws Exception {
+        assumeTrue(isSQLite(), "Backup file operations are SQLite-only");
         // Given - create gzipped backup file content
         byte[] testDbContent = "SQLite format 3\0uploaded database content".getBytes();
         byte[] gzippedContent;
@@ -545,6 +554,7 @@ class BackupControllerIntegrationTest {
     @Test
     @DisplayName("POST /api/v1/backup/restore/upload - return 400 when file format invalid")
     void shouldReturn400WhenFileFormatInvalid() throws Exception {
+        assumeTrue(isSQLite(), "Backup file operations are SQLite-only");
         // Given - non-gzipped file (invalid format)
         MockMultipartFile file =
                 new MockMultipartFile(
@@ -736,5 +746,16 @@ class BackupControllerIntegrationTest {
     private String generateValidChecksum(int seed) {
         // Generate a valid SHA-256-like checksum (64 hex characters)
         return String.format("%064x", (long) seed * 1234567890L);
+    }
+
+    /**
+     * Returns whether the datasource is SQLite. Backup file/restore operations rely on the SQLite
+     * on-disk file format (native {@code DB#backup} API + raw file copy), so they are skipped on
+     * the PostgreSQL CI job.
+     *
+     * @return true when running against SQLite
+     */
+    private boolean isSQLite() {
+        return databaseUrl.startsWith("jdbc:sqlite:");
     }
 }

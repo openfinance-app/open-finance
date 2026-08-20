@@ -434,6 +434,7 @@ public class NetWorthService {
      * @param baseCurrency the base currency for the snapshot (e.g., "USD", "EUR")
      * @return the saved net worth snapshot
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @CacheEvict(
             value = {"dashboardSummary", "netWorthSummary"},
             key = "#userId")

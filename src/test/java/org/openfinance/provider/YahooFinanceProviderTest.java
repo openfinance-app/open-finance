@@ -6,8 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.openfinance.dto.HistoricalPrice;
 import org.openfinance.dto.MarketQuote;
 import org.openfinance.dto.SymbolSearchResult;
@@ -110,10 +110,11 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access. Enable manually to test real Yahoo Finance API.
+     * Integration test - requires network access. Runs in CI jobs that set
+     * {@code YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
      */
     @Test
-    @Disabled("Requires network access - enable manually for integration testing")
+    @EnabledIfEnvironmentVariable(named = "YAHOO_NETWORK_TESTS", matches = "true")
     void shouldGetQuoteForApple() {
         // When: Get quote for AAPL
         MarketQuote quote = provider.getQuote("AAPL");
@@ -129,10 +130,11 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access. Enable manually to test real Yahoo Finance API.
+     * Integration test - requires network access. Runs in CI jobs that set
+     * {@code YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
      */
     @Test
-    @Disabled("Requires network access - enable manually for integration testing")
+    @EnabledIfEnvironmentVariable(named = "YAHOO_NETWORK_TESTS", matches = "true")
     void shouldGetQuotesForMultipleSymbols() {
         // When: Get quotes for multiple symbols
         List<MarketQuote> quotes = provider.getQuotes(List.of("AAPL", "MSFT", "GOOGL"));
@@ -145,10 +147,11 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access. Enable manually to test real Yahoo Finance API.
+     * Integration test - requires network access. Runs in CI jobs that set
+     * {@code YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
      */
     @Test
-    @Disabled("Requires network access - enable manually for integration testing")
+    @EnabledIfEnvironmentVariable(named = "YAHOO_NETWORK_TESTS", matches = "true")
     void shouldSearchSymbols() {
         // When: Search for "apple"
         List<SymbolSearchResult> results = provider.searchSymbol("apple");
@@ -160,10 +163,11 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access. Enable manually to test real Yahoo Finance API.
+     * Integration test - requires network access. Runs in CI jobs that set
+     * {@code YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
      */
     @Test
-    @Disabled("Requires network access - enable manually for integration testing")
+    @EnabledIfEnvironmentVariable(named = "YAHOO_NETWORK_TESTS", matches = "true")
     void shouldGetHistoricalPrices() {
         // Given: Date range
         LocalDate startDate = LocalDate.of(2024, 1, 1);
@@ -181,10 +185,11 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access. Enable manually to test real Yahoo Finance API.
+     * Integration test - requires network access. Runs in CI jobs that set
+     * {@code YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
      */
     @Test
-    @Disabled("Requires network access - enable manually for integration testing")
+    @EnabledIfEnvironmentVariable(named = "YAHOO_NETWORK_TESTS", matches = "true")
     void shouldThrowExceptionForInvalidSymbol() {
         // When/Then: Should throw MarketDataException for obviously invalid symbol
         assertThatThrownBy(() -> provider.getQuote("INVALID_SYMBOL_123456"))

@@ -42,13 +42,21 @@ public class DatabaseConfig {
 
     private final String driverClassName;
 
+    private final String username;
+
+    private final String password;
+
     public DatabaseConfig(
             @Value("${spring.datasource.url}") String databaseUrl,
-            @Value("${spring.datasource.driver-class-name}") String driverClassName) {
+            @Value("${spring.datasource.driver-class-name}") String driverClassName,
+            @Value("${spring.datasource.username:}") String username,
+            @Value("${spring.datasource.password:}") String password) {
         this.databaseUrl = Objects.requireNonNull(databaseUrl, "spring.datasource.url must be set");
         this.driverClassName =
                 Objects.requireNonNull(
                         driverClassName, "spring.datasource.driver-class-name must be set");
+        this.username = username == null ? "" : username;
+        this.password = password == null ? "" : password;
     }
 
     /**
@@ -75,8 +83,8 @@ public class DatabaseConfig {
         // Basic connection settings
         config.setJdbcUrl(databaseUrl);
         config.setDriverClassName(driverClassName);
-        config.setUsername(""); // SQLite doesn't require username
-        config.setPassword(""); // SQLite doesn't require password
+        config.setUsername(username);
+        config.setPassword(password);
 
         // Connection pool settings optimized for SQLite WAL mode.
         // SQLite WAL supports multiple concurrent readers but only one concurrent writer.
@@ -99,13 +107,17 @@ public class DatabaseConfig {
         // SQLite-specific connection initialization: use connection init SQL to ensure
         // PRAGMA settings are applied on each new connection. This is more reliable than
         // attempting to pass driver properties via addDataSourceProperty which not all
-        // SQLite drivers honor.
-        StringBuilder initSql = new StringBuilder();
-        initSql.append("PRAGMA journal_mode=WAL;");
-        initSql.append("PRAGMA synchronous=NORMAL;");
-        initSql.append("PRAGMA foreign_keys=ON;");
-        initSql.append("PRAGMA busy_timeout=10000;");
-        config.setConnectionInitSql(initSql.toString());
+        // SQLite drivers honor. Only applied for SQLite URLs - other databases (e.g.
+        // PostgreSQL on the Railway profile) reject the PRAGMA statements.
+        boolean sqlite = databaseUrl.startsWith("jdbc:sqlite:");
+        if (sqlite) {
+            StringBuilder initSql = new StringBuilder();
+            initSql.append("PRAGMA journal_mode=WAL;");
+            initSql.append("PRAGMA synchronous=NORMAL;");
+            initSql.append("PRAGMA foreign_keys=ON;");
+            initSql.append("PRAGMA busy_timeout=10000;");
+            config.setConnectionInitSql(initSql.toString());
+        }
 
         // Statement caching for performance (if supported by the driver)
         config.addDataSourceProperty("cachePrepStmts", "true");

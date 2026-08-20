@@ -51,6 +51,8 @@ jobs:
             SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
             SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
             SPRING_FLYWAY_LOCATIONS: classpath:db/postgresql-migration
+            # Enable the Yahoo Finance network integration tests in this CI job.
+            YAHOO_NETWORK_TESTS: true
 
         steps:
             - name: Checkout code
