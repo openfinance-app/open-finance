@@ -5,8 +5,9 @@
 
 ![Open Finance Dashboard](docs/wiki/screenshots/hero.png)
 
-[![Backend CI](https://github.com/openfinance-app/open-finance/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/backend-ci.yml)
-[![Frontend CI](https://github.com/openfinance-app/open-finance/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/frontend-ci.yml)
+[![Backend Test SQlite](https://github.com/openfinance-app/open-finance/actions/workflows/backend-sqlite.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/backend-sqlite.yml)
+[![Backend Test PostGre](https://github.com/openfinance-app/open-finance/actions/workflows/backend-postgres.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/backend-postgres.yml)
+[![Frontend Test](https://github.com/openfinance-app/open-finance/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/frontend-ci.yml)
 [![Release](https://img.shields.io/github/v/release/albilu/open-finance)](https://github.com/openfinance-app/open-finance/releases/latest)
 [![License: ELv2](https://img.shields.io/badge/License-Elastic_v2-blue.svg)](LICENSE)
 
