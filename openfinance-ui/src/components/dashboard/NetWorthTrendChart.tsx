@@ -7,12 +7,11 @@
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import type { INetWorthSummary } from '@/types/dashboard';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { PrivateAmount } from '../ui/PrivateAmount';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useVisibility } from '@/context/VisibilityContext';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatDate as globalFormatDate } from '@/utils/date';
 import { subtract, percentage } from '@/utils/money';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useTranslation } from 'react-i18next';
 
 interface NetWorthTrendChartProps {
@@ -28,8 +27,6 @@ interface CustomTooltipProps {
   payload?: any[];
   /** Base currency to use for formatting — passed from the chart component */
   currency: string;
-  /** Formatting function injected by the parent (respects user's number format preference) */
-  formatFn: (amount: number, currency?: string | null) => string;
 }
 
 /**
@@ -38,7 +35,7 @@ interface CustomTooltipProps {
  * per-data-point `data.currency`, which may reflect the original native currency.
  * Requirement REQ-5.1: amounts are always displayed in the user's base currency.
  */
-const CustomTooltip = ({ active, payload, currency, dateFormat, formatFn }: CustomTooltipProps & { dateFormat?: string }) => {
+const CustomTooltip = ({ active, payload, currency, dateFormat }: CustomTooltipProps & { dateFormat?: string }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const change = subtract(data.netWorth, data.previousNetWorth || data.netWorth);
@@ -52,15 +49,12 @@ const CustomTooltip = ({ active, payload, currency, dateFormat, formatFn }: Cust
           {globalFormatDate(data.date, dateFormat)}
         </p>
         <p className="text-lg font-bold text-text-primary mb-1">
-          <PrivateAmount inline>
-            {formatFn(data.netWorth, currency)}
-          </PrivateAmount>
+          <ConvertedAmount amount={data.netWorth} currency={currency} inline />
         </p>
         {data.previousNetWorth && (
           <p className={`text-sm ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            <PrivateAmount inline>
-              {change >= 0 ? '+' : ''}{formatFn(change, currency)}
-            </PrivateAmount> ({change >= 0 ? '+' : ''}{changePercent}%)
+            {change >= 0 ? '+' : '-'}
+            <ConvertedAmount amount={Math.abs(change)} currency={currency} inline /> ({change >= 0 ? '+' : ''}{changePercent}%)
           </p>
         )}
       </div>
@@ -89,7 +83,6 @@ const formatYAxis = (value: number, isVisible: boolean) => {
 export default function NetWorthTrendChart({ data, currency, periodLabel }: NetWorthTrendChartProps) {
   const { isAmountsVisible } = useVisibility();
   const { data: settings } = useUserSettings();
-  const { format } = useFormatCurrency();
   const { t } = useTranslation('dashboard');
   // Add previousNetWorth for change calculation in tooltip
   const chartData = data.map((point, index) => ({
@@ -145,9 +138,8 @@ export default function NetWorthTrendChart({ data, currency, periodLabel }: NetW
           {getTrendIcon()}
           <div className="text-right">
             <p className={`text-sm font-semibold ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-          <PrivateAmount inline>
-            {overallChange >= 0 ? '+' : ''}{format(overallChange, currency)}
-          </PrivateAmount>
+              {overallChange >= 0 ? '+' : '-'}
+              <ConvertedAmount amount={Math.abs(overallChange)} currency={currency} inline />
             </p>
             <p className={`text-xs ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {overallChange >= 0 ? '+' : ''}{overallChangePercent}%
@@ -181,7 +173,7 @@ export default function NetWorthTrendChart({ data, currency, periodLabel }: NetW
               tickLine={false}
               axisLine={false}
             />
-            <Tooltip content={<CustomTooltip currency={currency} dateFormat={settings?.dateFormat} formatFn={format} />} />
+            <Tooltip content={<CustomTooltip currency={currency} dateFormat={settings?.dateFormat} />} />
             <Area
               type="monotone"
               dataKey="netWorth"

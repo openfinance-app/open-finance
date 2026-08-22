@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithProviders } from '@/test/test-utils';
 import { LoanCalculator } from '@/components/loan-calculator/LoanCalculator';
 
@@ -219,7 +219,38 @@ describe('LoanCalculator', () => {
     it('displays formatted monthly payment value', () => {
       renderWithProviders(<LoanCalculator />);
 
-      expect(screen.getByText('$1319.91')).toBeInTheDocument();
+      expect(screen.getByText('$1,319.91')).toBeInTheDocument();
+    });
+
+    it('shows the monthly payment tooltip with ConvertedAmount on hover', async () => {
+      renderWithProviders(<LoanCalculator />);
+
+      const trigger = screen.getByText('$1,319.91').closest('[data-state]') as HTMLElement;
+      fireEvent.pointerMove(trigger);
+
+      const tooltip = await waitFor(() => screen.getByRole('tooltip'));
+      expect(tooltip).toHaveTextContent('$1,319.91');
+      expect(tooltip.querySelector('[data-testid="converted-amount"]')).not.toBeNull();
+    });
+
+    it('shows the total interest tooltip on hover', async () => {
+      renderWithProviders(<LoanCalculator />);
+
+      const trigger = screen.getByText('$116,778.40').closest('[data-state]') as HTMLElement;
+      fireEvent.pointerMove(trigger);
+
+      const tooltip = await waitFor(() => screen.getByRole('tooltip'));
+      expect(tooltip).toHaveTextContent('$116,778.40');
+    });
+
+    it('shows the total payment tooltip on hover', async () => {
+      renderWithProviders(<LoanCalculator />);
+
+      const trigger = screen.getByText('$316,778.40').closest('[data-state]') as HTMLElement;
+      fireEvent.pointerMove(trigger);
+
+      const tooltip = await waitFor(() => screen.getByRole('tooltip'));
+      expect(tooltip).toHaveTextContent('$316,778.40');
     });
   });
 });

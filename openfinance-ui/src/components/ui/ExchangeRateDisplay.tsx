@@ -8,8 +8,8 @@
 
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { formatExchangeRate } from '@/utils/currency';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { multiply } from '@/utils/money';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { RefreshCw, TrendingDown, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
@@ -63,8 +63,6 @@ export function ExchangeRateDisplay({
   className = '',
 }: ExchangeRateDisplayProps) {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { format: formatCurrency } = useFormatCurrency();
-  
   const { 
     data: exchangeRate, 
     isLoading, 
@@ -137,7 +135,16 @@ export function ExchangeRateDisplay({
         {amount !== undefined && convertedAmount !== undefined ? (
           <>
             <span className="text-text-secondary">
-              {formatCurrency(amount, from)} ≈ {formatCurrency(convertedAmount, to)}
+              <ConvertedAmount
+                amount={amount}
+                currency={from}
+                convertedAmount={convertedAmount}
+                baseCurrency={to}
+                exchangeRate={rate}
+                isConverted
+                inline
+                compact
+              />
             </span>
             <span className="text-text-muted">
               (1 {from} = {formatExchangeRate(rate)} {to})
@@ -192,15 +199,16 @@ export function ExchangeRateDisplay({
       {/* Conversion display */}
       {amount !== undefined && convertedAmount !== undefined && (
         <div className="mb-2">
-          <div className="flex items-baseline gap-2">
-            <span className="font-mono text-lg font-semibold text-text-primary">
-              {formatCurrency(amount, from)}
-            </span>
-            <span className="text-text-muted">≈</span>
-            <span className="font-mono text-lg font-semibold text-primary">
-              {formatCurrency(convertedAmount, to)}
-            </span>
-          </div>
+          <ConvertedAmount
+            className="font-mono text-lg font-semibold text-text-primary"
+            amount={amount}
+            currency={from}
+            convertedAmount={convertedAmount}
+            baseCurrency={to}
+            exchangeRate={rate}
+            isConverted
+            inline
+          />
         </div>
       )}
 

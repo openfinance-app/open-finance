@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '../ui/Select';
 import { Switch } from '../ui/Switch';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useCompoundInterest } from '../../hooks/useCompoundInterest';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useAuthContext } from '@/context/AuthContext';
@@ -242,7 +243,7 @@ interface ResultsSectionProps {
   t: (key: string) => string;
 }
 
-function ResultsSection({ result, formatCurrency, t }: ResultsSectionProps) {
+function ResultsSection({ result, currency, formatCurrency, t }: ResultsSectionProps) {
   return (
     <div className="space-y-6">
       {/* Summary cards */}
@@ -250,18 +251,18 @@ function ResultsSection({ result, formatCurrency, t }: ResultsSectionProps) {
         <SummaryCard
           icon={<TrendingUp className="h-4 w-4 text-green-500" />}
           label={t('compoundInterest.results.finalBalance')}
-          value={formatCurrency(result.finalBalance)}
+          value={<ConvertedAmount amount={result.finalBalance} currency={currency} inline />}
           highlight
         />
         <SummaryCard
           icon={<DollarSign className="h-4 w-4 text-blue-500" />}
           label={t('compoundInterest.results.totalInterest')}
-          value={formatCurrency(result.totalInterest)}
+          value={<ConvertedAmount amount={result.totalInterest} currency={currency} inline />}
         />
         <SummaryCard
           icon={<PiggyBank className="h-4 w-4 text-yellow-500" />}
           label={t('compoundInterest.results.totalInvested')}
-          value={formatCurrency(result.totalInvested)}
+          value={<ConvertedAmount amount={result.totalInvested} currency={currency} inline />}
         />
         <SummaryCard
           icon={<Percent className="h-4 w-4 text-purple-500" />}
@@ -274,7 +275,7 @@ function ResultsSection({ result, formatCurrency, t }: ResultsSectionProps) {
       <GrowthChart breakdown={result.yearlyBreakdown} formatCurrency={formatCurrency} t={t} />
 
       {/* Breakdown table */}
-      <BreakdownTable breakdown={result.yearlyBreakdown} formatCurrency={formatCurrency} t={t} />
+      <BreakdownTable breakdown={result.yearlyBreakdown} currency={currency} t={t} />
     </div>
   );
 }
@@ -290,7 +291,7 @@ function SummaryCard({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value: React.ReactNode;
   highlight?: boolean;
 }) {
   return (
@@ -300,9 +301,8 @@ function SummaryCard({
           {icon}
           <p className="text-xs text-text-muted font-medium">{label}</p>
         </div>
-        <p 
+        <p
           className={`text-lg font-bold truncate ${highlight ? 'text-green-700' : 'text-text-primary'}`}
-          title={value}
         >
           {value}
         </p>
@@ -399,11 +399,11 @@ function GrowthChart({
 // ---------------------------------------------------------------------------
 function BreakdownTable({
   breakdown,
-  formatCurrency,
+  currency,
   t,
 }: {
   breakdown: CompoundInterestYearlyBreakdown[];
-  formatCurrency: (val: number) => string;
+  currency: string;
   t: (key: string) => string;
 }) {
   return (
@@ -428,11 +428,21 @@ function BreakdownTable({
               {breakdown.map((row) => (
                 <tr key={row.year} className="border-b border-border/50 hover:bg-surface/50">
                   <td className="py-2 pr-4 font-medium">{row.year}</td>
-                  <td className="py-2 pr-4">{formatCurrency(row.startingBalance)}</td>
-                  <td className="py-2 pr-4">{formatCurrency(row.contributions)}</td>
-                  <td className="py-2 pr-4 text-green-600">{formatCurrency(row.interestEarned)}</td>
-                  <td className="py-2 pr-4 font-medium">{formatCurrency(row.endingBalance)}</td>
-                  <td className="py-2 text-green-600">{formatCurrency(row.cumulativeInterest)}</td>
+                  <td className="py-2 pr-4">
+                    <ConvertedAmount amount={row.startingBalance} currency={currency} inline />
+                  </td>
+                  <td className="py-2 pr-4">
+                    <ConvertedAmount amount={row.contributions} currency={currency} inline />
+                  </td>
+                  <td className="py-2 pr-4 text-green-600">
+                    <ConvertedAmount amount={row.interestEarned} currency={currency} inline />
+                  </td>
+                  <td className="py-2 pr-4 font-medium">
+                    <ConvertedAmount amount={row.endingBalance} currency={currency} inline />
+                  </td>
+                  <td className="py-2 text-green-600">
+                    <ConvertedAmount amount={row.cumulativeInterest} currency={currency} inline />
+                  </td>
                 </tr>
               ))}
             </tbody>

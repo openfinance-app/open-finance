@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import type { INetWorthAllocation } from '@/types/dashboard';
-import { PrivateAmount } from '../ui/PrivateAmount';
+import { ConvertedAmount } from '../ui/ConvertedAmount';
 import {
   NET_WORTH_TREEMAP_LIABILITY_COLORS,
   NET_WORTH_TREEMAP_ASSET_COLORS,
@@ -14,16 +14,14 @@ interface NetWorthAllocationChartProps {
     currency: string;
 }
 
-const CustomTooltip = ({ active, payload, formatFn }: any) => {
+const CustomTooltip = ({ active, payload, currency, formatFn }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
         return (
             <div className="bg-popover text-popover-foreground p-2 rounded-md shadow-md text-xs border">
                 <p className="font-semibold">{data.name}</p>
                 <p>
-                    <PrivateAmount inline>
-                        {formatFn(data.originalValue, data.currency)}
-                    </PrivateAmount>
+                    <ConvertedAmount amount={data.originalValue} currency={data.currency ?? currency} inline />
                 </p>
                 <p>{Math.abs(data.percentage ?? 0).toFixed(1)}%</p>
                 <p className={data.isLiability ? 'text-red-500' : 'text-green-500'}>
@@ -80,7 +78,7 @@ const CustomizedContent = (props: any) => {
     );
 };
 
-export default function NetWorthAllocationChart({ allocations, currency: _currency }: NetWorthAllocationChartProps) {
+export default function NetWorthAllocationChart({ allocations, currency }: NetWorthAllocationChartProps) {
     const { t } = useTranslation('dashboard');
     // Determine if we have any data
     const hasData = allocations && allocations.length > 0;
@@ -131,7 +129,7 @@ export default function NetWorthAllocationChart({ allocations, currency: _curren
                         fill="#8884d8"
                         content={<CustomizedContent />}
                     >
-                        <Tooltip content={<CustomTooltip formatFn={(key: string) => t(`netWorthAllocation.${key}`)} />} />
+                        <Tooltip content={<CustomTooltip currency={currency} formatFn={(key: string) => t(`netWorthAllocation.${key}`)} />} />
                     </Treemap>
                 </ResponsiveContainer>
             </div>

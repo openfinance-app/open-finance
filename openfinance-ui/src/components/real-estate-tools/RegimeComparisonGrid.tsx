@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { RegimeCard } from './RegimeCard';
 import type { InvestmentResults, TaxRegime, RegimeCalculationResult } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useTranslation } from 'react-i18next';
 
 export interface RegimeComparisonGridProps {
@@ -34,7 +34,6 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
   forceCollapse,
 }) => {
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('realEstate');
   const [microFoncierOpen, setMicroFoncierOpen] = useState(false);
   const [reelFoncierOpen, setReelFoncierOpen] = useState(false);
@@ -124,9 +123,13 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
             <div>
               <p className="text-sm text-muted-foreground">{t('regimeGrid.bestCashFlow')}</p>
               <p className="text-2xl font-bold text-green-600">
-                {formatCurrency(Math.max(
-                  ...regimes.map(r => getRegimeResult(r)?.performance.monthlyCashFlow || 0)
-                ), baseCurrency)}
+                <ConvertedAmount
+                  amount={Math.max(
+                    ...regimes.map(r => getRegimeResult(r)?.performance.monthlyCashFlow || 0)
+                  )}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
             <div>
@@ -235,7 +238,15 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                     const result = getRegimeResult(regime);
                     return (
                       <td key={regime} className="text-center py-2 px-4">
-                        {result ? formatCurrency(result.performance.monthlyCashFlow, baseCurrency) : '-'}
+                        {result ? (
+                          <ConvertedAmount
+                            amount={result.performance.monthlyCashFlow}
+                            currency={baseCurrency}
+                            inline
+                          />
+                        ) : (
+                          '-'
+                        )}
                       </td>
                     );
                   })}
@@ -269,7 +280,15 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                     const result = getRegimeResult(regime);
                     return (
                       <td key={regime} className="text-center py-2 px-4">
-                        {result ? formatCurrency(result.revenue.taxable, baseCurrency) : '-'}
+                        {result ? (
+                          <ConvertedAmount
+                            amount={result.revenue.taxable}
+                            currency={baseCurrency}
+                            inline
+                          />
+                        ) : (
+                          '-'
+                        )}
                       </td>
                     );
                   })}
@@ -280,7 +299,15 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                     const result = getRegimeResult(regime);
                     return (
                       <td key={regime} className="text-center py-2 px-4 text-red-600">
-                        {result ? formatCurrency(result.taxation.totalTaxes, baseCurrency) : '-'}
+                        {result ? (
+                          <ConvertedAmount
+                            amount={result.taxation.totalTaxes}
+                            currency={baseCurrency}
+                            inline
+                          />
+                        ) : (
+                          '-'
+                        )}
                       </td>
                     );
                   })}

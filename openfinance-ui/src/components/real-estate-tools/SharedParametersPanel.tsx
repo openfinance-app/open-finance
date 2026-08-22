@@ -10,7 +10,7 @@ import { Link2, Home, Wallet, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useTranslation } from 'react-i18next';
 import type { SharedPropertyData } from '@/types/realEstateTools';
 
@@ -22,7 +22,6 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
   sharedData,
 }) => {
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('realEstate');
   if (!sharedData) {
     return null;
@@ -48,7 +47,9 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
             <Home className="h-5 w-5 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">{t('sharedParameters.propertyPrice')}</p>
-              <p className="font-medium">{formatCurrency(sharedData.totalPrice, baseCurrency)}</p>
+              <p className="font-medium">
+                <ConvertedAmount amount={sharedData.totalPrice} currency={baseCurrency} inline />
+              </p>
             </div>
           </div>
 
@@ -57,7 +58,14 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
             <Wallet className="h-5 w-5 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">{t('sharedParameters.creditPayment')}</p>
-              <p className="font-medium">{formatCurrency(sharedData.credit.monthlyPayment, baseCurrency)}{t('sharedParameters.creditPaymentPerMonth')}</p>
+              <p className="font-medium">
+                <ConvertedAmount
+                  amount={sharedData.credit.monthlyPayment}
+                  currency={baseCurrency}
+                  inline
+                />
+                {t('sharedParameters.creditPaymentPerMonth')}
+              </p>
             </div>
           </div>
 
@@ -66,7 +74,10 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
             <FileText className="h-5 w-5 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">{t('sharedParameters.propertyTax')}</p>
-              <p className="font-medium">{formatCurrency(sharedData.propertyTax, baseCurrency)}{t('sharedParameters.propertyTaxPerYear')}</p>
+              <p className="font-medium">
+                <ConvertedAmount amount={sharedData.propertyTax} currency={baseCurrency} inline />
+                {t('sharedParameters.propertyTaxPerYear')}
+              </p>
             </div>
           </div>
 
@@ -75,7 +86,14 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
             <FileText className="h-5 w-5 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">{t('sharedParameters.coOwnershipCharges')}</p>
-              <p className="font-medium">{formatCurrency(sharedData.coOwnershipCharges, baseCurrency)}{t('sharedParameters.coOwnershipChargesPerYear')}</p>
+              <p className="font-medium">
+                <ConvertedAmount
+                  amount={sharedData.coOwnershipCharges}
+                  currency={baseCurrency}
+                  inline
+                />
+                {t('sharedParameters.coOwnershipChargesPerYear')}
+              </p>
             </div>
           </div>
         </div>

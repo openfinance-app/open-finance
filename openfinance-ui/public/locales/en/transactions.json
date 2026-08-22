@@ -167,8 +167,8 @@
     "remaining": "Remaining",
     "overBy": "Over by",
     "validation": {
-      "short": "Split amounts must add up to <bold>{{total}}</bold>. Currently <bold>{{amount}}</bold> short.",
-      "over": "Split amounts must add up to <bold>{{total}}</bold>. Currently <bold>{{amount}}</bold> over."
+      "short": "Split amounts must add up to <bold><total></total></bold>. Currently <bold><amount></amount></bold> short.",
+      "over": "Split amounts must add up to <bold><total></total></bold>. Currently <bold><amount></amount></bold> over."
     }
   },
   "splitDetail": {

@@ -21,6 +21,13 @@ import { Badge } from '../ui/Badge';
 import { useEarlyPayoffCalculator } from '../../hooks/useEarlyPayoffCalculator';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useAuthContext } from '@/context/AuthContext';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import {
+    Tooltip as UITooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/Tooltip';
 import { useCountryToolConfig } from '@/hooks/useCountryToolConfig';
 import type { EarlyPayoffScenario } from '@/types/calculator';
 import {
@@ -51,17 +58,20 @@ interface ScenarioCardProps {
     scenario: EarlyPayoffScenario;
     isBase?: boolean;
     highlight?: boolean;
-    formatCurrency: (v: number, cur: string) => string;
     currency: string;
     isIRA: boolean;
     t: (k: string, o?: Record<string, unknown>) => string;
 }
 
-function ScenarioCard({ title, scenario, isBase, highlight, formatCurrency, currency, isIRA, t }: ScenarioCardProps) {
+function ScenarioCard({ title, scenario, isBase, highlight, currency, isIRA, t }: ScenarioCardProps) {
     const termLabel = formatTerm(scenario.totalMonths, t);
     const cardClass = highlight
         ? 'border-primary/40 bg-primary/5'
         : 'border-border';
+    const greenClass = 'text-green-600 dark:text-green-400 font-semibold block truncate min-w-0';
+    const netSavingsClass = scenario.netSavings >= 0
+        ? 'text-green-600 dark:text-green-400'
+        : 'text-red-600 dark:text-red-400';
 
     return (
         <Card className={cardClass}>
@@ -77,16 +87,20 @@ function ScenarioCard({ title, scenario, isBase, highlight, formatCurrency, curr
             </CardHeader>
             <CardContent className="space-y-3">
                 <Row label={t('earlyPayoff.results.monthlyPayment')}>
-                    <span className="font-semibold block truncate min-w-0" title={formatCurrency(scenario.monthlyPayment, currency)}>
-                        {formatCurrency(scenario.monthlyPayment, currency)}
-                    </span>
+                    <StatValue
+                        amount={scenario.monthlyPayment}
+                        currency={currency}
+                        className="font-semibold block truncate min-w-0"
+                    />
                 </Row>
 
                 {!isBase && scenario.finalMonthlyPayment !== scenario.monthlyPayment && (
                     <Row label={t('earlyPayoff.results.newMonthlyPayment')}>
-                        <span className="font-semibold text-green-600 dark:text-green-400 block truncate min-w-0" title={formatCurrency(scenario.finalMonthlyPayment, currency)}>
-                            {formatCurrency(scenario.finalMonthlyPayment, currency)}
-                        </span>
+                        <StatValue
+                            amount={scenario.finalMonthlyPayment}
+                            currency={currency}
+                            className={greenClass}
+                        />
                     </Row>
                 )}
 
@@ -97,42 +111,49 @@ function ScenarioCard({ title, scenario, isBase, highlight, formatCurrency, curr
                 </Row>
 
                 <Row label={t('earlyPayoff.results.totalInterest')}>
-                    <span className="text-red-600 dark:text-red-400 block truncate min-w-0" title={formatCurrency(scenario.totalInterest, currency)}>
-                        {formatCurrency(scenario.totalInterest, currency)}
-                    </span>
+                    <StatValue
+                        amount={scenario.totalInterest}
+                        currency={currency}
+                        className="text-red-600 dark:text-red-400 block truncate min-w-0"
+                    />
                 </Row>
 
                 {!isBase && (
                     <>
                         <div className="border-t border-border pt-3 space-y-3">
                             <Row label={t('earlyPayoff.results.totalLumpSum')}>
-                                <span className="block truncate min-w-0" title={formatCurrency(scenario.totalLumpSum, currency)}>
-                                    {formatCurrency(scenario.totalLumpSum, currency)}
-                                </span>
+                                <StatValue
+                                    amount={scenario.totalLumpSum}
+                                    currency={currency}
+                                    className="block truncate min-w-0"
+                                />
                             </Row>
 
                             {isIRA && scenario.totalIRA > 0 && (
                                 <Row label={t('earlyPayoff.results.iraAmount')}>
-                                    <span className="text-amber-600 dark:text-amber-400 block truncate min-w-0" title={formatCurrency(scenario.totalIRA, currency)}>
-                                        {formatCurrency(scenario.totalIRA, currency)}
-                                    </span>
+                                    <StatValue
+                                        amount={scenario.totalIRA}
+                                        currency={currency}
+                                        className="text-amber-600 dark:text-amber-400 block truncate min-w-0"
+                                    />
                                 </Row>
                             )}
 
                             <Row label={t('earlyPayoff.results.interestSaved')}>
-                                <span className="text-green-600 dark:text-green-400 font-semibold block truncate min-w-0" title={formatCurrency(scenario.interestSaved, currency)}>
-                                    {formatCurrency(scenario.interestSaved, currency)}
-                                </span>
+                                <StatValue
+                                    amount={scenario.interestSaved}
+                                    currency={currency}
+                                    className={greenClass}
+                                />
                             </Row>
 
                             {isIRA ? (
                                 <Row label={t('earlyPayoff.results.netSavings')}>
-                                    <span 
-                                        className={`${scenario.netSavings >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} font-bold block truncate min-w-0`} 
-                                        title={formatCurrency(scenario.netSavings, currency)}
-                                    >
-                                        {formatCurrency(scenario.netSavings, currency)}
-                                    </span>
+                                    <StatValue
+                                        amount={scenario.netSavings}
+                                        currency={currency}
+                                        className={`${netSavingsClass} font-bold block truncate min-w-0`}
+                                    />
                                 </Row>
                             ) : null}
 
@@ -155,6 +176,33 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
             <span className="text-muted-foreground shrink-0">{label}</span>
             <span className="text-right">{children}</span>
         </div>
+    );
+}
+
+const STAT_TOOLTIP_CLASS = 'bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md';
+
+function StatValue({
+    amount,
+    currency,
+    className,
+}: {
+    amount: number;
+    currency: string;
+    className?: string;
+}) {
+    return (
+        <TooltipProvider delayDuration={150}>
+            <UITooltip>
+                <TooltipTrigger asChild>
+                    <span className={className}>
+                        <ConvertedAmount amount={amount} currency={currency} inline />
+                    </span>
+                </TooltipTrigger>
+                <TooltipContent className={STAT_TOOLTIP_CLASS} sideOffset={4}>
+                    <ConvertedAmount amount={amount} currency={currency} inline />
+                </TooltipContent>
+            </UITooltip>
+        </TooltipProvider>
     );
 }
 
@@ -428,7 +476,6 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                             title={t('earlyPayoff.scenarios.base')}
                             scenario={result.base}
                             isBase
-                            formatCurrency={formatCurrency}
                             currency={baseCurrency}
                             isIRA={hasIRA}
                             t={t}
@@ -437,7 +484,6 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                             title={t('earlyPayoff.scenarios.reduceDuration')}
                             scenario={result.reduceDuration}
                             highlight
-                            formatCurrency={formatCurrency}
                             currency={baseCurrency}
                             isIRA={hasIRA}
                             t={t}
@@ -445,7 +491,6 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                         <ScenarioCard
                             title={t('earlyPayoff.scenarios.reducePayment')}
                             scenario={result.reducePayment}
-                            formatCurrency={formatCurrency}
                             currency={baseCurrency}
                             isIRA={hasIRA}
                             t={t}
@@ -478,9 +523,9 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                                     <tbody className="divide-y divide-border">
                                         <ComparisonRow
                                             label={t('earlyPayoff.results.monthlyPayment')}
-                                            base={formatCurrency(result.base.monthlyPayment, baseCurrency)}
-                                            rd={formatCurrency(result.reduceDuration.monthlyPayment, baseCurrency)}
-                                            rp={formatCurrency(result.reducePayment.monthlyPayment, baseCurrency)}
+                                            base={<ConvertedAmount amount={result.base.monthlyPayment} currency={baseCurrency} inline />}
+                                            rd={<ConvertedAmount amount={result.reduceDuration.monthlyPayment} currency={baseCurrency} inline />}
+                                            rp={<ConvertedAmount amount={result.reducePayment.monthlyPayment} currency={baseCurrency} inline />}
                                         />
                                         {(result.reducePayment.finalMonthlyPayment !== result.reducePayment.monthlyPayment) && (
                                             <ComparisonRow
@@ -489,7 +534,11 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                                                 rd="—"
                                                 rp={
                                                     <span className="text-green-600 dark:text-green-400 font-semibold">
-                                                        {formatCurrency(result.reducePayment.finalMonthlyPayment, baseCurrency)}
+                                                        <ConvertedAmount
+                                                            amount={result.reducePayment.finalMonthlyPayment}
+                                                            currency={baseCurrency}
+                                                            inline
+                                                        />
                                                     </span>
                                                 }
                                             />
@@ -506,21 +555,29 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                                         />
                                         <ComparisonRow
                                             label={t('earlyPayoff.results.totalInterest')}
-                                            base={<span className="text-red-600 dark:text-red-400">{formatCurrency(result.base.totalInterest, baseCurrency)}</span>}
-                                            rd={<span className="text-red-600 dark:text-red-400">{formatCurrency(result.reduceDuration.totalInterest, baseCurrency)}</span>}
-                                            rp={<span className="text-red-600 dark:text-red-400">{formatCurrency(result.reducePayment.totalInterest, baseCurrency)}</span>}
+                                            base={<span className="text-red-600 dark:text-red-400"><ConvertedAmount amount={result.base.totalInterest} currency={baseCurrency} inline /></span>}
+                                            rd={<span className="text-red-600 dark:text-red-400"><ConvertedAmount amount={result.reduceDuration.totalInterest} currency={baseCurrency} inline /></span>}
+                                            rp={<span className="text-red-600 dark:text-red-400"><ConvertedAmount amount={result.reducePayment.totalInterest} currency={baseCurrency} inline /></span>}
                                         />
                                         <ComparisonRow
                                             label={t('earlyPayoff.results.interestSaved')}
                                             base="—"
                                             rd={
                                                 <span className="text-green-600 dark:text-green-400 font-semibold">
-                                                    {formatCurrency(result.reduceDuration.interestSaved, baseCurrency)}
+                                                    <ConvertedAmount
+                                                        amount={result.reduceDuration.interestSaved}
+                                                        currency={baseCurrency}
+                                                        inline
+                                                    />
                                                 </span>
                                             }
                                             rp={
                                                 <span className="text-green-600 dark:text-green-400 font-semibold">
-                                                    {formatCurrency(result.reducePayment.interestSaved, baseCurrency)}
+                                                    <ConvertedAmount
+                                                        amount={result.reducePayment.interestSaved}
+                                                        currency={baseCurrency}
+                                                        inline
+                                                    />
                                                 </span>
                                             }
                                         />
@@ -547,12 +604,20 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                                                 base="—"
                                                 rd={
                                                     <span className="text-amber-600 dark:text-amber-400">
-                                                        {formatCurrency(result.reduceDuration.totalIRA, baseCurrency)}
+                                                        <ConvertedAmount
+                                                            amount={result.reduceDuration.totalIRA}
+                                                            currency={baseCurrency}
+                                                            inline
+                                                        />
                                                     </span>
                                                 }
                                                 rp={
                                                     <span className="text-amber-600 dark:text-amber-400">
-                                                        {formatCurrency(result.reducePayment.totalIRA, baseCurrency)}
+                                                        <ConvertedAmount
+                                                            amount={result.reducePayment.totalIRA}
+                                                            currency={baseCurrency}
+                                                            inline
+                                                        />
                                                     </span>
                                                 }
                                             />
@@ -562,12 +627,20 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                                             base="—"
                                             rd={
                                                 <span className={`font-bold ${result.reduceDuration.netSavings >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                    {formatCurrency(result.reduceDuration.netSavings, baseCurrency)}
+                                                    <ConvertedAmount
+                                                        amount={result.reduceDuration.netSavings}
+                                                        currency={baseCurrency}
+                                                        inline
+                                                    />
                                                 </span>
                                             }
                                             rp={
                                                 <span className={`font-bold ${result.reducePayment.netSavings >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                    {formatCurrency(result.reducePayment.netSavings, baseCurrency)}
+                                                    <ConvertedAmount
+                                                        amount={result.reducePayment.netSavings}
+                                                        currency={baseCurrency}
+                                                        inline
+                                                    />
                                                 </span>
                                             }
                                         />
@@ -680,20 +753,36 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                                             {result[showSchedule].yearlySchedule.map(row => (
                                                 <tr key={row.year} className="hover:bg-muted/50 transition-colors">
                                                     <td className="px-3 py-3 font-medium">{row.year}</td>
-                                                    <td className="px-3 py-3 text-right">{formatCurrency(row.totalPayment, baseCurrency)}</td>
-                                                    <td className="px-3 py-3 text-right text-muted-foreground">{formatCurrency(row.principalPaid, baseCurrency)}</td>
-                                                    <td className="px-3 py-3 text-right text-red-600 dark:text-red-400">{formatCurrency(row.interestPaid, baseCurrency)}</td>
+                                                    <td className="px-3 py-3 text-right">
+                                                        <ConvertedAmount amount={row.totalPayment} currency={baseCurrency} inline />
+                                                    </td>
+                                                    <td className="px-3 py-3 text-right text-muted-foreground">
+                                                        <ConvertedAmount amount={row.principalPaid} currency={baseCurrency} inline />
+                                                    </td>
+                                                    <td className="px-3 py-3 text-right text-red-600 dark:text-red-400">
+                                                        <ConvertedAmount amount={row.interestPaid} currency={baseCurrency} inline />
+                                                    </td>
                                                     {showSchedule !== 'base' && (
                                                         <td className="px-3 py-3 text-right text-blue-600 dark:text-blue-400">
-                                                            {row.lumpSum > 0 ? formatCurrency(row.lumpSum, baseCurrency) : '—'}
+                                                            {row.lumpSum > 0 ? (
+                                                                <ConvertedAmount amount={row.lumpSum} currency={baseCurrency} inline />
+                                                            ) : (
+                                                                '—'
+                                                            )}
                                                         </td>
                                                     )}
                                                     {showSchedule !== 'base' && hasIRA && (
                                                         <td className="px-3 py-3 text-right text-amber-600 dark:text-amber-400">
-                                                            {row.ira > 0 ? formatCurrency(row.ira, baseCurrency) : '—'}
+                                                            {row.ira > 0 ? (
+                                                                <ConvertedAmount amount={row.ira} currency={baseCurrency} inline />
+                                                            ) : (
+                                                                '—'
+                                                            )}
                                                         </td>
                                                     )}
-                                                    <td className="px-3 py-3 text-right font-medium">{formatCurrency(row.endBalance, baseCurrency)}</td>
+                                                    <td className="px-3 py-3 text-right font-medium">
+                                                        <ConvertedAmount amount={row.endBalance} currency={baseCurrency} inline />
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>

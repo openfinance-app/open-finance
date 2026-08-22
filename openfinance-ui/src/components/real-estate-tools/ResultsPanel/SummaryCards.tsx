@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { useTranslation } from 'react-i18next';
 import type { BuyRentResults } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface SummaryCardsProps {
   results: BuyRentResults;
@@ -19,7 +19,6 @@ export interface SummaryCardsProps {
 
 export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('realEstate');
   const { buy, rent, comparison } = results.summary;
 
@@ -37,27 +36,39 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">{t('results.averageMonthlyCost')}</p>
-              <p className="text-lg font-semibold">{formatCurrency(buy.averageMonthlyCost, baseCurrency)}</p>
+              <p className="text-lg font-semibold">
+                <ConvertedAmount amount={buy.averageMonthlyCost} currency={baseCurrency} inline />
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.totalCost')}</p>
-              <p className="text-lg font-semibold">{formatCurrency(buy.totalCost, baseCurrency)}</p>
+              <p className="text-lg font-semibold">
+                <ConvertedAmount amount={buy.totalCost} currency={baseCurrency} inline />
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.propertyValue')}</p>
-              <p className="text-lg font-semibold text-green-600">{formatCurrency(buy.finalPropertyValue, baseCurrency)}</p>
+              <p className="text-lg font-semibold text-green-600">
+                <ConvertedAmount amount={buy.finalPropertyValue} currency={baseCurrency} inline />
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.remainingCapital')}</p>
-              <p className="text-lg font-semibold text-red-600">{formatCurrency(buy.remainingCapital, baseCurrency)}</p>
+              <p className="text-lg font-semibold text-red-600">
+                <ConvertedAmount amount={buy.remainingCapital} currency={baseCurrency} inline />
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.netWorth')}</p>
-              <p className="text-xl font-bold text-primary">{formatCurrency(buy.netWorth, baseCurrency)}</p>
+              <p className="text-xl font-bold text-primary">
+                <ConvertedAmount amount={buy.netWorth} currency={baseCurrency} inline />
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.creditCost')}</p>
-              <p className="text-lg font-semibold">{formatCurrency(buy.totalCreditCost, baseCurrency)}</p>
+              <p className="text-lg font-semibold">
+                <ConvertedAmount amount={buy.totalCreditCost} currency={baseCurrency} inline />
+              </p>
             </div>
           </div>
         </CardContent>
@@ -75,27 +86,43 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">{t('results.averageMonthlyCost')}</p>
-              <p className="text-lg font-semibold">{formatCurrency(rent.averageMonthlyCost, baseCurrency)}</p>
+              <p className="text-lg font-semibold">
+                <ConvertedAmount amount={rent.averageMonthlyCost} currency={baseCurrency} inline />
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.totalCost')}</p>
-              <p className="text-lg font-semibold">{formatCurrency(rent.totalCost, baseCurrency)}</p>
+              <p className="text-lg font-semibold">
+                <ConvertedAmount amount={rent.totalCost} currency={baseCurrency} inline />
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.accumulatedSavings')}</p>
-              <p className="text-lg font-semibold text-green-600">{formatCurrency(rent.accumulatedSavings, baseCurrency)}</p>
+              <p className="text-lg font-semibold text-green-600">
+                <ConvertedAmount amount={rent.accumulatedSavings} currency={baseCurrency} inline />
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.netExpense')}</p>
-              <p className="text-lg font-semibold text-red-600">{formatCurrency(rent.netExpense, baseCurrency)}</p>
+              <p className="text-lg font-semibold text-red-600">
+                <ConvertedAmount amount={rent.netExpense} currency={baseCurrency} inline />
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.netWorth')}</p>
-              <p className="text-xl font-bold text-warning">{formatCurrency(rent.netWorth, baseCurrency)}</p>
+              <p className="text-xl font-bold text-warning">
+                <ConvertedAmount amount={rent.netWorth} currency={baseCurrency} inline />
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.monthlySavings')}</p>
-              <p className="text-lg font-semibold">{formatCurrency(results.years[0]?.rent.savings || 0, baseCurrency)}</p>
+              <p className="text-lg font-semibold">
+                <ConvertedAmount
+                  amount={results.years[0]?.rent.savings || 0}
+                  currency={baseCurrency}
+                  inline
+                />
+              </p>
             </div>
           </div>
         </CardContent>
@@ -114,7 +141,8 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">{t('results.netWorthDifference')}</p>
               <p className={`text-2xl font-bold ${comparison.netWorthDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                 {comparison.netWorthDifference >= 0 ? '+' : ''}{formatCurrency(comparison.netWorthDifference, baseCurrency)}
+                  {comparison.netWorthDifference >= 0 ? '+' : ''}
+                  <ConvertedAmount amount={comparison.netWorthDifference} currency={baseCurrency} inline />
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {t('results.inFavorOf', { winner: comparison.winner === 'buy' ? t('results.buyGenitive') : t('results.rentGenitive') })}
@@ -123,7 +151,8 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">{t('results.expenseDifference')}</p>
               <p className={`text-2xl font-bold ${comparison.netExpenseDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                 {comparison.netExpenseDifference >= 0 ? '+' : ''}{formatCurrency(comparison.netExpenseDifference, baseCurrency)}
+                  {comparison.netExpenseDifference >= 0 ? '+' : ''}
+                  <ConvertedAmount amount={comparison.netExpenseDifference} currency={baseCurrency} inline />
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {t('results.netSavings')}
@@ -132,7 +161,8 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">{t('results.monthlyGap')}</p>
               <p className={`text-2xl font-bold ${comparison.monthlyGap >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                 {comparison.monthlyGap >= 0 ? '+' : ''}{formatCurrency(comparison.monthlyGap, baseCurrency)}
+                  {comparison.monthlyGap >= 0 ? '+' : ''}
+                  <ConvertedAmount amount={comparison.monthlyGap} currency={baseCurrency} inline />
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {t('results.perMonth')}

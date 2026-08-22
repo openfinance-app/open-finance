@@ -15,7 +15,7 @@ import { Progress } from '@/components/ui/Progress';
 import { useTranslation } from 'react-i18next';
 import type { RentalRevenueInputs, ValidationError } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface RevenueSectionProps {
   inputs: RentalRevenueInputs;
@@ -33,7 +33,6 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
   onToggle,
 }) => {
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) => errors.find(e => e.field === `revenue.${field}`)?.message;
@@ -144,11 +143,15 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
           <div className="pt-2 border-t space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">{t('revenueSection.annualGrossRent')}</span>
-              <span>{formatCurrency(annualRent, baseCurrency)}</span>
+              <span>
+                <ConvertedAmount amount={annualRent} currency={baseCurrency} inline />
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t('revenueSection.effectiveRevenue')}</span>
-              <span className="font-semibold text-success">{formatCurrency(effectiveRevenue, baseCurrency)}</span>
+              <span className="font-semibold text-success">
+                <ConvertedAmount amount={effectiveRevenue} currency={baseCurrency} inline />
+              </span>
             </div>
           </div>
         </CardContent>

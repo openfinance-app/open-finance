@@ -26,7 +26,7 @@ import { ResultsPanel } from './ResultsPanel';
 import type { SharedPropertyData } from '@/types/realEstateTools';
 import { PropertySelector } from './PropertySelector';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useCountryToolConfig } from '@/hooks/useCountryToolConfig';
 
 export interface BuyRentComparatorProps {
@@ -42,7 +42,6 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
   const [marketOpen, setMarketOpen] = React.useState(true);
   const [resaleOpen, setResaleOpen] = React.useState(true);
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const { buyVsRentInitialInputs } = useCountryToolConfig();
   const { t } = useTranslation('realEstate');
 
@@ -227,19 +226,33 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">{t('comparator.totalPrice')}</p>
-            <p className="font-semibold">{formatCurrency(derivedValues.totalPrice, baseCurrency)}</p>
+            <p className="font-semibold">
+              <ConvertedAmount amount={derivedValues.totalPrice} currency={baseCurrency} inline />
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t('comparator.borrowedAmount')}</p>
-            <p className="font-semibold">{formatCurrency(derivedValues.borrowedAmount, baseCurrency)}</p>
+            <p className="font-semibold">
+              <ConvertedAmount amount={derivedValues.borrowedAmount} currency={baseCurrency} inline />
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t('comparator.monthlyPayment')}</p>
-            <p className="font-semibold">{formatCurrency(derivedValues.monthlyPayment, baseCurrency)}{t('comparator.monthly')}</p>
+            <p className="font-semibold">
+              <ConvertedAmount amount={derivedValues.monthlyPayment} currency={baseCurrency} inline />
+              {t('comparator.monthly')}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t('comparator.suggestedSavings')}</p>
-            <p className="font-semibold">{formatCurrency(derivedValues.suggestedMonthlySavings, baseCurrency)}{t('comparator.monthly')}</p>
+            <p className="font-semibold">
+              <ConvertedAmount
+                amount={derivedValues.suggestedMonthlySavings}
+                currency={baseCurrency}
+                inline
+              />
+              {t('comparator.monthly')}
+            </p>
           </div>
         </div>
       </Card>

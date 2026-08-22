@@ -7,6 +7,7 @@ import i18n from '@/test/i18n-test';
 import { VisibilityProvider, useVisibility } from '@/context/VisibilityContext';
 import { NumberFormatProvider } from '@/context/NumberFormatContext';
 import { DecimalPlacesProvider } from '@/context/DecimalPlacesContext';
+import { CurrencyDisplayProvider } from '@/context/CurrencyDisplayContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock Recharts — render children and call tickFormatter / tooltip render
@@ -75,9 +76,11 @@ const renderChart = (props: Partial<Parameters<typeof CashFlowChart>[0]> = {}) =
         <I18nextProvider i18n={i18n}>
           <NumberFormatProvider>
             <DecimalPlacesProvider>
-              <MemoryRouter>
-                <CashFlowChart cashFlow={mockCashFlow} {...props} />
-              </MemoryRouter>
+              <CurrencyDisplayProvider>
+                <MemoryRouter>
+                  <CashFlowChart cashFlow={mockCashFlow} {...props} />
+                </MemoryRouter>
+              </CurrencyDisplayProvider>
             </DecimalPlacesProvider>
           </NumberFormatProvider>
         </I18nextProvider>

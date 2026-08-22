@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/Separator';
 import { useTranslation } from 'react-i18next';
 import type { OwnerExpensesInputs, ValidationError } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface ExpensesSectionProps {
   inputs: OwnerExpensesInputs;
@@ -33,7 +33,6 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
   onToggle,
 }) => {
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) => errors.find(e => e.field === `expenses.${field}`)?.message;
@@ -221,7 +220,9 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
           <div className="pt-2 border-t">
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t('expensesSection.totalDeductibleExpenses')}</span>
-              <span className="font-semibold text-error">{formatCurrency(totalDeductibleExpenses, baseCurrency)}</span>
+              <span className="font-semibold text-error">
+                <ConvertedAmount amount={totalDeductibleExpenses} currency={baseCurrency} inline />
+              </span>
             </div>
           </div>
         </CardContent>

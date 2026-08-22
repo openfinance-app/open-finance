@@ -19,8 +19,6 @@ import { useAssets } from '@/hooks/useAssets';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { DEFAULT_CURRENCY, formatExchangeRate } from '@/utils/currency';
 import { add, multiply, sum, percentage } from '@/utils/money';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
-import { PrivateAmount } from '../ui/PrivateAmount';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 
@@ -266,7 +264,6 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency }: CurrencyBalanceRo
   const { t } = useTranslation('dashboard');
   const isForeignCurrency = currencyBalance.currency !== baseCurrency;
   const isLoading = currencyBalance.isLoading;
-  const { format } = useFormatCurrency();
   const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
 
   return (
@@ -301,7 +298,11 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency }: CurrencyBalanceRo
                 </div>
               )}
               <div className="text-xs text-text-secondary">
-                <PrivateAmount inline>{format(currencyBalance.balance, currencyBalance.currency)}</PrivateAmount>
+                <ConvertedAmount
+                  amount={currencyBalance.balance}
+                  currency={currencyBalance.currency}
+                  inline
+                />
               </div>
             </>
           ) : (

@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
 import {
     Dialog,
@@ -23,7 +24,6 @@ import {
     useDeleteVariation,
     useInterestEstimate,
 } from '@/hooks/useAccounts';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { add, divide, multiply, percentage, pow, subtract, sum } from '@/utils/money';
 import type { InterestPeriod } from '@/types/account';
@@ -62,7 +62,6 @@ function calcPeriodInterest(
 
 export function InterestRateVariationsSection({ accountId, accountBalance = 0, accountCurrency = DEFAULT_CURRENCY, accountInterestPeriod = 'ANNUAL' }: Props) {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const { format: formatCurrency } = useFormatCurrency();
     const { t } = useTranslation('accounts');
 
     const variationSchema = useMemo(() => z.object({
@@ -158,7 +157,7 @@ export function InterestRateVariationsSection({ accountId, accountBalance = 0, a
                         <div className="flex items-center gap-1.5 bg-surface border border-border rounded-lg px-3 py-1.5">
                             <span className="text-xs text-text-muted">{t('interest.earnedSoFar')}</span>
                             <span className="text-sm font-mono font-semibold text-text-primary">
-                                {formatCurrency(earned, accountCurrency)}
+                                <ConvertedAmount amount={earned} currency={accountCurrency} inline />
                             </span>
                         </div>
                         <div className="text-text-muted text-xs">|</div>
@@ -166,7 +165,7 @@ export function InterestRateVariationsSection({ accountId, accountBalance = 0, a
                             <TrendingUp className="h-3.5 w-3.5 text-success" />
                             <span className="text-xs text-text-muted">{t('interest.projectedNet')}</span>
                             <span className="text-sm font-mono font-semibold text-success">
-                                {formatCurrency(projected, accountCurrency)}
+                                <ConvertedAmount amount={projected} currency={accountCurrency} inline />
                             </span>
                             {projected > 0 && (
                                 <span className="text-xs text-success/70">({projectedPct}%)</span>
@@ -180,7 +179,12 @@ export function InterestRateVariationsSection({ accountId, accountBalance = 0, a
                                     <div className="flex items-center gap-1.5 bg-primary/5 border border-primary/20 rounded-lg px-3 py-1.5">
                                         <span className="text-xs text-text-muted">{t('interest.totalProduced')}</span>
                                         <span className="text-sm font-mono font-semibold text-primary">
-                                            +{formatCurrency(totalProduced, accountCurrency)}
+                                            +
+                                            <ConvertedAmount
+                                                amount={totalProduced}
+                                                currency={accountCurrency}
+                                                inline
+                                            />
                                         </span>
                                     </div>
                                 </>
@@ -228,7 +232,12 @@ export function InterestRateVariationsSection({ accountId, accountBalance = 0, a
                                     <td className="px-4 py-3 text-right">
                                         {variation.netInterest > 0 ? (
                                             <span className="font-mono font-semibold text-success">
-                                                +{formatCurrency(variation.netInterest, accountCurrency)}
+                                                +
+                                                <ConvertedAmount
+                                                    amount={variation.netInterest}
+                                                    currency={accountCurrency}
+                                                    inline
+                                                />
                                             </span>
                                         ) : (
                                             <span className="text-xs text-text-muted italic">—</span>

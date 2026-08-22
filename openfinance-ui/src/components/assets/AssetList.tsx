@@ -207,7 +207,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
               </thead>
               <tbody>
                 {financialAssets.map((asset) => {
-                   const { formatted, color } = formatGainLoss(
+                   const { color } = formatGainLoss(
                      asset.unrealizedGain,
                      asset.gainPercentage * 100,
                      asset.baseCurrency ?? asset.currency
@@ -269,9 +269,24 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                           isConverted={asset.isConverted}
                         />
                       </td>
-                      <td className={`py-3 px-4 text-sm text-right font-mono font-medium ${color}`}>
-                        {formatted}
-                      </td>
+                        <td className={`py-3 px-4 text-sm text-right font-mono font-medium ${color}`}>
+                          {asset.unrealizedGain >= 0 ? '+' : '-'}
+                          <ConvertedAmount
+                            inline
+                            amount={Math.abs(asset.unrealizedGain)}
+                           currency={asset.currency}
+                           convertedAmount={
+                             asset.isConverted && asset.exchangeRate
+                               ? multiply(Math.abs(asset.unrealizedGain), asset.exchangeRate)
+                               : undefined
+                           }
+                           baseCurrency={asset.baseCurrency}
+                           exchangeRate={asset.exchangeRate}
+                           isConverted={asset.isConverted}
+                         />{' '}
+                          ({asset.unrealizedGain >= 0 ? '+' : '-'}
+                          {(asset.gainPercentage * 100).toFixed(2)}%)
+                        </td>
                       <td className="py-3 px-4 text-sm text-text-secondary">
                         {asset.accountName || '—'}
                       </td>
@@ -311,7 +326,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
           {/* Mobile Card View */}
           <div className="md:hidden space-y-4">
             {financialAssets.map((asset) => {
-              const { formatted, color } = formatGainLoss(
+              const { color } = formatGainLoss(
                 asset.unrealizedGain,
                 asset.gainPercentage * 100
               );
@@ -376,12 +391,27 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                          />
                        </span>
                      </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-text-secondary">{t('table.gainLoss')}:</span>
-                      <span className={`font-mono font-medium ${color}`}>
-                        {formatted}
-                      </span>
-                    </div>
+                     <div className="flex justify-between text-sm">
+                       <span className="text-text-secondary">{t('table.gainLoss')}:</span>
+                        <span className={`font-mono font-medium ${color}`}>
+                          {asset.unrealizedGain >= 0 ? '+' : '-'}
+                          <ConvertedAmount
+                            inline
+                            amount={Math.abs(asset.unrealizedGain)}
+                            currency={asset.currency}
+                            convertedAmount={
+                              asset.isConverted && asset.exchangeRate
+                                ? multiply(Math.abs(asset.unrealizedGain), asset.exchangeRate)
+                                : undefined
+                            }
+                            baseCurrency={asset.baseCurrency}
+                            exchangeRate={asset.exchangeRate}
+                            isConverted={asset.isConverted}
+                          />{' '}
+                          ({asset.unrealizedGain >= 0 ? '+' : '-'}
+                          {(asset.gainPercentage * 100).toFixed(2)}%)
+                        </span>
+                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-text-secondary">{t('table.quantity')}:</span>
                       <span className="text-text-primary font-mono">

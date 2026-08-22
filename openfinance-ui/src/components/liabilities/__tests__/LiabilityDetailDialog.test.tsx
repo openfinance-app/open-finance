@@ -5,7 +5,7 @@
  * Requirement 2.1: Test total cost hero card and cost breakdown
  * Requirement 3.2: Test linked payments tab
  */
-import { screen } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { act } from '@testing-library/react';
 import { renderWithProviders } from '@/test/test-utils';
@@ -211,6 +211,28 @@ describe('LiabilityDetailDialog', () => {
       // additionalFees is a one-time fee; only feesPaid counts (projectedFees is always 0)
       expect(screen.getByText('One-time Fee')).toBeInTheDocument();
       expect(screen.getByText('€600.00')).toBeInTheDocument(); // feesPaid only
+    });
+
+    it('shows a tooltip with the principal amount when hovering the principal bar segment', async () => {
+      mockUseLiabilityBreakdown.mockReturnValue({
+        data: mockBreakdown,
+        isLoading: false,
+        error: null,
+      });
+
+      const { container } = renderWithProviders(
+        <LiabilityDetailDialog liability={mockLiability} onClose={vi.fn()} />
+      );
+
+      const principalSegment = container.querySelector('div.bg-primary') as HTMLElement;
+      expect(principalSegment).toBeInTheDocument();
+
+      fireEvent.pointerMove(principalSegment);
+
+      const tooltip = await waitFor(() => screen.getByRole('tooltip'));
+      expect(tooltip).toHaveTextContent('Principal');
+      expect(tooltip).toHaveTextContent('€300,000.00');
+      expect(tooltip.querySelector('[data-testid="converted-amount"]')).not.toBeNull();
     });
   });
 

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useTranslation } from 'react-i18next';
 import { useProperties } from '@/hooks/useRealEstate';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { getPropertyTypeName } from '@/types/realEstate';
 import type { BuyRentInputs } from '@/types/realEstateTools';
 
@@ -31,7 +31,6 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
   const resolvedPlaceholder = placeholder ?? t('propertySelector.selectProperty');
   const { data: properties, isLoading, isError } = useProperties();
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -168,7 +167,13 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{formatCurrency(Number(property.purchasePrice), property.currency || baseCurrency)}</span>
+                  <span>
+                    <ConvertedAmount
+                      amount={Number(property.purchasePrice)}
+                      currency={property.currency || baseCurrency}
+                      inline
+                    />
+                  </span>
                   {property.address && (
                     <>
                       <span>•</span>

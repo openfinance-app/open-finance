@@ -167,8 +167,8 @@
     "remaining": "Restant",
     "overBy": "Dépassement de",
     "validation": {
-      "short": "Les montants des ventilations doivent totaliser <bold>{{total}}</bold>. Actuellement <bold>{{amount}}</bold> manquant.",
-      "over": "Les montants des ventilations doivent totaliser <bold>{{total}}</bold>. Actuellement <bold>{{amount}}</bold> en trop."
+      "short": "Les montants des ventilations doivent totaliser <bold><total></total></bold>. Actuellement <bold><amount></amount></bold> manquant.",
+      "over": "Les montants des ventilations doivent totaliser <bold><total></total></bold>. Actuellement <bold><amount></amount></bold> en trop."
     }
   },
   "splitDetail": {

@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/Table';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import type { YearNAnalysis } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface YearNAnalysisCardProps {
   analysis: YearNAnalysis;
@@ -19,7 +19,6 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
   targetYear,
 }) => {
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('realEstate');
   const buyAdvantage = analysis.netWorth > analysis.rentSavings;
   const minimumPriceAchievable = analysis.propertyValue >= analysis.minimumResalePrice;
@@ -67,31 +66,31 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
                 <TableRow>
                   <TableCell className="font-medium">{t('results.propertyValue')}</TableCell>
                   <TableCell className="text-right text-green-600">
-                    {formatCurrency(analysis.propertyValue, baseCurrency)}
+                    <ConvertedAmount amount={analysis.propertyValue} currency={baseCurrency} inline />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.remainingCapital')}</TableCell>
                   <TableCell className="text-right text-red-600">
-                    {formatCurrency(analysis.remainingCapital, baseCurrency)}
+                    <ConvertedAmount amount={analysis.remainingCapital} currency={baseCurrency} inline />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.netWorth')}</TableCell>
                   <TableCell className="text-right font-bold text-primary">
-                    {formatCurrency(analysis.netWorth, baseCurrency)}
+                    <ConvertedAmount amount={analysis.netWorth} currency={baseCurrency} inline />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.costsTotal')}</TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(analysis.totalCostsBuy, baseCurrency)}
+                    <ConvertedAmount amount={analysis.totalCostsBuy} currency={baseCurrency} inline />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.netExpense')}</TableCell>
                   <TableCell className="text-right text-red-600">
-                    {formatCurrency(analysis.netExpenseBuy, baseCurrency)}
+                    <ConvertedAmount amount={analysis.netExpenseBuy} currency={baseCurrency} inline />
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -102,10 +101,26 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
               <Alert variant="warning" className="mt-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  {t('results.resalePriceAlert', {
-                    minPrice: formatCurrency(analysis.minimumResalePrice, baseCurrency),
-                    propertyValue: formatCurrency(analysis.propertyValue, baseCurrency),
-                  })}
+                  <Trans
+                    t={t}
+                    i18nKey="results.resalePriceAlert"
+                    components={{
+                      minPrice: (
+                        <ConvertedAmount
+                          amount={analysis.minimumResalePrice}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      ),
+                      propertyValue: (
+                        <ConvertedAmount
+                          amount={analysis.propertyValue}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      ),
+                    }}
+                  />
                 </AlertDescription>
               </Alert>
             )}
@@ -114,9 +129,19 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
               <Alert variant="success" className="mt-4">
                 <TrendingUp className="h-4 w-4" />
                 <AlertDescription>
-                  {t('results.resalePriceSuccess', {
-                    profit: formatCurrency(analysis.propertyValue - analysis.minimumResalePrice, baseCurrency),
-                  })}
+                  <Trans
+                    t={t}
+                    i18nKey="results.resalePriceSuccess"
+                    components={{
+                      profit: (
+                        <ConvertedAmount
+                          amount={analysis.propertyValue - analysis.minimumResalePrice}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      ),
+                    }}
+                  />
                 </AlertDescription>
               </Alert>
             )}
@@ -137,25 +162,25 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
                 <TableRow>
                   <TableCell className="font-medium">{t('results.accumulatedSavings')}</TableCell>
                   <TableCell className="text-right font-bold text-green-600">
-                    {formatCurrency(analysis.rentSavings, baseCurrency)}
+                    <ConvertedAmount amount={analysis.rentSavings} currency={baseCurrency} inline />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.netWorth')}</TableCell>
                   <TableCell className="text-right font-bold text-warning">
-                    {formatCurrency(analysis.rentSavings, baseCurrency)}
+                    <ConvertedAmount amount={analysis.rentSavings} currency={baseCurrency} inline />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.costsTotal')}</TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(analysis.totalCostsRent, baseCurrency)}
+                    <ConvertedAmount amount={analysis.totalCostsRent} currency={baseCurrency} inline />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.netExpense')}</TableCell>
                   <TableCell className="text-right text-red-600">
-                    {formatCurrency(analysis.netExpenseRent, baseCurrency)}
+                    <ConvertedAmount amount={analysis.netExpenseRent} currency={baseCurrency} inline />
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -166,9 +191,19 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
               <Alert className="mt-4">
                 <TrendingUp className="h-4 w-4" />
                 <AlertDescription>
-                  {t('results.rentAdvantage', {
-                    savings: formatCurrency(analysis.netExpenseRent - analysis.netExpenseBuy, baseCurrency),
-                  })}
+                  <Trans
+                    t={t}
+                    i18nKey="results.rentAdvantage"
+                    components={{
+                      savings: (
+                        <ConvertedAmount
+                          amount={analysis.netExpenseRent - analysis.netExpenseBuy}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      ),
+                    }}
+                  />
                 </AlertDescription>
               </Alert>
             )}
@@ -189,7 +224,12 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
             <div>
               <p className="text-sm text-muted-foreground mb-2">{t('results.netWorthDifference')}</p>
               <p className={`text-2xl font-bold ${buyAdvantage ? 'text-primary' : 'text-warning'}`}>
-                {buyAdvantage ? '+' : ''}{formatCurrency(analysis.netWorth - analysis.rentSavings, baseCurrency)}
+                {buyAdvantage ? '+' : ''}
+                <ConvertedAmount
+                  amount={analysis.netWorth - analysis.rentSavings}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
               <p className="text-sm text-muted-foreground mt-1">
                 {t('results.inFavorOf', { scenario: buyAdvantage ? t('results.buyGenitive') : t('results.rentGenitive') })}
@@ -198,7 +238,11 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
             <div>
               <p className="text-sm text-muted-foreground mb-2">{t('results.expenseDifference')}</p>
               <p className={`text-2xl font-bold ${analysis.netExpenseBuy < analysis.netExpenseRent ? 'text-primary' : 'text-warning'}`}>
-                {formatCurrency(Math.abs(analysis.netExpenseBuy - analysis.netExpenseRent), baseCurrency)}
+                <ConvertedAmount
+                  amount={Math.abs(analysis.netExpenseBuy - analysis.netExpenseRent)}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
               <p className="text-sm text-muted-foreground mt-1">
                 {t('results.savedWith', { scenario: analysis.netExpenseBuy < analysis.netExpenseRent ? t('results.buyGenitive') : t('results.rentGenitive') })}
@@ -220,12 +264,30 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
       {/* Conclusion */}
       <Alert className={buyAdvantage ? 'border-primary' : 'border-warning'}>
         <AlertDescription className="text-center text-lg">
-          {t('results.conclusionYearN', {
-            year: targetYear,
-            winner: buyAdvantage ? t('results.buyGenitive') : t('results.rentGenitive'),
-            winnerAmount: formatCurrency(buyAdvantage ? analysis.netWorth : analysis.rentSavings, baseCurrency),
-            loserAmount: formatCurrency(buyAdvantage ? analysis.rentSavings : analysis.netWorth, baseCurrency),
-          })}
+          <Trans
+            t={t}
+            i18nKey="results.conclusionYearN"
+            values={{
+              year: targetYear,
+              winner: buyAdvantage ? t('results.buyGenitive') : t('results.rentGenitive'),
+            }}
+            components={{
+              winnerAmount: (
+                <ConvertedAmount
+                  amount={buyAdvantage ? analysis.netWorth : analysis.rentSavings}
+                  currency={baseCurrency}
+                  inline
+                />
+              ),
+              loserAmount: (
+                <ConvertedAmount
+                  amount={buyAdvantage ? analysis.rentSavings : analysis.netWorth}
+                  currency={baseCurrency}
+                  inline
+                />
+              ),
+            }}
+          />
         </AlertDescription>
       </Alert>
     </div>

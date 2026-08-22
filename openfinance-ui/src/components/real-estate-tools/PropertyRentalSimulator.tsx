@@ -16,7 +16,7 @@ import { ExpensesSection } from './InvestmentForm/ExpensesSection';
 import { RegimeComparisonGrid } from './RegimeComparisonGrid';
 import type { SharedPropertyData } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface PropertyRentalSimulatorProps {
   sharedData?: SharedPropertyData;
@@ -34,7 +34,6 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
   const [expensesOpen, setExpensesOpen] = React.useState(true);
   const [resultsCollapseCount, setResultsCollapseCount] = React.useState(0);
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
 
   const {
     inputs,
@@ -166,15 +165,22 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">{t('rentalSimulator.totalPrice')}</p>
-            <p className="font-semibold">{formatCurrency(inputs.property.totalPrice, baseCurrency)}</p>
+            <p className="font-semibold">
+              <ConvertedAmount amount={inputs.property.totalPrice} currency={baseCurrency} inline />
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t('rentalSimulator.monthlyRent')}</p>
-            <p className="font-semibold">{formatCurrency(inputs.revenue.monthlyRent, baseCurrency)}</p>
+            <p className="font-semibold">
+              <ConvertedAmount amount={inputs.revenue.monthlyRent} currency={baseCurrency} inline />
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t('rentalSimulator.creditPayment')}</p>
-            <p className="font-semibold">{formatCurrency(inputs.credit.monthlyPayment, baseCurrency)}/{t('comparison.perMonth')}</p>
+            <p className="font-semibold">
+              <ConvertedAmount amount={inputs.credit.monthlyPayment} currency={baseCurrency} inline />
+              /{t('comparison.perMonth')}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t('rentalSimulator.eligibleRegimes')}</p>

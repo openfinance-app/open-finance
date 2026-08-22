@@ -8,7 +8,7 @@
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
 import type { IAssetAllocation } from '@/types/dashboard';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
-import { PrivateAmount } from '../ui/PrivateAmount';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useVisibility } from '@/context/VisibilityContext';
 import { useTranslation } from 'react-i18next';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
@@ -41,7 +41,7 @@ const ASSET_TYPE_COLORS: Record<string, string> = {
 /**
  * Custom tooltip for treemap
  */
-const CustomTooltip = ({ active, payload, formatFn }: any) => {
+const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -50,9 +50,7 @@ const CustomTooltip = ({ active, payload, formatFn }: any) => {
           {data.typeName}
         </p>
         <p className="text-lg font-bold text-text-primary mb-1">
-          <PrivateAmount inline>
-            {formatFn(data.totalValue, data.currency)}
-          </PrivateAmount>
+          <ConvertedAmount amount={data.totalValue} currency={data.currency} inline />
         </p>
         <p className="text-sm text-text-secondary mb-1">
           {data.percentage}% of portfolio
@@ -182,7 +180,7 @@ export default function AssetAllocationChart({ allocations, currency: _currency 
             fill="#8884d8"
             content={<CustomContent isVisible={isAmountsVisible} formatFn={format} />}
           >
-            <Tooltip content={<CustomTooltip formatFn={format} />} />
+            <Tooltip content={<CustomTooltip />} />
           </Treemap>
         </ResponsiveContainer>
       </div>

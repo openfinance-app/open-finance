@@ -9,7 +9,7 @@
       "calculating": "Calculating...",
       "useActualData": {
         "title": "Use Your Actual Financial Data",
-        "description": "Current savings: {{savings}} • Avg. monthly expenses: {{expenses}}",
+        "description": "Current savings: <savings></savings> • Avg. monthly expenses: <expenses></expenses>",
         "button": "Use My Data"
       },
       "loadingData": "Loading your financial data...",
@@ -61,7 +61,7 @@
       "percentOfGoal": "{{pct}}% of goal",
       "targetAmount": {
         "title": "Target Amount",
-        "description": "For {{income}}/year income"
+        "description": "For <income></income>/year income"
       },
       "passiveIncome": {
         "title": "Passive Income",

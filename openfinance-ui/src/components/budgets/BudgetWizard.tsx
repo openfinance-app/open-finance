@@ -18,8 +18,8 @@ import {
   DialogTitle,
 } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAnalyzeBudgets, useBulkCreateBudgets } from '@/hooks/useBudgets';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import type {
   BudgetPeriod,
   BudgetSuggestion,
@@ -107,7 +107,6 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
   // ── hooks ───────────────────────────────────────────────────────────────────
   const analyzeMutation = useAnalyzeBudgets();
   const bulkCreateMutation = useBulkCreateBudgets();
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('budgets');
 
   const PERIOD_OPTIONS: { value: BudgetPeriod; label: string }[] = [
@@ -397,7 +396,9 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                             )}
                           </div>
                           <p className="text-xs text-text-secondary mt-0.5">
-                            {t('wizard.step2.avg')} {formatCurrency(s.averageSpent, s.currency)} /{' '}
+                            {t('wizard.step2.avg')}{' '}
+                            <ConvertedAmount amount={s.averageSpent} currency={s.currency} inline />{' '}
+                            /{' '}
                             {s.period.toLowerCase()} · {t('wizard.step2.transactions', { count: s.transactionCount })}
                           </p>
                         </div>
@@ -509,7 +510,8 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                   >
                     <span className="text-text-primary">{b.categoryName}</span>
                     <span className="text-text-secondary">
-                      {formatCurrency(b.amount, b.currency)} / {b.period.toLowerCase()}
+                      <ConvertedAmount amount={b.amount} currency={b.currency} inline /> /{' '}
+                      {b.period.toLowerCase()}
                     </span>
                   </div>
                 ))}

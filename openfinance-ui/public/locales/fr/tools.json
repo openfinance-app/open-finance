@@ -9,7 +9,7 @@
       "calculating": "Calcul en cours...",
       "useActualData": {
         "title": "Utiliser vos données financières réelles",
-        "description": "Épargne actuelle : {{savings}} • Dépenses mensuelles moyennes : {{expenses}}",
+        "description": "Épargne actuelle : <savings></savings> • Dépenses mensuelles moyennes : <expenses></expenses>",
         "button": "Utiliser mes données"
       },
       "loadingData": "Chargement de vos données financières...",
@@ -61,7 +61,7 @@
       "percentOfGoal": "{{pct}} % de l'objectif",
       "targetAmount": {
         "title": "Montant cible",
-        "description": "Pour un revenu de {{income}}/an"
+        "description": "Pour un revenu de <income></income>/an"
       },
       "passiveIncome": {
         "title": "Revenu passif",

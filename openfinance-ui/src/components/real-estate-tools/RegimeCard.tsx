@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableRow } from '@/components/ui/Table';
 import { getRegimeDisplayName, getRegimeDescription } from '@/utils/taxRegimeCalculations';
 import type { RegimeCalculationResult, TaxRegime } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useTranslation } from 'react-i18next';
 
 export interface RegimeCardProps {
@@ -33,7 +33,6 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
   onToggle,
 }) => {
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('realEstate');
   const isEligible = result.eligible;
   const hasWarnings = result.details.warnings.length > 0;
@@ -89,7 +88,11 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
             <div className="bg-muted/50 p-3 rounded">
               <p className="text-xs text-muted-foreground mb-1">{t('regimeCard.cashFlow')}</p>
               <p className={`text-lg font-bold ${result.performance.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(result.performance.monthlyCashFlow, baseCurrency)}
+                <ConvertedAmount
+                  amount={result.performance.monthlyCashFlow}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
               <p className="text-xs text-muted-foreground">{t('regimeCard.perMonth')}</p>
             </div>
@@ -118,20 +121,32 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                   <TableRow>
                     <TableCell className="py-1 text-sm">{t('regimeCard.totalPrice')}</TableCell>
                     <TableCell className="py-1 text-right font-medium">
-                      {formatCurrency(result.investment.totalPrice, baseCurrency)}
+                      <ConvertedAmount
+                        amount={result.investment.totalPrice}
+                        currency={baseCurrency}
+                        inline
+                      />
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="py-1 text-sm">{t('regimeCard.annualCreditCost')}</TableCell>
                     <TableCell className="py-1 text-right">
-                      {formatCurrency(result.investment.annualCreditCost, baseCurrency)}
+                      <ConvertedAmount
+                        amount={result.investment.annualCreditCost}
+                        currency={baseCurrency}
+                        inline
+                      />
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="py-1 text-sm">{t('regimeCard.monthlyPayment')}</TableCell>
-                  <TableCell className="py-1 text-right">
-                    {formatCurrency(result.investment.monthlyCreditPayment, baseCurrency)}
-                  </TableCell>
+                    <TableCell className="py-1 text-right">
+                      <ConvertedAmount
+                        amount={result.investment.monthlyCreditPayment}
+                        currency={baseCurrency}
+                        inline
+                      />
+                    </TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -148,20 +163,28 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                   <TableRow>
                     <TableCell className="py-1 text-sm">{t('regimeCard.gross')}</TableCell>
                     <TableCell className="py-1 text-right">
-                      {formatCurrency(result.revenue.gross, baseCurrency)}
+                      <ConvertedAmount amount={result.revenue.gross} currency={baseCurrency} inline />
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="py-1 text-sm">{t('regimeCard.deduction')}</TableCell>
                     <TableCell className="py-1 text-right text-red-600">
-                      -{formatCurrency(result.revenue.deduction, baseCurrency)}
+                      -<ConvertedAmount
+                        amount={Math.abs(result.revenue.deduction)}
+                        currency={baseCurrency}
+                        inline
+                      />
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="py-1 text-sm font-medium">{t('regimeCard.taxable')}</TableCell>
-                  <TableCell className="py-1 text-right font-medium">
-                    {formatCurrency(result.revenue.taxable, baseCurrency)}
-                  </TableCell>
+                    <TableCell className="py-1 text-right font-medium">
+                      <ConvertedAmount
+                        amount={result.revenue.taxable}
+                        currency={baseCurrency}
+                        inline
+                      />
+                    </TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -178,20 +201,32 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                   <TableRow>
                     <TableCell className="py-1 text-sm">{t('regimeCard.credit')}</TableCell>
                     <TableCell className="py-1 text-right">
-                      {formatCurrency(result.charges.credit, baseCurrency)}
+                      <ConvertedAmount
+                        amount={result.charges.credit}
+                        currency={baseCurrency}
+                        inline
+                      />
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="py-1 text-sm">{t('regimeCard.other')}</TableCell>
                     <TableCell className="py-1 text-right">
-                      {formatCurrency(result.charges.other, baseCurrency)}
+                      <ConvertedAmount
+                        amount={result.charges.other}
+                        currency={baseCurrency}
+                        inline
+                      />
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="py-1 text-sm font-medium">{t('regimeCard.total')}</TableCell>
-                  <TableCell className="py-1 text-right font-medium">
-                    {formatCurrency(result.charges.total, baseCurrency)}
-                  </TableCell>
+                    <TableCell className="py-1 text-right font-medium">
+                      <ConvertedAmount
+                        amount={result.charges.total}
+                        currency={baseCurrency}
+                        inline
+                      />
+                    </TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -208,20 +243,32 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                   <TableRow>
                     <TableCell className="py-1 text-sm">{t('regimeCard.incomeTax')}</TableCell>
                     <TableCell className="py-1 text-right">
-                      {formatCurrency(result.taxation.incomeTax, baseCurrency)}
+                      <ConvertedAmount
+                        amount={result.taxation.incomeTax}
+                        currency={baseCurrency}
+                        inline
+                      />
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="py-1 text-sm">{t('regimeCard.socialContributions')}</TableCell>
                     <TableCell className="py-1 text-right">
-                      {formatCurrency(result.taxation.socialContributions, baseCurrency)}
+                      <ConvertedAmount
+                        amount={result.taxation.socialContributions}
+                        currency={baseCurrency}
+                        inline
+                      />
                     </TableCell>
                   </TableRow>
                   <TableRow className="bg-muted/50">
                     <TableCell className="py-1 text-sm font-medium">{t('regimeCard.totalTaxes')}</TableCell>
-                  <TableCell className="py-1 text-right font-medium text-red-600">
-                    {formatCurrency(result.taxation.totalTaxes, baseCurrency)}
-                  </TableCell>
+                    <TableCell className="py-1 text-right font-medium text-red-600">
+                      <ConvertedAmount
+                        amount={result.taxation.totalTaxes}
+                        currency={baseCurrency}
+                        inline
+                      />
+                    </TableCell>
                 </TableRow>
               </TableBody>
             </Table>

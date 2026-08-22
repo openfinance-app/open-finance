@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useTranslation } from 'react-i18next';
 import type { BuyRentResults } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface YearlyTableProps {
   results: BuyRentResults;
@@ -14,7 +14,6 @@ export interface YearlyTableProps {
 
 export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('realEstate');
   const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
 
@@ -80,22 +79,30 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                           {year.year}
                         </div>
                       </TableCell>
-                      <TableCell>{formatCurrency(year.buy.annualCost, baseCurrency)}</TableCell>
-                      <TableCell>{formatCurrency(year.buy.cumulativeCost, baseCurrency)}</TableCell>
+                      <TableCell>
+                        <ConvertedAmount amount={year.buy.annualCost} currency={baseCurrency} inline />
+                      </TableCell>
+                      <TableCell>
+                        <ConvertedAmount amount={year.buy.cumulativeCost} currency={baseCurrency} inline />
+                      </TableCell>
                       <TableCell className="text-green-600">
-                        {formatCurrency(year.buy.propertyValue, baseCurrency)}
+                        <ConvertedAmount amount={year.buy.propertyValue} currency={baseCurrency} inline />
                       </TableCell>
                       <TableCell className="text-red-600">
-                        {formatCurrency(year.buy.remainingCapital, baseCurrency)}
+                        <ConvertedAmount amount={year.buy.remainingCapital} currency={baseCurrency} inline />
                       </TableCell>
                       <TableCell className={showWarning ? 'text-red-600 font-semibold' : ''}>
-                        {formatCurrency(year.buy.minimumResalePrice, baseCurrency)}
+                        <ConvertedAmount amount={year.buy.minimumResalePrice} currency={baseCurrency} inline />
                         {showWarning && ' ⚠️'}
                       </TableCell>
-                      <TableCell>{formatCurrency(year.rent.annualCost, baseCurrency)}</TableCell>
-                      <TableCell>{formatCurrency(year.rent.cumulativeCost, baseCurrency)}</TableCell>
+                      <TableCell>
+                        <ConvertedAmount amount={year.rent.annualCost} currency={baseCurrency} inline />
+                      </TableCell>
+                      <TableCell>
+                        <ConvertedAmount amount={year.rent.cumulativeCost} currency={baseCurrency} inline />
+                      </TableCell>
                       <TableCell className="text-green-600">
-                        {formatCurrency(year.rent.savings, baseCurrency)}
+                        <ConvertedAmount amount={year.rent.savings} currency={baseCurrency} inline />
                       </TableCell>
                     </TableRow>
 
@@ -106,39 +113,98 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                             <div>
                               <p className="font-medium text-muted-foreground">{t('yearlyTable.buyDetails')}</p>
                               <ul className="mt-2 space-y-1">
-                                <li>{t('yearlyTable.mortgage')}: {formatCurrency(year.buy.details.mortgage, baseCurrency)}</li>
-                                <li>{t('yearlyTable.insurance')}: {formatCurrency(year.buy.details.insurance, baseCurrency)}</li>
-                                <li>{t('yearlyTable.propertyTax')}: {formatCurrency(year.buy.details.propertyTax, baseCurrency)}</li>
-                                <li>{t('yearlyTable.coOwnershipCharges')}: {formatCurrency(year.buy.details.coOwnershipCharges, baseCurrency)}</li>
-                                <li>{t('yearlyTable.maintenance')}: {formatCurrency(year.buy.details.maintenance, baseCurrency)}</li>
+                                <li>
+                                  {t('yearlyTable.mortgage')}:{' '}
+                                  <ConvertedAmount amount={year.buy.details.mortgage} currency={baseCurrency} inline />
+                                </li>
+                                <li>
+                                  {t('yearlyTable.insurance')}:{' '}
+                                  <ConvertedAmount amount={year.buy.details.insurance} currency={baseCurrency} inline />
+                                </li>
+                                <li>
+                                  {t('yearlyTable.propertyTax')}:{' '}
+                                  <ConvertedAmount
+                                    amount={year.buy.details.propertyTax}
+                                    currency={baseCurrency}
+                                    inline
+                                  />
+                                </li>
+                                <li>
+                                  {t('yearlyTable.coOwnershipCharges')}:{' '}
+                                  <ConvertedAmount
+                                    amount={year.buy.details.coOwnershipCharges}
+                                    currency={baseCurrency}
+                                    inline
+                                  />
+                                </li>
+                                <li>
+                                  {t('yearlyTable.maintenance')}:{' '}
+                                  <ConvertedAmount
+                                    amount={year.buy.details.maintenance}
+                                    currency={baseCurrency}
+                                    inline
+                                  />
+                                </li>
                               </ul>
                             </div>
                             <div>
                               <p className="font-medium text-muted-foreground">{t('yearlyTable.netWorth')}</p>
                               <ul className="mt-2 space-y-1">
-                                <li>{t('yearlyTable.value')}: {formatCurrency(year.buy.propertyValue, baseCurrency)}</li>
-                                <li>{t('yearlyTable.capitalDue')}: {formatCurrency(year.buy.remainingCapital, baseCurrency)}</li>
+                                <li>
+                                  {t('yearlyTable.value')}:{' '}
+                                  <ConvertedAmount amount={year.buy.propertyValue} currency={baseCurrency} inline />
+                                </li>
+                                <li>
+                                  {t('yearlyTable.capitalDue')}:{' '}
+                                  <ConvertedAmount amount={year.buy.remainingCapital} currency={baseCurrency} inline />
+                                </li>
                                 <li className="font-semibold">
-                                  {t('yearlyTable.net')}: {formatCurrency(year.buy.propertyValue - year.buy.remainingCapital, baseCurrency)}
+                                  {t('yearlyTable.net')}:{' '}
+                                  <ConvertedAmount
+                                    amount={year.buy.propertyValue - year.buy.remainingCapital}
+                                    currency={baseCurrency}
+                                    inline
+                                  />
                                 </li>
                               </ul>
                             </div>
                             <div>
                               <p className="font-medium text-muted-foreground">{t('yearlyTable.rentDetails')}</p>
                               <ul className="mt-2 space-y-1">
-                                <li>{t('yearlyTable.rent')}: {formatCurrency(year.rent.annualCost * 0.8, baseCurrency)}</li>
-                                <li>{t('yearlyTable.charges')}: {formatCurrency(year.rent.annualCost * 0.2, baseCurrency)}</li>
-                                <li>{t('yearlyTable.total')}: {formatCurrency(year.rent.annualCost, baseCurrency)}</li>
+                                <li>
+                                  {t('yearlyTable.rent')}:{' '}
+                                  <ConvertedAmount
+                                    amount={year.rent.annualCost * 0.8}
+                                    currency={baseCurrency}
+                                    inline
+                                  />
+                                </li>
+                                <li>
+                                  {t('yearlyTable.charges')}:{' '}
+                                  <ConvertedAmount
+                                    amount={year.rent.annualCost * 0.2}
+                                    currency={baseCurrency}
+                                    inline
+                                  />
+                                </li>
+                                <li>
+                                  {t('yearlyTable.total')}:{' '}
+                                  <ConvertedAmount amount={year.rent.annualCost} currency={baseCurrency} inline />
+                                </li>
                               </ul>
                             </div>
                             <div>
                               <p className="font-medium text-muted-foreground">{t('yearlyTable.comparison')}</p>
                               <ul className="mt-2 space-y-1">
                                 <li>
-                                  {t('yearlyTable.difference')}: {formatCurrency(
-                                    (year.buy.propertyValue - year.buy.remainingCapital) - year.rent.savings,
-                                    baseCurrency
-                                  )}
+                                  {t('yearlyTable.difference')}:{' '}
+                                  <ConvertedAmount
+                                    amount={
+                                      year.buy.propertyValue - year.buy.remainingCapital - year.rent.savings
+                                    }
+                                    currency={baseCurrency}
+                                    inline
+                                  />
                                 </li>
                                 <li>
                                   {t('yearlyTable.advantage')}: {(year.buy.propertyValue - year.buy.remainingCapital) > year.rent.savings

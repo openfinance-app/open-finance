@@ -8,6 +8,13 @@ import { Button } from '../ui/Button';
 import { useLoanCalculator } from '../../hooks/useLoanCalculator';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useAuthContext } from '@/context/AuthContext';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/Tooltip';
 import {
   AreaChart,
   Area,
@@ -127,12 +134,29 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                 <div className="text-sm font-medium text-muted-foreground mb-1">
                   {t('loanCalculator.results.monthlyPayment', 'Monthly Payment')}
                 </div>
-                <div 
-                  className="text-3xl font-bold text-foreground truncate"
-                  title={formatCurrency(result.monthlyPayment, baseCurrency)}
-                >
-                  {formatCurrency(result.monthlyPayment, baseCurrency)}
-                </div>
+                <TooltipProvider delayDuration={150}>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <div className="text-3xl font-bold text-foreground truncate">
+                        <ConvertedAmount
+                          amount={result.monthlyPayment}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
+                      sideOffset={4}
+                    >
+                      <ConvertedAmount
+                        amount={result.monthlyPayment}
+                        currency={baseCurrency}
+                        inline
+                      />
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               </CardContent>
             </Card>
 
@@ -141,12 +165,29 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                 <div className="text-sm font-medium text-muted-foreground mb-1">
                   {t('loanCalculator.results.totalInterest', 'Total Interest')}
                 </div>
-                <div 
-                  className="text-2xl font-semibold text-foreground truncate"
-                  title={formatCurrency(result.totalInterest, baseCurrency)}
-                >
-                  {formatCurrency(result.totalInterest, baseCurrency)}
-                </div>
+                <TooltipProvider delayDuration={150}>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <div className="text-2xl font-semibold text-foreground truncate">
+                        <ConvertedAmount
+                          amount={result.totalInterest}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
+                      sideOffset={4}
+                    >
+                      <ConvertedAmount
+                        amount={result.totalInterest}
+                        currency={baseCurrency}
+                        inline
+                      />
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               </CardContent>
             </Card>
 
@@ -155,12 +196,29 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                 <div className="text-sm font-medium text-muted-foreground mb-1">
                   {t('loanCalculator.results.totalPayment', 'Total Payment')}
                 </div>
-                <div 
-                  className="text-2xl font-semibold text-foreground truncate"
-                  title={formatCurrency(result.totalPayment, baseCurrency)}
-                >
-                  {formatCurrency(result.totalPayment, baseCurrency)}
-                </div>
+                <TooltipProvider delayDuration={150}>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <div className="text-2xl font-semibold text-foreground truncate">
+                        <ConvertedAmount
+                          amount={result.totalPayment}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
+                      sideOffset={4}
+                    >
+                      <ConvertedAmount
+                        amount={result.totalPayment}
+                        currency={baseCurrency}
+                        inline
+                      />
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               </CardContent>
             </Card>
           </div>
@@ -263,10 +321,18 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                       return yearlyStats.map((stat) => (
                         <tr key={stat.year} className="hover:bg-muted/50 transition-colors">
                           <td className="px-4 py-3 font-medium text-foreground">{stat.year}</td>
-                          <td className="px-4 py-3 text-right">{formatCurrency(stat.payment, baseCurrency)}</td>
-                          <td className="px-4 py-3 text-right text-muted-foreground">{formatCurrency(stat.principal, baseCurrency)}</td>
-                          <td className="px-4 py-3 text-right text-red-600 dark:text-red-400">{formatCurrency(stat.interest, baseCurrency)}</td>
-                          <td className="px-4 py-3 text-right font-medium text-foreground">{formatCurrency(stat.balance, baseCurrency)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <ConvertedAmount amount={stat.payment} currency={baseCurrency} inline />
+                          </td>
+                          <td className="px-4 py-3 text-right text-muted-foreground">
+                            <ConvertedAmount amount={stat.principal} currency={baseCurrency} inline />
+                          </td>
+                          <td className="px-4 py-3 text-right text-red-600 dark:text-red-400">
+                            <ConvertedAmount amount={stat.interest} currency={baseCurrency} inline />
+                          </td>
+                          <td className="px-4 py-3 text-right font-medium text-foreground">
+                            <ConvertedAmount amount={stat.balance} currency={baseCurrency} inline />
+                          </td>
                         </tr>
                       ));
                     })()}

@@ -16,9 +16,10 @@ import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
 import { AccountSelector } from '@/components/ui/AccountSelector';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAuthContext } from '@/context/AuthContext';
 import { useActivePayees } from '@/hooks/usePayees';
-import { useLatestExchangeRate, useCurrencyFormat } from '@/hooks/useCurrency';
+import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { isValidDecimalString, multiply } from '@/utils/money';
 import type {
@@ -171,7 +172,6 @@ export function RecurringTransactionForm({
 
   // Currency conversion for preview
   const { data: exchangeRate } = useLatestExchangeRate(currency || DEFAULT_CURRENCY, baseCurrency || DEFAULT_CURRENCY);
-  const formatBaseCurrency = useCurrencyFormat(baseCurrency || DEFAULT_CURRENCY);
   const convertedAmount = amount && exchangeRate && currency !== baseCurrency ? multiply(Number(amount), exchangeRate.rate) : null;
 
   // Get payees for auto-fill logic
@@ -255,7 +255,9 @@ export function RecurringTransactionForm({
           />
           {convertedAmount !== null && (
             <p className="mt-1 text-xs text-text-secondary">
-              {t('form.approx')} {formatBaseCurrency(convertedAmount)} ({t('form.inBaseCurrency')})
+              {t('form.approx')}{' '}
+              <ConvertedAmount amount={convertedAmount} currency={baseCurrency || DEFAULT_CURRENCY} inline />{' '}
+              ({t('form.inBaseCurrency')})
             </p>
           )}
         </div>

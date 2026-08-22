@@ -5,10 +5,9 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-reac
 import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/Tooltip';
 import { useDailyCashFlow } from '../../hooks/useDashboard';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { subtract } from '@/utils/money';
-import { PrivateAmount } from '../ui/PrivateAmount';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import {
   format as formatDate,
   startOfMonth,
@@ -38,7 +37,6 @@ interface DailyCashFlowCalendarProps {
 const DailyCashFlowCalendar = ({ className, baseCurrency = DEFAULT_CURRENCY }: DailyCashFlowCalendarProps) => {
   const { t, i18n } = useTranslation('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { format } = useFormatCurrency();
 
   const locale = i18n.language === 'fr' ? fr : enUS;
 
@@ -286,9 +284,7 @@ const DailyCashFlowCalendar = ({ className, baseCurrency = DEFAULT_CURRENCY }: D
                           {t('calendar.income')}:
                         </span>
                         <span className="text-success font-medium text-right">
-                          <PrivateAmount inline>
-                            {format(income, baseCurrency)}
-                          </PrivateAmount>
+                          <ConvertedAmount amount={income} currency={baseCurrency} inline />
                         </span>
 
                         <span className="text-text-secondary flex items-center gap-1">
@@ -296,9 +292,7 @@ const DailyCashFlowCalendar = ({ className, baseCurrency = DEFAULT_CURRENCY }: D
                           {t('calendar.expense')}:
                         </span>
                         <span className="text-error font-medium text-right">
-                          <PrivateAmount inline>
-                            {format(expense, baseCurrency)}
-                          </PrivateAmount>
+                          <ConvertedAmount amount={expense} currency={baseCurrency} inline />
                         </span>
 
                         <span className="text-text-secondary font-medium pt-1 border-t mt-0.5">
@@ -314,10 +308,8 @@ const DailyCashFlowCalendar = ({ className, baseCurrency = DEFAULT_CURRENCY }: D
                               : 'text-text-secondary'
                           )}
                         >
-                          {net > 0 ? '+' : ''}
-                          <PrivateAmount inline>
-                            {format(net, baseCurrency)}
-                          </PrivateAmount>
+                          {net > 0 ? '+' : net < 0 ? '-' : ''}
+                          <ConvertedAmount amount={Math.abs(net)} currency={baseCurrency} inline />
                         </span>
                       </div>
                     </TooltipContent>

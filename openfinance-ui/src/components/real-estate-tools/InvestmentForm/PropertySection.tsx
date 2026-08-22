@@ -21,7 +21,7 @@ import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { useTranslation } from 'react-i18next';
 import type { InvestmentPropertyInputs, ValidationError, FurnishingType } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface PropertySectionProps {
   inputs: InvestmentPropertyInputs;
@@ -39,7 +39,6 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
   onToggle,
 }) => {
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) => errors.find(e => e.field === `property.${field}`)?.message;
@@ -106,7 +105,11 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
               <SelectContent>
                 {furnishingOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label} (+{formatCurrency(option.price, baseCurrency)})
+                    {option.label} (+<ConvertedAmount
+                      amount={option.price}
+                      currency={baseCurrency}
+                      inline
+                    />)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -137,7 +140,11 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
           <div className="pt-2 border-t">
             <p className="text-sm text-muted-foreground">{t('propertySection.totalInvestment')}</p>
             <p className="text-lg font-semibold text-primary">
-              {formatCurrency(inputs.totalPrice + inputs.furnitureValue, baseCurrency)}
+              <ConvertedAmount
+                amount={inputs.totalPrice + inputs.furnitureValue}
+                currency={baseCurrency}
+                inline
+              />
             </p>
           </div>
         </CardContent>

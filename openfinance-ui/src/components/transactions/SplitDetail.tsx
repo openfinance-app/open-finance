@@ -6,7 +6,7 @@
  * Each line shows a category pill, the optional description, and the amount (right-aligned).
  */
 import { useTranslation } from 'react-i18next';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { translateCategoryName } from '@/utils/categoryTranslation';
 import type { TransactionSplitResponse } from '@/types/transaction';
 
@@ -60,7 +60,6 @@ function CategorySplitPill({
  * Used inside TransactionItem when the user expands a split transaction (REQ-SPL-4.3).
  */
 export function SplitDetail({ splits, currency }: SplitDetailProps) {
-  const { format } = useFormatCurrency();
   const { t } = useTranslation('transactions');
   if (!splits || splits.length === 0) {
     return (
@@ -91,7 +90,7 @@ export function SplitDetail({ splits, currency }: SplitDetailProps) {
 
           {/* Right: amount */}
           <span className="font-mono text-sm text-text-primary shrink-0">
-            {format(split.amount, currency)}
+            <ConvertedAmount amount={split.amount} currency={currency} inline />
           </span>
         </li>
       ))}

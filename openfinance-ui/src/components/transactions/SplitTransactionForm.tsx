@@ -10,7 +10,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { CategorySelect } from '@/components/ui/CategorySelect';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import {
   fromMinorUnits,
   multiply,
@@ -63,7 +63,6 @@ export function SplitTransactionForm({
   exchangeRate,
 }: SplitTransactionFormProps) {
   const { t } = useTranslation('transactions');
-  const { format: formatCurrency } = useFormatCurrency();
   // Cap at 4 dp to mirror the backend split scale (@Digits(fraction = 4)); crypto's 8-dp display
   // precision is not usable for split line amounts.
   const decimals = Math.min(getCurrencyDecimals(currency), 4);
@@ -217,11 +216,15 @@ export function SplitTransactionForm({
       <div className="rounded-lg border border-border bg-surface-elevated p-3 text-sm">
         <div className="flex justify-between text-text-secondary">
           <span>{t('splitForm.transactionTotal')}</span>
-          <span className="font-mono">{formatCurrency(totalAmount, currency)}</span>
+          <span className="font-mono">
+            <ConvertedAmount amount={totalAmount} currency={currency} inline />
+          </span>
         </div>
         <div className="flex justify-between text-text-secondary mt-1">
           <span>{t('splitForm.splitTotal')}</span>
-          <span className="font-mono">{formatCurrency(splitTotal, currency)}</span>
+          <span className="font-mono">
+            <ConvertedAmount amount={splitTotal} currency={currency} inline />
+          </span>
         </div>
         <div
           className={`flex justify-between font-medium mt-1 pt-1 border-t border-border ${
@@ -234,12 +237,21 @@ export function SplitTransactionForm({
         >
           <span>{isValid ? t('splitForm.balanced') : remaining > 0 ? t('splitForm.remaining') : t('splitForm.overBy')}</span>
           <span className="font-mono">
-            {isValid ? '✓' : formatCurrency(Math.abs(remaining), currency)}
+            {isValid ? (
+              '✓'
+            ) : (
+              <ConvertedAmount amount={Math.abs(remaining)} currency={currency} inline />
+            )}
           </span>
         </div>
         {showConverted && (
           <div className="mt-1 text-right text-xs text-text-secondary font-mono">
-            ≈ {formatCurrency(multiply(splitTotal, exchangeRate as number), accountCurrency)}
+            ≈{' '}
+            <ConvertedAmount
+              amount={multiply(splitTotal, exchangeRate as number)}
+              currency={accountCurrency}
+              inline
+            />
           </div>
         )}
       </div>
@@ -255,11 +267,11 @@ export function SplitTransactionForm({
             <Trans
               t={t}
               i18nKey={remaining > 0 ? 'splitForm.validation.short' : 'splitForm.validation.over'}
-              values={{
-                total: formatCurrency(totalAmount, currency),
-                amount: formatCurrency(Math.abs(remaining), currency),
+              components={{
+                bold: <strong />,
+                total: <ConvertedAmount amount={totalAmount} currency={currency} inline />,
+                amount: <ConvertedAmount amount={Math.abs(remaining)} currency={currency} inline />,
               }}
-              components={{ bold: <strong /> }}
             />
           </span>
         </div>

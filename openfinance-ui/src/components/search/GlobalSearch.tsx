@@ -16,8 +16,8 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { Search, X, Clock, TrendingUp, Loader, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchWithDebounce } from '../../hooks/useSearch';
-import { useNumberFormat } from '../../context/NumberFormatContext';
-import { DEFAULT_CURRENCY, formatCurrency } from '@/utils/currency';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import type { SearchResult } from '../../types/search';
 import {
@@ -60,18 +60,6 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
     saveRecentSearch,
     getRecentSearches,
   } = useSearchWithDebounce();
-
-  // Get user's number format preference (e.g., '1,234.56', '1.234,56', '1 234,56')
-  const { numberFormat } = useNumberFormat();
-
-  // Format amount with currency symbol respecting user's number format preference
-  const formatAmount = (amount?: number, currencyCode?: string): string => {
-    if (amount === undefined || amount === null) return '';
-    return formatCurrency(amount, currencyCode || DEFAULT_CURRENCY, {
-      showSymbol: true,
-      numberFormat,
-    });
-  };
 
   const recentSearches = getRecentSearches();
 
@@ -327,7 +315,11 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
                               </div>
                               {result.amount !== undefined && (
                                 <span className="text-sm font-semibold text-text-primary whitespace-nowrap">
-                                  {formatAmount(result.amount, result.currency)}
+                                  <ConvertedAmount
+                                    amount={result.amount}
+                                    currency={result.currency || DEFAULT_CURRENCY}
+                                    inline
+                                  />
                                 </span>
                               )}
                             </div>

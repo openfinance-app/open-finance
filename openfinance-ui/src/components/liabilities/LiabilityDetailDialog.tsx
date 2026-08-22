@@ -16,6 +16,12 @@ import { useState } from 'react';
 import { CreditCard, RefreshCcw, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/Tooltip';
 import { cn } from '@/lib/utils';
 import { AmortizationSchedule } from '@/components/liabilities/AmortizationSchedule';
 import { LiabilityBreakdownPanel } from '@/components/liabilities/LiabilityBreakdownPanel';
@@ -23,7 +29,6 @@ import { AttachmentList, AttachmentUpload } from '@/components/attachments';
 import { AttachmentEntityType } from '@/types/attachment';
 import { multiply } from '@/utils/money';
 import { useAmortizationSchedule, useLiabilityBreakdown, useLiabilityTransactions } from '@/hooks/useLiabilities';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import type { Liability } from '@/types/liability';
 
 type DetailTab = 'overview' | 'schedule' | 'payments' | 'attachments';
@@ -45,7 +50,6 @@ interface LiabilityDetailDialogProps {
  */
 function TotalCostHero({ liability }: { liability: Liability }) {
   const { data: breakdown } = useLiabilityBreakdown(liability.id);
-  const { format: formatCurrency } = useFormatCurrency();
 
   if (!breakdown) return null;
 
@@ -85,32 +89,80 @@ function TotalCostHero({ liability }: { liability: Liability }) {
       {/* Breakdown bar */}
       <div className="flex rounded-full overflow-hidden h-3 mb-3">
         {totalPrincipal > 0 && (
-          <div
-            className="bg-primary transition-all"
-            style={{ width: `${(totalPrincipal / grandTotal) * 100}%` }}
-            title={`Principal: ${formatCurrency(totalPrincipal, liability.currency)}`}
-          />
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className="bg-primary transition-all"
+                  style={{ width: `${(totalPrincipal / grandTotal) * 100}%` }}
+                />
+              </TooltipTrigger>
+              <TooltipContent
+                className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
+                sideOffset={4}
+              >
+                Principal:{' '}
+                <ConvertedAmount amount={totalPrincipal} currency={liability.currency} inline />
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
         {totalInterest > 0 && (
-          <div
-            className="bg-warning transition-all"
-            style={{ width: `${(totalInterest / grandTotal) * 100}%` }}
-            title={`Interest: ${formatCurrency(totalInterest, liability.currency)}`}
-          />
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className="bg-warning transition-all"
+                  style={{ width: `${(totalInterest / grandTotal) * 100}%` }}
+                />
+              </TooltipTrigger>
+              <TooltipContent
+                className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
+                sideOffset={4}
+              >
+                Interest:{' '}
+                <ConvertedAmount amount={totalInterest} currency={liability.currency} inline />
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
         {totalInsurance > 0 && (
-          <div
-            className="bg-info transition-all"
-            style={{ width: `${(totalInsurance / grandTotal) * 100}%` }}
-            title={`Insurance: ${formatCurrency(totalInsurance, liability.currency)}`}
-          />
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className="bg-info transition-all"
+                  style={{ width: `${(totalInsurance / grandTotal) * 100}%` }}
+                />
+              </TooltipTrigger>
+              <TooltipContent
+                className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
+                sideOffset={4}
+              >
+                Insurance:{' '}
+                <ConvertedAmount amount={totalInsurance} currency={liability.currency} inline />
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
         {totalFees > 0 && (
-          <div
-            className="bg-error transition-all"
-            style={{ width: `${(totalFees / grandTotal) * 100}%` }}
-            title={`One-time Fee: ${formatCurrency(totalFees, liability.currency)}`}
-          />
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className="bg-error transition-all"
+                  style={{ width: `${(totalFees / grandTotal) * 100}%` }}
+                />
+              </TooltipTrigger>
+              <TooltipContent
+                className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
+                sideOffset={4}
+              >
+                One-time Fee:{' '}
+                <ConvertedAmount amount={totalFees} currency={liability.currency} inline />
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
       {/* Legend */}

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { YearlyProjection } from '../../types/calculator';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { cn } from '../../lib/utils';
 
 interface TimelineProjectionProps {
@@ -27,7 +27,6 @@ export function TimelineProjection({
   yearsToFreedom,
 }: TimelineProjectionProps) {
   const { t } = useTranslation();
-  const { format: formatCurrency } = useFormatCurrency();
   // Calculate progress percentage
   const calculateProgress = (savings: number) => {
     return Math.min((savings / targetAmount) * 100, 100);
@@ -65,13 +64,13 @@ export function TimelineProjection({
                   {projection.year === 0 ? t('timelineProjection.now') : `+${projection.year}`}
                 </td>
                 <td className="py-3 px-4 text-right text-text-primary font-medium">
-                  {formatCurrency(projection.endingBalance, currency)}
+                  <ConvertedAmount amount={projection.endingBalance} currency={currency} inline />
                 </td>
                 <td className="py-3 px-4 text-right text-text-secondary">
-                  {formatCurrency(projection.contributions, currency)}
+                  <ConvertedAmount amount={projection.contributions} currency={currency} inline />
                 </td>
                 <td className="py-3 px-4 text-right text-success">
-                  +{formatCurrency(projection.investmentReturns, currency)}
+                  +<ConvertedAmount amount={projection.investmentReturns} currency={currency} inline />
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">

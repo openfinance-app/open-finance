@@ -7,6 +7,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/Select';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useLiabilities, getLiabilityTypeName } from '@/hooks/useLiabilities';
 import { Loader2, Search, CreditCard } from 'lucide-react';
 import type { Liability } from '@/types/liability';
@@ -195,7 +196,12 @@ export function LiabilitySelector({
                                         <span className="text-sm truncate">{liability.name}</span>
                                     </span>
                                     <span className="text-xs text-text-muted shrink-0 whitespace-nowrap pt-0.5">
-                                        {liability.currency} {liability.currentBalance.toLocaleString()}
+                                        <ConvertedAmount
+                                            amount={liability.currentBalance}
+                                            currency={liability.currency}
+                                            inline
+                                            compact
+                                        />
                                     </span>
                                 </div>
                             </SelectItem>

@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/Select';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAccounts } from '@/hooks/useAccounts';
 import { Loader2, Search, Wallet } from 'lucide-react';
 import type { Account } from '@/types/account';
@@ -210,7 +211,12 @@ export function AccountSelector({
                   </span>
                   {account.balance !== undefined && (
                     <span className="text-xs text-text-muted shrink-0 whitespace-nowrap pt-0.5">
-                      {account.currency} {account.balance.toLocaleString()}
+                      <ConvertedAmount
+                        amount={account.balance}
+                        currency={account.currency}
+                        inline
+                        compact
+                      />
                     </span>
                   )}
                 </div>

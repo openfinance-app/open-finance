@@ -1,9 +1,8 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import type { ICashFlow } from '../../types/dashboard';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { PrivateAmount } from '../ui/PrivateAmount';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { useVisibility } from '../../context/VisibilityContext';
 
@@ -14,16 +13,14 @@ interface CashFlowChartProps {
 }
 
 // Custom tooltip
-const CustomTooltip = ({ active, payload, format, currency }: any) => {
+const CustomTooltip = ({ active, payload, currency }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
       <div className="bg-surface-elevated border border-border rounded-lg p-3 shadow-lg">
         <p className="text-text-primary font-semibold text-sm mb-1">{data.name}</p>
         <p className="text-primary font-mono text-sm">
-          <PrivateAmount inline>
-            {format(data.amount, currency)}
-          </PrivateAmount>
+          <ConvertedAmount amount={data.amount} currency={currency} inline />
         </p>
       </div>
     );
@@ -46,7 +43,6 @@ export default function CashFlowChart({
 }: CashFlowChartProps) {
   const { t } = useTranslation('dashboard');
   const { isAmountsVisible } = useVisibility();
-  const { format } = useFormatCurrency();
   // Prepare data for the chart
   const data = [
     {
@@ -80,10 +76,8 @@ export default function CashFlowChart({
         <div className={`text-2xl font-bold font-mono ${
           cashFlow.netCashFlow >= 0 ? 'text-green-500' : 'text-red-500'
         }`}>
-          {cashFlow.netCashFlow >= 0 ? '+' : ''}
-          <PrivateAmount inline>
-            {format(cashFlow.netCashFlow, currency)}
-          </PrivateAmount>
+          {cashFlow.netCashFlow >= 0 ? '+' : '-'}
+          <ConvertedAmount amount={Math.abs(cashFlow.netCashFlow)} currency={currency} inline />
         </div>
       </div>
 
@@ -110,9 +104,9 @@ export default function CashFlowChart({
                 return value.toString();
               }}
             />
-            <Tooltip 
-              content={<CustomTooltip format={format} currency={currency} />} 
-              cursor={{ fill: '#374151', opacity: 0.2 }} 
+            <Tooltip
+              content={<CustomTooltip currency={currency} />}
+              cursor={{ fill: '#374151', opacity: 0.2 }}
             />
             <Bar dataKey="amount" radius={[8, 8, 0, 0]} maxBarSize={100} />
           </BarChart>
@@ -124,17 +118,13 @@ export default function CashFlowChart({
         <div className="flex items-center justify-between">
           <span className="text-text-secondary">{t('cashFlowChart.income')}:</span>
           <span className="text-green-500 font-semibold font-mono">
-            <PrivateAmount inline>
-              {format(cashFlow.income, currency)}
-            </PrivateAmount>
+            <ConvertedAmount amount={cashFlow.income} currency={currency} inline />
           </span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-text-secondary">{t('cashFlowChart.expenses')}:</span>
           <span className="text-red-500 font-semibold font-mono">
-            <PrivateAmount inline>
-              {format(cashFlow.expenses, currency)}
-            </PrivateAmount>
+            <ConvertedAmount amount={cashFlow.expenses} currency={currency} inline />
           </span>
         </div>
       </div>

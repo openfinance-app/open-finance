@@ -20,8 +20,8 @@ import { AdvancedFilterPanel } from '@/components/search/AdvancedFilterPanel';
 import { SavedSearchesDropdown } from '@/components/search/SavedSearchesDropdown';
 import { SaveSearchDialog } from '@/components/search/SaveSearchDialog';
 import { useAdvancedSearch, useGlobalSearch, useSavedSearches } from '@/hooks/useSearch';
-import { useNumberFormat } from '@/context/NumberFormatContext';
-import { DEFAULT_CURRENCY, formatCurrency } from '@/utils/currency';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useLocale } from '@/context/LocaleContext';
 import {
@@ -45,9 +45,6 @@ export default function SearchResultsPage() {
 
   useDocumentTitle(queryParam ? `${t('common:search')}: ${queryParam}` : t('common:search'));
 
-  // Get user's number format preference (e.g., '1,234.56', '1.234,56', '1 234,56')
-  const { numberFormat } = useNumberFormat();
-
   // Localize raw enum subtitles returned by the backend for categories and budgets
   const localizeSubtitle = (result: SearchResult): string | undefined => {
     if (!result.subtitle) return result.subtitle;
@@ -58,15 +55,6 @@ export default function SearchResultsPage() {
       return t(`budgets:form.periods.${result.subtitle}`, result.subtitle);
     }
     return result.subtitle;
-  };
-
-  // Format amount with currency symbol respecting user's number format preference
-  const formatAmount = (amount?: number, currencyCode?: string): string => {
-    if (amount === undefined || amount === null) return '';
-    return formatCurrency(amount, currencyCode || DEFAULT_CURRENCY, {
-      showSymbol: true,
-      numberFormat,
-    });
   };
 
   // State
@@ -337,7 +325,6 @@ export default function SearchResultsPage() {
                         result={result}
                         query={query}
                         onClick={() => handleResultClick(result)}
-                        formatAmount={formatAmount}
                         localizeSubtitle={localizeSubtitle}
                       />
                     ))}
@@ -365,11 +352,10 @@ interface ResultCardProps {
   result: SearchResult;
   query: string;
   onClick: () => void;
-  formatAmount: (amount?: number, currencyCode?: string) => string;
   localizeSubtitle: (result: SearchResult) => string | undefined;
 }
 
-function ResultCard({ result, query, onClick, formatAmount, localizeSubtitle }: ResultCardProps) {
+function ResultCard({ result, query, onClick, localizeSubtitle }: ResultCardProps) {
   const { dateFnsLocale } = useLocale();
 
   const getIcon = (iconName: string) => {
@@ -405,7 +391,11 @@ function ResultCard({ result, query, onClick, formatAmount, localizeSubtitle }: 
           </h4>
           {result.amount !== undefined && result.amount !== null && (
             <span className="font-semibold text-text-primary flex-shrink-0">
-              {formatAmount(result.amount, result.currency)}
+              <ConvertedAmount
+                amount={result.amount}
+                currency={result.currency || DEFAULT_CURRENCY}
+                inline
+              />
             </span>
           )}
         </div>

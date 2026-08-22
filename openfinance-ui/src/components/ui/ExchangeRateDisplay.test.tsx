@@ -22,10 +22,25 @@ vi.mock('@/hooks/useCurrency', () => ({
   }),
 }));
 
-vi.mock('@/hooks/useFormatCurrency', () => ({
-  useFormatCurrency: () => ({
-    format: (amount: number, currency: string) => `${amount.toFixed(2)} ${currency}`,
-  }),
+vi.mock('@/components/ui/ConvertedAmount', () => ({
+  ConvertedAmount: ({
+    amount,
+    currency,
+    convertedAmount,
+    baseCurrency,
+  }: {
+    amount: number;
+    currency: string;
+    convertedAmount?: number;
+    baseCurrency?: string;
+  }) => (
+    <span data-testid="converted-amount">
+      {amount} {currency}
+      {convertedAmount !== undefined && convertedAmount !== null
+        ? ` ≈ ${convertedAmount} ${baseCurrency}`
+        : ''}
+    </span>
+  ),
 }));
 
 vi.mock('@/utils/currency', async (importOriginal) => {
@@ -132,8 +147,8 @@ describe('ExchangeRateDisplay', () => {
     renderWithProviders(
       <ExchangeRateDisplay from="USD" to="EUR" amount={100} compact />
     );
-    expect(screen.getByText(/100\.00 USD/)).toBeInTheDocument();
-    expect(screen.getByText(/85\.00 EUR/)).toBeInTheDocument();
+    expect(screen.getByText(/100 USD ≈ 85 EUR/)).toBeInTheDocument();
+    expect(screen.getByText(/1 USD = 0\.8500 EUR/)).toBeInTheDocument();
   });
 
   it('renders full mode with exchange rate info', async () => {
@@ -176,8 +191,8 @@ describe('ExchangeRateDisplay', () => {
     renderWithProviders(
       <ExchangeRateDisplay from="USD" to="EUR" amount={100} />
     );
-    expect(screen.getByText('100.00 USD')).toBeInTheDocument();
-    expect(screen.getByText('85.00 EUR')).toBeInTheDocument();
+    expect(screen.getByTestId('converted-amount')).toBeInTheDocument();
+    expect(screen.getByText('100 USD ≈ 85 EUR')).toBeInTheDocument();
   });
 
   it('renders refresh button when showRefresh is true in full mode', async () => {

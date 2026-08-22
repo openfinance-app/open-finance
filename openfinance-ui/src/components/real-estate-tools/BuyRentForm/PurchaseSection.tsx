@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { useTranslation } from 'react-i18next';
 import type { PurchaseInputs, ValidationError } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface PurchaseSectionProps {
   inputs: PurchaseInputs;
@@ -41,7 +41,6 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
   onToggle,
 }) => {
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) => errors.find(e => e.field === `purchase.${field}`)?.message;
@@ -142,7 +141,9 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
 
                 <div className="pt-2 border-t">
                   <p className="text-sm text-muted-foreground">{t('purchaseSection.totalPrice')}</p>
-                  <p className="text-lg font-semibold text-primary">{formatCurrency(derivedValues.totalPrice, baseCurrency)}</p>
+                  <p className="text-lg font-semibold text-primary">
+                    <ConvertedAmount amount={derivedValues.totalPrice} currency={baseCurrency} inline />
+                  </p>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -167,7 +168,12 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                     step={1000}
                   />
                   <p className="text-xs text-muted-foreground">
-                    {t('purchaseSection.minimumSuggested')} : {formatCurrency(derivedValues.minimumDownPayment, baseCurrency)}
+                    {t('purchaseSection.minimumSuggested')} :{' '}
+                    <ConvertedAmount
+                      amount={derivedValues.minimumDownPayment}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </p>
                   {getFieldError('downPayment') && (
                     <Alert variant="error" className="py-2">
@@ -178,7 +184,13 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
 
                 <div className="pt-2 border-t">
                   <p className="text-sm text-muted-foreground">{t('purchaseSection.borrowedAmount')}</p>
-                  <p className="text-lg font-semibold">{formatCurrency(derivedValues.borrowedAmount, baseCurrency)}</p>
+                  <p className="text-lg font-semibold">
+                    <ConvertedAmount
+                      amount={derivedValues.borrowedAmount}
+                      currency={baseCurrency}
+                      inline
+                    />
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -208,7 +220,14 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
 
                 <div className="pt-2 border-t bg-muted/50 p-2 rounded">
                   <p className="text-sm text-muted-foreground">{t('purchaseSection.monthlyPaymentExclInsurance')}</p>
-                  <p className="text-xl font-bold text-primary">{formatCurrency(derivedValues.monthlyPayment, baseCurrency)}{t('purchaseSection.perMonth')}</p>
+                  <p className="text-xl font-bold text-primary">
+                    <ConvertedAmount
+                      amount={derivedValues.monthlyPayment}
+                      currency={baseCurrency}
+                      inline
+                    />
+                    {t('purchaseSection.perMonth')}
+                  </p>
                 </div>
               </AccordionContent>
             </AccordionItem>

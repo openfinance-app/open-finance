@@ -11,7 +11,7 @@ import {
   ComposedChart,
 } from 'recharts';
 import { getCurrencySymbol } from '@/utils/currency';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import type { YearlyProjection } from '../../types/calculator';
 
 interface ProgressChartProps {
@@ -38,7 +38,6 @@ export function ProgressChart({
   currency,
   yearsToFreedom,
 }: ProgressChartProps) {
-  const { format: formatCurrency } = useFormatCurrency();
   // Prepare chart data
   const chartData = data.map((item) => ({
     year: item.year,
@@ -49,9 +48,6 @@ export function ProgressChart({
   }));
 
 
-
-  // Custom tooltip formatter
-  const formatValue = (value: number) => formatCurrency(value, currency);
 
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: {
@@ -66,7 +62,7 @@ export function ProgressChart({
           {payload.map((entry, index) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.dataKey === 'target' ? 'Target Amount: ' : `${entry.dataKey}: `}
-              {formatValue(entry.value)}
+              <ConvertedAmount amount={entry.value} currency={currency} inline />
             </p>
           ))}
         </div>

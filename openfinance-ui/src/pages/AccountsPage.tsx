@@ -23,8 +23,6 @@ import { AccountFilters } from '@/components/accounts/AccountFilters';
 import { AccountDetailModal } from '@/components/accounts/AccountDetailModal';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
-import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { add } from '@/utils/money';
 import {
@@ -55,7 +53,6 @@ function hasActiveFilters(filters: Filters): boolean {
 export default function AccountsPage() {
   const { t } = useTranslation('accounts');
   useDocumentTitle(t('title'));
-  const { format: formatCurrency } = useFormatCurrency();
   const [searchParams, setSearchParams] = useSearchParams();
   const lowBalanceParam = searchParams.get('lowBalance') === '1';
   const highlightId = searchParams.get('highlight') ? parseInt(searchParams.get('highlight')!) : null;
@@ -385,14 +382,19 @@ export default function AccountsPage() {
                   {isFiltered && filteredTotalsByCurrency[currency] && (
                     <div className="text-sm font-mono text-text-tertiary mt-0.5">
                       {t('filtered')}&nbsp;
-                      <PrivateAmount inline>
-                        {formatCurrency(filteredTotalsByCurrency[currency].nativeTotal, currency)}
-                      </PrivateAmount>
-                      {filteredTotalsByCurrency[currency].hasConversion && filteredTotalsByCurrency[currency].baseCurrencyTotal !== undefined && (
-                        <span className="ml-1 text-xs text-text-tertiary/70">
-                          ({formatCurrency(filteredTotalsByCurrency[currency].baseCurrencyTotal!, filteredTotalsByCurrency[currency].baseCurrency!)})
-                        </span>
-                      )}
+                      <ConvertedAmount
+                        className="text-sm font-mono text-text-tertiary"
+                        amount={filteredTotalsByCurrency[currency].nativeTotal}
+                        currency={currency}
+                        convertedAmount={
+                          filteredTotalsByCurrency[currency].hasConversion
+                            ? filteredTotalsByCurrency[currency].baseCurrencyTotal
+                            : undefined
+                        }
+                        baseCurrency={filteredTotalsByCurrency[currency].baseCurrency}
+                        isConverted={filteredTotalsByCurrency[currency].hasConversion}
+                        inline
+                      />
                       {allFilteredAccountsPage && allAccounts && (
                         <span className="ml-1">
                           {t('filteredCount', { filtered: allFilteredAccountsPage.totalElements, total: allAccounts.length })}

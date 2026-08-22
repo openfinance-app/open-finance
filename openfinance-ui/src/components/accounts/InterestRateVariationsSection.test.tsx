@@ -9,12 +9,6 @@ const useInterestEstimateMock = vi.fn();
 const createMutateMock = vi.fn();
 const deleteMutateMock = vi.fn();
 
-vi.mock('@/hooks/useFormatCurrency', () => ({
-  useFormatCurrency: () => ({
-    format: (amount: number, currency: string) => `${amount.toFixed(2)} ${currency}`,
-  }),
-}));
-
 vi.mock('@/hooks/useAccounts', () => ({
   useInterestRateVariations: (...args: unknown[]) => useInterestRateVariationsMock(...args),
   useCreateVariation: () => ({
@@ -65,7 +59,7 @@ describe('InterestRateVariationsSection', () => {
 
     expect(screen.getByText(/interest rate history|interest\.historyTitle/i)).toBeInTheDocument();
     expect(screen.getByText(/no interest rate variations|interest\.noVariations/i)).toBeInTheDocument();
-    expect(screen.getByText('120.00 USD')).toBeInTheDocument();
+    expect(screen.getByText('$120.00')).toBeInTheDocument();
   });
 
   it('creates a variation from dialog form submit', async () => {

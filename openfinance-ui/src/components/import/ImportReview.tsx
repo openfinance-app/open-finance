@@ -15,6 +15,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useTranslation } from 'react-i18next';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { CategoryCombobox } from '@/components/ui/CategorySelect';
@@ -33,7 +34,6 @@ import {
 } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
 import { useUserSettings, useBaseCurrency } from '@/hooks/useUserSettings';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { formatDate as globalFormatDate } from '@/utils/date';
 import { translateCategoryName } from '@/utils/categoryTranslation';
@@ -213,7 +213,6 @@ export function ImportReview({
   const { data: categories = [] } = useCategories();
   const { data: settings } = useUserSettings();
   const { data: baseCurrency = DEFAULT_CURRENCY } = useBaseCurrency();
-  const { format: formatCurrency } = useFormatCurrency();
 
   // -------------------------------------------------------------------------
   // Auto-expand rows that have validation errors on first load
@@ -846,9 +845,13 @@ export function ImportReview({
 
                         {/* Amount */}
                         <td className="py-2.5 px-4 text-sm text-right font-mono whitespace-nowrap">
-                          <span className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-500'}>
-                            {formatCurrency(transaction.amount, transaction.currency || baseCurrency)}
-                          </span>
+                           <span className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-500'}>
+                             <ConvertedAmount
+                               amount={transaction.amount}
+                               currency={transaction.currency || baseCurrency}
+                               inline
+                             />
+                           </span>
                         </td>
 
                          {/* Category */}
@@ -1020,9 +1023,13 @@ export function ImportReview({
                                             ? translateCategoryName(tCategories, split.category)
                                             : '—'}
                                         </span>
-                                       <span className="font-mono text-text-primary whitespace-nowrap">
-                                         {formatCurrency(split.amount, transaction.currency || baseCurrency)}
-                                       </span>
+                                        <span className="font-mono text-text-primary whitespace-nowrap">
+                                          <ConvertedAmount
+                                            amount={split.amount}
+                                            currency={transaction.currency || baseCurrency}
+                                            inline
+                                          />
+                                        </span>
                                        {split.memo && (
                                          <span className="text-text-tertiary text-xs truncate max-w-[160px]">
                                            {split.memo}

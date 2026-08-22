@@ -48,13 +48,6 @@ vi.mock('@/components/ui/CategorySelect', () => ({
   ),
 }));
 
-vi.mock('@/utils/format', () => ({
-  formatCurrency: vi.fn((amount: number, currency: string) => {
-    const symbol = currency === 'USD' ? '$' : '€';
-    return `${symbol}${amount.toFixed(2)}`;
-  }),
-}));
-
 // ── Mock hooks ────────────────────────────────────────────────────────────────
 
 vi.mock('@/hooks/useTransactions', async (importOriginal) => {

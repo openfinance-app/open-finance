@@ -5,7 +5,7 @@ import { useCashflowSankey } from '../../hooks/useDashboard';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { sum } from '@/utils/money';
-import { PrivateAmount } from '../ui/PrivateAmount';
+import { ConvertedAmount } from '../ui/ConvertedAmount';
 import { useVisibility } from '../../context/VisibilityContext';
 import type { ICashflowSankeyNode } from '../../types/dashboard';
 import type { DateRange } from '../ui/PeriodSelector';
@@ -313,17 +313,13 @@ export default function CashflowSankeyCard({
         <div className="flex-1 bg-success/10 rounded px-3 py-1.5 text-center">
           <div className="text-xs text-text-secondary mb-0.5">{t('cashflowSankey.income')}</div>
           <div className="text-sm font-bold text-success font-mono">
-            <PrivateAmount inline>
-              {format(data.totalIncome, currency)}
-            </PrivateAmount>
+            <ConvertedAmount amount={data.totalIncome} currency={currency} inline />
           </div>
         </div>
         <div className="flex-1 bg-error/10 rounded px-3 py-1.5 text-center">
           <div className="text-xs text-text-secondary mb-0.5">{t('cashflowSankey.expenses')}</div>
           <div className="text-sm font-bold text-error font-mono">
-            <PrivateAmount inline>
-              {format(data.totalExpenses, currency)}
-            </PrivateAmount>
+            <ConvertedAmount amount={data.totalExpenses} currency={currency} inline />
           </div>
         </div>
         <div
@@ -332,10 +328,8 @@ export default function CashflowSankeyCard({
         >
           <div className="text-xs text-text-secondary mb-0.5">{hasSurplus ? t('cashflowSankey.surplus') : t('cashflowSankey.deficit')}</div>
           <div className="text-sm font-bold font-mono" style={{ color: surplusColor }}>
-            {hasSurplus ? '+' : ''}
-            <PrivateAmount inline>
-              {format(data.surplus, currency)}
-            </PrivateAmount>
+            {hasSurplus ? '+' : '-'}
+            <ConvertedAmount amount={Math.abs(data.surplus)} currency={currency} inline />
           </div>
         </div>
       </div>

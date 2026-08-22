@@ -14,11 +14,10 @@ import {
 import { useTranslation } from 'react-i18next';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useYearlyBalance } from '@/hooks/useDashboard';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { divide, sum } from '@/utils/money';
 import { useVisibility } from '@/context/VisibilityContext';
-import { PrivateAmount } from '@/components/ui/PrivateAmount';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 
 type ViewMode = 'netWorth' | 'account' | 'institution';
@@ -36,12 +35,10 @@ interface BalanceVariationCardProps {
 const CustomTooltip = ({
   active,
   payload,
-  format,
   currency,
 }: {
   active?: boolean;
   payload?: { payload: { year: number; amount: number; variationPercentage: number | null } }[];
-  format: (amount: number, currency?: string | null) => string;
   currency: string;
 }) => {
   if (active && payload && payload.length) {
@@ -50,7 +47,7 @@ const CustomTooltip = ({
       <div className="bg-surface-elevated border border-border rounded-lg p-3 shadow-lg">
         <p className="text-text-primary font-semibold text-sm mb-1">{data.year}</p>
         <p className="text-primary font-mono text-sm">
-          <PrivateAmount inline>{format(data.amount, currency)}</PrivateAmount>
+          <ConvertedAmount amount={data.amount} currency={currency} inline />
         </p>
         {data.variationPercentage != null && (
           <p
@@ -70,7 +67,6 @@ const CustomTooltip = ({
 
 export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: BalanceVariationCardProps) {
   const { t } = useTranslation('dashboard');
-  const { format } = useFormatCurrency();
   const { isAmountsVisible } = useVisibility();
   const { data: yearlyData, isLoading, error } = useYearlyBalance();
 
@@ -241,7 +237,7 @@ export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: Ba
                 }}
               />
               <Tooltip
-                content={<CustomTooltip format={format} currency={effectiveCurrency} />}
+                content={<CustomTooltip currency={effectiveCurrency} />}
                 cursor={{ fill: '#374151', opacity: 0.2 }}
               />
               <Bar dataKey="amount" radius={[8, 8, 0, 0]} maxBarSize={60}>
@@ -285,7 +281,7 @@ export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: Ba
                 }}
               />
               <Tooltip
-                content={<CustomTooltip format={format} currency={effectiveCurrency} />}
+                content={<CustomTooltip currency={effectiveCurrency} />}
                 cursor={{ stroke: '#374151', strokeDasharray: '3 3' }}
               />
               <Line
@@ -311,7 +307,7 @@ export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: Ba
             >
               <div className="text-text-secondary font-medium">{d.year}</div>
               <div className="text-text-primary font-mono font-semibold truncate">
-                <PrivateAmount inline>{format(d.amount, effectiveCurrency)}</PrivateAmount>
+                <ConvertedAmount amount={d.amount} currency={effectiveCurrency} inline />
               </div>
               {d.variationPercentage != null && (
                 <div

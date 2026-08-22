@@ -19,6 +19,10 @@ vi.mock('@/utils/selectClickGuard', () => ({
   markSelectInteraction: vi.fn(),
 }));
 
+vi.mock('@/components/ui/ConvertedAmount', () => ({
+  ConvertedAmount: () => <span data-testid="converted-amount" />,
+}));
+
 import { AccountSelector } from './AccountSelector';
 import { useAccounts } from '@/hooks/useAccounts';
 

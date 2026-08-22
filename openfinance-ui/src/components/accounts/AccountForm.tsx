@@ -21,9 +21,9 @@ import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { InstitutionSelector } from '@/components/ui/InstitutionSelector';
 import { Switch } from '@/components/ui/Switch';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAuthContext } from '@/context/AuthContext';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { add, divide, isValidDecimalString, multiply, percentage, pow, subtract } from '@/utils/money';
 import type { Account, AccountRequest, AccountType, InterestPeriod } from '@/types/account';
@@ -82,7 +82,6 @@ function calcInterestPreview(
 export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAccountNames = [] }: AccountFormProps) {
   const isEditing = !!account;
   const { baseCurrency } = useAuthContext();
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('accounts');
 
   const accountSchema = useMemo(() => z.object({
@@ -312,7 +311,8 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
           />
           {convertedAmount !== undefined && (
             <p className="text-xs text-text-secondary mt-1">
-              ≈ {formatCurrency(convertedAmount, baseCurrency)}
+              ≈{' '}
+              <ConvertedAmount amount={convertedAmount} currency={baseCurrency} inline />
             </p>
           )}
         </div>
@@ -434,19 +434,34 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
                       <div className="bg-surface rounded-lg p-2">
                         <p className="text-xs text-text-secondary mb-0.5">{t('form.grossInterest')}</p>
                         <p className="text-sm font-semibold font-mono text-success">
-                          +{formatCurrency(interestPreview.grossInterest, selectedCurrency)}
+                          +
+                          <ConvertedAmount
+                            amount={interestPreview.grossInterest}
+                            currency={selectedCurrency}
+                            inline
+                          />
                         </p>
                       </div>
                       <div className="bg-surface rounded-lg p-2">
                         <p className="text-xs text-text-secondary mb-0.5">{t('form.taxDeduction')}</p>
                         <p className="text-sm font-semibold font-mono text-error">
-                          -{formatCurrency(interestPreview.taxAmount, selectedCurrency)}
+                          -
+                          <ConvertedAmount
+                            amount={Math.abs(interestPreview.taxAmount)}
+                            currency={selectedCurrency}
+                            inline
+                          />
                         </p>
                       </div>
                       <div className="bg-surface rounded-lg p-2 border border-primary/30">
                         <p className="text-xs text-text-secondary mb-0.5">{t('form.netEarnings')}</p>
                         <p className="text-sm font-bold font-mono text-primary">
-                          +{formatCurrency(interestPreview.netInterest, selectedCurrency)}
+                          +
+                          <ConvertedAmount
+                            amount={interestPreview.netInterest}
+                            currency={selectedCurrency}
+                            inline
+                          />
                         </p>
                         {initialBalanceNumeric > 0 && (
                           <p className="text-xs font-medium text-primary/70 mt-0.5">
@@ -456,7 +471,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
                       </div>
                     </div>
                     <p className="text-xs text-text-muted mt-2 text-center">
-                      Based on {formatCurrency(initialBalanceNumeric, selectedCurrency)} balance · {interestRate}% {t(`form.periods.${interestPeriod}`)} compounding
+                      Based on <ConvertedAmount amount={initialBalanceNumeric} currency={selectedCurrency} inline /> balance · {interestRate}% {t(`form.periods.${interestPeriod}`)} compounding
                       {taxRate > 0 ? ` · ${taxRate}% tax` : ''}
                     </p>
                   </div>

@@ -8,8 +8,7 @@ import { useState } from 'react';
 import { Download, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { PrivateAmount } from '@/components/ui/PrivateAmount';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import type { AmortizationSchedule as AmortizationScheduleType } from '@/types/liability';
 interface AmortizationScheduleProps {
   schedule: AmortizationScheduleType;
@@ -19,7 +18,6 @@ interface AmortizationScheduleProps {
 type FilterOption = 'all' | '12' | '24';
 
 export function AmortizationSchedule({ schedule, onClose }: AmortizationScheduleProps) {
-  const { format: formatCurrency } = useFormatCurrency();
   const { t, i18n } = useTranslation('liabilities');
   const { t: tc } = useTranslation('common');
   const [filterOption, setFilterOption] = useState<FilterOption>('all');
@@ -99,9 +97,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
           <div>
             <div className="text-text-secondary mb-1">{t('amortization.col.principal')}</div>
             <div className="font-semibold text-text-primary">
-              <PrivateAmount inline>
-                {formatCurrency(schedule.principal, schedule.currency)}
-              </PrivateAmount>
+              <ConvertedAmount amount={schedule.principal} currency={schedule.currency} inline />
             </div>
           </div>
           <div>
@@ -113,9 +109,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
           <div>
             <div className="text-text-secondary mb-1">{t('amortization.monthlyPayment')}</div>
             <div className="font-semibold text-text-primary">
-              <PrivateAmount inline>
-                {formatCurrency(schedule.monthlyPayment, schedule.currency)}
-              </PrivateAmount>
+              <ConvertedAmount amount={schedule.monthlyPayment} currency={schedule.currency} inline />
             </div>
           </div>
           <div>
@@ -127,17 +121,13 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
           <div>
             <div className="text-text-secondary mb-1">{t('amortization.totalInterest')}</div>
             <div className="font-semibold text-warning">
-              <PrivateAmount inline>
-                {formatCurrency(schedule.totalInterest, schedule.currency)}
-              </PrivateAmount>
+              <ConvertedAmount amount={schedule.totalInterest} currency={schedule.currency} inline />
             </div>
           </div>
           <div>
             <div className="text-text-secondary mb-1">{t('amortization.totalAmount')}</div>
             <div className="font-semibold text-text-primary">
-              <PrivateAmount inline>
-                {formatCurrency(schedule.totalAmount, schedule.currency)}
-              </PrivateAmount>
+              <ConvertedAmount amount={schedule.totalAmount} currency={schedule.currency} inline />
             </div>
           </div>
           <div>
@@ -245,15 +235,19 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                     })}
                   </td>
                   <td className="py-3 px-4 text-sm font-mono text-right text-text-primary">
-                    <PrivateAmount inline>
-                      {formatCurrency(payment.paymentAmount, schedule.currency)}
-                    </PrivateAmount>
+                    <ConvertedAmount
+                      amount={payment.paymentAmount}
+                      currency={schedule.currency}
+                      inline
+                    />
                   </td>
                   <td className="py-3 px-4 text-right">
                     <div className="text-sm font-mono text-success">
-                      <PrivateAmount inline>
-                        {formatCurrency(payment.principalPayment, schedule.currency)}
-                      </PrivateAmount>
+                      <ConvertedAmount
+                        amount={payment.principalPayment}
+                        currency={schedule.currency}
+                        inline
+                      />
                     </div>
                     <div className="text-xs text-text-tertiary">
                       {principalPercent.toFixed(1)}%
@@ -261,18 +255,22 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                   </td>
                   <td className="py-3 px-4 text-right">
                     <div className="text-sm font-mono text-warning">
-                      <PrivateAmount inline>
-                        {formatCurrency(payment.interestPayment, schedule.currency)}
-                      </PrivateAmount>
+                      <ConvertedAmount
+                        amount={payment.interestPayment}
+                        currency={schedule.currency}
+                        inline
+                      />
                     </div>
                     <div className="text-xs text-text-tertiary">
                       {interestPercent.toFixed(1)}%
                     </div>
                   </td>
                   <td className="py-3 px-4 text-sm font-mono text-right text-text-secondary">
-                    <PrivateAmount inline>
-                      {formatCurrency(payment.remainingBalance, schedule.currency)}
-                    </PrivateAmount>
+                    <ConvertedAmount
+                      amount={payment.remainingBalance}
+                      currency={schedule.currency}
+                      inline
+                    />
                   </td>
                 </tr>
               );
@@ -332,9 +330,11 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-mono font-medium text-text-primary">
-                    <PrivateAmount inline>
-                      {formatCurrency(payment.paymentAmount, schedule.currency)}
-                    </PrivateAmount>
+                    <ConvertedAmount
+                      amount={payment.paymentAmount}
+                      currency={schedule.currency}
+                      inline
+                    />
                   </div>
                    <div className="text-xs text-text-secondary">{t('amortization.totalPayment')}</div>                </div>
               </div>
@@ -344,9 +344,11 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                 <div>
                   <div className="text-xs text-text-secondary mb-1">{t('amortization.col.principal')}</div>
                   <div className="text-sm font-mono text-success">
-                    <PrivateAmount inline>
-                      {formatCurrency(payment.principalPayment, schedule.currency)}
-                    </PrivateAmount>
+                    <ConvertedAmount
+                      amount={payment.principalPayment}
+                      currency={schedule.currency}
+                      inline
+                    />
                   </div>
                   <div className="text-xs text-text-tertiary">
                     {principalPercent.toFixed(1)}%
@@ -355,9 +357,11 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                 <div>
                   <div className="text-xs text-text-secondary mb-1">{t('amortization.col.interest')}</div>
                   <div className="text-sm font-mono text-warning">
-                    <PrivateAmount inline>
-                      {formatCurrency(payment.interestPayment, schedule.currency)}
-                    </PrivateAmount>
+                    <ConvertedAmount
+                      amount={payment.interestPayment}
+                      currency={schedule.currency}
+                      inline
+                    />
                   </div>
                   <div className="text-xs text-text-tertiary">
                     {interestPercent.toFixed(1)}%
@@ -369,9 +373,11 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
               <div className="pt-2 border-t border-border">
                 <div className="text-xs text-text-secondary mb-1">{t('amortization.remainingBalance')}</div>
                 <div className="text-sm font-mono text-text-primary">
-                  <PrivateAmount inline>
-                    {formatCurrency(payment.remainingBalance, schedule.currency)}
-                  </PrivateAmount>
+                  <ConvertedAmount
+                    amount={payment.remainingBalance}
+                    currency={schedule.currency}
+                    inline
+                  />
                 </div>
               </div>
             </div>

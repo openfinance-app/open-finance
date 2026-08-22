@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { useFinancialFreedom } from '../../hooks/useFinancialFreedom';
 import { useUserFinancialData } from '../../hooks/useUserFinancialData';
 import { useAuthContext } from '@/context/AuthContext';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 
 import { Input } from '../ui/Input';
@@ -149,7 +149,6 @@ function CalculatorInputForm({
   userDataError,
   onUseActualData,
 }: CalculatorInputFormProps) {
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('tools');
   return (
     <div className="space-y-6">
@@ -170,10 +169,26 @@ function CalculatorInputForm({
                   {t('financialFreedom.calculator.useActualData.title')}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {t('financialFreedom.calculator.useActualData.description', {
-                    savings: formatCurrency(userData.totalSavings, userData.currency || currency),
-                    expenses: formatCurrency(userData.averageMonthlyExpenses, userData.currency || currency),
-                  })}
+                  <Trans
+                    t={t}
+                    i18nKey="financialFreedom.calculator.useActualData.description"
+                    components={{
+                      savings: (
+                        <ConvertedAmount
+                          amount={userData.totalSavings}
+                          currency={userData.currency || currency}
+                          inline
+                        />
+                      ),
+                      expenses: (
+                        <ConvertedAmount
+                          amount={userData.averageMonthlyExpenses}
+                          currency={userData.currency || currency}
+                          inline
+                        />
+                      ),
+                    }}
+                  />
                 </p>
               </div>
               <Button
@@ -370,7 +385,6 @@ function CalculatorInputForm({
  * Freedom results display
  */
 function FreedomResults({ result, longevityResult, currency }: { result: any; longevityResult?: any; currency: string }) {
-  const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('tools');
   const yearsToFreedom = result.yearsToFreedom;
 
@@ -501,8 +515,12 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
         <CardContent>
           <div className="space-y-4">
             <div className="flex justify-between text-sm">
-              <span>{formatCurrency(result.currentProgress, currency)}</span>
-              <span>{formatCurrency(result.targetSavingsAmount, currency)}</span>
+              <span>
+                <ConvertedAmount amount={result.currentProgress} currency={currency} inline />
+              </span>
+              <span>
+                <ConvertedAmount amount={result.targetSavingsAmount} currency={currency} inline />
+              </span>
             </div>
             <Progress value={result.progressPercentage} className="h-3" />
             <p className="text-center text-sm text-muted-foreground">
@@ -520,10 +538,22 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {formatCurrency(result.targetSavingsAmount, currency)}
+              <ConvertedAmount amount={result.targetSavingsAmount} currency={currency} inline />
             </p>
             <p className="text-xs text-muted-foreground">
-              {t('financialFreedom.results.targetAmount.description', { income: formatCurrency(result.annualPassiveIncome, currency) })}
+              <Trans
+                t={t}
+                i18nKey="financialFreedom.results.targetAmount.description"
+                components={{
+                  income: (
+                    <ConvertedAmount
+                      amount={result.annualPassiveIncome}
+                      currency={currency}
+                      inline
+                    />
+                  ),
+                }}
+              />
             </p>
           </CardContent>
         </Card>
@@ -534,7 +564,8 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {formatCurrency(result.annualPassiveIncome, currency)}/yr
+              <ConvertedAmount amount={result.annualPassiveIncome} currency={currency} inline />
+              /yr
             </p>
             <p className="text-xs text-muted-foreground">
               {t('financialFreedom.results.passiveIncome.description', { rate: result.withdrawalRate ?? 4 })}

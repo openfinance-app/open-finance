@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { Sparkles, X, Scissors } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { TagInput } from './TagInput';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
 import { CategorySelect } from '@/components/ui/CategorySelect';
@@ -30,7 +31,6 @@ import { DEFAULT_CURRENCY, getCurrencyDecimals } from '@/utils/currency';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
-import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { multiply, roundToDecimals, sumToDecimals } from '@/utils/money';
 
 const optionalNumber = z.preprocess((value) => {
@@ -211,7 +211,6 @@ export function TransactionForm({
 
   const inputCurrency = watch('currency');
   const amountValue = watch('amount');
-  const { format: formatCurrency } = useFormatCurrency();
 
   const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
   const accountCurrency = selectedAccount?.currency ?? DEFAULT_CURRENCY;
@@ -453,7 +452,8 @@ export function TransactionForm({
           />
           {convertedPreview !== undefined && (
             <p className="text-xs text-text-secondary mt-1">
-              ≈ {formatCurrency(convertedPreview, accountCurrency)}
+              ≈{' '}
+              <ConvertedAmount amount={convertedPreview} currency={accountCurrency} inline />
             </p>
           )}
         </div>
