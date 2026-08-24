@@ -3,8 +3,11 @@ package org.openfinance.service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +34,7 @@ import org.openfinance.specification.AssetSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -497,58 +501,77 @@ public class AssetService {
 
         boolean hasKeyword =
                 criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty();
+        boolean hasValueFilter =
+                criteria.getValueMin() != null || criteria.getValueMax() != null;
+        boolean sortInMemory =
+                pageable.getSort().stream()
+                        .anyMatch(order -> IN_MEMORY_ASSET_SORT_FIELDS.contains(order.getProperty()));
 
-        if (hasKeyword) {
-            // Since the name field is encrypted at rest, LIKE queries on the DB cannot
-            // match decrypted keywords. Fetch all assets matching non-keyword criteria,
-            // decrypt them, then filter by keyword in memory before applying pagination.
-            AssetSearchCriteria criteriaWithoutKeyword =
-                    AssetSearchCriteria.builder()
-                            .type(criteria.getType())
-                            .accountId(criteria.getAccountId())
-                            .currency(criteria.getCurrency())
-                            .symbol(criteria.getSymbol())
-                            .purchaseDateFrom(criteria.getPurchaseDateFrom())
-                            .purchaseDateTo(criteria.getPurchaseDateTo())
-                            .valueMin(criteria.getValueMin())
-                            .valueMax(criteria.getValueMax())
-                            .build();
-
-            Specification<Asset> specWithoutKeyword =
-                    AssetSpecification.buildSpecification(userId, criteriaWithoutKeyword);
-            List<Asset> allMatching = assetRepository.findAll(specWithoutKeyword);
-
-            boolean keywordRegex = criteria.isKeywordRegex();
-            List<AssetResponse> filtered =
-                    allMatching.stream()
+        if (hasKeyword || hasValueFilter || sortInMemory) {
+            // Name is encrypted and total value is quantity (also encrypted) * currentPrice, so
+            // keyword/value filtering and value/name sorting cannot run at the DB level. Fetch all
+            // assets matching the non-encrypted criteria, decrypt, then filter/sort/paginate here.
+            Specification<Asset> spec = AssetSpecification.buildSpecification(userId, criteria);
+            List<AssetResponse> results =
+                    assetRepository.findAll(spec).stream()
                             .map(asset -> toResponseWithDecryption(asset))
-                            .filter(
-                                    response ->
-                                            org.openfinance.util.RegexSearchUtil.matches(
-                                                    response.getName(),
-                                                    criteria.getKeyword(),
-                                                    keywordRegex))
                             .collect(Collectors.toList());
 
-            // Apply sorting from pageable
-            // (already returned in natural order from DB; client can re-sort)
-            int pageSize = pageable.getPageSize();
-            int pageNumber = pageable.getPageNumber();
-            int fromIndex = Math.min(pageNumber * pageSize, filtered.size());
-            int toIndex = Math.min(fromIndex + pageSize, filtered.size());
-            List<AssetResponse> pageContent = filtered.subList(fromIndex, toIndex);
+            if (hasKeyword) {
+                String keyword = criteria.getKeyword();
+                boolean keywordRegex = criteria.isKeywordRegex();
+                results =
+                        results.stream()
+                                .filter(
+                                        response ->
+                                                org.openfinance.util.RegexSearchUtil.matches(
+                                                        response.getName(), keyword, keywordRegex))
+                                .collect(Collectors.toList());
+            }
+
+            // Value filters compare the effective value in the user's base currency so assets in
+            // different currencies are comparable and match the displayed portfolio values.
+            if (criteria.getValueMin() != null) {
+                BigDecimal min = criteria.getValueMin();
+                results =
+                        results.stream()
+                                .filter(res -> effectiveBaseValue(res).compareTo(min) >= 0)
+                                .collect(Collectors.toList());
+            }
+            if (criteria.getValueMax() != null) {
+                BigDecimal max = criteria.getValueMax();
+                results =
+                        results.stream()
+                                .filter(res -> effectiveBaseValue(res).compareTo(max) <= 0)
+                                .collect(Collectors.toList());
+            }
+
+            // Sort in-memory (name/value are encrypted or computed; other fields handled too).
+            Comparator<AssetResponse> comparator = buildAssetComparator(pageable.getSort());
+            if (comparator != null) {
+                results = new ArrayList<>(results);
+                results.sort(
+                        comparator.thenComparing(
+                                AssetResponse::getId,
+                                Comparator.nullsLast(Comparator.naturalOrder())));
+            }
+
+            int start = (int) pageable.getOffset();
+            int end = Math.min(start + pageable.getPageSize(), results.size());
+            List<AssetResponse> pageContent =
+                    start <= end ? results.subList(start, end) : List.of();
 
             log.debug(
-                    "Keyword search found {} assets after decryption filter (page {}/{})",
-                    filtered.size(),
-                    pageNumber + 1,
-                    (filtered.size() + pageSize - 1) / pageSize);
+                    "In-memory asset filter/sort: {} total, offset {}, size {} ({})",
+                    results.size(),
+                    start,
+                    pageable.getPageSize(),
+                    pageContent.size());
 
-            return new PageImpl<>(pageContent, pageable, filtered.size());
+            return new PageImpl<>(new ArrayList<>(pageContent), pageable, results.size());
         }
 
-        // Build dynamic specification (no keyword – all other filters applied at DB
-        // level)
+        // Fast path: no encrypted-field filtering/sorting → push everything to the DB
         Specification<Asset> spec = AssetSpecification.buildSpecification(userId, criteria);
 
         // Execute paginated query
@@ -562,6 +585,83 @@ public class AssetService {
 
         // Decrypt and map to responses (preserving pagination metadata)
         return assetPage.map(asset -> toResponseWithDecryption(asset));
+    }
+
+    /**
+     * Sort fields that must be handled in-memory because they are AES-encrypted ({@code name},
+     * {@code quantity}, {@code purchasePrice}) or computed from encrypted fields ({@code
+     * totalValue}, {@code valueInBaseCurrency}, {@code unrealizedGain}, {@code gainPercentage}).
+     */
+    private static final Set<String> IN_MEMORY_ASSET_SORT_FIELDS =
+            Set.of(
+                    "name",
+                    "quantity",
+                    "purchasePrice",
+                    "totalValue",
+                    "valueInBaseCurrency",
+                    "unrealizedGain",
+                    "gainPercentage");
+
+    /**
+     * Returns the asset's effective total value in the user's base currency, used for value
+     * filtering and sorting. Falls back to the native total value when no conversion is available.
+     */
+    private static BigDecimal effectiveBaseValue(AssetResponse res) {
+        return res.getValueInBaseCurrency() != null
+                ? res.getValueInBaseCurrency()
+                : res.getTotalValue();
+    }
+
+    /**
+     * Builds an in-memory comparator from the requested sort orders. Supports value (compared in
+     * base currency), {@code name} (case-insensitive), {@code unrealizedGain}, {@code purchaseDate}
+     * and {@code createdAt}. Returns {@code null} when no supported sort order is present.
+     */
+    private static Comparator<AssetResponse> buildAssetComparator(Sort sort) {
+        Comparator<AssetResponse> comparator = null;
+        for (Sort.Order order : sort) {
+            Comparator<AssetResponse> next;
+            switch (order.getProperty()) {
+                case "totalValue":
+                case "valueInBaseCurrency":
+                    next =
+                            Comparator.comparing(
+                                    AssetService::effectiveBaseValue,
+                                    Comparator.nullsLast(Comparator.naturalOrder()));
+                    break;
+                case "unrealizedGain":
+                    next =
+                            Comparator.comparing(
+                                    AssetResponse::getUnrealizedGain,
+                                    Comparator.nullsLast(Comparator.naturalOrder()));
+                    break;
+                case "name":
+                    next =
+                            Comparator.<AssetResponse, String>comparing(
+                                    res -> res.getName() == null ? "" : res.getName(),
+                                    String.CASE_INSENSITIVE_ORDER);
+                    break;
+                case "purchaseDate":
+                    next =
+                            Comparator.comparing(
+                                    AssetResponse::getPurchaseDate,
+                                    Comparator.nullsLast(Comparator.naturalOrder()));
+                    break;
+                case "createdAt":
+                    next =
+                            Comparator.comparing(
+                                    AssetResponse::getCreatedAt,
+                                    Comparator.nullsLast(Comparator.naturalOrder()));
+                    break;
+                default:
+                    continue;
+            }
+            if (order.isDescending()) {
+                next = next.reversed();
+            }
+            comparator = (comparator == null) ? next : comparator.thenComparing(next);
+        }
+        return comparator;
     }
 
     /**

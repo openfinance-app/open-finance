@@ -1,7 +1,6 @@
 package org.openfinance.specification;
 
 import jakarta.persistence.criteria.Predicate;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import org.openfinance.dto.AccountSearchCriteria;
@@ -39,21 +38,20 @@ public class AccountSpecification {
      *   <li>type = ? (if provided)
      *   <li>currency = ? (if provided)
      *   <li>isActive = ? (if provided)
-     *   <li>balance >= ? (if balanceMin provided)
-     *   <li>balance <= ? (if balanceMax provided)
      *   <li>institution.name LIKE ? (if provided)
-     *   <li>balance < lowBalanceThreshold (if lowBalance = true)
      * </ul>
+     *
+     * <p><strong>Balance filters are intentionally excluded here.</strong> The {@code balance}
+     * column is AES-encrypted, so numeric comparisons ({@code balanceMin}, {@code balanceMax},
+     * {@code lowBalance}) against ciphertext are meaningless. Those filters are applied in-memory on
+     * decrypted values in {@link org.openfinance.service.AccountService#searchAccounts}.
      *
      * @param userId the user ID (required for security)
      * @param criteria the search criteria
-     * @param lowBalanceThreshold balance below which the {@code lowBalance} filter matches (kept in
-     *     sync with {@code NotificationService} via {@code
-     *     application.business-rules.accounts.low-balance-threshold})
      * @return JPA Specification for dynamic query building
      */
     public static Specification<Account> buildSpecification(
-            Long userId, AccountSearchCriteria criteria, BigDecimal lowBalanceThreshold) {
+            Long userId, AccountSearchCriteria criteria) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -80,20 +78,6 @@ public class AccountSpecification {
                 predicates.add(criteriaBuilder.equal(root.get("isActive"), criteria.getIsActive()));
             }
 
-            // Filter by minimum balance
-            if (criteria.getBalanceMin() != null) {
-                predicates.add(
-                        criteriaBuilder.greaterThanOrEqualTo(
-                                root.get("balance"), criteria.getBalanceMin()));
-            }
-
-            // Filter by maximum balance
-            if (criteria.getBalanceMax() != null) {
-                predicates.add(
-                        criteriaBuilder.lessThanOrEqualTo(
-                                root.get("balance"), criteria.getBalanceMax()));
-            }
-
             // Filter by institution name (join with institution)
             if (criteria.getInstitution() != null && !criteria.getInstitution().trim().isEmpty()) {
                 String institution = "%" + criteria.getInstitution().toLowerCase() + "%";
@@ -102,12 +86,6 @@ public class AccountSpecification {
                         criteriaBuilder.like(
                                 criteriaBuilder.lower(root.get("institution").get("name")),
                                 institution));
-            }
-
-            // Filter by low balance — threshold shared with NotificationService via
-            // application.business-rules.accounts.low-balance-threshold
-            if (Boolean.TRUE.equals(criteria.getLowBalance())) {
-                predicates.add(criteriaBuilder.lessThan(root.get("balance"), lowBalanceThreshold));
             }
 
             // Combine all predicates with AND logic

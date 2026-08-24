@@ -29,10 +29,10 @@ spring:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         # Match production's batch settings (application.yml) - batching changes which
         # Hibernate identity-insert delegate is used, avoiding a literal "default" keyword
         # in the INSERT that this SQLite JDBC driver version cannot parse.
@@ -61,13 +61,13 @@ server:
   port: 0
 logging:
   level:
-    root: INFO
+    root: WARN
     org:
-      openfinance: DEBUG
+      openfinance: INFO
       springframework:
         web: WARN
       hibernate:
-        SQL: DEBUG
+        SQL: WARN
 jwt:
   secret: TEST_SECRET_KEY_FOR_TESTING_ONLY_DO_NOT_USE_IN_PRODUCTION
   expiration: 3600000

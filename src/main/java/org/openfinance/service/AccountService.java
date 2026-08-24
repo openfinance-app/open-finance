@@ -1,6 +1,8 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
@@ -785,21 +787,22 @@ public class AccountService {
                 criteria.getCurrency(),
                 criteria.getIsActive());
 
-        // Build dynamic specification
-        Specification<Account> spec =
-                AccountSpecification.buildSpecification(
-                        userId, criteria, businessRules.getAccounts().getLowBalanceThreshold());
+        // Build dynamic specification. Balance is an AES-encrypted column, so balance filtering
+        // and balance/name sorting cannot run at the DB level (ciphertext comparisons are
+        // meaningless). All such work is done in-memory below on decrypted responses.
+        Specification<Account> spec = AccountSpecification.buildSpecification(userId, criteria);
 
-        // Execute query
+        List<AccountResponse> results =
+                accountRepository.findAll(spec).stream()
+                        .map(account -> toResponseWithDecryption(account))
+                        .collect(Collectors.toList());
+
+        // Keyword search (name, institution name, account number are all encrypted)
         if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
-            // Keyword search must be done in-memory because the name is encrypted in DB
-            List<Account> allAccounts = accountRepository.findAll(spec, pageable.getSort());
             String keyword = criteria.getKeyword();
             boolean keywordRegex = criteria.isKeywordRegex();
-
-            List<AccountResponse> filteredList =
-                    allAccounts.stream()
-                            .map(account -> toResponseWithDecryption(account))
+            results =
+                    results.stream()
                             .filter(
                                     res ->
                                             org.openfinance.util.RegexSearchUtil.matches(
@@ -816,27 +819,109 @@ public class AccountService {
                                                             keyword,
                                                             keywordRegex))
                             .collect(Collectors.toList());
-
-            int start = (int) pageable.getOffset();
-            int end = Math.min((start + pageable.getPageSize()), filteredList.size());
-            List<AccountResponse> pageContent =
-                    start <= end ? filteredList.subList(start, end) : List.of();
-
-            return new org.springframework.data.domain.PageImpl<>(
-                    pageContent, pageable, filteredList.size());
         }
 
-        // If no keyword search, use normal pagination
-        Page<Account> accountPage = accountRepository.findAll(spec, pageable);
+        // Balance filters compare the effective balance in the user's base currency so accounts
+        // in different currencies are comparable and match the displayed (assets-inclusive) values.
+        if (criteria.getBalanceMin() != null) {
+            BigDecimal min = criteria.getBalanceMin();
+            results =
+                    results.stream()
+                            .filter(res -> effectiveBaseBalance(res).compareTo(min) >= 0)
+                            .collect(Collectors.toList());
+        }
+        if (criteria.getBalanceMax() != null) {
+            BigDecimal max = criteria.getBalanceMax();
+            results =
+                    results.stream()
+                            .filter(res -> effectiveBaseBalance(res).compareTo(max) <= 0)
+                            .collect(Collectors.toList());
+        }
+        if (Boolean.TRUE.equals(criteria.getLowBalance())) {
+            BigDecimal threshold = businessRules.getAccounts().getLowBalanceThreshold();
+            results =
+                    results.stream()
+                            .filter(res -> effectiveBaseBalance(res).compareTo(threshold) < 0)
+                            .collect(Collectors.toList());
+        }
+
+        // Sort in-memory: balance and name are encrypted (DB ORDER BY would sort ciphertext);
+        // createdAt is handled here too so all requested sorts are applied consistently.
+        Comparator<AccountResponse> comparator = buildAccountComparator(pageable.getSort());
+        if (comparator != null) {
+            results = new ArrayList<>(results);
+            results.sort(
+                    comparator.thenComparing(
+                            AccountResponse::getId,
+                            Comparator.nullsLast(Comparator.naturalOrder())));
+        }
+
+        // Manual pagination over the fully filtered/sorted list
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), results.size());
+        List<AccountResponse> pageContent = start <= end ? results.subList(start, end) : List.of();
 
         log.debug(
-                "Found {} accounts (page {}/{})",
-                accountPage.getNumberOfElements(),
-                accountPage.getNumber() + 1,
-                accountPage.getTotalPages());
+                "Found {} accounts (page offset {}, size {}, total {})",
+                pageContent.size(),
+                start,
+                pageable.getPageSize(),
+                results.size());
 
-        // Decrypt and map to responses (preserving pagination metadata)
-        return accountPage.map(account -> toResponseWithDecryption(account));
+        return new org.springframework.data.domain.PageImpl<>(
+                pageContent, pageable, results.size());
+    }
+
+    /**
+     * Returns the account's effective balance in the user's base currency, used for balance
+     * filtering and sorting. Falls back to the native balance when no base-currency conversion is
+     * available. Never null (the native balance is {@code @NotNull}).
+     */
+    private static BigDecimal effectiveBaseBalance(AccountResponse res) {
+        return res.getBalanceInBaseCurrency() != null
+                ? res.getBalanceInBaseCurrency()
+                : res.getBalance();
+    }
+
+    /**
+     * Builds an in-memory comparator from the requested sort orders. Supports {@code balance}
+     * (compared in base currency), {@code name} (case-insensitive) and {@code createdAt}. Returns
+     * {@code null} when no supported sort order is present.
+     */
+    private static Comparator<AccountResponse> buildAccountComparator(
+            org.springframework.data.domain.Sort sort) {
+        Comparator<AccountResponse> comparator = null;
+        for (org.springframework.data.domain.Sort.Order order : sort) {
+            Comparator<AccountResponse> next;
+            switch (order.getProperty()) {
+                case "balance":
+                case "balanceInBaseCurrency":
+                    next =
+                            Comparator.comparing(
+                                    AccountService::effectiveBaseBalance,
+                                    Comparator.nullsLast(Comparator.naturalOrder()));
+                    break;
+                case "name":
+                    next =
+                            Comparator.<AccountResponse, String>comparing(
+                                    res -> res.getName() == null ? "" : res.getName(),
+                                    String.CASE_INSENSITIVE_ORDER);
+                    break;
+                case "createdAt":
+                    next =
+                            Comparator.comparing(
+                                    AccountResponse::getCreatedAt,
+                                    Comparator.nullsLast(Comparator.naturalOrder()));
+                    break;
+                default:
+                    continue;
+            }
+            if (order.isDescending()) {
+                next = next.reversed();
+            }
+            comparator = (comparator == null) ? next : comparator.thenComparing(next);
+        }
+        return comparator;
     }
 
     /**

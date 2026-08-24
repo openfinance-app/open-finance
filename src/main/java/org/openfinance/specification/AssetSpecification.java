@@ -41,9 +41,12 @@ public class AssetSpecification {
      *   <li>symbol - LIKE search (if provided)
      *   <li>purchaseDate >= ? (if purchaseDateFrom provided)
      *   <li>purchaseDate <= ? (if purchaseDateTo provided)
-     *   <li>(quantity * currentPrice) >= ? (if valueMin provided)
-     *   <li>(quantity * currentPrice) <= ? (if valueMax provided)
      * </ul>
+     *
+     * <p><strong>Value filters are intentionally excluded here.</strong> Total value is {@code
+     * quantity * currentPrice}, but {@code quantity} is AES-encrypted, so the product cannot be
+     * computed at the DB level. {@code valueMin}/{@code valueMax} are applied in-memory on decrypted
+     * values in {@link org.openfinance.service.AssetService#searchAssets}.
      *
      * @param userId the user ID (required for security)
      * @param criteria the search criteria
@@ -99,26 +102,6 @@ public class AssetSpecification {
                 predicates.add(
                         criteriaBuilder.lessThanOrEqualTo(
                                 root.get("purchaseDate"), criteria.getPurchaseDateTo()));
-            }
-
-            // Filter by total value (quantity * currentPrice)
-            if (criteria.getValueMin() != null) {
-                // (quantity * currentPrice) >= valueMin
-                jakarta.persistence.criteria.Expression<java.math.BigDecimal> totalValue =
-                        criteriaBuilder.prod(
-                                root.<java.math.BigDecimal>get("quantity"),
-                                root.<java.math.BigDecimal>get("currentPrice"));
-                predicates.add(
-                        criteriaBuilder.greaterThanOrEqualTo(totalValue, criteria.getValueMin()));
-            }
-            if (criteria.getValueMax() != null) {
-                // (quantity * currentPrice) <= valueMax
-                jakarta.persistence.criteria.Expression<java.math.BigDecimal> totalValue =
-                        criteriaBuilder.prod(
-                                root.<java.math.BigDecimal>get("quantity"),
-                                root.<java.math.BigDecimal>get("currentPrice"));
-                predicates.add(
-                        criteriaBuilder.lessThanOrEqualTo(totalValue, criteria.getValueMax()));
             }
 
             // Combine all predicates with AND logic
