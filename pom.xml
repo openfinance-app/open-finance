@@ -443,6 +443,20 @@
                 <version>1.0.0</version>
             </plugin>
 
+            <!-- Suppress Mockito's JDK 21 byte-buddy self-attach warnings and keep Surefire output minimal -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <!-- Combine JaCoCo's argLine with the flag that hides the Mockito agent warning -->
+                    <argLine>@{argLine} -XX:+EnableDynamicAgentLoading</argLine>
+                    <!-- Only print the standard Surefire summary (Tests run: X) to console;
+                         per-test stdout/stderr is already at WARN/ERROR via logback -->
+                    <trimStackTrace>false</trimStackTrace>
+                </configuration>
+            </plugin>
+
             <!-- Wipe leftover per-context SQLite test database files before every test run. -->
             <!-- Each Spring test context gets its own randomly-named file under -->
             <!-- target/test-dbs/ (see UniqueTestDatabaseEnvironmentPostProcessor / -->

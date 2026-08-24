@@ -150,6 +150,7 @@ i18n
     interpolation: {
       escapeValue: false,
     },
+    showSupportNotice: false,
     react: {
       useSuspense: false,
     },

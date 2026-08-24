@@ -5,7 +5,6 @@ import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -90,7 +89,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validRequest)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.username").value("john_doe"))
@@ -164,7 +162,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(duplicateRequest)))
-                .andDo(print())
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message").value(containsString("Username already exists")));
@@ -193,7 +190,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(duplicateRequest)))
-                .andDo(print())
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message").value(containsString("Email already exists")));
@@ -215,7 +211,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("Validation failed"))
@@ -239,7 +234,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.validationErrors.email").exists());
@@ -262,7 +256,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(
@@ -287,7 +280,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(
@@ -311,7 +303,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(
@@ -338,7 +329,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(
@@ -366,7 +356,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.validationErrors.username").exists())
@@ -382,7 +371,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validRequest)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.password").doesNotExist())
                 .andExpect(jsonPath("$.masterPassword").doesNotExist())
@@ -407,7 +395,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(requestWithSpecialChars)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").value("user_123-test"));
     }
@@ -429,7 +416,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(mixedCaseRequest)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").value("JohnDoe"));
 
@@ -468,7 +454,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequest)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.token").exists())
@@ -496,7 +481,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequest)))
-                .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.error").value("Unauthorized"))
@@ -528,7 +512,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequest)))
-                .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.message").value("Invalid username or password"));
@@ -584,7 +567,6 @@ class AuthControllerTest {
                                 post("/api/v1/auth/login")
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(objectMapper.writeValueAsString(wrongMasterLogin)))
-                        .andDo(print())
                         .andExpect(status().isOk()) // Server doesn't reject wrong master password
                         .andReturn()
                         .getResponse()
@@ -608,7 +590,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.validationErrors.username").value("Username is required"));
@@ -626,7 +607,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.validationErrors.password").value("Password is required"));
@@ -645,7 +625,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(
@@ -717,7 +696,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequest)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.passwordHash").doesNotExist())
                 .andExpect(jsonPath("$.masterPasswordSalt").doesNotExist())
@@ -747,7 +725,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").value("new_user"));
     }
@@ -777,7 +754,6 @@ class AuthControllerTest {
                         post("/api/v1/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequest)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").exists());
     }
@@ -792,7 +768,6 @@ class AuthControllerTest {
                                 .header("Authorization", "Bearer invalid.jwt.token")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validRequest)))
-                .andDo(print())
                 .andExpect(status().isCreated()); // Public endpoint still works
     }
 
@@ -805,7 +780,6 @@ class AuthControllerTest {
                                 .header("Authorization", "InvalidFormat token")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validRequest)))
-                .andDo(print())
                 .andExpect(status().isCreated()); // Public endpoint still works
     }
 
@@ -849,7 +823,6 @@ class AuthControllerTest {
                                 .header("Authorization", "Bearer " + token)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequest)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").exists());
     }
@@ -897,7 +870,6 @@ class AuthControllerTest {
                         get("/api/v1/auth/profile")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encryptionSession))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.username").value("john_doe"))
@@ -912,7 +884,6 @@ class AuthControllerTest {
     void shouldReturn401WhenAccessingProfileWithoutAuth() throws Exception {
         // Act & Assert: Access profile without JWT token
         mockMvc.perform(get("/api/v1/auth/profile"))
-                .andDo(print())
                 .andExpect(status().isForbidden()); // Spring Security returns 403 for missing
         // authentication
     }
@@ -924,7 +895,6 @@ class AuthControllerTest {
         mockMvc.perform(
                         get("/api/v1/auth/profile")
                                 .header("Authorization", "Bearer invalid.jwt.token"))
-                .andDo(print())
                 .andExpect(status().isForbidden()); // Spring Security returns 403 for invalid token
     }
 
@@ -975,7 +945,6 @@ class AuthControllerTest {
                                 .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("john_doe"))
                 .andExpect(jsonPath("$.email").value("newemail@example.com"))
@@ -1034,7 +1003,6 @@ class AuthControllerTest {
                                 .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("john_doe"));
 
@@ -1102,7 +1070,6 @@ class AuthControllerTest {
                                 .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("new@example.com"));
 
@@ -1169,7 +1136,6 @@ class AuthControllerTest {
                                 .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
-                .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.message").value(containsString("Invalid current password")));
@@ -1238,7 +1204,6 @@ class AuthControllerTest {
                                 .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
-                .andDo(print())
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message").value(containsString("Email already exists")));
@@ -1259,7 +1224,6 @@ class AuthControllerTest {
                         put("/api/v1/auth/profile")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
-                .andDo(print())
                 .andExpect(status().isForbidden()); // Spring Security returns 403 for missing
         // authentication
     }
@@ -1308,7 +1272,6 @@ class AuthControllerTest {
                                 .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(
@@ -1363,7 +1326,6 @@ class AuthControllerTest {
                                 .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(
@@ -1418,7 +1380,6 @@ class AuthControllerTest {
                                 .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.validationErrors.email").value("Email must be valid"));

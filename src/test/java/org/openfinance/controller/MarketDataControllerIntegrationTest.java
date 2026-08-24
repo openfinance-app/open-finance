@@ -4,7 +4,6 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -195,7 +194,6 @@ class MarketDataControllerIntegrationTest {
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey)
                                 .param("symbol", "AAPL"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.symbol").value("AAPL"))
                 .andExpect(jsonPath("$.name").value("Apple Inc."))
@@ -259,7 +257,6 @@ class MarketDataControllerIntegrationTest {
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey)
                                 .param("q", "apple"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].symbol").value("AAPL"))
@@ -318,7 +315,6 @@ class MarketDataControllerIntegrationTest {
                                 .param("symbol", "AAPL")
                                 .param("startDate", "2024-01-01")
                                 .param("endDate", "2024-01-31"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].symbol").value("AAPL"))
@@ -369,7 +365,6 @@ class MarketDataControllerIntegrationTest {
                         post("/api/v1/market/assets/{id}/update-price", assetId)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Asset price updated successfully"))
                 .andExpect(jsonPath("$.assetId").value(assetId))

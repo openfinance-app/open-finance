@@ -88,7 +88,9 @@ export class RealEstateCalculationService {
     const results = this.compileResults(years, inputs, borrowedAmount, monthlyPayment, totalPrice);
     
     const endTime = performance.now();
-    console.log(`Buy/Rent calculation completed in ${(endTime - startTime).toFixed(2)}ms`);
+    if (import.meta.env.DEV && import.meta.env.MODE !== 'test') {
+      console.log(`Buy/Rent calculation completed in ${(endTime - startTime).toFixed(2)}ms`);
+    }
     
     return results;
   }
@@ -362,7 +364,9 @@ export class RealEstateCalculationService {
     const results = calculateAllRegimes(inputs);
     
     const endTime = performance.now();
-    console.log(`Investment calculation completed in ${(endTime - startTime).toFixed(2)}ms`);
+    if (import.meta.env.DEV && import.meta.env.MODE !== 'test') {
+      console.log(`Investment calculation completed in ${(endTime - startTime).toFixed(2)}ms`);
+    }
     
     return results;
   }

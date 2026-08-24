@@ -2,7 +2,6 @@ package org.openfinance.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -226,7 +225,6 @@ class CategoryTransactionFlowIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(txReq)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.categoryId").value(categoryId))
                 .andExpect(jsonPath("$.amount").value(49.99));
@@ -265,7 +263,6 @@ class CategoryTransactionFlowIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(txReq)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 // The service should have auto-filled the category from the payee
                 .andExpect(jsonPath("$.categoryId").value(categoryId));
@@ -304,7 +301,6 @@ class CategoryTransactionFlowIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(txReq)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 // Should keep the user's explicit category, NOT the payee's default
                 .andExpect(jsonPath("$.categoryId").value(userChosenCategoryId));
@@ -337,7 +333,6 @@ class CategoryTransactionFlowIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(txReq)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.categoryId").doesNotExist());
     }
@@ -355,7 +350,6 @@ class CategoryTransactionFlowIntegrationTest {
                         get("/api/v1/categories/tree")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(
                         jsonPath("$[?(@.id == " + categoryId + ")].name")

@@ -2,7 +2,6 @@ package org.openfinance.controller;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -151,7 +150,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.name").value("Apple Inc."))
@@ -195,7 +193,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.name").value("Bitcoin"))
@@ -225,7 +222,6 @@ class AssetControllerIntegrationTest {
                                 // Missing X-Encryption-Session header
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isUnauthorized());
     }
 
@@ -251,7 +247,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
@@ -277,7 +272,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -292,7 +286,6 @@ class AssetControllerIntegrationTest {
                         get("/api/v1/assets")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(2)))
@@ -312,7 +305,6 @@ class AssetControllerIntegrationTest {
                                 .param("accountId", accountId.toString())
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(2)));
@@ -331,7 +323,6 @@ class AssetControllerIntegrationTest {
                                 .param("type", "STOCK")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -348,7 +339,6 @@ class AssetControllerIntegrationTest {
                         get("/api/v1/assets/" + assetId)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(assetId))
                 .andExpect(jsonPath("$.name").value("Apple Inc."))
@@ -362,7 +352,6 @@ class AssetControllerIntegrationTest {
                         get("/api/v1/assets/99999")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
@@ -391,7 +380,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateReq)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(assetId))
                 .andExpect(jsonPath("$.name").value("Apple Inc. (Updated)"))
@@ -430,7 +418,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateReq)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.currentPrice").value(185.00))
                 .andExpect(jsonPath("$.lastUpdated").exists());
@@ -445,7 +432,6 @@ class AssetControllerIntegrationTest {
                         delete("/api/v1/assets/" + assetId)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNoContent());
 
         // Verify asset is deleted
@@ -463,7 +449,6 @@ class AssetControllerIntegrationTest {
                         delete("/api/v1/assets/99999")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
@@ -489,7 +474,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.totalValue").value(1200.00)) // 20 * 60
                 .andExpect(jsonPath("$.totalCost").value(1000.00)) // 20 * 50
@@ -540,7 +524,6 @@ class AssetControllerIntegrationTest {
                         get("/api/v1/assets/" + aliceAssetId)
                                 .header("Authorization", "Bearer " + bobToken)
                                 .header("X-Encryption-Session", bobEncKey))
-                .andDo(print())
                 .andExpect(status().isNotFound());
 
         // Bob tries to update Alice's asset
@@ -604,7 +587,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.name").value("Tesla Model 3"))
@@ -653,7 +635,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("MacBook Pro"))
                 .andExpect(jsonPath("$.type").value("ELECTRONICS"))
@@ -714,7 +695,6 @@ class AssetControllerIntegrationTest {
                                 .param("type", "VEHICLE")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -745,7 +725,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateReq)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.condition").value("FAIR"))
                 .andExpect(jsonPath("$.currentPrice").value(700.00))
@@ -774,7 +753,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.depreciatedValue").exists())
                 // Depreciation calculation: 10% salvage, 90% depreciates over 15 years
@@ -806,7 +784,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.depreciatedValue").exists())
                 .andExpect(jsonPath("$.conditionAdjustedValue").exists())
@@ -835,7 +812,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validWarranty)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.warrantyExpiration").exists())
                 .andExpect(jsonPath("$.isWarrantyValid").value(true));
@@ -859,7 +835,6 @@ class AssetControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(noWarranty)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.warrantyExpiration").isEmpty())
                 .andExpect(jsonPath("$.isWarrantyValid").value(false));

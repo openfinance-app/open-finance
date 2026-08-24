@@ -4,7 +4,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -102,7 +101,6 @@ class AccountControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.name").value("Chase Checking"));
@@ -125,7 +123,6 @@ class AccountControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.validationErrors.name").exists())
                 .andExpect(jsonPath("$.validationErrors.type").exists())
@@ -149,7 +146,6 @@ class AccountControllerIntegrationTest {
                                 .header("Authorization", "Bearer " + token)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isUnauthorized());
     }
 
@@ -177,7 +173,6 @@ class AccountControllerIntegrationTest {
                         get("/api/v1/accounts")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].name").value("ListMe"));
@@ -264,7 +259,6 @@ class AccountControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(update)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("UpdatedName"));
     }
@@ -421,7 +415,6 @@ class AccountControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.currency").value("JPY"))
                 .andExpect(jsonPath("$.balance").value(50000));

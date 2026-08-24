@@ -2,7 +2,6 @@ package org.openfinance.controller;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -136,7 +135,6 @@ class AttachmentControllerIntegrationTest {
                                 .param("description", "Receipt for grocery purchase")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.userId").value(userId))
@@ -166,7 +164,6 @@ class AttachmentControllerIntegrationTest {
                                 .param("entityId", "200")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.fileName").value("photo.jpg"))
                 .andExpect(jsonPath("$.fileType").value("image/jpeg"))
@@ -187,7 +184,6 @@ class AttachmentControllerIntegrationTest {
                                 .param("entityType", "TRANSACTION")
                                 .param("entityId", "100")
                                 .header("Authorization", "Bearer " + token))
-                .andDo(print())
                 .andExpect(status().isUnauthorized());
     }
 
@@ -206,7 +202,6 @@ class AttachmentControllerIntegrationTest {
                                 .param("entityId", "100")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -229,7 +224,6 @@ class AttachmentControllerIntegrationTest {
                                 .param("entityId", "100")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -247,7 +241,6 @@ class AttachmentControllerIntegrationTest {
                                 .param("entityType", "TRANSACTION")
                                 .param("entityId", "100")
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isForbidden()); // Spring Security returns 403 when token is
         // missing
     }
@@ -284,7 +277,6 @@ class AttachmentControllerIntegrationTest {
                         get("/api/v1/attachments/" + attachmentId + "/download")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", "application/pdf"))
                 .andExpect(header().string("Content-Disposition", containsString("attachment")))
@@ -299,7 +291,6 @@ class AttachmentControllerIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/attachments/999/download")
                                 .header("Authorization", "Bearer " + token))
-                .andDo(print())
                 .andExpect(status().isUnauthorized());
     }
 
@@ -311,7 +302,6 @@ class AttachmentControllerIntegrationTest {
                         get("/api/v1/attachments/999/download")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
@@ -347,7 +337,6 @@ class AttachmentControllerIntegrationTest {
                         delete("/api/v1/attachments/" + attachmentId)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNoContent());
 
         // Then - Verify file is deleted (404 on GET)
@@ -366,7 +355,6 @@ class AttachmentControllerIntegrationTest {
                         delete("/api/v1/attachments/999")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
@@ -375,7 +363,6 @@ class AttachmentControllerIntegrationTest {
     void shouldReturn401WhenDeletingWithoutToken() throws Exception {
         // When/Then
         mockMvc.perform(delete("/api/v1/attachments/1"))
-                .andDo(print())
                 .andExpect(status().isForbidden()); // Spring Security returns 403 when token is
         // missing
     }
@@ -415,7 +402,6 @@ class AttachmentControllerIntegrationTest {
                         get("/api/v1/attachments")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(2))
@@ -458,7 +444,6 @@ class AttachmentControllerIntegrationTest {
                                 .param("entityId", "100")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(1))
@@ -476,7 +461,6 @@ class AttachmentControllerIntegrationTest {
                                 .param("entityId", "100")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -488,7 +472,6 @@ class AttachmentControllerIntegrationTest {
                         get("/api/v1/attachments")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(0));
@@ -524,7 +507,6 @@ class AttachmentControllerIntegrationTest {
                         get("/api/v1/attachments/" + attachmentId)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(attachmentId))
                 .andExpect(jsonPath("$.fileName").value("metadata.pdf"))
@@ -543,7 +525,6 @@ class AttachmentControllerIntegrationTest {
                         get("/api/v1/attachments/999")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
@@ -583,7 +564,6 @@ class AttachmentControllerIntegrationTest {
                         get("/api/v1/attachments/stats")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalAttachments").value(2))
                 .andExpect(jsonPath("$.totalSizeBytes").isNumber())
@@ -598,7 +578,6 @@ class AttachmentControllerIntegrationTest {
                         get("/api/v1/attachments/stats")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalAttachments").value(0))
                 .andExpect(jsonPath("$.totalSizeBytes").value(0))
@@ -664,7 +643,6 @@ class AttachmentControllerIntegrationTest {
                         get("/api/v1/attachments/" + attachmentId)
                                 .header("Authorization", "Bearer " + token2)
                                 .header("X-Encryption-Session", encKey2))
-                .andDo(print())
                 .andExpect(status().isNotFound()); // Not found = unauthorized (don't expose
         // existence)
 
@@ -673,7 +651,6 @@ class AttachmentControllerIntegrationTest {
                         get("/api/v1/attachments/" + attachmentId + "/download")
                                 .header("Authorization", "Bearer " + token2)
                                 .header("X-Encryption-Session", encKey2))
-                .andDo(print())
                 .andExpect(status().isNotFound());
 
         // User 2 tries to delete User 1's attachment
@@ -681,7 +658,6 @@ class AttachmentControllerIntegrationTest {
                         delete("/api/v1/attachments/" + attachmentId)
                                 .header("Authorization", "Bearer " + token2)
                                 .header("X-Encryption-Session", encKey2))
-                .andDo(print())
                 .andExpect(status().isNotFound());
     }
 

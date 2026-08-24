@@ -7,7 +7,6 @@ import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -150,7 +149,6 @@ class BudgetControllerTest {
                                 .with(authentication(createAuthentication(USER_ID)))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(testRequest)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(BUDGET_ID))
                 .andExpect(jsonPath("$.categoryId").value(CATEGORY_ID))
@@ -296,7 +294,6 @@ class BudgetControllerTest {
 
         // When & Then
         mockMvc.perform(get("/api/v1/budgets").with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(2)))
@@ -362,7 +359,6 @@ class BudgetControllerTest {
         mockMvc.perform(
                         get("/api/v1/budgets/{id}", BUDGET_ID)
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(BUDGET_ID))
                 .andExpect(jsonPath("$.categoryName").value("Groceries"))
@@ -458,7 +454,6 @@ class BudgetControllerTest {
                                 .with(authentication(createAuthentication(USER_ID)))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(BUDGET_ID))
                 .andExpect(jsonPath("$.amount").value(600.00))
@@ -543,7 +538,6 @@ class BudgetControllerTest {
                         delete("/api/v1/budgets/{id}", BUDGET_ID)
                                 .with(csrf())
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isNoContent());
 
         verify(budgetService).deleteBudget(eq(BUDGET_ID), eq(USER_ID));
@@ -608,7 +602,6 @@ class BudgetControllerTest {
         mockMvc.perform(
                         get("/api/v1/budgets/{id}/progress", BUDGET_ID)
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.budgetId").value(BUDGET_ID))
                 .andExpect(jsonPath("$.categoryName").value("Groceries"))
@@ -712,7 +705,6 @@ class BudgetControllerTest {
         mockMvc.perform(
                         get("/api/v1/budgets/{id}/history", BUDGET_ID)
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.budgetId").value(BUDGET_ID))
                 .andExpect(jsonPath("$.categoryName").value("Groceries"))
@@ -806,7 +798,6 @@ class BudgetControllerTest {
                         get("/api/v1/budgets/summary")
                                 .with(authentication(createAuthentication(USER_ID)))
                                 .param("period", "MONTHLY"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period").value("MONTHLY"))
                 .andExpect(jsonPath("$.totalBudgets").value(3))
@@ -912,7 +903,6 @@ class BudgetControllerTest {
                                 .with(authentication(createAuthentication(USER_ID)))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -1011,7 +1001,6 @@ class BudgetControllerTest {
                                 .with(authentication(createAuthentication(USER_ID)))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.created").isArray())
                 .andExpect(jsonPath("$.created", hasSize(1)))

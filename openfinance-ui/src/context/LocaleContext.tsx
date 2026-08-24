@@ -59,7 +59,7 @@ async function persistLocaleToBackend(locale: string): Promise<void> {
   } catch (error: any) {
     if (error?.response?.status === 401 || error?.response?.status === 403) {
       sessionStorage.setItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC, locale);
-    } else {
+    } else if (import.meta.env.MODE !== 'test') {
       console.warn('[LocaleContext] Failed to persist locale preference to backend:', error);
     }
   }
@@ -94,7 +94,9 @@ export const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setIsChangingLocale(true);
     try {
-      console.log(`[LocaleContext] Switching language to: ${locale}`);
+      if (import.meta.env.MODE !== 'test') {
+        console.log(`[LocaleContext] Switching language to: ${locale}`);
+      }
 
       // 1. Change the core language
       await i18n.changeLanguage(locale);
@@ -109,9 +111,13 @@ export const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 3. Persist to backend
       void persistLocaleToBackend(locale);
 
-      console.log(`[LocaleContext] Successfully switched to: ${locale}`);
+      if (import.meta.env.MODE !== 'test') {
+        console.log(`[LocaleContext] Successfully switched to: ${locale}`);
+      }
     } catch (error) {
-      console.error('[LocaleContext] Failed to change language:', error);
+      if (import.meta.env.MODE !== 'test') {
+        console.error('[LocaleContext] Failed to change language:', error);
+      }
     } finally {
       setIsChangingLocale(false);
     }

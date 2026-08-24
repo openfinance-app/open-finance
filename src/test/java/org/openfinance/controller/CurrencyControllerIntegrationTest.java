@@ -3,7 +3,6 @@ package org.openfinance.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -203,7 +202,6 @@ class CurrencyControllerIntegrationTest {
                         get("/api/v1/currencies")
                                 .header("Authorization", "Bearer " + userToken)
                                 .header("X-Encryption-Session", userEncKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(3)) // USD, EUR, GBP (not JPY - inactive)
@@ -232,7 +230,6 @@ class CurrencyControllerIntegrationTest {
                         get("/api/v1/currencies")
                                 .header("Authorization", "Bearer " + userToken)
                                 .header("X-Encryption-Session", userEncKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(0));
@@ -241,7 +238,7 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return 403 when not authenticated (active currencies)")
     void shouldReturn403WhenNotAuthenticatedActiveCurrencies() throws Exception {
-        mockMvc.perform(get("/api/v1/currencies")).andDo(print()).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/currencies")).andExpect(status().isForbidden());
     }
 
     // ========== GET /api/v1/currencies/all (List All Currencies) ==========
@@ -253,7 +250,6 @@ class CurrencyControllerIntegrationTest {
                         get("/api/v1/currencies/all")
                                 .header("Authorization", "Bearer " + userToken)
                                 .header("X-Encryption-Session", userEncKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(4)) // USD, EUR, GBP, JPY
@@ -265,7 +261,6 @@ class CurrencyControllerIntegrationTest {
     @DisplayName("Should return 403 when not authenticated (all currencies)")
     void shouldReturn403WhenNotAuthenticatedAllCurrencies() throws Exception {
         mockMvc.perform(get("/api/v1/currencies/all"))
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
@@ -283,7 +278,6 @@ class CurrencyControllerIntegrationTest {
                                 .param("date", yesterday.toString())
                                 .header("Authorization", "Bearer " + userToken)
                                 .header("X-Encryption-Session", userEncKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.baseCurrency").value("USD"))
                 .andExpect(jsonPath("$.targetCurrency").value("EUR"))
@@ -304,7 +298,6 @@ class CurrencyControllerIntegrationTest {
                                 .param("date", farPast.toString())
                                 .header("Authorization", "Bearer " + userToken)
                                 .header("X-Encryption-Session", userEncKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -321,7 +314,6 @@ class CurrencyControllerIntegrationTest {
                                 .param("date", "invalid-date")
                                 .header("Authorization", "Bearer " + userToken)
                                 .header("X-Encryption-Session", userEncKey))
-                .andDo(print())
                 .andExpect(status().isInternalServerError());
     }
 
@@ -333,7 +325,6 @@ class CurrencyControllerIntegrationTest {
                                 .param("from", "USD")
                                 .param("to", "EUR")
                                 .param("date", LocalDate.now().toString()))
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
@@ -348,7 +339,6 @@ class CurrencyControllerIntegrationTest {
                                 .param("to", "EUR")
                                 .header("Authorization", "Bearer " + userToken)
                                 .header("X-Encryption-Session", userEncKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.baseCurrency").value("USD"))
                 .andExpect(jsonPath("$.targetCurrency").value("EUR"))
@@ -366,7 +356,6 @@ class CurrencyControllerIntegrationTest {
                                 .param("to", "NONEXISTENT")
                                 .header("Authorization", "Bearer " + userToken)
                                 .header("X-Encryption-Session", userEncKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -377,7 +366,6 @@ class CurrencyControllerIntegrationTest {
                         get("/api/v1/currencies/exchange-rates/latest")
                                 .param("from", "USD")
                                 .param("to", "EUR"))
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
@@ -394,7 +382,6 @@ class CurrencyControllerIntegrationTest {
                                 .header("X-Encryption-Session", userEncKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fromCurrency").value("USD"))
                 .andExpect(jsonPath("$.toCurrency").value("EUR"))
@@ -417,7 +404,6 @@ class CurrencyControllerIntegrationTest {
                                 .header("X-Encryption-Session", userEncKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -437,7 +423,6 @@ class CurrencyControllerIntegrationTest {
                                 .header("X-Encryption-Session", userEncKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -457,7 +442,6 @@ class CurrencyControllerIntegrationTest {
                                 .header("X-Encryption-Session", userEncKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -477,7 +461,6 @@ class CurrencyControllerIntegrationTest {
                                 .header("X-Encryption-Session", userEncKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -490,7 +473,6 @@ class CurrencyControllerIntegrationTest {
                         post("/api/v1/currencies/convert")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
@@ -505,7 +487,6 @@ class CurrencyControllerIntegrationTest {
                         post("/api/v1/currencies/exchange-rates/update")
                                 .header("Authorization", "Bearer " + userToken)
                                 .header("X-Encryption-Session", userEncKey)) // Regular user
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
@@ -513,7 +494,6 @@ class CurrencyControllerIntegrationTest {
     @DisplayName("Should return 403 when not authenticated (update rates)")
     void shouldReturn403WhenNotAuthenticatedUpdateRates() throws Exception {
         mockMvc.perform(post("/api/v1/currencies/exchange-rates/update"))
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
@@ -527,7 +507,6 @@ class CurrencyControllerIntegrationTest {
                         post("/api/v1/currencies/crypto-list/refresh")
                                 .header("Authorization", "Bearer " + userToken)
                                 .header("X-Encryption-Session", userEncKey))
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
@@ -535,7 +514,6 @@ class CurrencyControllerIntegrationTest {
     @DisplayName("Should return 403 when not authenticated (refresh crypto list)")
     void shouldReturn403WhenNotAuthenticatedRefreshCryptoList() throws Exception {
         mockMvc.perform(post("/api/v1/currencies/crypto-list/refresh"))
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 }

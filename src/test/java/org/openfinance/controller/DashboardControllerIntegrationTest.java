@@ -2,7 +2,6 @@ package org.openfinance.controller;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -146,7 +145,6 @@ class DashboardControllerIntegrationTest {
                         get("/api/v1/dashboard")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.netWorth").exists())
                 .andExpect(jsonPath("$.netWorth.netWorth").isNumber())
@@ -167,7 +165,6 @@ class DashboardControllerIntegrationTest {
     @DisplayName("GET /api/v1/dashboard - should return 403 when not authenticated")
     void shouldReturn403WhenNotAuthenticatedForDashboard() throws Exception {
         mockMvc.perform(get("/api/v1/dashboard").header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
@@ -175,7 +172,6 @@ class DashboardControllerIntegrationTest {
     @DisplayName("GET /api/v1/dashboard - should return 401 when encryption session is missing")
     void shouldReturn500WhenEncryptionKeyMissingForDashboard() throws Exception {
         mockMvc.perform(get("/api/v1/dashboard").header("Authorization", "Bearer " + token))
-                .andDo(print())
                 .andExpect(status().isUnauthorized());
     }
 
@@ -186,7 +182,6 @@ class DashboardControllerIntegrationTest {
                         get("/api/v1/dashboard")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", "invalid_key"))
-                .andDo(print())
                 .andExpect(status().isUnauthorized());
     }
 
@@ -208,7 +203,6 @@ class DashboardControllerIntegrationTest {
                         get("/api/v1/dashboard/accounts")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(3)))
@@ -231,7 +225,6 @@ class DashboardControllerIntegrationTest {
                         get("/api/v1/dashboard/accounts")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(0)));
@@ -244,7 +237,6 @@ class DashboardControllerIntegrationTest {
         mockMvc.perform(
                         get("/api/v1/dashboard/accounts")
                                 .header("Authorization", "Bearer " + token))
-                .andDo(print())
                 .andExpect(status().isUnauthorized());
     }
 
@@ -282,7 +274,6 @@ class DashboardControllerIntegrationTest {
                         get("/api/v1/dashboard/cashflow")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.income").isNumber())
                 .andExpect(jsonPath("$.expenses").isNumber())
@@ -311,7 +302,6 @@ class DashboardControllerIntegrationTest {
                                 .param("period", "7")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.income").isNumber())
                 .andExpect(jsonPath("$.expenses").isNumber())
@@ -326,7 +316,6 @@ class DashboardControllerIntegrationTest {
                                 .param("period", "0")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -338,7 +327,6 @@ class DashboardControllerIntegrationTest {
                                 .param("period", "-10")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -378,7 +366,6 @@ class DashboardControllerIntegrationTest {
                         get("/api/v1/dashboard/spending")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isMap());
     }
@@ -401,7 +388,6 @@ class DashboardControllerIntegrationTest {
                                 .param("period", "7")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isMap());
     }
@@ -414,7 +400,6 @@ class DashboardControllerIntegrationTest {
                                 .param("period", "0")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -425,7 +410,6 @@ class DashboardControllerIntegrationTest {
                         get("/api/v1/dashboard/spending")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isMap())
                 .andExpect(jsonPath("$").isEmpty());

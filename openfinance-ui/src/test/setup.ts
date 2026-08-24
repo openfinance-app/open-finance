@@ -64,10 +64,58 @@ vi.mock('react-grid-layout', () => ({
 }));
 
 /**
- * Start MSW server before all tests
+ * Start MSW server before all tests — bypass unhandled requests silently in tests.
  */
 beforeAll(() => {
-  server.listen({ onUnhandledRequest: 'warn' });
+  server.listen({ onUnhandledRequest: 'bypass' });
+});
+
+// Silence noisy console.* that intentionally exercises error branches (e.g.
+// useSimulationStorage error handling). Vitest's onConsoleLog also filters
+// most of these, but this fallback catches direct console.error calls that
+// slip through jsdom's mapping.
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+beforeAll(() => {
+  vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+    const first = String(args[0] ?? '');
+    if (
+      first.includes('Failed to load simulations') ||
+      first.includes('Failed to save simulation') ||
+      first.includes('Failed to delete simulation') ||
+      first.includes('Failed to import simulations') ||
+      first.includes('Failed to save institution') ||
+      first.includes('Failed to delete institution') ||
+      first.includes('Failed to save transaction') ||
+      first.includes('Failed to delete transaction') ||
+      first.includes('Failed to save payee') ||
+      first.includes('Failed to load image') ||
+      first.includes('Login failed') ||
+      first.includes('No response from server') ||
+      first.includes('Access forbidden') ||
+      first.includes('Server error') ||
+      first.includes('is using incorrect casing') ||
+      first.includes('unrecognized in this browser') ||
+      first.includes('was not wrapped in act') ||
+      first.includes('not configured to support act') ||
+      first.includes('An update to')
+    ) {
+      return;
+    }
+    originalConsoleError(...(args as never[]));
+  });
+  vi.spyOn(console, 'warn').mockImplementation((...args: unknown[]) => {
+    const first = String(args[0] ?? '');
+    if (
+      first.includes('🌐 i18next') ||
+      first.includes('browsers data (caniuse-lite)') ||
+      first.includes('Browserslist:') ||
+      first.includes('[i18n] Missing translation')
+    ) {
+      return;
+    }
+    originalConsoleWarn(...(args as never[]));
+  });
 });
 
 /**

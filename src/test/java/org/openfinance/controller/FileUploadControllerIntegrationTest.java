@@ -2,7 +2,6 @@ package org.openfinance.controller;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -106,7 +105,6 @@ class FileUploadControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.uploadId").exists())
                 .andExpect(jsonPath("$.fileName").value("transactions.qif"))
@@ -133,7 +131,6 @@ class FileUploadControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.uploadId").exists())
                 .andExpect(jsonPath("$.fileName").value("transactions.ofx"))
@@ -156,7 +153,6 @@ class FileUploadControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.uploadId").exists())
                 .andExpect(jsonPath("$.fileName").value("transactions.csv"))
@@ -178,7 +174,6 @@ class FileUploadControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("INVALID"))
                 .andExpect(jsonPath("$.message").value(containsString("not allowed")));
@@ -197,7 +192,6 @@ class FileUploadControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("INVALID"))
                 .andExpect(jsonPath("$.message").value("File is empty"));
@@ -217,7 +211,6 @@ class FileUploadControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("INVALID"))
                 .andExpect(
@@ -240,7 +233,6 @@ class FileUploadControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("INVALID"))
                 .andExpect(
@@ -261,7 +253,6 @@ class FileUploadControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("INVALID"))
                 .andExpect(
@@ -279,7 +270,6 @@ class FileUploadControllerIntegrationTest {
 
         // When & Then
         mockMvc.perform(multipart("/api/v1/import/upload").file(file))
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
@@ -296,7 +286,6 @@ class FileUploadControllerIntegrationTest {
                         multipart("/api/v1/import/upload")
                                 .file(file)
                                 .header("Authorization", "Bearer invalid_token"))
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
@@ -308,7 +297,6 @@ class FileUploadControllerIntegrationTest {
                         multipart("/api/v1/import/upload")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -327,7 +315,6 @@ class FileUploadControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));
     }
@@ -347,7 +334,6 @@ class FileUploadControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fileName").value("transactions.qfx"))
                 .andExpect(jsonPath("$.fileType").value("ofx")) // QFX detected as OFX

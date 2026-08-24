@@ -15,7 +15,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -136,7 +135,6 @@ class InstitutionControllerTest {
         mockMvc.perform(
                         get("/api/v1/institutions")
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(2)))
@@ -159,7 +157,6 @@ class InstitutionControllerTest {
         mockMvc.perform(
                         get("/api/v1/institutions/{id}", 1L)
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value(1))
@@ -182,7 +179,6 @@ class InstitutionControllerTest {
                         get("/api/v1/institutions/{id}", 999L)
                                 .header("Accept-Language", "en")
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.message").value("Institution not found with id: 999"));
@@ -202,7 +198,6 @@ class InstitutionControllerTest {
         mockMvc.perform(
                         get("/api/v1/institutions/country/{country}", "FR")
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(2)))
@@ -222,7 +217,6 @@ class InstitutionControllerTest {
         mockMvc.perform(
                         get("/api/v1/institutions/system")
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -241,7 +235,6 @@ class InstitutionControllerTest {
         mockMvc.perform(
                         get("/api/v1/institutions/custom")
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -261,7 +254,6 @@ class InstitutionControllerTest {
                         get("/api/v1/institutions/search")
                                 .param("query", "BNP")
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -280,7 +272,6 @@ class InstitutionControllerTest {
         mockMvc.perform(
                         get("/api/v1/institutions/countries")
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", containsInAnyOrder("FR", "DE", "IT")));
@@ -313,7 +304,6 @@ class InstitutionControllerTest {
                                 .with(authentication(createAuthentication(USER_ID)))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validRequest)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value(3))
@@ -340,7 +330,6 @@ class InstitutionControllerTest {
                                 .with(authentication(createAuthentication(USER_ID)))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.message").exists());
@@ -374,7 +363,6 @@ class InstitutionControllerTest {
                                 .with(authentication(createAuthentication(USER_ID)))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validRequest)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value(2))
@@ -399,7 +387,6 @@ class InstitutionControllerTest {
                                 .with(authentication(createAuthentication(USER_ID)))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validRequest)))
-                .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.message").value("Institution not found with id: 999"));
@@ -422,7 +409,6 @@ class InstitutionControllerTest {
                                 .with(authentication(createAuthentication(USER_ID)))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validRequest)))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.message").value("Cannot update system institutions"));
@@ -441,7 +427,6 @@ class InstitutionControllerTest {
                         delete("/api/v1/institutions/{id}", 2L)
                                 .with(csrf())
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isNoContent());
 
         verify(institutionService).deleteInstitution(2L, USER_ID);
@@ -460,7 +445,6 @@ class InstitutionControllerTest {
                                 .header("Accept-Language", "en")
                                 .with(csrf())
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.message").value("Institution not found with id: 999"));
@@ -480,7 +464,6 @@ class InstitutionControllerTest {
                         delete("/api/v1/institutions/{id}", 1L)
                                 .with(csrf())
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.message").value("Cannot delete system institutions"));
@@ -502,7 +485,6 @@ class InstitutionControllerTest {
                         delete("/api/v1/institutions/{id}", 2L)
                                 .with(csrf())
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(

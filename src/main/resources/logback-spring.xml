@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <!-- Silence logback's own status INFO at startup (keeps test output minimal) -->
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+
     <!-- Requirement REQ-3.3: Comprehensive logging configuration -->
     <include resource="org/springframework/boot/logging/logback/defaults.xml" />
 
@@ -75,36 +78,43 @@
         <discardingThreshold>0</discardingThreshold>
     </appender>
 
-    <!-- Spring Boot specific loggers -->
+    <!-- Spring Boot specific loggers (default — overridden per profile below) -->
     <logger name="org.springframework" level="INFO"/>
     <logger name="org.springframework.web" level="INFO"/>
     <logger name="org.springframework.security" level="INFO"/>
     <logger name="org.springframework.boot" level="INFO"/>
     
     <!-- Hibernate/JPA loggers -->
-    <logger name="org.hibernate" level="INFO"/>
+    <logger name="org.hibernate" level="WARN"/>
     <logger name="org.hibernate.SQL" level="WARN"/>
     <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="WARN"/>
     
-    <!-- Application loggers -->
-    <logger name="org.openfinance" level="DEBUG"/>
+    <!-- Application loggers (default WARN keeps unit-test output minimal; dev/local override to DEBUG) -->
+    <logger name="org.openfinance" level="WARN"/>
     
     <!-- Security sensitive - do not log at DEBUG in production -->
     <logger name="org.openfinance.security" level="INFO"/>
     
     <!-- Third-party libraries -->
-    <logger name="com.zaxxer.hikari" level="INFO"/>
-    <logger name="io.jsonwebtoken" level="INFO"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="io.jsonwebtoken" level="WARN"/>
+    <logger name="org.flywaydb" level="WARN"/>
 
-    <!-- Root logger (default) -->
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="ASYNC_FILE"/>
-        <appender-ref ref="ASYNC_ERROR_FILE"/>
-    </root>
+    <!-- Root loggers — one per profile to avoid duplicate console output.
+         The previous top-level root + per-profile roots caused every log line to be
+         emitted twice when a profile was active (test, dev, prod). Now the default
+         root is only active when no explicit profile matches. -->
+    <springProfile name="default">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR_FILE"/>
+        </root>
+    </springProfile>
 
-    <!-- Root logger (profile overrides) -->
     <springProfile name="dev,local">
+        <logger name="org.openfinance" level="DEBUG"/>
+        <logger name="com.zaxxer.hikari" level="INFO"/>
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="ASYNC_FILE"/>
@@ -112,6 +122,15 @@
     </springProfile>
 
     <springProfile name="test">
+        <logger name="org.openfinance" level="ERROR"/>
+        <!-- Silence noisy AOP aspects that emit a stack trace per expected validation failure -->
+        <logger name="org.openfinance.util.LoggingAspect" level="OFF"/>
+        <logger name="org.openfinance.config.PerformanceMonitoringAspect" level="OFF"/>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.hibernate" level="WARN"/>
+        <logger name="com.zaxxer.hikari" level="WARN"/>
+        <logger name="org.flywaydb" level="WARN"/>
+        <logger name="io.jsonwebtoken" level="WARN"/>
         <root level="WARN">
             <appender-ref ref="CONSOLE_TEST"/>
         </root>

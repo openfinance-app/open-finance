@@ -5,7 +5,6 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -155,7 +154,6 @@ class AIControllerIntegrationTest {
                                     .header("Authorization", "Bearer " + token)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
                     .andExpect(status().isUnauthorized());
         }
 
@@ -170,7 +168,6 @@ class AIControllerIntegrationTest {
                                     .header("X-Encryption-Session", encKey)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.validationErrors.question").exists());
         }
@@ -187,7 +184,6 @@ class AIControllerIntegrationTest {
                                     .header("X-Encryption-Session", encKey)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
                     .andExpect(status().isForbidden());
         }
     }
@@ -203,7 +199,6 @@ class AIControllerIntegrationTest {
                             get("/api/v1/ai/conversations")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$").isEmpty());
@@ -254,7 +249,6 @@ class AIControllerIntegrationTest {
                             get("/api/v1/ai/conversations")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$.length()").value(2))
@@ -309,7 +303,6 @@ class AIControllerIntegrationTest {
                             get("/api/v1/ai/conversations")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(1))
                     .andExpect(jsonPath("$[0].title").value("Alice's Question"));
@@ -350,7 +343,6 @@ class AIControllerIntegrationTest {
                             get("/api/v1/ai/conversations/" + conv.getId())
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(conv.getId()))
                     .andExpect(jsonPath("$.title").value("Test Conversation"))
@@ -372,7 +364,6 @@ class AIControllerIntegrationTest {
                             get("/api/v1/ai/conversations/99999")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isNotFound());
         }
 
@@ -406,7 +397,6 @@ class AIControllerIntegrationTest {
                             get("/api/v1/ai/conversations/" + bobConv.getId())
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isNotFound());
         }
     }
@@ -432,7 +422,6 @@ class AIControllerIntegrationTest {
                             delete("/api/v1/ai/conversations/" + conv.getId())
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isNoContent());
 
             // Verify deletion
@@ -446,7 +435,6 @@ class AIControllerIntegrationTest {
                             delete("/api/v1/ai/conversations/99999")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isNotFound());
         }
 
@@ -480,7 +468,6 @@ class AIControllerIntegrationTest {
                             delete("/api/v1/ai/conversations/" + bobConv.getId())
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isNotFound());
 
             // Verify Bob's conversation still exists

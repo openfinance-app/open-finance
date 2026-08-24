@@ -79,18 +79,26 @@ apiClient.interceptors.response.use(
         // If it IS a login request or a profile update with wrong password,
         // fall through and let the rejection propagate to the calling component.
       } else if (status === 403) {
-        // Forbidden
-        console.error('Access forbidden:', error.response.data);
+        // Forbidden — silent in tests to keep vitest output minimal
+        if (import.meta.env.MODE !== 'test') {
+          console.error('Access forbidden:', error.response.data);
+        }
       } else if (status >= 500) {
-        // Server error
-        console.error('Server error:', error.response.data);
+        // Server error — silent in tests to keep vitest output minimal
+        if (import.meta.env.MODE !== 'test') {
+          console.error('Server error:', error.response.data);
+        }
       }
     } else if (error.request) {
-      // Request was made but no response received
-      console.error('No response from server:', error.request);
+      // Request was made but no response received — silent in tests (MSW)
+      if (import.meta.env.MODE !== 'test') {
+        console.error('No response from server:', error.request);
+      }
     } else {
-      // Something else happened
-      console.error('Request error:', error.message);
+      // Something else happened — silent in tests
+      if (import.meta.env.MODE !== 'test') {
+        console.error('Request error:', error.message);
+      }
     }
 
     return Promise.reject(error);

@@ -2,7 +2,6 @@ package org.openfinance.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -106,7 +105,6 @@ class CategoryLocalizationIntegrationTest {
                         get("/api/v1/categories")
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(
                         jsonPath(
@@ -125,7 +123,6 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "en"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(
                         jsonPath(
@@ -144,7 +141,6 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 // Should have French translations
                 .andExpect(
@@ -197,7 +193,6 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSystem").value(true))
                 .andExpect(jsonPath("$.name").value("Salaire"));
@@ -210,7 +205,6 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 // Check that the tree contains French category names
                 .andExpect(jsonPath("$[?(@.name == 'Investissements')]").exists())
@@ -225,7 +219,6 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.name == 'Salaire')]").exists())
                 .andExpect(jsonPath("$[?(@.name == 'Salary')]").doesNotExist());
@@ -239,7 +232,6 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.name == 'Épiceries')]").exists())
                 .andExpect(jsonPath("$[?(@.name == 'Groceries')]").doesNotExist());
@@ -274,7 +266,6 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "en"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("My Custom Category"))
                 .andExpect(jsonPath("$.isSystem").value(false));
@@ -285,7 +276,6 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("My Custom Category"))
                 .andExpect(jsonPath("$.isSystem").value(false));
@@ -299,7 +289,6 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "de"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(
                         jsonPath(
@@ -316,7 +305,6 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr, en-US;q=0.9, en;q=0.8"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(
                         jsonPath(

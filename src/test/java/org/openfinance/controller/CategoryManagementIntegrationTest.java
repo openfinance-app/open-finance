@@ -4,7 +4,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -136,7 +135,6 @@ class CategoryManagementIntegrationTest {
                                         .header("X-Encryption-Session", encKey)
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(objectMapper.writeValueAsString(req)))
-                        .andDo(print())
                         .andExpect(status().isCreated())
                         .andReturn()
                         .getResponse()
@@ -164,7 +162,6 @@ class CategoryManagementIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.name").value("Entertainment"))
@@ -188,7 +185,6 @@ class CategoryManagementIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Freelance Income"))
                 .andExpect(jsonPath("$.type").value("INCOME"));
@@ -205,7 +201,6 @@ class CategoryManagementIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -225,7 +220,6 @@ class CategoryManagementIntegrationTest {
                                 .header("Authorization", "Bearer " + token)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
                 .andExpect(status().isUnauthorized());
     }
 
@@ -241,7 +235,6 @@ class CategoryManagementIntegrationTest {
                         get("/api/v1/categories")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
     }
@@ -256,7 +249,6 @@ class CategoryManagementIntegrationTest {
                         get("/api/v1/categories?type=EXPENSE")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.type == 'INCOME')]").isEmpty());
     }
@@ -270,7 +262,6 @@ class CategoryManagementIntegrationTest {
                         get("/api/v1/categories/" + categoryId)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(categoryId))
                 .andExpect(jsonPath("$.name").value("Travel"));
@@ -283,7 +274,6 @@ class CategoryManagementIntegrationTest {
                         get("/api/v1/categories/999999")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
@@ -308,7 +298,6 @@ class CategoryManagementIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateReq)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(categoryId))
                 .andExpect(jsonPath("$.name").value("New Name"))
@@ -326,7 +315,6 @@ class CategoryManagementIntegrationTest {
                         delete("/api/v1/categories/" + categoryId)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNoContent());
 
         // Verify it's gone
@@ -344,7 +332,6 @@ class CategoryManagementIntegrationTest {
                         delete("/api/v1/categories/999999")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
@@ -370,7 +357,6 @@ class CategoryManagementIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(subReq)))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Online Shopping"))
                 .andExpect(jsonPath("$.parentId").value(parentId));
@@ -386,7 +372,6 @@ class CategoryManagementIntegrationTest {
                         get("/api/v1/categories/tree")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk());
 
         // The parent "Food" node must exist
@@ -420,7 +405,6 @@ class CategoryManagementIntegrationTest {
                         get("/api/v1/categories/tree")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(
                         jsonPath(
@@ -461,7 +445,6 @@ class CategoryManagementIntegrationTest {
                         get("/api/v1/categories/" + parentId)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.subcategoryCount").value(2));
     }
@@ -479,7 +462,6 @@ class CategoryManagementIntegrationTest {
         mockMvc.perform(
                         delete("/api/v1/categories/" + parentId)
                                 .header("Authorization", "Bearer " + token))
-                .andDo(print())
                 .andExpect(status().is4xxClientError());
     }
 
@@ -505,7 +487,6 @@ class CategoryManagementIntegrationTest {
                                         .header("X-Encryption-Session", encKey)
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(objectMapper.writeValueAsString(accountReq)))
-                        .andDo(print())
                         .andExpect(status().isCreated())
                         .andReturn()
                         .getResponse()
@@ -535,7 +516,6 @@ class CategoryManagementIntegrationTest {
         mockMvc.perform(
                         delete("/api/v1/categories/" + categoryId)
                                 .header("Authorization", "Bearer " + token))
-                .andDo(print())
                 .andExpect(status().is4xxClientError());
     }
 
@@ -554,7 +534,6 @@ class CategoryManagementIntegrationTest {
                         get("/api/v1/categories/tree")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
     }

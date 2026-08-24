@@ -25,11 +25,13 @@ spring:
       minimum-idle: 0
   main:
     allow-bean-definition-overriding: true
+    banner-mode: 'off'
   jpa:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
     hibernate:
       ddl-auto: none
     show-sql: false
+    open-in-view: false
     properties:
       hibernate:
         format_sql: false
@@ -43,7 +45,7 @@ spring:
         batch_versioned_data: true
   test:
     mockmvc:
-      print: default
+      print: none
 application:
   version: 0.1.0
   encryption:
@@ -63,11 +65,18 @@ logging:
   level:
     root: WARN
     org:
-      openfinance: INFO
-      springframework:
-        web: WARN
-      hibernate:
-        SQL: WARN
+      openfinance: ERROR
+      springframework: WARN
+      hibernate: WARN
+      flywaydb: WARN
+    com:
+      zaxxer:
+        hikari: WARN
+    io:
+      jsonwebtoken: WARN
+    'org.openfinance.util.LoggingAspect': OFF
+    'org.openfinance.config.PerformanceMonitoringAspect': OFF
+    'org.springframework.boot.autoconfigure.security': ERROR
 jwt:
   secret: TEST_SECRET_KEY_FOR_TESTING_ONLY_DO_NOT_USE_IN_PRODUCTION
   expiration: 3600000

@@ -3,7 +3,6 @@ package org.openfinance.controller;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -177,7 +176,6 @@ class DashboardControllerTest {
                             get("/api/v1/dashboard/asset-allocation")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(3)))
                     // CRYPTO should be first (highest value)
@@ -206,7 +204,6 @@ class DashboardControllerTest {
                             get("/api/v1/dashboard/asset-allocation")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(0)));
         }
@@ -242,7 +239,6 @@ class DashboardControllerTest {
                             get("/api/v1/dashboard/asset-allocation")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)))
                     .andExpect(jsonPath("$[0].type").value("STOCK"))
@@ -268,7 +264,6 @@ class DashboardControllerTest {
                             get("/api/v1/dashboard/asset-allocation")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)))
                     .andExpect(jsonPath("$[0].percentage").value(100.00));
@@ -278,7 +273,6 @@ class DashboardControllerTest {
         @DisplayName("Should return 403 when not authenticated")
         void shouldReturn403WhenNotAuthenticated() throws Exception {
             mockMvc.perform(get("/api/v1/dashboard/asset-allocation"))
-                    .andDo(print())
                     .andExpect(status().isForbidden());
         }
 
@@ -288,7 +282,6 @@ class DashboardControllerTest {
             mockMvc.perform(
                             get("/api/v1/dashboard/asset-allocation")
                                     .header("Authorization", "Bearer invalid_token"))
-                    .andDo(print())
                     .andExpect(status().isForbidden());
         }
 
@@ -335,7 +328,6 @@ class DashboardControllerTest {
                             get("/api/v1/dashboard/asset-allocation")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(5)))
                     .andExpect(
@@ -379,7 +371,6 @@ class DashboardControllerTest {
                             get("/api/v1/dashboard/portfolio-performance")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(3)))
                     // Total Value metric
@@ -411,7 +402,6 @@ class DashboardControllerTest {
                             get("/api/v1/dashboard/portfolio-performance")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(0)));
         }
@@ -435,7 +425,6 @@ class DashboardControllerTest {
                             get("/api/v1/dashboard/portfolio-performance")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].currentValue").value(8000))
                     .andExpect(jsonPath("$[0].changeAmount").value(-2000))
@@ -459,7 +448,6 @@ class DashboardControllerTest {
                             get("/api/v1/dashboard/portfolio-performance")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(3)))
                     .andExpect(jsonPath("$[0].sparklineData", hasSize(0)))
@@ -483,7 +471,6 @@ class DashboardControllerTest {
                             get("/api/v1/dashboard/portfolio-performance")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].sparklineData", hasSize(1)))
                     .andExpect(jsonPath("$[0].changeAmount").value(0)) // Need at least 2 points
@@ -494,7 +481,6 @@ class DashboardControllerTest {
         @DisplayName("Should return 403 when not authenticated")
         void shouldReturn403WhenNotAuthenticated() throws Exception {
             mockMvc.perform(get("/api/v1/dashboard/portfolio-performance"))
-                    .andDo(print())
                     .andExpect(status().isForbidden());
         }
 
@@ -504,7 +490,6 @@ class DashboardControllerTest {
             mockMvc.perform(
                             get("/api/v1/dashboard/portfolio-performance")
                                     .header("Authorization", "Bearer invalid_token"))
-                    .andDo(print())
                     .andExpect(status().isForbidden());
         }
 
@@ -540,7 +525,6 @@ class DashboardControllerTest {
                             get("/api/v1/dashboard/portfolio-performance")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].currentValue").value(33700))
                     .andExpect(jsonPath("$[1].currentValue").value(3700))
@@ -576,7 +560,6 @@ class DashboardControllerTest {
                             get("/api/v1/dashboard/daily-cashflow?year=2024&month=2")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$.length()").value(29)) // 2024 is a leap year

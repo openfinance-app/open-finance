@@ -6,7 +6,6 @@ import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -123,7 +122,6 @@ class ImportControllerTest {
                                 .with(authentication(createAuthentication(USER_ID)))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(SESSION_ID))
                 .andExpect(jsonPath("$.uploadId").value(UPLOAD_ID))
@@ -285,7 +283,6 @@ class ImportControllerTest {
         mockMvc.perform(
                         get("/api/v1/import/sessions/{id}", SESSION_ID)
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(SESSION_ID))
                 .andExpect(jsonPath("$.userId").value(USER_ID))
@@ -358,7 +355,6 @@ class ImportControllerTest {
         mockMvc.perform(
                         get("/api/v1/import/sessions/{id}/review", SESSION_ID)
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(2)))
@@ -479,7 +475,6 @@ class ImportControllerTest {
                                 .header("X-Encryption-Session", TEST_ENCRYPTION_SESSION)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.id").value(SESSION_ID))
                 .andExpect(jsonPath("$.status").value("IMPORTING"));
@@ -648,7 +643,6 @@ class ImportControllerTest {
                         post("/api/v1/import/sessions/{id}/cancel", SESSION_ID)
                                 .with(csrf())
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(SESSION_ID))
                 .andExpect(jsonPath("$.status").value("CANCELLED"))
@@ -721,7 +715,6 @@ class ImportControllerTest {
         mockMvc.perform(
                         get("/api/v1/import/sessions")
                                 .with(authentication(createAuthentication(USER_ID))))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(3)))

@@ -2,7 +2,6 @@ package org.openfinance.controller;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -95,7 +94,6 @@ class UserControllerIntegrationTest {
                         get("/api/v1/users/me")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encryptionSession))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username", is("testuser")))
                 .andExpect(jsonPath("$.email", is("testuser@example.com")))
@@ -108,7 +106,6 @@ class UserControllerIntegrationTest {
     @DisplayName("GET /api/v1/users/me - Should return 403 without token")
     void testGetCurrentUserUnauthorized() throws Exception {
         mockMvc.perform(get("/api/v1/users/me"))
-                .andDo(print())
                 .andExpect(status().isForbidden()); // Spring Security returns 403 not 401
     }
 
@@ -119,7 +116,6 @@ class UserControllerIntegrationTest {
                         get("/api/v1/users/me/base-currency")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encryptionSession))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.baseCurrency", is("EUR")));
     }
@@ -135,7 +131,6 @@ class UserControllerIntegrationTest {
                                 .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.baseCurrency", is("EUR")))
                 .andExpect(jsonPath("$.username", is("testuser")));
@@ -201,7 +196,6 @@ class UserControllerIntegrationTest {
                         put("/api/v1/users/me/base-currency")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
                 .andExpect(status().isForbidden()); // Spring Security returns 403 not 401
     }
 
@@ -216,7 +210,6 @@ class UserControllerIntegrationTest {
                                 .header("X-Encryption-Session", encryptionSession)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestJson))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 }

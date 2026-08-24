@@ -67,9 +67,12 @@ if (!i18n.isInitialized) {
       },
       // Preload all namespaces for the current language to avoid delays
       preload: ['en', 'fr'],
-      // Development: log missing keys
-      saveMissing: import.meta.env.DEV,
+      // Suppress the "Locize" support banner in test console output
+      showSupportNotice: false,
+      // Development: log missing keys (never during tests — too noisy)
+      saveMissing: import.meta.env.DEV && import.meta.env.MODE !== 'test',
       missingKeyHandler: (lngs, ns, key) => {
+        if (import.meta.env.MODE === 'test') return;
         console.warn(`[i18n] Missing translation: ${ns}:${key} for ${lngs}`);
       },
       // React integration options

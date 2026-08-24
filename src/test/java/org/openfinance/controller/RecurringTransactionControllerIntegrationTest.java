@@ -2,7 +2,6 @@ package org.openfinance.controller;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -277,7 +276,6 @@ class RecurringTransactionControllerIntegrationTest {
                                     .header("X-Encryption-Session", encKey)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").isNumber())
                     .andExpect(jsonPath("$.accountId").value(checkingAccount.getId()))
@@ -321,7 +319,6 @@ class RecurringTransactionControllerIntegrationTest {
                                     .header("X-Encryption-Session", encKey)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.type").value("TRANSFER"))
                     .andExpect(jsonPath("$.accountId").value(checkingAccount.getId()))
@@ -351,7 +348,6 @@ class RecurringTransactionControllerIntegrationTest {
                                     .header("Authorization", "Bearer " + token)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
                     .andExpect(status().isUnauthorized());
         }
 
@@ -368,7 +364,6 @@ class RecurringTransactionControllerIntegrationTest {
                                     .header("X-Encryption-Session", encKey)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(invalidRequest))
-                    .andDo(print())
                     .andExpect(status().isBadRequest());
         }
 
@@ -393,7 +388,6 @@ class RecurringTransactionControllerIntegrationTest {
                                     .header("X-Encryption-Session", encKey)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
                     .andExpect(status().isForbidden());
         }
     }
@@ -424,7 +418,6 @@ class RecurringTransactionControllerIntegrationTest {
                             get("/api/v1/recurring-transactions")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(2)))
                     .andExpect(jsonPath("$[0].id").isNumber())
@@ -457,7 +450,6 @@ class RecurringTransactionControllerIntegrationTest {
                                     .param("frequency", "MONTHLY")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(2)))
                     .andExpect(jsonPath("$[0].frequency").value("MONTHLY"))
@@ -474,7 +466,6 @@ class RecurringTransactionControllerIntegrationTest {
                             get("/api/v1/recurring-transactions")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(0)));
         }
@@ -506,7 +497,6 @@ class RecurringTransactionControllerIntegrationTest {
                             get("/api/v1/recurring-transactions/active")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)))
                     .andExpect(jsonPath("$[0].isActive").value(true));
@@ -527,7 +517,6 @@ class RecurringTransactionControllerIntegrationTest {
                             get("/api/v1/recurring-transactions/active")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(0)));
         }
@@ -579,7 +568,6 @@ class RecurringTransactionControllerIntegrationTest {
                             get("/api/v1/recurring-transactions/due")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)))
                     .andExpect(jsonPath("$[0].isDue").value(true));
@@ -600,7 +588,6 @@ class RecurringTransactionControllerIntegrationTest {
                             get("/api/v1/recurring-transactions/due")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(0)));
         }
@@ -628,7 +615,6 @@ class RecurringTransactionControllerIntegrationTest {
                             get("/api/v1/recurring-transactions/{id}", saved.getId())
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(saved.getId()))
                     .andExpect(jsonPath("$.accountId").value(checkingAccount.getId()))
@@ -647,7 +633,6 @@ class RecurringTransactionControllerIntegrationTest {
                             get("/api/v1/recurring-transactions/{id}", nonExistentId)
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isNotFound());
         }
 
@@ -710,7 +695,6 @@ class RecurringTransactionControllerIntegrationTest {
                             get("/api/v1/recurring-transactions/{id}", user2Transaction.getId())
                                     .header("Authorization", "Bearer " + token) // alice's token
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isNotFound()); // 404 not 403
         }
     }
@@ -751,7 +735,6 @@ class RecurringTransactionControllerIntegrationTest {
                                     .header("X-Encryption-Session", encKey)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(updateRequest)))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(saved.getId()))
                     .andExpect(jsonPath("$.amount").value(1300.00))
@@ -782,7 +765,6 @@ class RecurringTransactionControllerIntegrationTest {
                                     .header("X-Encryption-Session", encKey)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(updateRequest)))
-                    .andDo(print())
                     .andExpect(status().isNotFound());
         }
     }
@@ -809,7 +791,6 @@ class RecurringTransactionControllerIntegrationTest {
                             delete("/api/v1/recurring-transactions/{id}", saved.getId())
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isNoContent());
 
             // Verify deletion
@@ -831,7 +812,6 @@ class RecurringTransactionControllerIntegrationTest {
                             delete("/api/v1/recurring-transactions/{id}", nonExistentId)
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isNotFound());
         }
     }
@@ -858,7 +838,6 @@ class RecurringTransactionControllerIntegrationTest {
                             post("/api/v1/recurring-transactions/{id}/pause", saved.getId())
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(saved.getId()))
                     .andExpect(jsonPath("$.isActive").value(false));
@@ -875,7 +854,6 @@ class RecurringTransactionControllerIntegrationTest {
                             post("/api/v1/recurring-transactions/{id}/pause", nonExistentId)
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isNotFound());
         }
     }
@@ -902,7 +880,6 @@ class RecurringTransactionControllerIntegrationTest {
                             post("/api/v1/recurring-transactions/{id}/resume", saved.getId())
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(saved.getId()))
                     .andExpect(jsonPath("$.isActive").value(true));
@@ -919,7 +896,6 @@ class RecurringTransactionControllerIntegrationTest {
                             post("/api/v1/recurring-transactions/{id}/resume", nonExistentId)
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isNotFound());
         }
     }
@@ -954,7 +930,6 @@ class RecurringTransactionControllerIntegrationTest {
                             post("/api/v1/recurring-transactions/process")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.processedCount").isNumber())
                     .andExpect(jsonPath("$.failedCount").isNumber())
@@ -971,7 +946,6 @@ class RecurringTransactionControllerIntegrationTest {
                             post("/api/v1/recurring-transactions/process")
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.processedCount").value(0))
                     .andExpect(jsonPath("$.failedCount").value(0))

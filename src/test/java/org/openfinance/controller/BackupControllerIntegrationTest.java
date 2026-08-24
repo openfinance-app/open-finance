@@ -12,7 +12,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -191,7 +190,6 @@ class BackupControllerIntegrationTest {
                                 .content(objectMapper.writeValueAsString(request))
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.userId").value(userId))
@@ -228,7 +226,6 @@ class BackupControllerIntegrationTest {
                                 .content(objectMapper.writeValueAsString(request))
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.backupType").value("MANUAL"))
@@ -249,7 +246,6 @@ class BackupControllerIntegrationTest {
                                 .content(objectMapper.writeValueAsString(request))
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -265,7 +261,6 @@ class BackupControllerIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
@@ -331,7 +326,6 @@ class BackupControllerIntegrationTest {
                         get("/api/v1/backup/list")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(3)))
@@ -406,7 +400,6 @@ class BackupControllerIntegrationTest {
                         post("/api/v1/backup/restore/999999")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
@@ -452,7 +445,6 @@ class BackupControllerIntegrationTest {
                         post("/api/v1/backup/restore/" + saved.getId())
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("checksum")));
     }
@@ -494,7 +486,6 @@ class BackupControllerIntegrationTest {
                         post("/api/v1/backup/restore/" + saved.getId())
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNotFound()); // Returns 404 for security
     }
 
@@ -524,7 +515,6 @@ class BackupControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(
                         content()
@@ -546,7 +536,6 @@ class BackupControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("empty")));
     }
@@ -569,7 +558,6 @@ class BackupControllerIntegrationTest {
                                 .file(file)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
@@ -593,7 +581,6 @@ class BackupControllerIntegrationTest {
                         multipart("/api/v1/backup/restore/upload")
                                 .file(file)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 
@@ -628,7 +615,6 @@ class BackupControllerIntegrationTest {
                         delete("/api/v1/backup/" + saved.getId())
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isOk());
 
         // Verify backup deleted from database
@@ -643,7 +629,6 @@ class BackupControllerIntegrationTest {
                         delete("/api/v1/backup/999999")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
@@ -684,7 +669,6 @@ class BackupControllerIntegrationTest {
                         delete("/api/v1/backup/" + saved.getId())
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
-                .andDo(print())
                 .andExpect(status().isNotFound()); // Returns 404 for security
     }
 
