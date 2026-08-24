@@ -20,11 +20,13 @@ import { Button } from '@/components/ui/Button';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { InstitutionSelector } from '@/components/ui/InstitutionSelector';
 import { Switch } from '@/components/ui/Switch';
+import { DateInput } from '@/components/ui/DateInput';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAuthContext } from '@/context/AuthContext';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { getToday } from '@/utils/date';
 import { add, divide, isValidDecimalString, multiply, percentage, pow, subtract } from '@/utils/money';
 import type { Account, AccountRequest, AccountType, InterestPeriod } from '@/types/account';
 
@@ -45,6 +47,8 @@ type AccountFormData = {
   /** Raw decimal string as entered by the user — preserved exactly through submission. */
   initialBalance: string;
   description?: string;
+  /** ISO date (yyyy-MM-dd) when the account was opened. */
+  openingDate?: string;
   institutionId?: string;
   isInterestEnabled?: boolean;
   interestPeriod?: InterestPeriod;
@@ -91,6 +95,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
     currency: z.string().length(3),
     initialBalance: z.string().min(1, t('validation.balanceInvalid')).refine(isValidDecimalString, t('validation.balanceInvalid')),
     description: z.string().max(500, t('validation.descriptionTooLong')).optional(),
+    openingDate: z.string().optional(),
     institutionId: z.string().optional(),
     isInterestEnabled: z.boolean().optional(),
     interestPeriod: z.enum(['ANNUAL', 'HALF_YEARLY', 'QUARTERLY', 'MONTHLY', 'DAILY']).optional(),
@@ -131,6 +136,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
         currency: account.currency,
         initialBalance: String(account.balance),
         description: account.description || '',
+        openingDate: account.openingDate || getToday(),
         institutionId: account.institution?.id?.toString() || '',
         isInterestEnabled: account.isInterestEnabled || false,
         interestPeriod: account.interestPeriod || 'ANNUAL',
@@ -144,6 +150,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
         currency: baseCurrency || DEFAULT_CURRENCY,
         initialBalance: '0',
         description: '',
+        openingDate: getToday(),
         institutionId: '',
         isInterestEnabled: false,
         interestPeriod: 'ANNUAL',
@@ -190,6 +197,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
       currency: data.currency,
       initialBalance: data.initialBalance.trim(),
       description: data.description || undefined,
+      openingDate: data.openingDate || undefined,
       institutionId: data.institutionId ? parseInt(data.institutionId, 10) : undefined,
       isInterestEnabled: data.isInterestEnabled,
       interestPeriod: data.interestPeriod,
@@ -248,25 +256,47 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
         </div>
       </div>
 
-      {/* Account Type */}
-      <div>
-        <label htmlFor="type" className="block text-sm font-medium text-text-primary mb-1.5">
-          {t('form.accountType')} *
-        </label>
-        <select
-          id="type"
-          {...register('type')}
-          className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-        >
-          {ACCOUNT_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {t(`form.types.${type}`)}
-            </option>
-          ))}
-        </select>
-        {errors.type && (
-          <p className="mt-1 text-sm text-error">{errors.type.message}</p>
-        )}
+      {/* Account Type + Opening Date in a row */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="type" className="block text-sm font-medium text-text-primary mb-1.5">
+            {t('form.accountType')} *
+          </label>
+          <select
+            id="type"
+            {...register('type')}
+            className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          >
+            {ACCOUNT_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {t(`form.types.${type}`)}
+              </option>
+            ))}
+          </select>
+          {errors.type && (
+            <p className="mt-1 text-sm text-error">{errors.type.message}</p>
+          )}
+        </div>
+        <div>
+          <label htmlFor="openingDate" className="block text-sm font-medium text-text-primary mb-1.5">
+            <span className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> {t('form.openingDate')}</span>
+          </label>
+          <Controller
+            name="openingDate"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                id="openingDate"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                max={getToday()}
+                error={errors.openingDate?.message}
+              />
+            )}
+          />
+          <p className="text-xs text-text-secondary mt-1">{t('form.openingDateHint')}</p>
+        </div>
       </div>
 
       {/* Currency + Balance in a row */}

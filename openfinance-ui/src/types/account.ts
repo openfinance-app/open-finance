@@ -69,6 +69,8 @@ export interface Account {
   currency: string;
   balance: number;
   description?: string;
+  /** ISO date (yyyy-MM-dd) when the account was opened. */
+  openingDate?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -94,6 +96,8 @@ export interface AccountRequest {
   /** Exact decimal string as entered by the user (e.g. "6322.1899") — never a JS number. */
   initialBalance: string;
   description?: string;
+  /** ISO date (yyyy-MM-dd) when the account was opened. */
+  openingDate?: string;
   institutionId?: number;
   isInterestEnabled?: boolean;
   interestPeriod?: InterestPeriod;

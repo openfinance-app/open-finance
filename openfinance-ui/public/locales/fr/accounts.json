@@ -48,6 +48,8 @@
     "initialBalance": "Solde initial",
     "currentBalance": "Solde actuel",
     "description": "Description (Facultatif)",
+    "openingDate": "Date d'ouverture",
+    "openingDateHint": "Date de départ utilisée pour l'historique du solde et le calcul des intérêts",
     "descriptionPlaceholder": "Ajoutez des notes sur ce compte...",
     "accountNamePlaceholder": "ex. : Compte courant principal",
     "accountNumberPlaceholder": "ex. : 1234567890",

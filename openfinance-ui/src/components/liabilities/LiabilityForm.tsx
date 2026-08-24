@@ -11,6 +11,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
+import { DateInput } from '@/components/ui/DateInput';
 import { Button } from '@/components/ui/Button';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { InstitutionSelector } from '@/components/ui/InstitutionSelector';
@@ -329,12 +330,19 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <label htmlFor="startDate" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.startDate')} *
           </label>
-          <Input
-            id="startDate"
-            type="date"
-            max={today}
-            {...register('startDate')}
-            error={errors.startDate?.message}
+          <Controller
+            name="startDate"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                id="startDate"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                max={today}
+                error={errors.startDate?.message}
+              />
+            )}
           />
         </div>
 
@@ -343,11 +351,18 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <label htmlFor="endDate" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.endDate')}
           </label>
-          <Input
-            id="endDate"
-            type="date"
-            {...register('endDate')}
-            error={errors.endDate?.message}
+          <Controller
+            name="endDate"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                id="endDate"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                error={errors.endDate?.message}
+              />
+            )}
           />
         </div>
       </div>

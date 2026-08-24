@@ -48,6 +48,8 @@
     "initialBalance": "Initial Balance",
     "currentBalance": "Current Balance",
     "description": "Description (Optional)",
+    "openingDate": "Opening Date",
+    "openingDateHint": "Start date used for balance history and interest accrual",
     "descriptionPlaceholder": "Add notes about this account...",
     "accountNamePlaceholder": "e.g., Main Checking",
     "accountNumberPlaceholder": "e.g., 1234567890",

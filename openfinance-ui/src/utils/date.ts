@@ -49,7 +49,7 @@ export function formatDate(date: string | Date, dateFormat?: string): string {
       return 'en-US';
     }
   })();
-  
+
   return new Intl.DateTimeFormat(inferredLocale, {
     day: 'numeric',
     month: 'short',
@@ -63,6 +63,55 @@ export function formatDate(date: string | Date, dateFormat?: string): string {
 export function formatDateForInput(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toISOString().split('T')[0];
+}
+
+/** Supported user date-format tokens. */
+export type UserDateFormat = 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
+
+/**
+ * Convert an ISO date (YYYY-MM-DD) to the user's configured display format.
+ *
+ * Works purely on the string parts (no Date object) so it is timezone-safe.
+ * Falls back to MM/DD/YYYY when the format is unknown, and returns the input
+ * unchanged when it is not a valid ISO date.
+ */
+export function formatIsoToDisplay(iso: string, dateFormat?: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso;
+  const [, y, mo, d] = m;
+  if (dateFormat === 'YYYY-MM-DD') return `${y}-${mo}-${d}`;
+  if (dateFormat === 'DD/MM/YYYY') return `${d}/${mo}/${y}`;
+  return `${mo}/${d}/${y}`;
+}
+
+/**
+ * Parse a date typed in the user's configured display format back to ISO
+ * (YYYY-MM-DD). Returns null when the string is empty or not a real calendar date.
+ * Accepts `/`, `-`, or `.` as separators regardless of the format's canonical one.
+ */
+export function parseDisplayDate(input: string, dateFormat?: string): string | null {
+  const s = input.trim();
+  if (!s) return null;
+
+  let y: number, mo: number, d: number;
+  const parts = s.split(/[-/.]/).map((p) => p.trim());
+  if (parts.length !== 3 || parts.some((p) => p === '' || Number.isNaN(Number(p)))) return null;
+
+  // A leading 4-digit component is an unambiguous ISO date, accepted regardless
+  // of the configured format (covers native-picker, pasted, or programmatic values).
+  if (/^\d{4}$/.test(parts[0])) {
+    [y, mo, d] = [Number(parts[0]), Number(parts[1]), Number(parts[2])];
+  } else if (dateFormat === 'DD/MM/YYYY') {
+    [d, mo, y] = [Number(parts[0]), Number(parts[1]), Number(parts[2])];
+  } else {
+    [mo, d, y] = [Number(parts[0]), Number(parts[1]), Number(parts[2])];
+  }
+
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1000) return null;
+  const iso = `${String(y).padStart(4, '0')}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const dt = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(dt.getTime()) || dt.getMonth() + 1 !== mo || dt.getDate() !== d) return null;
+  return iso;
 }
 
 /**

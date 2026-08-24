@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
+import { DateInput } from '@/components/ui/DateInput';
 import { Button } from '@/components/ui/Button';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { LiabilitySelector } from '@/components/ui/LiabilitySelector';
@@ -214,12 +215,19 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           <label htmlFor="purchaseDate" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.purchaseDate')} *
           </label>
-          <Input
-            id="purchaseDate"
-            type="date"
-            max={today}
-            {...register('purchaseDate')}
-            error={errors.purchaseDate?.message}
+          <Controller
+            name="purchaseDate"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                id="purchaseDate"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                max={today}
+                error={errors.purchaseDate?.message}
+              />
+            )}
           />
         </div>
 
