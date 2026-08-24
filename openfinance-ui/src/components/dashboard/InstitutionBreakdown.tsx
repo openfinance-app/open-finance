@@ -119,22 +119,27 @@ export default function InstitutionBreakdown({
     // Process Assets
     if (assets) {
         for (const asset of assets) {
-            // Find account if linked
-            const linkedAccount = asset.accountId ? accounts?.find(a => a.id === asset.accountId) : null;
-            const inst = linkedAccount?.institution ?? null;
-            const key = inst?.id ?? null;
+            // Assets linked to an account are already included in that account's
+            // balanceInBaseCurrency (added server-side); skip them to avoid double counting.
+            const linkedAccount = asset.accountId
+                ? accounts?.find(a => a.id === asset.accountId)
+                : null;
+            if (linkedAccount) {
+                continue;
+            }
+
+            // Standalone asset – no institution, bucket under "No Institution".
+            const key = null;
             const value = asset.valueInBaseCurrency ?? asset.totalValue;
 
             if (groupMap.has(key)) {
                 const g = groupMap.get(key)!;
                 g.totalBalance = add(g.totalBalance, value);
-                // We don't increment accountCount for assets, or maybe we should call it "Item Count"?
-                // Let's keep accountCount as is for now or just not increment it.
             } else {
                 groupMap.set(key, {
                     id: key,
-                    name: inst?.name ?? t('institutionBreakdown.noInstitution'),
-                    logo: inst?.logo,
+                    name: t('institutionBreakdown.noInstitution'),
+                    logo: undefined,
                     totalBalance: value,
                     accountCount: 0, // Initial count for an asset-only entry
                     percentage: 0,

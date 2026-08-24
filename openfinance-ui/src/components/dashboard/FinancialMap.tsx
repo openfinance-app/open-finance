@@ -147,24 +147,14 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
       map.set(key, existing);
     };
 
-    // Accounts → institution country
+    // Accounts → institution country. Balances already include the value of any
+    // linked assets (added server-side), so assets are not aggregated separately
+    // here to avoid double counting and inflating the account count.
     if (accounts) {
       for (const account of accounts) {
         const country = account.institution?.country;
         if (!country) continue;
         bump(country, account.balanceInBaseCurrency ?? account.balance, 'institution');
-      }
-    }
-
-    // Assets → country of the institution behind their linked account
-    if (assets) {
-      for (const asset of assets) {
-        const linkedAccount = asset.accountId
-          ? accounts?.find((a) => a.id === asset.accountId)
-          : null;
-        const country = linkedAccount?.institution?.country;
-        if (!country) continue;
-        bump(country, asset.valueInBaseCurrency ?? asset.totalValue, 'institution');
       }
     }
 

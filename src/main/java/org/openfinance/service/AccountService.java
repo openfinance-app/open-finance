@@ -974,12 +974,13 @@ public class AccountService {
                             .build());
         }
 
-        // Add the total value of linked assets to the account's balance
+        // Add the total value of linked assets to the account's balance, converting each asset's
+        // value from its own currency to the account currency (Requirement REQ-3.1).
         List<org.openfinance.entity.Asset> linkedAssets =
                 assetRepository.findByAccountId(account.getId());
         java.math.BigDecimal assetsTotalValue =
                 linkedAssets.stream()
-                        .map(org.openfinance.entity.Asset::getTotalValue)
+                        .map(asset -> convertAssetValueToAccountCurrency(asset, account))
                         .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
         java.math.BigDecimal totalBalance = account.getBalance().add(assetsTotalValue);
@@ -990,6 +991,42 @@ public class AccountService {
                 response, account.getUserId(), account.getCurrency(), totalBalance);
 
         return response;
+    }
+
+    /**
+     * Converts a linked asset's total value from its own currency into the account currency.
+     *
+     * <p>Returns the unconverted value when currencies match, the asset currency is missing, or the
+     * conversion fails, so a temporary rate outage never zeroes out a linked asset.
+     *
+     * @param asset the linked asset whose value should be converted
+     * @param account the account providing the target currency
+     * @return the asset value expressed in the account's currency
+     */
+    private java.math.BigDecimal convertAssetValueToAccountCurrency(
+            org.openfinance.entity.Asset asset, Account account) {
+        java.math.BigDecimal value = asset.getTotalValue();
+        if (value == null) {
+            return java.math.BigDecimal.ZERO;
+        }
+        String assetCurrency = asset.getCurrency();
+        String accountCurrency = account.getCurrency();
+        if (assetCurrency == null || assetCurrency.equalsIgnoreCase(accountCurrency)) {
+            return value;
+        }
+        try {
+            return exchangeRateService.convert(value, assetCurrency, accountCurrency);
+        } catch (Exception e) {
+            log.warn(
+                    "Failed to convert linked asset {} value {} {} to {} for account {}; using"
+                            + " unconverted value",
+                    asset.getId(),
+                    value,
+                    assetCurrency,
+                    accountCurrency,
+                    account.getId());
+            return value;
+        }
     }
 
     /**
