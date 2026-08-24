@@ -714,7 +714,7 @@ public class SearchService {
     private List<SearchResultDto> searchAccounts(
             Long userId, String query, int limit, boolean regex) {
         try {
-            List<Account> accounts = accountRepository.findByUserId(userId);
+            List<Account> accounts = accountRepository.findByUserIdWithInstitution(userId);
 
             return accounts.parallelStream()
                     .map(
@@ -722,12 +722,22 @@ public class SearchService {
                                 try {
                                     String decryptedName = account.getName();
                                     String decryptedDesc = account.getDescription();
+                                    String decryptedAccountNumber = account.getAccountNumber();
+                                    String institutionName =
+                                            account.getInstitution() != null
+                                                    ? account.getInstitution().getName()
+                                                    : null;
 
-                                    // Check if query matches name or description
+                                    // Check if query matches name, description, account number, or
+                                    // institution name
                                     if (org.openfinance.util.RegexSearchUtil.matches(
                                                     decryptedName, query, regex)
                                             || org.openfinance.util.RegexSearchUtil.matches(
-                                                    decryptedDesc, query, regex)) {
+                                                    decryptedDesc, query, regex)
+                                            || org.openfinance.util.RegexSearchUtil.matches(
+                                                    decryptedAccountNumber, query, regex)
+                                            || org.openfinance.util.RegexSearchUtil.matches(
+                                                    institutionName, query, regex)) {
 
                                         return SearchResultDto.builder()
                                                 .resultType(SearchResultType.ACCOUNT)

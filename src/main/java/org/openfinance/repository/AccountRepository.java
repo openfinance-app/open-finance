@@ -33,6 +33,18 @@ public interface AccountRepository
     List<Account> findByUserId(Long userId);
 
     /**
+     * Finds all accounts for a user, eagerly fetching the associated institution.
+     *
+     * <p>Used by global search so that the institution name can be matched safely from async worker
+     * threads without triggering a {@code LazyInitializationException}.
+     *
+     * @param userId ID of the user
+     * @return List of accounts owned by the user with institution loaded (may be empty)
+     */
+    @Query("SELECT a FROM Account a LEFT JOIN FETCH a.institution WHERE a.userId = :userId")
+    List<Account> findByUserIdWithInstitution(@Param("userId") Long userId);
+
+    /**
      * Finds all active accounts for a specific user.
      *
      * <p>Excludes soft-deleted (inactive) accounts from results.
