@@ -984,6 +984,8 @@ public class AccountService {
                         .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
         java.math.BigDecimal totalBalance = account.getBalance().add(assetsTotalValue);
+        // Expose the raw balance (without linked assets) so edit forms don't double it.
+        response.setOwnBalance(account.getBalance());
         response.setBalance(totalBalance);
 
         // Populate currency conversion metadata (Requirement REQ-3.1, REQ-3.5)

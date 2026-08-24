@@ -101,14 +101,14 @@ export default function AssetsPage() {
 
   /** Compute summary stats for a set of assets, summing in base currency when available */
   const computeAssetSummary = (assetList: Asset[]) => {
-    // For physical assets, use conditionAdjustedValue (current depreciated value) rather than
-    // totalValue (purchase cost). Scale to base currency via the implicit exchange rate.
+    // Use the user-entered current value (totalValue) for every asset, including physical ones.
+    // Auto-depreciation is only a fallback for physical assets that lack an entered current price.
     const totalValue = sum(assetList.map((a) => {
       // Coerce to Number first: keeps NaN-propagation semantics (instead of throwing) if a
       // field is unexpectedly missing, matching the previous `sum + effectiveNative` behavior.
       const effectiveNative = Number(
         a.isPhysical
-          ? (a.conditionAdjustedValue ?? a.depreciatedValue ?? a.totalValue)
+          ? (a.totalValue ?? a.conditionAdjustedValue ?? a.depreciatedValue)
           : a.totalValue
       );
       if (a.valueInBaseCurrency !== undefined && a.valueInBaseCurrency !== null && a.totalValue > 0) {

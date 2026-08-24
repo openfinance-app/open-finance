@@ -49,6 +49,42 @@ public class MarketDataService {
 
     private final MarketDataProvider marketDataProvider;
     private final AssetRepository assetRepository;
+    private final ExchangeRateService exchangeRateService;
+
+    /**
+     * Converts a quote's price into the asset's own currency.
+     *
+     * <p>Market quotes are denominated in the exchange's currency (e.g. BTC-USD is USD); the stored
+     * price must match the asset currency so displayed values are correct. Falls back to the raw
+     * price when currencies match, the quote currency is unknown, or conversion fails.
+     *
+     * @param quote the market quote whose price should be converted
+     * @param asset the asset providing the target currency
+     * @return the price expressed in the asset's currency
+     */
+    private BigDecimal priceInAssetCurrency(MarketQuote quote, Asset asset) {
+        BigDecimal price = quote.getPrice();
+        String quoteCurrency = quote.getCurrency();
+        String assetCurrency = asset.getCurrency();
+        if (price == null
+                || quoteCurrency == null
+                || assetCurrency == null
+                || quoteCurrency.equalsIgnoreCase(assetCurrency)) {
+            return price;
+        }
+        try {
+            return exchangeRateService.convert(price, quoteCurrency, assetCurrency);
+        } catch (Exception e) {
+            log.warn(
+                    "Failed to convert quote price {} {} to {} for asset {}; storing unconverted"
+                            + " price",
+                    price,
+                    quoteCurrency,
+                    assetCurrency,
+                    asset.getId());
+            return price;
+        }
+    }
 
     /**
      * Fetches a real-time quote for a symbol without updating any assets.
@@ -144,11 +180,17 @@ public class MarketDataService {
             }
 
             BigDecimal oldPrice = asset.getCurrentPrice();
-            asset.setCurrentPrice(newPrice);
+            BigDecimal priceInAssetCcy = priceInAssetCurrency(quote, asset);
+            asset.setCurrentPrice(priceInAssetCcy);
             asset.setLastUpdated(LocalDateTime.now());
             assetRepository.save(asset);
 
-            log.info("Updated asset {} ({}) price: {} -> {}", assetId, symbol, oldPrice, newPrice);
+            log.info(
+                    "Updated asset {} ({}) price: {} -> {}",
+                    assetId,
+                    symbol,
+                    oldPrice,
+                    priceInAssetCcy);
             return true;
 
         } catch (MarketDataException e) {
@@ -226,7 +268,7 @@ public class MarketDataService {
                         && quote.getPrice() != null
                         && quote.getPrice().compareTo(BigDecimal.ZERO) > 0) {
 
-                    asset.setCurrentPrice(quote.getPrice());
+                    asset.setCurrentPrice(priceInAssetCurrency(quote, asset));
                     asset.setLastUpdated(now);
                     // Persist the normalized symbol so future lookups work correctly
                     if (!normalizedSymbol.equals(asset.getSymbol())) {

@@ -134,7 +134,7 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
         accountNumber: account.accountNumber || '',
         type: account.type,
         currency: account.currency,
-        initialBalance: String(account.balance),
+        initialBalance: String(account.ownBalance ?? account.balance),
         description: account.description || '',
         openingDate: account.openingDate || getToday(),
         institutionId: account.institution?.id?.toString() || '',

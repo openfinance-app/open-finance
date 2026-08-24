@@ -68,6 +68,8 @@ export interface Account {
   type: AccountType;
   currency: string;
   balance: number;
+  /** Account's own balance excluding linked assets — use for edit forms. */
+  ownBalance?: number;
   description?: string;
   /** ISO date (yyyy-MM-dd) when the account was opened. */
   openingDate?: string;
