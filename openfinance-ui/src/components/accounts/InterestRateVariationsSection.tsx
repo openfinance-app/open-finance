@@ -8,8 +8,8 @@ import { useTranslation } from 'react-i18next';
 
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { DateInput } from '@/components/ui/DateInput';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
 import {
@@ -78,7 +78,6 @@ export function InterestRateVariationsSection({ accountId, accountBalance = 0, a
     const deleteVariation = useDeleteVariation();
 
     const {
-        register,
         handleSubmit,
         control,
         reset,
@@ -297,26 +296,41 @@ export function InterestRateVariationsSection({ accountId, accountBalance = 0, a
                                 <label htmlFor="rate" className="block text-sm font-medium text-text-primary mb-1.5">
                                     {t('interest.addDialog.interestRate')} *
                                 </label>
-                                <Input
-                                    id="rate"
-                                    type="number"
-                                    step="any"
-                                    {...register('rate', { valueAsNumber: true })}
-                                    placeholder="0.00"
-                                    error={errors.rate?.message}
+                                <Controller
+                                    name="rate"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <NumberInput
+                                            id="rate"
+                                            value={field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''}
+                                            onChange={(val) => field.onChange(val === '' ? 0 : Number(val))}
+                                            onBlur={field.onBlur}
+                                            placeholder="0.00"
+                                            error={errors.rate?.message}
+                                            min="0.01"
+                                        />
+                                    )}
                                 />
                             </div>
                             <div>
                                 <label htmlFor="taxRate" className="block text-sm font-medium text-text-primary mb-1.5">
                                     {t('interest.addDialog.taxRate')}
                                 </label>
-                                <Input
-                                    id="taxRate"
-                                    type="number"
-                                    step="any"
-                                    {...register('taxRate', { valueAsNumber: true })}
-                                    placeholder="0.00"
-                                    error={errors.taxRate?.message}
+                                <Controller
+                                    name="taxRate"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <NumberInput
+                                            id="taxRate"
+                                            value={field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''}
+                                            onChange={(val) => field.onChange(val === '' ? 0 : Number(val))}
+                                            onBlur={field.onBlur}
+                                            placeholder="0.00"
+                                            error={errors.taxRate?.message}
+                                            min="0"
+                                            max="100"
+                                        />
+                                    )}
                                 />
                             </div>
                         </div>

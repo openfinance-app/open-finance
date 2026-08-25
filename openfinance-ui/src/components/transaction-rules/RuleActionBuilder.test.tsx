@@ -292,7 +292,7 @@ describe('RuleActionBuilder', () => {
     expect(screen.getByRole('textbox', { name: 'Description' })).toBeInTheDocument();
   });
 
-  it('should render number input for SET_AMOUNT action', () => {
+  it('should render numeric text input for SET_AMOUNT action', () => {
     const actions: ActionDraft[] = [
       {
         actionType: 'SET_AMOUNT',
@@ -308,9 +308,9 @@ describe('RuleActionBuilder', () => {
       />
     );
 
-    const amountInput = screen.getByRole('spinbutton', { name: 'Amount' });
-    expect(amountInput).toHaveAttribute('type', 'number');
-    expect(amountInput).toHaveAttribute('step', 'any');
+    const amountInput = screen.getByRole('textbox', { name: 'Amount' });
+    expect(amountInput).toHaveAttribute('type', 'text');
+    expect(amountInput).toHaveAttribute('inputmode', 'decimal');
   });
 
   it('should render multiple inputs for ADD_SPLIT action', () => {
@@ -332,7 +332,7 @@ describe('RuleActionBuilder', () => {
     );
 
     expect(screen.getByRole('textbox', { name: 'Split category' })).toBeInTheDocument();
-    expect(screen.getByRole('spinbutton', { name: 'Split amount' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Split amount' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Split description' })).toBeInTheDocument();
   });
 
@@ -402,7 +402,7 @@ describe('RuleActionBuilder', () => {
     );
 
     const categoryInput = screen.getByRole('textbox', { name: 'Split category' });
-    const amountInput = screen.getByRole('spinbutton', { name: 'Split amount' });
+    const amountInput = screen.getByRole('textbox', { name: 'Split amount' });
     const descriptionInput = screen.getByRole('textbox', { name: 'Split description' });
 
     fireEvent.change(categoryInput, { target: { value: 'New Category' } });

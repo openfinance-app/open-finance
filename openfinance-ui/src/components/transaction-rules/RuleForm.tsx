@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { RuleConditionBuilder, type ConditionDraft } from './RuleConditionBuilder';
 import { RuleActionBuilder, type ActionDraft } from './RuleActionBuilder';
@@ -231,15 +232,14 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
               <label className="text-sm font-medium text-text-primary" htmlFor="rule-priority">
                 {t('form.priority')}
               </label>
-              <Input
+              <NumberInput
                 id="rule-priority"
-                type="number"
                 min={0}
                 value={formState.priority}
-                onChange={(e) =>
+                onChange={(value) =>
                   setFormState((prev) => ({
                     ...prev,
-                    priority: parseInt(e.target.value, 10) || 0,
+                    priority: Number(value) || 0,
                   }))
                 }
               />

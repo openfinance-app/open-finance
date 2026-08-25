@@ -9,6 +9,7 @@ import { Plus, Trash2, AlertCircle } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import {
@@ -143,17 +144,13 @@ export function SplitTransactionForm({
 
           {/* Amount input */}
           <div>
-            <Input
-              type="number"
-              step="any"
-              min="0.01"
-              value={split.amount === 0 ? '' : split.amount.toString()}
-              onChange={(e) =>
-                handleChangeField(index, 'amount', e.target.value ? Number(e.target.value) : 0)
-              }
+            <NumberInput
+              value={split.amount === 0 ? '' : String(split.amount)}
+              onChange={(val) => handleChangeField(index, 'amount', val ? Number(val) : 0)}
               placeholder="0.00"
               aria-label={`Split ${index + 1} amount`}
               className="font-mono"
+              min="0.01"
             />
           </div>
 

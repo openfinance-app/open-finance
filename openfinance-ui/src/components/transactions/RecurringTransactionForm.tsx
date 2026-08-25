@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
@@ -247,12 +248,20 @@ export function RecurringTransactionForm({
           <label htmlFor="amount" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.amount')} *
           </label>
-          <Input
-            id="amount"
-            type="number"
-            step="any"
-            {...register('amount')}
-            error={errors.amount?.message}
+          <Controller
+            name="amount"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="amount"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.amount?.message}
+                min="0.01"
+              />
+            )}
           />
           {convertedAmount !== null && (
             <p className="mt-1 text-xs text-text-secondary">

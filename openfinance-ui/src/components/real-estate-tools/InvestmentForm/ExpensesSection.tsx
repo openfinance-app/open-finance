@@ -8,7 +8,7 @@
 import React from 'react';
 import { Receipt, FileText, Shield, Percent, Building2, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '@/components/ui/Label';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { Separator } from '@/components/ui/Separator';
@@ -77,37 +77,31 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="propertyTax">{t('expensesSection.propertyTax')}</Label>
-              <Input
+              <NumberInput
                 id="propertyTax"
-                type="number"
-                value={inputs.propertyTax}
-                onChange={(e) => onUpdate('propertyTax', parseFloat(e.target.value) || 0)}
+                value={String(inputs.propertyTax)}
+                onChange={(value) => onUpdate('propertyTax', parseFloat(value) || 0)}
                 min={0}
-                step={100}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="cfe">{t('expensesSection.cfe')}</Label>
-              <Input
+              <NumberInput
                 id="cfe"
-                type="number"
-                value={inputs.cfe}
-                onChange={(e) => onUpdate('cfe', parseFloat(e.target.value) || 0)}
+                value={String(inputs.cfe)}
+                onChange={(value) => onUpdate('cfe', parseFloat(value) || 0)}
                 min={0}
-                step={100}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="cvae">{t('expensesSection.cvae')}</Label>
-              <Input
+              <NumberInput
                 id="cvae"
-                type="number"
-                value={inputs.cvae}
-                onChange={(e) => onUpdate('cvae', parseFloat(e.target.value) || 0)}
+                value={String(inputs.cvae)}
+                onChange={(value) => onUpdate('cvae', parseFloat(value) || 0)}
                 min={0}
-                step={100}
               />
             </div>
           </div>
@@ -123,25 +117,21 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="nonRecoverableCharges">{t('expensesSection.nonRecoverableCharges')}</Label>
-              <Input
+              <NumberInput
                 id="nonRecoverableCharges"
-                type="number"
-                value={inputs.nonRecoverableCharges}
-                onChange={(e) => onUpdate('nonRecoverableCharges', parseFloat(e.target.value) || 0)}
+                value={String(inputs.nonRecoverableCharges)}
+                onChange={(value) => onUpdate('nonRecoverableCharges', parseFloat(value) || 0)}
                 min={0}
-                step={100}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="annualMaintenance">{t('expensesSection.annualMaintenance')}</Label>
-              <Input
+              <NumberInput
                 id="annualMaintenance"
-                type="number"
-                value={inputs.annualMaintenance}
-                onChange={(e) => onUpdate('annualMaintenance', parseFloat(e.target.value) || 0)}
+                value={String(inputs.annualMaintenance)}
+                onChange={(value) => onUpdate('annualMaintenance', parseFloat(value) || 0)}
                 min={0}
-                step={100}
               />
             </div>
           </div>
@@ -157,37 +147,31 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="managementFees">{t('expensesSection.managementFees')}</Label>
-              <Input
+              <NumberInput
                 id="managementFees"
-                type="number"
-                value={inputs.managementFees}
-                onChange={(e) => onUpdate('managementFees', parseFloat(e.target.value) || 0)}
+                value={String(inputs.managementFees)}
+                onChange={(value) => onUpdate('managementFees', parseFloat(value) || 0)}
                 min={0}
-                step={50}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="pnoInsurance">{t('expensesSection.pnoInsurance')}</Label>
-              <Input
+              <NumberInput
                 id="pnoInsurance"
-                type="number"
-                value={inputs.pnoInsurance}
-                onChange={(e) => onUpdate('pnoInsurance', parseFloat(e.target.value) || 0)}
+                value={String(inputs.pnoInsurance)}
+                onChange={(value) => onUpdate('pnoInsurance', parseFloat(value) || 0)}
                 min={0}
-                step={50}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="accountingFees">{t('expensesSection.accountingFees')}</Label>
-              <Input
+              <NumberInput
                 id="accountingFees"
-                type="number"
-                value={inputs.accountingFees}
-                onChange={(e) => onUpdate('accountingFees', parseFloat(e.target.value) || 0)}
+                value={String(inputs.accountingFees)}
+                onChange={(value) => onUpdate('accountingFees', parseFloat(value) || 0)}
                 min={0}
-                step={50}
               />
             </div>
           </div>
@@ -200,14 +184,12 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <Percent className="h-4 w-4" />
               {t('expensesSection.marginalTaxRate')}
             </Label>
-            <Input
+            <NumberInput
               id="marginalTaxRate"
-              type="number"
-              value={inputs.marginalTaxRate}
-              onChange={(e) => onUpdate('marginalTaxRate', parseFloat(e.target.value) || 0)}
+              value={String(inputs.marginalTaxRate)}
+              onChange={(value) => onUpdate('marginalTaxRate', parseFloat(value) || 0)}
               min={0}
               max={60}
-              step={0.5}
             />
             {getFieldError('marginalTaxRate') && (
               <Alert variant="error" className="py-2">

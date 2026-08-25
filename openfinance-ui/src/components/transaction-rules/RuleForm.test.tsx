@@ -128,7 +128,7 @@ describe('RuleForm', () => {
 
     expect(screen.getByRole('heading', { name: 'Create Rule' })).toBeInTheDocument();
     expect(screen.getByLabelText(/rule name/i)).toHaveValue('');
-    expect(screen.getByLabelText(/priority/i)).toHaveValue(0);
+    expect(screen.getByLabelText(/priority/i)).toHaveValue('0');
     expect(screen.getByText('Active')).toBeInTheDocument();
   });
 
@@ -144,7 +144,7 @@ describe('RuleForm', () => {
 
     expect(screen.getByText('Edit Rule')).toBeInTheDocument();
     expect(screen.getByLabelText(/rule name/i)).toHaveValue('Test Rule');
-    expect(screen.getByLabelText(/priority/i)).toHaveValue(5);
+    expect(screen.getByLabelText(/priority/i)).toHaveValue('5');
     expect(screen.getByText('Inactive')).toBeInTheDocument();
   });
 
@@ -314,7 +314,7 @@ describe('RuleForm', () => {
     );
 
     expect(screen.getByLabelText(/rule name/i)).toHaveValue('Test Rule');
-    expect(screen.getByLabelText(/priority/i)).toHaveValue(5);
+    expect(screen.getByLabelText(/priority/i)).toHaveValue('5');
     expect(screen.getByText('Inactive')).toBeInTheDocument();
     expect(screen.getByDisplayValue('test')).toBeInTheDocument();
     // CategorySelect is mocked as a <select>; the selected option matches the name 'Groceries'

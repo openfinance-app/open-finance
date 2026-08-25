@@ -9,8 +9,8 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp, X, Filter, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { DateInput } from '@/components/ui/DateInput';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -175,32 +175,24 @@ export function AdvancedFilterPanel({
                 <label htmlFor="minAmount" className="block text-xs text-text-secondary mb-1.5">
                   {t('navigation:search.filters.minimum')}
                 </label>
-                <Input
+                <NumberInput
                   id="minAmount"
-                  type="number"
+                  value={filters.minAmount !== undefined ? String(filters.minAmount) : ''}
+                  onChange={(val) => updateFilter('minAmount', val ? parseFloat(val) : undefined)}
                   placeholder="0.00"
-                  step="any"
                   min="0"
-                  value={filters.minAmount ?? ''}
-                  onChange={(e) =>
-                    updateFilter('minAmount', e.target.value ? parseFloat(e.target.value) : undefined)
-                  }
                 />
               </div>
               <div>
                 <label htmlFor="maxAmount" className="block text-xs text-text-secondary mb-1.5">
                   {t('navigation:search.filters.maximum')}
                 </label>
-                <Input
+                <NumberInput
                   id="maxAmount"
-                  type="number"
+                  value={filters.maxAmount !== undefined ? String(filters.maxAmount) : ''}
+                  onChange={(val) => updateFilter('maxAmount', val ? parseFloat(val) : undefined)}
                   placeholder="0.00"
-                  step="any"
                   min="0"
-                  value={filters.maxAmount ?? ''}
-                  onChange={(e) =>
-                    updateFilter('maxAmount', e.target.value ? parseFloat(e.target.value) : undefined)
-                  }
                 />
               </div>
             </div>

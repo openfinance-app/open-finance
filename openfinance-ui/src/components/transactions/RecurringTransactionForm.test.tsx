@@ -402,7 +402,7 @@ describe('RecurringTransactionForm', () => {
       expect(descInput.value).toBe('Monthly rent');
 
       const amountInput = screen.getByLabelText(/Amount/i) as HTMLInputElement;
-      expect(amountInput.value).toBe('1200');
+      expect(amountInput.value).toBe('1,200');
 
       const freqSelect = screen.getByLabelText(/Frequency/i) as HTMLSelectElement;
       expect(freqSelect.value).toBe('MONTHLY');

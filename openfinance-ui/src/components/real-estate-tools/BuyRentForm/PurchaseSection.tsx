@@ -8,7 +8,7 @@
 import React from 'react';
 import { Home, Calculator, FileText, Shield, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '@/components/ui/Label';
 import { Switch } from '@/components/ui/Switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/Accordion';
@@ -78,13 +78,11 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
               <AccordionContent className="space-y-3 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="propertyPrice">{t('purchaseSection.propertyPrice')}</Label>
-                  <Input
+                  <NumberInput
                     id="propertyPrice"
-                    type="number"
-                    value={inputs.propertyPrice}
-                    onChange={(e) => onUpdate('propertyPrice', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.propertyPrice)}
+                    onChange={(value) => onUpdate('propertyPrice', parseFloat(value) || 0)}
                     min={0}
-                    step={1000}
                   />
                   {getFieldError('propertyPrice') && (
                     <Alert variant="error" className="py-2">
@@ -95,13 +93,11 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
 
                 <div className="space-y-2">
                   <Label htmlFor="renovationAmount">{t('purchaseSection.renovationAmount')}</Label>
-                  <Input
+                  <NumberInput
                     id="renovationAmount"
-                    type="number"
-                    value={inputs.renovationAmount}
-                    onChange={(e) => onUpdate('renovationAmount', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.renovationAmount)}
+                    onChange={(value) => onUpdate('renovationAmount', parseFloat(value) || 0)}
                     min={0}
-                    step={100}
                   />
                 </div>
 
@@ -116,26 +112,22 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
 
                 <div className="space-y-2">
                   <Label htmlFor="notaryFeesPercent">{t('purchaseSection.notaryFees')}</Label>
-                  <Input
+                  <NumberInput
                     id="notaryFeesPercent"
-                    type="number"
-                    value={inputs.notaryFeesPercent}
-                    onChange={(e) => onUpdate('notaryFeesPercent', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.notaryFeesPercent)}
+                    onChange={(value) => onUpdate('notaryFeesPercent', parseFloat(value) || 0)}
                     min={0}
                     max={100}
-                    step={0.1}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="agencyFees">{t('purchaseSection.agencyFees')}</Label>
-                  <Input
+                  <NumberInput
                     id="agencyFees"
-                    type="number"
-                    value={inputs.agencyFees}
-                    onChange={(e) => onUpdate('agencyFees', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.agencyFees)}
+                    onChange={(value) => onUpdate('agencyFees', parseFloat(value) || 0)}
                     min={0}
-                    step={100}
                   />
                 </div>
 
@@ -159,13 +151,11 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
               <AccordionContent className="space-y-3 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="downPayment">{t('purchaseSection.downPayment')}</Label>
-                  <Input
+                  <NumberInput
                     id="downPayment"
-                    type="number"
-                    value={inputs.downPayment}
-                    onChange={(e) => onUpdate('downPayment', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.downPayment)}
+                    onChange={(value) => onUpdate('downPayment', parseFloat(value) || 0)}
                     min={0}
-                    step={1000}
                   />
                   <p className="text-xs text-muted-foreground">
                     {t('purchaseSection.minimumSuggested')} :{' '}
@@ -195,11 +185,10 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
 
                 <div className="space-y-2">
                   <Label htmlFor="loanDuration">{t('purchaseSection.loanDuration')}</Label>
-                  <Input
+                  <NumberInput
                     id="loanDuration"
-                    type="number"
-                    value={inputs.loanDuration}
-                    onChange={(e) => onUpdate('loanDuration', parseInt(e.target.value) || 1)}
+                    value={String(inputs.loanDuration)}
+                    onChange={(value) => onUpdate('loanDuration', parseInt(value, 10) || 1)}
                     min={1}
                     max={40}
                   />
@@ -207,14 +196,12 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
 
                 <div className="space-y-2">
                   <Label htmlFor="interestRate">{t('purchaseSection.annualRate')}</Label>
-                  <Input
+                  <NumberInput
                     id="interestRate"
-                    type="number"
-                    value={inputs.interestRate}
-                    onChange={(e) => onUpdate('interestRate', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.interestRate)}
+                    onChange={(value) => onUpdate('interestRate', parseFloat(value) || 0)}
                     min={0}
                     max={100}
-                    step={0.01}
                   />
                 </div>
 
@@ -243,49 +230,41 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
               <AccordionContent className="space-y-3 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="totalInsurance">{t('purchaseSection.totalInsurance')}</Label>
-                  <Input
+                  <NumberInput
                     id="totalInsurance"
-                    type="number"
-                    value={inputs.totalInsurance}
-                    onChange={(e) => onUpdate('totalInsurance', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.totalInsurance)}
+                    onChange={(value) => onUpdate('totalInsurance', parseFloat(value) || 0)}
                     min={0}
-                    step={100}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="applicationFees">{t('purchaseSection.applicationFees')}</Label>
-                  <Input
+                  <NumberInput
                     id="applicationFees"
-                    type="number"
-                    value={inputs.applicationFees}
-                    onChange={(e) => onUpdate('applicationFees', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.applicationFees)}
+                    onChange={(value) => onUpdate('applicationFees', parseFloat(value) || 0)}
                     min={0}
-                    step={100}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="guaranteeFees">{t('purchaseSection.guaranteeFees')}</Label>
-                  <Input
+                  <NumberInput
                     id="guaranteeFees"
-                    type="number"
-                    value={inputs.guaranteeFees}
-                    onChange={(e) => onUpdate('guaranteeFees', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.guaranteeFees)}
+                    onChange={(value) => onUpdate('guaranteeFees', parseFloat(value) || 0)}
                     min={0}
-                    step={100}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="accountFees">{t('purchaseSection.accountFees')}</Label>
-                  <Input
+                  <NumberInput
                     id="accountFees"
-                    type="number"
-                    value={inputs.accountFees}
-                    onChange={(e) => onUpdate('accountFees', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.accountFees)}
+                    onChange={(value) => onUpdate('accountFees', parseFloat(value) || 0)}
                     min={0}
-                    step={100}
                   />
                 </div>
               </AccordionContent>
@@ -302,74 +281,62 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
               <AccordionContent className="space-y-3 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="propertyTax">{t('purchaseSection.annualPropertyTax')}</Label>
-                  <Input
+                  <NumberInput
                     id="propertyTax"
-                    type="number"
-                    value={inputs.propertyTax}
-                    onChange={(e) => onUpdate('propertyTax', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.propertyTax)}
+                    onChange={(value) => onUpdate('propertyTax', parseFloat(value) || 0)}
                     min={0}
-                    step={100}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="coOwnershipCharges">{t('purchaseSection.coOwnershipChargesPerYear')}</Label>
-                  <Input
+                  <NumberInput
                     id="coOwnershipCharges"
-                    type="number"
-                    value={inputs.coOwnershipCharges}
-                    onChange={(e) => onUpdate('coOwnershipCharges', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.coOwnershipCharges)}
+                    onChange={(value) => onUpdate('coOwnershipCharges', parseFloat(value) || 0)}
                     min={0}
-                    step={100}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="maintenancePercent">{t('purchaseSection.maintenancePercent')}</Label>
-                  <Input
+                  <NumberInput
                     id="maintenancePercent"
-                    type="number"
-                    value={inputs.maintenancePercent}
-                    onChange={(e) => onUpdate('maintenancePercent', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.maintenancePercent)}
+                    onChange={(value) => onUpdate('maintenancePercent', parseFloat(value) || 0)}
                     min={0}
                     max={100}
-                    step={0.1}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="homeInsurance">{t('purchaseSection.homeInsurance')}</Label>
-                  <Input
+                  <NumberInput
                     id="homeInsurance"
-                    type="number"
-                    value={inputs.homeInsurance}
-                    onChange={(e) => onUpdate('homeInsurance', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.homeInsurance)}
+                    onChange={(value) => onUpdate('homeInsurance', parseFloat(value) || 0)}
                     min={0}
-                    step={50}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="bankFees">{t('purchaseSection.bankFees')}</Label>
-                  <Input
+                  <NumberInput
                     id="bankFees"
-                    type="number"
-                    value={inputs.bankFees}
-                    onChange={(e) => onUpdate('bankFees', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.bankFees)}
+                    onChange={(value) => onUpdate('bankFees', parseFloat(value) || 0)}
                     min={0}
-                    step={50}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="garbageTax">{t('purchaseSection.garbageTax')}</Label>
-                  <Input
+                  <NumberInput
                     id="garbageTax"
-                    type="number"
-                    value={inputs.garbageTax}
-                    onChange={(e) => onUpdate('garbageTax', parseFloat(e.target.value) || 0)}
+                    value={String(inputs.garbageTax)}
+                    onChange={(value) => onUpdate('garbageTax', parseFloat(value) || 0)}
                     min={0}
-                    step={50}
                   />
                 </div>
               </AccordionContent>

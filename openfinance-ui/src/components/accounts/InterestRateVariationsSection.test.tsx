@@ -76,9 +76,10 @@ describe('InterestRateVariationsSection', () => {
     await user.click(screen.getByRole('button', { name: /add rate|interest\.addRate/i }));
     const dateInput = await waitFor(() => screen.getByLabelText(/effective date/i));
     fireEvent.change(dateInput, { target: { value: '2026-05-01' } });
-    const numberInputs = screen.getAllByRole('spinbutton');
-    fireEvent.change(numberInputs[0], { target: { value: '4.5', valueAsNumber: 4.5 } });
-    fireEvent.change(numberInputs[1], { target: { value: '10', valueAsNumber: 10 } });
+    const rateInput = screen.getByRole('textbox', { name: /interest rate \(%\)/i });
+    const taxRateInput = screen.getByRole('textbox', { name: /tax rate \(%\)/i });
+    fireEvent.change(rateInput, { target: { value: '4.5' } });
+    fireEvent.change(taxRateInput, { target: { value: '10' } });
 
     await user.click(screen.getByRole('button', { name: /save rate|interest\.addDialog\.saveRate/i }));
 

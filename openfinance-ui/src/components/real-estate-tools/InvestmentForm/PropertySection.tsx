@@ -8,7 +8,7 @@
 import React from 'react';
 import { Building2, Sofa, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '@/components/ui/Label';
 import {
   Select,
@@ -74,13 +74,11 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
           {/* Total Price */}
           <div className="space-y-2">
             <Label htmlFor="totalPrice">{t('propertySection.totalPrice')}</Label>
-            <Input
+            <NumberInput
               id="totalPrice"
-              type="number"
-              value={inputs.totalPrice}
-              onChange={(e) => onUpdate('totalPrice', parseFloat(e.target.value) || 0)}
+              value={String(inputs.totalPrice)}
+              onChange={(value) => onUpdate('totalPrice', parseFloat(value) || 0)}
               min={0}
-              step={1000}
             />
             {getFieldError('totalPrice') && (
               <Alert variant="error" className="py-2">
@@ -119,13 +117,11 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
           {/* Furniture Value */}
           <div className="space-y-2">
             <Label htmlFor="furnitureValue">{t('propertySection.furnitureValue')}</Label>
-            <Input
+            <NumberInput
               id="furnitureValue"
-              type="number"
-              value={inputs.furnitureValue}
-              onChange={(e) => onUpdate('furnitureValue', parseFloat(e.target.value) || 0)}
+              value={String(inputs.furnitureValue)}
+              onChange={(value) => onUpdate('furnitureValue', parseFloat(value) || 0)}
               min={0}
-              step={100}
               readOnly={inputs.furnishingType !== 'unfurnished'}
               className={inputs.furnishingType !== 'unfurnished' ? 'bg-muted' : ''}
             />

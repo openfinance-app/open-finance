@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { useAnalyzeBudgets, useBulkCreateBudgets } from '@/hooks/useBudgets';
 import type {
   BudgetPeriod,
@@ -410,15 +411,13 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                         >
                           <div className="flex items-center gap-1">
                             <span className="text-xs text-text-tertiary">{s.currency}</span>
-                            <input
-                              type="number"
+                            <NumberInput
                               min="0"
-                              step="1"
                               value={editedAmounts[s.categoryId] ?? String(s.suggestedAmount)}
-                              onChange={(e) =>
+                              onChange={(value) =>
                                 setEditedAmounts((prev) => ({
                                   ...prev,
-                                  [s.categoryId]: e.target.value,
+                                  [s.categoryId]: value,
                                 }))
                               }
                               className="w-24 h-8 px-2 text-right text-sm rounded bg-background border border-border text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"

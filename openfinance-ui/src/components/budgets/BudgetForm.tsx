@@ -9,9 +9,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { useAuthContext } from '@/context/AuthContext';
@@ -194,14 +194,20 @@ export function BudgetForm({ budget, onSubmit, onCancel, isLoading, serverError 
           <label htmlFor="amount" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.budgetAmount')} *
           </label>
-          <Input
-            id="amount"
-            type="number"
-            step="any"
-            min="0"
-            {...register('amount')}
-            placeholder="0.00"
-            error={errors.amount?.message}
+          <Controller
+            name="amount"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="amount"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.amount?.message}
+                min="0"
+              />
+            )}
           />
         </div>
 

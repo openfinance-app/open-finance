@@ -20,6 +20,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
 import { TagInput } from '@/components/transactions/TagInput';
@@ -132,12 +133,10 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
 
     case 'SET_AMOUNT':
       return (
-        <Input
-          type="number"
-          step="any"
+        <NumberInput
           placeholder="0.00"
           value={action.actionValue ?? ''}
-          onChange={(e) => onChange(index, { actionValue: e.target.value })}
+          onChange={(value) => onChange(index, { actionValue: value })}
           className="flex-1"
           aria-label="Amount"
         />
@@ -152,12 +151,10 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
             onChange={(e) => onChange(index, { actionValue: e.target.value })}
             aria-label="Split category"
           />
-          <Input
-            type="number"
-            step="any"
+          <NumberInput
             placeholder={t('form.actions.placeholders.splitAmount')}
             value={action.actionValue2 ?? ''}
-            onChange={(e) => onChange(index, { actionValue2: e.target.value })}
+            onChange={(value) => onChange(index, { actionValue2: value })}
             aria-label="Split amount"
           />
           <Input

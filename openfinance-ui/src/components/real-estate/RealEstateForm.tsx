@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { DateInput } from '@/components/ui/DateInput';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Button } from '@/components/ui/Button';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { LiabilitySelector } from '@/components/ui/LiabilitySelector';
@@ -199,14 +200,20 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           <label htmlFor="purchasePrice" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.purchasePrice')} *
           </label>
-          <Input
-            id="purchasePrice"
-            type="number"
-            step="any"
-            min="0.01"
-            {...register('purchasePrice')}
-            placeholder="0.00"
-            error={errors.purchasePrice?.message}
+          <Controller
+            name="purchasePrice"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="purchasePrice"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.purchasePrice?.message}
+                min="0.01"
+              />
+            )}
           />
         </div>
 
@@ -236,14 +243,20 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           <label htmlFor="currentValue" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.currentValue')} *
           </label>
-          <Input
-            id="currentValue"
-            type="number"
-            step="any"
-            min="0.01"
-            {...register('currentValue')}
-            placeholder="0.00"
-            error={errors.currentValue?.message}
+          <Controller
+            name="currentValue"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="currentValue"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.currentValue?.message}
+                min="0.01"
+              />
+            )}
           />
         </div>
       </div>
@@ -304,14 +317,20 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           <label htmlFor="rentalIncome" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.monthlyRentalIncome')}
           </label>
-          <Input
-            id="rentalIncome"
-            type="number"
-            step="any"
-            min="0"
-            {...register('rentalIncome')}
-            placeholder="0.00"
-            error={errors.rentalIncome?.message}
+          <Controller
+            name="rentalIncome"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="rentalIncome"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.rentalIncome?.message}
+                min="0"
+              />
+            )}
           />
         </div>
       </div>
@@ -323,17 +342,21 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           <label htmlFor="latitude" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.latitude')}
           </label>
-          <Input
-            id="latitude"
-            type="number"
-            step="0.000001"
-            min="-90"
-            max="90"
-            {...register('latitude', {
-              setValueAs: (v) => v === '' || v === null ? undefined : Number(v)
-            })}
-            placeholder={t('form.latitudePlaceholder')}
-            error={errors.latitude?.message}
+          <Controller
+            name="latitude"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="latitude"
+                value={field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''}
+                onChange={(val) => field.onChange(val === '' ? undefined : Number(val))}
+                onBlur={field.onBlur}
+                placeholder={t('form.latitudePlaceholder')}
+                error={errors.latitude?.message}
+                min="-90"
+                max="90"
+              />
+            )}
           />
         </div>
 
@@ -342,17 +365,21 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           <label htmlFor="longitude" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.longitude')}
           </label>
-          <Input
-            id="longitude"
-            type="number"
-            step="0.000001"
-            min="-180"
-            max="180"
-            {...register('longitude', {
-              setValueAs: (v) => v === '' || v === null ? undefined : Number(v)
-            })}
-            placeholder={t('form.longitudePlaceholder')}
-            error={errors.longitude?.message}
+          <Controller
+            name="longitude"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="longitude"
+                value={field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''}
+                onChange={(val) => field.onChange(val === '' ? undefined : Number(val))}
+                onBlur={field.onBlur}
+                placeholder={t('form.longitudePlaceholder')}
+                error={errors.longitude?.message}
+                min="-180"
+                max="180"
+              />
+            )}
           />
         </div>
       </div>

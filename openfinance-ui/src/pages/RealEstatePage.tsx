@@ -23,6 +23,7 @@ import { PropertyDetailView } from '@/components/real-estate/PropertyDetailView'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { usePropertiesSearch, useCreateProperty, useUpdateProperty } from '@/hooks/useRealEstate';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { useAuthContext } from '@/context/AuthContext';
@@ -353,14 +354,12 @@ export default function RealEstatePage() {
                 <label htmlFor="valueMin" className="block text-sm font-medium text-text-primary mb-1.5">
                   {t('filters.minValue')}
                 </label>
-                <input
+                <NumberInput
                   id="valueMin"
-                  type="number"
                   min="0"
-                  step="1000"
                   placeholder="0"
-                  value={searchFilters.valueMin ?? ''}
-                  onChange={(e) => handleFiltersChange('valueMin', e.target.value ? parseFloat(e.target.value) : undefined)}
+                  value={String(searchFilters.valueMin ?? '')}
+                  onChange={(val) => handleFiltersChange('valueMin', val ? parseFloat(val) : undefined)}
                   className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
@@ -368,14 +367,12 @@ export default function RealEstatePage() {
                 <label htmlFor="valueMax" className="block text-sm font-medium text-text-primary mb-1.5">
                   {t('filters.maxValue')}
                 </label>
-                <input
+                <NumberInput
                   id="valueMax"
-                  type="number"
                   min="0"
-                  step="1000"
                   placeholder="0"
-                  value={searchFilters.valueMax ?? ''}
-                  onChange={(e) => handleFiltersChange('valueMax', e.target.value ? parseFloat(e.target.value) : undefined)}
+                  value={String(searchFilters.valueMax ?? '')}
+                  onChange={(val) => handleFiltersChange('valueMax', val ? parseFloat(val) : undefined)}
                   className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>

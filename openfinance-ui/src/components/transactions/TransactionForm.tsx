@@ -15,6 +15,7 @@ import { Sparkles, X, Scissors } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { TagInput } from './TagInput';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
@@ -452,16 +453,21 @@ export function TransactionForm({
           <label htmlFor="amount" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.amount')} <span aria-label="required">*</span>
           </label>
-          <Input
-            id="amount"
-            type="number"
-            step="any"
-            min="0"
-            {...register('amount', { valueAsNumber: true })}
-            onFocus={(e) => e.target.select()}
-            placeholder="0.00"
-            error={errors.amount?.message}
-            required
+          <Controller
+            name="amount"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="amount"
+                value={field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''}
+                onChange={(val) => field.onChange(val === '' ? 0 : Number(val))}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.amount?.message}
+                required
+                min="0"
+              />
+            )}
           />
           {convertedPreview !== undefined && (
             <p className="text-xs text-text-secondary mt-1">

@@ -21,6 +21,7 @@ import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { InstitutionSelector } from '@/components/ui/InstitutionSelector';
 import { Switch } from '@/components/ui/Switch';
 import { DateInput } from '@/components/ui/DateInput';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAuthContext } from '@/context/AuthContext';
@@ -330,14 +331,19 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
           <label htmlFor="initialBalance" className="block text-sm font-medium text-text-primary mb-1.5">
             {isEditing ? t('form.currentBalance') : t('form.initialBalance')} *
           </label>
-          <Input
-            id="initialBalance"
-            type="number"
-            step="any"
-            {...register('initialBalance')}
-            onFocus={(e) => e.target.select()}
-            placeholder="0.00"
-            error={errors.initialBalance?.message}
+          <Controller
+            name="initialBalance"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="initialBalance"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.initialBalance?.message}
+              />
+            )}
           />
           {convertedAmount !== undefined && (
             <p className="text-xs text-text-secondary mt-1">
@@ -422,33 +428,43 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
                     <label htmlFor="interestRate" className="block text-xs font-medium text-text-secondary mb-1">
                       <span className="flex items-center gap-1"><Percent className="h-3 w-3" /> {t('form.interestRate')}</span>
                     </label>
-                    <Input
-                      id="interestRate"
-                      type="number"
-                      step="any"
-                      min="0"
-                      {...register('interestRate', { valueAsNumber: true })}
-                      onFocus={(e) => e.target.select()}
-                      placeholder="0.00"
-                      error={errors.interestRate?.message}
-                      className="h-9"
+                    <Controller
+                      name="interestRate"
+                      control={control}
+                      render={({ field }) => (
+                        <NumberInput
+                          id="interestRate"
+                          value={field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''}
+                          onChange={(val) => field.onChange(val === '' ? 0 : Number(val))}
+                          onBlur={field.onBlur}
+                          placeholder="0.00"
+                          error={errors.interestRate?.message}
+                          min="0"
+                          className="h-9"
+                        />
+                      )}
                     />
                   </div>
                   <div>
                     <label htmlFor="taxRate" className="block text-xs font-medium text-text-secondary mb-1">
                       <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> {t('form.taxRate')}</span>
                     </label>
-                    <Input
-                      id="taxRate"
-                      type="number"
-                      step="any"
-                      min="0"
-                      max="100"
-                      {...register('taxRate', { valueAsNumber: true })}
-                      onFocus={(e) => e.target.select()}
-                      placeholder="0.00"
-                      error={errors.taxRate?.message}
-                      className="h-9"
+                    <Controller
+                      name="taxRate"
+                      control={control}
+                      render={({ field }) => (
+                        <NumberInput
+                          id="taxRate"
+                          value={field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''}
+                          onChange={(val) => field.onChange(val === '' ? 0 : Number(val))}
+                          onBlur={field.onBlur}
+                          placeholder="0.00"
+                          error={errors.taxRate?.message}
+                          min="0"
+                          max="100"
+                          className="h-9"
+                        />
+                      )}
                     />
                   </div>
                 </div>

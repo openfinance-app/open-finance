@@ -2,8 +2,8 @@ import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calculator, RefreshCw, DollarSign, Percent, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
-import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Button } from '../ui/Button';
 import { useLoanCalculator } from '../../hooks/useLoanCalculator';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
@@ -59,14 +59,12 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <Input
+                  <NumberInput
                     id="lc-principal"
-                    type="number"
-                    min={0}
-                    step={100}
+                    min="0"
                     className="pl-10"
-                    value={input.principal || ''}
-                    onChange={(e) => updateInput('principal', Number(e.target.value))}
+                    value={input.principal ? String(input.principal) : ''}
+                    onChange={(val) => updateInput('principal', val ? Number(val) : 0)}
                   />
                 </div>
               </div>
@@ -78,14 +76,12 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Percent className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <Input
+                  <NumberInput
                     id="lc-rate"
-                    type="number"
-                    min={0}
-                    step={0.1}
+                    min="0"
                     className="pl-10"
-                    value={input.annualRate || ''}
-                    onChange={(e) => updateInput('annualRate', Number(e.target.value))}
+                    value={input.annualRate ? String(input.annualRate) : ''}
+                    onChange={(val) => updateInput('annualRate', val ? Number(val) : 0)}
                   />
                 </div>
               </div>
@@ -97,14 +93,12 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <Input
+                  <NumberInput
                     id="lc-years"
-                    type="number"
                     min={1}
-                    step={1}
                     className="pl-10"
-                    value={input.years || ''}
-                    onChange={(e) => updateInput('years', Number(e.target.value))}
+                    value={input.years ? String(input.years) : ''}
+                    onChange={(val) => updateInput('years', Number(val))}
                   />
                 </div>
               </div>

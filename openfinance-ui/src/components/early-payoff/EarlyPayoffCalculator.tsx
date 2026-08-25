@@ -14,7 +14,7 @@ import {
     ChevronUp,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
-import { Input } from '../ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '../ui/Label';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -276,14 +276,12 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                                 </div>
-                                <Input
+                                <NumberInput
                                     id="ep-balance"
-                                    type="number"
                                     min={0}
-                                    step={1000}
                                     className="pl-10"
-                                    value={input.loanBalance || ''}
-                                    onChange={e => updateInput('loanBalance', Number(e.target.value))}
+                                    value={input.loanBalance ? String(input.loanBalance) : ''}
+                                    onChange={val => updateInput('loanBalance', Number(val))}
                                 />
                             </div>
                         </div>
@@ -295,14 +293,12 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <Percent className="h-4 w-4 text-muted-foreground" />
                                 </div>
-                                <Input
+                                <NumberInput
                                     id="ep-rate"
-                                    type="number"
                                     min={0}
-                                    step="any"
                                     className="pl-10"
-                                    value={input.annualRate || ''}
-                                    onChange={e => updateInput('annualRate', Number(e.target.value))}
+                                    value={input.annualRate ? String(input.annualRate) : ''}
+                                    onChange={val => updateInput('annualRate', Number(val))}
                                 />
                             </div>
                         </div>
@@ -314,14 +310,12 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <Calendar className="h-4 w-4 text-muted-foreground" />
                                 </div>
-                                <Input
+                                <NumberInput
                                     id="ep-years"
-                                    type="number"
                                     min={0}
-                                    step={1}
                                     className="pl-10"
-                                    value={input.remainingYears || ''}
-                                    onChange={e => updateInput('remainingYears', Number(e.target.value))}
+                                    value={input.remainingYears ? String(input.remainingYears) : ''}
+                                    onChange={val => updateInput('remainingYears', Number(val))}
                                 />
                             </div>
                         </div>
@@ -333,15 +327,13 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <Calendar className="h-4 w-4 text-muted-foreground" />
                                 </div>
-                                <Input
+                                <NumberInput
                                     id="ep-months"
-                                    type="number"
                                     min={0}
                                     max={11}
-                                    step={1}
                                     className="pl-10"
-                                    value={input.remainingMonthsExtra || ''}
-                                    onChange={e => updateInput('remainingMonthsExtra', Math.min(11, Math.max(0, Number(e.target.value))))}
+                                    value={input.remainingMonthsExtra ? String(input.remainingMonthsExtra) : ''}
+                                    onChange={val => updateInput('remainingMonthsExtra', Math.min(11, Math.max(0, Number(val))))}
                                 />
                             </div>
                         </div>
@@ -382,14 +374,12 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                                     <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                                                 </div>
-                                                <Input
+                                                <NumberInput
                                                     id={`ep-ls-month-${ls.id}`}
-                                                    type="number"
                                                     min={1}
-                                                    step={1}
                                                     className="pl-9 h-9 text-sm"
-                                                    value={ls.month || ''}
-                                                    onChange={e => updateLumpSum(ls.id, 'month', Number(e.target.value))}
+                                                    value={ls.month ? String(ls.month) : ''}
+                                                    onChange={val => updateLumpSum(ls.id, 'month', Number(val))}
                                                 />
                                             </div>
                                         </div>
@@ -402,14 +392,12 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                                     <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                                                 </div>
-                                                <Input
+                                                <NumberInput
                                                     id={`ep-ls-amount-${ls.id}`}
-                                                    type="number"
                                                     min={0}
-                                                    step={1000}
                                                     className="pl-9 h-9 text-sm"
-                                                    value={ls.amount || ''}
-                                                    onChange={e => updateLumpSum(ls.id, 'amount', Number(e.target.value))}
+                                                    value={ls.amount ? String(ls.amount) : ''}
+                                                    onChange={val => updateLumpSum(ls.id, 'amount', Number(val))}
                                                 />
                                             </div>
                                         </div>
@@ -436,14 +424,12 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                             </div>
-                            <Input
+                            <NumberInput
                                 id="ep-monthly-extra"
-                                type="number"
                                 min={0}
-                                step={100}
                                 className="pl-10"
-                                value={input.monthlyExtraPayment || ''}
-                                onChange={e => updateInput('monthlyExtraPayment', Math.max(0, Number(e.target.value)))}
+                                value={input.monthlyExtraPayment ? String(input.monthlyExtraPayment) : ''}
+                                onChange={val => updateInput('monthlyExtraPayment', Math.max(0, Number(val)))}
                             />
                         </div>
                         <p className="text-xs text-muted-foreground">

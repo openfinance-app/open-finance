@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { DateInput } from '@/components/ui/DateInput';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Button } from '@/components/ui/Button';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { InstitutionSelector } from '@/components/ui/InstitutionSelector';
@@ -198,14 +199,20 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <label htmlFor="principal" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.principal')} *
           </label>
-          <Input
-            id="principal"
-            type="number"
-            step="any"
-            min="0.01"
-            {...register('principal')}
-            placeholder="0.00"
-            error={errors.principal?.message}
+          <Controller
+            name="principal"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="principal"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.principal?.message}
+                min="0.01"
+              />
+            )}
           />
         </div>
 
@@ -214,14 +221,20 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <label htmlFor="currentBalance" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.currentBalance')} *
           </label>
-          <Input
-            id="currentBalance"
-            type="number"
-            step="any"
-            min="0"
-            {...register('currentBalance')}
-            placeholder="0.00"
-            error={errors.currentBalance?.message}
+          <Controller
+            name="currentBalance"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="currentBalance"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.currentBalance?.message}
+                min="0"
+              />
+            )}
           />
         </div>
 
@@ -261,15 +274,21 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <label htmlFor="interestRate" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.interestRate')}
           </label>
-          <Input
-            id="interestRate"
-            type="number"
-            step="any"
-            min="0"
-            max="100"
-            {...register('interestRate', { valueAsNumber: true })}
-            placeholder="0.00"
-            error={errors.interestRate?.message}
+          <Controller
+            name="interestRate"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="interestRate"
+                value={field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''}
+                onChange={(val) => field.onChange(val === '' ? 0 : Number(val))}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.interestRate?.message}
+                min="0"
+                max="100"
+              />
+            )}
           />
         </div>
 
@@ -278,15 +297,21 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <label htmlFor="insurancePercentage" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.insurancePercentage')}
           </label>
-          <Input
-            id="insurancePercentage"
-            type="number"
-            step="any"
-            min="0"
-            max="100"
-            {...register('insurancePercentage', { valueAsNumber: true })}
-            placeholder="0.00"
-            error={errors.insurancePercentage?.message}
+          <Controller
+            name="insurancePercentage"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="insurancePercentage"
+                value={field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''}
+                onChange={(val) => field.onChange(val === '' ? 0 : Number(val))}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.insurancePercentage?.message}
+                min="0"
+                max="100"
+              />
+            )}
           />
         </div>
 
@@ -295,14 +320,20 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <label htmlFor="minimumPayment" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.minimumPayment')}
           </label>
-          <Input
-            id="minimumPayment"
-            type="number"
-            step="any"
-            min="0"
-            {...register('minimumPayment')}
-            placeholder="0.00"
-            error={errors.minimumPayment?.message}
+          <Controller
+            name="minimumPayment"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="minimumPayment"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.minimumPayment?.message}
+                min="0"
+              />
+            )}
           />
         </div>
       </div>
@@ -314,14 +345,20 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           <label htmlFor="additionalFees" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.additionalFees')}
           </label>
-          <Input
-            id="additionalFees"
-            type="number"
-            step="any"
-            min="0"
-            {...register('additionalFees')}
-            placeholder="0.00"
-            error={errors.additionalFees?.message}
+          <Controller
+            name="additionalFees"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="additionalFees"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="0.00"
+                error={errors.additionalFees?.message}
+                min="0"
+              />
+            )}
           />
         </div>
 

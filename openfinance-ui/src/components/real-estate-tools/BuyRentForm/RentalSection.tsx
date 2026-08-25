@@ -8,7 +8,7 @@
 import React from 'react';
 import { Key, DollarSign, Shield, Trash2, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '@/components/ui/Label';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { useTranslation } from 'react-i18next';
@@ -58,13 +58,11 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
             {/* Rent */}
             <div className="space-y-2">
               <Label htmlFor="monthlyRent">{t('rentalSection.monthlyRent')}</Label>
-              <Input
+              <NumberInput
                 id="monthlyRent"
-                type="number"
-                value={inputs.monthlyRent}
-                onChange={(e) => onUpdate('monthlyRent', parseFloat(e.target.value) || 0)}
+                value={String(inputs.monthlyRent)}
+                onChange={(value) => onUpdate('monthlyRent', parseFloat(value) || 0)}
                 min={0}
-                step={50}
               />
               {getFieldError('monthlyRent') && (
                 <Alert variant="error" className="py-2">
@@ -76,13 +74,11 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
             {/* Charges */}
             <div className="space-y-2">
               <Label htmlFor="monthlyCharges">{t('rentalSection.monthlyCharges')}</Label>
-              <Input
+              <NumberInput
                 id="monthlyCharges"
-                type="number"
-                value={inputs.monthlyCharges}
-                onChange={(e) => onUpdate('monthlyCharges', parseFloat(e.target.value) || 0)}
+                value={String(inputs.monthlyCharges)}
+                onChange={(value) => onUpdate('monthlyCharges', parseFloat(value) || 0)}
                 min={0}
-                step={10}
               />
             </div>
 
@@ -92,13 +88,11 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
                 <Key className="h-4 w-4" />
                 {t('rentalSection.securityDeposit')}
               </Label>
-              <Input
+              <NumberInput
                 id="securityDeposit"
-                type="number"
-                value={inputs.securityDeposit}
-                onChange={(e) => onUpdate('securityDeposit', parseFloat(e.target.value) || 0)}
+                value={String(inputs.securityDeposit)}
+                onChange={(value) => onUpdate('securityDeposit', parseFloat(value) || 0)}
                 min={0}
-                step={100}
               />
             </div>
 
@@ -108,13 +102,11 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
                 <Shield className="h-4 w-4" />
                 {t('rentalSection.rentalInsurance')}
               </Label>
-              <Input
+              <NumberInput
                 id="rentalInsurance"
-                type="number"
-                value={inputs.rentalInsurance}
-                onChange={(e) => onUpdate('rentalInsurance', parseFloat(e.target.value) || 0)}
+                value={String(inputs.rentalInsurance)}
+                onChange={(value) => onUpdate('rentalInsurance', parseFloat(value) || 0)}
                 min={0}
-                step={50}
               />
             </div>
 
@@ -124,13 +116,11 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
                 <Trash2 className="h-4 w-4" />
                 {t('rentalSection.garbageTax')}
               </Label>
-              <Input
+              <NumberInput
                 id="rentalGarbageTax"
-                type="number"
-                value={inputs.garbageTax}
-                onChange={(e) => onUpdate('garbageTax', parseFloat(e.target.value) || 0)}
+                value={String(inputs.garbageTax)}
+                onChange={(value) => onUpdate('garbageTax', parseFloat(value) || 0)}
                 min={0}
-                step={50}
               />
             </div>
 
@@ -142,13 +132,11 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
                 <DollarSign className="h-4 w-4" />
                 {t('rentalSection.initialSavings')}
               </Label>
-              <Input
+              <NumberInput
                 id="initialSavings"
-                type="number"
-                value={inputs.initialSavings}
-                onChange={(e) => onUpdate('initialSavings', parseFloat(e.target.value) || 0)}
+                value={String(inputs.initialSavings)}
+                onChange={(value) => onUpdate('initialSavings', parseFloat(value) || 0)}
                 min={0}
-                step={1000}
                 readOnly
                 className="bg-muted"
               />
@@ -163,13 +151,11 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
                 <DollarSign className="h-4 w-4" />
                 {t('rentalSection.monthlySavings')}
               </Label>
-              <Input
+              <NumberInput
                 id="monthlySavings"
-                type="number"
-                value={inputs.monthlySavings}
-                onChange={(e) => onUpdate('monthlySavings', parseFloat(e.target.value) || 0)}
+                value={String(inputs.monthlySavings)}
+                onChange={(value) => onUpdate('monthlySavings', parseFloat(value) || 0)}
                 min={0}
-                step={50}
                 readOnly
                 className="bg-muted"
               />

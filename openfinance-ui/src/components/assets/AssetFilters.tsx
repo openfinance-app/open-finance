@@ -9,6 +9,7 @@ import { Input, Button } from '@/components/ui';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { DateInput } from '@/components/ui/DateInput';
+import { NumberInput } from '@/components/ui/NumberInput';
 import type { AssetFilters, AssetType } from '@/types/asset';
 
 interface AssetFiltersProps {
@@ -169,36 +170,26 @@ export function AssetFilters({
             <label htmlFor="valueMin" className="block text-sm font-medium text-text-primary mb-1.5">
               {t('filtersPanel.minValue')}
             </label>
-            <input
+            <NumberInput
               id="valueMin"
               data-testid="filter-min-value"
-              type="number"
-              min="0"
-              step="any"
+              value={filters.valueMin !== undefined ? String(filters.valueMin) : ''}
+              onChange={(val) => handleChange('valueMin', val ? parseFloat(val) : undefined)}
               placeholder="0.00"
-              value={filters.valueMin ?? ''}
-              onChange={(e) =>
-                handleChange('valueMin', e.target.value ? parseFloat(e.target.value) : undefined)
-              }
-              className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              min="0"
             />
           </div>
           <div>
             <label htmlFor="valueMax" className="block text-sm font-medium text-text-primary mb-1.5">
               {t('filtersPanel.maxValue')}
             </label>
-            <input
+            <NumberInput
               id="valueMax"
               data-testid="filter-max-value"
-              type="number"
-              min="0"
-              step="any"
+              value={filters.valueMax !== undefined ? String(filters.valueMax) : ''}
+              onChange={(val) => handleChange('valueMax', val ? parseFloat(val) : undefined)}
               placeholder="0.00"
-              value={filters.valueMax ?? ''}
-              onChange={(e) =>
-                handleChange('valueMax', e.target.value ? parseFloat(e.target.value) : undefined)
-              }
-              className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              min="0"
             />
           </div>
         </div>

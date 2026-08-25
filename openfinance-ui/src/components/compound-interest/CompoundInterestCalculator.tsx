@@ -13,7 +13,7 @@ import {
 import { Calculator, RefreshCw, AlertCircle, TrendingUp, PiggyBank, Percent, DollarSign } from 'lucide-react';
 import { subtract, roundToDecimals } from '@/utils/money';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
-import { Input } from '../ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '../ui/Label';
 import { Button } from '../ui/Button';
 import {
@@ -86,13 +86,11 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
                 <Label htmlFor="ci-principal">
                   {t('compoundInterest.calculator.fields.principal.label')}
                 </Label>
-                <Input
+                <NumberInput
                   id="ci-principal"
-                  type="number"
                   min={0}
-                  step={100}
-                  value={input.principal}
-                  onChange={(e) => updateInput('principal', Number(e.target.value))}
+                  value={String(input.principal)}
+                  onChange={(val) => updateInput('principal', Number(val))}
                 />
                 <p className="text-xs text-muted-foreground">
                   {t('compoundInterest.calculator.fields.principal.description')}
@@ -104,14 +102,12 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
                 <Label htmlFor="ci-rate">
                   {t('compoundInterest.calculator.fields.annualRate.label')}
                 </Label>
-                <Input
+                <NumberInput
                   id="ci-rate"
-                  type="number"
                   min={0.01}
                   max={100}
-                  step="any"
-                  value={input.annualRate}
-                  onChange={(e) => updateInput('annualRate', Number(e.target.value))}
+                  value={String(input.annualRate)}
+                  onChange={(val) => updateInput('annualRate', Number(val))}
                 />
                 <p className="text-xs text-muted-foreground">
                   {t('compoundInterest.calculator.fields.annualRate.description')}
@@ -148,14 +144,12 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
                 <Label htmlFor="ci-years">
                   {t('compoundInterest.calculator.fields.years.label')}
                 </Label>
-                <Input
+                <NumberInput
                   id="ci-years"
-                  type="number"
                   min={1}
                   max={100}
-                  step={1}
-                  value={input.years}
-                  onChange={(e) => updateInput('years', Number(e.target.value))}
+                  value={String(input.years)}
+                  onChange={(val) => updateInput('years', Number(val))}
                 />
                 <p className="text-xs text-muted-foreground">
                   {t('compoundInterest.calculator.fields.years.description')}
@@ -167,13 +161,11 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
                 <Label htmlFor="ci-contribution">
                   {t('compoundInterest.calculator.fields.contribution.label')}
                 </Label>
-                <Input
+                <NumberInput
                   id="ci-contribution"
-                  type="number"
                   min={0}
-                  step={10}
-                  value={input.regularContribution}
-                  onChange={(e) => updateInput('regularContribution', Number(e.target.value))}
+                  value={String(input.regularContribution)}
+                  onChange={(val) => updateInput('regularContribution', Number(val))}
                 />
                 <p className="text-xs text-muted-foreground">
                   {t('compoundInterest.calculator.fields.contribution.description')}

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAlertsByBudget, useCreateAlert, useUpdateAlert, useDeleteAlert } from '@/hooks/useAlerts';
 import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
 import type { BudgetAlert, CreateAlertRequest, UpdateAlertRequest } from '@/types/alert';
+import { NumberInput } from '@/components/ui/NumberInput';
 
 /**
  * AlertSettings Component (Task 8.3.7)
@@ -273,13 +274,11 @@ function AlertSettingItem({
       {/* Threshold Display/Edit */}
       {isEditing ? (
         <div className="flex-1 flex items-center gap-2">
-          <input
-            type="number"
+          <NumberInput
             min="1"
             max="150"
-            step="5"
-            value={editThreshold}
-            onChange={(e) => setEditThreshold(Number(e.target.value))}
+            value={String(editThreshold)}
+            onChange={(val) => setEditThreshold(Number(val))}
             className="w-20 px-2 py-1 bg-background border border-border rounded text-text-primary text-sm"
           />
           <span className="text-sm text-text-secondary">%</span>

@@ -8,7 +8,7 @@
 import React from 'react';
 import { TrendingUp, Percent, Euro, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '@/components/ui/Label';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { useTranslation } from 'react-i18next';
@@ -61,14 +61,12 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
                 <TrendingUp className="h-4 w-4" />
                 {t('marketSection.priceEvolution')}
               </Label>
-              <Input
+              <NumberInput
                 id="priceEvolution"
-                type="number"
-                value={inputs.priceEvolution}
-                onChange={(e) => onUpdate('priceEvolution', parseFloat(e.target.value) || 0)}
+                value={String(inputs.priceEvolution)}
+                onChange={(value) => onUpdate('priceEvolution', parseFloat(value) || 0)}
                 min={-50}
                 max={50}
-                step={0.1}
               />
               <p className="text-xs text-muted-foreground">
                 {t('marketSection.priceEvolutionHelp')}
@@ -86,14 +84,12 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
                 <TrendingUp className="h-4 w-4" />
                 {t('marketSection.rentEvolution')}
               </Label>
-              <Input
+              <NumberInput
                 id="rentEvolution"
-                type="number"
-                value={inputs.rentEvolution}
-                onChange={(e) => onUpdate('rentEvolution', parseFloat(e.target.value) || 0)}
+                value={String(inputs.rentEvolution)}
+                onChange={(value) => onUpdate('rentEvolution', parseFloat(value) || 0)}
                 min={-50}
                 max={50}
-                step={0.1}
               />
               <p className="text-xs text-muted-foreground">
                 {t('marketSection.rentEvolutionHelp')}
@@ -111,14 +107,12 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
                 <Percent className="h-4 w-4" />
                 {t('marketSection.investmentReturn')}
               </Label>
-              <Input
+              <NumberInput
                 id="investmentReturn"
-                type="number"
-                value={inputs.investmentReturn}
-                onChange={(e) => onUpdate('investmentReturn', parseFloat(e.target.value) || 0)}
+                value={String(inputs.investmentReturn)}
+                onChange={(value) => onUpdate('investmentReturn', parseFloat(value) || 0)}
                 min={-20}
                 max={50}
-                step={0.1}
               />
               <p className="text-xs text-muted-foreground">
                 {t('marketSection.investmentReturnHelp')}
@@ -136,14 +130,12 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
                 <Euro className="h-4 w-4" />
                 {t('marketSection.inflation')}
               </Label>
-              <Input
+              <NumberInput
                 id="inflation"
-                type="number"
-                value={inputs.inflation}
-                onChange={(e) => onUpdate('inflation', parseFloat(e.target.value) || 0)}
+                value={String(inputs.inflation)}
+                onChange={(value) => onUpdate('inflation', parseFloat(value) || 0)}
                 min={-10}
                 max={50}
-                step={0.1}
               />
               <p className="text-xs text-muted-foreground">
                 {t('marketSection.inflationHelp')}

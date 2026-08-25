@@ -245,7 +245,7 @@ describe('AlertSettings', () => {
       const editBtn = screen.getByRole('button', { name: /edit threshold/i });
       fireEvent.click(editBtn);
       // Should show number input and save/cancel buttons
-      expect(screen.getByRole('spinbutton')).toBeInTheDocument();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
     });
@@ -257,7 +257,7 @@ describe('AlertSettings', () => {
       });
       renderWithProviders(<AlertSettings budgetId={1} />);
       fireEvent.click(screen.getByRole('button', { name: /edit threshold/i }));
-      const input = screen.getByRole('spinbutton');
+      const input = screen.getByRole('textbox');
       fireEvent.change(input, { target: { value: '90' } });
       fireEvent.click(screen.getByRole('button', { name: /save/i }));
       expect(mockUpdateAlertMutate).toHaveBeenCalledWith(
@@ -272,7 +272,7 @@ describe('AlertSettings', () => {
       });
       renderWithProviders(<AlertSettings budgetId={1} />);
       fireEvent.click(screen.getByRole('button', { name: /edit threshold/i }));
-      const input = screen.getByRole('spinbutton');
+      const input = screen.getByRole('textbox');
       fireEvent.change(input, { target: { value: '99' } });
       fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
       // Should go back to display mode

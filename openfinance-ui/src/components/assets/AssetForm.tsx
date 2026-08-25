@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { DateInput } from '@/components/ui/DateInput';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { AccountSelector } from '@/components/ui/AccountSelector';
 import { useAuthContext } from '@/context/AuthContext';
@@ -366,17 +367,21 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
                 <label htmlFor="usefulLifeYears" className="block text-sm font-medium text-text-primary mb-1.5">
                   {t('form.usefulLifeYears')}
                 </label>
-                <Input
-                  id="usefulLifeYears"
-                  type="number"
-                  min="1"
-                  max="50"
-                  step="1"
-                  {...register('usefulLifeYears', {
-                    setValueAs: (v) => (v === '' || isNaN(Number(v)) ? undefined : Number(v))
-                  })}
-                  placeholder={t('form.usefulLifePlaceholder')}
-                  error={errors.usefulLifeYears?.message}
+                <Controller
+                  name="usefulLifeYears"
+                  control={control}
+                  render={({ field }) => (
+                    <NumberInput
+                      id="usefulLifeYears"
+                      value={field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''}
+                      onChange={(val) => field.onChange(val === '' ? undefined : Number(val))}
+                      onBlur={field.onBlur}
+                      placeholder={t('form.usefulLifePlaceholder')}
+                      error={errors.usefulLifeYears?.message}
+                      min="1"
+                      max="50"
+                    />
+                  )}
                 />
                 <p className="mt-1 text-xs text-text-tertiary">
                   {t('form.usefulLifeHint')}
@@ -393,14 +398,20 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
             <label htmlFor="quantity" className="block text-sm font-medium text-text-primary mb-1.5">
               {t('form.quantity')} *
             </label>
-            <Input
-              id="quantity"
-              type="number"
-              step="any"
-              min="0.000001"
-              {...register('quantity')}
-              placeholder="0.00"
-              error={errors.quantity?.message}
+            <Controller
+              name="quantity"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="quantity"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.quantity?.message}
+                  min="0.000001"
+                />
+              )}
             />
           </div>
 
@@ -409,14 +420,20 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
             <label htmlFor="purchasePrice" className="block text-sm font-medium text-text-primary mb-1.5">
               {t('form.purchasePrice')} *
             </label>
-            <Input
-              id="purchasePrice"
-              type="number"
-              step="any"
-              min="0.01"
-              {...register('purchasePrice')}
-              placeholder="0.00"
-              error={errors.purchasePrice?.message}
+            <Controller
+              name="purchasePrice"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="purchasePrice"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.purchasePrice?.message}
+                  min="0.01"
+                />
+              )}
             />
           </div>
 
@@ -425,14 +442,20 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
             <label htmlFor="currentPrice" className="block text-sm font-medium text-text-primary mb-1.5">
               {t('form.currentPrice')} *
             </label>
-            <Input
-              id="currentPrice"
-              type="number"
-              step="any"
-              min="0.01"
-              {...register('currentPrice')}
-              placeholder="0.00"
-              error={errors.currentPrice?.message}
+            <Controller
+              name="currentPrice"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="currentPrice"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.currentPrice?.message}
+                  min="0.01"
+                />
+              )}
             />
           </div>
         </div>

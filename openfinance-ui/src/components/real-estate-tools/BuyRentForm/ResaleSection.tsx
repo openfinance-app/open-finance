@@ -8,7 +8,7 @@
 import React from 'react';
 import { Target, Calendar, DollarSign, Percent, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '@/components/ui/Label';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
@@ -76,11 +76,10 @@ export const ResaleSection: React.FC<ResaleSectionProps> = ({
                 {t('resaleSection.targetYear')}
                 {isValid && <Badge variant="success" className="text-xs">{t('resaleSection.valid')}</Badge>}
               </Label>
-              <Input
+              <NumberInput
                 id="targetYear"
-                type="number"
-                value={inputs.targetYear}
-                onChange={(e) => onUpdate('targetYear', parseInt(e.target.value) || 1)}
+                value={String(inputs.targetYear)}
+                onChange={(value) => onUpdate('targetYear', parseInt(value, 10) || 1)}
                 min={1}
                 max={loanDuration}
                 className={!isValid ? 'border-warning' : ''}
@@ -101,13 +100,11 @@ export const ResaleSection: React.FC<ResaleSectionProps> = ({
                 <DollarSign className="h-4 w-4" />
                 {t('resaleSection.desiredProfit')}
               </Label>
-              <Input
+              <NumberInput
                 id="desiredProfit"
-                type="number"
-                value={inputs.desiredProfit}
-                onChange={(e) => onUpdate('desiredProfit', parseFloat(e.target.value) || 0)}
+                value={String(inputs.desiredProfit)}
+                onChange={(value) => onUpdate('desiredProfit', parseFloat(value) || 0)}
                 min={0}
-                step={1000}
               />
               <p className="text-xs text-muted-foreground">
                 {t('resaleSection.desiredProfitHelp')}
@@ -120,14 +117,12 @@ export const ResaleSection: React.FC<ResaleSectionProps> = ({
                 <Percent className="h-4 w-4" />
                 {t('resaleSection.resaleFees')}
               </Label>
-              <Input
+              <NumberInput
                 id="resaleFeesPercent"
-                type="number"
-                value={inputs.resaleFeesPercent}
-                onChange={(e) => onUpdate('resaleFeesPercent', parseFloat(e.target.value) || 0)}
+                value={String(inputs.resaleFeesPercent)}
+                onChange={(value) => onUpdate('resaleFeesPercent', parseFloat(value) || 0)}
                 min={0}
                 max={100}
-                step={0.1}
               />
               <p className="text-xs text-muted-foreground">
                 {t('resaleSection.resaleFeesHelp')}

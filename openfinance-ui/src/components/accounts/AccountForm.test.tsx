@@ -247,7 +247,7 @@ describe('AccountForm', () => {
 
       // In edit mode, the label changes to "Current Balance"
       const balanceInput = screen.getByLabelText(/Current Balance/i) as HTMLInputElement;
-      expect(balanceInput.value).toBe('5000');
+      expect(balanceInput.value).toBe('5,000');
     });
   });
 

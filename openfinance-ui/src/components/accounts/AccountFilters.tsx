@@ -9,6 +9,7 @@ import { Search, X } from 'lucide-react';
 import { Input, Button, Badge } from '@/components/ui';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
+import { NumberInput } from '@/components/ui/NumberInput';
 import type { AccountFilters, AccountType } from '@/types/account';
 
 interface AccountFiltersProps {
@@ -197,36 +198,26 @@ export function AccountFilters({
             <label htmlFor="balanceMin" className="block text-sm font-medium text-text-primary mb-1.5">
               {t('filters.minBalance')}
             </label>
-            <input
+            <NumberInput
               id="balanceMin"
               data-testid="filter-min-balance"
-              type="number"
-              min="0"
-              step="any"
+              value={filters.balanceMin !== undefined ? String(filters.balanceMin) : ''}
+              onChange={(val) => handleChange('balanceMin', val ? parseFloat(val) : undefined)}
               placeholder="0.00"
-              value={filters.balanceMin ?? ''}
-              onChange={(e) =>
-                handleChange('balanceMin', e.target.value ? parseFloat(e.target.value) : undefined)
-              }
-              className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              min="0"
             />
           </div>
           <div>
             <label htmlFor="balanceMax" className="block text-sm font-medium text-text-primary mb-1.5">
               {t('filters.maxBalance')}
             </label>
-            <input
+            <NumberInput
               id="balanceMax"
               data-testid="filter-max-balance"
-              type="number"
-              min="0"
-              step="any"
+              value={filters.balanceMax !== undefined ? String(filters.balanceMax) : ''}
+              onChange={(val) => handleChange('balanceMax', val ? parseFloat(val) : undefined)}
               placeholder="0.00"
-              value={filters.balanceMax ?? ''}
-              onChange={(e) =>
-                handleChange('balanceMax', e.target.value ? parseFloat(e.target.value) : undefined)
-              }
-              className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              min="0"
             />
           </div>
         </div>

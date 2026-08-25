@@ -6,7 +6,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 
-import { Input } from '../ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '../ui/Label';
 import { Button } from '../ui/Button';
 import { Slider } from '../ui/Slider';
@@ -224,12 +224,10 @@ function CalculatorInputForm({
         {/* Current Savings */}
         <div className="space-y-2">
           <Label htmlFor="currentSavings">{t('financialFreedom.calculator.fields.currentSavings.label')}</Label>
-          <Input
+          <NumberInput
             id="currentSavings"
-            type="number"
-            value={input.currentSavings}
-            onChange={(e) => onChange('currentSavings', parseFloat(e.target.value) || 0)}
-            onFocus={(e) => e.target.select()}
+            value={String(input.currentSavings)}
+            onChange={(val) => onChange('currentSavings', parseFloat(val) || 0)}
             placeholder="50000"
           />
           <p className="text-xs text-muted-foreground">
@@ -240,12 +238,10 @@ function CalculatorInputForm({
         {/* Monthly Expenses */}
         <div className="space-y-2">
           <Label htmlFor="monthlyExpenses">{t('financialFreedom.calculator.fields.monthlyExpenses.label')}</Label>
-          <Input
+          <NumberInput
             id="monthlyExpenses"
-            type="number"
-            value={input.monthlyExpenses}
-            onChange={(e) => onChange('monthlyExpenses', parseFloat(e.target.value) || 0)}
-            onFocus={(e) => e.target.select()}
+            value={String(input.monthlyExpenses)}
+            onChange={(val) => onChange('monthlyExpenses', parseFloat(val) || 0)}
             placeholder="2500"
           />
           <p className="text-xs text-muted-foreground">
@@ -256,13 +252,10 @@ function CalculatorInputForm({
         {/* Expected Return */}
         <div className="space-y-2">
           <Label htmlFor="expectedReturn">{t('financialFreedom.calculator.fields.expectedReturn.label')}</Label>
-          <Input
+          <NumberInput
             id="expectedReturn"
-            type="number"
-            step="0.1"
-            value={input.expectedAnnualReturn}
-            onChange={(e) => onChange('expectedAnnualReturn', parseFloat(e.target.value) || 0)}
-            onFocus={(e) => e.target.select()}
+            value={String(input.expectedAnnualReturn)}
+            onChange={(val) => onChange('expectedAnnualReturn', parseFloat(val) || 0)}
             placeholder="7"
           />
           <Slider
@@ -289,12 +282,10 @@ function CalculatorInputForm({
         {/* Monthly Contribution */}
         <div className="space-y-2">
           <Label htmlFor="monthlyContribution">{t('financialFreedom.calculator.fields.monthlyContribution.label')}</Label>
-          <Input
+          <NumberInput
             id="monthlyContribution"
-            type="number"
-            value={input.monthlyContribution ?? 0}
-            onChange={(e) => onChange('monthlyContribution', parseFloat(e.target.value) || 0)}
-            onFocus={(e) => e.target.select()}
+            value={String(input.monthlyContribution ?? 0)}
+            onChange={(val) => onChange('monthlyContribution', parseFloat(val) || 0)}
             placeholder="500"
           />
           <p className="text-xs text-muted-foreground">
@@ -305,13 +296,10 @@ function CalculatorInputForm({
         {/* Withdrawal Rate */}
         <div className="space-y-2">
           <Label htmlFor="withdrawalRate">{t('financialFreedom.calculator.fields.withdrawalRate.label')}</Label>
-          <Input
+          <NumberInput
             id="withdrawalRate"
-            type="number"
-            step="0.1"
-            value={input.withdrawalRate ?? 4}
-            onChange={(e) => onChange('withdrawalRate', parseFloat(e.target.value) || 4)}
-            onFocus={(e) => e.target.select()}
+            value={String(input.withdrawalRate ?? 4)}
+            onChange={(val) => onChange('withdrawalRate', parseFloat(val) || 4)}
             placeholder="4"
           />
           <Slider
@@ -338,13 +326,10 @@ function CalculatorInputForm({
         {/* Inflation Adjustment */}
         <div className="space-y-2">
           <Label htmlFor="inflationRate">{t('financialFreedom.calculator.fields.inflationRate.label')}</Label>
-          <Input
+          <NumberInput
             id="inflationRate"
-            type="number"
-            step="0.1"
-            value={input.inflationRate ?? 2.5}
-            onChange={(e) => onChange('inflationRate', parseFloat(e.target.value) || 2.5)}
-            onFocus={(e) => e.target.select()}
+            value={String(input.inflationRate ?? 2.5)}
+            onChange={(val) => onChange('inflationRate', parseFloat(val) || 2.5)}
             placeholder="2.5"
           />
           <div className="flex items-center space-x-2 mt-2">

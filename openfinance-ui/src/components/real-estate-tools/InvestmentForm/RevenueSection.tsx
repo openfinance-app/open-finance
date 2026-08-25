@@ -8,7 +8,7 @@
 import React from 'react';
 import { Euro, Users, AlertTriangle, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '@/components/ui/Label';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { Progress } from '@/components/ui/Progress';
@@ -65,13 +65,11 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
           {/* Monthly Rent */}
           <div className="space-y-2">
             <Label htmlFor="monthlyRent">{t('revenueSection.monthlyRent')}</Label>
-            <Input
+            <NumberInput
               id="monthlyRent"
-              type="number"
-              value={inputs.monthlyRent}
-              onChange={(e) => onUpdate('monthlyRent', parseFloat(e.target.value) || 0)}
+              value={String(inputs.monthlyRent)}
+              onChange={(value) => onUpdate('monthlyRent', parseFloat(value) || 0)}
               min={0}
-              step={50}
             />
             {getFieldError('monthlyRent') && (
               <Alert variant="error" className="py-2">
@@ -83,13 +81,11 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
           {/* Recoverable Charges */}
           <div className="space-y-2">
             <Label htmlFor="recoverableCharges">{t('revenueSection.recoverableCharges')}</Label>
-            <Input
+            <NumberInput
               id="recoverableCharges"
-              type="number"
-              value={inputs.recoverableCharges}
-              onChange={(e) => onUpdate('recoverableCharges', parseFloat(e.target.value) || 0)}
+              value={String(inputs.recoverableCharges)}
+              onChange={(value) => onUpdate('recoverableCharges', parseFloat(value) || 0)}
               min={0}
-              step={10}
             />
           </div>
 
@@ -99,14 +95,12 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
               <Users className="h-4 w-4" />
               {t('revenueSection.occupancyRate')}
             </Label>
-            <Input
+            <NumberInput
               id="occupancyRate"
-              type="number"
-              value={inputs.occupancyRate}
-              onChange={(e) => onUpdate('occupancyRate', parseFloat(e.target.value) || 0)}
+              value={String(inputs.occupancyRate)}
+              onChange={(value) => onUpdate('occupancyRate', parseFloat(value) || 0)}
               min={0}
               max={100}
-              step={1}
             />
             <Progress value={inputs.occupancyRate} className="h-2" />
             {getFieldError('occupancyRate') && (
@@ -122,14 +116,12 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
               <AlertTriangle className="h-4 w-4" />
               {t('revenueSection.badDebtRate')}
             </Label>
-            <Input
+            <NumberInput
               id="badDebtRate"
-              type="number"
-              value={inputs.badDebtRate}
-              onChange={(e) => onUpdate('badDebtRate', parseFloat(e.target.value) || 0)}
+              value={String(inputs.badDebtRate)}
+              onChange={(value) => onUpdate('badDebtRate', parseFloat(value) || 0)}
               min={0}
               max={100}
-              step={0.5}
             />
             <Progress value={inputs.badDebtRate} className="h-2" />
             {getFieldError('badDebtRate') && (

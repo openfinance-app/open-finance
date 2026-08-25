@@ -9,6 +9,7 @@ import { Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Input, Button, Badge } from '@/components/ui';
 import { DateInput } from '@/components/ui/DateInput';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
 import { CategorySelect } from '@/components/ui/CategorySelect';
@@ -187,32 +188,26 @@ export function TransactionFilters({
             <label htmlFor="minAmount" className="block text-sm font-medium text-text-primary mb-1.5">
               {t('filterKeys.minAmount')}
             </label>
-            <input
+            <NumberInput
               id="minAmount"
               data-testid="filter-min-amount"
-              type="number"
-              min="0"
-              step="any"
+              value={filters.minAmount !== undefined ? String(filters.minAmount) : ''}
+              onChange={(val) => handleChange('minAmount', val ? parseFloat(val) : undefined)}
               placeholder="0.00"
-              value={filters.minAmount ?? ''}
-              onChange={(e) => handleChange('minAmount', e.target.value ? parseFloat(e.target.value) : undefined)}
-              className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              min="0"
             />
           </div>
           <div>
             <label htmlFor="maxAmount" className="block text-sm font-medium text-text-primary mb-1.5">
               {t('filterKeys.maxAmount')}
             </label>
-            <input
+            <NumberInput
               id="maxAmount"
               data-testid="filter-max-amount"
-              type="number"
-              min="0"
-              step="any"
+              value={filters.maxAmount !== undefined ? String(filters.maxAmount) : ''}
+              onChange={(val) => handleChange('maxAmount', val ? parseFloat(val) : undefined)}
               placeholder="0.00"
-              value={filters.maxAmount ?? ''}
-              onChange={(e) => handleChange('maxAmount', e.target.value ? parseFloat(e.target.value) : undefined)}
-              className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              min="0"
             />
           </div>
         </div>
