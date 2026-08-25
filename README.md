@@ -36,15 +36,6 @@ _Bug reports and feature requests → [GitHub Issues](https://github.com/open-fi
 
 ---
 
-## Deployment Options
-
-|                   | Self-Hosted    | Cloud           |
-| ----------------- | -------------- | --------------- |
-| **Cost**          | Free           | Subscription    |
-| **Setup**         | Docker Compose | None            |
-| **Data location** | Your machine   | Managed hosting |
-| **Updates**       | Manual         | Automatic       |
-
 ## Development
 
 The recommended setup uses the pre-configured **DevContainer** — includes Java 21, Maven, Node.js, SQLite, and all VS Code extensions, with zero manual installation.

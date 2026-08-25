@@ -542,6 +542,15 @@ public class DashboardController {
                     effectiveEnd);
         }
 
+        // Refresh today's snapshot when the requested window includes today, so the
+        // trend's most recent data point reflects the latest account/transaction/asset
+        // changes instead of a snapshot last written by the summary card (cached 15m)
+        // or the midnight scheduler. saveNetWorthSnapshot is an idempotent upsert.
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (!today.isBefore(effectiveStart) && !today.isAfter(effectiveEnd)) {
+            netWorthService.saveNetWorthSnapshot(userId, today, userCurrency);
+        }
+
         // Get net worth history from service
         List<NetWorth> history =
                 netWorthService.getNetWorthHistory(userId, effectiveStart, effectiveEnd);
