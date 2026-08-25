@@ -414,6 +414,47 @@ describe('LiabilityList', () => {
     });
   });
 
+  describe('Institution Logo', () => {
+    it('renders the institution logo when available', () => {
+      const liabilityWithLogo: Liability = {
+        ...mockLiability,
+        institution: { id: 1, name: 'BNP Paribas', logo: 'data:image/png;base64,abc' },
+      };
+
+      renderWithProviders(
+        <LiabilityList
+          liabilities={[liabilityWithLogo]}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+          onViewDetails={mockOnViewDetails}
+        />
+      );
+
+      const logo = document.querySelector('img[src="data:image/png;base64,abc"]');
+      expect(logo).toBeInTheDocument();
+    });
+
+    it('does not render a logo when the institution has none', () => {
+      const liabilityWithInstitutionNoLogo: Liability = {
+        ...mockLiability,
+        institution: { id: 1, name: 'BNP Paribas' },
+      };
+
+      renderWithProviders(
+        <LiabilityList
+          liabilities={[liabilityWithInstitutionNoLogo]}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+          onViewDetails={mockOnViewDetails}
+        />
+      );
+
+      expect(document.querySelector('img')).not.toBeInTheDocument();
+      // Institution name is still shown in the subline
+      expect(screen.getByText(/BNP Paribas/)).toBeInTheDocument();
+    });
+  });
+
   describe('Multiple Liabilities', () => {
     it('shows correct count when multiple liabilities', () => {
       const liabilities = [mockLiability, { ...mockLiability, id: 2, name: 'Car Loan' }];

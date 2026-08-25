@@ -58,6 +58,8 @@ function TotalCostHero({ liability }: { liability: Liability }) {
 
   // Component totals across the full lifetime of the loan.
   // additionalFees is a one-time fee already counted in feesPaid; projectedFees is always 0.
+  const interestPaid = breakdown.interestPaid;
+  const insurancePaid = breakdown.insurancePaid;
   const totalInterest = breakdown.interestPaid + breakdown.projectedInterest;
   const totalInsurance = breakdown.insurancePaid + breakdown.projectedInsurance;
   const totalFees = breakdown.feesPaid; // one-time fee — no projected portion
@@ -120,7 +122,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
                 sideOffset={4}
               >
-                Interest:{' '}
+                Interest (total):{' '}
                 <ConvertedAmount amount={totalInterest} currency={liability.currency} inline />
               </TooltipContent>
             </Tooltip>
@@ -139,7 +141,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
                 sideOffset={4}
               >
-                Insurance:{' '}
+                Insurance (total):{' '}
                 <ConvertedAmount amount={totalInsurance} currency={liability.currency} inline />
               </TooltipContent>
             </Tooltip>
@@ -187,9 +189,19 @@ function TotalCostHero({ liability }: { liability: Liability }) {
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-text-secondary">
             <span className="h-2 w-2 rounded-full bg-warning inline-block" />
-            Interest
+            Interest (paid / total)
           </span>
           <span className="font-mono text-text-primary">
+            <ConvertedAmount
+              amount={interestPaid}
+              currency={liability.currency}
+              convertedAmount={toBase(interestPaid)}
+              baseCurrency={liability.baseCurrency}
+              exchangeRate={liability.exchangeRate}
+              isConverted={liability.isConverted}
+              inline
+            />
+            {' / '}
             <ConvertedAmount
               amount={totalInterest}
               currency={liability.currency}
@@ -205,9 +217,19 @@ function TotalCostHero({ liability }: { liability: Liability }) {
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-text-secondary">
               <span className="h-2 w-2 rounded-full bg-info inline-block" />
-              Insurance
+              Insurance (paid / total)
             </span>
             <span className="font-mono text-text-primary">
+              <ConvertedAmount
+                amount={insurancePaid}
+                currency={liability.currency}
+                convertedAmount={toBase(insurancePaid)}
+                baseCurrency={liability.baseCurrency}
+                exchangeRate={liability.exchangeRate}
+                isConverted={liability.isConverted}
+                inline
+              />
+              {' / '}
               <ConvertedAmount
                 amount={totalInsurance}
                 currency={liability.currency}

@@ -108,24 +108,33 @@ export function LiabilityList({
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-lg text-text-primary">
-                      {liability.name}
-                    </h3>
-                    <Badge
-                      variant={getLiabilityTypeBadgeVariant(liability.type)}
-                      size="sm"
-                    >
-                      {getLiabilityTypeName(liability.type)}
-                    </Badge>
-                  </div>
-                  {(liability.notes || liability.institution) && (
-                    <p className="text-sm text-text-tertiary line-clamp-1">
-                      {liability.institution?.name ? `${liability.institution.name}${liability.notes ? ' • ' : ''}` : ''}
-                      {liability.notes || ''}
-                    </p>
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  {liability.institution?.logo && (
+                    <img
+                      src={liability.institution.logo}
+                      alt=""
+                      className="h-9 w-9 shrink-0 rounded-md border border-border bg-white object-contain p-0.5"
+                    />
                   )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-lg text-text-primary">
+                        {liability.name}
+                      </h3>
+                      <Badge
+                        variant={getLiabilityTypeBadgeVariant(liability.type)}
+                        size="sm"
+                      >
+                        {getLiabilityTypeName(liability.type)}
+                      </Badge>
+                    </div>
+                    {(liability.notes || liability.institution) && (
+                      <p className="text-sm text-text-tertiary line-clamp-1">
+                        {liability.institution?.name ? `${liability.institution.name}${liability.notes ? ' • ' : ''}` : ''}
+                        {liability.notes || ''}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-2 ml-4">
                   {/* Requirement 2.1: Single "View Details" button opens unified dialog */}

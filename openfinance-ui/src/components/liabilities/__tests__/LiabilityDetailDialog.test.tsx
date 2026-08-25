@@ -204,9 +204,9 @@ describe('LiabilityDetailDialog', () => {
       // Check legend items
       expect(screen.getByText('Principal')).toBeInTheDocument();
       expect(screen.getByText('€300,000.00')).toBeInTheDocument();
-      expect(screen.getByText('Interest')).toBeInTheDocument();
+      expect(screen.getByText('Interest (paid / total)')).toBeInTheDocument();
       expect(screen.getByText('€185,000.00')).toBeInTheDocument(); // 35000 + 150000
-      expect(screen.getByText('Insurance')).toBeInTheDocument();
+      expect(screen.getByText('Insurance (paid / total)')).toBeInTheDocument();
       expect(screen.getByText('€45,000.00')).toBeInTheDocument(); // 5000 + 40000
       // additionalFees is a one-time fee; only feesPaid counts (projectedFees is always 0)
       expect(screen.getByText('One-time Fee')).toBeInTheDocument();
