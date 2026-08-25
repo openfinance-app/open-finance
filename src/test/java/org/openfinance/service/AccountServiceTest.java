@@ -900,33 +900,15 @@ class AccountServiceTest {
         Account accountToDelete =
                 Account.builder().id(14L).userId(1L).name("Test Account").isActive(true).build();
 
-        List<org.openfinance.entity.Transaction> fromTransactions =
-                List.of(
-                        org.openfinance.entity.Transaction.builder().id(1L).accountId(14L).build(),
-                        org.openfinance.entity.Transaction.builder().id(2L).accountId(14L).build());
-
-        List<org.openfinance.entity.Transaction> toTransactions =
-                List.of(
-                        org.openfinance.entity.Transaction.builder()
-                                .id(3L)
-                                .toAccountId(14L)
-                                .build());
-
         when(accountRepository.findByIdAndUserId(14L, 1L)).thenReturn(Optional.of(accountToDelete));
-        when(transactionRepository.findByAccountId(14L)).thenReturn(fromTransactions);
-        when(transactionRepository.findByToAccountId(14L)).thenReturn(toTransactions);
+        when(transactionRepository.deleteAllByAccountIdIncludingDeleted(14L)).thenReturn(3);
 
         // Act
         accountService.permanentDeleteAccount(14L, 1L);
 
         // Assert
         verify(accountRepository).findByIdAndUserId(14L, 1L);
-        verify(transactionRepository).findByAccountId(14L);
-        verify(transactionRepository).findByToAccountId(14L);
-        verify(transactionRepository).deleteAll(fromTransactions);
-        verify(transactionRepository)
-                .deleteAll(toTransactions); // Since ids are different, all toTransactions are
-        // additional
+        verify(transactionRepository).deleteAllByAccountIdIncludingDeleted(14L);
         verify(accountRepository).delete(accountToDelete);
     }
 
@@ -938,17 +920,14 @@ class AccountServiceTest {
                 Account.builder().id(15L).userId(1L).name("Test Account").isActive(true).build();
 
         when(accountRepository.findByIdAndUserId(15L, 1L)).thenReturn(Optional.of(accountToDelete));
-        when(transactionRepository.findByAccountId(15L)).thenReturn(List.of());
-        when(transactionRepository.findByToAccountId(15L)).thenReturn(List.of());
+        when(transactionRepository.deleteAllByAccountIdIncludingDeleted(15L)).thenReturn(0);
 
         // Act
         accountService.permanentDeleteAccount(15L, 1L);
 
         // Assert
         verify(accountRepository).findByIdAndUserId(15L, 1L);
-        verify(transactionRepository).findByAccountId(15L);
-        verify(transactionRepository).findByToAccountId(15L);
-        verify(transactionRepository, never()).deleteAll(anyList()); // No transactions to delete
+        verify(transactionRepository).deleteAllByAccountIdIncludingDeleted(15L);
         verify(accountRepository).delete(accountToDelete);
     }
 

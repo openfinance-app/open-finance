@@ -7,6 +7,7 @@ import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -476,4 +477,19 @@ public interface TransactionRepository
             @Param("userId") Long userId,
             @Param("categoryId") Long categoryId,
             @Param("before") java.time.LocalDateTime before);
+
+    /**
+     * Hard-deletes every transaction that references the given account as either the source or
+     * destination, including soft-deleted rows.
+     *
+     * <p>Used when permanently deleting an account: the {@code transactions} foreign key uses
+     * {@code ON DELETE RESTRICT}, so soft-deleted transactions must also be removed before the
+     * account row can be deleted.
+     *
+     * @param accountId the account ID whose transactions should be removed
+     * @return the number of transactions deleted
+     */
+    @Modifying
+    @Query("DELETE FROM Transaction t WHERE t.accountId = :accountId OR t.toAccountId = :accountId")
+    int deleteAllByAccountIdIncludingDeleted(@Param("accountId") Long accountId);
 }

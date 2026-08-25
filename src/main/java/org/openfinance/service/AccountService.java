@@ -620,37 +620,16 @@ public class AccountService {
                         .findByIdAndUserId(accountId, userId)
                         .orElseThrow(() -> AccountNotFoundException.byIdAndUser(accountId, userId));
 
-        // Delete all transactions associated with this account
-        // First, get all transactions for this account
-        List<org.openfinance.entity.Transaction> transactions =
-                transactionRepository.findByAccountId(accountId);
-        if (!transactions.isEmpty()) {
+        // Hard-delete every transaction referencing this account, including soft-deleted rows.
+        // The transactions FK is ON DELETE RESTRICT, so any lingering soft-deleted transaction
+        // would otherwise block the account delete with a foreign key violation.
+        int deletedTransactions =
+                transactionRepository.deleteAllByAccountIdIncludingDeleted(accountId);
+        if (deletedTransactions > 0) {
             log.info(
-                    "Deleting {} transactions associated with account {}",
-                    transactions.size(),
+                    "Deleted {} transactions associated with account {}",
+                    deletedTransactions,
                     accountId);
-            transactionRepository.deleteAll(transactions);
-        }
-
-        // Also check for transactions where this account is the destination
-        // (toAccountId)
-        List<org.openfinance.entity.Transaction> toAccountTransactions =
-                transactionRepository.findByToAccountId(accountId);
-        if (!toAccountTransactions.isEmpty()) {
-            // Filter to only those that are not already in the first list
-            List<org.openfinance.entity.Transaction> additionalTransactions =
-                    toAccountTransactions.stream()
-                            .filter(
-                                    t ->
-                                            transactions.stream()
-                                                    .noneMatch(tx -> tx.getId().equals(t.getId())))
-                            .toList();
-            if (!additionalTransactions.isEmpty()) {
-                log.info(
-                        "Deleting {} additional transactions where account is destination",
-                        additionalTransactions.size());
-                transactionRepository.deleteAll(additionalTransactions);
-            }
         }
 
         // Delete the account itself (hard delete)
@@ -660,7 +639,7 @@ public class AccountService {
                 "Account permanently deleted successfully: id={}, userId={}, transactionsDeleted={}",
                 accountId,
                 userId,
-                transactions.size() + toAccountTransactions.size());
+                deletedTransactions);
     }
 
     /**

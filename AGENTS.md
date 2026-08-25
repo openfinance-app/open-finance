@@ -3,6 +3,7 @@
 Concise, actionable rules for automated or human agents working in Open-Finance.
 
 ## Project snapshot
+
 - Backend: Java 21, Spring Boot 3.2, JPA/Hibernate, SQLite (WAL mode), Flyway, JWT
 - Frontend: React 19 + TypeScript 5, Vite, Tailwind 4, shadcn/ui, Radix UI — lives in `openfinance-ui/`
 - State: TanStack Query (server), Zustand (client), react-hook-form + zod (forms)
@@ -13,6 +14,7 @@ Concise, actionable rules for automated or human agents working in Open-Finance.
 ## Build, lint & run tests
 
 ### Backend (Maven) — run from repo root
+
 ```
 mvn clean install              # full build with tests
 mvn clean install -DskipTests  # fast build, skip tests
@@ -28,6 +30,7 @@ mvn spring-boot:run            # start locally (port 8080)
 ```
 
 ### Frontend (Vitest) — run from `openfinance-ui/`
+
 ```
 npm install                    # install deps (or bun install)
 npm run dev                    # dev server (port 3000)
@@ -42,16 +45,18 @@ npx playwright test            # E2E tests
 ```
 
 ### CI
+
 See `.github/workflows/backend-ci.yml` and `frontend-ci.yml` for environment details.
 
 ---
 
 ## Git & commit rules
+
 - Only create commits when the user explicitly asks. Use Conventional Commits: `type(scope): short subject`.
 - Never run destructive git commands (`--hard` reset, force push) without explicit permission.
 - Do not commit secrets or credentials; warn the user and exclude them.
 - When fixing a bug/Issue, attached commit message to the Issue with a comment explaining the fix. Ask reporter to verify the fix if issue still open.
-- When a change affects DB schema, add a Flyway migration in `src/main/resources/db/migration/`.
+- When a change affects DB schema, add a Flyway migration in `src/main/resources/db/` for both sqlite and postgresql.
 
 ---
 
@@ -80,6 +85,7 @@ See `.github/workflows/backend-ci.yml` and `frontend-ci.yml` for environment det
 **Formatting:** `mvn spotless:apply` (Google Java Format AOSP, 1.17.0). Keep methods < 50 lines; single responsibility.
 
 ### Error handling & logging (backend)
+
 - Domain exceptions under `exception/` extending `RuntimeException` with meaningful messages.
 - Map to HTTP responses via `@ControllerAdvice`; return structured error DTOs. Never expose stack traces.
 - Log levels: `ERROR` unexpected failures, `WARN` recoverable conditions, `INFO` lifecycle events, `DEBUG` entry/params.
@@ -111,6 +117,7 @@ See `.github/workflows/backend-ci.yml` and `frontend-ci.yml` for environment det
 **Prettier config:** `singleQuote: true`, `semi: true`, `tabWidth: 2`, `trailingComma: "es5"`, `printWidth: 100`, `arrowParens: "avoid"`, `endOfLine: "lf"`.
 
 ### Frontend testing patterns
+
 - **Test runner is Vitest**, not Jest — use `vi.fn()`, `vi.mock()`, `vi.spyOn()` (not `jest.*`).
 - Wrap all renders with `renderWithProviders()` from `@/test/test-utils` (provides QueryClient, I18next, Router, Auth, etc.).
 - Call `mockAuthentication()` in `beforeEach` to seed `auth_token` (localStorage) and `encryption_key` (sessionStorage).
@@ -120,6 +127,7 @@ See `.github/workflows/backend-ci.yml` and `frontend-ci.yml` for environment det
 - Mock `Element.prototype.scrollIntoView = vi.fn()` in `beforeEach` for components that auto-scroll.
 
 ### Backend testing patterns
+
 - Unit tests: `@ExtendWith(MockitoExtension.class)`, `@Mock` / `@InjectMocks`, `@DisplayName`. Assert with AssertJ (`assertThat`) and `assertThrows`.
 - Repository/slice tests: `@DataJpaTest` + `@AutoConfigureTestDatabase(replace=ANY)` + H2 in-memory.
 - Integration tests: `@SpringBootTest` + `MockMvc` or rest-assured; supply required filter params (e.g., `accountId`).
@@ -128,6 +136,7 @@ See `.github/workflows/backend-ci.yml` and `frontend-ci.yml` for environment det
 ---
 
 ## Internationalization (i18n)
+
 - Supported locales: English (`en`) and French (`fr`).
 - Backend keys: `src/main/resources/i18n/messages*.properties` and `ValidationMessages*.properties`.
 - Frontend translations: `openfinance-ui/public/locales/{en,fr}/`.
@@ -141,6 +150,7 @@ See `.github/workflows/backend-ci.yml` and `frontend-ci.yml` for environment det
 ---
 
 ## Repo-specific agent behaviors
+
 - Never revert others' changes without explicit request; respect a dirty working tree.
 - SQLite WAL mode: `busy_timeout=10000` (JDBC URL and `DatabaseConfig` connection-init PRAGMA, kept in sync) handles writer contention (`SQLITE_BUSY`) but **not** stale snapshots (`SQLITE_BUSY_SNAPSHOT`). Fix snapshot errors by using `Propagation.NOT_SUPPORTED` on the top-level method and extracting User writes into a separate `@Service` with its own `@Transactional`.
 - Concurrent writes to tables with unique constraints (e.g., `net_worth`) require a warm-up request first in parallel tests.
@@ -150,12 +160,14 @@ See `.github/workflows/backend-ci.yml` and `frontend-ci.yml` for environment det
 ---
 
 ## References & helpers
+
 - **`.agents/LESSONS_LEARNED.md` — read before writing any test**; contains critical gotchas on SQLite WAL, Langchain4J API, i18next async, Radix UI in jsdom, and more.
 - CI workflows: `.github/workflows/backend-ci.yml`, `.github/workflows/frontend-ci.yml`.
 - Devcontainer: `.devcontainer/` for reproducible dev environment.
 - Cursor/Copilot rules: none present (`.cursorrules`, `.cursor/`, `.github/copilot-instructions.md` do not exist).
 
 ## Quick verification checklist
+
 1. Reproduce the failure with the exact single-test command above.
 2. Make the minimal fix; rerun the specific test, then the full suite.
 3. Run `mvn spotless:apply` (Java) or ensure lint-staged ran (TS) before committing.
