@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { HelpTooltip } from './HelpTooltip';
 import { TooltipProvider } from '@/components/ui/Tooltip';
 
@@ -16,7 +16,7 @@ describe('HelpTooltip', () => {
       </TooltipProvider>
     );
 
-    const button = screen.getByRole('button', { name: /help/i });
+    const button = screen.getByRole('button', { name: 'Test help text' });
     expect(button).toBeInTheDocument();
     expect(button).toHaveClass('cursor-help');
   });
@@ -28,8 +28,23 @@ describe('HelpTooltip', () => {
       </TooltipProvider>
     );
 
-    const button = screen.getByRole('button', { name: /help/i });
-    expect(button).toHaveAttribute('aria-label', 'help');
+    const button = screen.getByRole('button', { name: 'Test help text' });
+    expect(button).toHaveAttribute('aria-label', 'Test help text');
+  });
+
+  it('shows the help text when the trigger receives focus', async () => {
+    render(
+      <TooltipProvider>
+        <HelpTooltip text="Test help text" />
+      </TooltipProvider>
+    );
+
+    const button = screen.getByRole('button', { name: 'Test help text' });
+    fireEvent.focus(button);
+
+    await waitFor(() => {
+      expect(screen.getByRole('tooltip', { name: 'Test help text' })).toBeInTheDocument();
+    });
   });
 
   it('renders the Info icon from lucide-react', () => {
@@ -51,7 +66,7 @@ describe('HelpTooltip', () => {
       </TooltipProvider>
     );
 
-    const button = screen.getByRole('button', { name: /help/i });
+    const button = screen.getByRole('button', { name: 'Test help text' });
     expect(button).toHaveClass('custom-test-class');
   });
 
@@ -62,7 +77,7 @@ describe('HelpTooltip', () => {
       </TooltipProvider>
     );
 
-    const button = screen.getByRole('button', { name: /help/i });
+    const button = screen.getByRole('button', { name: 'Test help text' });
     expect(button).toHaveAttribute('type', 'button');
   });
 });

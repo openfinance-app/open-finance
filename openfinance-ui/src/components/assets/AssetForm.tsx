@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/Button';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { DateInput } from '@/components/ui/DateInput';
 import { NumberInput } from '@/components/ui/NumberInput';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { AccountSelector } from '@/components/ui/AccountSelector';
 import { useAuthContext } from '@/context/AuthContext';
@@ -364,9 +365,12 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
                 />
               </div>
               <div>
-                <label htmlFor="usefulLifeYears" className="block text-sm font-medium text-text-primary mb-1.5">
-                  {t('form.usefulLifeYears')}
-                </label>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <label htmlFor="usefulLifeYears" className="block text-sm font-medium text-text-primary">
+                    {t('form.usefulLifeYears')}
+                  </label>
+                  <HelpTooltip text={t('form.usefulLifeHint')} side="right" />
+                </div>
                 <Controller
                   name="usefulLifeYears"
                   control={control}
@@ -383,9 +387,6 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
                     />
                   )}
                 />
-                <p className="mt-1 text-xs text-text-tertiary">
-                  {t('form.usefulLifeHint')}
-                </p>
               </div>
             </div>
           </div>

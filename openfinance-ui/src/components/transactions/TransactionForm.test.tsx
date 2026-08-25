@@ -393,13 +393,13 @@ describe('TransactionForm', () => {
       });
     });
 
-    it('shows the Clear button alongside the auto-fill indicator', async () => {
+    it('shows the dismiss button alongside the auto-fill indicator', async () => {
       renderForm();
 
       await selectPayee('Amazon');
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /clear/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /dismiss/i })).toBeInTheDocument();
       });
     });
 
@@ -482,7 +482,7 @@ describe('TransactionForm', () => {
       });
     });
 
-    it('clears the auto-fill indicator when the Clear button is clicked', async () => {
+    it('clears the auto-fill indicator when the dismiss button is clicked', async () => {
       renderForm();
 
       await selectPayee('Amazon');
@@ -493,8 +493,8 @@ describe('TransactionForm', () => {
         expect(container?.textContent).toMatch(/auto-filled from payee:\s*amazon/i);
       });
 
-      // Click the Clear button
-      screen.getByRole('button', { name: /clear/i }).click();
+      // Dismiss the auto-fill suggestion
+      screen.getByRole('button', { name: /dismiss/i }).click();
 
       await waitFor(() => {
         expect(document.querySelector('.bg-emerald-500\\/10')).not.toBeInTheDocument();
@@ -524,8 +524,8 @@ describe('TransactionForm', () => {
       });
     });
 
-    it('does not re-auto-fill after user cleared the indicator (respects user intent)', async () => {
-      // After the user explicitly clears the auto-fill, switching to another payee
+    it('does not re-auto-fill after user dismissed the indicator (respects user intent)', async () => {
+      // After the user explicitly dismisses the auto-fill, switching to another payee
       // should NOT auto-fill again, because a category is already set and the
       // auto-fill state was cleared (treated as a manual override).
       renderForm();
@@ -538,8 +538,8 @@ describe('TransactionForm', () => {
         expect(container?.textContent).toMatch(/auto-filled from payee:\s*amazon/i);
       });
 
-      // Clear via button
-      screen.getByRole('button', { name: /clear/i }).click();
+      // Dismiss via button
+      screen.getByRole('button', { name: /dismiss/i }).click();
       await waitFor(() => {
         expect(document.querySelector('.bg-emerald-500\\/10')).not.toBeInTheDocument();
       });
@@ -548,6 +548,10 @@ describe('TransactionForm', () => {
       // so the auto-fill condition (!categoryId || autoFilledCategory) is false → no refill
       await selectPayee('Spotify');
 
+      await waitFor(() => {
+        expect(screen.getByTestId('category-select')).toHaveValue('10');
+        expect(document.querySelector('.bg-emerald-500\\/10')).not.toBeInTheDocument();
+      });
     });
   });
 

@@ -79,6 +79,7 @@
     "linkedLiabilityHint": "Link this payment to a loan or mortgage for tracking",
     "selectLiability": "Select a liability to link",
     "autoFilledFrom": "Auto-filled from payee:",
+    "dismissAutoFill": "Dismiss auto-fill suggestion",
     "createTransaction": "Create Transaction",
     "updateTransaction": "Update Transaction",
     "cancel": "Cancel",

@@ -22,6 +22,7 @@ import { useGetProfile, useUpdateProfile } from '@/hooks/useAuth';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ProfileImageUpload } from '@/components/settings/ProfileImageUpload';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 
 export default function ProfilePage() {
   const { t } = useTranslation('settings');
@@ -214,9 +215,12 @@ export default function ProfilePage() {
 
             {/* Current Password - Always Required */}
             <div>
-              <label htmlFor="currentPassword" className="block text-sm font-medium text-text-primary mb-1">
-                {t('profile.currentPassword')} <span className="text-error">*</span>
-              </label>
+              <div className="flex items-center gap-1 mb-1">
+                <label htmlFor="currentPassword" className="block text-sm font-medium text-text-primary">
+                  {t('profile.currentPassword')} <span className="text-error">*</span>
+                </label>
+                <HelpTooltip text={t('profile.currentPasswordHint')} side="right" />
+              </div>
               <input
                 type="password"
                 id="currentPassword"
@@ -228,9 +232,6 @@ export default function ProfilePage() {
               {errors.currentPassword && (
                 <p className="mt-1 text-sm text-error">{t(errors.currentPassword.message!)}</p>
               )}
-              <p className="mt-1 text-xs text-text-secondary">
-                {t('profile.currentPasswordHint')}
-              </p>
             </div>
           </div>
 

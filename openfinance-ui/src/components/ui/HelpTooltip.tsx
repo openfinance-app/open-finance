@@ -42,7 +42,7 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
         <TooltipTrigger asChild>
           <button
             type="button"
-            aria-label="help"
+            aria-label={text}
             className={cn(
               'inline-flex items-center cursor-help text-text-secondary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded-sm',
               className

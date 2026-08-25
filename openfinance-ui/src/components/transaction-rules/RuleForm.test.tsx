@@ -128,7 +128,7 @@ describe('RuleForm', () => {
 
     expect(screen.getByRole('heading', { name: 'Create Rule' })).toBeInTheDocument();
     expect(screen.getByLabelText(/rule name/i)).toHaveValue('');
-    expect(screen.getByLabelText(/priority/i)).toHaveValue('0');
+    expect(screen.getByRole('textbox', { name: /priority/i })).toHaveValue('0');
     expect(screen.getByText('Active')).toBeInTheDocument();
   });
 
@@ -144,7 +144,7 @@ describe('RuleForm', () => {
 
     expect(screen.getByText('Edit Rule')).toBeInTheDocument();
     expect(screen.getByLabelText(/rule name/i)).toHaveValue('Test Rule');
-    expect(screen.getByLabelText(/priority/i)).toHaveValue('5');
+    expect(screen.getByRole('textbox', { name: /priority/i })).toHaveValue('5');
     expect(screen.getByText('Inactive')).toBeInTheDocument();
   });
 
@@ -251,7 +251,7 @@ describe('RuleForm', () => {
     fireEvent.change(nameInput, { target: { value: 'Test Rule' } });
 
     // Set priority
-    const priorityInput = screen.getByLabelText(/priority/i);
+    const priorityInput = screen.getByRole('textbox', { name: /priority/i });
     fireEvent.change(priorityInput, { target: { value: '5' } });
 
     // Toggle enabled
@@ -314,7 +314,7 @@ describe('RuleForm', () => {
     );
 
     expect(screen.getByLabelText(/rule name/i)).toHaveValue('Test Rule');
-    expect(screen.getByLabelText(/priority/i)).toHaveValue('5');
+    expect(screen.getByRole('textbox', { name: /priority/i })).toHaveValue('5');
     expect(screen.getByText('Inactive')).toBeInTheDocument();
     expect(screen.getByDisplayValue('test')).toBeInTheDocument();
     // CategorySelect is mocked as a <select>; the selected option matches the name 'Groceries'

@@ -22,6 +22,7 @@ import { InstitutionSelector } from '@/components/ui/InstitutionSelector';
 import { Switch } from '@/components/ui/Switch';
 import { DateInput } from '@/components/ui/DateInput';
 import { NumberInput } from '@/components/ui/NumberInput';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAuthContext } from '@/context/AuthContext';
@@ -242,18 +243,18 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
           />
         </div>
         <div>
-          <label htmlFor="accountNumber" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.accountNumber')}
-          </label>
+          <div className="flex items-center gap-1 mb-1.5">
+            <label htmlFor="accountNumber" className="block text-sm font-medium text-text-primary">
+              {t('form.accountNumber')}
+            </label>
+            <HelpTooltip text={t('form.accountNumberHint')} side="right" />
+          </div>
           <Input
             id="accountNumber"
             {...register('accountNumber')}
             placeholder={t('form.accountNumberPlaceholder')}
             error={errors.accountNumber?.message}
           />
-          <p className="text-xs text-text-secondary mt-1">
-            {t('form.accountNumberHint')}
-          </p>
         </div>
       </div>
 
@@ -279,9 +280,12 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
           )}
         </div>
         <div>
-          <label htmlFor="openingDate" className="block text-sm font-medium text-text-primary mb-1.5">
-            <span className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> {t('form.openingDate')}</span>
-          </label>
+          <div className="flex items-center gap-1 mb-1.5">
+            <label htmlFor="openingDate" className="block text-sm font-medium text-text-primary">
+              <span className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> {t('form.openingDate')}</span>
+            </label>
+            <HelpTooltip text={t('form.openingDateHint')} side="right" />
+          </div>
           <Controller
             name="openingDate"
             control={control}
@@ -296,7 +300,6 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
               />
             )}
           />
-          <p className="text-xs text-text-secondary mt-1">{t('form.openingDateHint')}</p>
         </div>
       </div>
 
@@ -378,8 +381,13 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" />
             <div>
-              <p className="text-sm font-medium text-text-primary">{t('form.interestCalculation')}</p>
-              <p className="text-xs text-text-secondary">{t('form.interestCalculationHint')}</p>
+              <div className="flex items-center gap-1">
+                <p className="text-sm font-medium text-text-primary">{t('form.interestCalculation')}</p>
+                <HelpTooltip
+                  text={isEditing ? t('form.interestEditHint') : t('form.interestCalculationHint')}
+                  side="right"
+                />
+              </div>
             </div>
           </div>
           <Controller
@@ -395,14 +403,8 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
           />
         </div>
 
-        {isInterestEnabled && (
+        {isInterestEnabled && !isEditing && (
           <div className="px-4 py-4 space-y-4 border-t border-border bg-surface/50">
-            {isEditing ? (
-              <p className="text-sm text-text-secondary italic">
-                {t('form.interestEditHint')}
-              </p>
-            ) : (
-              <>
                 {/* Period + Rates in one compact row */}
                 <div className="grid grid-cols-3 gap-3">
                   <div>
@@ -523,13 +525,12 @@ export function AccountForm({ account, onSubmit, onCancel, isLoading, existingAc
                   </div>
                 ) : (
                   <div className="rounded-lg bg-surface border border-border border-dashed p-3 text-center">
-                    <p className="text-xs text-text-muted">
-                      {t('form.interestPreviewHint')}
-                    </p>
+                    <div className="flex items-center justify-center gap-1 text-xs text-text-muted">
+                      <span>{t('form.interestPreviewTitle')}</span>
+                      <HelpTooltip text={t('form.interestPreviewHint')} side="right" />
+                    </div>
                   </div>
                 )}
-              </>
-            )}
           </div>
         )}
       </div>

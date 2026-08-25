@@ -99,7 +99,7 @@ describe('CashFlowChart', () => {
   it('renders title and help tooltip', () => {
     renderChart();
     expect(screen.getByText('Cash Flow')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /help/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /cash flow shows/i })).toBeInTheDocument();
   });
 
   it('renders period text with default 30 days', () => {

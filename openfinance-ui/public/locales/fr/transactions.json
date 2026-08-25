@@ -79,6 +79,7 @@
     "linkedLiabilityHint": "Associez ce paiement à un prêt ou une hypothèque pour le suivi",
     "selectLiability": "Sélectionner un passif à associer",
     "autoFilledFrom": "Rempli automatiquement depuis le bénéficiaire :",
+    "dismissAutoFill": "Ignorer la suggestion de remplissage automatique",
     "createTransaction": "Créer la transaction",
     "updateTransaction": "Mettre à jour la transaction",
     "cancel": "Annuler",

@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { NumberInput } from '@/components/ui/NumberInput';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { RuleConditionBuilder, type ConditionDraft } from './RuleConditionBuilder';
 import { RuleActionBuilder, type ActionDraft } from './RuleActionBuilder';
@@ -229,9 +230,12 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
           {/* Priority & Enabled row */}
           <div className="flex items-center gap-6">
             <div className="space-y-1 flex-1">
-              <label className="text-sm font-medium text-text-primary" htmlFor="rule-priority">
-                {t('form.priority')}
-              </label>
+              <div className="flex items-center gap-1">
+                <label className="text-sm font-medium text-text-primary" htmlFor="rule-priority">
+                  {t('form.priority')}
+                </label>
+                <HelpTooltip text={t('form.priorityHint')} side="right" />
+              </div>
               <NumberInput
                 id="rule-priority"
                 min={0}
@@ -243,9 +247,6 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
                   }))
                 }
               />
-              <p className="text-xs text-text-secondary">
-                {t('form.priorityHint')}
-              </p>
               {errors.priority && (
                 <p className="text-xs text-red-500">{errors.priority}</p>
               )}
@@ -289,9 +290,19 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
           {/* Conditions */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-text-primary">
-                {t('form.conditionsLabel')} <span className="text-red-500">*</span>
-              </h3>
+              <div className="flex items-center gap-1">
+                <h3 className="text-sm font-medium text-text-primary">
+                  {t('form.conditionsLabel')} <span className="text-red-500">*</span>
+                </h3>
+                <HelpTooltip
+                  text={
+                    formState.conditionMatch === 'OR'
+                      ? t('form.conditionsHintOr', 'Transaction matches if any condition is met.')
+                      : t('form.conditionsHint')
+                  }
+                  side="right"
+                />
+              </div>
               <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
                 <button
                   type="button"
@@ -317,11 +328,6 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
                 </button>
               </div>
             </div>
-            <p className="text-xs text-text-secondary">
-              {formState.conditionMatch === 'OR'
-                ? t('form.conditionsHintOr', 'Transaction matches if any condition is met.')
-                : t('form.conditionsHint')}
-            </p>
             <RuleConditionBuilder
               conditions={formState.conditions}
               onChange={(conditions) =>
@@ -335,12 +341,12 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
 
           {/* Actions */}
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-text-primary">
-              {t('form.actionsLabel')} <span className="text-red-500">*</span>
-            </h3>
-            <p className="text-xs text-text-secondary">
-              {t('form.actionsHint')}
-            </p>
+            <div className="flex items-center gap-1">
+              <h3 className="text-sm font-medium text-text-primary">
+                {t('form.actionsLabel')} <span className="text-red-500">*</span>
+              </h3>
+              <HelpTooltip text={t('form.actionsHint')} side="right" />
+            </div>
             <RuleActionBuilder
               actions={formState.actions}
               onChange={(actions) =>

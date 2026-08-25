@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 
 interface SaveSearchDialogProps {
   isOpen: boolean;
@@ -68,9 +69,12 @@ export function SaveSearchDialog({
         
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div>
-            <label htmlFor="search-name" className="block text-sm font-medium text-text-primary mb-2">
-              {t('common:saveSearchDialog.label')}
-            </label>
+            <div className="flex items-center gap-1 mb-2">
+              <label htmlFor="search-name" className="block text-sm font-medium text-text-primary">
+                {t('common:saveSearchDialog.label')}
+              </label>
+              <HelpTooltip text={t('common:saveSearchDialog.hint')} side="right" />
+            </div>
             <Input
               id="search-name"
               type="text"
@@ -87,9 +91,6 @@ export function SaveSearchDialog({
             {error && (
               <p className="text-sm text-error mt-1">{error}</p>
             )}
-            <p className="text-xs text-text-tertiary mt-1">
-              {t('common:saveSearchDialog.hint')}
-            </p>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">

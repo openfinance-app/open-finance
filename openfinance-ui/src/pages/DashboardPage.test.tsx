@@ -242,7 +242,7 @@ describe('DashboardPage Integration Tests', () => {
       await screen.findAllByText(/Net Worth/i);
       
       // Find the cards/sliders button
-      const cardsButton = screen.getByRole('button', { name: /cards|cartes/i });
+      const cardsButton = screen.getByRole('button', { name: /^cards$|^cartes$/i });
       fireEvent.click(cardsButton);
       
       // Should see checkboxes for card visibility
@@ -259,7 +259,7 @@ describe('DashboardPage Integration Tests', () => {
       await screen.findAllByText(/Net Worth/i);
       
       // Open cards menu
-      const cardsButton = screen.getByRole('button', { name: /cards|cartes/i });
+      const cardsButton = screen.getByRole('button', { name: /^cards$|^cartes$/i });
       fireEvent.click(cardsButton);
       
       // Click reset layout
@@ -320,4 +320,3 @@ describe('DashboardPage Integration Tests', () => {
     });
   });
 });
-

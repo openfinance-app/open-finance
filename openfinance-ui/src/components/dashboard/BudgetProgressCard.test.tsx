@@ -108,7 +108,7 @@ describe('BudgetProgressCard Smoke Test', () => {
     expect(screen.getByRole('heading', { name: /Budget Progress/i })).toBeInTheDocument();
 
     // Check if HelpTooltip icon is present
-    const helpButton = screen.getByRole('button', { name: /help/i });
+    const helpButton = screen.getByRole('button', { name: /track your spending/i });
     expect(helpButton).toBeInTheDocument();
   });
 

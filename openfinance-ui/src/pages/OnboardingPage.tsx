@@ -11,6 +11,7 @@ import { Globe, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { Button } from '@/components/ui/Button';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { useCompleteOnboarding } from '@/hooks/useAuth';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
 import { CountrySelector } from '@/components/common/CountrySelector';
@@ -70,9 +71,9 @@ function detectDefaults(): {
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <div>
+      <div className="flex items-center gap-1">
         <label className="block text-sm font-medium text-text-primary">{title}</label>
-        {hint && <p className="text-xs text-text-muted mt-0.5">{hint}</p>}
+        {hint && <HelpTooltip text={hint} side="right" />}
       </div>
       {children}
     </div>

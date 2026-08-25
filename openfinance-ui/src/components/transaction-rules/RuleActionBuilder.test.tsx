@@ -2,7 +2,7 @@
  * Tests for RuleActionBuilder component
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderWithProviders, screen, fireEvent } from '@/test/test-utils';
+import { renderWithProviders, screen, fireEvent, waitFor } from '@/test/test-utils';
 import { RuleActionBuilder, type ActionDraft } from './RuleActionBuilder';
 
 // ---------------------------------------------------------------------------
@@ -336,7 +336,7 @@ describe('RuleActionBuilder', () => {
     expect(screen.getByRole('textbox', { name: 'Split description' })).toBeInTheDocument();
   });
 
-  it('should render message for SKIP_TRANSACTION action', () => {
+  it('should render help for SKIP_TRANSACTION action', async () => {
     const actions: ActionDraft[] = [
       {
         actionType: 'SKIP_TRANSACTION',
@@ -351,7 +351,13 @@ describe('RuleActionBuilder', () => {
       />
     );
 
-    expect(screen.getByText('Transaction will be skipped during import.')).toBeInTheDocument();
+    fireEvent.pointerMove(
+      screen.getByRole('button', { name: /transaction will be skipped/i })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Transaction will be skipped during import.')).toBeInTheDocument();
+    });
   });
 
   it('should call onChange when category is selected', () => {

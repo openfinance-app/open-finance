@@ -263,8 +263,8 @@ describe('AccountForm', () => {
       await user.click(interestToggle);
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/Interest Rate/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/Tax Rate/i)).toBeInTheDocument();
+        expect(screen.getByRole('textbox', { name: /Interest Rate/i })).toBeInTheDocument();
+        expect(screen.getByRole('textbox', { name: /Tax Rate/i })).toBeInTheDocument();
       });
     });
   });

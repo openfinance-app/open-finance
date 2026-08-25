@@ -19,6 +19,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Input } from '@/components/ui/Input';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { CategorySelect } from '@/components/ui/CategorySelect';
@@ -168,9 +169,11 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
 
     case 'SKIP_TRANSACTION':
       return (
-        <p className="flex-1 text-sm text-text-secondary italic">
-          {t('form.actions.skipTransactionHint')}
-        </p>
+        <HelpTooltip
+          text={t('form.actions.skipTransactionHint')}
+          side="right"
+          className="mt-2"
+        />
       );
 
     default:

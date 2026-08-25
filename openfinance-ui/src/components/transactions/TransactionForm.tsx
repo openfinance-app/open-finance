@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
 import { NumberInput } from '@/components/ui/NumberInput';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { TagInput } from './TagInput';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
@@ -527,9 +528,12 @@ export function TransactionForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Payee */}
         <div>
-          <label htmlFor="payee" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.payee')}
-          </label>
+          <div className="flex items-center gap-1 mb-1.5">
+            <label htmlFor="payee" className="block text-sm font-medium text-text-primary">
+              {t('form.payee')}
+            </label>
+            <HelpTooltip text={t('form.payeeHint')} side="right" />
+          </div>
           <Controller
             name="payee"
             control={control}
@@ -542,16 +546,16 @@ export function TransactionForm({
               />
             )}
           />
-          <p className="mt-1 text-xs text-text-tertiary">
-            {t('form.payeeHint')}
-          </p>
         </div>
 
         {/* Payment Method */}
         <div>
-          <label htmlFor="paymentMethod" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.paymentMethod')}
-          </label>
+          <div className="flex items-center gap-1 mb-1.5">
+            <label htmlFor="paymentMethod" className="block text-sm font-medium text-text-primary">
+              {t('form.paymentMethod')}
+            </label>
+            <HelpTooltip text={t('form.paymentMethodHint')} side="right" />
+          </div>
           <Controller
             name="paymentMethod"
             control={control}
@@ -570,9 +574,6 @@ export function TransactionForm({
               </select>
             )}
           />
-          <p className="mt-1 text-xs text-text-tertiary">
-            {t('form.paymentMethodHint')}
-          </p>
         </div>
       </div>
 
@@ -655,10 +656,9 @@ export function TransactionForm({
                     onClick={() => {
                       setAutoFilledCategory(null);
                       setAutoFilledFromPayee(null);
-                      setValue('categoryId', undefined);
                     }}
                     className="rounded-sm hover:bg-emerald-500/20 p-0.5 transition-colors"
-                    aria-label="Clear auto-filled category"
+                    aria-label={t('form.dismissAutoFill')}
                   >
                     <X className="h-3 w-3 text-emerald-500" />
                   </button>
@@ -690,9 +690,12 @@ export function TransactionForm({
       {/* Liability Selector - only for EXPENSE transactions (Requirement 3.1) */}
       {selectedType === 'EXPENSE' && liabilities.length > 0 && (
         <div>
-          <label htmlFor="liabilityId" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.linkedLiability')}
-          </label>
+          <div className="flex items-center gap-1 mb-1.5">
+            <label htmlFor="liabilityId" className="block text-sm font-medium text-text-primary">
+              {t('form.linkedLiability')}
+            </label>
+            <HelpTooltip text={t('form.linkedLiabilityHint')} side="right" />
+          </div>
           <Controller
             name="liabilityId"
             control={control}
@@ -704,9 +707,6 @@ export function TransactionForm({
               />
             )}
           />
-          <p className="mt-1 text-xs text-text-tertiary">
-            {t('form.linkedLiabilityHint')}
-          </p>
         </div>
       )}
 
@@ -727,9 +727,12 @@ export function TransactionForm({
 
         {/* Tags */}
         <div>
-          <label className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.tags')}
-          </label>
+          <div className="flex items-center gap-1 mb-1.5">
+            <label className="block text-sm font-medium text-text-primary">
+              {t('form.tags')}
+            </label>
+            <HelpTooltip text={t('form.tagsHint')} side="right" />
+          </div>
           <TagInput
             value={tags}
             onChange={setTags}
@@ -738,9 +741,6 @@ export function TransactionForm({
             maxTags={10}
             disabled={isLoading}
           />
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t('form.tagsHint')}
-          </p>
         </div>
       </div>
 
