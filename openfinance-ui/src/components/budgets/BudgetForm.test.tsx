@@ -12,6 +12,14 @@ import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent
 import { BudgetForm } from '@/components/budgets/BudgetForm';
 import type { BudgetResponse } from '@/types/budget';
 
+vi.mock('@/hooks/useUserSettings', async (importOriginal) => {
+  const actual = await importOriginal() as any;
+  return {
+    ...actual,
+    useUserSettings: () => ({ data: { dateFormat: 'YYYY-MM-DD' }, isLoading: false }),
+  };
+});
+
 // Mock complex child components
 vi.mock('@/components/ui/CurrencySelector', () => ({
   CurrencySelector: ({ value, onValueChange, placeholder }: any) => (

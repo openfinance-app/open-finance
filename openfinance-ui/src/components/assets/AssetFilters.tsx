@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Input, Button } from '@/components/ui';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
+import { DateInput } from '@/components/ui/DateInput';
 import type { AssetFilters, AssetType } from '@/types/asset';
 
 interface AssetFiltersProps {
@@ -208,24 +209,20 @@ export function AssetFilters({
             <label htmlFor="purchaseDateFrom" className="block text-sm font-medium text-text-primary mb-1.5">
               {t('filtersPanel.purchasedFrom')}
             </label>
-            <input
+            <DateInput
               id="purchaseDateFrom"
-              type="date"
               value={filters.purchaseDateFrom || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('purchaseDateFrom', e.target.value || undefined)}
-              className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              onChange={(val) => handleChange('purchaseDateFrom', val || undefined)}
             />
           </div>
           <div>
             <label htmlFor="purchaseDateTo" className="block text-sm font-medium text-text-primary mb-1.5">
               {t('filtersPanel.purchasedTo')}
             </label>
-            <input
+            <DateInput
               id="purchaseDateTo"
-              type="date"
               value={filters.purchaseDateTo || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('purchaseDateTo', e.target.value || undefined)}
-              className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              onChange={(val) => handleChange('purchaseDateTo', val || undefined)}
             />
           </div>
         </div>

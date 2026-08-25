@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { Sparkles, X, Scissors } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { DateInput } from '@/components/ui/DateInput';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { TagInput } from './TagInput';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
@@ -394,7 +395,19 @@ export function TransactionForm({
           <label htmlFor="date" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.date')} <span aria-label="required">*</span>
           </label>
-          <Input id="date" type="date" {...register('date')} error={errors.date?.message} required />
+          <Controller
+            name="date"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                id="date"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                error={errors.date?.message}
+              />
+            )}
+          />
         </div>
       </div>
 

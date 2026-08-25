@@ -15,6 +15,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { DateInput } from '@/components/ui/DateInput';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -218,36 +219,24 @@ export function PeriodSelector({ selectedPeriod, activeDateRange, onPeriodChange
             <div className="flex flex-col gap-3">
               {/* From */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-text-secondary font-medium">{t('dateRange.from')}</label>
-                <input
-                  type="date"
+                <label htmlFor="period-from" className="text-xs text-text-secondary font-medium">{t('dateRange.from')}</label>
+                <DateInput
+                  id="period-from"
                   value={customRange.from}
                   max={customRange.to}
-                  onChange={(e) => handleFromChange(e.target.value)}
-                  className={cn(
-                    'w-full bg-surface-elevated border border-border rounded-lg px-3 py-2',
-                    'text-sm text-text-primary',
-                    'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary',
-                    '[color-scheme:dark]',
-                  )}
+                  onChange={handleFromChange}
                 />
               </div>
 
               {/* To */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-text-secondary font-medium">{t('dateRange.to')}</label>
-                <input
-                  type="date"
+                <label htmlFor="period-to" className="text-xs text-text-secondary font-medium">{t('dateRange.to')}</label>
+                <DateInput
+                  id="period-to"
                   value={customRange.to}
                   min={customRange.from}
                   max={toISODate(new Date())}
-                  onChange={(e) => handleToChange(e.target.value)}
-                  className={cn(
-                    'w-full bg-surface-elevated border border-border rounded-lg px-3 py-2',
-                    'text-sm text-text-primary',
-                    'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary',
-                    '[color-scheme:dark]',
-                  )}
+                  onChange={handleToChange}
                 />
               </div>
             </div>

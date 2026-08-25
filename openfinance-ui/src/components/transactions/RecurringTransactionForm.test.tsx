@@ -13,6 +13,14 @@ import { RecurringTransactionForm } from '@/components/transactions/RecurringTra
 import type { Account } from '@/types/account';
 import type { Category } from '@/types/transaction';
 
+vi.mock('@/hooks/useUserSettings', async (importOriginal) => {
+  const actual = await importOriginal() as any;
+  return {
+    ...actual,
+    useUserSettings: () => ({ data: { dateFormat: 'YYYY-MM-DD' }, isLoading: false }),
+  };
+});
+
 // Mock complex child components
 vi.mock('@/components/ui/CategorySelect', () => ({
   CategorySelect: ({ value, onValueChange, placeholder }: any) => (

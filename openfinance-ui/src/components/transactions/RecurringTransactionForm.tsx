@@ -12,6 +12,7 @@ import { AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { DateInput } from '@/components/ui/DateInput';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
@@ -382,19 +383,37 @@ export function RecurringTransactionForm({
           <label htmlFor="nextOccurrence" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.nextOccurrence')} *
           </label>
-          <Input id="nextOccurrence" type="date" {...register('nextOccurrence')} error={errors.nextOccurrence?.message} />
+          <Controller
+            name="nextOccurrence"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                id="nextOccurrence"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                error={errors.nextOccurrence?.message}
+              />
+            )}
+          />
         </div>
 
         <div>
           <label htmlFor="endDate" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.endDate')}
           </label>
-          <Input
-            id="endDate"
-            type="date"
-            {...register('endDate')}
-            placeholder={t('form.endDatePlaceholder')}
-            error={errors.endDate?.message}
+          <Controller
+            name="endDate"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                id="endDate"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                error={errors.endDate?.message}
+              />
+            )}
           />
         </div>
       </div>

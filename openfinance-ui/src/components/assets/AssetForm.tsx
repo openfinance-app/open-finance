@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
+import { DateInput } from '@/components/ui/DateInput';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { AccountSelector } from '@/components/ui/AccountSelector';
 import { useAuthContext } from '@/context/AuthContext';
@@ -346,12 +347,19 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
                 <label htmlFor="warrantyExpiration" className="block text-sm font-medium text-text-primary mb-1.5">
                   {t('form.warrantyExpiration')}
                 </label>
-                <Input
-                  id="warrantyExpiration"
-                  type="date"
-                  min={tomorrowStr}
-                  {...register('warrantyExpiration')}
-                  error={errors.warrantyExpiration?.message}
+                <Controller
+                  name="warrantyExpiration"
+                  control={control}
+                  render={({ field }) => (
+                    <DateInput
+                      id="warrantyExpiration"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      min={tomorrowStr}
+                      error={errors.warrantyExpiration?.message}
+                    />
+                  )}
                 />
               </div>
               <div>
@@ -465,12 +473,19 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
             <label htmlFor="purchaseDate" className="block text-sm font-medium text-text-primary mb-1.5">
               {t('form.purchaseDate')} *
             </label>
-            <Input
-              id="purchaseDate"
-              type="date"
-              max={today}
-              {...register('purchaseDate')}
-              error={errors.purchaseDate?.message}
+            <Controller
+              name="purchaseDate"
+              control={control}
+              render={({ field }) => (
+                <DateInput
+                  id="purchaseDate"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  max={today}
+                  error={errors.purchaseDate?.message}
+                />
+              )}
             />
           </div>
         </div>

@@ -8,6 +8,7 @@
 import { Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Input, Button, Badge } from '@/components/ui';
+import { DateInput } from '@/components/ui/DateInput';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
 import { CategorySelect } from '@/components/ui/CategorySelect';
@@ -321,22 +322,20 @@ export function TransactionFilters({
             <label htmlFor="dateFrom" className="block text-xs text-text-secondary mb-1">
               {t('filterKeys.from')}
             </label>
-            <Input
+            <DateInput
               id="dateFrom"
-              type="date"
               value={filters.dateFrom || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('dateFrom', e.target.value)}
+              onChange={(val) => handleChange('dateFrom', val || undefined)}
             />
           </div>
           <div>
             <label htmlFor="dateTo" className="block text-xs text-text-secondary mb-1">
               {t('filterKeys.to')}
             </label>
-            <Input
+            <DateInput
               id="dateTo"
-              type="date"
               value={filters.dateTo || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('dateTo', e.target.value)}
+              onChange={(val) => handleChange('dateTo', val || undefined)}
             />
           </div>
         </div>

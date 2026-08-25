@@ -317,7 +317,7 @@ describe('TransactionForm', () => {
       expect(screen.getByTestId('payee-selector')).toBeInTheDocument();
       expect(screen.getByTestId('category-select')).toBeInTheDocument();
       expect(screen.getByLabelText(/amount/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/date/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^Date/i)).toBeInTheDocument();
     });
 
     it('shows "Create Transaction" button for a new transaction', () => {
@@ -822,7 +822,7 @@ describe('TransactionForm', () => {
       // Fill required fields
       fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'EXPENSE' } });
       fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '25' } });
-      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+      fireEvent.change(screen.getByLabelText(/^Date/i), { target: { value: '2024-06-15' } });
 
       // Select account (triggers currency auto-set to EUR)
       await act(async () => {
@@ -900,7 +900,7 @@ describe('TransactionForm', () => {
         screen.getByTestId('account-selector').click();
       });
       fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
-      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+      fireEvent.change(screen.getByLabelText(/^Date/i), { target: { value: '2024-06-15' } });
       fireEvent.change(screen.getByTestId('currency-selector'), { target: { value: 'USD' } });
 
       await act(async () => {
@@ -929,7 +929,7 @@ describe('TransactionForm', () => {
         screen.getByTestId('account-selector').click();
       });
       fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
-      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+      fireEvent.change(screen.getByLabelText(/^Date/i), { target: { value: '2024-06-15' } });
       fireEvent.change(screen.getByTestId('currency-selector'), { target: { value: 'USD' } });
 
       // Enter split mode, then push split values through the mocked SplitTransactionForm
@@ -975,7 +975,7 @@ describe('TransactionForm', () => {
         screen.getByTestId('account-selector').click();
       });
       fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
-      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+      fireEvent.change(screen.getByLabelText(/^Date/i), { target: { value: '2024-06-15' } });
       fireEvent.change(screen.getByTestId('currency-selector'), { target: { value: 'USD' } });
 
       await act(async () => {
@@ -1011,7 +1011,7 @@ describe('TransactionForm', () => {
         screen.getByTestId('account-selector').click();
       });
       fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
-      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+      fireEvent.change(screen.getByLabelText(/^Date/i), { target: { value: '2024-06-15' } });
       fireEvent.change(screen.getByTestId('currency-selector'), { target: { value: 'USD' } });
 
       await act(async () => {
@@ -1065,7 +1065,7 @@ describe('TransactionForm', () => {
       const amountInput = screen.getByLabelText(/amount/i);
       fireEvent.change(amountInput, { target: { value: '42.50' } });
 
-      const dateInput = screen.getByLabelText(/date/i);
+      const dateInput = screen.getByLabelText(/^Date/i);
       fireEvent.change(dateInput, { target: { value: '2024-06-15' } });
 
       // Select account
@@ -1097,7 +1097,7 @@ describe('TransactionForm', () => {
       // Fill required fields
       fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'EXPENSE' } });
       fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
-      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+      fireEvent.change(screen.getByLabelText(/^Date/i), { target: { value: '2024-06-15' } });
 
       // Select account
       await act(async () => {
@@ -1144,7 +1144,7 @@ describe('TransactionForm', () => {
 
       // Fill required fields
       fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '100' } });
-      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2024-06-15' } });
+      fireEvent.change(screen.getByLabelText(/^Date/i), { target: { value: '2024-06-15' } });
       await act(async () => {
         screen.getByTestId('account-selector').click();
       });

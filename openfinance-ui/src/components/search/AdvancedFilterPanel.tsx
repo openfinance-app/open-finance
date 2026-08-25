@@ -10,6 +10,7 @@ import { ChevronDown, ChevronUp, X, Filter, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { DateInput } from '@/components/ui/DateInput';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -231,22 +232,20 @@ export function AdvancedFilterPanel({
                 <label htmlFor="dateFrom" className="block text-xs text-text-secondary mb-1.5">
                   {t('navigation:search.filters.from')}
                 </label>
-                <Input
+                <DateInput
                   id="dateFrom"
-                  type="date"
                   value={filters.dateFrom || ''}
-                  onChange={(e) => updateFilter('dateFrom', e.target.value || undefined)}
+                  onChange={(val) => updateFilter('dateFrom', val || undefined)}
                 />
               </div>
               <div>
                 <label htmlFor="dateTo" className="block text-xs text-text-secondary mb-1.5">
                   {t('navigation:search.filters.to')}
                 </label>
-                <Input
+                <DateInput
                   id="dateTo"
-                  type="date"
                   value={filters.dateTo || ''}
-                  onChange={(e) => updateFilter('dateTo', e.target.value || undefined)}
+                  onChange={(val) => updateFilter('dateTo', val || undefined)}
                 />
               </div>
             </div>

@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { DateInput } from '@/components/ui/DateInput';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { useAuthContext } from '@/context/AuthContext';
@@ -233,22 +234,36 @@ export function BudgetForm({ budget, onSubmit, onCancel, isLoading, serverError 
           <label htmlFor="startDate" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.startDate')} *
           </label>
-          <Input
-            id="startDate"
-            type="date"
-            {...register('startDate')}
-            error={errors.startDate?.message}
+          <Controller
+            name="startDate"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                id="startDate"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                error={errors.startDate?.message}
+              />
+            )}
           />
         </div>
         <div>
           <label htmlFor="endDate" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.endDate')} *
           </label>
-          <Input
-            id="endDate"
-            type="date"
-            {...register('endDate')}
-            error={errors.endDate?.message}
+          <Controller
+            name="endDate"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                id="endDate"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                error={errors.endDate?.message}
+              />
+            )}
           />
         </div>
       </div>

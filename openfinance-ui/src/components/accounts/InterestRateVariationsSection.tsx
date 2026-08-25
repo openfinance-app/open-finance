@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { format, differenceInDays } from 'date-fns';
 import { Plus, Trash2, TrendingUp } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { DateInput } from '@/components/ui/DateInput';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
 import {
@@ -79,6 +80,7 @@ export function InterestRateVariationsSection({ accountId, accountBalance = 0, a
     const {
         register,
         handleSubmit,
+        control,
         reset,
         formState: { errors },
     } = useForm<VariationFormData>({
@@ -275,11 +277,18 @@ export function InterestRateVariationsSection({ accountId, accountBalance = 0, a
                             <label htmlFor="validFrom" className="block text-sm font-medium text-text-primary mb-1.5">
                                 {t('interest.addDialog.effectiveDate')} *
                             </label>
-                            <Input
-                                id="validFrom"
-                                type="date"
-                                {...register('validFrom')}
-                                error={errors.validFrom?.message}
+                            <Controller
+                                name="validFrom"
+                                control={control}
+                                render={({ field }) => (
+                                    <DateInput
+                                        id="validFrom"
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        onBlur={field.onBlur}
+                                        error={errors.validFrom?.message}
+                                    />
+                                )}
                             />
                         </div>
 

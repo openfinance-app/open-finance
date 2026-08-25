@@ -13,6 +13,8 @@ interface DateInputProps {
   onBlur?: () => void;
   /** Maximum selectable ISO date; future values beyond it are rejected. */
   max?: string;
+  /** Minimum selectable ISO date; values before it are rejected. */
+  min?: string;
   error?: string;
   className?: string;
   disabled?: boolean;
@@ -29,6 +31,7 @@ export function DateInput({
   onChange,
   onBlur,
   max,
+  min,
   error,
   className,
   disabled,
@@ -46,7 +49,11 @@ export function DateInput({
 
   const commit = (text: string) => {
     const iso = parseDisplayDate(text, dateFormat);
-    if (iso && (!max || iso <= max)) {
+    if (
+      iso &&
+      (!max || iso <= max) &&
+      (!min || iso >= min)
+    ) {
       onChange(iso);
     } else if (text.trim() === '') {
       onChange('');
@@ -106,6 +113,7 @@ export function DateInput({
         type="date"
         tabIndex={-1}
         aria-hidden="true"
+        min={min}
         max={max}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
