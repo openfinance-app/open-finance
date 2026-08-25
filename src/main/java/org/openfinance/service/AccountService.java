@@ -111,7 +111,13 @@ public class AccountService {
                         },
                         key = "#userId"),
                 @CacheEvict(
-                        value = {"cashFlow", "spendingByCategory", "cashflowSankey"},
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
                         allEntries = true)
             })
     public AccountResponse createAccount(Long userId, AccountRequest request) {
@@ -226,7 +232,13 @@ public class AccountService {
                         },
                         key = "#userId"),
                 @CacheEvict(
-                        value = {"cashFlow", "spendingByCategory", "cashflowSankey"},
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
                         allEntries = true)
             })
     public AccountResponse updateAccount(Long accountId, Long userId, AccountRequest request) {
@@ -343,7 +355,13 @@ public class AccountService {
                         },
                         key = "#userId"),
                 @CacheEvict(
-                        value = {"cashFlow", "spendingByCategory", "cashflowSankey"},
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
                         allEntries = true)
             })
     public void deleteAccount(Long accountId, Long userId) {
@@ -440,7 +458,13 @@ public class AccountService {
                         },
                         key = "#userId"),
                 @CacheEvict(
-                        value = {"cashFlow", "spendingByCategory", "cashflowSankey"},
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
                         allEntries = true)
             })
     public void closeAccount(Long accountId, Long userId) {
@@ -499,7 +523,13 @@ public class AccountService {
                         },
                         key = "#userId"),
                 @CacheEvict(
-                        value = {"cashFlow", "spendingByCategory", "cashflowSankey"},
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
                         allEntries = true)
             })
     public void reopenAccount(Long accountId, Long userId) {
@@ -563,7 +593,13 @@ public class AccountService {
                         },
                         key = "#userId"),
                 @CacheEvict(
-                        value = {"cashFlow", "spendingByCategory", "cashflowSankey"},
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
                         allEntries = true)
             })
     public void permanentDeleteAccount(Long accountId, Long userId) {
@@ -983,7 +1019,13 @@ public class AccountService {
                         },
                         key = "#userId"),
                 @CacheEvict(
-                        value = {"cashFlow", "spendingByCategory", "cashflowSankey"},
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
                         allEntries = true)
             })
     public AccountResponse recalculateBalance(Long accountId, Long userId) {

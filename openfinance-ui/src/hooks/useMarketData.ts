@@ -84,6 +84,8 @@ export function useUpdateAssetPrice() {
     onSuccess: () => {
       // Invalidate assets query to refetch with updated prices
       queryClient.invalidateQueries({ queryKey: ['assets'] });
+      // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -105,6 +107,8 @@ export function useUpdateAllAssetPrices() {
     onSuccess: () => {
       // Invalidate assets query to refetch with updated prices
       queryClient.invalidateQueries({ queryKey: ['assets'] });
+      // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

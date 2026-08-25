@@ -114,6 +114,8 @@ export function useCreateAsset() {
     onSuccess: () => {
       // Invalidate assets query to refetch the list
       queryClient.invalidateQueries({ queryKey: ['assets'] });
+      // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -135,6 +137,8 @@ export function useUpdateAsset() {
       // Invalidate both list and individual asset queries
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       queryClient.invalidateQueries({ queryKey: ['assets', variables.id] });
+      // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -154,6 +158,8 @@ export function useDeleteAsset() {
     onSuccess: () => {
       // Invalidate assets query to refetch the list
       queryClient.invalidateQueries({ queryKey: ['assets'] });
+      // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

@@ -31,6 +31,8 @@ import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -113,6 +115,15 @@ public class LiabilityService {
      * @return the created liability with decrypted data and calculated fields
      * @throws IllegalArgumentException if userId, request, or encryptionKey is null
      */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {"dashboardSummary", "netWorthSummary", "networthAllocation"},
+                        key = "#userId"),
+                @CacheEvict(
+                        value = {"portfolioPerformance", "borrowingCapacity"},
+                        allEntries = true)
+            })
     public LiabilityResponse createLiability(Long userId, LiabilityRequest request) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -235,6 +246,15 @@ public class LiabilityService {
      * @throws ResourceNotFoundException if liability not found or doesn't belong to user
      * @throws IllegalArgumentException if any parameter is null
      */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {"dashboardSummary", "netWorthSummary", "networthAllocation"},
+                        key = "#userId"),
+                @CacheEvict(
+                        value = {"portfolioPerformance", "borrowingCapacity"},
+                        allEntries = true)
+            })
     public LiabilityResponse updateLiability(
             Long liabilityId, Long userId, LiabilityRequest request) {
         if (liabilityId == null) {
@@ -365,6 +385,15 @@ public class LiabilityService {
      * @throws ResourceNotFoundException if liability not found or doesn't belong to user
      * @throws IllegalArgumentException if liabilityId or userId is null
      */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {"dashboardSummary", "netWorthSummary", "networthAllocation"},
+                        key = "#userId"),
+                @CacheEvict(
+                        value = {"portfolioPerformance", "borrowingCapacity"},
+                        allEntries = true)
+            })
     public void deleteLiability(Long liabilityId, Long userId) {
         if (liabilityId == null) {
             throw new IllegalArgumentException("Liability ID cannot be null");

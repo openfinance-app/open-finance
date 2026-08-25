@@ -31,6 +31,8 @@ import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.specification.AssetSpecification;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -108,6 +110,18 @@ public class AssetService {
      * @throws AccountNotFoundException if accountId is provided but account not found or doesn't
      *     belong to user
      */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {
+                            "dashboardSummary",
+                            "netWorthSummary",
+                            "assetAllocation",
+                            "networthAllocation"
+                        },
+                        key = "#userId"),
+                @CacheEvict(value = "portfolioPerformance", allEntries = true)
+            })
     public AssetResponse createAsset(Long userId, AssetRequest request) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -202,6 +216,18 @@ public class AssetService {
      *     belong to user
      * @throws IllegalArgumentException if any parameter is null
      */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {
+                            "dashboardSummary",
+                            "netWorthSummary",
+                            "assetAllocation",
+                            "networthAllocation"
+                        },
+                        key = "#userId"),
+                @CacheEvict(value = "portfolioPerformance", allEntries = true)
+            })
     public AssetResponse updateAsset(Long assetId, Long userId, AssetRequest request) {
         log.debug("Updating asset {}: userId={}", assetId, userId);
 
@@ -330,6 +356,18 @@ public class AssetService {
      * @throws AssetNotFoundException if asset not found or doesn't belong to user
      * @throws IllegalArgumentException if any parameter is null
      */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {
+                            "dashboardSummary",
+                            "netWorthSummary",
+                            "assetAllocation",
+                            "networthAllocation"
+                        },
+                        key = "#userId"),
+                @CacheEvict(value = "portfolioPerformance", allEntries = true)
+            })
     public void deleteAsset(Long assetId, Long userId) {
         log.debug(
                 "Deleting asset {}: userId={}, keyPresent={}",
@@ -501,11 +539,11 @@ public class AssetService {
 
         boolean hasKeyword =
                 criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty();
-        boolean hasValueFilter =
-                criteria.getValueMin() != null || criteria.getValueMax() != null;
+        boolean hasValueFilter = criteria.getValueMin() != null || criteria.getValueMax() != null;
         boolean sortInMemory =
                 pageable.getSort().stream()
-                        .anyMatch(order -> IN_MEMORY_ASSET_SORT_FIELDS.contains(order.getProperty()));
+                        .anyMatch(
+                                order -> IN_MEMORY_ASSET_SORT_FIELDS.contains(order.getProperty()));
 
         if (hasKeyword || hasValueFilter || sortInMemory) {
             // Name is encrypted and total value is quantity (also encrypted) * currentPrice, so

@@ -16,6 +16,7 @@ import org.openfinance.provider.MarketDataProvider;
 import org.openfinance.repository.AssetRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -148,9 +149,21 @@ public class MarketDataService {
      * @throws MarketDataException if the API request fails (symbol invalid, service unavailable)
      */
     @Transactional
-    @CacheEvict(
-            value = "marketQuotes",
-            key = "#result ? @assetRepository.findById(#assetId).get().symbol : ''")
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = "marketQuotes",
+                        key = "#result ? @assetRepository.findById(#assetId).get().symbol : ''"),
+                @CacheEvict(
+                        value = {
+                            "dashboardSummary",
+                            "netWorthSummary",
+                            "assetAllocation",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
+                        allEntries = true)
+            })
     public boolean updateAssetPrice(Long assetId) {
         log.debug("Updating price for asset ID: {}", assetId);
 
@@ -218,6 +231,18 @@ public class MarketDataService {
      * @return the number of assets successfully updated
      */
     @Transactional
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {
+                            "dashboardSummary",
+                            "netWorthSummary",
+                            "assetAllocation",
+                            "networthAllocation"
+                        },
+                        key = "#userId"),
+                @CacheEvict(value = "portfolioPerformance", allEntries = true)
+            })
     public int updateAssetPrices(Long userId) {
         log.debug("Updating asset prices for user: {}", userId);
 

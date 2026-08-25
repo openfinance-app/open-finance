@@ -138,7 +138,13 @@ public class TransactionService {
                         value = {"dashboardSummary", "accountSummaries", "netWorthSummary"},
                         key = "#userId"),
                 @CacheEvict(
-                        value = {"cashFlow", "spendingByCategory", "cashflowSankey"},
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
                         allEntries = true),
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
             })
@@ -342,7 +348,13 @@ public class TransactionService {
                         value = {"dashboardSummary", "accountSummaries", "netWorthSummary"},
                         key = "#userId"),
                 @CacheEvict(
-                        value = {"cashFlow", "spendingByCategory", "cashflowSankey"},
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
                         allEntries = true),
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
             })
@@ -564,7 +576,13 @@ public class TransactionService {
                         value = {"dashboardSummary", "accountSummaries", "netWorthSummary"},
                         key = "#userId"),
                 @CacheEvict(
-                        value = {"cashFlow", "spendingByCategory", "cashflowSankey"},
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
                         allEntries = true),
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
             })
@@ -853,7 +871,13 @@ public class TransactionService {
                         value = {"dashboardSummary", "accountSummaries", "netWorthSummary"},
                         key = "#userId"),
                 @CacheEvict(
-                        value = {"cashFlow", "spendingByCategory", "cashflowSankey"},
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
                         allEntries = true),
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
             })
@@ -1041,7 +1065,13 @@ public class TransactionService {
                         value = {"dashboardSummary", "accountSummaries", "netWorthSummary"},
                         key = "#userId"),
                 @CacheEvict(
-                        value = {"cashFlow", "spendingByCategory", "cashflowSankey"},
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
                         allEntries = true),
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
             })

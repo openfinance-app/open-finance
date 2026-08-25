@@ -29,6 +29,8 @@ import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.specification.RealEstateSpecification;
 import org.openfinance.util.MathConstants;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -115,6 +117,13 @@ public class RealEstateService {
      * @throws LiabilityNotFoundException if mortgageId is provided but mortgage not found or
      *     doesn't belong to user
      */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {"dashboardSummary", "netWorthSummary", "networthAllocation"},
+                        key = "#userId"),
+                @CacheEvict(value = "portfolioPerformance", allEntries = true)
+            })
     public RealEstatePropertyResponse createProperty(
             Long userId, RealEstatePropertyRequest request) {
         if (userId == null) {
@@ -222,6 +231,13 @@ public class RealEstateService {
      *     doesn't belong to user
      * @throws IllegalArgumentException if any parameter is null
      */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {"dashboardSummary", "netWorthSummary", "networthAllocation"},
+                        key = "#userId"),
+                @CacheEvict(value = "portfolioPerformance", allEntries = true)
+            })
     public RealEstatePropertyResponse updateProperty(
             Long propertyId, Long userId, RealEstatePropertyRequest request) {
         if (propertyId == null) {
@@ -347,6 +363,13 @@ public class RealEstateService {
      * @throws RealEstatePropertyNotFoundException if property not found or doesn't belong to user
      * @throws IllegalArgumentException if propertyId or userId is null
      */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {"dashboardSummary", "netWorthSummary", "networthAllocation"},
+                        key = "#userId"),
+                @CacheEvict(value = "portfolioPerformance", allEntries = true)
+            })
     public void deleteProperty(Long propertyId, Long userId) {
         if (propertyId == null) {
             throw new IllegalArgumentException("Property ID cannot be null");
