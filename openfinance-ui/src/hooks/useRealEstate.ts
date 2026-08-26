@@ -325,6 +325,8 @@ export function useCreateProperty() {
       // Invalidate all property queries (list, search) to refresh data
       queryClient.invalidateQueries({ queryKey: realEstateKeys.lists() });
       queryClient.invalidateQueries({ queryKey: realEstateKeys.search() });
+      // Refresh the Assets view: each property has a linked REAL_ESTATE asset line
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
       // Also invalidate dashboard to update net worth
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
@@ -360,6 +362,8 @@ export function useUpdateProperty() {
       // Invalidate property lists and search results
       queryClient.invalidateQueries({ queryKey: realEstateKeys.lists() });
       queryClient.invalidateQueries({ queryKey: realEstateKeys.search() });
+      // Refresh the Assets view: the linked REAL_ESTATE asset line was updated too
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
       // Invalidate dashboard
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
@@ -387,6 +391,8 @@ export function useDeleteProperty() {
       // Invalidate all property queries (list, search) to refresh data
       queryClient.invalidateQueries({ queryKey: realEstateKeys.lists() });
       queryClient.invalidateQueries({ queryKey: realEstateKeys.search() });
+      // Refresh the Assets view: the linked REAL_ESTATE asset line was hard-deleted too
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
       // Invalidate dashboard
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
@@ -462,6 +468,8 @@ export function useUpdatePropertyValue() {
       // Invalidate ROI and equity calculations
       queryClient.invalidateQueries({ queryKey: realEstateKeys.equity(variables.id) });
       queryClient.invalidateQueries({ queryKey: realEstateKeys.roi(variables.id) });
+      // Refresh the Assets view: the linked REAL_ESTATE asset value was updated too
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
       // Invalidate dashboard
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },

@@ -17,6 +17,12 @@ import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { LastUpdatedIndicator } from './LastUpdatedIndicator';
 import { Button } from '@/components/ui/Button';
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/Tooltip';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
 import { cn } from '@/lib/utils';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
@@ -416,12 +422,27 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                   {t('detail.actions.delete')}
                 </Button>
               )}
-              {onEdit && (
-                <Button variant="primary" onClick={handleEdit}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  {t('detail.actions.edit')}
-                </Button>
-              )}
+              {onEdit &&
+                (asset.type === 'REAL_ESTATE' ? (
+                  <TooltipProvider>
+                    <UITooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button variant="primary" disabled>
+                            <Edit className="h-4 w-4 mr-2" />
+                            {t('detail.actions.edit')}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{t('table.realEstateEditHint')}</TooltipContent>
+                    </UITooltip>
+                  </TooltipProvider>
+                ) : (
+                  <Button variant="primary" onClick={handleEdit}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    {t('detail.actions.edit')}
+                  </Button>
+                ))}
             </div>
 
             <ConfirmationDialog

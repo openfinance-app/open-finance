@@ -61,7 +61,8 @@
     "account": "Account",
     "actions": "Actions",
     "physicalAssets": "Physical Assets",
-    "financialAssets": "Financial Assets"
+    "financialAssets": "Financial Assets",
+    "realEstateEditHint": "Edit this property from the Real Estate view"
   },
   "detail": {
     "tabs": {

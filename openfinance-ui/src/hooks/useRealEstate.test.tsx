@@ -203,6 +203,7 @@ describe('useRealEstate hooks', () => {
       });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['assets'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['dashboard'] });
     });
   });
@@ -317,6 +318,7 @@ describe('useRealEstate hooks', () => {
       });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['assets'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['dashboard'] });
     });
   });

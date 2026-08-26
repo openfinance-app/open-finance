@@ -12,6 +12,12 @@ import { useTranslation } from 'react-i18next';
 import { Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/Tooltip';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { PhysicalAssetCard } from './PhysicalAssetCard';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -28,6 +34,9 @@ import type { Asset } from '@/types/asset';
 const isPhysicalAsset = (type: string): boolean => {
   return ['VEHICLE', 'JEWELRY', 'COLLECTIBLE', 'ELECTRONICS', 'FURNITURE'].includes(type);
 };
+
+// Real estate assets are managed via the Real Estate module, so they are read-only here.
+const isRealEstateAsset = (type: string): boolean => type === 'REAL_ESTATE';
 
 type SortKey = 'name' | 'type' | 'totalValue' | 'totalCost' | 'gainPercentage';
 type SortDirection = 'asc' | 'desc';
@@ -292,17 +301,40 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onEdit(asset);
-                            }}
-                            aria-label={tc('aria.editAsset')}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          {isRealEstateAsset(asset.type) ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span
+                                    className="inline-flex"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      disabled
+                                      aria-label={tc('aria.editAsset')}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>{t('table.realEstateEditHint')}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(asset);
+                              }}
+                              aria-label={tc('aria.editAsset')}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -431,18 +463,42 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
 
                   {/* Actions */}
                   <div className="flex gap-2 pt-2 border-t border-border">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit(asset);
-                      }}
-                      className="flex-1"
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      {tc('edit')}
-                    </Button>
+                    {isRealEstateAsset(asset.type) ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span
+                              className="flex-1 inline-flex"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled
+                                className="flex-1"
+                              >
+                                <Pencil className="h-4 w-4 mr-2" />
+                                {tc('edit')}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('table.realEstateEditHint')}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(asset);
+                        }}
+                        className="flex-1"
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        {tc('edit')}
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
