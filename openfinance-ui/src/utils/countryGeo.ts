@@ -48,6 +48,9 @@ const NUMERIC_TO_ALPHA2: Record<string, string> = {
     '784': 'AE', '788': 'TN', '792': 'TR', '795': 'TM', '800': 'UG', '804': 'UA',
     '807': 'MK', '818': 'EG', '826': 'GB', '834': 'TZ', '840': 'US', '854': 'BF',
     '858': 'UY', '860': 'UZ', '862': 'VE', '887': 'YE', '894': 'ZM',
+    // Small finance jurisdictions (harmless when absent from the 110m topology).
+    '020': 'AD', '048': 'BH', '344': 'HK', '438': 'LI', '470': 'MT', '480': 'MU',
+    '492': 'MC', '674': 'SM', '702': 'SG',
 };
 
 type WorldFeature = Feature<Geometry, { name: string }>;
@@ -68,13 +71,54 @@ for (const f of FEATURES) {
 
 const centroidCache = new Map<string, [number, number] | null>();
 
+/**
+ * Non-standard / legacy country codes mapped to their ISO 3166-1 alpha-2 code.
+ * "UK" is commonly used for the United Kingdom, but the ISO alpha-2 code is "GB".
+ */
+const ALPHA2_ALIASES: Record<string, string> = {
+    UK: 'GB',
+    EL: 'GR',
+};
+
+/** Normalizes a country code to ISO 3166-1 alpha-2, resolving common non-standard codes. */
+export function normalizeAlpha2(code: string): string {
+    const upper = code.toUpperCase();
+    return ALPHA2_ALIASES[upper] ?? upper;
+}
+
+/**
+ * Approximate `[longitude, latitude]` centres for finance-relevant jurisdictions the
+ * world-atlas 110m topology omits (micro-states and dependencies below its size
+ * threshold), so the Financial Map can still draw a highlight dot for them.
+ */
+const MANUAL_CENTROIDS: Record<string, [number, number]> = {
+    AD: [1.52, 42.51], // Andorra
+    BH: [50.55, 26.07], // Bahrain
+    BM: [-64.75, 32.31], // Bermuda
+    GI: [-5.35, 36.14], // Gibraltar
+    GG: [-2.58, 49.46], // Guernsey
+    HK: [114.17, 22.32], // Hong Kong
+    IM: [-4.55, 54.24], // Isle of Man
+    JE: [-2.11, 49.21], // Jersey
+    KY: [-81.25, 19.31], // Cayman Islands
+    LI: [9.55, 47.16], // Liechtenstein
+    MC: [7.42, 43.74], // Monaco
+    MT: [14.38, 35.9], // Malta
+    MU: [57.55, -20.28], // Mauritius
+    SG: [103.82, 1.35], // Singapore
+    SM: [12.46, 43.94], // San Marino
+    VG: [-64.62, 18.42], // British Virgin Islands
+};
+
 /** Returns the `[longitude, latitude]` centroid of a country, or null if unknown. */
 export function countryCentroid(alpha2: string): [number, number] | null {
-    const code = alpha2.toUpperCase();
+    const code = normalizeAlpha2(alpha2);
     const cached = centroidCache.get(code);
     if (cached !== undefined) return cached;
     const feat = featureByAlpha2.get(code);
-    const centroid = feat ? (geoCentroid(feat) as [number, number]) : null;
+    const centroid = feat
+        ? (geoCentroid(feat) as [number, number])
+        : (MANUAL_CENTROIDS[code] ?? null);
     centroidCache.set(code, centroid);
     return centroid;
 }

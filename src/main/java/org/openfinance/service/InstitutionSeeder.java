@@ -285,7 +285,7 @@ public class InstitutionSeeder implements CommandLineRunner {
                 createInstitution("DEGIRO", "FIOADEU2XXX", "DE"),
                 createInstitution("eToro", "ETOROUS", "US"),
                 createInstitution("XTB", "XTBIPLP1", "PL"),
-                createInstitution("Trading 212", "TRDNGD21", "UK"),
+                createInstitution("Trading 212", "TRDNGD21", "GB"),
                 createInstitution("Flatex", "FTKODE51", "DE"),
 
                 // Crypto exchanges
@@ -293,7 +293,7 @@ public class InstitutionSeeder implements CommandLineRunner {
                 createInstitution("Coinbase", "FINRAUS33", "US"),
                 createInstitution("Kraken", "OTHRUS", "US"),
                 createInstitution("Bitpanda", "BITPATR1", "AT"),
-                createInstitution("Crypto.com", "CRYPTOGB", "UK"));
+                createInstitution("Crypto.com", "CRYPTOGB", "GB"));
     }
 
     /**

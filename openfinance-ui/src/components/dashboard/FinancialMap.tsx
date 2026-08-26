@@ -41,6 +41,7 @@ import {
   countryFromAddress,
   countryDisplayName,
   alpha2FromNumericId,
+  normalizeAlpha2,
 } from '@/utils/countryGeo';
 
 interface FinancialMapProps {
@@ -125,7 +126,7 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
       value: number,
       kind: 'institution' | 'realEstate',
     ) => {
-      const key = code.toUpperCase();
+      const key = normalizeAlpha2(code);
       const existing =
         map.get(key) ??
         {
@@ -188,7 +189,7 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
     return {
       countries,
       maxAbs,
-      userCountry: settings?.country?.toUpperCase(),
+      userCountry: settings?.country ? normalizeAlpha2(settings.country) : undefined,
       unmappedPropertyCount,
       unmappedPropertyAmount,
     };
