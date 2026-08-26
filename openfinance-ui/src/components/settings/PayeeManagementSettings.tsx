@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/Card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
 import { CategorySelect } from '@/components/ui/CategorySelect';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -485,18 +486,18 @@ export function PayeeManagementSettings() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-primary mb-1.5">
-                {t('form.category')}
-              </label>
+              <div className="flex items-center gap-1 mb-1.5">
+                <label className="block text-sm font-medium text-text-primary">
+                  {t('form.category')}
+                </label>
+                <HelpTooltip text={t('form.categoryHelp')} />
+              </div>
               <CategorySelect
                 value={formData.categoryId}
                 onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
                 placeholder={t('form.categoryPlaceholder')}
                 allowNone={true}
               />
-              <p className="mt-1 text-xs text-text-tertiary">
-                {t('form.categoryHelp')}
-              </p>
             </div>
 
             {/* Logo Upload */}

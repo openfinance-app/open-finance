@@ -1,4 +1,7 @@
-Physical Assets, liability & Real estate features
+2-More interactions on cards, lists: goto click, hover infos
+Manual Review to define
+
+1-Physical Assets, liability & Real estate features
 
 Physical Asset:
 

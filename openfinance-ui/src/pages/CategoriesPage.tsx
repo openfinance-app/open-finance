@@ -552,12 +552,26 @@ export default function CategoriesPage() {
   const flatAllCategories = useMemo(() => flattenCategories(categories), [categories]);
   const totalCategories = flatAllCategories.length;
 
-  const totalIncome = flatAllCategories
-    .filter(c => c.type === 'INCOME')
-    .reduce((sum, c) => sum + (c.transactionCount || 0), 0);
-  const totalExpense = flatAllCategories
-    .filter(c => c.type === 'EXPENSE')
-    .reduce((sum, c) => sum + (c.transactionCount || 0), 0);
+  // transactionCount on each node is a rollup (own + all descendants), so summing
+  // the flattened list would double-count parents and children. Count each
+  // category's own direct transactions instead: rollup − children's rollup.
+  const { totalIncome, totalExpense } = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    const visit = (node: CategoryTreeNode) => {
+      const children = node.subcategories ?? [];
+      const childrenRollup = children.reduce(
+        (sum, c) => sum + (c.transactionCount || 0),
+        0,
+      );
+      const directCount = (node.transactionCount || 0) - childrenRollup;
+      if (node.type === 'INCOME') income += directCount;
+      else if (node.type === 'EXPENSE') expense += directCount;
+      children.forEach(visit);
+    };
+    categories.forEach(visit);
+    return { totalIncome: income, totalExpense: expense };
+  }, [categories]);
 
   return (
     <div className="space-y-6">

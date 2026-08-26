@@ -17,7 +17,9 @@ import { groupByDate } from '@/utils/date';
 import type { Transaction } from '@/types/transaction';
 import type { PaymentMethod } from '@/types/transaction';
 import type { Payee } from '@/types/payee';
+import type { Account } from '@/types/account';
 import { useActivePayees } from '@/hooks/usePayees';
+import { useAccounts } from '@/hooks/useAccounts';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { cn } from '@/lib/utils';
 import { SplitDetail } from './SplitDetail';
@@ -169,6 +171,28 @@ function CategoryPill({
   );
 }
 
+/**
+ * PaymentMethodPill — small muted icon + label describing how the transaction
+ * was paid.
+ */
+function PaymentMethodPill({
+  method,
+  label,
+}: {
+  method: PaymentMethod;
+  label: string;
+}) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-xs text-text-tertiary"
+      title={label}
+    >
+      {getPaymentMethodIcon(method)}
+      <span className="truncate max-w-32">{label}</span>
+    </span>
+  );
+}
+
 // Single transaction item component
 function TransactionItem({
   transaction,
@@ -179,6 +203,7 @@ function TransactionItem({
   showConnector,
   isHighlighted,
   payeesMap,
+  accountsMap,
   onViewDetail,
 }: {
   transaction: Transaction;
@@ -189,6 +214,7 @@ function TransactionItem({
   showConnector?: boolean;
   isHighlighted?: boolean;
   payeesMap: Map<string, Payee>;
+  accountsMap: Map<number, Account>;
   onViewDetail?: (t: Transaction) => void;
 }) {
   const { t } = useTranslation('common');
@@ -211,6 +237,11 @@ function TransactionItem({
 
   // Resolve payee object from the map (keyed by name)
   const payeeObj = transaction.payee ? payeesMap.get(transaction.payee) : undefined;
+
+  // Resolve the source account (for its institution logo)
+  const accountObj = transaction.accountId
+    ? accountsMap.get(transaction.accountId)
+    : undefined;
 
   // Category info — prefer full category object, fall back to denormalized backend fields
   const categoryName = transaction.category?.name || transaction.categoryName;
@@ -424,20 +455,35 @@ function TransactionItem({
             inline
           />
         </p>
-        {/* Account name shown below amount as tertiary info */}
+        {/* Account (logo + name) shown below amount as tertiary info */}
         {(transaction.account?.name || transaction.accountName) && (
-          <p className="text-xs text-text-tertiary mt-0.5 truncate max-w-[8rem]">
-            {transaction.account?.name ||
-              transaction.accountName ||
-              `Account #${transaction.accountId}`}
-          </p>
+          <div className="mt-0.5 flex items-center justify-end gap-1 text-xs text-text-tertiary">
+            {accountObj?.institution?.logo && (
+              <img
+                src={accountObj.institution.logo}
+                alt=""
+                aria-hidden="true"
+                className="h-3.5 w-3.5 rounded-full object-contain shrink-0"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            )}
+            <span className="truncate max-w-32">
+              {transaction.account?.name ||
+                transaction.accountName ||
+                `Account #${transaction.accountId}`}
+            </span>
+          </div>
         )}
-        {/* Payment method shown below the account name */}
+        {/* Payment method shown under the account name */}
         {transaction.paymentMethod && paymentMethodLabel && (
-          <span className="mt-0.5 inline-flex items-center justify-end gap-1 text-xs text-text-tertiary">
-            {getPaymentMethodIcon(transaction.paymentMethod)}
-            <span className="truncate max-w-32">{paymentMethodLabel}</span>
-          </span>
+          <div className="mt-0.5 flex justify-end">
+            <PaymentMethodPill
+              method={transaction.paymentMethod}
+              label={paymentMethodLabel}
+            />
+          </div>
         )}
       </div>
 
@@ -491,6 +537,10 @@ export function TransactionList({
 
   // Build a name → Payee lookup map for O(1) access in each row
   const payeesMap = new Map<string, Payee>(payees.map((p) => [p.name, p]));
+
+  // Fetch all accounts (incl. closed) to resolve institution logos per row
+  const { data: accounts = [] } = useAccounts('all');
+  const accountsMap = new Map<number, Account>(accounts.map((a) => [a.id, a]));
 
   // Group transactions by date
   const grouped = groupByDate(transactions, settings?.dateFormat);
@@ -554,6 +604,7 @@ export function TransactionList({
                           isTransferSource
                           isHighlighted={highlightedId === sourceTx.id}
                           payeesMap={payeesMap}
+                          accountsMap={accountsMap}
                           onViewDetail={onViewDetail}
                         />
                         <div className="mt-2">
@@ -565,6 +616,7 @@ export function TransactionList({
                             showConnector
                             isHighlighted={highlightedId === destTx.id}
                             payeesMap={payeesMap}
+                            accountsMap={accountsMap}
                             onViewDetail={onViewDetail}
                           />
                         </div>
@@ -582,6 +634,7 @@ export function TransactionList({
                     onDelete={onDelete}
                     isHighlighted={highlightedId === transaction.id}
                     payeesMap={payeesMap}
+                    accountsMap={accountsMap}
                     onViewDetail={onViewDetail}
                   />
                 );
