@@ -84,6 +84,7 @@ public class NetWorthService {
     private final ExchangeRateService exchangeRateService;
     private final TransactionRepository transactionRepository;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
+    private final NetWorthSnapshotWriter snapshotWriter;
 
     /**
      * Per-user monitors serializing the read-modify-write in {@link #saveNetWorthSnapshot} so two
@@ -434,7 +435,7 @@ public class NetWorthService {
      * @param baseCurrency the base currency for the snapshot (e.g., "USD", "EUR")
      * @return the saved net worth snapshot
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @CacheEvict(
             value = {"dashboardSummary", "netWorthSummary"},
             key = "#userId")
@@ -455,55 +456,28 @@ public class NetWorthService {
                 date,
                 baseCurrency);
 
+        // Read-heavy calculation runs outside any transaction (NOT_SUPPORTED) so the connection
+        // that performs the write below never holds a WAL read-snapshot from these SELECTs, which
+        // is what SQLite reports as SQLITE_BUSY_SNAPSHOT under concurrent writers.
         BigDecimal totalAssets = calculateTotalAssets(userId, baseCurrency);
         BigDecimal totalLiabilities = calculateTotalLiabilities(userId, baseCurrency);
         BigDecimal netWorth = totalAssets.subtract(totalLiabilities);
+        Long currencyId = resolveCurrencyId(baseCurrency);
 
         // Serialize the check-then-write per user so concurrent callers cannot both INSERT for the
-        // same (user_id, snapshot_date) and trip the unique index.
+        // same (user_id, snapshot_date) and trip the unique index. The critical section spans the
+        // writer's own transaction (committed at the proxy boundary), so the winning INSERT is
+        // visible before the next caller reads.
         Object userLock = snapshotLocks.computeIfAbsent(userId, k -> new Object());
         synchronized (userLock) {
-            // Check if snapshot already exists for this date
-            Optional<NetWorth> existingSnapshot =
-                    netWorthRepository.findByUserIdAndSnapshotDate(userId, date);
-
-            Long currencyId = resolveCurrencyId(baseCurrency);
-
-            NetWorth snapshot;
-            if (existingSnapshot.isPresent()) {
-                // Update existing snapshot
-                snapshot = existingSnapshot.get();
-                snapshot.setTotalAssets(totalAssets);
-                snapshot.setTotalLiabilities(totalLiabilities);
-                snapshot.setNetWorth(netWorth);
-                snapshot.setCurrency(baseCurrency);
-                snapshot.setCurrencyId(currencyId);
-                log.debug("Updating existing net worth snapshot: id={}", snapshot.getId());
-            } else {
-                // Create new snapshot
-                snapshot =
-                        NetWorth.builder()
-                                .userId(userId)
-                                .snapshotDate(date)
-                                .totalAssets(totalAssets)
-                                .totalLiabilities(totalLiabilities)
-                                .netWorth(netWorth)
-                                .currency(baseCurrency)
-                                .currencyId(currencyId)
-                                .build();
-                log.debug("Creating new net worth snapshot");
-            }
-
-            NetWorth saved = netWorthRepository.save(snapshot);
-            log.info(
-                    "Net worth snapshot saved: id={}, userId={}, date={}, netWorth={} {}",
-                    saved.getId(),
+            return snapshotWriter.upsert(
                     userId,
                     date,
-                    saved.getNetWorth(),
-                    baseCurrency);
-
-            return saved;
+                    baseCurrency,
+                    totalAssets,
+                    totalLiabilities,
+                    netWorth,
+                    currencyId);
         }
     }
 

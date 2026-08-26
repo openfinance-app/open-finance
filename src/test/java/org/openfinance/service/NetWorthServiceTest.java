@@ -2,6 +2,7 @@ package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -71,6 +72,8 @@ class NetWorthServiceTest {
 
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
 
+    @Mock private NetWorthSnapshotWriter snapshotWriter;
+
     @InjectMocks private NetWorthService netWorthService;
 
     private Long testUserId;
@@ -91,6 +94,23 @@ class NetWorthServiceTest {
         when(exchangeRateService.convert(any(BigDecimal.class), any(), any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(defaultCurrencyProvider);
+
+        // The actual persistence now lives in NetWorthSnapshotWriter. By default, rebuild the
+        // returned snapshot from the pre-computed totals the service passes in, so assertions on
+        // the returned entity still reflect the real calculation flowing into the write.
+        when(snapshotWriter.upsert(any(), any(), any(), any(), any(), any(), any()))
+                .thenAnswer(
+                        inv ->
+                                NetWorth.builder()
+                                        .id(1L)
+                                        .userId(inv.getArgument(0))
+                                        .snapshotDate(inv.getArgument(1))
+                                        .currency(inv.getArgument(2))
+                                        .totalAssets(inv.getArgument(3))
+                                        .totalLiabilities(inv.getArgument(4))
+                                        .netWorth(inv.getArgument(5))
+                                        .currencyId(inv.getArgument(6))
+                                        .build());
     }
 
     // ==================== calculateNetWorth Tests ====================
@@ -267,17 +287,6 @@ class NetWorthServiceTest {
         when(netWorthRepository.findByUserIdAndSnapshotDate(testUserId, testDate))
                 .thenReturn(Optional.empty());
 
-        NetWorth savedSnapshot =
-                createNetWorth(
-                        1L,
-                        testUserId,
-                        testDate,
-                        new BigDecimal("5000.00"),
-                        BigDecimal.ZERO,
-                        new BigDecimal("5000.00"));
-
-        when(netWorthRepository.save(any(NetWorth.class))).thenReturn(savedSnapshot);
-
         // Act
         NetWorth result = netWorthService.saveNetWorthSnapshot(testUserId, testDate);
 
@@ -289,35 +298,51 @@ class NetWorthServiceTest {
         assertThat(result.getTotalLiabilities()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(result.getNetWorth()).isEqualByComparingTo(new BigDecimal("5000.00"));
 
-        verify(netWorthRepository).save(any(NetWorth.class));
+        // The computed totals must be handed to the writer for persistence.
+        verify(snapshotWriter)
+                .upsert(
+                        eq(testUserId),
+                        eq(testDate),
+                        any(),
+                        argThat(a -> a.compareTo(new BigDecimal("5000.00")) == 0),
+                        argThat(l -> l.compareTo(BigDecimal.ZERO) == 0),
+                        argThat(n -> n.compareTo(new BigDecimal("5000.00")) == 0),
+                        any());
     }
 
     @Test
     @DisplayName("Concurrent saves for the same user/date must insert exactly one snapshot")
     void concurrentSnapshotSavesShouldNotDoubleInsert() throws Exception {
         // Arrange - a stateful stand-in for the DB row guarded by the (user_id, snapshot_date)
-        // unique index. A deliberate delay inside the read widens the check-then-act window so an
-        // unsynchronized read-modify-write reliably double-inserts.
+        // unique index. A deliberate delay inside the writer widens the check-then-act window so an
+        // unsynchronized read-modify-write would reliably double-insert; the per-user lock in
+        // saveNetWorthSnapshot must prevent it.
         AtomicReference<NetWorth> storedRow = new AtomicReference<>();
         AtomicLong idSequence = new AtomicLong();
         AtomicInteger insertCount = new AtomicInteger();
 
-        when(netWorthRepository.findByUserIdAndSnapshotDate(eq(testUserId), eq(testDate)))
+        when(snapshotWriter.upsert(eq(testUserId), eq(testDate), any(), any(), any(), any(), any()))
                 .thenAnswer(
                         inv -> {
                             Thread.sleep(100);
-                            return Optional.ofNullable(storedRow.get());
-                        });
-        when(netWorthRepository.save(any(NetWorth.class)))
-                .thenAnswer(
-                        inv -> {
-                            NetWorth nw = inv.getArgument(0);
-                            if (nw.getId() == null) {
-                                nw.setId(idSequence.incrementAndGet());
-                                insertCount.incrementAndGet();
+                            NetWorth existing = storedRow.get();
+                            if (existing != null) {
+                                storedRow.set(existing);
+                                return existing;
                             }
-                            storedRow.set(nw);
-                            return nw;
+                            NetWorth created =
+                                    NetWorth.builder()
+                                            .id(idSequence.incrementAndGet())
+                                            .userId(inv.getArgument(0))
+                                            .snapshotDate(inv.getArgument(1))
+                                            .currency(inv.getArgument(2))
+                                            .totalAssets(inv.getArgument(3))
+                                            .totalLiabilities(inv.getArgument(4))
+                                            .netWorth(inv.getArgument(5))
+                                            .build();
+                            insertCount.incrementAndGet();
+                            storedRow.set(created);
+                            return created;
                         });
 
         int threadCount = 2;
@@ -365,17 +390,6 @@ class NetWorthServiceTest {
         when(netWorthRepository.findByUserIdAndSnapshotDate(testUserId, testDate))
                 .thenReturn(Optional.of(existingSnapshot));
 
-        NetWorth updatedSnapshot =
-                createNetWorth(
-                        1L,
-                        testUserId,
-                        testDate,
-                        new BigDecimal("7000.00"),
-                        BigDecimal.ZERO,
-                        new BigDecimal("7000.00"));
-
-        when(netWorthRepository.save(any(NetWorth.class))).thenReturn(updatedSnapshot);
-
         // Act
         NetWorth result = netWorthService.saveNetWorthSnapshot(testUserId, testDate);
 
@@ -384,7 +398,16 @@ class NetWorthServiceTest {
         assertThat(result.getId()).isEqualTo(1L); // Same ID (updated, not created)
         assertThat(result.getNetWorth()).isEqualByComparingTo(new BigDecimal("7000.00"));
 
-        verify(netWorthRepository).save(existingSnapshot); // Updated the existing entity
+        // Recomputed totals are handed to the writer, which owns the update.
+        verify(snapshotWriter)
+                .upsert(
+                        eq(testUserId),
+                        eq(testDate),
+                        any(),
+                        argThat(a -> a.compareTo(new BigDecimal("7000.00")) == 0),
+                        argThat(l -> l.compareTo(BigDecimal.ZERO) == 0),
+                        argThat(n -> n.compareTo(new BigDecimal("7000.00")) == 0),
+                        any());
     }
 
     @Test
@@ -399,24 +422,13 @@ class NetWorthServiceTest {
         when(netWorthRepository.findByUserIdAndSnapshotDate(eq(testUserId), any(LocalDate.class)))
                 .thenReturn(Optional.empty());
 
-        NetWorth savedSnapshot =
-                createNetWorth(
-                        1L,
-                        testUserId,
-                        today,
-                        new BigDecimal("3000.00"),
-                        BigDecimal.ZERO,
-                        new BigDecimal("3000.00"));
-
-        when(netWorthRepository.save(any(NetWorth.class))).thenReturn(savedSnapshot);
-
         // Act
         NetWorth result = netWorthService.saveNetWorthSnapshot(testUserId);
 
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getSnapshotDate()).isEqualTo(today);
-        verify(netWorthRepository).save(any(NetWorth.class));
+        verify(snapshotWriter).upsert(eq(testUserId), eq(today), any(), any(), any(), any(), any());
     }
 
     // ==================== getNetWorthHistory Tests ====================
