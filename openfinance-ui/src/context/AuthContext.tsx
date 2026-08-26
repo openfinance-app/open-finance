@@ -74,6 +74,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const parsedUser = JSON.parse(storedUser) as User;
           setToken(storedToken);
           setUser(parsedUser);
+
+          // Re-establish the session start time when restoring a persisted ("remember me")
+          // session whose sessionStorage was cleared on browser close. Without this it stays
+          // null, disabling useHasSessionHistory and permanently hiding the History nav item.
+          if (!sessionStorage.getItem(STORAGE_KEYS.SESSION_START_TIME)) {
+            const now = new Date().toISOString();
+            sessionStorage.setItem(STORAGE_KEYS.SESSION_START_TIME, now);
+            setSessionStartTime(now);
+          }
         }
       } catch (error) {
         console.error('Failed to initialize auth state:', error);
