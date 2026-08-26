@@ -92,7 +92,8 @@
       "dateRequired": "Date is required",
       "descriptionTooLong": "Description is too long",
       "notesTooLong": "Notes are too long",
-      "payeeTooLong": "Payee is too long"
+      "payeeTooLong": "Payee is too long",
+      "sameAccount": "Source and destination accounts must be different"
     },
     "types": {
       "INCOME": "Income",

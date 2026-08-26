@@ -36,6 +36,11 @@ interface AccountSelectorProps {
    * Show "None" option at the top
    */
   allowNone?: boolean;
+  /**
+   * Account id to exclude from the list (e.g. the counterpart account in a
+   * transfer, so the same account cannot be chosen for both sides).
+   */
+  excludeAccountId?: number;
 }
 
 export function AccountSelector({
@@ -46,6 +51,7 @@ export function AccountSelector({
   className,
   accountType = 'active',
   allowNone = true,
+  excludeAccountId,
 }: AccountSelectorProps) {
   const { data: accounts, isLoading, isError } = useAccounts(accountType);
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,19 +60,24 @@ export function AccountSelector({
 
   const resolvedPlaceholder = placeholder ?? t('card.searchAccounts');
 
-  // Filter accounts by search query
+  // Filter accounts by search query and excluded id
   const filteredAccounts = useMemo(() => {
     if (!accounts) return [];
 
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    if (!normalizedQuery) return accounts;
+    const withoutExcluded =
+      excludeAccountId !== undefined
+        ? accounts.filter((account) => account.id !== excludeAccountId)
+        : accounts;
 
-    return accounts.filter(
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    if (!normalizedQuery) return withoutExcluded;
+
+    return withoutExcluded.filter(
       (account) =>
         account.name.toLowerCase().includes(normalizedQuery) ||
         (account.institution?.name && account.institution.name.toLowerCase().includes(normalizedQuery))
     );
-  }, [accounts, searchQuery]);
+  }, [accounts, searchQuery, excludeAccountId]);
 
   // Group accounts by type — uses uppercase keys to match API enum values
   const groupedAccounts = useMemo(() => {

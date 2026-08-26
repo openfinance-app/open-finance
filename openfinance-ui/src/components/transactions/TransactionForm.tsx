@@ -67,6 +67,15 @@ const transactionSchema = (tValidation: (key: string) => string) => z.object({
   paymentMethod: z.enum(['CASH', 'CHEQUE', 'CREDIT_CARD', 'DEBIT_CARD', 'BANK_TRANSFER', 'DEPOSIT', 'STANDING_ORDER', 'DIRECT_DEBIT', 'ONLINE', 'OTHER']).optional(),
   // Requirement 3.1: Optional link to a liability (EXPENSE transactions only)
   liabilityId: optionalNumber,
+}).superRefine((data, ctx) => {
+  // Transfers must move funds between two different accounts.
+  if (data.type === 'TRANSFER' && data.toAccountId !== undefined && data.accountId === data.toAccountId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['toAccountId'],
+      message: tValidation('form.validation.sameAccount'),
+    });
+  }
 });
 
 type TransactionFormData = z.infer<ReturnType<typeof transactionSchema>>;
@@ -495,6 +504,7 @@ export function TransactionForm({
                 onValueChange={field.onChange}
                 placeholder={t('form.account')}
                 allowNone={false}
+                excludeAccountId={selectedType === 'TRANSFER' ? watch('toAccountId') : undefined}
               />
             )}
           />
@@ -516,6 +526,7 @@ export function TransactionForm({
                   onValueChange={field.onChange}
                   placeholder={t('form.account')}
                   allowNone={false}
+                  excludeAccountId={selectedAccountId}
                 />
               )}
             />

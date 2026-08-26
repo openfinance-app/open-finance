@@ -9,12 +9,13 @@
 import { useEffect, useState } from 'react';
 import { ROW_HIGHLIGHT_SCROLL_DELAY_MS } from '@/constants/timing';
 import { useTranslation } from 'react-i18next';
-import { Edit2, Trash2, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Calendar, Scissors, ChevronDown, ChevronUp } from 'lucide-react';
+import { Edit2, Trash2, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Calendar, Scissors, ChevronDown, ChevronUp, CreditCard, Banknote, Landmark, Repeat, Globe, FileText, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { groupByDate } from '@/utils/date';
 import type { Transaction } from '@/types/transaction';
+import type { PaymentMethod } from '@/types/transaction';
 import type { Payee } from '@/types/payee';
 import { useActivePayees } from '@/hooks/usePayees';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -53,6 +54,29 @@ const getTransactionColor = (type: Transaction['type']) => {
       return 'text-error bg-error/10';
     case 'TRANSFER':
       return 'text-primary bg-primary/10';
+  }
+};
+
+// Icon for a payment method
+const getPaymentMethodIcon = (method: PaymentMethod) => {
+  switch (method) {
+    case 'CASH':
+      return <Banknote className="h-3.5 w-3.5" />;
+    case 'CHEQUE':
+      return <FileText className="h-3.5 w-3.5" />;
+    case 'CREDIT_CARD':
+    case 'DEBIT_CARD':
+      return <CreditCard className="h-3.5 w-3.5" />;
+    case 'BANK_TRANSFER':
+    case 'DEPOSIT':
+      return <Landmark className="h-3.5 w-3.5" />;
+    case 'STANDING_ORDER':
+    case 'DIRECT_DEBIT':
+      return <Repeat className="h-3.5 w-3.5" />;
+    case 'ONLINE':
+      return <Globe className="h-3.5 w-3.5" />;
+    default:
+      return <Wallet className="h-3.5 w-3.5" />;
   }
 };
 
@@ -108,7 +132,8 @@ function PayeeAvatarWithFallback({ payee }: { payee: Payee }) {
 }
 
 /**
- * CategoryPill — renders a colored dot and category name.
+ * CategoryPill — renders a compact chip with a color-tinted background and the
+ * category icon (or a colored dot) plus the category name.
  */
 function CategoryPill({
   name,
@@ -119,16 +144,23 @@ function CategoryPill({
   color?: string;
   icon?: string;
 }) {
+  const dotColor = color || 'var(--color-primary, #6366f1)';
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-text-secondary">
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium leading-none"
+      style={{
+        backgroundColor: `color-mix(in srgb, ${dotColor} 14%, transparent)`,
+        color: dotColor,
+      }}
+    >
       {icon ? (
         <span className="text-sm leading-none" aria-hidden="true">
           {icon}
         </span>
       ) : (
         <span
-          className="inline-block h-2 w-2 rounded-full shrink-0"
-          style={{ backgroundColor: color || 'var(--color-primary, #6366f1)' }}
+          className="inline-block h-1.5 w-1.5 rounded-full shrink-0"
+          style={{ backgroundColor: dotColor }}
           aria-hidden="true"
         />
       )}
@@ -184,6 +216,15 @@ function TransactionItem({
   const categoryName = transaction.category?.name || transaction.categoryName;
   const categoryColor = transaction.category?.color || transaction.categoryColor;
   const categoryIcon = transaction.category?.icon || transaction.categoryIcon;
+
+  // The title line already shows the payee when there is no description, so only
+  // repeat it on the metadata line when a description occupies the title.
+  const showPayeeInMeta = Boolean(transaction.payee && transaction.description);
+  const paymentMethodLabel = transaction.paymentMethod
+    ? tl('form.paymentMethods.' + transaction.paymentMethod, {
+        defaultValue: transaction.paymentMethod,
+      })
+    : undefined;
 
   return (
     <div
@@ -296,14 +337,14 @@ function TransactionItem({
           )}
         </div>
 
-        {/* Secondary line: payee name • category pill  (replaces account name) */}
+        {/* Secondary line: payee name • category pill • payment method (replaces account name) */}
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-          {transaction.payee && (
+          {showPayeeInMeta && (
             <span className="text-sm text-text-secondary font-medium truncate max-w-[12rem]">
               {transaction.payee}
             </span>
           )}
-          {transaction.payee && categoryName && (
+          {showPayeeInMeta && categoryName && (
             <span className="text-text-tertiary text-xs" aria-hidden="true">
               ·
             </span>
@@ -319,7 +360,7 @@ function TransactionItem({
           {transaction.type === 'TRANSFER' &&
             (transaction.toAccount?.name || transaction.toAccountName) && (
               <>
-                {(transaction.payee || categoryName) && (
+                {(showPayeeInMeta || categoryName) && (
                   <span className="text-text-tertiary text-xs" aria-hidden="true">
                     →
                   </span>
@@ -390,6 +431,13 @@ function TransactionItem({
               transaction.accountName ||
               `Account #${transaction.accountId}`}
           </p>
+        )}
+        {/* Payment method shown below the account name */}
+        {transaction.paymentMethod && paymentMethodLabel && (
+          <span className="mt-0.5 inline-flex items-center justify-end gap-1 text-xs text-text-tertiary">
+            {getPaymentMethodIcon(transaction.paymentMethod)}
+            <span className="truncate max-w-32">{paymentMethodLabel}</span>
+          </span>
         )}
       </div>
 
