@@ -1,7 +1,9 @@
-2-More interactions on cards, lists: goto click, hover infos
+3-More interactions on cards, lists: goto click, hover infos
 Manual Review to define
 
-1-Physical Assets, liability & Real estate features
+1-Review and test History feature
+
+2-Physical Assets, liability & Real estate features
 
 Physical Asset:
 
