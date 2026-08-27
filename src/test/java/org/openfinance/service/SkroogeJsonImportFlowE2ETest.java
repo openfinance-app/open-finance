@@ -37,6 +37,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 
 /**
  * Deterministic end-to-end test for the Skrooge JSON import flow. Drives the real {@link
@@ -53,6 +54,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @Import(TestDatabaseConfig.class)
 @ActiveProfiles("test")
+@TestPropertySource(properties = "application.import.skrooge-json-enabled=true")
 @DisplayName("Skrooge JSON import flow — deterministic end-to-end")
 class SkroogeJsonImportFlowE2ETest {
 

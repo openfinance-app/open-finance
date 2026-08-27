@@ -50,6 +50,24 @@ vi.mock('@/components/ui/PayeeSelector', () => ({
       <option value="Store">Store</option>
     </select>
   ),
+  PayeeCombobox: ({
+    value,
+    onValueChange,
+    placeholder,
+    ariaLabel,
+  }: {
+    value: string;
+    onValueChange: (val: string) => void;
+    placeholder?: string;
+    ariaLabel?: string;
+  }) => (
+    <input
+      aria-label={ariaLabel || placeholder || 'Type payee...'}
+      value={value}
+      onChange={e => onValueChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
 }));
 
 vi.mock('@/components/transactions/TagInput', () => ({
