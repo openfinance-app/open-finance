@@ -222,13 +222,15 @@ public interface RecurringTransactionRepository extends JpaRepository<RecurringT
     /**
      * Find recurring transactions with optional filters.
      *
-     * <p>Supports filtering by type, frequency, and isActive. Search by description is handled in
+     * <p>Supports filtering by type, frequency, isActive, and accountId (matches either the
+     * source or destination account, to include transfers). Search by description is handled in
      * the service layer due to encryption.
      *
      * @param userId the user ID
      * @param type optional type filter
      * @param frequency optional frequency filter
      * @param isActive optional active status filter
+     * @param accountId optional account filter (matches accountId or toAccountId)
      * @return list of recurring transactions
      */
     @Query(
@@ -236,10 +238,12 @@ public interface RecurringTransactionRepository extends JpaRepository<RecurringT
                     + "AND (:type IS NULL OR r.type = :type) "
                     + "AND (:frequency IS NULL OR r.frequency = :frequency) "
                     + "AND (:isActive IS NULL OR r.isActive = :isActive) "
+                    + "AND (:accountId IS NULL OR r.accountId = :accountId OR r.toAccountId = :accountId) "
                     + "ORDER BY r.nextOccurrence ASC")
     List<RecurringTransaction> findByUserIdWithFilters(
             @Param("userId") Long userId,
             @Param("type") org.openfinance.entity.TransactionType type,
             @Param("frequency") RecurringFrequency frequency,
-            @Param("isActive") Boolean isActive);
+            @Param("isActive") Boolean isActive,
+            @Param("accountId") Long accountId);
 }

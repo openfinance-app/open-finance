@@ -244,6 +244,7 @@ public class RecurringTransactionController {
      *   <li>type (optional): Filter by transaction type (INCOME, EXPENSE, TRANSFER)
      *   <li>frequency (optional): Filter by frequency (DAILY, WEEKLY, MONTHLY, etc.)
      *   <li>isActive (optional): Filter by active status (true/false)
+     *   <li>accountId (optional): Filter by source or destination account ID
      *   <li>search (optional): Search by description
      *   <li>sort (optional): Sort field and direction (e.g., "nextOccurrence,asc" or
      *       "description,desc")
@@ -275,6 +276,7 @@ public class RecurringTransactionController {
      * @param type optional type filter
      * @param frequency optional frequency filter
      * @param isActive optional active status filter
+     * @param accountId optional account filter (matches source or destination account)
      * @param search optional search term
      * @param sort optional sort field and direction
      * @param encodedKey Base64-encoded encryption key from header
@@ -288,6 +290,7 @@ public class RecurringTransactionController {
             @RequestParam(value = "type", required = false) TransactionType type,
             @RequestParam(value = "frequency", required = false) RecurringFrequency frequency,
             @RequestParam(value = "isActive", required = false) Boolean isActive,
+            @RequestParam(value = "accountId", required = false) Long accountId,
             @RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "searchRegex", required = false, defaultValue = "false")
                     boolean searchRegex,
@@ -295,12 +298,13 @@ public class RecurringTransactionController {
             Authentication authentication) {
 
         log.info(
-                "Retrieving recurring transactions paged for user: page={}, size={}, type={}, frequency={}, isActive={}, search={}, sort={}",
+                "Retrieving recurring transactions paged for user: page={}, size={}, type={}, frequency={}, isActive={}, accountId={}, search={}, sort={}",
                 page,
                 size,
                 type,
                 frequency,
                 isActive,
+                accountId,
                 search,
                 sort);
         User user = (User) authentication.getPrincipal();
@@ -316,7 +320,7 @@ public class RecurringTransactionController {
 
         Page<RecurringTransactionResponse> recurringTransactionsPage =
                 recurringTransactionService.getRecurringTransactionsWithFilters(
-                        user.getId(), type, frequency, isActive, search, searchRegex, pageable);
+                        user.getId(), type, frequency, isActive, accountId, search, searchRegex, pageable);
 
         log.info(
                 "Retrieved recurring transactions page {} of {} (total: {}) for user",

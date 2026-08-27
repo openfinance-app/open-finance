@@ -47,7 +47,7 @@ export function useRecurringTransactions(filters?: RecurringTransactionFilters) 
  * Fetch recurring transactions with pagination and optional filters
  */
 export function useRecurringTransactionsPaged(filters: RecurringTransactionFilters = {}) {
-  const { page = 0, size = 20, type, frequency, isActive, search, searchRegex, sort = 'nextOccurrence,asc' } = filters;
+  const { page = 0, size = 20, type, frequency, isActive, accountId, search, searchRegex, sort = 'nextOccurrence,asc' } = filters;
 
   return useQuery({
     queryKey: ['recurringTransactions', 'paged', filters],
@@ -59,6 +59,7 @@ export function useRecurringTransactionsPaged(filters: RecurringTransactionFilte
       if (type) params.append('type', type);
       if (frequency) params.append('frequency', frequency);
       if (isActive !== undefined) params.append('isActive', String(isActive));
+      if (accountId) params.append('accountId', String(accountId));
       if (search) params.append('search', search);
       if (search && searchRegex) params.append('searchRegex', 'true');
 

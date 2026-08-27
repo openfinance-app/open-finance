@@ -373,7 +373,7 @@ public class RecurringTransactionService {
     /**
      * Retrieves recurring transactions with pagination and optional filters.
      *
-     * <p>Supports filtering by type, frequency, isActive, and search by description.
+     * <p>Supports filtering by type, frequency, isActive, accountId, and search by description.
      *
      * <p>Requirement REQ-2.3.6: List recurring transactions with pagination and filtering
      *
@@ -381,6 +381,7 @@ public class RecurringTransactionService {
      * @param type optional type filter
      * @param frequency optional frequency filter
      * @param isActive optional active status filter
+     * @param accountId optional account filter (matches source or destination account)
      * @param search optional search term
      * @param pageable pagination parameters
      * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
@@ -393,6 +394,7 @@ public class RecurringTransactionService {
             TransactionType type,
             RecurringFrequency frequency,
             Boolean isActive,
+            Long accountId,
             String search,
             boolean searchRegex,
             Pageable pageable) {
@@ -404,11 +406,12 @@ public class RecurringTransactionService {
             throw new IllegalArgumentException("Pageable cannot be null");
         }
         log.debug(
-                "Retrieving recurring transactions for user {} with filters: type={}, frequency={}, isActive={}, search={}, page={}, size={}",
+                "Retrieving recurring transactions for user {} with filters: type={}, frequency={}, isActive={}, accountId={}, search={}, page={}, size={}",
                 userId,
                 type,
                 frequency,
                 isActive,
+                accountId,
                 search,
                 pageable.getPageNumber(),
                 pageable.getPageSize());
@@ -416,7 +419,7 @@ public class RecurringTransactionService {
         // Fetch matching records (without search due to encryption)
         List<RecurringTransaction> allMatching =
                 recurringTransactionRepository.findByUserIdWithFilters(
-                        userId, type, frequency, isActive);
+                        userId, type, frequency, isActive, accountId);
 
         // Decrypt and filter by search term in memory (Requirement REQ-2.3.5)
         List<RecurringTransactionResponse> filteredResponses =

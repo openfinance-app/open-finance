@@ -168,6 +168,34 @@ describe('useRecurringTransactions hooks', () => {
       expect(url).toContain('frequency=MONTHLY');
       expect(url).toContain('search=rent');
     });
+
+    it('should include accountId in query when provided', async () => {
+      const pagedResponse = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 };
+      mockedApiClient.get.mockResolvedValue({ data: pagedResponse });
+
+      const { result } = renderHook(
+        () => useRecurringTransactionsPaged({ accountId: 1 }),
+        { wrapper },
+      );
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      const url = mockedApiClient.get.mock.calls[0][0] as string;
+      expect(url).toContain('accountId=1');
+    });
+
+    it('should omit accountId from query when not provided', async () => {
+      const pagedResponse = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 };
+      mockedApiClient.get.mockResolvedValue({ data: pagedResponse });
+
+      const { result } = renderHook(
+        () => useRecurringTransactionsPaged({ page: 0, size: 20 }),
+        { wrapper },
+      );
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      const url = mockedApiClient.get.mock.calls[0][0] as string;
+      expect(url).not.toContain('accountId');
+    });
   });
 
   // ── useActiveRecurringTransactions ─────────────────────────────────────────────────
