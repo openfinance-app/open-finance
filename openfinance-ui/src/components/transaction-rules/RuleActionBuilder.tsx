@@ -11,7 +11,7 @@
  * - ADD_TAG       → actionValue: tag name
  * - SET_DESCRIPTION → actionValue: description text
  * - SET_AMOUNT    → actionValue: amount (number)
- * - ADD_SPLIT     → actionValue: category, actionValue2: amount, actionValue3: description (optional)
+ * - ADD_SPLIT     → actionValue: category (via CategorySelect), actionValue2: amount, actionValue3: description (optional)
  * - SKIP_TRANSACTION → no parameters
  *
  * Requirement: REQ-TR-6.4, REQ-TR-6.5
@@ -143,14 +143,19 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
         />
       );
 
-    case 'ADD_SPLIT':
+    case 'ADD_SPLIT': {
+      // Same name<->id resolution as SET_CATEGORY — actionValue stores the category name
+      const splitCategoryId = categories.find((c) => c.name === action.actionValue)?.id;
       return (
         <div className="flex-1 flex flex-col gap-2">
-          <Input
+          <CategorySelect
+            value={splitCategoryId}
+            onValueChange={(id) => {
+              const cat = categories.find((c) => c.id === id);
+              onChange(index, { actionValue: cat?.name ?? '' });
+            }}
             placeholder={t('form.actions.placeholders.splitCategory')}
-            value={action.actionValue ?? ''}
-            onChange={(e) => onChange(index, { actionValue: e.target.value })}
-            aria-label="Split category"
+            className="w-full"
           />
           <NumberInput
             placeholder={t('form.actions.placeholders.splitAmount')}
@@ -166,6 +171,7 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
           />
         </div>
       );
+    }
 
     case 'SKIP_TRANSACTION':
       return (

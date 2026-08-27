@@ -331,7 +331,7 @@ describe('RuleActionBuilder', () => {
       />
     );
 
-    expect(screen.getByRole('textbox', { name: 'Split category' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Category name' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Split amount' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Split description' })).toBeInTheDocument();
   });
@@ -407,11 +407,11 @@ describe('RuleActionBuilder', () => {
       />
     );
 
-    const categoryInput = screen.getByRole('textbox', { name: 'Split category' });
+    const categorySelect = screen.getByRole('combobox', { name: 'Category name' });
     const amountInput = screen.getByRole('textbox', { name: 'Split amount' });
     const descriptionInput = screen.getByRole('textbox', { name: 'Split description' });
 
-    fireEvent.change(categoryInput, { target: { value: 'New Category' } });
+    fireEvent.change(categorySelect, { target: { value: '2' } });
     fireEvent.change(amountInput, { target: { value: '20.00' } });
     fireEvent.change(descriptionInput, { target: { value: 'New description' } });
 
@@ -419,7 +419,7 @@ describe('RuleActionBuilder', () => {
     expect(mockOnChange).toHaveBeenNthCalledWith(1, [
       {
         actionType: 'ADD_SPLIT',
-        actionValue: 'New Category',
+        actionValue: 'Transport',
         actionValue2: '10.00',
         actionValue3: 'Old description',
         sortOrder: 0,

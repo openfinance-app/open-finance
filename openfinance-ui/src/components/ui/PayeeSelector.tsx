@@ -379,6 +379,8 @@ export interface PayeeComboboxProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** Accessible name for the underlying input (not needed when a visible label is present) */
+  ariaLabel?: string;
 }
 
 export function PayeeCombobox({
@@ -387,6 +389,7 @@ export function PayeeCombobox({
   placeholder = 'Type payee...',
   disabled = false,
   className,
+  ariaLabel,
 }: PayeeComboboxProps) {
   const { data: payees = [] } = useActivePayees();
   const [isOpen, setIsOpen] = useState(false);
@@ -408,6 +411,7 @@ export function PayeeCombobox({
       <input
         type="text"
         value={inputValue}
+        aria-label={ariaLabel}
         onChange={e => {
           // Update local state only — don't call onValueChange on every keystroke
           // to avoid expensive re-renders in parent tables.

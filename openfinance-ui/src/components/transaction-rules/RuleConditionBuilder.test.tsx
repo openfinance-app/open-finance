@@ -6,6 +6,29 @@ import { renderWithProviders, screen, fireEvent } from '@/test/test-utils';
 import { act } from 'react';
 import { RuleConditionBuilder, type ConditionDraft } from './RuleConditionBuilder';
 
+// PayeeCombobox fetches payees via react-query; mock it with a plain input
+// so DESCRIPTION-field tests don't depend on network/query state.
+vi.mock('@/components/ui/PayeeSelector', () => ({
+  PayeeCombobox: ({
+    value,
+    onValueChange,
+    placeholder,
+    ariaLabel,
+  }: {
+    value: string;
+    onValueChange: (val: string) => void;
+    placeholder?: string;
+    ariaLabel?: string;
+  }) => (
+    <input
+      aria-label={ariaLabel}
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => onValueChange(e.target.value)}
+    />
+  ),
+}));
+
 describe('RuleConditionBuilder', () => {
   const mockOnChange = vi.fn();
 

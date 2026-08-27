@@ -11,6 +11,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { PayeeCombobox } from '@/components/ui/PayeeSelector';
 import type {
   RuleCondition,
   RuleConditionField,
@@ -160,6 +161,7 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
         const availableOperators = operatorsForField(condition.field);
         const isTypeField = condition.field === 'TRANSACTION_TYPE';
         const isAmountField = condition.field === 'AMOUNT';
+        const isDescriptionField = condition.field === 'DESCRIPTION';
 
         return (
           <div
@@ -211,6 +213,15 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
                   </option>
                 ))}
               </select>
+            ) : isDescriptionField ? (
+              <div className="flex-1">
+                <PayeeCombobox
+                  value={condition.value}
+                  onValueChange={(value) => handleValueChange(index, value)}
+                  placeholder={t('form.conditions.enterValue')}
+                  ariaLabel="Condition value"
+                />
+              </div>
             ) : (
               <Input
                 type={isAmountField ? 'number' : 'text'}
