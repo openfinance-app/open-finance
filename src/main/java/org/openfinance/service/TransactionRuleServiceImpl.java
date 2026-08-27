@@ -24,10 +24,13 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Default implementation of {@link TransactionRuleService}.
  *
- * <p>Manages CRUD for user-defined transaction rules and runs the rules engine during import via
+ * <p>
+ * Manages CRUD for user-defined transaction rules and runs the rules engine
+ * during import via
  * {@link #applyRules(List, Long)}.
  *
- * <p><strong>Requirements:</strong> REQ-TR-1 through REQ-TR-4
+ * <p>
+ * <strong>Requirements:</strong> REQ-TR-1 through REQ-TR-4
  */
 @Service
 @Transactional
@@ -74,7 +77,9 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
     /**
      * {@inheritDoc}
      *
-     * <p>The entire conditions and actions collections are replaced with the values from the
+     * <p>
+     * The entire conditions and actions collections are replaced with the values
+     * from the
      * request (orphan removal handles the old child records).
      */
     @Override
@@ -159,13 +164,16 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
     /**
      * {@inheritDoc}
      *
-     * <p>Implementation details:
+     * <p>
+     * Implementation details:
      *
      * <ol>
-     *   <li>Load all enabled rules for the user, ordered by ascending priority.
-     *   <li>For each transaction, iterate rules and evaluate all conditions (AND logic).
-     *   <li>On a match: apply actions, annotate the transaction with {@code RULE_MATCH:}, record
-     *       the index, and break (stop-on-first-match).
+     * <li>Load all enabled rules for the user, ordered by ascending priority.
+     * <li>For each transaction, iterate rules and evaluate all conditions (AND
+     * logic).
+     * <li>On a match: apply actions, annotate the transaction with
+     * {@code RULE_MATCH:}, record
+     * the index, and break (stop-on-first-match).
      * </ol>
      *
      * Requirement: REQ-TR-4.1 through REQ-TR-4.7
@@ -173,9 +181,8 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
     @Override
     @Transactional(readOnly = true)
     public Set<Integer> applyRules(List<ImportedTransaction> transactions, Long userId) {
-        List<TransactionRule> enabledRules =
-                transactionRuleRepository
-                        .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(userId);
+        List<TransactionRule> enabledRules = transactionRuleRepository
+                .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(userId);
 
         Set<Integer> matchedIndices = new HashSet<>();
 
@@ -215,8 +222,10 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
     // -----------------------------------------------------------------------
 
     /**
-     * Returns {@code true} if conditions match the transaction according to the given match mode:
-     * 'AND' (all must match) or 'OR' (any must match). An empty condition list never matches.
+     * Returns {@code true} if conditions match the transaction according to the
+     * given match mode:
+     * 'AND' (all must match) or 'OR' (any must match). An empty condition list
+     * never matches.
      * Requirement: REQ-TR-2.4
      */
     private boolean allConditionsMatch(
@@ -246,12 +255,14 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
     /**
      * Evaluates a single condition against an imported transaction.
      *
-     * <p>Field dispatch:
+     * <p>
+     * Field dispatch:
      *
      * <ul>
-     *   <li>{@code DESCRIPTION} — combined payee+memo string; string operators only
-     *   <li>{@code AMOUNT} — absolute value of amount; numeric operators
-     *   <li>{@code TRANSACTION_TYPE} — "INCOME" vs "EXPENSE" based on sign; EQUALS/NOT_EQUALS
+     * <li>{@code DESCRIPTION} — combined payee+memo string; string operators only
+     * <li>{@code AMOUNT} — absolute value of amount; numeric operators
+     * <li>{@code TRANSACTION_TYPE} — "INCOME" vs "EXPENSE" based on sign;
+     * EQUALS/NOT_EQUALS
      * </ul>
      *
      * Requirement: REQ-TR-2.1, REQ-TR-2.2
@@ -285,7 +296,8 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
     }
 
     /**
-     * Builds the combined description string (payee + memo) used for DESCRIPTION matching. Mirrors
+     * Builds the combined description string (payee + memo) used for DESCRIPTION
+     * matching. Mirrors
      * what AutoCategorizationService uses for its analysis string.
      */
     private String buildDescription(ImportedTransaction tx) {
@@ -303,7 +315,8 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
     }
 
     /**
-     * Derives the transaction type string ("INCOME" or "EXPENSE") from the amount sign.
+     * Derives the transaction type string ("INCOME" or "EXPENSE") from the amount
+     * sign.
      * Requirement: REQ-TR-2.1 (TRANSACTION_TYPE field)
      */
     private String deriveTransactionType(ImportedTransaction tx) {
@@ -334,7 +347,10 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
         };
     }
 
-    /** Evaluates a numeric operator against a BigDecimal actual value. Requirement: REQ-TR-2.2 */
+    /**
+     * Evaluates a numeric operator against a BigDecimal actual value. Requirement:
+     * REQ-TR-2.2
+     */
     private boolean evaluateNumericCondition(
             RuleConditionOperator operator, BigDecimal actual, String expectedStr) {
         BigDecimal expected;
@@ -366,8 +382,10 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
     // -----------------------------------------------------------------------
 
     /**
-     * Applies all actions in the given list to the imported transaction. Actions are processed in
-     * their natural (sortOrder-ascending) list order. Requirement: REQ-TR-3.1, REQ-TR-3.2
+     * Applies all actions in the given list to the imported transaction. Actions
+     * are processed in
+     * their natural (sortOrder-ascending) list order. Requirement: REQ-TR-3.1,
+     * REQ-TR-3.2
      */
     private void applyActions(List<TransactionRuleAction> actions, ImportedTransaction tx) {
         if (actions == null) {
@@ -378,7 +396,10 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
         }
     }
 
-    /** Applies a single action to the transaction. Requirement: REQ-TR-3.2, REQ-TR-4.7 */
+    /**
+     * Applies a single action to the transaction. Requirement: REQ-TR-3.2,
+     * REQ-TR-4.7
+     */
     private void applyAction(TransactionRuleAction action, ImportedTransaction tx) {
         switch (action.getActionType()) {
             case SET_CATEGORY -> {
@@ -398,8 +419,12 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
                     if (tx.getTags() == null) {
                         tx.setTags(new ArrayList<>());
                     }
-                    tx.getTags().add(action.getActionValue().trim());
-                    log.debug("ADD_TAG → '{}'", action.getActionValue());
+                    String tagValue = action.getActionValue().trim();
+                    boolean alreadyTagged = tx.getTags().stream().anyMatch(t -> t.equalsIgnoreCase(tagValue));
+                    if (!alreadyTagged) {
+                        tx.getTags().add(tagValue);
+                        log.debug("ADD_TAG → '{}'", tagValue);
+                    }
                 }
             }
             case SET_DESCRIPTION -> {
@@ -429,12 +454,11 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
                 if (category != null && amountStr != null) {
                     try {
                         BigDecimal splitAmount = new BigDecimal(amountStr.trim());
-                        ImportedTransaction.SplitEntry split =
-                                ImportedTransaction.SplitEntry.builder()
-                                        .category(category)
-                                        .amount(splitAmount)
-                                        .memo(description)
-                                        .build();
+                        ImportedTransaction.SplitEntry split = ImportedTransaction.SplitEntry.builder()
+                                .category(category)
+                                .amount(splitAmount)
+                                .memo(description)
+                                .build();
                         if (tx.getSplits() == null) {
                             tx.setSplits(new ArrayList<>());
                         }
@@ -462,7 +486,8 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
 
     /**
      * Loads a rule that belongs to the given user, throwing {@link
-     * TransactionRuleNotFoundException} if not found or not owned. Requirement: REQ-TR-NFR-3
+     * TransactionRuleNotFoundException} if not found or not owned. Requirement:
+     * REQ-TR-NFR-3
      */
     private TransactionRule findOwnedRule(Long id, Long userId) {
         return transactionRuleRepository
