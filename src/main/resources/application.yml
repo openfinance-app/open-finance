@@ -77,7 +77,7 @@ spring:
     livereload:
       enabled: true
 application:
-  version: 0.1.0
+  version: 0.2.6-beta
   openapi:
     server-url: http://localhost:8080
   

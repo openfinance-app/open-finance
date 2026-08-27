@@ -47,7 +47,7 @@ spring:
     mockmvc:
       print: none
 application:
-  version: 0.1.0
+  version: 0.2.6-beta
   encryption:
     enabled: true
   live-demo:
