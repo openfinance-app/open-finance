@@ -13,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,5 +36,14 @@ class ConfigControllerTest {
         mockMvc.perform(get("/api/v1/config/security"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.encryptionEnabled").value(false));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("GET /api/v1/config/import - exposes Skrooge JSON import availability")
+    void shouldExposeImportConfig() throws Exception {
+        mockMvc.perform(get("/api/v1/config/import"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.skroogeJsonEnabled").value(true));
     }
 }

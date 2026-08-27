@@ -10,10 +10,13 @@ import { FileText, AlertCircle } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ImportWizard } from '@/components/import/ImportWizard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useImportConfig, resolveSkroogeJsonEnabled } from '@/hooks/useImportConfig';
 
 export default function ImportPage() {
   const { t } = useTranslation('import');
   useDocumentTitle(t('title'));
+  const importConfig = useImportConfig();
+  const skroogeJsonEnabled = resolveSkroogeJsonEnabled(importConfig.data, importConfig.isError);
 
   return (
     <div className="min-h-screen bg-app-bg">
@@ -42,9 +45,11 @@ export default function ImportPage() {
                 <li>
                   <strong>{t('supportedFormats.csv.name')}</strong> - {t('supportedFormats.csv.description')}
                 </li>
-                <li>
-                  <strong>{t('supportedFormats.json.name')}</strong> - {t('supportedFormats.json.description')}
-                </li>
+                {skroogeJsonEnabled && (
+                  <li>
+                    <strong>{t('supportedFormats.json.name')}</strong> - {t('supportedFormats.json.description')}
+                  </li>
+                )}
               </ul>
             </div>
           </div>
@@ -63,10 +68,14 @@ export default function ImportPage() {
                   {t('howTo.intro')}
                 </p>
                 <ol className="list-decimal list-inside space-y-1 ml-2">
-                  {Array.isArray(t('howTo.steps', { returnObjects: true })) &&
-                    (t('howTo.steps', { returnObjects: true }) as string[]).map((step, i) => (
-                      <li key={i}>{step}</li>
-                    ))}
+                  {(() => {
+                    const stepsKey = skroogeJsonEnabled ? 'howTo.steps' : 'howTo.stepsNoJson';
+                    const steps = t(stepsKey, { returnObjects: true });
+                    return (
+                      Array.isArray(steps) &&
+                      (steps as string[]).map((step, i) => <li key={i}>{step}</li>)
+                    );
+                  })()}
                 </ol>
               </div>
             </div>

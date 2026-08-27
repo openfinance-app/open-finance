@@ -30,6 +30,14 @@
       "Sélectionnez QIF, OFX/QFX, CSV ou JSON Skrooge comme format d'export",
       "Choisissez la plage de dates souhaitée",
       "Téléchargez le fichier et importez-le ci-dessous"
+    ],
+    "stepsNoJson": [
+      "Connectez-vous à votre banque en ligne ou au site de votre établissement financier",
+      "Accédez à vos relevés de compte ou à l'historique de vos transactions",
+      "Recherchez les options « Télécharger » ou « Exporter »",
+      "Sélectionnez QIF, OFX/QFX ou CSV comme format d'export",
+      "Choisissez la plage de dates souhaitée",
+      "Téléchargez le fichier et importez-le ci-dessous"
     ]
   },
   "privacy": "Vos données financières sont chiffrées et stockées de manière sécurisée. Les fichiers téléversés sont temporairement conservés pour traitement et automatiquement supprimés après 24 heures.",
@@ -50,7 +58,8 @@
   "wizard": {
     "upload": {
       "title": "Téléverser le fichier",
-      "description": "Sélectionnez un fichier QIF, OFX/QFX, CSV ou JSON Skrooge à importer"
+      "description": "Sélectionnez un fichier QIF, OFX/QFX, CSV ou JSON Skrooge à importer",
+      "descriptionNoJson": "Sélectionnez un fichier QIF, OFX/QFX ou CSV à importer"
     },
     "account": {
       "title": "Sélectionner le compte",

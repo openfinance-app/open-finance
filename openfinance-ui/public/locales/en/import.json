@@ -30,6 +30,14 @@
       "Select QIF, OFX/QFX, CSV, or Skrooge JSON as the export format",
       "Choose your desired date range",
       "Download the file and upload it below"
+    ],
+    "stepsNoJson": [
+      "Log in to your online banking or financial institution website",
+      "Navigate to your account statements or transaction history",
+      "Look for \"Download\" or \"Export\" options",
+      "Select QIF, OFX/QFX, or CSV as the export format",
+      "Choose your desired date range",
+      "Download the file and upload it below"
     ]
   },
   "privacy": "Your financial data is encrypted and stored securely. Uploaded files are temporarily stored for processing and automatically deleted after 24 hours.",
@@ -50,7 +58,8 @@
   "wizard": {
     "upload": {
       "title": "Upload File",
-      "description": "Select a QIF, OFX/QFX, CSV, or Skrooge JSON file to import"
+      "description": "Select a QIF, OFX/QFX, CSV, or Skrooge JSON file to import",
+      "descriptionNoJson": "Select a QIF, OFX/QFX, or CSV file to import"
     },
     "account": {
       "title": "Select Account",

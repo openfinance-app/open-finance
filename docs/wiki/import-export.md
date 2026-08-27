@@ -20,7 +20,6 @@ Open-Finance can import transaction history from the most common bank export for
 | QFX    | `.qfx`    | Quicken variant of OFX                     |
 | QIF    | `.qif`    | Quicken Interchange Format — older format  |
 | CSV    | `.csv`    | Comma-separated values — see headers below |
-| JSON   | `.json`   | Skrooge JSON export                        |
 
 CSV files must include a header row. Supported column names: `date`, `amount`, `currency`, `payee`, `memo`, `category`, `referencenumber`, `account`, `tags`. Rows with missing `date` or `amount` are skipped.
 

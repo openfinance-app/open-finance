@@ -28,6 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openfinance.config.ImportProperties;
 import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.ImportedTransaction;
@@ -89,6 +90,8 @@ class ImportServiceMultiAccountTest {
 
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
 
+    private final ImportProperties importProperties = new ImportProperties();
+
     private ImportService importService;
     private ObjectMapper objectMapper;
 
@@ -123,6 +126,7 @@ class ImportServiceMultiAccountTest {
                         currencyRepository,
                         payeeRepository,
                         defaultCurrencyProvider,
+                        importProperties,
                         importConfirmationExecutor,
                         userSettingsRepository);
 

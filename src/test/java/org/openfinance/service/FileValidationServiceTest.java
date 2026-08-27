@@ -10,6 +10,7 @@ import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.openfinance.config.ImportProperties;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,7 +29,9 @@ class FileValidationServiceTest {
 
     @BeforeEach
     void setUp() {
-        fileValidationService = new FileValidationService(".qif,.ofx,.qfx,.csv,.json", "10MB");
+        fileValidationService =
+                new FileValidationService(
+                        ".qif,.ofx,.qfx,.csv,.json", "10MB", new ImportProperties());
     }
 
     @Test
@@ -402,7 +405,8 @@ class FileValidationServiceTest {
     void shouldParseFileSizeKb() {
         // Given & When
         FileValidationService service =
-                new FileValidationService(".qif,.ofx,.qfx,.csv,.json", "512KB");
+                new FileValidationService(
+                        ".qif,.ofx,.qfx,.csv,.json", "512KB", new ImportProperties());
 
         byte[] content = new byte[600 * 1024]; // 600KB
         MultipartFile file = new MockMultipartFile("file", "large.qif", "text/plain", content);
@@ -418,7 +422,8 @@ class FileValidationServiceTest {
     void shouldAllowFileAtExactSizeLimit() {
         // Given
         FileValidationService service =
-                new FileValidationService(".qif,.ofx,.qfx,.csv,.json", "1KB");
+                new FileValidationService(
+                        ".qif,.ofx,.qfx,.csv,.json", "1KB", new ImportProperties());
         byte[] content = new byte[1024]; // Exactly 1KB
         MultipartFile file = new MockMultipartFile("file", "exact.qif", "text/plain", content);
 
@@ -427,5 +432,26 @@ class FileValidationServiceTest {
 
         // Then
         assertTrue(result.isValid());
+    }
+
+    @Test
+    @DisplayName("Should reject Skrooge JSON file when the feature is disabled via property")
+    void shouldRejectJsonFileWhenSkroogeJsonDisabled() {
+        // Given
+        ImportProperties importProperties = new ImportProperties();
+        importProperties.setSkroogeJsonEnabled(false);
+        FileValidationService service =
+                new FileValidationService(".qif,.ofx,.qfx,.csv,.json", "10MB", importProperties);
+        String jsonContent = "{\"account\":[],\"operation\":[]}";
+        MultipartFile file =
+                new MockMultipartFile(
+                        "file", "export.json", "application/json", jsonContent.getBytes());
+
+        // When
+        FileValidationService.ValidationResult result = service.validate(file);
+
+        // Then
+        assertFalse(result.isValid());
+        assertTrue(result.getErrorMessage().contains("disabled"));
     }
 }

@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.config.ImportProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,20 +41,24 @@ public class FileValidationService {
     private final List<String> allowedExtensions;
     private final long maxFileSize;
     private final ObjectMapper objectMapper;
+    private final ImportProperties importProperties;
 
     /**
      * Constructor to initialize file validation service.
      *
      * @param allowedExtensions Comma-separated list of allowed file extensions
      * @param maxFileSizeString Maximum file size (e.g., "10MB")
+     * @param importProperties Import feature toggles (e.g. Skrooge JSON support)
      */
     public FileValidationService(
             @Value("${application.import.allowed-extensions:.qif,.ofx,.qfx,.csv,.json}")
                     String allowedExtensions,
-            @Value("${spring.servlet.multipart.max-file-size:10MB}") String maxFileSizeString) {
+            @Value("${spring.servlet.multipart.max-file-size:10MB}") String maxFileSizeString,
+            ImportProperties importProperties) {
         this.allowedExtensions = Arrays.asList(allowedExtensions.split(","));
         this.maxFileSize = parseFileSize(maxFileSizeString);
         this.objectMapper = new ObjectMapper();
+        this.importProperties = importProperties;
         log.info(
                 "Initialized file validation with allowed extensions: {} and max size: {} bytes",
                 this.allowedExtensions,
@@ -119,6 +124,11 @@ public class FileValidationService {
                     String.format(
                             "File type '%s' not allowed. Allowed types: %s",
                             extension, String.join(", ", allowedExtensions)));
+        }
+
+        // Skrooge JSON support can be turned off via application.import.skrooge-json-enabled
+        if (".json".equalsIgnoreCase(extension) && !importProperties.isSkroogeJsonEnabled()) {
+            return ValidationResult.error("Skrooge JSON import is currently disabled");
         }
 
         // Detect file format by content

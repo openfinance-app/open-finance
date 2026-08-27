@@ -30,6 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openfinance.config.ImportProperties;
 import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.ImportedTransaction;
@@ -98,6 +99,8 @@ class ImportServiceSkroogeJsonTest {
 
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
 
+    private final ImportProperties importProperties = new ImportProperties();
+
     private ImportService importService;
     private ObjectMapper objectMapper;
 
@@ -132,6 +135,7 @@ class ImportServiceSkroogeJsonTest {
                         currencyRepository,
                         payeeRepository,
                         defaultCurrencyProvider,
+                        importProperties,
                         importConfirmationExecutor,
                         userSettingsRepository);
 
@@ -193,6 +197,34 @@ class ImportServiceSkroogeJsonTest {
         assertThat(session.getMetadata()).contains("skroogeMetadata");
         assertThat(session.getMetadata()).contains("EUR");
         verify(skroogeJsonParser).parseFile(any(InputStream.class), eq("my_export.json"));
+    }
+
+    @Test
+    @DisplayName("Should fail JSON parsing when Skrooge JSON import is disabled via property")
+    void shouldFailJsonParsingWhenSkroogeJsonDisabled() throws Exception {
+        importProperties.setSkroogeJsonEnabled(false);
+
+        ImportSession session =
+                ImportSession.builder()
+                        .id(1L)
+                        .uploadId(UPLOAD_ID)
+                        .userId(USER_ID)
+                        .fileName("my_export.json")
+                        .fileFormat("JSON")
+                        .status(ImportStatus.PENDING)
+                        .build();
+
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
+        when(fileStorageService.getFileContent(UPLOAD_ID))
+                .thenReturn(new ByteArrayInputStream("{}".getBytes()));
+        when(importSessionRepository.save(any(ImportSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        importService.parseFileAsync(1L);
+
+        assertThat(session.getStatus()).isEqualTo(ImportStatus.FAILED);
+        assertThat(session.getErrorMessage()).contains("disabled");
+        verify(skroogeJsonParser, never()).parseFile(any(InputStream.class), any());
     }
 
     @Test

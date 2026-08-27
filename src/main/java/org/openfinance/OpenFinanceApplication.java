@@ -1,6 +1,7 @@
 package org.openfinance;
 
 import org.openfinance.config.EncryptionProperties;
+import org.openfinance.config.ImportProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -26,7 +27,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableAsync
 @EnableRetry
-@EnableConfigurationProperties(EncryptionProperties.class)
+@EnableConfigurationProperties({EncryptionProperties.class, ImportProperties.class})
 public class OpenFinanceApplication {
 
     /**

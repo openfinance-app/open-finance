@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openfinance.config.ImportProperties;
 import org.openfinance.dto.ImportParseResult;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.entity.Account;
@@ -141,6 +142,8 @@ class ImportServiceTest {
 
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
 
+    private final ImportProperties importProperties = new ImportProperties();
+
     private ImportService importService;
 
     private static final Long USER_ID = 123L;
@@ -180,6 +183,7 @@ class ImportServiceTest {
                         currencyRepository,
                         payeeRepository,
                         defaultCurrencyProvider,
+                        importProperties,
                         importConfirmationExecutor,
                         userSettingsRepository);
 

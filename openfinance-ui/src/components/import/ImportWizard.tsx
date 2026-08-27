@@ -34,6 +34,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useAccounts } from '@/hooks/useAccounts';
+import { useImportConfig, resolveSkroogeJsonEnabled } from '@/hooks/useImportConfig';
 import {
   useStartImport,
   useImportSession,
@@ -57,6 +58,9 @@ import type {
 // ---------------------------------------------------------------------------
 
 const STEPS: ImportWizardStep[] = ['upload', 'account', 'review', 'confirm', 'progress'];
+
+const BASE_ACCEPTED_FORMATS = ['.qif', '.ofx', '.qfx', '.csv'];
+const SKROOGE_JSON_FORMAT = '.json';
 
 const STEP_INFO: Record<
   ImportWizardStep,
@@ -120,6 +124,11 @@ export function ImportWizard() {
 
   // ── Remote data & mutations ───────────────────────────────────────────────
   const { data: accounts = [] } = useAccounts();
+  const importConfig = useImportConfig();
+  const skroogeJsonEnabled = resolveSkroogeJsonEnabled(importConfig.data, importConfig.isError);
+  const acceptedFormats = skroogeJsonEnabled
+    ? [...BASE_ACCEPTED_FORMATS, SKROOGE_JSON_FORMAT]
+    : BASE_ACCEPTED_FORMATS;
   const startImport = useStartImport();  const { data: session, isLoading: isLoadingSession } = useImportSession(sessionId, {
     pollInterval: 2000,
   });
@@ -508,7 +517,9 @@ export function ImportWizard() {
               <span>{t(STEP_INFO[currentStep].title)}</span>
             </h2>
             <p className="text-sm text-text-secondary mt-1">
-              {t(STEP_INFO[currentStep].description)}
+              {currentStep === 'upload' && !skroogeJsonEnabled
+                ? t('wizard.upload.descriptionNoJson')
+                : t(STEP_INFO[currentStep].description)}
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={handleCancel}>
@@ -574,6 +585,7 @@ export function ImportWizard() {
           <FileUpload
             onUploadSuccess={handleUploadSuccess}
             onUploadError={(error) => console.error(error)}
+            acceptedFormats={acceptedFormats}
           />
         )}
 

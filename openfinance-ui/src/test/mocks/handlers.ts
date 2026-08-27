@@ -225,6 +225,9 @@ export const configHandlers = [
   http.get(`${API_BASE_URL}/config/security`, () => {
     return HttpResponse.json({ encryptionEnabled: true });
   }),
+  http.get(`${API_BASE_URL}/config/import`, () => {
+    return HttpResponse.json({ skroogeJsonEnabled: true });
+  }),
 ];
 
 /**
