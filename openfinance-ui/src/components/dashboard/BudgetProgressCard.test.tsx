@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import BudgetProgressCard from './BudgetProgressCard';
 import { MemoryRouter } from 'react-router';
 import { I18nextProvider } from 'react-i18next';
@@ -7,10 +8,17 @@ import i18n from '@/test/i18n-test';
 import * as AuthContextModule from '@/context/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+const mockNavigate = vi.hoisted(() => vi.fn());
+
 // Mock the hooks
 vi.mock('@/hooks/useBudgets', () => ({
   useBudgetSummary: vi.fn(),
 }));
+
+vi.mock('react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router')>();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 vi.mock('@/hooks/useFormatCurrency', () => ({
   useFormatCurrency: () => ({
@@ -120,5 +128,49 @@ describe('BudgetProgressCard Smoke Test', () => {
 
     renderWithProviders(<BudgetProgressCard />);
     expect(screen.getByRole('heading', { name: /Budget Progress/i })).toBeInTheDocument();
+  });
+});
+
+describe('BudgetProgressCard row navigation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
+    i18n.changeLanguage('en');
+
+    // Default auth mock
+    (AuthContextModule.useAuthContext as any).mockReturnValue(mockAuthValue);
+  });
+
+  it('navigates to the budget detail when a row is clicked', async () => {
+    const { useBudgetSummary } = await import('@/hooks/useBudgets');
+    (useBudgetSummary as any).mockReturnValue({
+      data: {
+        totalSpent: 500,
+        totalBudgeted: 1000,
+        averageSpentPercentage: 50,
+        totalRemaining: 500,
+        activeBudgets: 1,
+        totalBudgets: 1,
+        budgets: [
+          {
+            budgetId: 1,
+            categoryName: 'Food',
+            spent: 200,
+            budgeted: 400,
+            percentageSpent: 50,
+            status: 'ON_TRACK',
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+    });
+
+    renderWithProviders(<BudgetProgressCard />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'View budget details' }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/budget?open=1');
   });
 });

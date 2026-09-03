@@ -872,6 +872,17 @@ public class DashboardService {
                         return null;
                 };
 
+                java.util.function.Function<String, Long> resolveCategoryId = key -> {
+                        if (key != null && key.startsWith("Category_")) {
+                                try {
+                                        return Long.parseLong(key.substring("Category_".length()));
+                                } catch (NumberFormatException e) {
+                                        return null;
+                                }
+                        }
+                        return null;
+                };
+
                 java.util.function.BiFunction<String, org.openfinance.entity.Category, String> resolveName = (key,
                                 cat) -> {
                         if (cat == null)
@@ -895,6 +906,7 @@ public class DashboardService {
                                                         return CashflowSankeyDto.FlowNode.builder()
                                                                         .name(name)
                                                                         .amount(entry.getValue())
+                                                                        .categoryId(resolveCategoryId.apply(entry.getKey()))
                                                                         .color(cat != null ? cat.getColor() : null)
                                                                         .icon(cat != null ? cat.getIcon() : null)
                                                                         .build();
@@ -912,6 +924,7 @@ public class DashboardService {
                                                         return CashflowSankeyDto.FlowNode.builder()
                                                                         .name(name)
                                                                         .amount(entry.getValue())
+                                                                        .categoryId(resolveCategoryId.apply(entry.getKey()))
                                                                         .color(cat != null ? cat.getColor() : null)
                                                                         .icon(cat != null ? cat.getIcon() : null)
                                                                         .build();

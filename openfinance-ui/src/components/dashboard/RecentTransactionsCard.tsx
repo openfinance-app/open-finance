@@ -1,5 +1,6 @@
 import { ArrowUpRight, ArrowDownRight, Calendar, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import type { Transaction } from '../../types/transaction';
 import type { Payee } from '../../types/payee';
 import { formatDate } from '../../utils/date';
@@ -110,6 +111,7 @@ export default function RecentTransactionsCard({
   isLoading,
 }: RecentTransactionsCardProps) {
   const { t } = useTranslation('dashboard');
+  const navigate = useNavigate();
   const { data: settings } = useUserSettings();
   // Fetch payees to resolve logos for avatars
   const { data: payees = [] } = useActivePayees();
@@ -190,7 +192,17 @@ export default function RecentTransactionsCard({
           return (
             <div
               key={transaction.id}
-              className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-surface-elevated transition-colors"
+              role="button"
+              tabIndex={0}
+              aria-label={t('transactions.viewTransaction')}
+              onClick={() => navigate(`/transactions?highlight=${transaction.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate(`/transactions?highlight=${transaction.id}`);
+                }
+              }}
+              className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-surface-elevated transition-colors cursor-pointer"
             >
               {/* Payee avatar / type icon */}
               <MiniPayeeAvatar payee={payeeObj} type={transaction.type} />

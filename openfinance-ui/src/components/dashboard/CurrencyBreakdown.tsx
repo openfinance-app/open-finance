@@ -14,6 +14,7 @@
 import { useState } from 'react';
 import { Wallet } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useAssets } from '@/hooks/useAssets';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
@@ -166,6 +167,7 @@ function CurrencyBreakdownContent({
 }: CurrencyBreakdownContentProps) {
   const { t } = useTranslation('dashboard');
   const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+  const navigate = useNavigate();
   // Fetch exchange rates for all foreign currencies
   const balancesWithRates = currencyBalances.map((currencyBalance) => {
     const isForeignCurrency = currencyBalance.currency !== baseCurrency;
@@ -236,6 +238,7 @@ function CurrencyBreakdownContent({
             key={currencyBalance.currency}
             currencyBalance={currencyBalance}
             baseCurrency={baseCurrency}
+            onOpen={() => navigate(`/assets?currency=${encodeURIComponent(currencyBalance.currency)}`)}
           />
         ))}
       </div>
@@ -255,19 +258,25 @@ function CurrencyBreakdownContent({
 interface CurrencyBalanceRowProps {
   currencyBalance: CurrencyBalance & { isLoading?: boolean };
   baseCurrency: string;
+  onOpen: () => void;
 }
 
 /**
  * Row component for displaying a single currency balance
  */
-function CurrencyBalanceRow({ currencyBalance, baseCurrency }: CurrencyBalanceRowProps) {
+function CurrencyBalanceRow({ currencyBalance, baseCurrency, onOpen }: CurrencyBalanceRowProps) {
   const { t } = useTranslation('dashboard');
   const isForeignCurrency = currencyBalance.currency !== baseCurrency;
   const isLoading = currencyBalance.isLoading;
   const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
 
   return (
-    <div className="py-2">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full text-left py-2 rounded-lg hover:bg-surface-elevated transition-colors px-2 -mx-2"
+      aria-label={t('currencyBreakdown.viewAssets', { currency: currencyBalance.currency })}
+    >
       {/* Currency info and balance */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
@@ -340,6 +349,6 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency }: CurrencyBalanceRo
           </span>
         )}
       </div>
-    </div>
+    </button>
   );
 }

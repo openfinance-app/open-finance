@@ -30,6 +30,12 @@ vi.mock('../ui/SimpleSelect', () => ({
   ),
 }));
 
+const mockNavigate = vi.fn();
+vi.mock('react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router')>();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 const baseSummary: IEstimatedInterestSummary = {
   totalEarned: 1250.5,
   totalProjected: 3000,
@@ -113,5 +119,26 @@ describe('EstimatedInterestCard', () => {
     await user.selectOptions(select, 'LIABILITIES');
     // After filtering to liabilities, only negative projectedInterest accounts show
     expect(screen.getByText('Loan Account')).toBeInTheDocument();
+  });
+});
+
+describe('EstimatedInterestCard navigation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthentication();
+  });
+
+  it('opens account details for positive projected interest', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EstimatedInterestCard summary={baseSummary} period="MONTHLY" />);
+    await user.click(screen.getByRole('button', { name: 'View details for Savings Account' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/accounts?highlight=1');
+  });
+
+  it('opens liability details for negative projected interest', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EstimatedInterestCard summary={baseSummary} period="MONTHLY" />);
+    await user.click(screen.getByRole('button', { name: 'View details for Loan Account' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/liabilities?highlight=2');
   });
 });

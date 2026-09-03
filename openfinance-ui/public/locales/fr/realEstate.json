@@ -151,7 +151,8 @@
       "overview": "Aperçu",
       "equity": "Capitaux propres",
       "roi": "Analyse du ROI",
-      "attachments": "Pièces jointes"
+      "attachments": "Pièces jointes",
+      "gallery": "Galerie"
     },
     "propertyAgeLabel": "Âge du bien",
     "propertyAge": "{{years}} ans",
@@ -183,7 +184,11 @@
     "latitude": "Latitude",
     "longitude": "Longitude",
     "mortgageBalance": "Solde hypothécaire",
-    "totalEquity": "Capitaux propres totaux"
+    "totalEquity": "Capitaux propres totaux",
+    "gallery": {
+      "empty": "Aucune image pour le moment. Téléversez des images dans l’onglet Pièces jointes.",
+      "hint": "Gérez les images dans l’onglet Pièces jointes."
+    }
   },
   "propertySelector": {
     "selectProperty": "Sélectionner un bien existant...",

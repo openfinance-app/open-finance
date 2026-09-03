@@ -3,17 +3,24 @@
  *
  * Covers: rendering, tab switching, conditional Splits tab,
  * close button, backdrop click, Escape key, Edit button,
- * tags, notes, status badges.
+ * tags, notes, status badges, account link navigation.
  */
 import { screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { renderWithProviders } from '@/test/test-utils';
 import { TransactionDetailModal } from './TransactionDetailModal';
 import type { Transaction } from '@/types/transaction';
 
 // ─── Context mocks ────────────────────────────────────────────────────────────
+
+const mockNavigate = vi.fn();
+vi.mock('react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router')>();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 vi.mock('@/context/VisibilityContext', () => ({
   VisibilityProvider: ({ children }: { children: React.ReactNode }) => (
@@ -366,6 +373,33 @@ describe('TransactionDetailModal', () => {
       expect(onClose).toHaveBeenCalledTimes(1);
       expect(onEdit).toHaveBeenCalledTimes(1);
       expect(onEdit).toHaveBeenCalledWith(baseTransaction);
+    });
+  });
+
+  // ── Account link navigation ────────────────────────────────────────────────
+
+  describe('Account link navigation', () => {
+    it('renders the account name as a link that navigates to the account details', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+      );
+      const link = screen.getByRole('button', { name: 'Open account details' });
+      await user.click(link);
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith('/accounts?highlight=10');
+    });
+
+    it('does not navigate when accountId is missing', async () => {
+      const user = userEvent.setup();
+      const noAccount = { ...baseTransaction, accountId: undefined };
+      renderWithProviders(
+        <TransactionDetailModal transaction={noAccount} onClose={onClose} />,
+      );
+      const link = screen.getByRole('button', { name: 'Open account details' });
+      await user.click(link);
+      expect(onClose).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 });

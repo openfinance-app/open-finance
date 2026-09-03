@@ -2,6 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { PhysicalAssetCard } from '../PhysicalAssetCard';
+import { AssetCoverImage } from '../AssetCoverImage';
+
+vi.mock('../AssetCoverImage', () => ({
+  AssetCoverImage: ({ asset }: any) => (
+    <div data-testid="asset-cover">cover-{asset.id}</div>
+  ),
+}));
 
 vi.mock('@/hooks/useSecondaryConversion', () => ({
   useSecondaryConversion: () => ({
@@ -105,5 +112,12 @@ describe('PhysicalAssetCard', () => {
     renderWithProviders(<PhysicalAssetCard asset={mockAsset} />);
     // Just verify the card renders without error with warranty data
     expect(screen.getByText('MacBook Pro')).toBeInTheDocument();
+  });
+
+  it('renders the attachment-backed cover image component', () => {
+    renderWithProviders(<PhysicalAssetCard asset={mockAsset} />);
+    expect(screen.getByTestId('asset-cover')).toHaveTextContent('cover-1');
+    // The legacy static placeholder/photoPath block is replaced by AssetCoverImage
+    expect(screen.queryByText('No photo')).not.toBeInTheDocument();
   });
 });

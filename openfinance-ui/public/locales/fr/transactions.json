@@ -141,6 +141,9 @@
       "category": "Catégorie",
       "paymentMethod": "Mode de paiement",
       "currency": "Devise"
+    },
+    "aria": {
+      "viewAccount": "Ouvrir les détails du compte"
     }
   },
   "list": {
@@ -153,7 +156,9 @@
       "editTransfer": "Modifier le virement (les deux côtés seront mis à jour)",
       "editTransaction": "Modifier la transaction",
       "transferSource": "Source du virement (argent sortant)",
-      "transferDest": "Destination du virement (argent entrant)"
+      "transferDest": "Destination du virement (argent entrant)",
+      "filterByCategory": "Filtrer les transactions par {{category}}",
+      "filterByAccount": "Filtrer les transactions par {{account}}"
     }
   },
   "splitForm": {

@@ -1,6 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/test/test-utils';
+
+const mockNavigate = vi.fn();
+vi.mock('react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router')>();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 vi.mock('recharts', () => ({
   Treemap: ({ data, content, children }: any) => (
@@ -175,5 +182,57 @@ describe('AssetAllocationChart', () => {
     // Value text should be hidden when isVisible=false
     const treemap = screen.getByTestId('treemap');
     expect(treemap.querySelector('rect')).toBeTruthy();
+  });
+
+  describe('navigation', () => {
+    beforeEach(() => {
+      mockNavigate.mockClear();
+    });
+    afterEach(() => {
+      mockNavigate.mockClear();
+    });
+
+    it('navigates to filtered assets when a legend item is clicked', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AssetAllocationChart
+          allocations={[
+            {
+              type: 'STOCK',
+              typeName: 'Stocks',
+              totalValue: 5000,
+              percentage: 60,
+              assetCount: 3,
+              currency: 'EUR',
+            },
+          ]}
+          currency="EUR"
+        />
+      );
+      // aria-label uses the translated type name: assetTypes.STOCK = "Stock" (en)
+      await user.click(screen.getByRole('button', { name: /Stock/ }));
+      expect(mockNavigate).toHaveBeenCalledWith('/assets?type=STOCK');
+    });
+
+    it('navigates with encoded type param when a legend item is clicked', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AssetAllocationChart
+          allocations={[
+            {
+              type: 'MUTUAL_FUND',
+              typeName: 'Mutual Fund',
+              totalValue: 1000,
+              percentage: 100,
+              assetCount: 2,
+              currency: 'EUR',
+            },
+          ]}
+          currency="EUR"
+        />
+      );
+      await user.click(screen.getByRole('button', { name: /Mutual Fund/ }));
+      expect(mockNavigate).toHaveBeenCalledWith('/assets?type=MUTUAL_FUND');
+    });
   });
 });

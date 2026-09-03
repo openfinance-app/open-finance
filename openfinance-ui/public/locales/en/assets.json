@@ -67,9 +67,14 @@
   "detail": {
     "tabs": {
       "overview": "Overview",
-      "attachments": "Attachments"
+      "attachments": "Attachments",
+      "gallery": "Gallery"
     },
-    "metrics": {
+"gallery": {
+      "empty": "No images yet. Upload images in the Attachments tab.",
+      "hint": "Manage images in the Attachments tab."
+    },
+        "metrics": {
       "currentValue": "Current Value",
       "costBasis": "Cost Basis",
       "gainLoss": "Gain/Loss"

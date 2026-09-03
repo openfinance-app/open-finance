@@ -56,5 +56,8 @@ public class CashflowSankeyDto {
 
         /** Optional icon identifier. */
         private String icon;
+
+        /** Category id this node groups (null for the "Uncategorized" bucket). */
+        private Long categoryId;
     }
 }

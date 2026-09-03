@@ -31,6 +31,10 @@ interface TransactionListProps {
   onDelete: (transaction: Transaction) => void;
   highlightedId?: number | null;
   onViewDetail?: (transaction: Transaction) => void;
+  /** Filter the list by the clicked category (in-page — updates filter state directly) */
+  onFilterByCategory?: (categoryId: number) => void;
+  /** Filter the list by the clicked account (in-page — updates filter state directly) */
+  onFilterByAccount?: (accountId: number) => void;
   /** Controls date-group ordering: 'asc' = oldest first, 'desc' = newest first (default) */
   sortDirection?: 'asc' | 'desc';
 }
@@ -135,26 +139,26 @@ function PayeeAvatarWithFallback({ payee }: { payee: Payee }) {
 
 /**
  * CategoryPill — renders a compact chip with a color-tinted background and the
- * category icon (or a colored dot) plus the category name.
+ * category icon (or a colored dot) plus the category name. When `onClick` is
+ * provided it renders as a button (the row's closest('button') guard keeps the
+ * click from opening the detail view).
  */
 function CategoryPill({
   name,
   color,
   icon,
+  onClick,
+  ariaLabel,
 }: {
   name: string;
   color?: string;
   icon?: string;
+  onClick?: () => void;
+  ariaLabel?: string;
 }) {
   const dotColor = color || 'var(--color-primary, #6366f1)';
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium leading-none"
-      style={{
-        backgroundColor: `color-mix(in srgb, ${dotColor} 14%, transparent)`,
-        color: dotColor,
-      }}
-    >
+  const content = (
+    <>
       {icon ? (
         <span className="text-sm leading-none" aria-hidden="true">
           {icon}
@@ -167,7 +171,36 @@ function CategoryPill({
         />
       )}
       <span>{name}</span>
-    </span>
+    </>
+  );
+
+  if (!onClick) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium leading-none"
+        style={{
+          backgroundColor: `color-mix(in srgb, ${dotColor} 14%, transparent)`,
+          color: dotColor,
+        }}
+      >
+        {content}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium leading-none cursor-pointer transition-opacity hover:opacity-80"
+      style={{
+        backgroundColor: `color-mix(in srgb, ${dotColor} 14%, transparent)`,
+        color: dotColor,
+      }}
+    >
+      {content}
+    </button>
   );
 }
 
@@ -205,6 +238,8 @@ function TransactionItem({
   payeesMap,
   accountsMap,
   onViewDetail,
+  onFilterByCategory,
+  onFilterByAccount,
 }: {
   transaction: Transaction;
   onEdit: (t: Transaction) => void;
@@ -216,6 +251,8 @@ function TransactionItem({
   payeesMap: Map<string, Payee>;
   accountsMap: Map<number, Account>;
   onViewDetail?: (t: Transaction) => void;
+  onFilterByCategory?: (categoryId: number) => void;
+  onFilterByAccount?: (accountId: number) => void;
 }) {
   const { t } = useTranslation('common');
   const { t: tl } = useTranslation('transactions');
@@ -385,6 +422,16 @@ function TransactionItem({
               name={categoryName}
               color={categoryColor}
               icon={categoryIcon}
+              onClick={
+                onFilterByCategory && transaction.categoryId
+                  ? () => onFilterByCategory(transaction.categoryId!)
+                  : undefined
+              }
+              ariaLabel={
+                onFilterByCategory && transaction.categoryId
+                  ? tl('list.aria.filterByCategory', { category: categoryName })
+                  : undefined
+              }
             />
           )}
           {/* For transfers show the destination account */}
@@ -469,11 +516,29 @@ function TransactionItem({
                 }}
               />
             )}
-            <span className="truncate max-w-32">
-              {transaction.account?.name ||
-                transaction.accountName ||
-                `Account #${transaction.accountId}`}
-            </span>
+            {onFilterByAccount && transaction.accountId ? (
+              <button
+                type="button"
+                onClick={() => onFilterByAccount(transaction.accountId!)}
+                aria-label={tl('list.aria.filterByAccount', {
+                  account:
+                    transaction.account?.name ||
+                    transaction.accountName ||
+                    `Account #${transaction.accountId}`,
+                })}
+                className="truncate max-w-32 cursor-pointer hover:text-text-secondary hover:underline"
+              >
+                {transaction.account?.name ||
+                  transaction.accountName ||
+                  `Account #${transaction.accountId}`}
+              </button>
+            ) : (
+              <span className="truncate max-w-32">
+                {transaction.account?.name ||
+                  transaction.accountName ||
+                  `Account #${transaction.accountId}`}
+              </span>
+            )}
           </div>
         )}
         {/* Payment method shown under the account name */}
@@ -528,6 +593,8 @@ export function TransactionList({
   onDelete,
   highlightedId,
   onViewDetail,
+  onFilterByCategory,
+  onFilterByAccount,
   sortDirection = 'desc',
 }: TransactionListProps) {
   const { t } = useTranslation('transactions');
@@ -606,6 +673,8 @@ export function TransactionList({
                           payeesMap={payeesMap}
                           accountsMap={accountsMap}
                           onViewDetail={onViewDetail}
+                          onFilterByCategory={onFilterByCategory}
+                          onFilterByAccount={onFilterByAccount}
                         />
                         <div className="mt-2">
                           <TransactionItem
@@ -618,6 +687,8 @@ export function TransactionList({
                             payeesMap={payeesMap}
                             accountsMap={accountsMap}
                             onViewDetail={onViewDetail}
+                            onFilterByCategory={onFilterByCategory}
+                            onFilterByAccount={onFilterByAccount}
                           />
                         </div>
                       </div>
@@ -636,6 +707,8 @@ export function TransactionList({
                     payeesMap={payeesMap}
                     accountsMap={accountsMap}
                     onViewDetail={onViewDetail}
+                    onFilterByCategory={onFilterByCategory}
+                    onFilterByAccount={onFilterByAccount}
                   />
                 );
               })}

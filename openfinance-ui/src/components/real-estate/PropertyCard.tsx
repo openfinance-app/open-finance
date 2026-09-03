@@ -14,6 +14,7 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { multiply } from '@/utils/money';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { useDeleteProperty } from '@/hooks/useRealEstate';
+import { PropertyCoverImage } from './PropertyCoverImage';
 import { PropertyType, getPropertyTypeName, getPropertyTypeBadgeColor } from '@/types/realEstate';
 import { cn } from '@/lib/utils';
 import type { RealEstateProperty } from '@/types/realEstate';
@@ -141,12 +142,11 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
           </div>
         </div>
 
-        {/* Image Placeholder */}
-        <div className="mb-4 aspect-video rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-          <div className="text-primary/30 scale-150">
-            {getPropertyTypeIcon(property.propertyType)}
-          </div>
-        </div>
+        {/* Cover image */}
+        <PropertyCoverImage
+          propertyId={property.id}
+          placeholderIcon={getPropertyTypeIcon(property.propertyType)}
+        />
 
         {/* Address */}
         <p className="text-sm text-text-secondary mb-3 line-clamp-2" title={property.address}>

@@ -2,9 +2,21 @@
  * TransactionsPage Tests
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent } from '@/test/test-utils';
+import { act } from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '@/test/i18n-test';
+import {
+  renderWithProviders,
+  mockAuthentication,
+  clearAuthentication,
+  createTestQueryClient,
+  userEvent,
+} from '@/test/test-utils';
 import TransactionsPage from '@/pages/TransactionsPage';
+import type { TransactionFilters } from '@/types/transaction';
 
 const mockTransaction = {
   id: 1,
@@ -47,18 +59,16 @@ let mockPagedResponse: any = {
 };
 let mockIsLoading = false;
 let mockError: any = null;
+let lastCapturedFilters: TransactionFilters | undefined;
 const mockCreateMutateAsync = vi.fn();
 const mockCreateTransferMutateAsync = vi.fn();
 const mockUpdateMutateAsync = vi.fn();
 const mockUpdateTransferMutateAsync = vi.fn();
 const mockDeleteMutateAsync = vi.fn();
+const mockUseTransactions = vi.fn();
 
 vi.mock('@/hooks/useTransactions', () => ({
-  useTransactions: () => ({
-    data: mockPagedResponse,
-    isLoading: mockIsLoading,
-    error: mockError,
-  }),
+  useTransactions: (filters?: TransactionFilters) => mockUseTransactions(filters),
   useCreateTransaction: () => ({ mutateAsync: mockCreateMutateAsync, isPending: false }),
   useCreateTransfer: () => ({ mutateAsync: mockCreateTransferMutateAsync, isPending: false }),
   useUpdateTransaction: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
@@ -71,20 +81,26 @@ vi.mock('@/hooks/useAccounts', () => ({
   useAccounts: () => ({ data: [{ id: 1, name: 'Checking Account', currency: 'USD' }] }),
 }));
 
+let capturedListProps: any = null;
+
 vi.mock('@/components/transactions/TransactionList', () => ({
-  TransactionList: ({ transactions, onEdit, onDelete, onViewDetail }: any) => (
-    <div data-testid="transaction-list">
-      {transactions.map((tx: any) => (
-        <div key={tx.id} data-testid={`tx-${tx.id}`}>
-          <span>{tx.description}</span>
-          <span>{tx.amount}</span>
-          <button onClick={() => onEdit(tx)}>Edit</button>
-          <button onClick={() => onDelete(tx)}>Delete</button>
-          <button onClick={() => onViewDetail(tx)}>View Detail</button>
-        </div>
-      ))}
-    </div>
-  ),
+  TransactionList: (props: any) => {
+    capturedListProps = props;
+    const { transactions, onEdit, onDelete, onViewDetail } = props;
+    return (
+      <div data-testid="transaction-list">
+        {transactions.map((tx: any) => (
+          <div key={tx.id} data-testid={`tx-${tx.id}`}>
+            <span>{tx.description}</span>
+            <span>{tx.amount}</span>
+            <button onClick={() => onEdit(tx)}>Edit</button>
+            <button onClick={() => onDelete(tx)}>Delete</button>
+            <button onClick={() => onViewDetail(tx)}>View Detail</button>
+          </div>
+        ))}
+      </div>
+    );
+  },
 }));
 
 vi.mock('@/components/transactions/TransactionForm', () => ({
@@ -121,6 +137,13 @@ vi.mock('@/components/ConfirmationDialog', () => ({
     ) : null,
 }));
 
+// Default hook behavior matching the original harness: serve module-level mock state
+// and capture the filters the page queries with (used by the deep-link tests below).
+function defaultUseTransactions(filters?: TransactionFilters) {
+  lastCapturedFilters = filters;
+  return { data: mockPagedResponse, isLoading: mockIsLoading, error: mockError };
+}
+
 describe('TransactionsPage', () => {
   beforeEach(() => {
     clearAuthentication();
@@ -136,6 +159,9 @@ describe('TransactionsPage', () => {
     };
     mockIsLoading = false;
     mockError = null;
+    lastCapturedFilters = undefined;
+    mockUseTransactions.mockReset();
+    mockUseTransactions.mockImplementation(defaultUseTransactions);
   });
 
   it('renders page heading', () => {
@@ -350,5 +376,87 @@ describe('TransactionsPage', () => {
     renderWithProviders(<TransactionsPage />);
     // Pagination component should render
     expect(screen.getByTestId('transaction-list')).toBeInTheDocument();
+  });
+});
+
+// Deep-link tests need URL search params, which renderWithProviders' BrowserRouter
+// cannot seed — render with MemoryRouter + explicit providers instead.
+function renderPage(search = '') {
+  return render(
+    <QueryClientProvider client={createTestQueryClient()}>
+      <I18nextProvider i18n={i18n}>
+        <MemoryRouter initialEntries={[`/transactions${search}`]}>
+          <TransactionsPage />
+        </MemoryRouter>
+      </I18nextProvider>
+    </QueryClientProvider>
+  );
+}
+
+describe('TransactionsPage deep links', () => {
+  beforeEach(() => {
+    clearAuthentication();
+    mockAuthentication();
+    Element.prototype.scrollIntoView = vi.fn();
+    vi.clearAllMocks();
+    mockPagedResponse = {
+      content: [mockTransaction, mockTransaction2],
+      totalElements: 2,
+      totalPages: 1,
+      number: 0,
+      size: 20,
+    };
+    mockIsLoading = false;
+    mockError = null;
+    lastCapturedFilters = undefined;
+    mockUseTransactions.mockReset();
+    mockUseTransactions.mockImplementation(defaultUseTransactions);
+  });
+
+  it('seeds accountId/type/dateFrom/dateTo filters from URL params', () => {
+    renderPage('?accountId=3&type=INCOME&dateFrom=2026-08-01&dateTo=2026-08-31');
+    expect(lastCapturedFilters?.accountId).toBe(3);
+    expect(lastCapturedFilters?.type).toBe('INCOME');
+    expect(lastCapturedFilters?.dateFrom).toBe('2026-08-01');
+    expect(lastCapturedFilters?.dateTo).toBe('2026-08-31');
+  });
+
+  it('ignores invalid type param', () => {
+    renderPage('?type=NOT_A_TYPE');
+    expect(lastCapturedFilters?.type).toBeUndefined();
+  });
+
+  it('auto-opens the detail modal for ?highlight=', async () => {
+    mockPagedResponse = {
+      content: [
+        { ...mockTransaction, id: 42, date: '2026-08-02', description: 'Highlight target' },
+      ],
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 20,
+    };
+    renderPage('?highlight=42');
+    expect(await screen.findByTestId('detail-modal')).toHaveTextContent('Highlight target Detail');
+  });
+
+  it('updates filters in place when the list fires onFilterByCategory', () => {
+    renderPage('');
+    expect(capturedListProps).not.toBeNull();
+    act(() => {
+      capturedListProps.onFilterByCategory(7);
+    });
+    expect(lastCapturedFilters?.categoryId).toBe(7);
+    expect(lastCapturedFilters?.page).toBe(0);
+  });
+
+  it('updates filters in place when the list fires onFilterByAccount', () => {
+    renderPage('');
+    expect(capturedListProps).not.toBeNull();
+    act(() => {
+      capturedListProps.onFilterByAccount(3);
+    });
+    expect(lastCapturedFilters?.accountId).toBe(3);
+    expect(lastCapturedFilters?.page).toBe(0);
   });
 });

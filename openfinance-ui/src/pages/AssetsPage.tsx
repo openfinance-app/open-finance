@@ -44,17 +44,38 @@ import { sum, subtract, percentage, multiply, divide } from '@/utils/money';
 import type { Asset, AssetRequest, AssetFilters as Filters } from '@/types/asset';
 import { DEFAULT_PAGE_SIZE, FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
 
+const ASSET_TYPE_VALUES = [
+  'STOCK', 'ETF', 'CRYPTO', 'BOND', 'MUTUAL_FUND', 'REAL_ESTATE', 'COMMODITY',
+  'VEHICLE', 'JEWELRY', 'COLLECTIBLE', 'ELECTRONICS', 'FURNITURE', 'OTHER',
+] as const;
+
 
 export default function AssetsPage() {
   const { t } = useTranslation('assets');
   useDocumentTitle(t('title'));
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight') ? parseInt(searchParams.get('highlight')!) : null;
+
+  // Deep-link support: seed currency/type filters from URL params (validated)
+  const currencyParam = searchParams.get('currency');
+  const typeParam = searchParams.get('type');
+  const validType = typeParam && (ASSET_TYPE_VALUES as readonly string[]).includes(typeParam)
+    ? (typeParam as Filters['type'])
+    : undefined;
+  const validCurrency = currencyParam && /^[A-Za-z]{3,4}$/.test(currencyParam)
+    ? currencyParam.toUpperCase()
+    : undefined;
 
   const { baseCurrency } = useAuthContext();
 
-  const [filters, setFilters] = useState<Filters>({ page: 0, size: DEFAULT_PAGE_SIZE, sort: 'name,asc' });
-  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<Filters>({
+    page: 0,
+    size: DEFAULT_PAGE_SIZE,
+    sort: 'name,asc',
+    currency: validCurrency,
+    type: validType,
+  });
+  const [showFilters, setShowFilters] = useState(Boolean(validCurrency || validType));
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
@@ -70,6 +91,17 @@ export default function AssetsPage() {
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [showFilters]);
+
+  // Consume deep-link params after mount so a refresh doesn't re-impose filters
+  useEffect(() => {
+    if (searchParams.get('currency') !== null || searchParams.get('type') !== null) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('currency');
+      next.delete('type');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- consume once on mount
+  }, []);
 
   const { data: assetsPage, isLoading, error } = useAssetsSearch(filters);
   // Fetch all assets (unfiltered) for global totals in summary cards

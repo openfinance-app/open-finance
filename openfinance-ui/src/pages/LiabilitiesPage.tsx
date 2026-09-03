@@ -6,7 +6,7 @@
  * Requirement 2.1: Opens a unified LiabilityDetailDialog (Overview / Amortization / Linked Payments)
  * when the user clicks "View Details" on any liability card.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { Plus, Filter } from 'lucide-react';
@@ -36,7 +36,7 @@ import { FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
 export default function LiabilitiesPage() {
   const { t } = useTranslation('liabilities');
   useDocumentTitle(t('title'));
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight') ? parseInt(searchParams.get('highlight')!) : null;
 
   const [showFilters, setShowFilters] = useState(false);
@@ -53,6 +53,18 @@ export default function LiabilitiesPage() {
 
   // Fetch all liabilities for summary cards (unfiltered)
   const { data: allLiabilities } = useLiabilitiesPaged({ page: 0, size: FETCH_ALL_PAGE_SIZE });
+
+  // Deep link ?highlight=<id>: open the detail dialog once liabilities load
+  useEffect(() => {
+    if (!highlightId) return;
+    const liability = allLiabilities?.content?.find((l) => l.id === highlightId);
+    if (liability) {
+      setViewingDetailLiability(liability);
+      const next = new URLSearchParams(searchParams);
+      next.delete('highlight');
+      setSearchParams(next, { replace: true });
+    }
+  }, [highlightId, allLiabilities, searchParams, setSearchParams]);
 
   const liabilities = liabilitiesPage?.content || [];
   const hasLiabilities = (allLiabilities?.content?.length ?? 0) > 0;

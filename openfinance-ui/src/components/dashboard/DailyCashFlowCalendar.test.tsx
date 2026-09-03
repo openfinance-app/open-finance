@@ -18,6 +18,12 @@ vi.mock('@/components/ui/PrivateAmount', () => ({
   PrivateAmount: ({ children }: any) => <span>{children}</span>,
 }));
 
+const mockNavigate = vi.fn();
+vi.mock('react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router')>();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 vi.mock('../ui/Skeleton', () => ({
   Skeleton: () => <div data-testid="skeleton" />,
 }));
@@ -60,5 +66,23 @@ describe('DailyCashFlowCalendar', () => {
     // Click prev month
     await user.click(buttons[0]);
     expect(useDailyCashFlow).toHaveBeenCalled();
+  });
+
+  it("navigates to that day's transactions when a day cell is clicked", async () => {
+    // Reset loading state: the 'shows loading state' test's mockReturnValue
+    // persists across vi.clearAllMocks(), which only clears calls.
+    vi.mocked(useDailyCashFlow).mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    } as any);
+    const user = userEvent.setup();
+    renderWithProviders(<DailyCashFlowCalendar baseCurrency="USD" />);
+    const today = new Date();
+    const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
+      today.getDate()
+    ).padStart(2, '0')}`;
+    await user.click(screen.getByRole('button', { name: new RegExp(iso) }));
+    expect(mockNavigate).toHaveBeenCalledWith(`/transactions?dateFrom=${iso}&dateTo=${iso}`);
   });
 });

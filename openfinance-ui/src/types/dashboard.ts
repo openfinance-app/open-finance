@@ -135,6 +135,8 @@ export interface ICashflowSankeyNode {
   amount: number;
   color?: string | null;
   icon?: string | null;
+  /** Category id for this flow (null/undefined = uncategorized bucket). */
+  categoryId?: number | null;
 }
 
 /**

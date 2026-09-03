@@ -5,7 +5,7 @@
  * 
  * Main page for viewing and managing transactions with filters and pagination
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Plus, Filter } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -33,25 +33,58 @@ import {
 import { useAccounts } from '@/hooks/useAccounts';
 import type { Transaction, TransactionRequest, TransactionFilters as Filters } from '@/types/transaction';
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const VALID_TYPES = ['INCOME', 'EXPENSE', 'TRANSFER'] as const;
+
 export default function TransactionsPage() {
   const { t } = useTranslation('transactions');
   useDocumentTitle(t('title'));
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight') ? parseInt(searchParams.get('highlight')!) : null;
   const categoryId = searchParams.get('category') ? parseInt(searchParams.get('category')!) : null;
+  const categoryIdParam = searchParams.get('categoryId')
+    ? parseInt(searchParams.get('categoryId')!)
+    : null;
   const noCategoryParam = searchParams.get('noCategory') === '1';
   const noPayeeParam = searchParams.get('noPayee') === '1';
+  const accountIdParam = searchParams.get('accountId')
+    ? parseInt(searchParams.get('accountId')!)
+    : null;
+  const typeParam = searchParams.get('type');
+  const typeFilter =
+    typeParam && (VALID_TYPES as readonly string[]).includes(typeParam)
+      ? (typeParam as Filters['type'])
+      : undefined;
+  const dateFromParam = searchParams.get('dateFrom');
+  const dateToParam = searchParams.get('dateTo');
+  const dateFromFilter =
+    dateFromParam && ISO_DATE_RE.test(dateFromParam) ? dateFromParam : undefined;
+  const dateToFilter = dateToParam && ISO_DATE_RE.test(dateToParam) ? dateToParam : undefined;
 
   const [filters, setFilters] = useState<Filters>({
     page: 0,
     size: 20,
-    categoryId: categoryId || undefined,
+    categoryId: categoryId || categoryIdParam || undefined,
     noCategory: noCategoryParam || undefined,
     noPayee: noPayeeParam || undefined,
+    accountId: accountIdParam || undefined,
+    type: typeFilter,
+    dateFrom: dateFromFilter,
+    dateTo: dateToFilter,
   });
-  const [showFilters, setShowFilters] = useState(noCategoryParam || noPayeeParam);
+  const [showFilters, setShowFilters] = useState(
+    Boolean(
+      noCategoryParam ||
+      noPayeeParam ||
+      categoryIdParam ||
+      accountIdParam ||
+      typeFilter ||
+      dateFromFilter ||
+      dateToFilter
+    )
+  );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
@@ -83,6 +116,32 @@ export default function TransactionsPage() {
       setShowFilters(true);
     }
   }, [categoryId, filters.categoryId, showFilters]);
+
+  // Consume deep-link params after mount so a refresh doesn't re-impose filters
+  useEffect(() => {
+    const deepLinkKeys = ['accountId', 'type', 'dateFrom', 'dateTo', 'categoryId'];
+    if (deepLinkKeys.some(k => searchParams.get(k) !== null)) {
+      const next = new URLSearchParams(searchParams);
+      deepLinkKeys.forEach(k => next.delete(k));
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- consume once on mount
+  }, []);
+
+  // Auto-open detail modal for ?highlight=<id> once the transaction page loads
+  const highlightOpenedRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!highlightId || transactions.length === 0) return;
+    if (highlightOpenedRef.current === highlightId) return;
+    const tx = transactions.find(t => t.id === highlightId);
+    if (tx) {
+      setDetailTransaction(tx);
+      highlightOpenedRef.current = highlightId;
+      const next = new URLSearchParams(searchParams);
+      next.delete('highlight');
+      setSearchParams(next, { replace: true });
+    }
+  }, [highlightId, transactions, searchParams, setSearchParams]);
 
   const handleCreate = () => {
     setEditingTransaction(null);
@@ -258,6 +317,14 @@ export default function TransactionsPage() {
             highlightedId={highlightId}
             sortDirection={filters.sort?.endsWith(',asc') ? 'asc' : 'desc'}
             onViewDetail={(tx) => setDetailTransaction(tx)}
+            onFilterByCategory={(filterCategoryId) => {
+              setFilters((prev) => ({ ...prev, categoryId: filterCategoryId, page: 0 }));
+              setShowFilters(true);
+            }}
+            onFilterByAccount={(filterAccountId) => {
+              setFilters((prev) => ({ ...prev, accountId: filterAccountId, page: 0 }));
+              setShowFilters(true);
+            }}
           />
 
           {/* Pagination Controls */}

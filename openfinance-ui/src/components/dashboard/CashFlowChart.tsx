@@ -1,7 +1,10 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import type { ICashFlow } from '../../types/dashboard';
+import type { DateRange } from '../ui/PeriodSelector';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { buildTransactionsLink } from '@/utils/navigation';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { useVisibility } from '../../context/VisibilityContext';
@@ -10,6 +13,7 @@ interface CashFlowChartProps {
   cashFlow: ICashFlow;
   period?: number;
   currency?: string;
+  navDateRange?: DateRange;
 }
 
 // Custom tooltip
@@ -39,10 +43,14 @@ const CustomTooltip = ({ active, payload, currency }: any) => {
 export default function CashFlowChart({ 
   cashFlow, 
   period = 30,
-  currency = DEFAULT_CURRENCY 
+  currency = DEFAULT_CURRENCY,
+  navDateRange
 }: CashFlowChartProps) {
   const { t } = useTranslation('dashboard');
   const { isAmountsVisible } = useVisibility();
+  const navigate = useNavigate();
+  const navTo = (type: 'INCOME' | 'EXPENSE') =>
+    navigate(buildTransactionsLink({ type, dateRange: navDateRange }));
   // Prepare data for the chart
   const data = [
     {
@@ -108,25 +116,41 @@ export default function CashFlowChart({
               content={<CustomTooltip currency={currency} />}
               cursor={{ fill: '#374151', opacity: 0.2 }}
             />
-            <Bar dataKey="amount" radius={[8, 8, 0, 0]} maxBarSize={100} />
+            <Bar
+              dataKey="amount"
+              radius={[8, 8, 0, 0]}
+              maxBarSize={100}
+              cursor="pointer"
+              onClick={(_, index) => navTo(index === 0 ? 'INCOME' : 'EXPENSE')}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Income/Expense Breakdown */}
       <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-        <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => navTo('INCOME')}
+          className="flex items-center justify-between rounded px-2 py-1 hover:bg-surface-elevated transition-colors"
+          aria-label={t('cashFlowChart.viewIncome')}
+        >
           <span className="text-text-secondary">{t('cashFlowChart.income')}:</span>
           <span className="text-green-500 font-semibold font-mono">
             <ConvertedAmount amount={cashFlow.income} currency={currency} inline />
           </span>
-        </div>
-        <div className="flex items-center justify-between">
+        </button>
+        <button
+          type="button"
+          onClick={() => navTo('EXPENSE')}
+          className="flex items-center justify-between rounded px-2 py-1 hover:bg-surface-elevated transition-colors"
+          aria-label={t('cashFlowChart.viewExpenses')}
+        >
           <span className="text-text-secondary">{t('cashFlowChart.expenses')}:</span>
           <span className="text-red-500 font-semibold font-mono">
             <ConvertedAmount amount={cashFlow.expenses} currency={currency} inline />
           </span>
-        </div>
+        </button>
       </div>
     </div>
   );

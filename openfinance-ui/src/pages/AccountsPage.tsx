@@ -56,14 +56,17 @@ export default function AccountsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const lowBalanceParam = searchParams.get('lowBalance') === '1';
   const highlightId = searchParams.get('highlight') ? parseInt(searchParams.get('highlight')!) : null;
+  const institutionParam = searchParams.get('institution');
+  const validInstitution = institutionParam?.trim() || undefined;
 
   const [filters, setFilters] = useState<Filters>({
     page: 0,
     size: DEFAULT_PAGE_SIZE,
     sort: 'name,asc',
     lowBalance: lowBalanceParam || undefined,
+    institution: validInstitution,
   });
-  const [showFilters, setShowFilters] = useState(lowBalanceParam);
+  const [showFilters, setShowFilters] = useState(lowBalanceParam || Boolean(validInstitution));
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [detailAccountId, setDetailAccountId] = useState<number | null>(highlightId);
@@ -74,6 +77,16 @@ export default function AccountsPage() {
       setDetailAccountId(highlightId);
     }
   }, [highlightId]);
+
+  // Consume deep-link param after mount so a refresh doesn't re-impose the filter
+  useEffect(() => {
+    if (searchParams.get('institution') !== null) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('institution');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- consume once on mount
+  }, []);
 
   // Close filter panel on Escape key
   useEffect(() => {

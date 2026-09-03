@@ -4,7 +4,8 @@
     "title": "Allocation d'actifs",
     "tooltip": "La carte proportionnelle d'allocation d'actifs visualise la répartition de votre patrimoine entre différentes classes d'actifs (actions, immobilier, crypto, etc.). La taille de chaque bloc représente sa valeur proportionnelle dans votre portefeuille total.",
     "empty": "Aucun actif à afficher.",
-    "emptySub": "Ajoutez des actifs pour voir la répartition."
+    "emptySub": "Ajoutez des actifs pour voir la répartition.",
+    "viewAssetType": "Voir les actifs {{type}}"
   },
   "subtitle": "Votre aperçu financier au {{date}}",
   "addTransaction": "Ajouter une transaction",
@@ -61,7 +62,8 @@
       "noBudgets": "Aucun budget défini pour cette période",
       "setUp": "Configurer les budgets",
       "createFirst": "Créez votre premier budget",
-      "more": "+{{count}} de plus"
+      "more": "+{{count}} de plus",
+      "viewDetails": "Voir les détails du budget"
     },
     "cashFlow": {
       "label": "Flux de trésorerie",
@@ -176,7 +178,8 @@
       "fri": "Ven",
       "sat": "Sam",
       "sun": "Dim"
-    }
+    },
+    "viewDayTransactions": "Voir les transactions du {{date}}"
   },
   "accountsCard": {
     "title": "Comptes",
@@ -196,7 +199,10 @@
     "future": {
       "title": "Prévu pour le {{date}}",
       "badge": "Futur"
-    }
+    },
+    "viewTransaction": "Voir les détails de la transaction",
+    "filterByAccount": "Filtrer les transactions par {{account}}",
+    "filterByCategory": "Filtrer les transactions par {{category}}"
   },
   "cashFlowChart": {
     "title": "Flux de trésorerie",
@@ -204,7 +210,9 @@
     "net": "Flux de trésorerie net",
     "income": "Revenus",
     "expenses": "Dépenses",
-    "tooltip": "Le flux de trésorerie montre le total de vos revenus par rapport à vos dépenses sur la période sélectionnée. Flux de trésorerie net = revenus moins dépenses."
+    "tooltip": "Le flux de trésorerie montre le total de vos revenus par rapport à vos dépenses sur la période sélectionnée. Flux de trésorerie net = revenus moins dépenses.",
+    "viewIncome": "Voir les transactions de revenus",
+    "viewExpenses": "Voir les transactions de dépenses"
   },
   "currencyBreakdown": {
     "title": "Actifs par devise",
@@ -221,7 +229,8 @@
     "converting": "Conversion...",
     "footer": "Valeurs en devises étrangères converties aux taux de change actuels",
     "loadError": "Échec du chargement de la répartition par devise",
-    "rate": "Taux : {{rate}}"
+    "rate": "Taux : {{rate}}",
+    "viewAssets": "Voir les actifs en {{currency}}"
   },
   "institutionBreakdown": {
     "title": "Répartition par établissement",
@@ -231,7 +240,8 @@
     "accountCount_one": "{{count}} compte",
     "accountCount_other": "{{count}} comptes",
     "accountCount_plural": "{{count}} comptes",
-    "percentOfTotal": "{{percent}} % du total"
+    "percentOfTotal": "{{percent}} % du total",
+    "viewAccounts": "Voir les comptes de {{institution}}"
   },
   "financialMap": {
     "title": "Carte financière",
@@ -267,7 +277,10 @@
     "resetZoom": "Réinitialiser le zoom",
     "uncategorized": "Non catégorisé",
     "unspecified": "NON SPÉCIFIÉ",
-    "centerLabel": "FLUX"
+    "centerLabel": "FLUX",
+    "viewFlow": "Voir les transactions {{name}}",
+    "viewIncome": "Voir les transactions de revenus",
+    "viewExpenses": "Voir les transactions de dépenses"
   },
   "netWorthAllocation": {
     "title": "Allocation de la valeur nette",
@@ -332,7 +345,8 @@
     "totalEarned": "Total gagné",
     "projectedNextYear": "Projection année prochaine",
     "noData": "Aucune donnée d'intérêt disponible pour cette période.",
-    "projShort": "Proj."
+    "projShort": "Proj.",
+    "viewDetails": "Voir les détails de {{account}}"
   },
   "assetTypes": {
     "STOCK": "Action",

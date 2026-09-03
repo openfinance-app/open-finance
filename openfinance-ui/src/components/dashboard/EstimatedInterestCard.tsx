@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import { PiggyBank, TrendingUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { IEstimatedInterestSummary } from '@/types/dashboard';
@@ -20,6 +21,15 @@ export default function EstimatedInterestCard({ summary, period }: EstimatedInte
     const [filterType, setFilterType] = useState<'ALL' | 'ACCOUNTS' | 'LIABILITIES'>('ALL');
     const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(summary.currency || DEFAULT_CURRENCY);
     const { t } = useTranslation('dashboard');
+    const navigate = useNavigate();
+
+    const openDetails = (accountId: number, projectedInterest: number) => {
+        navigate(
+            projectedInterest >= 0
+                ? `/accounts?highlight=${accountId}`
+                : `/liabilities?highlight=${accountId}`
+        );
+    };
 
     const periodLabel = t(`estimatedInterest.period.${period}`, {
         defaultValue: t('estimatedInterest.period.default'),
@@ -101,7 +111,13 @@ export default function EstimatedInterestCard({ summary, period }: EstimatedInte
                         </div>
                     ) : (
                         filteredAccounts.map((account, index) => (
-                            <div key={`${account.accountId}-${account.projectedInterest < 0 ? 'liability' : 'account'}-${index}`} className="flex justify-between items-center p-3 hover:bg-surface-elevated rounded-lg transition-colors border border-transparent hover:border-border">
+                            <button
+                                type="button"
+                                key={`${account.accountId}-${account.projectedInterest < 0 ? 'liability' : 'account'}-${index}`}
+                                onClick={() => openDetails(account.accountId, account.projectedInterest)}
+                                className="w-full flex justify-between items-center p-3 hover:bg-surface-elevated rounded-lg transition-colors border border-transparent hover:border-border text-left"
+                                aria-label={t('estimatedInterest.viewDetails', { account: account.accountName })}
+                            >
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
                                         <PiggyBank className="w-4 h-4" />
@@ -134,7 +150,7 @@ export default function EstimatedInterestCard({ summary, period }: EstimatedInte
                                         />
                                     </div>
                                 </div>
-                            </div>
+                            </button>
                         ))
                     )}
                 </div>

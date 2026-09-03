@@ -16,6 +16,7 @@ import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { PropertyType, getPropertyTypeName, getPropertyTypeBadgeColor, formatAppreciation, calculatePropertyAge } from '@/types/realEstate';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
+import { PropertyGallery } from './PropertyGallery';
 import { AttachmentEntityType } from '@/types/attachment';
 import { multiply } from '@/utils/money';
 import { cn } from '@/lib/utils';
@@ -38,7 +39,7 @@ function getPropertyTypeIcon(type: string): React.ReactNode {
   return icons[type] || <MapPin className="h-6 w-6" />;
 }
 
-type TabType = 'overview' | 'equity' | 'roi' | 'attachments';
+type TabType = 'overview' | 'equity' | 'roi' | 'gallery' | 'attachments';
 
 export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewProps) {
   const { t } = useTranslation('realEstate');
@@ -141,6 +142,17 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                     )}
                   >
                     {t('propertyDetail.tab.roi')}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('gallery')}
+                    className={cn(
+                      'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                      activeTab === 'gallery'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-text-secondary hover:text-text-primary'
+                    )}
+                  >
+                    {t('propertyDetail.tab.gallery')}
                   </button>
                   <button
                     onClick={() => setActiveTab('attachments')}
@@ -586,6 +598,8 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                     )}
                   </div>
                 )}
+                {/* Gallery Tab (display only — upload/delete in Attachments tab) */}
+                {activeTab === 'gallery' && <PropertyGallery propertyId={propertyId} />}
                 {/* Attachments Tab */}
                 {activeTab === 'attachments' && (
                   <div className="space-y-4 py-4">

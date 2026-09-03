@@ -41,6 +41,7 @@ import FinancialMap from '../components/dashboard/FinancialMap';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { subtract, percentage } from '@/utils/money';
+import { periodToDateRange } from '@/utils/navigation';
 import { cn } from '@/lib/utils';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -320,6 +321,12 @@ export default function DashboardPage() {
     }
   }, [selectedPeriod, activeDateRange, periodDays, t]);
 
+  // ── Date range used for card → transactions deep links ─────────────────────
+  const navDateRange: DateRange = useMemo(
+    () => activeDateRange ?? periodToDateRange(periodDays),
+    [activeDateRange, periodDays]
+  );
+
   // ── Data fetching ───────────────────────────────────────────────────────────
   // All period-aware hooks receive both `periodDays` and the optional `activeDateRange`.
   // When activeDateRange is set the hooks send startDate/endDate; otherwise they send `period`.
@@ -425,9 +432,15 @@ export default function DashboardPage() {
         label: t('cards.cashFlow.label'),
         description: t('cards.cashFlow.description'),
         isAvailable: Boolean(cashFlow),
-        render: () => cashFlow
-          ? <CashFlowChart cashFlow={cashFlow} period={periodDays} currency={summary.baseCurrency} />
-          : null,
+        render: () =>
+          cashFlow ? (
+            <CashFlowChart
+              cashFlow={cashFlow}
+              period={periodDays}
+              currency={summary.baseCurrency}
+              navDateRange={navDateRange}
+            />
+          ) : null,
       },
       {
         id: 'cashflowSankey',
@@ -439,6 +452,7 @@ export default function DashboardPage() {
             currency={summary.baseCurrency}
             period={periodDays}
             dateRange={activeDateRange}
+            navDateRange={navDateRange}
           />
         ),
       },
@@ -537,6 +551,7 @@ export default function DashboardPage() {
     portfolioPerformances, assetAllocations, borrowingCapacity,
     netWorthAllocations, estimatedInterest, selectedPeriod,
     periodLabel, periodChange, periodTransactions, transactionsLoading, t,
+    navDateRange,
   ]);
 
   const cardById = useMemo(() =>

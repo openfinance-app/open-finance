@@ -11,6 +11,7 @@ import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useVisibility } from '@/context/VisibilityContext';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 
 interface AssetAllocationChartProps {
@@ -68,7 +69,7 @@ const CustomTooltip = ({ active, payload }: any) => {
  * Custom content renderer for treemap cells
  */
 const CustomContent = (props: any) => {
-  const { x, y, width, height, typeName, percentage, totalValue, currency, type, isVisible, formatFn } = props;
+  const { x, y, width, height, typeName, percentage, totalValue, currency, type, isVisible, formatFn, onNavigate } = props;
 
   // Only show text if cell is large enough
   const showText = width > 80 && height > 50;
@@ -76,7 +77,7 @@ const CustomContent = (props: any) => {
   const showValue = width > 120 && height > 70 && isVisible;
 
   return (
-    <g>
+    <g onClick={() => onNavigate?.(type)} style={{ cursor: 'pointer' }}>
       <rect
         x={x}
         y={y}
@@ -135,6 +136,8 @@ export default function AssetAllocationChart({ allocations, currency: _currency 
   const { isAmountsVisible } = useVisibility();
   const { format } = useFormatCurrency();
   const { t } = useTranslation('dashboard');
+  const navigate = useNavigate();
+  const navigateToType = (type: string) => navigate(`/assets?type=${encodeURIComponent(type)}`);
   // Prepare data for treemap (recharts expects 'name' and 'size' fields)
   const treemapData = allocations.map(allocation => {
     const translatedType = t(`assetTypes.${allocation.type}`, { defaultValue: allocation.typeName });
@@ -178,7 +181,13 @@ export default function AssetAllocationChart({ allocations, currency: _currency 
             aspectRatio={4 / 3}
             stroke="#1a1a1a"
             fill="#8884d8"
-            content={<CustomContent isVisible={isAmountsVisible} formatFn={format} />}
+            content={
+              <CustomContent
+                isVisible={isAmountsVisible}
+                formatFn={format}
+                onNavigate={navigateToType}
+              />
+            }
           >
             <Tooltip content={<CustomTooltip />} />
           </Treemap>
@@ -188,7 +197,15 @@ export default function AssetAllocationChart({ allocations, currency: _currency 
       {/* Legend */}
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {allocations.map(allocation => (
-          <div key={allocation.type} className="flex items-center gap-2">
+          <button
+            type="button"
+            key={allocation.type}
+            onClick={() => navigateToType(allocation.type)}
+            className="flex items-center gap-2 text-left rounded hover:bg-surface-elevated transition-colors"
+            aria-label={t('assetAllocation.viewAssetType', {
+              type: t(`assetTypes.${allocation.type}`, { defaultValue: allocation.typeName }),
+            })}
+          >
             <div
               className="w-4 h-4 rounded"
               style={{ backgroundColor: ASSET_TYPE_COLORS[allocation.type] || ASSET_TYPE_COLORS.OTHER }}
@@ -199,7 +216,7 @@ export default function AssetAllocationChart({ allocations, currency: _currency 
                 {allocation.percentage.toFixed(1)}%
               </p>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

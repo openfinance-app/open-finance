@@ -7,6 +7,7 @@
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { AssetCoverImage } from './AssetCoverImage';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { getConditionBadgeVariant, getAssetTypeBadgeVariant } from '@/hooks/useAssets';
 import { subtract, percentage } from '@/utils/money';
@@ -244,23 +245,8 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
         </div>
       )}
 
-      {/* Photo Placeholder */}
-      {asset.photoPath ? (
-        <div className="rounded-lg overflow-hidden border border-border">
-          <img 
-            src={asset.photoPath} 
-            alt={asset.name}
-            className="w-full h-32 object-cover"
-          />
-        </div>
-      ) : (
-        <div className="flex items-center justify-center h-32 rounded-lg bg-surface-elevated border border-dashed border-border">
-          <div className="text-center text-text-tertiary">
-            <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
-            <span className="text-xs">No photo</span>
-          </div>
-        </div>
-      )}
+      {/* Cover Image (attachment-backed, falls back to photoPath / placeholder) */}
+      <AssetCoverImage asset={asset} />
     </Card>
   );
 }

@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
+
+const mockNavigate = vi.fn();
+vi.mock('react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router')>();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 vi.mock('@/hooks/useAccounts', () => ({
   useAccounts: vi.fn(() => ({
@@ -81,5 +88,21 @@ describe('CurrencyBreakdown', () => {
     renderWithProviders(<CurrencyBreakdown baseCurrency="USD" />);
     // Loading skeleton should render
     expect(document.querySelector('.animate-pulse')).toBeInTheDocument();
+  });
+
+  it('navigates to assets filtered by currency when a row is clicked', async () => {
+    // Re-set fixtures: mockReturnValue from the loading-state test persists through vi.clearAllMocks()
+    vi.mocked(useAccounts).mockReturnValue({
+      data: [
+        { id: 1, name: 'EUR Account', currency: 'EUR', balance: 5000, balanceInBaseCurrency: 5500 },
+        { id: 2, name: 'USD Account', currency: 'USD', balance: 3000, balanceInBaseCurrency: 3000 },
+      ],
+      isLoading: false,
+      error: null,
+    } as any);
+    const user = userEvent.setup();
+    renderWithProviders(<CurrencyBreakdown baseCurrency="USD" />);
+    await user.click(screen.getByRole('button', { name: 'View assets in USD' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/assets?currency=USD');
   });
 });

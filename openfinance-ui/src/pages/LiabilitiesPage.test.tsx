@@ -1,6 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent } from '@/test/test-utils';
+import { screen, waitFor, render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '@/test/i18n-test';
+import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent, createTestQueryClient } from '@/test/test-utils';
+import { AuthProvider } from '@/context/AuthContext';
+import { NumberFormatProvider } from '@/context/NumberFormatContext';
+import { DecimalPlacesProvider } from '@/context/DecimalPlacesContext';
+import { CurrencyDisplayProvider } from '@/context/CurrencyDisplayContext';
+import { VisibilityProvider } from '@/context/VisibilityContext';
 import LiabilitiesPage from '@/pages/LiabilitiesPage';
 import type { Liability } from '@/types/liability';
 
@@ -94,9 +103,12 @@ vi.mock('@/components/liabilities/LiabilitySummaryCards', () => ({
 vi.mock('@/components/liabilities/LiabilityDetailDialog', () => ({
   LiabilityDetailDialog: ({ liability, onClose }: any) =>
     liability ? (
-      <div data-testid="detail-dialog">
-        <span>{liability.name} Details</span>
-        <button onClick={onClose}>Close</button>
+      <div data-testid="liability-detail-dialog">
+        dialog-{liability.id}
+        <div data-testid="detail-dialog">
+          <span>{liability.name} Details</span>
+          <button onClick={onClose}>Close</button>
+        </div>
       </div>
     ) : null,
 }));
@@ -229,5 +241,72 @@ describe('LiabilitiesPage', () => {
     await waitFor(() => expect(screen.getByTestId('liability-form')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /cancel/i }));
     await waitFor(() => expect(screen.queryByTestId('liability-form')).not.toBeInTheDocument());
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Deep-link tests: need MemoryRouter with initialEntries (renderWithProviders
+// hardcodes BrowserRouter without initialEntries)
+// ---------------------------------------------------------------------------
+const highlightLiability: Liability = {
+  id: 7,
+  userId: 1,
+  name: 'Car Loan',
+  liabilityType: 'LOAN',
+  principalAmount: 20000,
+  currentBalance: 15000,
+  interestRate: 5.5,
+  currency: 'EUR',
+  startDate: '2023-06-01',
+  createdAt: '2023-06-01T00:00:00Z',
+};
+
+function renderPage(search = '') {
+  return render(
+    <QueryClientProvider client={createTestQueryClient()}>
+      <I18nextProvider i18n={i18n}>
+        <MemoryRouter initialEntries={[`/liabilities${search}`]}>
+          <AuthProvider>
+            <NumberFormatProvider>
+              <DecimalPlacesProvider>
+                <CurrencyDisplayProvider>
+                  <VisibilityProvider>
+                    <LiabilitiesPage />
+                  </VisibilityProvider>
+                </CurrencyDisplayProvider>
+              </DecimalPlacesProvider>
+            </NumberFormatProvider>
+          </AuthProvider>
+        </MemoryRouter>
+      </I18nextProvider>
+    </QueryClientProvider>
+  );
+}
+
+describe('LiabilitiesPage deep links', () => {
+  beforeEach(() => {
+    clearAuthentication();
+    mockAuthentication();
+    Element.prototype.scrollIntoView = vi.fn();
+    vi.clearAllMocks();
+    mockPagedResponse = {
+      content: [highlightLiability],
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 20,
+    };
+    mockIsLoading = false;
+    mockError = null;
+  });
+
+  it('auto-opens the detail dialog for ?highlight=', async () => {
+    renderPage('?highlight=7');
+    expect(await screen.findByTestId('liability-detail-dialog')).toHaveTextContent('dialog-7');
+  });
+
+  it('does not open the dialog for an unknown highlight id', async () => {
+    renderPage('?highlight=999');
+    expect(screen.queryByTestId('liability-detail-dialog')).not.toBeInTheDocument();
   });
 });

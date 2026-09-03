@@ -650,4 +650,83 @@ describe('TransactionList', () => {
       expect(headings.length).toBeGreaterThanOrEqual(2);
     });
   });
+
+  describe('Category and Account Filtering', () => {
+    const filterTx: Transaction = {
+      ...mockRegularTransaction,
+      id: 50,
+      accountId: 3,
+      accountName: 'Main Checking',
+      categoryId: 20,
+      categoryName: 'Entertainment',
+    };
+
+    it('calls onFilterByCategory (not onViewDetail) when the category pill is clicked', async () => {
+      const onFilterByCategory = vi.fn();
+      const onFilterByAccount = vi.fn();
+      const onViewDetail = vi.fn();
+      renderWithProviders(
+        <TransactionList
+          transactions={[filterTx]}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onViewDetail={onViewDetail}
+          onFilterByCategory={onFilterByCategory}
+          onFilterByAccount={onFilterByAccount}
+        />
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Filter transactions by Entertainment' }));
+      expect(onFilterByCategory).toHaveBeenCalledTimes(1);
+      expect(onFilterByCategory).toHaveBeenCalledWith(20);
+      expect(onViewDetail).not.toHaveBeenCalled();
+      expect(onFilterByAccount).not.toHaveBeenCalled();
+    });
+
+    it('calls onFilterByAccount (not onViewDetail) when the account name is clicked', async () => {
+      const onFilterByCategory = vi.fn();
+      const onFilterByAccount = vi.fn();
+      const onViewDetail = vi.fn();
+      renderWithProviders(
+        <TransactionList
+          transactions={[filterTx]}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onViewDetail={onViewDetail}
+          onFilterByCategory={onFilterByCategory}
+          onFilterByAccount={onFilterByAccount}
+        />
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Filter transactions by Main Checking' }));
+      expect(onFilterByAccount).toHaveBeenCalledTimes(1);
+      expect(onFilterByAccount).toHaveBeenCalledWith(3);
+      expect(onViewDetail).not.toHaveBeenCalled();
+      expect(onFilterByCategory).not.toHaveBeenCalled();
+    });
+
+    it('still opens details when the row body is clicked', async () => {
+      const onViewDetail = vi.fn();
+      renderWithProviders(
+        <TransactionList
+          transactions={[filterTx]}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onViewDetail={onViewDetail}
+          onFilterByCategory={vi.fn()}
+          onFilterByAccount={vi.fn()}
+        />
+      );
+      await userEvent.click(screen.getByText('Regular transaction'));
+      expect(onViewDetail).toHaveBeenCalledTimes(1);
+      expect(onViewDetail).toHaveBeenCalledWith(filterTx);
+    });
+
+    it('renders category and account as plain text when no filter handlers are given', () => {
+      renderWithProviders(
+        <TransactionList transactions={[filterTx]} onEdit={vi.fn()} onDelete={vi.fn()} />
+      );
+      expect(screen.queryByRole('button', { name: /Filter transactions by/ })).not.toBeInTheDocument();
+      expect(screen.getByText('Entertainment')).toBeInTheDocument();
+      expect(screen.getByText('Main Checking')).toBeInTheDocument();
+    });
+  });
 });

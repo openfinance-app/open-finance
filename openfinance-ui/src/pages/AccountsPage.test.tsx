@@ -3,8 +3,20 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent } from '@/test/test-utils';
+import { render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '@/test/i18n-test';
+import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent, createTestQueryClient } from '@/test/test-utils';
+import { AuthProvider } from '@/context/AuthContext';
+import { NumberFormatProvider } from '@/context/NumberFormatContext';
+import { DecimalPlacesProvider } from '@/context/DecimalPlacesContext';
+import { CurrencyDisplayProvider } from '@/context/CurrencyDisplayContext';
+import { VisibilityProvider } from '@/context/VisibilityContext';
 import AccountsPage from '@/pages/AccountsPage';
+import { useAccountsSearch } from '@/hooks/useAccounts';
+import type { AccountFilters } from '@/types/account';
 
 const mockAccount = {
   id: 1,
@@ -50,11 +62,11 @@ const mockReopenMutateAsync = vi.fn();
 const mockDeleteMutateAsync = vi.fn();
 
 vi.mock('@/hooks/useAccounts', () => ({
-  useAccountsSearch: () => ({
+  useAccountsSearch: vi.fn(() => ({
     data: mockPagedResponse,
     isLoading: mockIsLoading,
     error: mockError,
-  }),
+  })),
   useCreateAccount: () => ({ mutateAsync: mockCreateMutateAsync, isPending: false }),
   useUpdateAccount: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
   useCloseAccount: () => ({ mutateAsync: mockCloseMutateAsync, isPending: false }),
@@ -110,12 +122,26 @@ vi.mock('@/components/ConfirmationDialog', () => ({
     ) : null,
 }));
 
+const mockUseAccountsSearch = vi.mocked(useAccountsSearch);
+
+const emptyPagedResponse = {
+  content: [] as any[],
+  totalElements: 0,
+  totalPages: 0,
+  number: 0,
+  size: 20,
+};
+
 describe('AccountsPage', () => {
   beforeEach(() => {
     clearAuthentication();
     mockAuthentication();
     Element.prototype.scrollIntoView = vi.fn();
     vi.clearAllMocks();
+    // clearAllMocks keeps mock implementations; restore the default search impl
+    mockUseAccountsSearch.mockImplementation(
+      () => ({ data: mockPagedResponse, isLoading: mockIsLoading, error: mockError }) as any
+    );
     mockPagedResponse = {
       content: [mockAccount, mockAccount2],
       totalElements: 2,
@@ -275,6 +301,66 @@ describe('AccountsPage', () => {
     await user.click(screen.getByRole('button', { name: /filter/i }));
     expect(screen.getByTestId('account-filters')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /filter/i }));
+    expect(screen.queryByTestId('account-filters')).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Deep-link tests: need MemoryRouter with initialEntries (renderWithProviders
+// hardcodes BrowserRouter without initialEntries)
+// ---------------------------------------------------------------------------
+function renderPage(search = '') {
+  return render(
+    <QueryClientProvider client={createTestQueryClient()}>
+      <I18nextProvider i18n={i18n}>
+        <MemoryRouter initialEntries={[`/accounts${search}`]}>
+          <AuthProvider>
+            <NumberFormatProvider>
+              <DecimalPlacesProvider>
+                <CurrencyDisplayProvider>
+                  <VisibilityProvider>
+                    <AccountsPage />
+                  </VisibilityProvider>
+                </CurrencyDisplayProvider>
+              </DecimalPlacesProvider>
+            </NumberFormatProvider>
+          </AuthProvider>
+        </MemoryRouter>
+      </I18nextProvider>
+    </QueryClientProvider>
+  );
+}
+
+describe('AccountsPage deep links', () => {
+  beforeEach(() => {
+    clearAuthentication();
+    mockAuthentication();
+    Element.prototype.scrollIntoView = vi.fn();
+    vi.clearAllMocks();
+    mockUseAccountsSearch.mockImplementation(
+      () => ({ data: emptyPagedResponse, isLoading: false, error: null }) as any
+    );
+  });
+
+  it('seeds institution filter from URL param', () => {
+    let captured: AccountFilters | undefined;
+    mockUseAccountsSearch.mockImplementation(((filters?: AccountFilters) => {
+      captured ??= filters;
+      return { data: emptyPagedResponse, isLoading: false, error: null };
+    }) as any);
+    renderPage('?institution=hellobank');
+    expect(captured?.institution).toBe('hellobank');
+    expect(captured?.page).toBe(0);
+    expect(captured?.size).toBe(20);
+  });
+
+  it('opens filter panel for institution deep link', () => {
+    renderPage('?institution=hellobank');
+    expect(screen.getByTestId('account-filters')).toBeInTheDocument();
+  });
+
+  it('does not open filter panel without deep-link params', () => {
+    renderPage();
     expect(screen.queryByTestId('account-filters')).not.toBeInTheDocument();
   });
 });

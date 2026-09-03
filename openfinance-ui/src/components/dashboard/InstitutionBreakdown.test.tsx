@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
+import { renderWithProviders, mockAuthentication, userEvent } from '@/test/test-utils';
+
+const { mockNavigate } = vi.hoisted(() => ({ mockNavigate: vi.fn() }));
+
+vi.mock('react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router')>();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 vi.mock('@/hooks/useAccounts', () => ({
   useAccounts: vi.fn(() => ({
@@ -56,5 +63,23 @@ describe('InstitutionBreakdown', () => {
   it('renders the component without crashing', () => {
     const { container } = renderWithProviders(<InstitutionBreakdown baseCurrency="EUR" />);
     expect(container.innerHTML).not.toBe('');
+  });
+
+  it('navigates to accounts filtered by institution when a row is clicked', async () => {
+    renderWithProviders(<InstitutionBreakdown baseCurrency="EUR" />);
+    const user = userEvent.setup();
+    // Only the BNP group is clickable; the "Direct / No Institution" group is a plain div.
+    await user.click(screen.getByRole('button', { name: /View accounts at/ }));
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/accounts?institution=BNP');
+  });
+
+  it('renders the No Institution group as a non-clickable row', () => {
+    renderWithProviders(<InstitutionBreakdown baseCurrency="EUR" />);
+    // Fixtures include account id 3 with institution: null → "Direct / No Institution" group.
+    const noInstitutionLabel = screen.getByText('Direct / No Institution');
+    expect(noInstitutionLabel.closest('button')).toBeNull();
+    const buttons = screen.queryAllByRole('button', { name: /View accounts at/ });
+    buttons.forEach((b) => expect(b.textContent).not.toContain('No Institution'));
   });
 });

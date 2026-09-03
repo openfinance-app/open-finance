@@ -10,6 +10,8 @@
 
 import { Building2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
+import { cn } from '@/lib/utils';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useAssets } from '@/hooks/useAssets';
 import { ConvertedAmount } from '../ui/ConvertedAmount';
@@ -37,6 +39,7 @@ export default function InstitutionBreakdown({
     const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();
     const { data: assets, isLoading: assetsLoading, error: assetsError } = useAssets();
     const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+    const navigate = useNavigate();
 
     const isLoading = accountsLoading || assetsLoading;
     const error = accountsError || assetsError;
@@ -186,58 +189,79 @@ export default function InstitutionBreakdown({
 
             {/* Institution rows */}
             <div className="space-y-4 flex-1 overflow-y-auto scrollbar-thin pr-2 min-h-0">
-                {groups.map((group) => (
-                    <div key={group.id ?? 'none'} className="py-1">
-                        {/* Logo + name + count */}
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                                {group.logo ? (
-                                    <img
-                                        src={group.logo}
-                                        alt=""
-                                        className="h-6 w-6 rounded object-contain bg-surface flex-shrink-0"
+                {groups.map((group) => {
+                    const clickable = group.id !== null;
+                    const RowTag = (clickable ? 'button' : 'div') as 'button';
+                    return (
+                        <RowTag
+                            key={group.id ?? 'none'}
+                            type={clickable ? 'button' : undefined}
+                            onClick={
+                                clickable
+                                    ? () => navigate(`/accounts?institution=${encodeURIComponent(group.name)}`)
+                                    : undefined
+                            }
+                            className={cn(
+                                'w-full text-left py-1 rounded-lg px-2 -mx-2 transition-colors',
+                                clickable && 'hover:bg-surface-elevated cursor-pointer'
+                            )}
+                            aria-label={
+                                clickable
+                                    ? t('institutionBreakdown.viewAccounts', { institution: group.name })
+                                    : undefined
+                            }
+                        >
+                            {/* Logo + name + count */}
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    {group.logo ? (
+                                        <img
+                                            src={group.logo}
+                                            alt=""
+                                            className="h-6 w-6 rounded object-contain bg-surface flex-shrink-0"
+                                        />
+                                    ) : (
+                                        <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                            <Building2 className="h-3.5 w-3.5 text-primary" />
+                                        </div>
+                                    )}
+                                    <span className="text-sm font-semibold text-text-primary truncate">
+                                        {group.name}
+                                    </span>
+                                    <span className="text-xs text-text-secondary flex-shrink-0">
+                                        ({t('institutionBreakdown.accountCount', { count: group.accountCount })})
+                                    </span>
+                                </div>
+
+                                {/* Balance */}
+                                <div className="text-sm font-mono text-text-primary flex-shrink-0 ml-2">
+                                    <ConvertedAmount
+                                        amount={group.totalBalance}
+                                        currency={baseCurrency}
+                                        isConverted={false}
+                                        secondaryAmount={convert(group.totalBalance)}
+                                        secondaryCurrency={secCurrency}
+                                        secondaryExchangeRate={secondaryExchangeRate}
+                                        inline
                                     />
-                                ) : (
-                                    <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                                        <Building2 className="h-3.5 w-3.5 text-primary" />
-                                    </div>
-                                )}
-                                <span className="text-sm font-semibold text-text-primary truncate">
-                                    {group.name}
-                                </span>
-                                <span className="text-xs text-text-secondary flex-shrink-0">
-                                    ({t('institutionBreakdown.accountCount', { count: group.accountCount })})
-                                </span>
+                                </div>
                             </div>
 
-                            {/* Balance */}
-                            <div className="text-sm font-mono text-text-primary flex-shrink-0 ml-2">
-                                <ConvertedAmount
-                                    amount={group.totalBalance}
-                                    currency={baseCurrency}
-                                    isConverted={false}
-                                    secondaryAmount={convert(group.totalBalance)}
-                                    secondaryCurrency={secCurrency}
-                                    secondaryExchangeRate={secondaryExchangeRate}
-                                    inline
+                            {/* Progress bar */}
+                            <div className="w-full bg-surface-elevated rounded-full h-2 overflow-hidden">
+                                <div
+                                    className="bg-primary h-full rounded-full transition-all duration-300"
+                                    style={{ width: `${group.percentage}%` }}
                                 />
                             </div>
-                        </div>
 
-                        {/* Progress bar */}
-                        <div className="w-full bg-surface-elevated rounded-full h-2 overflow-hidden">
-                            <div
-                                className="bg-primary h-full rounded-full transition-all duration-300"
-                                style={{ width: `${group.percentage}%` }}
-                            />
-                        </div>
-
-                        {/* Percentage */}
-                        <div className="mt-1 text-xs text-text-secondary">
-                            {t('institutionBreakdown.percentOfTotal', { percent: group.percentage.toFixed(1) })}
-                        </div>
-                    </div>
-                ))}
+                            {/* Percentage */}
+                            <div className="mt-1 text-xs text-text-secondary">
+                                {t('institutionBreakdown.percentOfTotal', { percent: group.percentage.toFixed(1) })}
+                            </div>
+                        </RowTag>
+                    );
+                })}
             </div>
         </div>
     );

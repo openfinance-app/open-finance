@@ -8,7 +8,7 @@
  * Main page for managing budgets with progress tracking, collapsible filters,
  * and pagination (default page size 20, options [10, 20, 50, 100]).
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Filter, Wand2 } from 'lucide-react';
 import { useSearchParams } from 'react-router';
@@ -43,7 +43,7 @@ import { matchesQuery } from '@/utils/searchMatch';
 export default function BudgetsPage() {
   const { t } = useTranslation('budgets');
   useDocumentTitle(t('title'));
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Deep-link from budget alert notification: pre-populate keyword filter
   const alertKeywordParam = searchParams.get('alertKeyword') || undefined;
@@ -91,6 +91,18 @@ export default function BudgetsPage() {
     if (!summary) return [];
     return summary.budgets;
   }, [summary]);
+
+  // Deep link ?open=<budgetId>: auto-open the detail modal once budgets load
+  const openParam = searchParams.get('open') ? parseInt(searchParams.get('open')!) : null;
+  useEffect(() => {
+    if (!openParam) return;
+    if (allBudgetProgress.some((b) => b.budgetId === openParam)) {
+      setDetailBudgetId(openParam);
+      const next = new URLSearchParams(searchParams);
+      next.delete('open');
+      setSearchParams(next, { replace: true });
+    }
+  }, [openParam, allBudgetProgress, searchParams, setSearchParams]);
 
   // Apply keyword filter (client-side, case-insensitive or regex match on category name)
   const filteredBudgets = useMemo(() => {

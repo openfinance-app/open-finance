@@ -141,6 +141,9 @@
       "category": "Category",
       "paymentMethod": "Payment Method",
       "currency": "Currency"
+    },
+    "aria": {
+      "viewAccount": "Open account details"
     }
   },
   "list": {
@@ -153,7 +156,9 @@
       "editTransfer": "Edit transfer (both sides will be updated)",
       "editTransaction": "Edit transaction",
       "transferSource": "Transfer source (money leaving)",
-      "transferDest": "Transfer destination (money entering)"
+      "transferDest": "Transfer destination (money entering)",
+      "filterByCategory": "Filter transactions by {{category}}",
+      "filterByAccount": "Filter transactions by {{account}}"
     }
   },
   "splitForm": {

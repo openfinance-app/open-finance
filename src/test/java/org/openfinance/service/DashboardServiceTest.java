@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.openfinance.dto.AccountSummary;
+import org.openfinance.dto.CashflowSankeyDto;
 import org.openfinance.dto.DashboardSummary;
 import org.openfinance.dto.NetWorthSummary;
 import org.openfinance.dto.TransactionResponse;
@@ -34,6 +35,7 @@ import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.AssetType;
+import org.openfinance.entity.Category;
 import org.openfinance.entity.NetWorth;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
@@ -41,6 +43,7 @@ import org.openfinance.entity.User;
 import org.openfinance.mapper.TransactionMapper;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.AssetRepository;
+import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
@@ -74,6 +77,8 @@ class DashboardServiceTest {
     @Mock private OperationHistoryService operationHistoryService;
 
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
+    @Mock private CategoryRepository categoryRepository;
 
     @org.mockito.Spy
     private org.openfinance.config.BusinessRulesProperties businessRules =
@@ -1341,6 +1346,35 @@ class DashboardServiceTest {
 
         verify(assetRepository).findByUserId(userId);
         verify(userRepository).findById(userId);
+    }
+
+    @Test
+    @DisplayName("getCashflowSankey populates categoryId on flow nodes; uncategorized nodes get null")
+    void getCashflowSankeyPopulatesCategoryId() {
+        Category salary = Category.builder().id(5L).name("Salary").isSystem(true).build();
+        when(categoryRepository.findById(5L)).thenReturn(Optional.of(salary));
+        when(defaultCurrencyProvider.resolve("EUR")).thenReturn("EUR");
+
+        Transaction income = Transaction.builder()
+                .userId(userId).type(TransactionType.INCOME).amount(new BigDecimal("1000"))
+                .currency("EUR").categoryId(5L).isDeleted(false)
+                .date(LocalDate.now()).build();
+        Transaction expense = Transaction.builder()
+                .userId(userId).type(TransactionType.EXPENSE).amount(new BigDecimal("400"))
+                .currency("EUR").isDeleted(false)
+                .date(LocalDate.now()).build();
+
+        when(transactionRepository.findByUserIdAndDateBetween(
+                eq(userId), any(LocalDate.class), any(LocalDate.class)))
+                .thenReturn(List.of(income, expense));
+
+        CashflowSankeyDto dto = dashboardService.getCashflowSankey(userId, 30);
+
+        assertThat(dto.getIncomeSources()).hasSize(1);
+        assertThat(dto.getIncomeSources().get(0).getCategoryId()).isEqualTo(5L);
+        assertThat(dto.getExpenseCategories()).hasSize(1);
+        assertThat(dto.getExpenseCategories().get(0).getName()).isEqualTo("Uncategorized");
+        assertThat(dto.getExpenseCategories().get(0).getCategoryId()).isNull();
     }
 
     // ==================== Helper Methods ====================

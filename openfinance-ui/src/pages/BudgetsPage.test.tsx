@@ -106,7 +106,7 @@ import {
   useBudget,
 } from '@/hooks/useBudgets';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import type { BudgetSummaryResponse, BudgetProgressResponse } from '@/types/budget';
 
 const mockUseBudgetSummary = vi.mocked(useBudgetSummary);
@@ -116,6 +116,8 @@ const mockUseDeleteBudget = vi.mocked(useDeleteBudget);
 const mockUseBudget = vi.mocked(useBudget);
 const mockUseDocumentTitle = vi.mocked(useDocumentTitle);
 const mockUseNavigate = vi.mocked(useNavigate);
+const mockUseSearchParams = vi.mocked(useSearchParams);
+const mockSetSearchParams = vi.fn();
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -705,6 +707,71 @@ describe('BudgetsPage', () => {
       const wizardBtn = screen.getByRole('button', { name: /auto/i });
       fireEvent.click(wizardBtn);
       expect(screen.getByTestId('budget-wizard')).toBeInTheDocument();
+    });
+  });
+
+  describe('Deep Link ?open=', () => {
+    const deepLinkBudget: BudgetProgressResponse = {
+      budgetId: 9,
+      categoryName: 'Groceries',
+      budgeted: 400,
+      spent: 100,
+      remaining: 300,
+      percentageSpent: 25,
+      currency: 'USD',
+      period: 'MONTHLY',
+      startDate: '2026-09-01',
+      endDate: '2026-09-30',
+      daysRemaining: 10,
+      status: 'ON_TRACK',
+    };
+
+    beforeEach(() => {
+      mockUseBudgetSummary.mockReturnValue({
+        data: { ...mockBudgetSummary, totalBudgets: 3, budgets: [...mockBudgetSummary.budgets, deepLinkBudget] },
+        isLoading: false,
+        error: null,
+      } as any);
+
+      mockUseCreateBudget.mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as any);
+      mockUseUpdateBudget.mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as any);
+      mockUseDeleteBudget.mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as any);
+    });
+
+    afterEach(() => {
+      // Restore the default (empty) search params so mocks never leak between tests
+      mockUseSearchParams.mockImplementation(() => [new URLSearchParams(), vi.fn()]);
+    });
+
+    it('auto-opens the detail modal for ?open=<budgetId>', async () => {
+      mockUseSearchParams.mockReturnValue([new URLSearchParams('open=9'), mockSetSearchParams]);
+
+      renderWithProviders(<BudgetsPage />, { queryClient });
+
+      expect(await screen.findByTestId('budget-detail-modal')).toHaveTextContent('Detail 9');
+    });
+
+    it('clears the open param (replace) after opening the modal', async () => {
+      mockUseSearchParams.mockReturnValue([new URLSearchParams('open=9'), mockSetSearchParams]);
+
+      renderWithProviders(<BudgetsPage />, { queryClient });
+
+      await screen.findByTestId('budget-detail-modal');
+      await waitFor(() => expect(mockSetSearchParams).toHaveBeenCalled());
+      const [nextParams, options] = mockSetSearchParams.mock.calls[0];
+      expect((nextParams as URLSearchParams).get('open')).toBeNull();
+      expect(options).toEqual({ replace: true });
+    });
+
+    it('does not open the modal for an unknown budget id', async () => {
+      mockUseSearchParams.mockReturnValue([new URLSearchParams('open=1234'), mockSetSearchParams]);
+
+      renderWithProviders(<BudgetsPage />, { queryClient });
+
+      // Wait until the budgets grid has rendered so the effect had a chance to run
+      await waitFor(() => expect(screen.getByTestId('budget-card-1')).toBeInTheDocument());
+      expect(screen.queryByTestId('budget-detail-modal')).not.toBeInTheDocument();
+      expect(mockSetSearchParams).not.toHaveBeenCalled();
     });
   });
 });

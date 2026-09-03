@@ -67,9 +67,14 @@
   "detail": {
     "tabs": {
       "overview": "Aperçu",
-      "attachments": "Pièces jointes"
+      "attachments": "Pièces jointes",
+      "gallery": "Galerie"
     },
-    "metrics": {
+"gallery": {
+      "empty": "Aucune image pour le moment. Téléversez des images dans l’onglet Pièces jointes.",
+      "hint": "Gérez les images dans l’onglet Pièces jointes."
+    },
+        "metrics": {
       "currentValue": "Valeur actuelle",
       "costBasis": "Prix de revient",
       "gainLoss": "Gain/Perte"

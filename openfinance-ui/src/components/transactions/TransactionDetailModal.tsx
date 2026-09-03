@@ -12,6 +12,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import {
   X,
   ArrowUpRight,
@@ -79,9 +80,16 @@ export function TransactionDetailModal({
   onEdit,
 }: TransactionDetailModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const navigate = useNavigate();
   const { format: formatCurrency } = useFormatCurrency();
   const { t: tc } = useTranslation('common');
   const { t } = useTranslation('transactions');
+
+  const handleAccountClick = () => {
+    if (!transaction.accountId) return;
+    onClose();
+    navigate(`/accounts?highlight=${transaction.accountId}`);
+  };
 
   // Close on Escape
   useEffect(() => {
@@ -261,9 +269,16 @@ export function TransactionDetailModal({
                       {t('detail.fields.account')}
                     </dt>
                     <dd className="text-sm font-medium text-foreground">
-                      {transaction.account?.name ||
-                        transaction.accountName ||
-                        `Account #${transaction.accountId}`}
+                      <button
+                        type="button"
+                        onClick={handleAccountClick}
+                        className="text-primary hover:underline focus:outline-none"
+                        aria-label={t('detail.aria.viewAccount')}
+                      >
+                        {transaction.account?.name ||
+                          transaction.accountName ||
+                          `Account #${transaction.accountId}`}
+                      </button>
                     </dd>
                   </div>
                   {transaction.type === 'TRANSFER' &&

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import CashFlowChart from './CashFlowChart';
 import { MemoryRouter } from 'react-router';
 import { I18nextProvider } from 'react-i18next';
@@ -40,6 +41,13 @@ vi.mock('recharts', async () => {
     },
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
   };
+});
+
+// Mock useNavigate while keeping the rest of react-router (MemoryRouter etc.)
+const mockNavigate = vi.fn();
+vi.mock('react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router')>();
+  return { ...actual, useNavigate: () => mockNavigate };
 });
 
 // Mock UserSettings hook
@@ -168,5 +176,36 @@ describe('CashFlowChart', () => {
         .closest('div')
         ?.parentElement?.querySelector('.text-red-500')
     ).toBeInTheDocument();
+  });
+});
+
+describe('CashFlowChart navigation', () => {
+  const navProps = {
+    cashFlow: { income: 100, expenses: 40, netCashFlow: 60 },
+    period: 30,
+    navDateRange: { from: '2026-08-01', to: '2026-08-31' },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockIsAmountsVisible = true;
+  });
+
+  it('navigates to income transactions with type + date range', async () => {
+    const user = userEvent.setup();
+    renderChart(navProps);
+    await user.click(screen.getByRole('button', { name: 'View income transactions' }));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/transactions?type=INCOME&dateFrom=2026-08-01&dateTo=2026-08-31'
+    );
+  });
+
+  it('navigates to expense transactions', async () => {
+    const user = userEvent.setup();
+    renderChart(navProps);
+    await user.click(screen.getByRole('button', { name: 'View expense transactions' }));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/transactions?type=EXPENSE&dateFrom=2026-08-01&dateTo=2026-08-31'
+    );
   });
 });

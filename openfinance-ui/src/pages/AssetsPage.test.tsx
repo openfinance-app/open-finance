@@ -1,8 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent } from '@/test/test-utils';
+import { screen, waitFor, render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '@/test/i18n-test';
+import {
+  renderWithProviders,
+  mockAuthentication,
+  clearAuthentication,
+  userEvent,
+  createTestQueryClient,
+} from '@/test/test-utils';
+import { AuthProvider } from '@/context/AuthContext';
+import { NumberFormatProvider } from '@/context/NumberFormatContext';
+import { DecimalPlacesProvider } from '@/context/DecimalPlacesContext';
+import { CurrencyDisplayProvider } from '@/context/CurrencyDisplayContext';
+import { VisibilityProvider } from '@/context/VisibilityContext';
 import AssetsPage from '@/pages/AssetsPage';
 import type { Asset } from '@/types/asset';
+import { useAssetsSearch } from '@/hooks/useAssets';
 
 // ---------------------------------------------------------------------------
 // Mock asset data
@@ -42,7 +58,7 @@ let mockIsLoading = false;
 let mockError: Error | null = null;
 
 vi.mock('@/hooks/useAssets', () => ({
-  useAssetsSearch: () => ({ data: mockPagedData, isLoading: mockIsLoading, error: mockError, refetch: mockRefetchFn }),
+  useAssetsSearch: vi.fn(() => ({ data: mockPagedData, isLoading: mockIsLoading, error: mockError, refetch: mockRefetchFn })),
   useAssets: () => ({ data: [mockAsset], isLoading: false, error: null }),
   useAsset: () => ({ data: null, isLoading: false, error: null }),
   useCreateAsset: () => ({ mutate: vi.fn(), mutateAsync: mockCreateFn, isPending: false }),
@@ -208,6 +224,62 @@ describe('AssetsPage', () => {
       if (refreshBtn) {
         expect(refreshBtn).toBeInTheDocument();
       }
+    });
+  });
+
+  // renderPage: like renderWithProviders but with a MemoryRouter so deep-link
+  // query params can be seeded via initialEntries (BrowserRouter reads the real URL).
+  function renderPage(search = '') {
+    return render(
+      <QueryClientProvider client={createTestQueryClient()}>
+        <I18nextProvider i18n={i18n}>
+          <MemoryRouter initialEntries={[`/assets${search}`]}>
+            <AuthProvider>
+              <NumberFormatProvider>
+                <DecimalPlacesProvider>
+                  <CurrencyDisplayProvider>
+                    <VisibilityProvider>
+                      <AssetsPage />
+                    </VisibilityProvider>
+                  </CurrencyDisplayProvider>
+                </DecimalPlacesProvider>
+              </NumberFormatProvider>
+            </AuthProvider>
+          </MemoryRouter>
+        </I18nextProvider>
+      </QueryClientProvider>
+    );
+  }
+
+  describe('deep-link params', () => {
+    it('seeds currency and type filters from URL params', () => {
+      renderPage('?currency=USD&type=CRYPTO');
+
+      const captured = vi.mocked(useAssetsSearch).mock.calls[0]?.[0];
+      expect(captured?.currency).toBe('USD');
+      expect(captured?.type).toBe('CRYPTO');
+    });
+
+    it('ignores invalid asset type param', () => {
+      renderPage('?type=NOPE');
+
+      const captured = vi.mocked(useAssetsSearch).mock.calls[0]?.[0];
+      expect(captured?.type).toBeUndefined();
+    });
+
+    it('ignores invalid currency param', () => {
+      renderPage('?currency=US');
+
+      const captured = vi.mocked(useAssetsSearch).mock.calls[0]?.[0];
+      expect(captured?.currency).toBeUndefined();
+    });
+
+    it('seeds no filters when params are absent', () => {
+      renderPage('?highlight=3');
+
+      const captured = vi.mocked(useAssetsSearch).mock.calls[0]?.[0];
+      expect(captured?.currency).toBeUndefined();
+      expect(captured?.type).toBeUndefined();
     });
   });
 });

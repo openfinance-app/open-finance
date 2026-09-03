@@ -1,8 +1,10 @@
 import { useId, useState, useCallback, useRef, useMemo } from 'react';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCashflowSankey } from '../../hooks/useDashboard';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { buildTransactionsLink } from '@/utils/navigation';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { sum } from '@/utils/money';
 import { ConvertedAmount } from '../ui/ConvertedAmount';
@@ -165,17 +167,37 @@ interface CashflowSankeyCardProps {
   period?: number;
   /** Optional explicit date range — takes precedence over `period` */
   dateRange?: DateRange;
+  navDateRange?: DateRange;
 }
 
 export default function CashflowSankeyCard({
   currency = DEFAULT_CURRENCY,
   period = 30,
   dateRange,
+  navDateRange,
 }: CashflowSankeyCardProps) {
   const { t } = useTranslation('dashboard');
   const { isAmountsVisible } = useVisibility();
   const { format } = useFormatCurrency();
+  const navigate = useNavigate();
   const gradId = useId().replace(/:/g, '');
+
+  const navToType = useCallback(
+    (type: 'INCOME' | 'EXPENSE') =>
+      navigate(buildTransactionsLink({ type, dateRange: navDateRange })),
+    [navigate, navDateRange]
+  );
+
+  const navToFlow = useCallback(
+    (node: ICashflowSankeyNode) => {
+      if (node.categoryId != null) {
+        navigate(buildTransactionsLink({ categoryId: node.categoryId, dateRange: navDateRange }));
+      } else {
+        navigate(buildTransactionsLink({ noCategory: true, dateRange: navDateRange }));
+      }
+    },
+    [navigate, navDateRange]
+  );
 
   // ── Zoom state ──────────────────────────────────────────────────────────────
   const [zoom, setZoom] = useState<number>(ZOOM_DEFAULT);
@@ -215,7 +237,14 @@ export default function CashflowSankeyCard({
       const otherLabel = t('cashflowSankey.other');
       return [
         ...top,
-        { name: otherLabel, amount: sum(rest.map((n) => n.amount)), color: '#6b7280', icon: null, isOther: true } as ICashflowSankeyNode & { color: string },
+        {
+          name: otherLabel,
+          amount: sum(rest.map((n) => n.amount)),
+          color: '#6b7280',
+          icon: null,
+          categoryId: null,
+          isOther: true,
+        } as ICashflowSankeyNode & { color: string },
       ];
     }
 
@@ -310,18 +339,28 @@ export default function CashflowSankeyCard({
 
       {/* ── Summary pills ──────────────────────────────────────────────────── */}
       <div className="flex gap-3 mb-3 flex-shrink-0">
-        <div className="flex-1 bg-success/10 rounded px-3 py-1.5 text-center">
+        <button
+          type="button"
+          onClick={() => navToType('INCOME')}
+          className="flex-1 bg-success/10 rounded px-3 py-1.5 text-center hover:bg-success/20 transition-colors"
+          aria-label={t('cashflowSankey.viewIncome')}
+        >
           <div className="text-xs text-text-secondary mb-0.5">{t('cashflowSankey.income')}</div>
           <div className="text-sm font-bold text-success font-mono">
             <ConvertedAmount amount={data.totalIncome} currency={currency} inline />
           </div>
-        </div>
-        <div className="flex-1 bg-error/10 rounded px-3 py-1.5 text-center">
+        </button>
+        <button
+          type="button"
+          onClick={() => navToType('EXPENSE')}
+          className="flex-1 bg-error/10 rounded px-3 py-1.5 text-center hover:bg-error/20 transition-colors"
+          aria-label={t('cashflowSankey.viewExpenses')}
+        >
           <div className="text-xs text-text-secondary mb-0.5">{t('cashflowSankey.expenses')}</div>
           <div className="text-sm font-bold text-error font-mono">
             <ConvertedAmount amount={data.totalExpenses} currency={currency} inline />
           </div>
-        </div>
+        </button>
         <div
           className="flex-1 rounded px-3 py-1.5 text-center"
           style={{ background: hasSurplus ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)' }}
@@ -432,6 +471,10 @@ export default function CashflowSankeyCard({
                 NODE_L, incFan[i].t, incFan[i].b,
               )}
               fill={`url(#${gradId}ig${i})`}
+              className="cursor-pointer"
+              onClick={() => {
+                if (!n.isOther) navToFlow(n);
+              }}
             />
           ))}
 
@@ -444,6 +487,10 @@ export default function CashflowSankeyCard({
                 EXP_RIB_R, n.barY, n.barY + BAR_H,
               )}
               fill={`url(#${gradId}eg${i})`}
+              className="cursor-pointer"
+              onClick={() => {
+                if (!n.isOther) navToFlow(n);
+              }}
             />
           ))}
 
@@ -451,7 +498,24 @@ export default function CashflowSankeyCard({
           {incLayout.map((n, i) => {
             const cy = barCY(n);
             return (
-              <g key={`ib${i}`}>
+              <g
+                key={`ib${i}`}
+                role="button"
+                tabIndex={0}
+                className="cursor-pointer"
+                aria-label={
+                  n.isOther ? undefined : t('cashflowSankey.viewFlow', { name: n.name })
+                }
+                onClick={() => {
+                  if (!n.isOther) navToFlow(n);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (!n.isOther) navToFlow(n);
+                  }
+                }}
+              >
                 {/* Dark background rect to block ribbon bleed */}
                 <rect x={INC_BAR_X - 2} y={n.barY - 1} width={BAR_W + 4} height={BAR_H + 2}
                   fill="#111827" rx={3} />
@@ -478,7 +542,24 @@ export default function CashflowSankeyCard({
           {expLayout.map((n, i) => {
             const cy = barCY(n);
             return (
-              <g key={`eb${i}`}>
+              <g
+                key={`eb${i}`}
+                role="button"
+                tabIndex={0}
+                className="cursor-pointer"
+                aria-label={
+                  n.isOther ? undefined : t('cashflowSankey.viewFlow', { name: n.name })
+                }
+                onClick={() => {
+                  if (!n.isOther) navToFlow(n);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (!n.isOther) navToFlow(n);
+                  }
+                }}
+              >
                 {/* Dark background rect to block ribbon bleed */}
                 <rect x={EXP_BAR_X - 2} y={n.barY - 1} width={BAR_W + 4} height={BAR_H + 2}
                   fill="#111827" rx={3} />

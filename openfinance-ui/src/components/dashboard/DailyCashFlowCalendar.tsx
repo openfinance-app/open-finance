@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
@@ -36,6 +37,7 @@ interface DailyCashFlowCalendarProps {
 
 const DailyCashFlowCalendar = ({ className, baseCurrency = DEFAULT_CURRENCY }: DailyCashFlowCalendarProps) => {
   const { t, i18n } = useTranslation('dashboard');
+  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const locale = i18n.language === 'fr' ? fr : enUS;
@@ -218,14 +220,17 @@ const DailyCashFlowCalendar = ({ className, baseCurrency = DEFAULT_CURRENCY }: D
                 <TooltipProvider key={dayStr}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/transactions?dateFrom=${dayStr}&dateTo=${dayStr}`)}
                         className={cn(
-                          'flex flex-col p-1 rounded-sm border transition-colors duration-150 cursor-default overflow-hidden',
+                          'flex flex-col w-full text-left p-1 rounded-sm border transition-colors duration-150 cursor-pointer overflow-hidden',
                           isToday(date)
                             ? 'border-primary bg-primary/5'
                             : 'border-border bg-surface hover:bg-surface-elevated'
                         )}
                         style={{ minHeight: `${BAR_AREA_HEIGHT_PX + 24}px` }}
+                        aria-label={t('calendar.viewDayTransactions', { date: dayStr })}
                       >
                         {/* Day number */}
                         <span
@@ -268,7 +273,7 @@ const DailyCashFlowCalendar = ({ className, baseCurrency = DEFAULT_CURRENCY }: D
                             </div>
                           )}
                         </div>
-                      </div>
+                      </button>
                     </TooltipTrigger>
 
                     <TooltipContent

@@ -4,7 +4,8 @@
     "title": "Asset Allocation",
     "tooltip": "The Asset Allocation treemap visualizes how your wealth is distributed across different asset classes, such as stocks, real estate, and crypto. The size of each block represents its proportional value in your total portfolio.",
     "empty": "No assets to display.",
-    "emptySub": "Add assets to see allocation breakdown."
+    "emptySub": "Add assets to see allocation breakdown.",
+    "viewAssetType": "View {{type}} assets"
   },
   "subtitle": "Your financial overview as of {{date}}",
   "addTransaction": "Add Transaction",
@@ -61,7 +62,8 @@
       "noBudgets": "No budgets defined for this period",
       "setUp": "Set up budgets",
       "createFirst": "Create your first budget",
-      "more": "+{{count}} more"
+      "more": "+{{count}} more",
+      "viewDetails": "View budget details"
     },
     "cashFlow": {
       "label": "Cash Flow",
@@ -176,7 +178,8 @@
       "fri": "Fri",
       "sat": "Sat",
       "sun": "Sun"
-    }
+    },
+    "viewDayTransactions": "View transactions for {{date}}"
   },
   "accountsCard": {
     "title": "Accounts",
@@ -196,7 +199,10 @@
     "future": {
       "title": "Scheduled for {{date}}",
       "badge": "Future"
-    }
+    },
+    "viewTransaction": "View transaction details",
+    "filterByAccount": "Filter transactions by {{account}}",
+    "filterByCategory": "Filter transactions by {{category}}"
   },
   "cashFlowChart": {
     "title": "Cash Flow",
@@ -204,7 +210,9 @@
     "net": "Net Cash Flow",
     "income": "Income",
     "expenses": "Expenses",
-    "tooltip": "Cash flow shows your total income vs. expenses over the selected period. Net cash flow = income minus expenses."
+    "tooltip": "Cash flow shows your total income vs. expenses over the selected period. Net cash flow = income minus expenses.",
+    "viewIncome": "View income transactions",
+    "viewExpenses": "View expense transactions"
   },
   "currencyBreakdown": {
     "title": "Assets by Currency",
@@ -221,7 +229,8 @@
     "converting": "Converting...",
     "footer": "Foreign currency values converted at current exchange rates",
     "loadError": "Failed to load currency breakdown",
-    "rate": "Rate: {{rate}}"
+    "rate": "Rate: {{rate}}",
+    "viewAssets": "View assets in {{currency}}"
   },
   "institutionBreakdown": {
     "title": "Breakdown by Institution",
@@ -231,7 +240,8 @@
     "accountCount_one": "{{count}} account",
     "accountCount_other": "{{count}} accounts",
     "accountCount_plural": "{{count}} accounts",
-    "percentOfTotal": "{{percent}}% of total"
+    "percentOfTotal": "{{percent}}% of total",
+    "viewAccounts": "View accounts at {{institution}}"
   },
   "financialMap": {
     "title": "Financial Map",
@@ -267,7 +277,10 @@
     "resetZoom": "Reset zoom",
     "uncategorized": "Uncategorized",
     "unspecified": "UNSPECIFIED",
-    "centerLabel": "CASH FLOW"
+    "centerLabel": "CASH FLOW",
+    "viewFlow": "View {{name}} transactions",
+    "viewIncome": "View income transactions",
+    "viewExpenses": "View expense transactions"
   },
   "netWorthAllocation": {
     "title": "Net Worth Allocation",
@@ -332,7 +345,8 @@
     "totalEarned": "Total Earned",
     "projectedNextYear": "Projected Next Year",
     "noData": "No interest data available for this period.",
-    "projShort": "Proj"
+    "projShort": "Proj",
+    "viewDetails": "View details for {{account}}"
   },
   "assetTypes": {
     "STOCK": "Stock",

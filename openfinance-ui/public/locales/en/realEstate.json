@@ -151,7 +151,8 @@
       "overview": "Overview",
       "equity": "Equity",
       "roi": "ROI Analysis",
-      "attachments": "Attachments"
+      "attachments": "Attachments",
+      "gallery": "Gallery"
     },
     "propertyAgeLabel": "Property Age",
     "propertyAge": "{{years}} years",
@@ -183,7 +184,11 @@
     "latitude": "Latitude",
     "longitude": "Longitude",
     "mortgageBalance": "Mortgage Balance",
-    "totalEquity": "Total Equity"
+    "totalEquity": "Total Equity",
+    "gallery": {
+      "empty": "No images yet. Upload images in the Attachments tab.",
+      "hint": "Manage images in the Attachments tab."
+    }
   },
   "propertySelector": {
     "selectProperty": "Select an existing property...",

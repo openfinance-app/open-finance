@@ -27,6 +27,7 @@ import { LoadingSkeleton } from '@/components/LoadingComponents';
 import { cn } from '@/lib/utils';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
 import { AttachmentEntityType } from '@/types/attachment';
+import { AssetGallery } from './AssetGallery';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { getAssetTypeName } from '@/hooks/useAssets';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
@@ -46,7 +47,7 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
   const { t: tc } = useTranslation('common');
   const { t, i18n } = useTranslation('assets');
   const [timeRange, setTimeRange] = useState<'1M' | '3M' | '6M' | '1Y'>('3M');
-  const [activeTab, setActiveTab] = useState<'overview' | 'attachments'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'gallery' | 'attachments'>('overview');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Calculate date range based on selection
@@ -161,6 +162,17 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                   )}
                 >
                   {t('detail.tabs.overview')}
+                </button>
+                <button
+                  onClick={() => setActiveTab('gallery')}
+                  className={cn(
+                    'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                    activeTab === 'gallery'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {t('detail.tabs.gallery')}
                 </button>
                 <button
                   onClick={() => setActiveTab('attachments')}
@@ -395,6 +407,9 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                   </div>
                 </>
               )}
+
+              {/* Gallery Tab (display only — upload/delete in Attachments tab) */}
+              {activeTab === 'gallery' && <AssetGallery assetId={asset.id} />}
 
               {/* Attachments Tab */}
               {activeTab === 'attachments' && (

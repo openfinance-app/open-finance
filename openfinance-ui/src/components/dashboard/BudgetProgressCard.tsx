@@ -56,14 +56,21 @@ function StatusIcon({ status }: { status: BudgetStatus }) {
 interface BudgetRowProps {
   budget: BudgetProgressResponse;
   baseCurrency: string;
+  onOpen: () => void;
 }
 
-function BudgetRow({ budget, baseCurrency }: BudgetRowProps) {
+function BudgetRow({ budget, baseCurrency, onOpen }: BudgetRowProps) {
   const pct = Math.min(budget.percentageSpent, 100);
   const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+  const { t } = useTranslation('dashboard');
 
   return (
-    <div className="space-y-1">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full text-left space-y-1 rounded-lg px-2 py-1 -mx-2 hover:bg-surface-elevated transition-colors"
+      aria-label={t('cards.budgetCard.viewDetails')}
+    >
       {/* Label row */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -108,7 +115,7 @@ function BudgetRow({ budget, baseCurrency }: BudgetRowProps) {
           style={{ width: `${pct}%` }}
         />
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -300,6 +307,7 @@ export default function BudgetProgressCard() {
               key={budget.budgetId}
               budget={budget}
               baseCurrency={baseCurrency}
+              onOpen={() => navigate(`/budget?open=${budget.budgetId}`)}
             />
           ))}
 
