@@ -308,7 +308,6 @@ h6 {
   }
 }
 
-
 /* ─── Dashboard grid: drag & resize gestures ─────────────────────────────── */
 /* Overrides react-grid-layout defaults (red placeholder, invisible handles)
    to speak this app's amber world and motion tokens. Scoped at higher
@@ -439,7 +438,6 @@ body.react-draggable-transparent-selection {
     transition-duration: 0.01ms !important;
   }
 }
-
 
 /* Global scrollbar styling */
 ::-webkit-scrollbar {

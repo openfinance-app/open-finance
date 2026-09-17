@@ -224,7 +224,9 @@ export default function InstitutionBreakdown({
                       <div className="w-full bg-surface-elevated rounded-full h-2 overflow-hidden">
                         <div
                           className="bg-primary h-full rounded-full progress-fill"
-                          style={{ transform: `scaleX(${Math.max(0, Math.min(100, percent)) / 100})` }}
+                          style={{
+                            transform: `scaleX(${Math.max(0, Math.min(100, percent)) / 100})`,
+                          }}
                         />
                       </div>
                       <div className="mt-1 text-xs text-text-secondary">

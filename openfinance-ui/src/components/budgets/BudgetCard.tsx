@@ -188,10 +188,7 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
         </div>
         <div className="h-2 bg-surface-elevated rounded-full overflow-hidden">
           <div
-            className={cn(
-              'h-full rounded-full progress-fill',
-              getProgressColor(budget.status)
-            )}
+            className={cn('h-full rounded-full progress-fill', getProgressColor(budget.status))}
             style={{ transform: `scaleX(${progressWidth / 100})` }}
           />
         </div>

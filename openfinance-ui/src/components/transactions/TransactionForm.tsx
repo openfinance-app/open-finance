@@ -1061,7 +1061,10 @@ export function TransactionForm({
         {/* Payment Method */}
         <div>
           <div className="flex items-center gap-1 mb-1.5">
-            <label htmlFor="paymentMethod" className="block text-sm font-medium text-text-secondary">
+            <label
+              htmlFor="paymentMethod"
+              className="block text-sm font-medium text-text-secondary"
+            >
               {t('form.paymentMethod')}
             </label>
             <HelpTooltip text={t('form.paymentMethodHint')} side="right" />
@@ -1364,7 +1367,9 @@ export function TransactionForm({
         {/* Tags */}
         <div>
           <div className="flex items-center gap-1 mb-1.5">
-            <label className="block text-sm font-medium text-text-secondary">{t('form.tags')}</label>
+            <label className="block text-sm font-medium text-text-secondary">
+              {t('form.tags')}
+            </label>
             <HelpTooltip text={t('form.tagsHint')} side="right" />
           </div>
           <TagInput

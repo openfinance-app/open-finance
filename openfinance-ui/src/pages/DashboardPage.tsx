@@ -933,7 +933,10 @@ export default function DashboardPage() {
         <div className="min-w-0 bg-surface rounded-lg p-4 border border-border">
           <div className="text-xs text-text-secondary mb-1">{t('stats.totalTransactions')}</div>
           <div className="text-lg sm:text-xl xl:text-2xl font-bold text-text-primary font-mono">
-            <AnimatedNumber value={summary.totalTransactions} format={v => Math.round(v).toString()} />
+            <AnimatedNumber
+              value={summary.totalTransactions}
+              format={v => Math.round(v).toString()}
+            />
           </div>
         </div>
         <div className="min-w-0 bg-surface rounded-lg p-4 border border-border">

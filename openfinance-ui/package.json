@@ -12,6 +12,7 @@
     "test": "vitest",
     "test-coverage": "vitest -- --coverage --run",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
+    "format:write": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "prepare": "husky"
   },
   "dependencies": {

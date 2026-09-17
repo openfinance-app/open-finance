@@ -24,12 +24,7 @@ export interface AnimatedNumberProps {
 /** Deceleration curve matching the app's motion tokens. */
 const easeOutExpo = (t: number): number => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t));
 
-export function AnimatedNumber({
-  value,
-  format,
-  duration = 900,
-  className,
-}: AnimatedNumberProps) {
+export function AnimatedNumber({ value, format, duration = 900, className }: AnimatedNumberProps) {
   const [display, setDisplay] = useState(() => format(value));
   const fromRef = useRef(0);
   const rafRef = useRef<number>(null);
