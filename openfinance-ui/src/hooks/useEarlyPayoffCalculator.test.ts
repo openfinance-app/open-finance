@@ -63,7 +63,8 @@ describe('useEarlyPayoffCalculator', () => {
     });
 
     expect(result.current.input.lumpSumPayments.length).toBe(initialCount + 1);
-    const lastLumpSum = result.current.input.lumpSumPayments[result.current.input.lumpSumPayments.length - 1];
+    const lastLumpSum =
+      result.current.input.lumpSumPayments[result.current.input.lumpSumPayments.length - 1];
     expect(lastLumpSum.month).toBe(12);
     expect(lastLumpSum.amount).toBe(10000);
     expect(result.current.result).toBeNull();
@@ -102,7 +103,9 @@ describe('useEarlyPayoffCalculator', () => {
       result.current.removeLumpSum(firstId);
     });
 
-    expect(result.current.input.lumpSumPayments.find((ls: any) => ls.id === firstId)).toBeUndefined();
+    expect(
+      result.current.input.lumpSumPayments.find((ls: any) => ls.id === firstId)
+    ).toBeUndefined();
   });
 
   it('should reset inputs to defaults', () => {
@@ -244,7 +247,7 @@ describe('useEarlyPayoffCalculator', () => {
         principalPaid: expect.any(Number),
         interestPaid: expect.any(Number),
         endBalance: expect.any(Number),
-      }),
+      })
     );
   });
 

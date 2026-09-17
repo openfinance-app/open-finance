@@ -15,6 +15,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   /** Directory containing Playwright E2E tests */
   testDir: './e2e',
+  outputDir: '../target/browser-tests/test-results',
 
   /** Run test files in parallel */
   fullyParallel: false,
@@ -23,24 +24,24 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
 
   /** Retry failed tests (rate-limiting can cause transient failures) */
-  retries: process.env.CI ? 2 : 1,
+  retries: process.env.CI ? 0 : 1,
 
   /** Number of workers — keep sequential for stability with shared backend */
   workers: 1,
 
   /** Reporter to use */
   reporter: [
-    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['html', { outputFolder: '../target/browser-tests/playwright-report', open: 'never' }],
     ['line'],
   ],
 
   /** Shared settings for all projects below */
   use: {
     /** Base URL of the running dev server */
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
 
     /** Collect trace on first retry */
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
 
     /** Screenshot on failure */
     screenshot: 'only-on-failure',
@@ -78,18 +79,20 @@ export default defineConfig({
    * When `reuseExistingServer` is true Playwright skips launching the command
    * if the port is already in use, so manually started servers are respected.
    */
-  webServer: [
-    {
-      command: 'mvn spring-boot:run -f ../pom.xml',
-      port: 8080,
-      reuseExistingServer: true,
-      timeout: 120_000,
-    },
-    {
-      command: 'npm run dev',
-      port: 3000,
-      reuseExistingServer: true,
-      timeout: 30_000,
-    },
-  ],
+  webServer: process.env.PLAYWRIGHT_BASE_URL
+    ? undefined
+    : [
+        {
+          command: 'mvn spring-boot:run -f ../pom.xml',
+          port: 8080,
+          reuseExistingServer: true,
+          timeout: 120_000,
+        },
+        {
+          command: 'npm run dev',
+          port: 3000,
+          reuseExistingServer: true,
+          timeout: 30_000,
+        },
+      ],
 });

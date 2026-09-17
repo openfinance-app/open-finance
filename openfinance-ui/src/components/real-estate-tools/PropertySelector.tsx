@@ -1,13 +1,19 @@
 /**
  * PropertySelector Component
- * 
+ *
  * Searchable dropdown selector for user's existing properties to populate comparator fields.
  * Uses a search-enabled dropdown pattern consistent with AccountSelector and LiabilitySelector.
  */
 
 import React, { useState, useMemo } from 'react';
 import { Building2, Search, Loader2, MapPin } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
 import { useTranslation } from 'react-i18next';
 import { useProperties } from '@/hooks/useRealEstate';
 import { useAuthContext } from '@/context/AuthContext';
@@ -40,10 +46,11 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
     const normalizedQuery = searchQuery.trim().toLowerCase();
     if (!normalizedQuery) return properties;
     return properties.filter(
-      (property) =>
+      property =>
         property.name.toLowerCase().includes(normalizedQuery) ||
         (property.address && property.address.toLowerCase().includes(normalizedQuery)) ||
-        (property.propertyType && getPropertyTypeName(property.propertyType).toLowerCase().includes(normalizedQuery))
+        (property.propertyType &&
+          getPropertyTypeName(property.propertyType).toLowerCase().includes(normalizedQuery))
     );
   }, [properties, searchQuery]);
 
@@ -124,7 +131,7 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
   return (
     <Select
       onValueChange={handlePropertySelect}
-      onOpenChange={(open) => {
+      onOpenChange={open => {
         setIsOpen(open);
         if (!open) setSearchQuery('');
       }}
@@ -143,11 +150,11 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder={t('propertySelector.searchProperties')}
               className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none"
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
+              onKeyDown={e => e.stopPropagation()}
             />
           </div>
         )}
@@ -157,7 +164,7 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
             {t('propertySelector.noMatch')}
           </div>
         ) : (
-          filteredProperties.map((property) => (
+          filteredProperties.map(property => (
             <SelectItem key={property.id} value={String(property.id)}>
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center gap-2">

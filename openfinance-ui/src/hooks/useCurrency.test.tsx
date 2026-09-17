@@ -88,10 +88,7 @@ describe('useCurrency hooks', () => {
       const mockRate = { from: 'USD', to: 'EUR', rate: 0.91, date: '2026-01-15' };
       mockedApiClient.get.mockResolvedValue({ data: mockRate });
 
-      const { result } = renderHook(
-        () => useExchangeRate('USD', 'EUR', '2026-01-15'),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useExchangeRate('USD', 'EUR', '2026-01-15'), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
     });
@@ -177,7 +174,7 @@ describe('useCurrency hooks', () => {
 
     it('should format negative amounts', () => {
       const { result } = renderHook(() => useCurrencyFormat('USD'), { wrapper });
-      const formatted = result.current(-500.00);
+      const formatted = result.current(-500.0);
       expect(formatted).toContain('-');
       expect(formatted).toContain('500.00');
     });

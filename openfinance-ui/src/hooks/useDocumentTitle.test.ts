@@ -24,10 +24,9 @@ describe('useDocumentTitle', () => {
   });
 
   it('should update title when title prop changes', () => {
-    const { rerender } = renderHook(
-      ({ title }) => useDocumentTitle(title),
-      { initialProps: { title: 'Page A' } }
-    );
+    const { rerender } = renderHook(({ title }) => useDocumentTitle(title), {
+      initialProps: { title: 'Page A' },
+    });
 
     expect(document.title).toBe('Page A | Open Finance');
 
@@ -47,7 +46,7 @@ describe('useDocumentTitle', () => {
 
   it('should handle empty string title with app name', () => {
     renderHook(() => useDocumentTitle(''));
-    // Template literal `${''} | Open Finance` produces "| Open Finance" 
+    // Template literal `${''} | Open Finance` produces "| Open Finance"
     // because document.title trims leading whitespace
     expect(document.title).toContain('Open Finance');
   });

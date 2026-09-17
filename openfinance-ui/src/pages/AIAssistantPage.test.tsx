@@ -31,14 +31,18 @@ vi.mock('@/components/ai/ChatInput', () => ({
   default: ({ onSubmit, isLoading }: any) => (
     <div>
       <input data-testid="chat-input" />
-      <button data-testid="send-btn" onClick={() => onSubmit?.()} disabled={isLoading}>Send</button>
+      <button data-testid="send-btn" onClick={() => onSubmit?.()} disabled={isLoading}>
+        Send
+      </button>
     </div>
   ),
 }));
 vi.mock('@/components/ai/SuggestedPrompts', () => ({
   default: ({ onSelectPrompt }: any) => (
     <div data-testid="suggested-prompts">
-      <button data-testid="prompt-1" onClick={() => onSelectPrompt?.('What is my spending?')}>Prompt</button>
+      <button data-testid="prompt-1" onClick={() => onSelectPrompt?.('What is my spending?')}>
+        Prompt
+      </button>
     </div>
   ),
 }));

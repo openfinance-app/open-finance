@@ -9,14 +9,7 @@
  */
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  X,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle,
-  Calendar,
-} from 'lucide-react';
+import { X, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Calendar } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -67,7 +60,7 @@ function StatusBadge({ status }: { status: BudgetStatus }) {
     <span
       className={cn(
         'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-        config.className,
+        config.className
       )}
     >
       {config.icon}
@@ -92,12 +85,16 @@ interface CustomTooltipProps {
 }
 
 function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps) {
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(currency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(currency);
   if (!active || !payload || payload.length === 0) return null;
   return (
     <div className="bg-surface-elevated border border-border rounded-lg p-3 shadow-lg text-sm">
       <p className="font-semibold text-text-primary mb-2">{label}</p>
-      {payload.map((entry) => (
+      {payload.map(entry => (
         <p key={entry.name} style={{ color: entry.color }} className="mb-0.5">
           {entry.name}:{' '}
           <ConvertedAmount
@@ -118,7 +115,11 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
 // ─── History table row ────────────────────────────────────────────────────────
 
 function HistoryRow({ entry, currency }: { entry: BudgetHistoryEntry; currency: string }) {
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(currency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(currency);
   const isExceeded = entry.status === 'EXCEEDED';
   const isWarning = entry.status === 'WARNING';
 
@@ -127,7 +128,7 @@ function HistoryRow({ entry, currency }: { entry: BudgetHistoryEntry; currency: 
       className={cn(
         'border-b border-border/50 last:border-0 transition-colors hover:bg-surface/50',
         isExceeded && 'bg-error/5',
-        isWarning && 'bg-warning/5',
+        isWarning && 'bg-warning/5'
       )}
     >
       <td className="py-3 px-4 text-sm font-medium text-text-primary whitespace-nowrap">
@@ -179,7 +180,7 @@ function HistoryRow({ entry, currency }: { entry: BudgetHistoryEntry; currency: 
             <div
               className={cn(
                 'h-full rounded-full transition-all',
-                isExceeded ? 'bg-error' : isWarning ? 'bg-warning' : 'bg-success',
+                isExceeded ? 'bg-error' : isWarning ? 'bg-warning' : 'bg-success'
               )}
               style={{ width: `${Math.min(entry.percentageSpent, 100)}%` }}
             />
@@ -209,7 +210,11 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
   const { isAmountsVisible } = useVisibility();
   const { baseCurrency } = useAuthContext();
   const { format: formatCurrency } = useFormatCurrency();
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(baseCurrency);
   const { t } = useTranslation('budgets');
   const { t: tc } = useTranslation('common');
 
@@ -230,7 +235,7 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
   // Chart data
   const chartBudgetedKey = t('card.budgeted');
   const chartSpentKey = t('card.spent');
-  const chartData = (historyData?.history ?? []).map((entry) => ({
+  const chartData = (historyData?.history ?? []).map(entry => ({
     name: entry.label,
     [chartBudgetedKey]: entry.budgeted,
     [chartSpentKey]: entry.spent,
@@ -240,17 +245,12 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
     historyData && historyData.totalBudgeted > 0
       ? (historyData.totalSpent / historyData.totalBudgeted) * 100
       : 0;
-  const isOverBudget = historyData
-    ? historyData.totalSpent > historyData.totalBudgeted
-    : false;
+  const isOverBudget = historyData ? historyData.totalSpent > historyData.totalBudgeted : false;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal panel */}
       <div className="relative bg-surface border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
@@ -266,7 +266,9 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
               ) : (
                 <>
                   <h2 className="text-xl font-bold text-foreground">
-                    {t('detail.historyTitle', { category: historyData?.categoryName ?? budget?.categoryName ?? '' })}
+                    {t('detail.historyTitle', {
+                      category: historyData?.categoryName ?? budget?.categoryName ?? '',
+                    })}
                   </h2>
                   {historyData && (
                     <p className="text-sm text-muted-foreground">
@@ -313,17 +315,17 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                   <p className="text-xs text-text-muted mb-1 uppercase tracking-wide">
                     {t('summary.totalBudgeted')}
                   </p>
-                   <p className="text-xl font-bold text-text-primary font-mono">
-                     <ConvertedAmount
-                       amount={historyData.totalBudgeted}
-                       currency={baseCurrency}
-                       isConverted={false}
-                       secondaryAmount={convert(historyData.totalBudgeted)}
-                       secondaryCurrency={secCurrency}
-                       secondaryExchangeRate={secondaryExchangeRate}
-                       inline
-                     />
-                   </p>
+                  <p className="text-xl font-bold text-text-primary font-mono">
+                    <ConvertedAmount
+                      amount={historyData.totalBudgeted}
+                      currency={baseCurrency}
+                      isConverted={false}
+                      secondaryAmount={convert(historyData.totalBudgeted)}
+                      secondaryCurrency={secCurrency}
+                      secondaryExchangeRate={secondaryExchangeRate}
+                      inline
+                    />
+                  </p>
                 </Card>
                 <Card className="p-4">
                   <p className="text-xs text-text-muted mb-1 uppercase tracking-wide">
@@ -332,7 +334,7 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                   <p
                     className={cn(
                       'text-xl font-bold font-mono',
-                      isOverBudget ? 'text-error' : 'text-text-primary',
+                      isOverBudget ? 'text-error' : 'text-text-primary'
                     )}
                   >
                     <ConvertedAmount
@@ -353,7 +355,7 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                   <p
                     className={cn(
                       'text-xl font-bold font-mono',
-                      isOverBudget ? 'text-error' : 'text-success',
+                      isOverBudget ? 'text-error' : 'text-success'
                     )}
                   >
                     <ConvertedAmount
@@ -380,7 +382,7 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                     <p
                       className={cn(
                         'text-xl font-bold font-mono',
-                        isOverBudget ? 'text-error' : 'text-success',
+                        isOverBudget ? 'text-error' : 'text-success'
                       )}
                     >
                       {overallPercentage.toFixed(1)}%
@@ -396,14 +398,8 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                     {t('detail.spendingByPeriod')}
                   </h2>
                   <ResponsiveContainer width="100%" height={240} minWidth={0}>
-                    <BarChart
-                      data={chartData}
-                      margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="rgba(255,255,255,0.06)"
-                      />
+                    <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                       <XAxis
                         dataKey="name"
                         tick={{ fill: 'var(--color-text-secondary)', fontSize: 11 }}
@@ -486,12 +482,12 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                       </thead>
                       <tbody>
                         {historyData.history.map((entry, idx) => (
-                           <HistoryRow
-                             key={`${entry.periodStart}-${idx}`}
-                             entry={entry}
-                             currency={baseCurrency}
-                           />
-                         ))}
+                          <HistoryRow
+                            key={`${entry.periodStart}-${idx}`}
+                            entry={entry}
+                            currency={baseCurrency}
+                          />
+                        ))}
                       </tbody>
                     </table>
                   </div>

@@ -47,13 +47,16 @@ class Logger {
   error(message: string, error?: Error | unknown, context?: LogContext): void {
     const errorContext: LogContext = {
       ...context,
-      error: error instanceof Error ? {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      } : error,
+      error:
+        error instanceof Error
+          ? {
+              name: error.name,
+              message: error.message,
+              stack: error.stack,
+            }
+          : error,
     };
-    
+
     this.log('error', message, errorContext);
   }
 
@@ -92,11 +95,7 @@ class Logger {
    * Send logs to external logging service (e.g., Sentry, LogRocket)
    * Placeholder for future implementation
    */
-  private sendToLoggingService(
-    _level: LogLevel,
-    _message: string,
-    _context?: LogContext
-  ): void {
+  private sendToLoggingService(_level: LogLevel, _message: string, _context?: LogContext): void {
     // Send logs to an external logging endpoint if configured.
     // Use Vite env var VITE_LOGGING_SERVICE_URL to configure the endpoint.
     // Keep this fire-and-forget to avoid delaying UI code.
@@ -119,7 +118,7 @@ class Logger {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         keepalive: true,
-      }).catch((err) => {
+      }).catch(err => {
         // don't throw in production logging path
         if (this.isDevelopment) {
           console.warn('Failed to send log to external service', err);
@@ -137,7 +136,7 @@ class Logger {
    */
   time(label: string): () => void {
     const startTime = performance.now();
-    
+
     return () => {
       const endTime = performance.now();
       const duration = endTime - startTime;

@@ -26,27 +26,35 @@ describe('Accordion', () => {
 
   it('shows content when defaultValue matches', () => {
     renderAccordion('item-1');
-    const content1 = screen.getByText('Content 1').closest('div[class*="overflow-hidden"]') as HTMLElement;
+    const content1 = screen
+      .getByText('Content 1')
+      .closest('div[class*="overflow-hidden"]') as HTMLElement;
     expect(content1.className).toContain('max-h-[2000px]');
   });
 
   it('hides content when not selected', () => {
     renderAccordion('item-1');
-    const content2 = screen.getByText('Content 2').closest('div[class*="overflow-hidden"]') as HTMLElement;
+    const content2 = screen
+      .getByText('Content 2')
+      .closest('div[class*="overflow-hidden"]') as HTMLElement;
     expect(content2.className).toContain('max-h-0');
   });
 
   it('toggles content on trigger click', () => {
     renderAccordion();
     fireEvent.click(screen.getByText('Section 1'));
-    const content1 = screen.getByText('Content 1').closest('div[class*="overflow-hidden"]') as HTMLElement;
+    const content1 = screen
+      .getByText('Content 1')
+      .closest('div[class*="overflow-hidden"]') as HTMLElement;
     expect(content1.className).toContain('max-h-[2000px]');
   });
 
   it('closes open item on second click', () => {
     renderAccordion('item-1');
     fireEvent.click(screen.getByText('Section 1'));
-    const content1 = screen.getByText('Content 1').closest('div[class*="overflow-hidden"]') as HTMLElement;
+    const content1 = screen
+      .getByText('Content 1')
+      .closest('div[class*="overflow-hidden"]') as HTMLElement;
     expect(content1.className).toContain('max-h-0');
   });
 

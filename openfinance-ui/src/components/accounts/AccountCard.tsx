@@ -2,14 +2,26 @@
  * AccountCard Component
  * Task 2.2.11: Create AccountCard component with edit/delete
  * Task 2.5.12: Updated to display institution logo
- * 
+ *
  * Displays account information in a card format
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Edit2, Trash2, Wallet, CreditCard, PiggyBank, TrendingUp, Banknote, Package, TrendingUp as TrendingIcon, RotateCcw, XCircle } from 'lucide-react';
+import {
+  Edit2,
+  Trash2,
+  Wallet,
+  CreditCard,
+  PiggyBank,
+  TrendingUp,
+  Banknote,
+  Package,
+  TrendingUp as TrendingIcon,
+  RotateCcw,
+  XCircle,
+} from 'lucide-react';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import type { Account, AccountType } from '@/types/account';
@@ -37,10 +49,21 @@ const accountTypeIcons: Record<AccountType, React.ReactNode> = {
   OTHER: <Package className="h-5 w-5" />,
 };
 
-export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onViewDetail }: AccountCardProps) {
+export function AccountCard({
+  account,
+  onEdit,
+  onDelete,
+  onClose,
+  onReopen,
+  onViewDetail,
+}: AccountCardProps) {
   const isNegative = account.balance < 0;
   const isClosed = !account.isActive;
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(account.currency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(account.currency);
   const { t } = useTranslation('accounts');
   const { t: tc } = useTranslation('common');
 
@@ -80,9 +103,7 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h3 className="text-lg font-semibold text-text-primary truncate">
-                {account.name}
-              </h3>
+              <h3 className="text-lg font-semibold text-text-primary truncate">{account.name}</h3>
               <p className="text-sm text-text-secondary mt-0.5">
                 {t(`form.types.${account.type}`)}
               </p>
@@ -90,80 +111,76 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
 
             {/* Actions */}
             <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(account);
-            }}
-            className="h-8 w-8 p-0"
-            aria-label={tc('aria.editAccount')}
-          >
-            <Edit2 className="h-4 w-4" />
-          </Button>
-          
-          {/* Show reopen button for closed accounts */}
-          {isClosed && onReopen && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onReopen(account);
-              }}
-              className="h-8 w-8 p-0 text-success hover:text-success hover:bg-success/10"
-              aria-label={t('card.reopen')}
-              title={t('card.reopen')}
-            >
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-          )}
-          
-          {/* Show close button for active accounts */}
-          {!isClosed && onClose && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose(account);
-              }}
-              className="h-8 w-8 p-0 text-warning hover:text-warning hover:bg-warning/10"
-              aria-label={tc('aria.closeAccount')}
-              title={tc('aria.closeAccount')}
-            >
-              <XCircle className="h-4 w-4" />
-            </Button>
-          )}
-          
-          {/* Delete button - show for all accounts */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(account);
-            }}
-            className="h-8 w-8 p-0 text-error hover:text-error hover:bg-error/10"
-            aria-label={tc('aria.deleteAccount')}
-            title={tc('aria.deleteAccount')}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={e => {
+                  e.stopPropagation();
+                  onEdit(account);
+                }}
+                className="h-8 w-8 p-0"
+                aria-label={tc('aria.editAccount')}
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
+
+              {/* Show reopen button for closed accounts */}
+              {isClosed && onReopen && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={e => {
+                    e.stopPropagation();
+                    onReopen(account);
+                  }}
+                  className="h-8 w-8 p-0 text-success hover:text-success hover:bg-success/10"
+                  aria-label={t('card.reopen')}
+                  title={t('card.reopen')}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              )}
+
+              {/* Show close button for active accounts */}
+              {!isClosed && onClose && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={e => {
+                    e.stopPropagation();
+                    onClose(account);
+                  }}
+                  className="h-8 w-8 p-0 text-warning hover:text-warning hover:bg-warning/10"
+                  aria-label={tc('aria.closeAccount')}
+                  title={tc('aria.closeAccount')}
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              )}
+
+              {/* Delete button - show for all accounts */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={e => {
+                  e.stopPropagation();
+                  onDelete(account);
+                }}
+                className="h-8 w-8 p-0 text-error hover:text-error hover:bg-error/10"
+                aria-label={tc('aria.deleteAccount')}
+                title={tc('aria.deleteAccount')}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
           {account.institution && (
-            <p className="text-sm text-text-tertiary mt-1 truncate">
-              {account.institution.name}
-            </p>
+            <p className="text-sm text-text-tertiary mt-1 truncate">{account.institution.name}</p>
           )}
 
           {account.description && (
-            <p className="text-sm text-text-tertiary mt-2 line-clamp-2">
-              {account.description}
-            </p>
+            <p className="text-sm text-text-tertiary mt-2 line-clamp-2">{account.description}</p>
           )}
         </div>
       </div>
@@ -180,17 +197,17 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
             )}
           >
             {/* Reference REQ-7.1, REQ-7.3: Display account balance with base and secondary currency tooltip */}
-             <ConvertedAmount
-               amount={account.balance}
-               currency={account.currency}
-               convertedAmount={account.balanceInBaseCurrency}
-               baseCurrency={account.baseCurrency}
-               exchangeRate={account.exchangeRate}
-               isConverted={account.isConverted}
-               secondaryAmount={account.balanceInSecondaryCurrency}
-               secondaryCurrency={account.secondaryCurrency}
-               animate
-             />
+            <ConvertedAmount
+              amount={account.balance}
+              currency={account.currency}
+              convertedAmount={account.balanceInBaseCurrency}
+              baseCurrency={account.baseCurrency}
+              exchangeRate={account.exchangeRate}
+              isConverted={account.isConverted}
+              secondaryAmount={account.balanceInSecondaryCurrency}
+              secondaryCurrency={account.secondaryCurrency}
+              animate
+            />
           </div>
         </div>
 
@@ -214,7 +231,9 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
             </div>
             {/* Projection */}
             <div>
-              <p className="text-xs text-text-muted leading-none mb-0.5">{t('card.projectedNet')}</p>
+              <p className="text-xs text-text-muted leading-none mb-0.5">
+                {t('card.projectedNet')}
+              </p>
               <p className="text-sm font-mono font-semibold text-success flex items-center justify-end gap-1">
                 <TrendingIcon className="h-3 w-3" />
                 <ConvertedAmount

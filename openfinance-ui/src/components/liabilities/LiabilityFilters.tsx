@@ -1,6 +1,6 @@
 /**
  * LiabilityFilters Component
- * 
+ *
  * Filter controls for liabilities (type, search, sort)
  */
 import { Search, X } from 'lucide-react';
@@ -35,10 +35,7 @@ const sortOptions: { value: string; labelKey: string }[] = [
   { value: 'interestRate,asc', labelKey: 'filterOptions.sort.interestLowHigh' },
 ];
 
-export function LiabilityFilters({
-  filters,
-  onFiltersChange,
-}: LiabilityFiltersProps) {
+export function LiabilityFilters({ filters, onFiltersChange }: LiabilityFiltersProps) {
   const { t } = useTranslation('liabilities');
   const handleChange = (key: keyof Filters, value: string | number | boolean | undefined) => {
     onFiltersChange({
@@ -71,12 +68,14 @@ export function LiabilityFilters({
             type="text"
             placeholder={t('form.searchPlaceholder')}
             value={filters.search || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('search', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleChange('search', e.target.value)
+            }
             className="pl-10 pr-10"
           />
           <RegexToggle
             enabled={!!filters.searchRegex}
-            onChange={(val) => handleChange('searchRegex', val || undefined)}
+            onChange={val => handleChange('searchRegex', val || undefined)}
             className="absolute right-2 top-1/2 -translate-y-1/2"
           />
         </div>
@@ -92,11 +91,11 @@ export function LiabilityFilters({
           <select
             id="type"
             value={filters.type || ''}
-            onChange={(e) => handleChange('type', e.target.value || undefined)}
+            onChange={e => handleChange('type', e.target.value || undefined)}
             className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
             <option value="">{t('filterOptions.allTypes')}</option>
-            {liabilityTypes.map((type) => (
+            {liabilityTypes.map(type => (
               <option key={type.value} value={type.value}>
                 {t(`types.${type.value}`)}
               </option>
@@ -112,10 +111,10 @@ export function LiabilityFilters({
           <select
             id="sort"
             value={filters.sort || 'createdAt,desc'}
-            onChange={(e) => handleChange('sort', e.target.value || undefined)}
+            onChange={e => handleChange('sort', e.target.value || undefined)}
             className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
-            {sortOptions.map((option) => (
+            {sortOptions.map(option => (
               <option key={option.value} value={option.value}>
                 {t(option.labelKey)}
               </option>

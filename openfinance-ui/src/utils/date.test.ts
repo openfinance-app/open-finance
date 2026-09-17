@@ -1,5 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { formatDate, formatDateForInput, getToday, getDaysAgo, getStartOfMonth, getStartOfYear, formatRelativeDate } from './date';
+import {
+  formatDate,
+  formatDateForInput,
+  getToday,
+  getDaysAgo,
+  getStartOfMonth,
+  getStartOfYear,
+  formatRelativeDate,
+} from './date';
 
 describe('formatDate', () => {
   it('formats with YYYY-MM-DD format', () => {

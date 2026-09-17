@@ -1,6 +1,6 @@
 /**
  * Types for budget alerts
- * 
+ *
  * Backend mapping:
  * - BudgetAlertRequest.java
  * - BudgetAlertResponse.java
@@ -36,7 +36,7 @@ export type AlertSeverity = 'warning' | 'critical' | 'exceeded';
 
 export function getAlertSeverity(threshold: number, spentPercentage: number | null): AlertSeverity {
   if (spentPercentage === null) return 'warning';
-  
+
   if (threshold >= 100 && spentPercentage >= 100) {
     return 'exceeded';
   } else if (threshold >= 90) {

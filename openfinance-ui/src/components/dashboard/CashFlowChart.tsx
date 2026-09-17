@@ -34,17 +34,17 @@ const CustomTooltip = ({ active, payload, currency }: any) => {
 
 /**
  * CashFlowChart - Bar chart showing income vs expenses
- * 
+ *
  * Design:
  * - Green bars for income, red bars for expenses
  * - Dark theme with minimal grid lines
  * - Tooltip on hover with exact values
  */
-export default function CashFlowChart({ 
-  cashFlow, 
+export default function CashFlowChart({
+  cashFlow,
   period = 30,
   currency = DEFAULT_CURRENCY,
-  navDateRange
+  navDateRange,
 }: CashFlowChartProps) {
   const { t } = useTranslation('dashboard');
   const { isAmountsVisible } = useVisibility();
@@ -70,20 +70,21 @@ export default function CashFlowChart({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1">
           <h3 className="text-lg font-semibold text-text-primary">{t('cashFlowChart.title')}</h3>
-          <HelpTooltip
-            text={t('cashFlowChart.tooltip')}
-            side="right"
-          />
+          <HelpTooltip text={t('cashFlowChart.tooltip')} side="right" />
         </div>
-        <span className="text-xs text-text-secondary">{t('cashFlowChart.lastDays', { days: period })}</span>
+        <span className="text-xs text-text-secondary">
+          {t('cashFlowChart.lastDays', { days: period })}
+        </span>
       </div>
 
       {/* Net Cash Flow Summary */}
       <div className="mb-6 p-4 bg-surface-elevated rounded-lg">
         <div className="text-xs text-text-secondary mb-1">{t('cashFlowChart.net')}</div>
-        <div className={`text-2xl font-bold font-mono ${
-          cashFlow.netCashFlow >= 0 ? 'text-green-500' : 'text-red-500'
-        }`}>
+        <div
+          className={`text-2xl font-bold font-mono ${
+            cashFlow.netCashFlow >= 0 ? 'text-green-500' : 'text-red-500'
+          }`}
+        >
           {cashFlow.netCashFlow >= 0 ? '+' : '-'}
           <ConvertedAmount amount={Math.abs(cashFlow.netCashFlow)} currency={currency} inline />
         </div>
@@ -94,15 +95,11 @@ export default function CashFlowChart({
         <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
           <BarChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-            <XAxis 
-              dataKey="name" 
+            <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+            <YAxis
               stroke="#9ca3af"
               tick={{ fill: '#9ca3af', fontSize: 12 }}
-            />
-            <YAxis 
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
-              tickFormatter={(value) => {
+              tickFormatter={value => {
                 if (!isAmountsVisible) {
                   return '••••';
                 }

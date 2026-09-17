@@ -45,20 +45,21 @@ describe('InterestRateVariationsSection', () => {
     });
 
     deleteMutateMock.mockImplementation(() => undefined);
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true)
+    );
   });
 
   it('renders empty state when there are no variations', () => {
     renderWithProviders(
-      <InterestRateVariationsSection
-        accountId={1}
-        accountBalance={1000}
-        accountCurrency="USD"
-      />
+      <InterestRateVariationsSection accountId={1} accountBalance={1000} accountCurrency="USD" />
     );
 
     expect(screen.getByText(/interest rate history|interest\.historyTitle/i)).toBeInTheDocument();
-    expect(screen.getByText(/no interest rate variations|interest\.noVariations/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/no interest rate variations|interest\.noVariations/i)
+    ).toBeInTheDocument();
     expect(screen.getByText('$120.00')).toBeInTheDocument();
   });
 
@@ -66,11 +67,7 @@ describe('InterestRateVariationsSection', () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <InterestRateVariationsSection
-        accountId={12}
-        accountBalance={2000}
-        accountCurrency="EUR"
-      />
+      <InterestRateVariationsSection accountId={12} accountBalance={2000} accountCurrency="EUR" />
     );
 
     await user.click(screen.getByRole('button', { name: /add rate|interest\.addRate/i }));
@@ -81,7 +78,9 @@ describe('InterestRateVariationsSection', () => {
     fireEvent.change(rateInput, { target: { value: '4.5' } });
     fireEvent.change(taxRateInput, { target: { value: '10' } });
 
-    await user.click(screen.getByRole('button', { name: /save rate|interest\.addDialog\.saveRate/i }));
+    await user.click(
+      screen.getByRole('button', { name: /save rate|interest\.addDialog\.saveRate/i })
+    );
 
     expect(createMutateMock).toHaveBeenCalledWith(
       {
@@ -111,11 +110,7 @@ describe('InterestRateVariationsSection', () => {
     });
 
     renderWithProviders(
-      <InterestRateVariationsSection
-        accountId={33}
-        accountBalance={5000}
-        accountCurrency="USD"
-      />
+      <InterestRateVariationsSection accountId={33} accountBalance={5000} accountCurrency="USD" />
     );
 
     expect(screen.getByText('3.25%')).toBeInTheDocument();

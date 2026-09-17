@@ -1,6 +1,6 @@
 /**
  * useFinancialFreedom Hook
- * 
+ *
  * Custom hook for managing financial freedom calculator state and calculations
  */
 
@@ -66,7 +66,7 @@ export function useFinancialFreedom() {
     const loadDefaults = async () => {
       try {
         const defaults = await getCalculationDefaults();
-        setState((prev) => ({ ...prev, defaults }));
+        setState(prev => ({ ...prev, defaults }));
       } catch (error) {
         console.error('Failed to load calculation defaults:', error);
       }
@@ -78,22 +78,22 @@ export function useFinancialFreedom() {
   /**
    * Update input field
    */
-  const updateInput = useCallback(<K extends keyof FreedomCalculatorInput>(
-    key: K,
-    value: FreedomCalculatorInput[K]
-  ) => {
-    setState((prev) => ({
-      ...prev,
-      input: { ...prev.input, [key]: value },
-      error: null,
-    }));
-  }, []);
+  const updateInput = useCallback(
+    <K extends keyof FreedomCalculatorInput>(key: K, value: FreedomCalculatorInput[K]) => {
+      setState(prev => ({
+        ...prev,
+        input: { ...prev.input, [key]: value },
+        error: null,
+      }));
+    },
+    []
+  );
 
   /**
    * Reset inputs to defaults
    */
   const resetInputs = useCallback(() => {
-    setState((prev) => ({
+    setState(prev => ({
       ...prev,
       input: DEFAULT_FREEDOM_CALCULATOR_INPUT,
       result: null,
@@ -105,45 +105,47 @@ export function useFinancialFreedom() {
   /**
    * Calculate financial freedom timeline (API)
    */
-  const calculate = useCallback(async (input?: FreedomCalculatorInput) => {
-    const inputToUse = input ?? state.input;
+  const calculate = useCallback(
+    async (input?: FreedomCalculatorInput) => {
+      const inputToUse = input ?? state.input;
 
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-    try {
-      const result = await calculateTimeline(inputToUse);
-      setState((prev) => ({
-        ...prev,
-        result,
-        isLoading: false,
-      }));
+      try {
+        const result = await calculateTimeline(inputToUse);
+        setState(prev => ({
+          ...prev,
+          result,
+          isLoading: false,
+        }));
 
-      // Also calculate longevity for comparison
-      const longevity = await calculateLongevity(
-        inputToUse.currentSavings,
-        inputToUse.monthlyExpenses,
-        inputToUse.expectedAnnualReturn
-      );
-      setState((prev) => ({
-        ...prev,
-        longevityResult: longevity,
-      }));
+        // Also calculate longevity for comparison
+        const longevity = await calculateLongevity(
+          inputToUse.currentSavings,
+          inputToUse.monthlyExpenses,
+          inputToUse.expectedAnnualReturn
+        );
+        setState(prev => ({
+          ...prev,
+          longevityResult: longevity,
+        }));
 
-      return result;
-    } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'Calculation failed. Please check your inputs.';
+        return result;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Calculation failed. Please check your inputs.';
 
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: errorMessage,
-      }));
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: errorMessage,
+        }));
 
-      throw error;
-    }
-  }, [state.input]);
+        throw error;
+      }
+    },
+    [state.input]
+  );
 
   /**
    * Calculate locally (no API call)
@@ -153,7 +155,7 @@ export function useFinancialFreedom() {
 
     // Validate inputs
     if (input.currentSavings < 0 || input.monthlyExpenses < 0) {
-      setState((prev) => ({
+      setState(prev => ({
         ...prev,
         error: 'Invalid input values',
       }));
@@ -203,7 +205,7 @@ export function useFinancialFreedom() {
         : 'Financial freedom is not achievable within 50 years with current inputs.',
     };
 
-    setState((prev) => ({
+    setState(prev => ({
       ...prev,
       result,
       isLoading: false,
@@ -216,13 +218,15 @@ export function useFinancialFreedom() {
       input.expectedAnnualReturn
     );
 
-    setState((prev) => ({
+    setState(prev => ({
       ...prev,
       longevityResult: {
         yearsUntilDepletion: Math.floor(longevity.monthsUntilDepletion / 12),
         totalMonthsUntilDepletion: longevity.monthsUntilDepletion,
         isInfinite: longevity.isInfinite,
-        depletionYear: longevity.isInfinite ? null : new Date().getFullYear() + Math.floor(longevity.monthsUntilDepletion / 12),
+        depletionYear: longevity.isInfinite
+          ? null
+          : new Date().getFullYear() + Math.floor(longevity.monthsUntilDepletion / 12),
         finalBalance: longevity.finalBalance,
         willDeplete: !longevity.isInfinite && longevity.monthsUntilDepletion < 1200,
         depletionProjections: [],

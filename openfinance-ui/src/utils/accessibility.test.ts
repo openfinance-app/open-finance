@@ -127,7 +127,7 @@ describe('Accessibility Utilities', () => {
       const liveRegion = document.querySelector('[role="status"]');
       expect(liveRegion).toBeTruthy();
 
-      await new Promise((resolve) => setTimeout(resolve, 1100));
+      await new Promise(resolve => setTimeout(resolve, 1100));
 
       const liveRegionAfter = document.querySelector('[role="status"]');
       expect(liveRegionAfter).toBeFalsy();
@@ -380,9 +380,7 @@ describe('Accessibility Utilities', () => {
 
       const result = prefersReducedMotion();
 
-      expect(matchMediaMock).toHaveBeenCalledWith(
-        '(prefers-reduced-motion: reduce)'
-      );
+      expect(matchMediaMock).toHaveBeenCalledWith('(prefers-reduced-motion: reduce)');
       expect(result).toBe(false);
     });
 

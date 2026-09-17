@@ -5,7 +5,13 @@ import { AssetFilters } from './AssetFilters';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 
 vi.mock('@/components/ui/CurrencySelector', () => ({
-  CurrencySelector: ({ value, onValueChange }: { value?: string; onValueChange: (v?: string) => void }) => (
+  CurrencySelector: ({
+    value,
+    onValueChange,
+  }: {
+    value?: string;
+    onValueChange: (v?: string) => void;
+  }) => (
     <select
       data-testid="currency-selector"
       value={value || ''}
@@ -28,26 +34,22 @@ describe('AssetFilters', () => {
 
   it('renders core inputs and clear button', () => {
     renderWithProviders(
-      <AssetFilters
-        filters={{ sort: 'name,asc', page: 0 }}
-        onFiltersChange={onFiltersChange}
-      />
+      <AssetFilters filters={{ sort: 'name,asc', page: 0 }} onFiltersChange={onFiltersChange} />
     );
 
     expect(screen.getByLabelText(/search|filtersPanel\.search/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/asset type|filtersPanel\.assetType/i)).toBeInTheDocument();
     expect(screen.getByTestId('currency-selector')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /clear|filtersPanel\.clear/i }).closest('button')).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /clear|filtersPanel\.clear/i }).closest('button')
+    ).toBeDisabled();
   });
 
   it('updates keyword, numeric ranges, and sort', async () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <AssetFilters
-        filters={{ sort: 'name,asc', page: 0 }}
-        onFiltersChange={onFiltersChange}
-      />
+      <AssetFilters filters={{ sort: 'name,asc', page: 0 }} onFiltersChange={onFiltersChange} />
     );
 
     await user.type(screen.getByLabelText(/search|filtersPanel\.search/i), 'apple');

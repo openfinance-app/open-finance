@@ -1,7 +1,7 @@
 /**
  * AttachmentUpload Component
  * Task 12.1.10: Create AttachmentUpload component
- * 
+ *
  * Drag-and-drop file upload component with preview and progress tracking
  */
 import { useCallback, useState } from 'react';
@@ -15,7 +15,7 @@ import {
   ALLOWED_FILE_TYPES,
   MAX_FILE_SIZE,
   formatFileSize,
-  type AttachmentEntityType
+  type AttachmentEntityType,
 } from '@/types/attachment';
 import { useUploadAttachment } from '@/hooks/useAttachments';
 import { cn } from '@/lib/utils';
@@ -44,40 +44,45 @@ export function AttachmentUpload({
   const { mutateAsync: uploadFile, isPending, uploadProgress } = useUploadAttachment();
   const { t } = useTranslation('common');
 
-  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
-    setUploadError(null);
+  const onDrop = useCallback(
+    (acceptedFiles: File[], rejectedFiles: any[]) => {
+      setUploadError(null);
 
-    // Handle rejected files
-    if (rejectedFiles.length > 0) {
-      const rejection = rejectedFiles[0];
-      if (rejection.errors[0]?.code === 'file-too-large') {
-        setUploadError(t('attachmentUpload.errorTooLarge', { maxSize: formatFileSize(MAX_FILE_SIZE) }));
-      } else if (rejection.errors[0]?.code === 'file-invalid-type') {
-        setUploadError(t('attachmentUpload.errorInvalidType'));
-      } else {
-        setUploadError(t('attachmentUpload.errorUploadFailed'));
+      // Handle rejected files
+      if (rejectedFiles.length > 0) {
+        const rejection = rejectedFiles[0];
+        if (rejection.errors[0]?.code === 'file-too-large') {
+          setUploadError(
+            t('attachmentUpload.errorTooLarge', { maxSize: formatFileSize(MAX_FILE_SIZE) })
+          );
+        } else if (rejection.errors[0]?.code === 'file-invalid-type') {
+          setUploadError(t('attachmentUpload.errorInvalidType'));
+        } else {
+          setUploadError(t('attachmentUpload.errorUploadFailed'));
+        }
+        return;
       }
-      return;
-    }
 
-    // Check total files limit
-    if (files.length + acceptedFiles.length > maxFiles) {
-      setUploadError(t('attachmentUpload.errorTooManyFiles', { count: maxFiles }));
-      return;
-    }
-
-    // Add preview URLs for images
-    const newFiles = acceptedFiles.map(file => {
-      if (file.type.startsWith('image/')) {
-        Object.assign(file, {
-          preview: URL.createObjectURL(file),
-        });
+      // Check total files limit
+      if (files.length + acceptedFiles.length > maxFiles) {
+        setUploadError(t('attachmentUpload.errorTooManyFiles', { count: maxFiles }));
+        return;
       }
-      return file as FileWithPreview;
-    });
 
-    setFiles(prev => [...prev, ...newFiles]);
-  }, [files, maxFiles]);
+      // Add preview URLs for images
+      const newFiles = acceptedFiles.map(file => {
+        if (file.type.startsWith('image/')) {
+          Object.assign(file, {
+            preview: URL.createObjectURL(file),
+          });
+        }
+        return file as FileWithPreview;
+      });
+
+      setFiles(prev => [...prev, ...newFiles]);
+    },
+    [files, maxFiles]
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -134,9 +139,7 @@ export function AttachmentUpload({
           {...getRootProps()}
           className={cn(
             'border-2 border-dashed rounded-lg p-6 py-8 text-center cursor-pointer transition-colors',
-            isDragActive
-              ? 'border-primary bg-primary/5'
-              : 'border-border hover:border-primary/50',
+            isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50',
             isPending && 'pointer-events-none opacity-50'
           )}
         >
@@ -170,7 +173,9 @@ export function AttachmentUpload({
         {/* File list */}
         {files.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium">{t('attachmentUpload.selectedFiles', { count: files.length })}</h4>
+            <h4 className="text-sm font-medium">
+              {t('attachmentUpload.selectedFiles', { count: files.length })}
+            </h4>
             <div className="space-y-2">
               {files.map((file, index) => {
                 const Icon = getFileIcon(file);
@@ -217,7 +222,11 @@ export function AttachmentUpload({
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>{t('attachmentUpload.uploading')}</span>
-                  <span>{t('attachmentUpload.uploadProgress', { percentage: uploadProgress.percentage })}</span>
+                  <span>
+                    {t('attachmentUpload.uploadProgress', {
+                      percentage: uploadProgress.percentage,
+                    })}
+                  </span>
                 </div>
                 <Progress value={uploadProgress.percentage} />
               </div>
@@ -225,11 +234,7 @@ export function AttachmentUpload({
 
             {/* Upload button */}
             {!isPending && (
-              <Button
-                onClick={handleUpload}
-                disabled={files.length === 0}
-                className="w-full"
-              >
+              <Button onClick={handleUpload} disabled={files.length === 0} className="w-full">
                 <Upload className="mr-2 h-4 w-4" />
                 {t('attachmentUpload.uploadFiles', { count: files.length })}
               </Button>

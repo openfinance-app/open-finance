@@ -998,27 +998,24 @@ public class RealEstateService {
      * @throws RealEstatePropertyNotFoundException if property not found or doesn't belong to user
      * @throws IllegalArgumentException if any parameter is null or newValue is negative
      */
+    @CacheEvict(
+            value = {
+                "dashboardSummary",
+                "netWorthSummary",
+                "accountSummaries",
+                "assetAllocation",
+                "portfolioPerformance",
+                "networthAllocation"
+            },
+            allEntries = true)
     public RealEstatePropertyResponse estimateValue(
             Long propertyId, Long userId, BigDecimal newValue) {
-        if (propertyId == null) {
-            throw new IllegalArgumentException("Property ID cannot be null");
+        if (propertyId == null || userId == null) {
+            throw new IllegalArgumentException("Property and owner are required");
         }
-        if (userId == null) {
-            throw new IllegalArgumentException("User ID cannot be null");
-        }
-        if (newValue == null) {
-            throw new IllegalArgumentException("New value cannot be null");
-        }
-        if (newValue.compareTo(BigDecimal.ZERO) < 0) {
+        if (newValue == null || newValue.signum() < 0) {
             throw new IllegalArgumentException("New value must be non-negative");
         }
-        log.debug(
-                "Updating estimated value for property {}: userId={}, newValue={}",
-                propertyId,
-                userId,
-                newValue);
-
-        // Fetch property and verify ownership
         RealEstateProperty property =
                 realEstateRepository
                         .findByIdAndUserId(propertyId, userId)
@@ -1026,93 +1023,31 @@ public class RealEstateService {
                                 () ->
                                         RealEstatePropertyNotFoundException.byIdAndUser(
                                                 propertyId, userId));
-
-        // Update current value (encryption handled by JPA converter)
-        property.setCurrentValue(newValue.toString());
-
-        // Save updated property
-        RealEstateProperty updatedProperty = realEstateRepository.save(property);
-
-        // Sync with Assets module
-        if (updatedProperty.getAssetId() != null) {
-            try {
-                // Create a mini request just to update the price
-                AssetRequest updateRequest = new AssetRequest();
-                updateRequest.setCurrentPrice(newValue);
-                // We need to provide other required fields or ensure updateAsset handles
-                // partial updates?
-                // Looking at AssetService.updateAsset, it uses
-                // AssetMapper.updateEntityFromRequest which typically ignores nulls.
-                // However, we should double check if AssetRequest validation ("@NotNull")
-                // triggers before service call.
-                // AssetRequest DTO probably has @NotNull annotations.
-                // We'll need to fetch the existing asset to fill valid data or bypass DTO
-                // validation if possible.
-                // Actually, AssetService.updateAsset takes AssetRequest.
-
-                // Better approach: Get the asset, update what we need, and use a dedicated
-                // method or full request.
-                // Since we don't want to re-decrypt everything just to fill a request, let's
-                // look at AssetService.
-                // It calls `assetMapper.updateEntityFromRequest(request, asset)`.
-                // If we pass a request with nulls, we need to ensure MapStruct null value check
-                // strategy is set to IGNORE.
-                // Assuming it is standard, we also need to satisfy @Valid if the controller
-                // uses it,
-                // but internal service calls don't trigger Jakarta Bean Validation unless
-                // explicitly triggered.
-
-                // BUT AssetService.updateAsset performs re-encryption of name/notes if present
-                // in request.
-                // We should construct a minimal request.
-
-                // To be safe and correct, we should populate the request with existing data +
-                // new price
-                // but that requires fetching the asset.
-                // Let's rely on the fact that we can update just the price.
-
-                // Wait, AssetService checks:
-                // if (request.getName() != null) ...
-                // So if we leave name null, it won't be re-encrypted (which is good).
-                // But AssetService.updateAsset checks: if (request == null) throw...
-
-                // The risk is if the mapper overwrites existing fields with null.
-                // We'll assume the mapper is configured with
-                // NullValuePropertyMappingStrategy.IGNORE
-
-                // Let's try to just update the price.
-                AssetResponse assetResponse =
-                        assetService.getAssetById(updatedProperty.getAssetId(), userId);
-
-                AssetRequest partialUpdate = new AssetRequest();
-                partialUpdate.setCurrentPrice(newValue);
-                // Provide required fields to satisfy potential internal checks or mapper
-                partialUpdate.setName(assetResponse.getName());
-                partialUpdate.setType(assetResponse.getType());
-                partialUpdate.setQuantity(assetResponse.getQuantity());
-                partialUpdate.setPurchasePrice(assetResponse.getPurchasePrice());
-                partialUpdate.setCurrency(assetResponse.getCurrency());
-                partialUpdate.setPurchaseDate(assetResponse.getPurchaseDate());
-
-                assetService.updatePropertyAsset(
-                        updatedProperty.getAssetId(), userId, partialUpdate);
-
-            } catch (Exception e) {
-                log.error(
-                        "Failed to sync estimated value for property {} with assets: {}",
-                        propertyId,
-                        e.getMessage());
-            }
+        if (property.getAcquisitionType() == org.openfinance.entity.AcquisitionType.PLANNED
+                && newValue.signum() != 0) {
+            throw new InvalidTransactionException(
+                    "Complete acquisition before valuing a planned property");
         }
-
-        log.info(
-                "Property value updated successfully: id={}, userId={}, newValue={}",
-                propertyId,
+        RealEstatePropertyResponse before = toResponseWithDecryption(property);
+        property.setCurrentValue(newValue.toPlainString());
+        RealEstateProperty saved = realEstateRepository.save(property);
+        if (saved.getAssetId() != null) {
+            AssetRequest update = new AssetRequest();
+            update.setCurrentPrice(newValue);
+            assetService.updatePropertyAsset(saved.getAssetId(), userId, update);
+        }
+        recordValueHistory(saved, newValue);
+        invalidateSnapshotsFrom(userId, LocalDate.now());
+        RealEstatePropertyResponse response = toResponseWithDecryption(saved);
+        operationHistoryService.record(
                 userId,
-                newValue);
-
-        // Decrypt and return response with recalculated fields
-        return toResponseWithDecryption(updatedProperty);
+                org.openfinance.entity.EntityType.REAL_ESTATE,
+                propertyId,
+                response.getName(),
+                org.openfinance.entity.OperationType.UPDATE,
+                before,
+                null);
+        return response;
     }
 
     /**
@@ -1164,7 +1099,7 @@ public class RealEstateService {
             assetUpdate.setPurchasePrice(savedProperty.getPurchasePriceDecimal());
             assetService.updatePropertyAsset(savedProperty.getAssetId(), userId, assetUpdate);
         }
-        recordValueHistory(savedProperty, updated, movementDate);
+        recordValueAdjustment(savedProperty, amount, movementDate);
         invalidateSnapshotsFrom(userId, movementDate);
         log.info(
                 "Capital improvement of {} applied to property {}: new value {}",
@@ -1204,7 +1139,7 @@ public class RealEstateService {
             assetUpdate.setPurchasePrice(savedProperty.getPurchasePriceDecimal());
             assetService.updatePropertyAsset(savedProperty.getAssetId(), userId, assetUpdate);
         }
-        recordValueHistory(savedProperty, updated, movementDate);
+        recordValueAdjustment(savedProperty, amount.negate(), movementDate);
         invalidateSnapshotsFrom(userId, movementDate);
         log.info(
                 "Capital improvement of {} reversed on property {}: new value {}",
@@ -1229,12 +1164,26 @@ public class RealEstateService {
      */
     private void recordValueHistory(
             RealEstateProperty property, BigDecimal plainValue, LocalDate effectiveDate) {
+        recordValueHistory(property, plainValue, effectiveDate, false);
+    }
+
+    private void recordValueAdjustment(
+            RealEstateProperty property, BigDecimal amount, LocalDate date) {
+        recordValueHistory(property, amount, date, true);
+    }
+
+    private void recordValueHistory(
+            RealEstateProperty property,
+            BigDecimal plainValue,
+            LocalDate effectiveDate,
+            boolean adjustment) {
         RealEstateValueHistory entry =
                 RealEstateValueHistory.builder()
                         .propertyId(property.getId())
                         .userId(property.getUserId())
                         .effectiveDate(effectiveDate != null ? effectiveDate : LocalDate.now())
                         .recordedValue(plainValue.toString())
+                        .adjustment(adjustment)
                         .currency(property.getCurrency())
                         .currencyId(property.getCurrencyId())
                         .build();

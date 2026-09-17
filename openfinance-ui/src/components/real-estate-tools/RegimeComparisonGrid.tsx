@@ -1,6 +1,6 @@
 /**
  * RegimeComparisonGrid Component
- * 
+ *
  * Grid layout showing all 4 tax regimes side-by-side
  * Requirements: REQ-2.6.x
  */
@@ -11,7 +11,11 @@ import { Button } from '@/components/ui/Button';
 import { ACCORDION_SYNC_BREAKPOINT_NARROW } from '@/constants/breakpoints';
 import { Card, CardContent } from '@/components/ui/Card';
 import { RegimeCard } from './RegimeCard';
-import type { InvestmentResults, TaxRegime, RegimeCalculationResult } from '@/types/realEstateTools';
+import type {
+  InvestmentResults,
+  TaxRegime,
+  RegimeCalculationResult,
+} from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useTranslation } from 'react-i18next';
@@ -137,18 +141,22 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
               <p className="text-2xl font-bold text-primary">
                 {Math.max(
                   ...regimes.map(r => getRegimeResult(r)?.performance.netYield || 0)
-                ).toFixed(2)}%
+                ).toFixed(2)}
+                %
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('regimeGrid.recommendedRegime')}</p>
               <p className="text-lg font-bold text-success">
-                {recommendedRegime ?
-                  recommendedRegime === 'micro_foncier' ? t('regimeGrid.regimeNameMicroFoncier') :
-                    recommendedRegime === 'reel_foncier' ? t('regimeGrid.regimeNameReelFoncier') :
-                      recommendedRegime === 'lmnp_reel' ? t('regimeGrid.regimeNameLmnpReel') : t('regimeGrid.regimeNameMicroBic')
-                  : '-'
-                }
+                {recommendedRegime
+                  ? recommendedRegime === 'micro_foncier'
+                    ? t('regimeGrid.regimeNameMicroFoncier')
+                    : recommendedRegime === 'reel_foncier'
+                      ? t('regimeGrid.regimeNameReelFoncier')
+                      : recommendedRegime === 'lmnp_reel'
+                        ? t('regimeGrid.regimeNameLmnpReel')
+                        : t('regimeGrid.regimeNameMicroBic')
+                  : '-'}
               </p>
             </div>
           </div>
@@ -157,12 +165,12 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
 
       {/* Regime Cards — 2×2 grid (each card individually collapsible) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {regimes.map((regime) => {
+        {regimes.map(regime => {
           const result = getRegimeResult(regime);
           if (!result) return null;
 
           let isOpen = true;
-          let onToggle = () => { };
+          let onToggle = () => {};
 
           switch (regime) {
             case 'micro_foncier':
@@ -205,11 +213,15 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2 px-4">{t('regimeGrid.criteria')}</th>
-                  {regimes.map((regime) => (
+                  {regimes.map(regime => (
                     <th key={regime} className="text-center py-2 px-4">
-                      {regime === 'micro_foncier' ? t('regimeGrid.regimeNameMicroFoncier') :
-                        regime === 'reel_foncier' ? t('regimeGrid.regimeNameReelFoncier') :
-                          regime === 'lmnp_reel' ? t('regimeGrid.regimeNameLmnpReel') : t('regimeGrid.regimeNameMicroBic')}
+                      {regime === 'micro_foncier'
+                        ? t('regimeGrid.regimeNameMicroFoncier')
+                        : regime === 'reel_foncier'
+                          ? t('regimeGrid.regimeNameReelFoncier')
+                          : regime === 'lmnp_reel'
+                            ? t('regimeGrid.regimeNameLmnpReel')
+                            : t('regimeGrid.regimeNameMicroBic')}
                       {regime === recommendedRegime && (
                         <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
                           {t('regimeCard.recommended')}
@@ -222,7 +234,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
               <tbody>
                 <tr className="border-b">
                   <td className="py-2 px-4 font-medium">{t('regimeGrid.eligible')}</td>
-                  {regimes.map((regime) => (
+                  {regimes.map(regime => (
                     <td key={regime} className="text-center py-2 px-4">
                       {isRegimeEligible(regime) ? (
                         <span className="text-green-600">✓</span>
@@ -234,7 +246,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                 </tr>
                 <tr className="border-b">
                   <td className="py-2 px-4 font-medium">{t('regimeGrid.monthlyCashFlow')}</td>
-                  {regimes.map((regime) => {
+                  {regimes.map(regime => {
                     const result = getRegimeResult(regime);
                     return (
                       <td key={regime} className="text-center py-2 px-4">
@@ -253,7 +265,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                 </tr>
                 <tr className="border-b">
                   <td className="py-2 px-4 font-medium">{t('regimeGrid.grossProfitability')}</td>
-                  {regimes.map((regime) => {
+                  {regimes.map(regime => {
                     const result = getRegimeResult(regime);
                     return (
                       <td key={regime} className="text-center py-2 px-4">
@@ -264,11 +276,15 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                 </tr>
                 <tr className="border-b">
                   <td className="py-2 px-4 font-medium">{t('regimeGrid.netProfitability')}</td>
-                  {regimes.map((regime) => {
+                  {regimes.map(regime => {
                     const result = getRegimeResult(regime);
                     return (
-                      <td key={regime} className={`text-center py-2 px-4 font-semibold ${regime === recommendedRegime ? 'text-green-600' : ''
-                        }`}>
+                      <td
+                        key={regime}
+                        className={`text-center py-2 px-4 font-semibold ${
+                          regime === recommendedRegime ? 'text-green-600' : ''
+                        }`}
+                      >
                         {result ? `${result.performance.netYield.toFixed(2)}%` : '-'}
                       </td>
                     );
@@ -276,7 +292,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                 </tr>
                 <tr className="border-b">
                   <td className="py-2 px-4 font-medium">{t('regimeGrid.taxableIncome')}</td>
-                  {regimes.map((regime) => {
+                  {regimes.map(regime => {
                     const result = getRegimeResult(regime);
                     return (
                       <td key={regime} className="text-center py-2 px-4">
@@ -295,7 +311,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                 </tr>
                 <tr className="border-b">
                   <td className="py-2 px-4 font-medium">{t('regimeGrid.totalTaxes')}</td>
-                  {regimes.map((regime) => {
+                  {regimes.map(regime => {
                     const result = getRegimeResult(regime);
                     return (
                       <td key={regime} className="text-center py-2 px-4 text-red-600">

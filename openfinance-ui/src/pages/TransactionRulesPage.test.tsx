@@ -26,38 +26,64 @@ vi.mock('@/components/transaction-rules/RuleList', () => ({
       {rules.map((r: any) => (
         <div key={r.id}>
           <span>{r.name}</span>
-          <button data-testid={`edit-${r.id}`} onClick={() => onEdit(r)}>Edit</button>
-          <button data-testid={`delete-${r.id}`} onClick={() => onDelete(r)}>Delete</button>
-          <button data-testid={`toggle-${r.id}`} onClick={() => onToggle(r)}>Toggle</button>
+          <button data-testid={`edit-${r.id}`} onClick={() => onEdit(r)}>
+            Edit
+          </button>
+          <button data-testid={`delete-${r.id}`} onClick={() => onDelete(r)}>
+            Delete
+          </button>
+          <button data-testid={`toggle-${r.id}`} onClick={() => onToggle(r)}>
+            Toggle
+          </button>
         </div>
       ))}
-      {rules.length === 0 && <button data-testid="create-first" onClick={onCreateFirst}>First</button>}
+      {rules.length === 0 && (
+        <button data-testid="create-first" onClick={onCreateFirst}>
+          First
+        </button>
+      )}
     </div>
   ),
 }));
 
 vi.mock('@/components/transaction-rules/RuleForm', () => ({
-  RuleForm: ({ open, onSubmit, onOpenChange, rule, submitError }: any) => (
+  RuleForm: ({ open, onSubmit, onOpenChange, rule, submitError }: any) =>
     open ? (
       <div data-testid="rule-form">
         {rule && <span data-testid="editing-rule">{rule.name}</span>}
         {submitError && <span data-testid="submit-error">{submitError}</span>}
-        <button data-testid="submit-form" onClick={() => onSubmit({ name: 'Test', matchField: 'DESCRIPTION', matchType: 'CONTAINS', matchValue: 'test' })}>Submit</button>
-        <button data-testid="close-form" onClick={() => onOpenChange(false)}>Close</button>
+        <button
+          data-testid="submit-form"
+          onClick={() =>
+            onSubmit({
+              name: 'Test',
+              matchField: 'DESCRIPTION',
+              matchType: 'CONTAINS',
+              matchValue: 'test',
+            })
+          }
+        >
+          Submit
+        </button>
+        <button data-testid="close-form" onClick={() => onOpenChange(false)}>
+          Close
+        </button>
       </div>
-    ) : null
-  ),
+    ) : null,
 }));
 
 vi.mock('@/components/ConfirmationDialog', () => ({
-  ConfirmationDialog: ({ open, onConfirm, onOpenChange }: any) => (
+  ConfirmationDialog: ({ open, onConfirm, onOpenChange }: any) =>
     open ? (
       <div data-testid="confirm-dialog">
-        <button data-testid="confirm-delete" onClick={onConfirm}>Confirm</button>
-        <button data-testid="cancel-delete" onClick={() => onOpenChange(false)}>Cancel</button>
+        <button data-testid="confirm-delete" onClick={onConfirm}>
+          Confirm
+        </button>
+        <button data-testid="cancel-delete" onClick={() => onOpenChange(false)}>
+          Cancel
+        </button>
       </div>
-    ) : null
-  ),
+    ) : null,
 }));
 
 describe('TransactionRulesPage', () => {
@@ -106,9 +132,7 @@ describe('TransactionRulesPage', () => {
   });
 
   it('renders rule names in the list', () => {
-    mockRules = [
-      { id: 1, name: 'Auto Categorize', isEnabled: true },
-    ];
+    mockRules = [{ id: 1, name: 'Auto Categorize', isEnabled: true }];
     renderWithProviders(<TransactionRulesPage />);
     expect(screen.getByText('Auto Categorize')).toBeInTheDocument();
   });

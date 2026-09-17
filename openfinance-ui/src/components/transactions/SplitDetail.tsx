@@ -69,7 +69,7 @@ export function SplitDetail({ splits, currency }: SplitDetailProps) {
 
   return (
     <ul className="mt-2 space-y-1" aria-label="Split details">
-      {splits.map((split) => (
+      {splits.map(split => (
         <li
           key={split.id}
           className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-md bg-surface-elevated text-sm"

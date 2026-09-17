@@ -8,13 +8,18 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent } from '@/test/test-utils';
+import {
+  renderWithProviders,
+  mockAuthentication,
+  clearAuthentication,
+  userEvent,
+} from '@/test/test-utils';
 import { RecurringTransactionForm } from '@/components/transactions/RecurringTransactionForm';
 import type { Account } from '@/types/account';
 import type { Category } from '@/types/transaction';
 
-vi.mock('@/hooks/useUserSettings', async (importOriginal) => {
-  const actual = await importOriginal() as any;
+vi.mock('@/hooks/useUserSettings', async importOriginal => {
+  const actual = (await importOriginal()) as any;
   return {
     ...actual,
     useUserSettings: () => ({ data: { dateFormat: 'YYYY-MM-DD' }, isLoading: false }),
@@ -28,7 +33,7 @@ vi.mock('@/components/ui/CategorySelect', () => ({
       data-testid="category-select"
       aria-label="Category"
       value={value || ''}
-      onChange={(e) => onValueChange(e.target.value ? Number(e.target.value) : undefined)}
+      onChange={e => onValueChange(e.target.value ? Number(e.target.value) : undefined)}
     >
       <option value="">{placeholder || 'Select category'}</option>
       <option value="1">Food</option>
@@ -43,7 +48,7 @@ vi.mock('@/components/ui/PayeeSelector', () => ({
       data-testid="payee-selector"
       aria-label="Payee"
       value={value || ''}
-      onChange={(e) => onValueChange(e.target.value || undefined)}
+      onChange={e => onValueChange(e.target.value || undefined)}
       placeholder={placeholder || 'Select payee'}
     />
   ),
@@ -55,7 +60,7 @@ vi.mock('@/components/ui/AccountSelector', () => ({
       data-testid="account-selector"
       aria-label="Account"
       value={value || ''}
-      onChange={(e) => onValueChange(e.target.value ? Number(e.target.value) : undefined)}
+      onChange={e => onValueChange(e.target.value ? Number(e.target.value) : undefined)}
     >
       <option value="">{placeholder || 'Select account'}</option>
       <option value="1">Checking</option>

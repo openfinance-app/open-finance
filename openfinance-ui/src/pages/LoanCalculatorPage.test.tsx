@@ -4,9 +4,7 @@ import LoanCalculatorPage from './LoanCalculatorPage';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 
 vi.mock('@/components/loan-calculator/LoanCalculator', () => ({
-  LoanCalculator: () => (
-    <div data-testid="loan-calculator">Loan Calculator Component</div>
-  ),
+  LoanCalculator: () => <div data-testid="loan-calculator">Loan Calculator Component</div>,
 }));
 
 vi.mock('@/hooks/useDocumentTitle', () => ({

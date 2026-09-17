@@ -13,8 +13,8 @@ import org.openfinance.entity.EntityType;
 import org.openfinance.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.context.ActiveProfiles;
 
 /**
  * Integration tests for AttachmentRepository.
@@ -231,10 +231,7 @@ class AttachmentRepositoryTest {
         assertThat(attachments)
                 .extracting(Attachment::getFileName)
                 .containsExactlyInAnyOrder(
-                        "receipt.pdf",
-                        "photo.jpg",
-                        "deed.png",
-                        "amortization.xlsx");
+                        "receipt.pdf", "photo.jpg", "deed.png", "amortization.xlsx");
         // The fixture sets explicit upload dates (Feb 1-4); ties or sub-second equal values
         // produced by @CreationTimestamp are ordered deterministically per DB, so only assert
         // that the DESC contract holds for the real stored timestamps.

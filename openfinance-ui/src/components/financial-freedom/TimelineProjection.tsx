@@ -12,7 +12,7 @@ interface TimelineProjectionProps {
 
 /**
  * TimelineProjection Component
- * 
+ *
  * Displays a detailed year-by-year table showing:
  * - Year number
  * - Projected savings balance
@@ -37,16 +37,28 @@ export function TimelineProjection({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border">
-            <th className="text-left py-3 px-4 font-medium text-text-secondary">{t('timelineProjection.year')}</th>
-            <th className="text-right py-3 px-4 font-medium text-text-secondary">{t('timelineProjection.savingsBalance')}</th>
-            <th className="text-right py-3 px-4 font-medium text-text-secondary">{t('timelineProjection.contributions')}</th>
-            <th className="text-right py-3 px-4 font-medium text-text-secondary">{t('timelineProjection.investmentReturns')}</th>
-            <th className="text-right py-3 px-4 font-medium text-text-secondary">{t('timelineProjection.progress')}</th>
-            <th className="text-center py-3 px-4 font-medium text-text-secondary">{t('timelineProjection.status')}</th>
+            <th className="text-left py-3 px-4 font-medium text-text-secondary">
+              {t('timelineProjection.year')}
+            </th>
+            <th className="text-right py-3 px-4 font-medium text-text-secondary">
+              {t('timelineProjection.savingsBalance')}
+            </th>
+            <th className="text-right py-3 px-4 font-medium text-text-secondary">
+              {t('timelineProjection.contributions')}
+            </th>
+            <th className="text-right py-3 px-4 font-medium text-text-secondary">
+              {t('timelineProjection.investmentReturns')}
+            </th>
+            <th className="text-right py-3 px-4 font-medium text-text-secondary">
+              {t('timelineProjection.progress')}
+            </th>
+            <th className="text-center py-3 px-4 font-medium text-text-secondary">
+              {t('timelineProjection.status')}
+            </th>
           </tr>
         </thead>
         <tbody>
-          {projections.map((projection) => {
+          {projections.map(projection => {
             const progress = calculateProgress(projection.endingBalance);
             const isFreedomYear = yearsToFreedom && projection.year <= yearsToFreedom;
             const isBeyondFreedom = yearsToFreedom && projection.year > yearsToFreedom;
@@ -70,7 +82,12 @@ export function TimelineProjection({
                   <ConvertedAmount amount={projection.contributions} currency={currency} inline />
                 </td>
                 <td className="py-3 px-4 text-right text-success">
-                  +<ConvertedAmount amount={projection.investmentReturns} currency={currency} inline />
+                  +
+                  <ConvertedAmount
+                    amount={projection.investmentReturns}
+                    currency={currency}
+                    inline
+                  />
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">

@@ -27,14 +27,7 @@
  *
  *   const { numberFormat, setNumberFormat } = useNumberFormat();
  */
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-} from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useUserSettings, useUpdateUserSettings } from '@/hooks/useUserSettings';
@@ -100,7 +93,9 @@ export function NumberFormatProvider({ children }: NumberFormatProviderProps) {
       setNumberFormatState(settings.numberFormat);
       try {
         localStorage.setItem(LS_KEY, settings.numberFormat);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   }, [settings]);
 
@@ -115,7 +110,9 @@ export function NumberFormatProvider({ children }: NumberFormatProviderProps) {
       setNumberFormatState(localeDefault);
       try {
         localStorage.setItem(LS_KEY, localeDefault);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   }, [i18n.language, isLoading, settings?.numberFormat]);
 
@@ -125,7 +122,9 @@ export function NumberFormatProvider({ children }: NumberFormatProviderProps) {
       setNumberFormatState(newFormat);
       try {
         localStorage.setItem(LS_KEY, newFormat);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       updateSettings.mutate(
         { numberFormat: newFormat },
@@ -138,7 +137,9 @@ export function NumberFormatProvider({ children }: NumberFormatProviderProps) {
             setNumberFormatState(previous);
             try {
               localStorage.setItem(LS_KEY, previous);
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
           },
         }
       );
@@ -151,11 +152,7 @@ export function NumberFormatProvider({ children }: NumberFormatProviderProps) {
     [numberFormat, isLoading, setNumberFormat]
   );
 
-  return (
-    <NumberFormatContext.Provider value={value}>
-      {children}
-    </NumberFormatContext.Provider>
-  );
+  return <NumberFormatContext.Provider value={value}>{children}</NumberFormatContext.Provider>;
 }
 
 /**

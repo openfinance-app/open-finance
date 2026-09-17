@@ -102,9 +102,7 @@ export default function ProfilePage() {
   if (profileError) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-error">
-          {tErrors('profile.loadError')}
-        </div>
+        <div className="text-error">{tErrors('profile.loadError')}</div>
       </div>
     );
   }
@@ -121,18 +119,19 @@ export default function ProfilePage() {
           <Trans
             t={t}
             i18nKey="profile.description"
-            components={{ 1: <Link to={ROUTES.SETTINGS} className="text-primary hover:underline" /> }}
+            components={{
+              1: <Link to={ROUTES.SETTINGS} className="text-primary hover:underline" />,
+            }}
           />
         }
       />
 
       {/* ── Profile Image Card ─────────────────────────────────────────── */}
       <div className="mt-8 bg-surface rounded-lg shadow-lg border border-border p-6">
-        <h2 className="text-lg font-semibold text-text-primary mb-4">{t('profile.photoSection')}</h2>
-        <ProfileImageUpload
-          currentImage={profile.profileImage}
-          username={profile.username}
-        />
+        <h2 className="text-lg font-semibold text-text-primary mb-4">
+          {t('profile.photoSection')}
+        </h2>
+        <ProfileImageUpload currentImage={profile.profileImage} username={profile.username} />
       </div>
 
       {/* ── Profile Details Form ───────────────────────────────────────── */}
@@ -160,14 +159,16 @@ export default function ProfilePage() {
               <AlertCircle size={20} className="flex-shrink-0" />
               <span>
                 {(updateProfile.error.response?.data as { message?: string })?.message ||
-                   tErrors('profile.updateError')}
+                  tErrors('profile.updateError')}
               </span>
             </div>
           )}
 
           {/* Read-only Information */}
           <div className="space-y-4 pb-6 border-b border-border">
-            <h2 className="text-lg font-semibold text-text-primary">{t('profile.accountInfoSection')}</h2>
+            <h2 className="text-lg font-semibold text-text-primary">
+              {t('profile.accountInfoSection')}
+            </h2>
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
@@ -194,7 +195,9 @@ export default function ProfilePage() {
 
           {/* Editable Fields */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-text-primary">{t('profile.updateSection')}</h2>
+            <h2 className="text-lg font-semibold text-text-primary">
+              {t('profile.updateSection')}
+            </h2>
 
             {/* Email */}
             <div>
@@ -216,7 +219,10 @@ export default function ProfilePage() {
             {/* Current Password - Always Required */}
             <div>
               <div className="flex items-center gap-1 mb-1">
-                <label htmlFor="currentPassword" className="block text-sm font-medium text-text-primary">
+                <label
+                  htmlFor="currentPassword"
+                  className="block text-sm font-medium text-text-primary"
+                >
                   {t('profile.currentPassword')} <span className="text-error">*</span>
                 </label>
                 <HelpTooltip text={t('profile.currentPasswordHint')} side="right" />
@@ -242,7 +248,7 @@ export default function ProfilePage() {
               disabled={isSubmitting || updateProfile.isPending}
               className="w-full px-6 py-3 bg-primary hover:bg-primary-hover disabled:bg-surface-elevated disabled:cursor-not-allowed disabled:text-text-secondary text-background font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
             >
-              {(isSubmitting || updateProfile.isPending) ? (
+              {isSubmitting || updateProfile.isPending ? (
                 <>
                   <Loader2 size={20} className="animate-spin" />
                   <span>{t('profile.updating')}</span>

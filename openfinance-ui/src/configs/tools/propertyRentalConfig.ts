@@ -25,7 +25,7 @@ export const PROPERTY_RENTAL_SUPPORTED_COUNTRIES: ReadonlyArray<string> = ['FR']
  * @param countryCode – ISO 3166-1 alpha-2 code from UserSettings (e.g. "FR")
  */
 export function isPropertyRentalAvailable(countryCode: string): boolean {
-    return PROPERTY_RENTAL_SUPPORTED_COUNTRIES.includes(countryCode.toUpperCase());
+  return PROPERTY_RENTAL_SUPPORTED_COUNTRIES.includes(countryCode.toUpperCase());
 }
 
 /**
@@ -37,31 +37,31 @@ export function isPropertyRentalAvailable(countryCode: string): boolean {
  * DO NOT change these without verifying against current French tax legislation.
  */
 export const FRANCE_RENTAL_CONFIG = {
-    country: 'FR',
+  country: 'FR',
 
-    regimeLimits: {
-        /** Micro-Foncier gross revenue ceiling (Art. 32 CGI) */
-        microFoncier: 15_000,
-        /** Micro-BIC gross revenue ceiling (Art. 50-0 CGI) */
-        microBic: 77_700,
-        /** LMP vs LMNP threshold: annual rental revenues (Art. 151 septies CGI) */
-        lmnpSocialThreshold: 23_000,
-    },
+  regimeLimits: {
+    /** Micro-Foncier gross revenue ceiling (Art. 32 CGI) */
+    microFoncier: 15_000,
+    /** Micro-BIC gross revenue ceiling (Art. 50-0 CGI) */
+    microBic: 77_700,
+    /** LMP vs LMNP threshold: annual rental revenues (Art. 151 septies CGI) */
+    lmnpSocialThreshold: 23_000,
+  },
 
-    regimeRates: {
-        /** Flat-rate deduction for Micro-Foncier */
-        microFoncierAbatement: 0.30,
-        /** Flat-rate deduction for Micro-BIC */
-        microBicAbatement: 0.50,
-        /** CSG/CRDS rate for standard rental income (prélèvements sociaux) */
-        socialContributionsStandard: 0.172,
-        /** Social contribution rate for LMP status (cotisations sociales TNS) */
-        socialContributionsLmp: 0.45,
-        /** LMNP building straight-line depreciation period in years */
-        buildingDepreciationYears: 25,
-        /** LMNP furniture straight-line depreciation period in years */
-        furnitureDepreciationYears: 5,
-    },
+  regimeRates: {
+    /** Flat-rate deduction for Micro-Foncier */
+    microFoncierAbatement: 0.3,
+    /** Flat-rate deduction for Micro-BIC */
+    microBicAbatement: 0.5,
+    /** CSG/CRDS rate for standard rental income (prélèvements sociaux) */
+    socialContributionsStandard: 0.172,
+    /** Social contribution rate for LMP status (cotisations sociales TNS) */
+    socialContributionsLmp: 0.45,
+    /** LMNP building straight-line depreciation period in years */
+    buildingDepreciationYears: 25,
+    /** LMNP furniture straight-line depreciation period in years */
+    furnitureDepreciationYears: 5,
+  },
 } as const;
 
 export type FranceRentalConfig = typeof FRANCE_RENTAL_CONFIG;

@@ -99,6 +99,7 @@ public class TransactionRequest {
 
     /** ISO 4217 currency originally entered (e.g. "USD"). Null when no conversion was applied. */
     @Size(min = 3, max = 3, message = "{transaction.currency.size}")
+    @ValidCurrency
     private String originalCurrency;
 
     /**

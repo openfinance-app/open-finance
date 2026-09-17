@@ -17,11 +17,29 @@ describe('getCategoryKey', () => {
 
   it('handles all mapped categories', () => {
     const knownCategories = [
-      'Food & Dining', 'Housing', 'Transportation', 'Entertainment',
-      'Healthcare', 'Shopping', 'Education', 'Personal Care',
-      'Travel', 'Utilities', 'Income', 'Salary', 'Business',
-      'Investment', 'Other', 'Groceries', 'Restaurants', 'Rent',
-      'Insurance', 'Subscriptions', 'Savings', 'Taxes', 'Gifts',
+      'Food & Dining',
+      'Housing',
+      'Transportation',
+      'Entertainment',
+      'Healthcare',
+      'Shopping',
+      'Education',
+      'Personal Care',
+      'Travel',
+      'Utilities',
+      'Income',
+      'Salary',
+      'Business',
+      'Investment',
+      'Other',
+      'Groceries',
+      'Restaurants',
+      'Rent',
+      'Insurance',
+      'Subscriptions',
+      'Savings',
+      'Taxes',
+      'Gifts',
       'Cash & Savings',
     ];
     for (const cat of knownCategories) {
@@ -32,7 +50,7 @@ describe('getCategoryKey', () => {
 
 describe('translateCategoryName', () => {
   const mockT = (key: string, options?: Record<string, unknown>) =>
-    options?.defaultValue as string ?? key;
+    (options?.defaultValue as string) ?? key;
 
   it('translates known category', () => {
     const result = translateCategoryName(mockT, 'Food & Dining');

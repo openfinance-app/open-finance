@@ -8,13 +8,17 @@ import type { IPortfolioPerformance } from '@/types/dashboard';
 vi.mock('recharts', () => ({
   LineChart: ({ children }: any) => <div data-testid="line-chart">{children}</div>,
   Line: () => <div data-testid="line" />,
-  ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
+  ResponsiveContainer: ({ children }: any) => (
+    <div data-testid="responsive-container">{children}</div>
+  ),
 }));
 
 // Mock ConvertedAmount to simplify output
 vi.mock('../ui/ConvertedAmount', () => ({
   ConvertedAmount: ({ amount, currency }: any) => (
-    <span data-testid="converted-amount">{amount} {currency}</span>
+    <span data-testid="converted-amount">
+      {amount} {currency}
+    </span>
   ),
 }));
 
@@ -76,9 +80,7 @@ describe('PortfolioPerformanceCards', () => {
   });
 
   it('renders performance cards with data', () => {
-    renderWithProviders(
-      <PortfolioPerformanceCards performances={[mockPerformance]} />
-    );
+    renderWithProviders(<PortfolioPerformanceCards performances={[mockPerformance]} />);
     expect(screen.getByText('Portfolio Performance')).toBeInTheDocument();
     // The percentage should be displayed
     expect(screen.getByText(/5\.25%/)).toBeInTheDocument();
@@ -96,25 +98,18 @@ describe('PortfolioPerformanceCards', () => {
   });
 
   it('renders negative change percentage', () => {
-    renderWithProviders(
-      <PortfolioPerformanceCards performances={[negativePerformance]} />
-    );
+    renderWithProviders(<PortfolioPerformanceCards performances={[negativePerformance]} />);
     expect(screen.getByText(/-5\.66%/)).toBeInTheDocument();
   });
 
   it('renders sparkline no-data message for empty sparklineData', () => {
-    renderWithProviders(
-      <PortfolioPerformanceCards performances={[neutralPerformance]} />
-    );
+    renderWithProviders(<PortfolioPerformanceCards performances={[neutralPerformance]} />);
     expect(screen.getByText('No historical data')).toBeInTheDocument();
   });
 
   it('renders period label when provided', () => {
     renderWithProviders(
-      <PortfolioPerformanceCards
-        performances={[mockPerformance]}
-        periodLabel="last 30d"
-      />
+      <PortfolioPerformanceCards performances={[mockPerformance]} periodLabel="last 30d" />
     );
     expect(screen.getByText('Portfolio Performance')).toBeInTheDocument();
   });

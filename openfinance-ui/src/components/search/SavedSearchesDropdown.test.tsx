@@ -5,7 +5,15 @@ import type { SavedSearch } from '@/types/search';
 
 // Mock ConfirmationDialog to render inline for easier testing
 vi.mock('@/components/ConfirmationDialog', () => ({
-  ConfirmationDialog: ({ open, onConfirm, title, description, confirmText, cancelText, onOpenChange }: any) => {
+  ConfirmationDialog: ({
+    open,
+    onConfirm,
+    title,
+    description,
+    confirmText,
+    cancelText,
+    onOpenChange,
+  }: any) => {
     if (!open) return null;
     return (
       <div data-testid="confirm-dialog">

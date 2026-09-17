@@ -194,11 +194,9 @@ describe('useAccounts hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith(
-        '/accounts',
-        expect.any(Object),
-        { headers: { 'X-Encryption-Session': 'test-encryption-key' } }
-      );
+      expect(mockedApiClient.post).toHaveBeenCalledWith('/accounts', expect.any(Object), {
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
+      });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['accounts'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['dashboard'] });
     });
@@ -217,11 +215,9 @@ describe('useAccounts hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockedApiClient.put).toHaveBeenCalledWith(
-        '/accounts/1',
-        expect.any(Object),
-        { headers: { 'X-Encryption-Session': 'test-encryption-key' } }
-      );
+      expect(mockedApiClient.put).toHaveBeenCalledWith('/accounts/1', expect.any(Object), {
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
+      });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['accounts', 1] });
     });
   });
@@ -307,9 +303,7 @@ describe('useAccounts hooks', () => {
 
   // ── useInterestRateVariations ─────────────────────────────────────────────
   describe('useInterestRateVariations', () => {
-    const mockVariations = [
-      { id: 1, accountId: 1, effectiveDate: '2026-01-01', rate: 3.5 },
-    ];
+    const mockVariations = [{ id: 1, accountId: 1, effectiveDate: '2026-01-01', rate: 3.5 }];
 
     it('should fetch interest rate variations', async () => {
       mockedApiClient.get.mockResolvedValue({ data: mockVariations });
@@ -345,8 +339,12 @@ describe('useAccounts hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['accounts', 1, 'interest-variations'] });
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['accounts', 1, 'interest-estimate'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['accounts', 1, 'interest-variations'],
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['accounts', 1, 'interest-estimate'],
+      });
     });
   });
 
@@ -365,7 +363,9 @@ describe('useAccounts hooks', () => {
       expect(mockedApiClient.delete).toHaveBeenCalledWith('/accounts/1/interest-variations/5', {
         headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['accounts', 1, 'interest-variations'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['accounts', 1, 'interest-variations'],
+      });
     });
   });
 

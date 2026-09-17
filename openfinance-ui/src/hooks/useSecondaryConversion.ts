@@ -21,20 +21,20 @@ import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { multiply } from '@/utils/money';
 
 export interface SecondaryConversionResult {
-    /** ISO 4217 code of the secondary currency, or null when not applicable. */
-    secondaryCurrency: string | null;
-    /**
-     * Exchange rate: 1 unit of the source currency = `secondaryExchangeRate`
-     * units of `secondaryCurrency`. Null when rate is unavailable or secondary
-     * currency equals the source currency.
-     */
-    secondaryExchangeRate: number | null;
-    /**
-     * Converts `amount` (in the source currency) to the secondary currency.
-     * Returns null when the secondary currency is not configured, equals the
-     * source currency, or the rate has not yet loaded.
-     */
-    convert: (amount: number | null | undefined) => number | null;
+  /** ISO 4217 code of the secondary currency, or null when not applicable. */
+  secondaryCurrency: string | null;
+  /**
+   * Exchange rate: 1 unit of the source currency = `secondaryExchangeRate`
+   * units of `secondaryCurrency`. Null when rate is unavailable or secondary
+   * currency equals the source currency.
+   */
+  secondaryExchangeRate: number | null;
+  /**
+   * Converts `amount` (in the source currency) to the secondary currency.
+   * Returns null when the secondary currency is not configured, equals the
+   * source currency, or the rate has not yet loaded.
+   */
+  convert: (amount: number | null | undefined) => number | null;
 }
 
 /**
@@ -44,33 +44,29 @@ export interface SecondaryConversionResult {
  *                      nulls in that case.
  */
 export function useSecondaryConversion(
-    fromCurrency: string | null | undefined,
+  fromCurrency: string | null | undefined
 ): SecondaryConversionResult {
-    const { secondaryCurrency } = useCurrencyDisplay();
+  const { secondaryCurrency } = useCurrencyDisplay();
 
-    // Only fetch when both currencies are known and different
-    const enabled =
-        !!fromCurrency && !!secondaryCurrency && fromCurrency !== secondaryCurrency;
+  // Only fetch when both currencies are known and different
+  const enabled = !!fromCurrency && !!secondaryCurrency && fromCurrency !== secondaryCurrency;
 
-    const { data: rateData } = useLatestExchangeRate(
-        fromCurrency ?? '',
-        secondaryCurrency ?? '',
-    );
+  const { data: rateData } = useLatestExchangeRate(fromCurrency ?? '', secondaryCurrency ?? '');
 
-    const rate = enabled && rateData ? rateData.rate : null;
+  const rate = enabled && rateData ? rateData.rate : null;
 
-    const convert = useMemo(
-        () =>
-            (amount: number | null | undefined): number | null => {
-                if (amount == null || rate == null) return null;
-                return multiply(amount, rate);
-            },
-        [rate],
-    );
+  const convert = useMemo(
+    () =>
+      (amount: number | null | undefined): number | null => {
+        if (amount == null || rate == null) return null;
+        return multiply(amount, rate);
+      },
+    [rate]
+  );
 
-    return {
-        secondaryCurrency: enabled ? secondaryCurrency : null,
-        secondaryExchangeRate: rate,
-        convert,
-    };
+  return {
+    secondaryCurrency: enabled ? secondaryCurrency : null,
+    secondaryExchangeRate: rate,
+    convert,
+  };
 }

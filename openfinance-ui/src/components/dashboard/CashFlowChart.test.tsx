@@ -45,7 +45,7 @@ vi.mock('recharts', async () => {
 
 // Mock useNavigate while keeping the rest of react-router (MemoryRouter etc.)
 const mockNavigate = vi.fn();
-vi.mock('react-router', async (importOriginal) => {
+vi.mock('react-router', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router')>();
   return { ...actual, useNavigate: () => mockNavigate };
 });

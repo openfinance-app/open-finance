@@ -1,6 +1,6 @@
 /**
  * RentalSection Component
- * 
+ *
  * Rental parameters form section
  * Requirements: REQ-1.2.1
  */
@@ -35,10 +35,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
 
   return (
     <Card className="h-full">
-      <CardHeader
-        className="bg-warning/10 cursor-pointer select-none"
-        onClick={onToggle}
-      >
+      <CardHeader className="bg-warning/10 cursor-pointer select-none" onClick={onToggle}>
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <Key className="h-5 w-5" />
@@ -50,8 +47,9 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
         </CardTitle>
       </CardHeader>
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
-          }`}
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
       >
         <CardContent className="p-4 space-y-4">
           <div className="space-y-4">
@@ -61,12 +59,14 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
               <NumberInput
                 id="monthlyRent"
                 value={String(inputs.monthlyRent)}
-                onChange={(value) => onUpdate('monthlyRent', parseFloat(value) || 0)}
+                onChange={value => onUpdate('monthlyRent', parseFloat(value) || 0)}
                 min={0}
               />
               {getFieldError('monthlyRent') && (
                 <Alert variant="error" className="py-2">
-                  <AlertDescription className="text-xs">{getFieldError('monthlyRent')}</AlertDescription>
+                  <AlertDescription className="text-xs">
+                    {getFieldError('monthlyRent')}
+                  </AlertDescription>
                 </Alert>
               )}
             </div>
@@ -77,7 +77,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
               <NumberInput
                 id="monthlyCharges"
                 value={String(inputs.monthlyCharges)}
-                onChange={(value) => onUpdate('monthlyCharges', parseFloat(value) || 0)}
+                onChange={value => onUpdate('monthlyCharges', parseFloat(value) || 0)}
                 min={0}
               />
             </div>
@@ -91,7 +91,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
               <NumberInput
                 id="securityDeposit"
                 value={String(inputs.securityDeposit)}
-                onChange={(value) => onUpdate('securityDeposit', parseFloat(value) || 0)}
+                onChange={value => onUpdate('securityDeposit', parseFloat(value) || 0)}
                 min={0}
               />
             </div>
@@ -105,7 +105,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
               <NumberInput
                 id="rentalInsurance"
                 value={String(inputs.rentalInsurance)}
-                onChange={(value) => onUpdate('rentalInsurance', parseFloat(value) || 0)}
+                onChange={value => onUpdate('rentalInsurance', parseFloat(value) || 0)}
                 min={0}
               />
             </div>
@@ -119,7 +119,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
               <NumberInput
                 id="rentalGarbageTax"
                 value={String(inputs.garbageTax)}
-                onChange={(value) => onUpdate('garbageTax', parseFloat(value) || 0)}
+                onChange={value => onUpdate('garbageTax', parseFloat(value) || 0)}
                 min={0}
               />
             </div>
@@ -135,14 +135,12 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
               <NumberInput
                 id="initialSavings"
                 value={String(inputs.initialSavings)}
-                onChange={(value) => onUpdate('initialSavings', parseFloat(value) || 0)}
+                onChange={value => onUpdate('initialSavings', parseFloat(value) || 0)}
                 min={0}
                 readOnly
                 className="bg-muted"
               />
-              <p className="text-xs text-muted-foreground">
-                {t('rentalSection.autoAdjusted')}
-              </p>
+              <p className="text-xs text-muted-foreground">{t('rentalSection.autoAdjusted')}</p>
             </div>
 
             {/* Monthly Savings */}
@@ -154,7 +152,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
               <NumberInput
                 id="monthlySavings"
                 value={String(inputs.monthlySavings)}
-                onChange={(value) => onUpdate('monthlySavings', parseFloat(value) || 0)}
+                onChange={value => onUpdate('monthlySavings', parseFloat(value) || 0)}
                 min={0}
                 readOnly
                 className="bg-muted"

@@ -1485,11 +1485,7 @@ public class LiabilityService {
             throw InvalidLiabilityStateException.disbursementOverdraw(
                     request.getAmount(), tranche.getId(), tranche.getPlannedAmount());
         }
-        if (request.getDate().isBefore(liability.getStartDate())
-                || request.getDate().isAfter(LocalDate.now())) {
-            throw new InvalidTransactionException(
-                    "Draw date must fall between loan origination and today");
-        }
+        org.openfinance.util.LoanPostingPolicy.validateDate(liability, request.getDate());
         tranche.setDirectDisbursement(request.getDirectRealEstateId() != null);
         tranche.setDrawnAmount(request.getAmount());
         tranche.setDrawnDate(request.getDate());
@@ -2175,24 +2171,21 @@ public class LiabilityService {
                         .toList();
         // Independent later appraisals/improvements remain authoritative. Only cancelled draw
         // snapshots disappear from today's valuation; their dated history remains available.
-        RealEstateValueHistory latest =
-                history.stream()
-                        .filter(
-                                h ->
-                                        h.getSourceTrancheId() == null
-                                                || !cancelled.contains(h.getSourceTrancheId()))
-                        .max(Comparator.comparing(RealEstateValueHistory::getId))
-                        .orElse(null);
-        if (latest == null)
-            throw new InvalidTransactionException(
-                    "No prior property valuation is available for reversal");
+        org.openfinance.util.PropertyValuationHistory.Valuation valuation =
+                org.openfinance.util.PropertyValuationHistory.current(
+                        property,
+                        history.stream()
+                                .filter(
+                                        h ->
+                                                h.getSourceTrancheId() == null
+                                                        || !cancelled.contains(
+                                                                h.getSourceTrancheId()))
+                                .toList());
         BigDecimal value =
-                latest.getCurrency().equalsIgnoreCase(property.getCurrency())
-                        ? new BigDecimal(latest.getRecordedValue())
+                valuation.currency().equalsIgnoreCase(property.getCurrency())
+                        ? valuation.amount()
                         : exchangeRateService.convert(
-                                new BigDecimal(latest.getRecordedValue()),
-                                latest.getCurrency(),
-                                property.getCurrency());
+                                valuation.amount(), valuation.currency(), property.getCurrency());
         property.setCurrentValue(value.toPlainString());
         realEstateRepository.save(property);
         if (property.getAssetId() != null) {

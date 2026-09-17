@@ -1,11 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/Tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/utils';
 
 interface HelpTooltipProps {
@@ -31,11 +26,7 @@ interface HelpTooltipProps {
  *
  * Requirement TASK-15.2.4: Tooltips for complex features / contextual help.
  */
-export const HelpTooltip: React.FC<HelpTooltipProps> = ({
-  text,
-  className,
-  side = 'top',
-}) => {
+export const HelpTooltip: React.FC<HelpTooltipProps> = ({ text, className, side = 'top' }) => {
   return (
     <TooltipProvider delayDuration={200}>
       <Tooltip>

@@ -1,7 +1,7 @@
 /**
  * CategoryManager Component
  * Task 3.2.17: Create CategoryManager component
- * 
+ *
  * Modal for managing income and expense categories
  */
 import { useState } from 'react';
@@ -28,7 +28,7 @@ export function CategoryManager({ open, onOpenChange }: CategoryManagerProps) {
   const createCategory = useCreateCategory();
   const deleteCategory = useDeleteCategory();
 
-  const filteredCategories = allCategories.filter((cat) => cat.type === activeTab);
+  const filteredCategories = allCategories.filter(cat => cat.type === activeTab);
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
@@ -93,8 +93,8 @@ export function CategoryManager({ open, onOpenChange }: CategoryManagerProps) {
               <Input
                 placeholder={`New ${activeTab.toLowerCase()} category...`}
                 value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                onKeyPress={(e) => {
+                onChange={e => setNewCategoryName(e.target.value)}
+                onKeyPress={e => {
                   if (e.key === 'Enter') {
                     handleCreateCategory();
                   }
@@ -119,7 +119,7 @@ export function CategoryManager({ open, onOpenChange }: CategoryManagerProps) {
                 </div>
               )}
 
-              {filteredCategories.map((category) => (
+              {filteredCategories.map(category => (
                 <div
                   key={category.id}
                   className="flex items-center justify-between p-3 bg-surface rounded-lg hover:bg-surface-elevated transition-colors"
@@ -159,7 +159,7 @@ export function CategoryManager({ open, onOpenChange }: CategoryManagerProps) {
       {/* Delete Confirmation */}
       <ConfirmationDialog
         open={!!deletingCategory}
-        onOpenChange={(open) => !open && setDeletingCategory(null)}
+        onOpenChange={open => !open && setDeletingCategory(null)}
         onConfirm={handleDeleteCategory}
         title="Delete Category"
         description={`Are you sure you want to delete "${deletingCategory?.name}"? This may affect existing transactions.`}

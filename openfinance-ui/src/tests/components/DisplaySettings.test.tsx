@@ -124,9 +124,11 @@ describe('DisplaySettings', () => {
       renderWithProviders(<DisplaySettings />);
 
       // Should show skeleton loaders
-      expect(screen.getAllByRole('generic', { hidden: true }).some(el =>
-        el.classList.contains('animate-pulse')
-      )).toBe(true);
+      expect(
+        screen
+          .getAllByRole('generic', { hidden: true })
+          .some(el => el.classList.contains('animate-pulse'))
+      ).toBe(true);
     });
 
     it('should show error state', () => {
@@ -138,7 +140,9 @@ describe('DisplaySettings', () => {
 
       renderWithProviders(<DisplaySettings />);
 
-      expect(screen.getByText('Failed to load settings. Please refresh the page.')).toBeInTheDocument();
+      expect(
+        screen.getByText('Failed to load settings. Please refresh the page.')
+      ).toBeInTheDocument();
     });
   });
 

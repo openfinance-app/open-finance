@@ -37,7 +37,9 @@ export default function LiabilitiesPage() {
   const { t } = useTranslation('liabilities');
   useDocumentTitle(t('title'));
   const [searchParams, setSearchParams] = useSearchParams();
-  const highlightId = searchParams.get('highlight') ? parseInt(searchParams.get('highlight')!) : null;
+  const highlightId = searchParams.get('highlight')
+    ? parseInt(searchParams.get('highlight')!)
+    : null;
 
   const [showFilters, setShowFilters] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -57,7 +59,7 @@ export default function LiabilitiesPage() {
   // Deep link ?highlight=<id>: open the detail dialog once liabilities load
   useEffect(() => {
     if (!highlightId) return;
-    const liability = allLiabilities?.content?.find((l) => l.id === highlightId);
+    const liability = allLiabilities?.content?.find(l => l.id === highlightId);
     if (liability) {
       setViewingDetailLiability(liability);
       const next = new URLSearchParams(searchParams);
@@ -138,10 +140,7 @@ export default function LiabilitiesPage() {
     <div className="p-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <PageHeader
-          title={t('title')}
-          description={t('description')}
-        />
+        <PageHeader title={t('title')} description={t('description')} />
         <div className="flex gap-2 shrink-0">
           <Button variant="ghost" onClick={() => setShowFilters(!showFilters)}>
             <Filter className="h-4 w-4 mr-2" />
@@ -157,10 +156,7 @@ export default function LiabilitiesPage() {
       {/* Filters */}
       {showFilters && (
         <div className="mb-6">
-          <LiabilityFilters
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-          />
+          <LiabilityFilters filters={filters} onFiltersChange={handleFiltersChange} />
         </div>
       )}
 
@@ -203,7 +199,12 @@ export default function LiabilitiesPage() {
           description={t('empty.noMatch')}
           action={{
             label: t('empty.clearFilters'),
-            onClick: () => setFilters({ page: 0, size: filters.size || 20, sort: filters.sort || 'createdAt,desc' }),
+            onClick: () =>
+              setFilters({
+                page: 0,
+                size: filters.size || 20,
+                sort: filters.sort || 'createdAt,desc',
+              }),
           }}
         />
       )}

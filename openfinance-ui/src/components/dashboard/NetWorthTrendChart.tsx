@@ -1,10 +1,18 @@
 /**
  * NetWorthTrendChart Component
  * Task 4.3.7: Create NetWorthTrendChart component
- * 
+ *
  * Line chart showing net worth trend over time with gold stroke
  */
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from 'recharts';
 import type { INetWorthSummary } from '@/types/dashboard';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -35,7 +43,12 @@ interface CustomTooltipProps {
  * per-data-point `data.currency`, which may reflect the original native currency.
  * Requirement REQ-5.1: amounts are always displayed in the user's base currency.
  */
-const CustomTooltip = ({ active, payload, currency, dateFormat }: CustomTooltipProps & { dateFormat?: string }) => {
+const CustomTooltip = ({
+  active,
+  payload,
+  currency,
+  dateFormat,
+}: CustomTooltipProps & { dateFormat?: string }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const change = subtract(data.netWorth, data.previousNetWorth || data.netWorth);
@@ -54,7 +67,9 @@ const CustomTooltip = ({ active, payload, currency, dateFormat }: CustomTooltipP
         {data.previousNetWorth && (
           <p className={`text-sm ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {change >= 0 ? '+' : '-'}
-            <ConvertedAmount amount={Math.abs(change)} currency={currency} inline /> ({change >= 0 ? '+' : ''}{changePercent}%)
+            <ConvertedAmount amount={Math.abs(change)} currency={currency} inline /> (
+            {change >= 0 ? '+' : ''}
+            {changePercent}%)
           </p>
         )}
       </div>
@@ -80,7 +95,11 @@ const formatYAxis = (value: number, isVisible: boolean) => {
   return value.toFixed(0);
 };
 
-export default function NetWorthTrendChart({ data, currency, periodLabel }: NetWorthTrendChartProps) {
+export default function NetWorthTrendChart({
+  data,
+  currency,
+  periodLabel,
+}: NetWorthTrendChartProps) {
   const { isAmountsVisible } = useVisibility();
   const { data: settings } = useUserSettings();
   const { t } = useTranslation('dashboard');
@@ -105,9 +124,8 @@ export default function NetWorthTrendChart({ data, currency, periodLabel }: NetW
   const firstValue = data[0]?.netWorth || 0;
   const lastValue = data[data.length - 1]?.netWorth || 0;
   const overallChange = subtract(lastValue, firstValue);
-  const overallChangePercent = firstValue !== 0
-    ? percentage(overallChange, Math.abs(firstValue)).toFixed(2)
-    : '0.00';
+  const overallChangePercent =
+    firstValue !== 0 ? percentage(overallChange, Math.abs(firstValue)).toFixed(2) : '0.00';
 
   const getTrendIcon = () => {
     if (overallChange > 0) return <TrendingUp className="h-5 w-5 text-green-500" />;
@@ -116,16 +134,22 @@ export default function NetWorthTrendChart({ data, currency, periodLabel }: NetW
   };
 
   // Calculate days covered for subtitle
-  const daysCovered = data.length > 0 
-    ? Math.ceil((new Date(data[data.length - 1]?.date).getTime() - new Date(data[0]?.date).getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
+  const daysCovered =
+    data.length > 0
+      ? Math.ceil(
+          (new Date(data[data.length - 1]?.date).getTime() - new Date(data[0]?.date).getTime()) /
+            (1000 * 60 * 60 * 24)
+        )
+      : 0;
 
   return (
     <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-text-primary mb-1">{t('netWorthTrend.title')}</h3>
+          <h3 className="text-lg font-semibold text-text-primary mb-1">
+            {t('netWorthTrend.title')}
+          </h3>
           <p className="text-sm text-text-secondary">
             {periodLabel
               ? t('netWorthTrend.periodTrend', { period: periodLabel })
@@ -137,12 +161,15 @@ export default function NetWorthTrendChart({ data, currency, periodLabel }: NetW
         <div className="flex items-center gap-2">
           {getTrendIcon()}
           <div className="text-right">
-            <p className={`text-sm font-semibold ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <p
+              className={`text-sm font-semibold ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}
+            >
               {overallChange >= 0 ? '+' : '-'}
               <ConvertedAmount amount={Math.abs(overallChange)} currency={currency} inline />
             </p>
             <p className={`text-xs ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {overallChange >= 0 ? '+' : ''}{overallChangePercent}%
+              {overallChange >= 0 ? '+' : ''}
+              {overallChangePercent}%
             </p>
           </div>
         </div>
@@ -161,19 +188,21 @@ export default function NetWorthTrendChart({ data, currency, periodLabel }: NetW
             <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
             <XAxis
               dataKey="date"
-              tickFormatter={(value) => globalFormatDate(value, settings?.dateFormat)}
+              tickFormatter={value => globalFormatDate(value, settings?.dateFormat)}
               stroke="#666"
               style={{ fontSize: '12px' }}
               tickLine={false}
             />
             <YAxis
-              tickFormatter={(value) => formatYAxis(value, isAmountsVisible)}
+              tickFormatter={value => formatYAxis(value, isAmountsVisible)}
               stroke="#666"
               style={{ fontSize: '12px' }}
               tickLine={false}
               axisLine={false}
             />
-            <Tooltip content={<CustomTooltip currency={currency} dateFormat={settings?.dateFormat} />} />
+            <Tooltip
+              content={<CustomTooltip currency={currency} dateFormat={settings?.dateFormat} />}
+            />
             <Area
               type="monotone"
               dataKey="netWorth"

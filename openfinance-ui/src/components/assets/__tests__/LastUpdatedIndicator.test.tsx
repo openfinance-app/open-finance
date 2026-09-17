@@ -36,7 +36,9 @@ describe('LastUpdatedIndicator', () => {
 
   it('hides warning when showWarning is false', () => {
     (isStalePrice as any).mockReturnValue(true);
-    renderWithProviders(<LastUpdatedIndicator lastUpdated="2020-01-01T00:00:00Z" showWarning={false} />);
+    renderWithProviders(
+      <LastUpdatedIndicator lastUpdated="2020-01-01T00:00:00Z" showWarning={false} />
+    );
     expect(document.querySelector('.text-yellow-500')).not.toBeInTheDocument();
   });
 

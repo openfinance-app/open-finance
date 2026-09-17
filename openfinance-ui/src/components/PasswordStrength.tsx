@@ -64,7 +64,7 @@ export function PasswordStrength({ password, className }: PasswordStrengthProps)
     <div className={cn('mt-2', className)}>
       {/* Decorative bars for sighted users */}
       <div className="flex gap-1 mb-1" aria-hidden>
-        {[1, 2, 3, 4].map((level) => (
+        {[1, 2, 3, 4].map(level => (
           <div
             key={level}
             className={cn(
@@ -77,7 +77,10 @@ export function PasswordStrength({ password, className }: PasswordStrengthProps)
 
       {/* Accessible textual feedback */}
       <p
-        className={cn('text-xs', score <= 1 ? 'text-error' : score === 2 ? 'text-warning' : 'text-success')}
+        className={cn(
+          'text-xs',
+          score <= 1 ? 'text-error' : score === 2 ? 'text-warning' : 'text-success'
+        )}
         role="status"
         aria-live="polite"
       >

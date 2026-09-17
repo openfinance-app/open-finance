@@ -1,6 +1,6 @@
 /**
  * PurchaseSection Component
- * 
+ *
  * Purchase parameters form section
  * Requirements: REQ-1.1.1, REQ-1.1.1, REQ-1.1.2, REQ-1.1.3, REQ-1.1.4
  */
@@ -11,7 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '@/components/ui/Label';
 import { Switch } from '@/components/ui/Switch';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/Accordion';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/Accordion';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { useTranslation } from 'react-i18next';
 import type { PurchaseInputs, ValidationError } from '@/types/realEstateTools';
@@ -43,14 +48,12 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('realEstate');
 
-  const getFieldError = (field: string) => errors.find(e => e.field === `purchase.${field}`)?.message;
+  const getFieldError = (field: string) =>
+    errors.find(e => e.field === `purchase.${field}`)?.message;
 
   return (
     <Card className="h-full">
-      <CardHeader
-        className="bg-primary/10 cursor-pointer select-none"
-        onClick={onToggle}
-      >
+      <CardHeader className="bg-primary/10 cursor-pointer select-none" onClick={onToggle}>
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <Home className="h-5 w-5" />
@@ -62,8 +65,9 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
         </CardTitle>
       </CardHeader>
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
-          }`}
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
       >
         <CardContent className="p-4 space-y-4">
           <Accordion defaultValue="price" className="w-full">
@@ -81,12 +85,14 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="propertyPrice"
                     value={String(inputs.propertyPrice)}
-                    onChange={(value) => onUpdate('propertyPrice', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('propertyPrice', parseFloat(value) || 0)}
                     min={0}
                   />
                   {getFieldError('propertyPrice') && (
                     <Alert variant="error" className="py-2">
-                      <AlertDescription className="text-xs">{getFieldError('propertyPrice')}</AlertDescription>
+                      <AlertDescription className="text-xs">
+                        {getFieldError('propertyPrice')}
+                      </AlertDescription>
                     </Alert>
                   )}
                 </div>
@@ -96,7 +102,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="renovationAmount"
                     value={String(inputs.renovationAmount)}
-                    onChange={(value) => onUpdate('renovationAmount', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('renovationAmount', parseFloat(value) || 0)}
                     min={0}
                   />
                 </div>
@@ -106,7 +112,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <Switch
                     id="isNewProperty"
                     checked={inputs.isNewProperty}
-                    onCheckedChange={(checked) => onUpdate('isNewProperty', checked)}
+                    onCheckedChange={checked => onUpdate('isNewProperty', checked)}
                   />
                 </div>
 
@@ -115,7 +121,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="notaryFeesPercent"
                     value={String(inputs.notaryFeesPercent)}
-                    onChange={(value) => onUpdate('notaryFeesPercent', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('notaryFeesPercent', parseFloat(value) || 0)}
                     min={0}
                     max={100}
                   />
@@ -126,7 +132,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="agencyFees"
                     value={String(inputs.agencyFees)}
-                    onChange={(value) => onUpdate('agencyFees', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('agencyFees', parseFloat(value) || 0)}
                     min={0}
                   />
                 </div>
@@ -134,7 +140,11 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="pt-2 border-t">
                   <p className="text-sm text-muted-foreground">{t('purchaseSection.totalPrice')}</p>
                   <p className="text-lg font-semibold text-primary">
-                    <ConvertedAmount amount={derivedValues.totalPrice} currency={baseCurrency} inline />
+                    <ConvertedAmount
+                      amount={derivedValues.totalPrice}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </p>
                 </div>
               </AccordionContent>
@@ -154,7 +164,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="downPayment"
                     value={String(inputs.downPayment)}
-                    onChange={(value) => onUpdate('downPayment', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('downPayment', parseFloat(value) || 0)}
                     min={0}
                   />
                   <p className="text-xs text-muted-foreground">
@@ -167,13 +177,17 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   </p>
                   {getFieldError('downPayment') && (
                     <Alert variant="error" className="py-2">
-                      <AlertDescription className="text-xs">{getFieldError('downPayment')}</AlertDescription>
+                      <AlertDescription className="text-xs">
+                        {getFieldError('downPayment')}
+                      </AlertDescription>
                     </Alert>
                   )}
                 </div>
 
                 <div className="pt-2 border-t">
-                  <p className="text-sm text-muted-foreground">{t('purchaseSection.borrowedAmount')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('purchaseSection.borrowedAmount')}
+                  </p>
                   <p className="text-lg font-semibold">
                     <ConvertedAmount
                       amount={derivedValues.borrowedAmount}
@@ -188,7 +202,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="loanDuration"
                     value={String(inputs.loanDuration)}
-                    onChange={(value) => onUpdate('loanDuration', parseInt(value, 10) || 1)}
+                    onChange={value => onUpdate('loanDuration', parseInt(value, 10) || 1)}
                     min={1}
                     max={40}
                   />
@@ -199,14 +213,16 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="interestRate"
                     value={String(inputs.interestRate)}
-                    onChange={(value) => onUpdate('interestRate', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('interestRate', parseFloat(value) || 0)}
                     min={0}
                     max={100}
                   />
                 </div>
 
                 <div className="pt-2 border-t bg-muted/50 p-2 rounded">
-                  <p className="text-sm text-muted-foreground">{t('purchaseSection.monthlyPaymentExclInsurance')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('purchaseSection.monthlyPaymentExclInsurance')}
+                  </p>
                   <p className="text-xl font-bold text-primary">
                     <ConvertedAmount
                       amount={derivedValues.monthlyPayment}
@@ -233,7 +249,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="totalInsurance"
                     value={String(inputs.totalInsurance)}
-                    onChange={(value) => onUpdate('totalInsurance', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('totalInsurance', parseFloat(value) || 0)}
                     min={0}
                   />
                 </div>
@@ -243,7 +259,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="applicationFees"
                     value={String(inputs.applicationFees)}
-                    onChange={(value) => onUpdate('applicationFees', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('applicationFees', parseFloat(value) || 0)}
                     min={0}
                   />
                 </div>
@@ -253,7 +269,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="guaranteeFees"
                     value={String(inputs.guaranteeFees)}
-                    onChange={(value) => onUpdate('guaranteeFees', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('guaranteeFees', parseFloat(value) || 0)}
                     min={0}
                   />
                 </div>
@@ -263,7 +279,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="accountFees"
                     value={String(inputs.accountFees)}
-                    onChange={(value) => onUpdate('accountFees', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('accountFees', parseFloat(value) || 0)}
                     min={0}
                   />
                 </div>
@@ -284,27 +300,31 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="propertyTax"
                     value={String(inputs.propertyTax)}
-                    onChange={(value) => onUpdate('propertyTax', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('propertyTax', parseFloat(value) || 0)}
                     min={0}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="coOwnershipCharges">{t('purchaseSection.coOwnershipChargesPerYear')}</Label>
+                  <Label htmlFor="coOwnershipCharges">
+                    {t('purchaseSection.coOwnershipChargesPerYear')}
+                  </Label>
                   <NumberInput
                     id="coOwnershipCharges"
                     value={String(inputs.coOwnershipCharges)}
-                    onChange={(value) => onUpdate('coOwnershipCharges', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('coOwnershipCharges', parseFloat(value) || 0)}
                     min={0}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="maintenancePercent">{t('purchaseSection.maintenancePercent')}</Label>
+                  <Label htmlFor="maintenancePercent">
+                    {t('purchaseSection.maintenancePercent')}
+                  </Label>
                   <NumberInput
                     id="maintenancePercent"
                     value={String(inputs.maintenancePercent)}
-                    onChange={(value) => onUpdate('maintenancePercent', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('maintenancePercent', parseFloat(value) || 0)}
                     min={0}
                     max={100}
                   />
@@ -315,7 +335,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="homeInsurance"
                     value={String(inputs.homeInsurance)}
-                    onChange={(value) => onUpdate('homeInsurance', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('homeInsurance', parseFloat(value) || 0)}
                     min={0}
                   />
                 </div>
@@ -325,7 +345,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="bankFees"
                     value={String(inputs.bankFees)}
-                    onChange={(value) => onUpdate('bankFees', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('bankFees', parseFloat(value) || 0)}
                     min={0}
                   />
                 </div>
@@ -335,7 +355,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <NumberInput
                     id="garbageTax"
                     value={String(inputs.garbageTax)}
-                    onChange={(value) => onUpdate('garbageTax', parseFloat(value) || 0)}
+                    onChange={value => onUpdate('garbageTax', parseFloat(value) || 0)}
                     min={0}
                   />
                 </div>

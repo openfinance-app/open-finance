@@ -6,7 +6,12 @@ import i18n from '@/test/i18n-test';
 const mockUpdateBaseCurrency = vi.fn();
 const mockUpdateSettings = vi.fn();
 
-let mockSettings: any = { language: 'en', dateFormat: 'MM/DD/YYYY', country: 'US', secondaryCurrency: null };
+let mockSettings: any = {
+  language: 'en',
+  dateFormat: 'MM/DD/YYYY',
+  country: 'US',
+  secondaryCurrency: null,
+};
 let mockIsLoading = false;
 let mockError: any = null;
 
@@ -80,7 +85,12 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 describe('GeneralSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSettings = { language: 'en', dateFormat: 'MM/DD/YYYY', country: 'US', secondaryCurrency: null };
+    mockSettings = {
+      language: 'en',
+      dateFormat: 'MM/DD/YYYY',
+      country: 'US',
+      secondaryCurrency: null,
+    };
     mockIsLoading = false;
     mockError = null;
   });

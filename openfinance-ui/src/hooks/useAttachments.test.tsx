@@ -60,12 +60,14 @@ describe('useAttachments hooks', () => {
 
       const { result } = renderHook(
         () => useAttachments({ entityType: 'TRANSACTION' as any, entityId: 10 }),
-        { wrapper },
+        { wrapper }
       );
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual([mockAttachment]);
-      expect(mockedApiClient.get).toHaveBeenCalledWith(expect.stringContaining('entityType=TRANSACTION'));
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        expect.stringContaining('entityType=TRANSACTION')
+      );
     });
 
     it('should be disabled when no filters are provided', () => {
@@ -132,7 +134,7 @@ describe('useAttachments hooks', () => {
             'Content-Type': 'multipart/form-data',
             'X-Encryption-Session': 'test-encryption-key',
           }),
-        }),
+        })
       );
     });
 
@@ -179,8 +181,8 @@ describe('useAttachments hooks', () => {
         }
         return originalCreateElement(tag);
       });
-      vi.spyOn(document.body, 'appendChild').mockImplementation((node) => node);
-      vi.spyOn(document.body, 'removeChild').mockImplementation((node) => node);
+      vi.spyOn(document.body, 'appendChild').mockImplementation(node => node);
+      vi.spyOn(document.body, 'removeChild').mockImplementation(node => node);
 
       const { result } = renderHook(() => useDownloadAttachment(), { wrapper });
 
@@ -258,10 +260,7 @@ describe('useAttachments hooks', () => {
     it('should expose all operations', () => {
       mockedApiClient.get.mockResolvedValue({ data: [] });
 
-      const { result } = renderHook(
-        () => useAttachmentOperations('TRANSACTION', 10),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useAttachmentOperations('TRANSACTION', 10), { wrapper });
 
       expect(result.current.upload).toBeDefined();
       expect(result.current.download).toBeDefined();
@@ -272,10 +271,7 @@ describe('useAttachments hooks', () => {
     });
 
     it('should not fetch attachments when no entity info provided', () => {
-      const { result } = renderHook(
-        () => useAttachmentOperations(),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useAttachmentOperations(), { wrapper });
 
       expect(result.current.attachments).toEqual([]);
       expect(result.current.isLoading).toBe(false);

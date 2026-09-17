@@ -8,8 +8,18 @@ import type { AccountFilters as Filters } from '@/types/account';
 // Mock CurrencySelector (heavy dependency)
 // ---------------------------------------------------------------------------
 vi.mock('@/components/ui/CurrencySelector', () => ({
-  CurrencySelector: ({ value, onValueChange }: { value: string; onValueChange?: (v: string) => void }) => (
-    <select data-testid="currency-selector" value={value ?? ''} onChange={(e) => onValueChange?.(e.target.value)}>
+  CurrencySelector: ({
+    value,
+    onValueChange,
+  }: {
+    value: string;
+    onValueChange?: (v: string) => void;
+  }) => (
+    <select
+      data-testid="currency-selector"
+      value={value ?? ''}
+      onChange={e => onValueChange?.(e.target.value)}
+    >
       <option value="">All currencies</option>
       <option value="USD">USD</option>
       <option value="EUR">EUR</option>
@@ -39,7 +49,9 @@ describe('AccountFilters', () => {
         <AccountFilters filters={defaultFilters} onFiltersChange={mockOnFiltersChange} />
       );
       // Type filter is a select
-      expect(screen.getByRole('combobox', { name: /type/i }) || document.querySelector('select')).toBeTruthy();
+      expect(
+        screen.getByRole('combobox', { name: /type/i }) || document.querySelector('select')
+      ).toBeTruthy();
     });
 
     it('should render currency selector', () => {
@@ -105,9 +117,7 @@ describe('AccountFilters', () => {
       const input = screen.getByPlaceholderText(/search accounts/i) as HTMLInputElement;
       expect(input.value).toBe('savings');
 
-      rerender(
-        <AccountFilters filters={defaultFilters} onFiltersChange={mockOnFiltersChange} />
-      );
+      rerender(<AccountFilters filters={defaultFilters} onFiltersChange={mockOnFiltersChange} />);
 
       await waitFor(() => {
         expect(input.value).toBe('');
@@ -123,9 +133,7 @@ describe('AccountFilters', () => {
 
       const selects = screen.getAllByRole('combobox');
       // Find the account type select (first select after currency)
-      const typeSelect = selects.find(
-        (s) => s !== screen.getByTestId('currency-selector')
-      );
+      const typeSelect = selects.find(s => s !== screen.getByTestId('currency-selector'));
       if (typeSelect) {
         fireEvent.change(typeSelect, { target: { value: 'CHECKING' } });
         expect(mockOnFiltersChange).toHaveBeenCalledWith(

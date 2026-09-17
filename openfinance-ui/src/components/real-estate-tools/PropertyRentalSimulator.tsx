@@ -52,13 +52,8 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
     isRegimeEligible,
   } = useRentalSimulator(sharedData);
 
-  const {
-    simulations,
-    saveSimulation,
-    loadSimulation,
-    deleteSimulation,
-    hasSimulationWithName,
-  } = useSimulationStorage();
+  const { simulations, saveSimulation, loadSimulation, deleteSimulation, hasSimulationWithName } =
+    useSimulationStorage();
 
   const hasErrors = errors.length > 0;
   const generalErrors = errors.filter(e => e.field === 'general');
@@ -115,7 +110,6 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
     });
   };
 
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <PageHeader
@@ -125,20 +119,14 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
 
       {/* Back Button */}
       {onNavigateBack && (
-        <Button
-          variant="outline"
-          onClick={onNavigateBack}
-          className="mb-6"
-        >
+        <Button variant="outline" onClick={onNavigateBack} className="mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
           {t('rentalSimulator.backToComparator')}
         </Button>
       )}
 
       {/* Shared Data Panel */}
-      {sharedData && (
-        <SharedParametersPanel sharedData={sharedData} />
-      )}
+      {sharedData && <SharedParametersPanel sharedData={sharedData} />}
 
       {/* Simulation Header */}
       <SimulationHeader
@@ -154,9 +142,7 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
       {/* Error Alerts */}
       {generalErrors.length > 0 && (
         <Alert variant="error" className="mb-6">
-          <AlertDescription>
-            {generalErrors.map(e => e.message).join(', ')}
-          </AlertDescription>
+          <AlertDescription>{generalErrors.map(e => e.message).join(', ')}</AlertDescription>
         </Alert>
       )}
 
@@ -178,7 +164,11 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
           <div>
             <p className="text-muted-foreground">{t('rentalSimulator.creditPayment')}</p>
             <p className="font-semibold">
-              <ConvertedAmount amount={inputs.credit.monthlyPayment} currency={baseCurrency} inline />
+              <ConvertedAmount
+                amount={inputs.credit.monthlyPayment}
+                currency={baseCurrency}
+                inline
+              />
               /{t('comparison.perMonth')}
             </p>
           </div>
@@ -237,12 +227,7 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
           )}
         </Button>
 
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={reset}
-          disabled={isCalculating}
-        >
+        <Button variant="outline" size="lg" onClick={reset} disabled={isCalculating}>
           <RefreshCw className="mr-2 h-4 w-4" />
           {t('rentalSimulator.reset')}
         </Button>

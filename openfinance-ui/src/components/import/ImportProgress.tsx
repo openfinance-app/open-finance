@@ -1,7 +1,7 @@
 /**
  * ImportProgress Component
  * Task 7.4.12: Create ImportProgress component
- * 
+ *
  * Shows progress, status, and counts during import
  */
 import { CheckCircle2, XCircle, Loader2, ExternalLink, AlertTriangle } from 'lucide-react';
@@ -26,12 +26,12 @@ export function ImportProgress({ session, onViewTransactions, onClose }: ImportP
   const getProgressPercentage = (): number => {
     if (isComplete) return 100;
     if (isFailed || isCancelled) return 0;
-    
+
     if (session.status === 'PARSING') return 25;
     if (session.status === 'IMPORTING') {
       // Calculate based on imported vs total
       if (session.totalTransactions > 0) {
-        return 50 + ((session.importedCount / session.totalTransactions) * 50);
+        return 50 + (session.importedCount / session.totalTransactions) * 50;
       }
       return 50;
     }
@@ -48,7 +48,10 @@ export function ImportProgress({ session, onViewTransactions, onClose }: ImportP
       case 'PARSING':
         return t('progress.parsing');
       case 'IMPORTING':
-        return t('progress.importing', { current: session.importedCount, total: session.totalTransactions });
+        return t('progress.importing', {
+          current: session.importedCount,
+          total: session.totalTransactions,
+        });
       case 'COMPLETED':
         return t('progress.success');
       case 'FAILED':
@@ -69,19 +72,19 @@ export function ImportProgress({ session, onViewTransactions, onClose }: ImportP
             <Loader2 className="h-12 w-12 text-primary animate-spin" />
           </div>
         )}
-        
+
         {isComplete && (
           <div className="p-4 bg-green-500/10 rounded-full">
             <CheckCircle2 className="h-12 w-12 text-green-500" />
           </div>
         )}
-        
+
         {isFailed && (
           <div className="p-4 bg-red-500/10 rounded-full">
             <XCircle className="h-12 w-12 text-red-500" />
           </div>
         )}
-        
+
         {isCancelled && (
           <div className="p-4 bg-amber-500/10 rounded-full">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
@@ -89,12 +92,8 @@ export function ImportProgress({ session, onViewTransactions, onClose }: ImportP
         )}
 
         <div className="text-center">
-          <h3 className="text-xl font-semibold text-text-primary mb-2">
-            {getStatusMessage()}
-          </h3>
-          <p className="text-sm text-text-secondary">
-            {session.fileName}
-          </p>
+          <h3 className="text-xl font-semibold text-text-primary mb-2">{getStatusMessage()}</h3>
+          <p className="text-sm text-text-secondary">{session.fileName}</p>
         </div>
       </div>
 
@@ -117,30 +116,22 @@ export function ImportProgress({ session, onViewTransactions, onClose }: ImportP
       {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-surface border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-text-primary">
-            {session.totalTransactions}
-          </div>
+          <div className="text-2xl font-bold text-text-primary">{session.totalTransactions}</div>
           <div className="text-xs text-text-secondary mt-1">{t('progress.stats.total')}</div>
         </div>
 
         <div className="bg-surface border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-green-500">
-            {session.importedCount}
-          </div>
+          <div className="text-2xl font-bold text-green-500">{session.importedCount}</div>
           <div className="text-xs text-text-secondary mt-1">{t('progress.stats.imported')}</div>
         </div>
 
         <div className="bg-surface border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-amber-500">
-            {session.duplicateCount}
-          </div>
+          <div className="text-2xl font-bold text-amber-500">{session.duplicateCount}</div>
           <div className="text-xs text-text-secondary mt-1">{t('progress.stats.duplicates')}</div>
         </div>
 
         <div className="bg-surface border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-red-500">
-            {session.errorCount}
-          </div>
+          <div className="text-2xl font-bold text-red-500">{session.errorCount}</div>
           <div className="text-xs text-text-secondary mt-1">{t('progress.stats.errors')}</div>
         </div>
       </div>
@@ -157,9 +148,7 @@ export function ImportProgress({ session, onViewTransactions, onClose }: ImportP
       {/* Error Message */}
       {isFailed && session.errorMessage && (
         <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
-          <p className="text-sm text-red-500">
-            {session.errorMessage}
-          </p>
+          <p className="text-sm text-red-500">{session.errorMessage}</p>
         </div>
       )}
 
@@ -171,7 +160,7 @@ export function ImportProgress({ session, onViewTransactions, onClose }: ImportP
             {t('progress.viewTransactions')}
           </Button>
         )}
-        
+
         {(isComplete || isFailed || isCancelled) && onClose && (
           <Button onClick={onClose} variant="secondary">
             {t('common:buttons.close')}

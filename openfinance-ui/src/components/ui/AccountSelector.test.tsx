@@ -9,10 +9,23 @@ vi.mock('@/hooks/useAccounts', () => ({
 
 vi.mock('@/components/ui/Select', () => ({
   Select: ({ children, disabled }: any) => <div data-disabled={disabled}>{children}</div>,
-  SelectContent: ({ children, headerSlot }: any) => <div data-testid="select-content">{headerSlot}{children}</div>,
-  SelectItem: ({ children, value }: any) => <div data-testid={`select-item-${value}`}>{children}</div>,
-  SelectTrigger: ({ children, className }: any) => <div data-testid="select-trigger" className={className}>{children}</div>,
-  SelectValue: ({ children, placeholder }: any) => <div data-testid="select-value">{children ?? placeholder}</div>,
+  SelectContent: ({ children, headerSlot }: any) => (
+    <div data-testid="select-content">
+      {headerSlot}
+      {children}
+    </div>
+  ),
+  SelectItem: ({ children, value }: any) => (
+    <div data-testid={`select-item-${value}`}>{children}</div>
+  ),
+  SelectTrigger: ({ children, className }: any) => (
+    <div data-testid="select-trigger" className={className}>
+      {children}
+    </div>
+  ),
+  SelectValue: ({ children, placeholder }: any) => (
+    <div data-testid="select-value">{children ?? placeholder}</div>
+  ),
 }));
 
 vi.mock('@/utils/selectClickGuard', () => ({
@@ -29,9 +42,21 @@ import { useAccounts } from '@/hooks/useAccounts';
 const mockUseAccounts = useAccounts as ReturnType<typeof vi.fn>;
 
 const mockAccounts = [
-  { id: 1, name: 'Checking Account', type: 'CHECKING', balance: 1500, institution: { name: 'Bank A' } },
+  {
+    id: 1,
+    name: 'Checking Account',
+    type: 'CHECKING',
+    balance: 1500,
+    institution: { name: 'Bank A' },
+  },
   { id: 2, name: 'Savings Account', type: 'SAVINGS', balance: 5000, institution: null },
-  { id: 3, name: 'Investment Account', type: 'INVESTMENT', balance: 25000, institution: { name: 'Broker B' } },
+  {
+    id: 3,
+    name: 'Investment Account',
+    type: 'INVESTMENT',
+    balance: 25000,
+    institution: { name: 'Broker B' },
+  },
 ];
 
 function Wrapper({ children }: { children: React.ReactNode }) {
@@ -95,7 +120,10 @@ describe('AccountSelector', () => {
 
   it('renders with disabled state', () => {
     render(<AccountSelector onValueChange={vi.fn()} disabled={true} />, { wrapper: Wrapper });
-    expect(screen.getByText('Checking Account').closest('[data-disabled]')).toHaveAttribute('data-disabled', 'true');
+    expect(screen.getByText('Checking Account').closest('[data-disabled]')).toHaveAttribute(
+      'data-disabled',
+      'true'
+    );
   });
 
   it('groups accounts by type', () => {

@@ -29,7 +29,13 @@ describe('useFinanceNews', () => {
 
   it('fetches finance news from API', async () => {
     const mockNews = [
-      { title: 'Finance News', link: 'https://example.com', description: 'Desc', pubDate: '2024-01-01', source: 'Reuters' },
+      {
+        title: 'Finance News',
+        link: 'https://example.com',
+        description: 'Desc',
+        pubDate: '2024-01-01',
+        source: 'Reuters',
+      },
     ];
     vi.mocked(apiClient.get).mockResolvedValue({ data: mockNews });
 

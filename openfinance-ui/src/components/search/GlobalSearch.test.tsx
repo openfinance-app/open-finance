@@ -37,7 +37,7 @@ describe('GlobalSearch', () => {
 
   it('renders search input with correct placeholder', () => {
     renderWithProviders(<GlobalSearch />, { queryClient });
-    
+
     const input = screen.getByPlaceholderText(/search accounts/i);
     expect(input).toBeInTheDocument();
   });
@@ -45,12 +45,12 @@ describe('GlobalSearch', () => {
   it('shows recent searches when input is focused with no query', async () => {
     // Add recent searches to localStorage
     localStorage.setItem('recent-searches', JSON.stringify(['investment', 'groceries']));
-    
+
     renderWithProviders(<GlobalSearch />, { queryClient });
-    
+
     const input = screen.getByPlaceholderText(/search accounts/i);
     fireEvent.focus(input);
-    
+
     await waitFor(() => {
       expect(screen.getByText('Recent Searches')).toBeInTheDocument();
       expect(screen.getByText('investment')).toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('GlobalSearch', () => {
             id: 123,
             title: 'Checking Account',
             subtitle: 'Bank of America',
-            amount: 5000.00,
+            amount: 5000.0,
             currency: 'USD',
             icon: 'Wallet',
             color: '#3b82f6',
@@ -105,12 +105,12 @@ describe('GlobalSearch', () => {
     });
 
     renderWithProviders(<GlobalSearch />, { queryClient });
-    
+
     const input = screen.getByPlaceholderText(/search accounts/i);
-    
+
     // Focus to open dropdown
     fireEvent.focus(input);
-    
+
     await waitFor(() => {
       expect(screen.getByText('Checking Account')).toBeInTheDocument();
     });
@@ -133,7 +133,7 @@ describe('GlobalSearch', () => {
             id: 456,
             title: 'Monthly Budget',
             subtitle: 'January 2024',
-            amount: 3000.00,
+            amount: 3000.0,
             currency: 'USD',
             icon: 'PieChart',
             color: '#10b981',
@@ -166,11 +166,11 @@ describe('GlobalSearch', () => {
     });
 
     renderWithProviders(<GlobalSearch />, { queryClient });
-    
+
     const input = screen.getByPlaceholderText(/search accounts/i);
     fireEvent.focus(input); // Focus to open dropdown
     fireEvent.change(input, { target: { value: 'monthly' } });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Monthly Budget')).toBeInTheDocument();
     });
@@ -192,7 +192,7 @@ describe('GlobalSearch', () => {
             id: 789,
             title: 'Apple Stock',
             subtitle: 'AAPL',
-            amount: 15000.00,
+            amount: 15000.0,
             currency: 'USD',
             icon: 'TrendingUp',
             color: '#8b5cf6',
@@ -225,11 +225,11 @@ describe('GlobalSearch', () => {
     });
 
     renderWithProviders(<GlobalSearch />, { queryClient });
-    
+
     const input = screen.getByPlaceholderText(/search accounts/i);
     fireEvent.focus(input); // Focus to open dropdown
     fireEvent.change(input, { target: { value: 'stock' } });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Apple Stock')).toBeInTheDocument();
     });
@@ -251,7 +251,7 @@ describe('GlobalSearch', () => {
             id: 101,
             title: 'Downtown Apartment',
             subtitle: '123 Main St',
-            amount: 350000.00,
+            amount: 350000.0,
             currency: 'USD',
             icon: 'Home',
             color: '#f59e0b',
@@ -284,11 +284,11 @@ describe('GlobalSearch', () => {
     });
 
     renderWithProviders(<GlobalSearch />, { queryClient });
-    
+
     const input = screen.getByPlaceholderText(/search accounts/i);
     fireEvent.focus(input); // Focus to open dropdown
     fireEvent.change(input, { target: { value: 'apartment' } });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Downtown Apartment')).toBeInTheDocument();
     });
@@ -310,7 +310,7 @@ describe('GlobalSearch', () => {
             id: 202,
             title: 'Home Mortgage',
             subtitle: 'Wells Fargo',
-            amount: 250000.00,
+            amount: 250000.0,
             currency: 'USD',
             icon: 'CreditCard',
             color: '#ef4444',
@@ -343,11 +343,11 @@ describe('GlobalSearch', () => {
     });
 
     renderWithProviders(<GlobalSearch />, { queryClient });
-    
+
     const input = screen.getByPlaceholderText(/search accounts/i);
     fireEvent.focus(input); // Focus to open dropdown
     fireEvent.change(input, { target: { value: 'mortgage' } });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Home Mortgage')).toBeInTheDocument();
     });
@@ -369,7 +369,7 @@ describe('GlobalSearch', () => {
             id: 303,
             title: 'Whole Foods',
             subtitle: 'Groceries',
-            amount: 85.50,
+            amount: 85.5,
             currency: 'USD',
             date: '2024-01-15',
             icon: 'ShoppingCart',
@@ -403,11 +403,11 @@ describe('GlobalSearch', () => {
     });
 
     renderWithProviders(<GlobalSearch />, { queryClient });
-    
+
     const input = screen.getByPlaceholderText(/search accounts/i);
     fireEvent.focus(input); // Focus to open dropdown
     fireEvent.change(input, { target: { value: 'grocery' } });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Whole Foods')).toBeInTheDocument();
     });
@@ -463,18 +463,18 @@ describe('GlobalSearch', () => {
     });
 
     renderWithProviders(<GlobalSearch />, { queryClient });
-    
+
     const input = screen.getByPlaceholderText(/search accounts/i);
     fireEvent.focus(input); // Focus to open dropdown
     fireEvent.change(input, { target: { value: 'test' } });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Account 1')).toBeInTheDocument();
     });
 
     // Press arrow down to select first result
     fireEvent.keyDown(input, { key: 'ArrowDown' });
-    
+
     // Press enter to navigate
     fireEvent.keyDown(input, { key: 'Enter' });
 
@@ -483,7 +483,7 @@ describe('GlobalSearch', () => {
 
   it('clears search and closes dropdown when clear button is clicked', async () => {
     const mockUpdateQuery = vi.fn();
-    
+
     vi.spyOn(useSearchHook, 'useSearchWithDebounce').mockReturnValue({
       query: 'test query',
       debouncedQuery: 'test query',
@@ -501,7 +501,7 @@ describe('GlobalSearch', () => {
     });
 
     renderWithProviders(<GlobalSearch />, { queryClient });
-    
+
     const clearButton = screen.getByRole('button', { name: '' });
     fireEvent.click(clearButton);
 
@@ -641,7 +641,15 @@ describe('GlobalSearch', () => {
       isDebouncing: false,
       updateQuery: vi.fn(),
       searchResult: {
-        data: { query: 'test', totalResults: 5, resultsByType: {}, countsPerType: {}, executionTimeMs: 5, hasMore: false, limit: 50 },
+        data: {
+          query: 'test',
+          totalResults: 5,
+          resultsByType: {},
+          countsPerType: {},
+          executionTimeMs: 5,
+          hasMore: false,
+          limit: 50,
+        },
         isLoading: false,
         error: null,
         isError: false,
@@ -668,8 +676,18 @@ describe('GlobalSearch', () => {
       totalResults: 10,
       resultsByType: {
         TRANSACTION: [
-          { resultType: 'TRANSACTION', id: 1, title: 'Payment 1', createdAt: '2024-01-01T00:00:00' },
-          { resultType: 'TRANSACTION', id: 2, title: 'Payment 2', createdAt: '2024-01-01T00:00:00' },
+          {
+            resultType: 'TRANSACTION',
+            id: 1,
+            title: 'Payment 1',
+            createdAt: '2024-01-01T00:00:00',
+          },
+          {
+            resultType: 'TRANSACTION',
+            id: 2,
+            title: 'Payment 2',
+            createdAt: '2024-01-01T00:00:00',
+          },
         ],
       },
       countsPerType: { TRANSACTION: 10 },

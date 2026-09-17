@@ -3,7 +3,7 @@
  *
  * A dropdown component for selecting accounts with search functionality.
  * Supports filtering by account type and shows account balance.
- * 
+ *
  * BUG-08 fixed: ACCOUNT_TYPE_LABELS now uses uppercase keys (CHECKING, SAVINGS…)
  * to match the backend API enum values.
  */
@@ -66,16 +66,17 @@ export function AccountSelector({
 
     const withoutExcluded =
       excludeAccountId !== undefined
-        ? accounts.filter((account) => account.id !== excludeAccountId)
+        ? accounts.filter(account => account.id !== excludeAccountId)
         : accounts;
 
     const normalizedQuery = searchQuery.trim().toLowerCase();
     if (!normalizedQuery) return withoutExcluded;
 
     return withoutExcluded.filter(
-      (account) =>
+      account =>
         account.name.toLowerCase().includes(normalizedQuery) ||
-        (account.institution?.name && account.institution.name.toLowerCase().includes(normalizedQuery))
+        (account.institution?.name &&
+          account.institution.name.toLowerCase().includes(normalizedQuery))
     );
   }, [accounts, searchQuery, excludeAccountId]);
 
@@ -83,7 +84,7 @@ export function AccountSelector({
   const groupedAccounts = useMemo(() => {
     const groups: Record<string, Account[]> = {};
 
-    filteredAccounts.forEach((account) => {
+    filteredAccounts.forEach(account => {
       const type = account.type || 'OTHER';
       if (!groups[type]) {
         groups[type] = [];
@@ -92,7 +93,7 @@ export function AccountSelector({
     });
 
     // Sort each group by name
-    Object.keys(groups).forEach((type) => {
+    Object.keys(groups).forEach(type => {
       groups[type].sort((a, b) => a.name.localeCompare(b.name));
     });
 
@@ -111,7 +112,7 @@ export function AccountSelector({
   // Find selected account
   const selectedAccount = useMemo(() => {
     if (!value || !accounts) return null;
-    return accounts.find((a) => a.id === value) || null;
+    return accounts.find(a => a.id === value) || null;
   }, [value, accounts]);
 
   const handleValueChange = (val: string) => {
@@ -145,7 +146,7 @@ export function AccountSelector({
       onValueChange={handleValueChange}
       disabled={disabled}
       open={isOpen}
-      onOpenChange={(open) => {
+      onOpenChange={open => {
         setIsOpen(open);
         if (!open) {
           markSelectInteraction();
@@ -180,8 +181,8 @@ export function AccountSelector({
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                onKeyDown={(event) => event.stopPropagation()}
+                onChange={event => setSearchQuery(event.target.value)}
+                onKeyDown={event => event.stopPropagation()}
                 placeholder={t('card.searchAccounts')}
                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 autoFocus={isOpen}
@@ -201,7 +202,7 @@ export function AccountSelector({
         )}
 
         {/* Grouped accounts */}
-        {sortedTypes.map((type) => (
+        {sortedTypes.map(type => (
           <div key={type} className="mt-2">
             {/* Type header — translated using uppercase key */}
             <div className="px-2 py-1 text-xs font-semibold text-text-muted">
@@ -209,12 +210,8 @@ export function AccountSelector({
             </div>
 
             {/* Accounts in this group */}
-            {groupedAccounts[type].map((account) => (
-              <SelectItem
-                key={account.id}
-                value={account.id.toString()}
-                className="gap-2"
-              >
+            {groupedAccounts[type].map(account => (
+              <SelectItem key={account.id} value={account.id.toString()} className="gap-2">
                 <div className="flex items-center justify-between w-full gap-2">
                   <span className="flex items-center gap-2 min-w-0">
                     <Wallet className="h-4 w-4 text-text-muted shrink-0" />
@@ -238,9 +235,7 @@ export function AccountSelector({
 
         {/* Empty state */}
         {sortedTypes.length === 0 && (
-          <div className="p-2 text-center text-sm text-text-muted">
-            {t('card.noAccountsMatch')}
-          </div>
+          <div className="p-2 text-center text-sm text-text-muted">{t('card.noAccountsMatch')}</div>
         )}
       </SelectContent>
     </Select>

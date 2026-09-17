@@ -49,12 +49,20 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="mt-4 space-y-6" onSubmit={(e) => { e.preventDefault(); handleCalculate(); }}>
+          <form
+            className="mt-4 space-y-6"
+            onSubmit={e => {
+              e.preventDefault();
+              handleCalculate();
+            }}
+          >
             {/* Input form */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Principal */}
               <div className="space-y-1">
-                <Label htmlFor="lc-principal">{t('loanCalculator.fields.principal', 'Loan Amount')}</Label>
+                <Label htmlFor="lc-principal">
+                  {t('loanCalculator.fields.principal', 'Loan Amount')}
+                </Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -64,14 +72,16 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     min="0"
                     className="pl-10"
                     value={input.principal ? String(input.principal) : ''}
-                    onChange={(val) => updateInput('principal', val ? Number(val) : 0)}
+                    onChange={val => updateInput('principal', val ? Number(val) : 0)}
                   />
                 </div>
               </div>
 
               {/* Annual Rate */}
               <div className="space-y-1">
-                <Label htmlFor="lc-rate">{t('loanCalculator.fields.rate', 'Annual Interest Rate (%)')}</Label>
+                <Label htmlFor="lc-rate">
+                  {t('loanCalculator.fields.rate', 'Annual Interest Rate (%)')}
+                </Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Percent className="h-4 w-4 text-muted-foreground" />
@@ -81,14 +91,16 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     min="0"
                     className="pl-10"
                     value={input.annualRate ? String(input.annualRate) : ''}
-                    onChange={(val) => updateInput('annualRate', val ? Number(val) : 0)}
+                    onChange={val => updateInput('annualRate', val ? Number(val) : 0)}
                   />
                 </div>
               </div>
 
               {/* Years */}
               <div className="space-y-1">
-                <Label htmlFor="lc-years">{t('loanCalculator.fields.years', 'Loan Term (Years)')}</Label>
+                <Label htmlFor="lc-years">
+                  {t('loanCalculator.fields.years', 'Loan Term (Years)')}
+                </Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -98,7 +110,7 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     min={1}
                     className="pl-10"
                     value={input.years ? String(input.years) : ''}
-                    onChange={(val) => updateInput('years', Number(val))}
+                    onChange={val => updateInput('years', Number(val))}
                   />
                 </div>
               </div>
@@ -110,7 +122,12 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                 <Calculator className="w-4 h-4 mr-2" />
                 {t('common.calculate', 'Calculate')}
               </Button>
-              <Button type="button" variant="outline" onClick={resetInputs} className="flex-1 md:flex-none">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetInputs}
+                className="flex-1 md:flex-none"
+              >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 {t('common.reset', 'Reset')}
               </Button>
@@ -225,7 +242,9 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
               <div className="h-[400px] w-full mt-4">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <AreaChart
-                    data={result.amortizationSchedule.filter((_, i) => i % 12 === 0 || i === result.amortizationSchedule.length - 1)}
+                    data={result.amortizationSchedule.filter(
+                      (_, i) => i % 12 === 0 || i === result.amortizationSchedule.length - 1
+                    )}
                     margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                   >
                     <defs>
@@ -236,12 +255,12 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     </defs>
                     <XAxis
                       dataKey="paymentNumber"
-                      tickFormatter={(val) => `Year ${Math.round(val / 12)}`}
+                      tickFormatter={val => `Year ${Math.round(val / 12)}`}
                       stroke="#888888"
                       fontSize={12}
                     />
                     <YAxis
-                      tickFormatter={(val) =>
+                      tickFormatter={val =>
                         new Intl.NumberFormat(i18n.language, {
                           notation: 'compact',
                           compactDisplay: 'short',
@@ -252,8 +271,13 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     />
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                     <Tooltip
-                      formatter={(value) => [formatCurrency(value as number, baseCurrency), 'Balance']}
-                      labelFormatter={(label) => `Payment ${label} (Year ${(Number(label)/12).toFixed(1)})`}
+                      formatter={value => [
+                        formatCurrency(value as number, baseCurrency),
+                        'Balance',
+                      ]}
+                      labelFormatter={label =>
+                        `Payment ${label} (Year ${(Number(label) / 12).toFixed(1)})`
+                      }
                     />
                     <Area
                       type="monotone"
@@ -272,33 +296,54 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>{t('loanCalculator.results.schedule', 'Amortization Schedule (Yearly)')}</CardTitle>
+              <CardTitle>
+                {t('loanCalculator.results.schedule', 'Amortization Schedule (Yearly)')}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                   <thead className="bg-muted text-muted-foreground">
                     <tr>
-                      <th className="px-4 py-3 font-medium rounded-tl-lg">{t('loanCalculator.results.table.year', 'Year')}</th>
-                      <th className="px-4 py-3 font-medium text-right">{t('loanCalculator.results.table.payment', 'Total Payment')}</th>
-                      <th className="px-4 py-3 font-medium text-right">{t('loanCalculator.results.table.principal', 'Principal Paid')}</th>
-                      <th className="px-4 py-3 font-medium text-right">{t('loanCalculator.results.table.interest', 'Interest Paid')}</th>
-                      <th className="px-4 py-3 font-medium text-right rounded-tr-lg">{t('loanCalculator.results.table.balance', 'Remaining Balance')}</th>
+                      <th className="px-4 py-3 font-medium rounded-tl-lg">
+                        {t('loanCalculator.results.table.year', 'Year')}
+                      </th>
+                      <th className="px-4 py-3 font-medium text-right">
+                        {t('loanCalculator.results.table.payment', 'Total Payment')}
+                      </th>
+                      <th className="px-4 py-3 font-medium text-right">
+                        {t('loanCalculator.results.table.principal', 'Principal Paid')}
+                      </th>
+                      <th className="px-4 py-3 font-medium text-right">
+                        {t('loanCalculator.results.table.interest', 'Interest Paid')}
+                      </th>
+                      <th className="px-4 py-3 font-medium text-right rounded-tr-lg">
+                        {t('loanCalculator.results.table.balance', 'Remaining Balance')}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {(() => {
-                      const yearlyStats: { year: number; payment: number; principal: number; interest: number; balance: number }[] = [];
+                      const yearlyStats: {
+                        year: number;
+                        payment: number;
+                        principal: number;
+                        interest: number;
+                        balance: number;
+                      }[] = [];
                       let yearPrincipal = 0;
                       let yearInterest = 0;
                       let yearPayment = 0;
-                      
-                      result.amortizationSchedule.forEach((entry) => {
+
+                      result.amortizationSchedule.forEach(entry => {
                         yearPrincipal += entry.principalPortion;
                         yearInterest += entry.interestPortion;
                         yearPayment += entry.paymentAmount;
-                        
-                        if (entry.paymentNumber % 12 === 0 || entry.paymentNumber === result.amortizationSchedule.length) {
+
+                        if (
+                          entry.paymentNumber % 12 === 0 ||
+                          entry.paymentNumber === result.amortizationSchedule.length
+                        ) {
                           yearlyStats.push({
                             year: Math.ceil(entry.paymentNumber / 12),
                             payment: yearPayment,
@@ -312,17 +357,25 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                         }
                       });
 
-                      return yearlyStats.map((stat) => (
+                      return yearlyStats.map(stat => (
                         <tr key={stat.year} className="hover:bg-muted/50 transition-colors">
                           <td className="px-4 py-3 font-medium text-foreground">{stat.year}</td>
                           <td className="px-4 py-3 text-right">
                             <ConvertedAmount amount={stat.payment} currency={baseCurrency} inline />
                           </td>
                           <td className="px-4 py-3 text-right text-muted-foreground">
-                            <ConvertedAmount amount={stat.principal} currency={baseCurrency} inline />
+                            <ConvertedAmount
+                              amount={stat.principal}
+                              currency={baseCurrency}
+                              inline
+                            />
                           </td>
                           <td className="px-4 py-3 text-right text-red-600 dark:text-red-400">
-                            <ConvertedAmount amount={stat.interest} currency={baseCurrency} inline />
+                            <ConvertedAmount
+                              amount={stat.interest}
+                              currency={baseCurrency}
+                              inline
+                            />
                           </td>
                           <td className="px-4 py-3 text-right font-medium text-foreground">
                             <ConvertedAmount amount={stat.balance} currency={baseCurrency} inline />

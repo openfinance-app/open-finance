@@ -17,7 +17,7 @@ const mockGetCalculationDefaults = vi.mocked(calculatorApi.getCalculationDefault
 describe('useFinancialFreedom', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Mock defaults
     mockGetCalculationDefaults.mockResolvedValue({
       defaultWithdrawalRate: 4.0,
@@ -209,7 +209,7 @@ describe('useFinancialFreedom', () => {
 
     it('should set loading state during calculation', async () => {
       mockCalculateTimeline.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve(mockTimelineResult), 100))
+        () => new Promise(resolve => setTimeout(() => resolve(mockTimelineResult), 100))
       );
       mockCalculateLongevity.mockResolvedValue(mockLongevityResult);
 

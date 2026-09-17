@@ -1,7 +1,7 @@
 /**
  * BudgetForm Component
  * TASK-8.2.8: Create BudgetForm component with validation
- * 
+ *
  * Form for creating and editing budgets with Zod validation
  */
 import { useEffect, useMemo } from 'react';
@@ -24,7 +24,11 @@ function createBudgetSchema(t: (key: string) => string) {
   return z
     .object({
       categoryId: z.number().min(1, t('validation.categoryRequired')),
-      amount: z.string().min(1, t('validation.amountInvalid')).refine(isValidDecimalString, t('validation.amountInvalid')).refine((v) => Number(v) > 0, t('validation.amountPositive')),
+      amount: z
+        .string()
+        .min(1, t('validation.amountInvalid'))
+        .refine(isValidDecimalString, t('validation.amountInvalid'))
+        .refine(v => Number(v) > 0, t('validation.amountPositive')),
       currency: z.string().length(3, t('validation.currencyRequired')),
       period: z.enum(['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']),
       startDate: z.string().min(1, t('validation.startDateRequired')),
@@ -33,7 +37,7 @@ function createBudgetSchema(t: (key: string) => string) {
       notes: z.string().max(500, t('validation.notesTooLong')).optional(),
     })
     .refine(
-      (data) => {
+      data => {
         const start = new Date(data.startDate);
         const end = new Date(data.endDate);
         // end must be at least 1 day after start (same-day not allowed)
@@ -53,7 +57,13 @@ interface BudgetFormProps {
   serverError?: string | null;
 }
 
-export function BudgetForm({ budget, onSubmit, onCancel, isLoading, serverError }: BudgetFormProps) {
+export function BudgetForm({
+  budget,
+  onSubmit,
+  onCancel,
+  isLoading,
+  serverError,
+}: BudgetFormProps) {
   const isEditing = !!budget;
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('budgets');
@@ -72,25 +82,25 @@ export function BudgetForm({ budget, onSubmit, onCancel, isLoading, serverError 
     reValidateMode: 'onChange',
     values: budget
       ? {
-        categoryId: budget.categoryId,
-        amount: String(budget.amount),
-        currency: budget.currency,
-        period: budget.period,
-        startDate: budget.startDate,
-        endDate: budget.endDate,
-        rollover: budget.rollover,
-        notes: budget.notes || '',
-      }
+          categoryId: budget.categoryId,
+          amount: String(budget.amount),
+          currency: budget.currency,
+          period: budget.period,
+          startDate: budget.startDate,
+          endDate: budget.endDate,
+          rollover: budget.rollover,
+          notes: budget.notes || '',
+        }
       : {
-        categoryId: 0,
-        amount: '0',
-        currency: baseCurrency,
-        period: 'MONTHLY',
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: '',
-        rollover: false,
-        notes: '',
-      },
+          categoryId: 0,
+          amount: '0',
+          currency: baseCurrency,
+          period: 'MONTHLY',
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: '',
+          rollover: false,
+          notes: '',
+        },
   });
 
   const watchedPeriod = watch('period');
@@ -144,7 +154,10 @@ export function BudgetForm({ budget, onSubmit, onCancel, isLoading, serverError 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Category */}
         <div>
-          <label htmlFor="categoryId" className="block text-sm font-medium text-text-primary mb-1.5">
+          <label
+            htmlFor="categoryId"
+            className="block text-sm font-medium text-text-primary mb-1.5"
+          >
             {t('form.category')} *
           </label>
           <Controller
@@ -153,7 +166,7 @@ export function BudgetForm({ budget, onSubmit, onCancel, isLoading, serverError 
             render={({ field }) => (
               <CategorySelect
                 value={field.value || undefined}
-                onValueChange={(value) => field.onChange(value ?? 0)}
+                onValueChange={value => field.onChange(value ?? 0)}
                 placeholder={t('form.categoryPlaceholder')}
                 searchPlaceholder={t('form.categorySearchPlaceholder')}
                 type="EXPENSE"
@@ -177,7 +190,7 @@ export function BudgetForm({ budget, onSubmit, onCancel, isLoading, serverError 
             {...register('period')}
             className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
-            {BUDGET_PERIODS.map((period) => (
+            {BUDGET_PERIODS.map(period => (
               <option key={period} value={period}>
                 {t(`form.periods.${period}`)}
               </option>
@@ -228,9 +241,7 @@ export function BudgetForm({ budget, onSubmit, onCancel, isLoading, serverError 
               />
             )}
           />
-          {errors.currency && (
-            <p className="mt-1 text-sm text-error">{errors.currency.message}</p>
-          )}
+          {errors.currency && <p className="mt-1 text-sm text-error">{errors.currency.message}</p>}
         </div>
       </div>
 

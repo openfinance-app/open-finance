@@ -110,8 +110,8 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access. Runs in CI jobs that set
-     * {@code YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
+     * Integration test - requires network access. Runs in CI jobs that set {@code
+     * YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
      */
     @Test
     @EnabledIfEnvironmentVariable(named = "YAHOO_NETWORK_TESTS", matches = "true")
@@ -130,8 +130,8 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access. Runs in CI jobs that set
-     * {@code YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
+     * Integration test - requires network access. Runs in CI jobs that set {@code
+     * YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
      */
     @Test
     @EnabledIfEnvironmentVariable(named = "YAHOO_NETWORK_TESTS", matches = "true")
@@ -147,8 +147,8 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access. Runs in CI jobs that set
-     * {@code YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
+     * Integration test - requires network access. Runs in CI jobs that set {@code
+     * YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
      */
     @Test
     @EnabledIfEnvironmentVariable(named = "YAHOO_NETWORK_TESTS", matches = "true")
@@ -163,8 +163,8 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access. Runs in CI jobs that set
-     * {@code YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
+     * Integration test - requires network access. Runs in CI jobs that set {@code
+     * YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
      */
     @Test
     @EnabledIfEnvironmentVariable(named = "YAHOO_NETWORK_TESTS", matches = "true")
@@ -185,8 +185,8 @@ class YahooFinanceProviderTest {
     }
 
     /**
-     * Integration test - requires network access. Runs in CI jobs that set
-     * {@code YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
+     * Integration test - requires network access. Runs in CI jobs that set {@code
+     * YAHOO_NETWORK_TESTS=true} (see backend-postgres.yml); skipped otherwise.
      */
     @Test
     @EnabledIfEnvironmentVariable(named = "YAHOO_NETWORK_TESTS", matches = "true")

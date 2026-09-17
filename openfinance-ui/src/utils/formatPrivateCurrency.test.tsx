@@ -5,13 +5,17 @@ import { formatPrivateCurrency, usePrivateCurrencyFormatter } from './formatPriv
 
 describe('formatPrivateCurrency', () => {
   it('renders formatted currency inside PrivateAmount', () => {
-    function Wrapper() { return <>{formatPrivateCurrency(1234.56, 'USD')}</>; }
+    function Wrapper() {
+      return <>{formatPrivateCurrency(1234.56, 'USD')}</>;
+    }
     renderWithProviders(<Wrapper />);
     expect(screen.getByText(/1.*234/)).toBeInTheDocument();
   });
 
   it('uses EUR as default currency', () => {
-    function Wrapper() { return <>{formatPrivateCurrency(100)}</>; }
+    function Wrapper() {
+      return <>{formatPrivateCurrency(100)}</>;
+    }
     renderWithProviders(<Wrapper />);
     expect(screen.getByText(/100/)).toBeInTheDocument();
   });

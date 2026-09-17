@@ -136,12 +136,7 @@ describe('RuleForm', () => {
 
   it('should render create form when no rule provided', () => {
     renderWithProviders(
-      <RuleForm
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        rule={null}
-        onSubmit={mockOnSubmit}
-      />
+      <RuleForm open={true} onOpenChange={mockOnOpenChange} rule={null} onSubmit={mockOnSubmit} />
     );
 
     expect(screen.getByRole('heading', { name: 'Create Rule' })).toBeInTheDocument();
@@ -168,12 +163,7 @@ describe('RuleForm', () => {
 
   it('should validate empty name', async () => {
     renderWithProviders(
-      <RuleForm
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        rule={null}
-        onSubmit={mockOnSubmit}
-      />
+      <RuleForm open={true} onOpenChange={mockOnOpenChange} rule={null} onSubmit={mockOnSubmit} />
     );
 
     const submitButton = screen.getByRole('button', { name: /create rule/i });
@@ -186,12 +176,7 @@ describe('RuleForm', () => {
 
   it('should validate name length', async () => {
     renderWithProviders(
-      <RuleForm
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        rule={null}
-        onSubmit={mockOnSubmit}
-      />
+      <RuleForm open={true} onOpenChange={mockOnOpenChange} rule={null} onSubmit={mockOnSubmit} />
     );
 
     const nameInput = screen.getByLabelText(/rule name/i);
@@ -207,12 +192,7 @@ describe('RuleForm', () => {
 
   it('should validate no conditions', async () => {
     renderWithProviders(
-      <RuleForm
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        rule={null}
-        onSubmit={mockOnSubmit}
-      />
+      <RuleForm open={true} onOpenChange={mockOnOpenChange} rule={null} onSubmit={mockOnSubmit} />
     );
 
     const nameInput = screen.getByLabelText(/rule name/i);
@@ -228,12 +208,7 @@ describe('RuleForm', () => {
 
   it('should validate no actions', async () => {
     renderWithProviders(
-      <RuleForm
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        rule={null}
-        onSubmit={mockOnSubmit}
-      />
+      <RuleForm open={true} onOpenChange={mockOnOpenChange} rule={null} onSubmit={mockOnSubmit} />
     );
 
     const nameInput = screen.getByLabelText(/rule name/i);
@@ -256,12 +231,7 @@ describe('RuleForm', () => {
 
   it('should submit valid form data', async () => {
     renderWithProviders(
-      <RuleForm
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        rule={null}
-        onSubmit={mockOnSubmit}
-      />
+      <RuleForm open={true} onOpenChange={mockOnOpenChange} rule={null} onSubmit={mockOnSubmit} />
     );
 
     // Fill name
@@ -341,12 +311,7 @@ describe('RuleForm', () => {
 
   it('should call onOpenChange when cancel is clicked', () => {
     renderWithProviders(
-      <RuleForm
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        rule={null}
-        onSubmit={mockOnSubmit}
-      />
+      <RuleForm open={true} onOpenChange={mockOnOpenChange} rule={null} onSubmit={mockOnSubmit} />
     );
 
     const cancelButton = screen.getByRole('button', { name: /cancel/i });

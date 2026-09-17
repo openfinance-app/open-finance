@@ -47,7 +47,7 @@ describe('useEntityImages', () => {
       entityType: 'ASSET',
       entityId: 5,
     });
-    expect(result.current.images.map((i) => i.id)).toEqual([1]);
+    expect(result.current.images.map(i => i.id)).toEqual([1]);
     expect(result.current.isLoading).toBe(false);
   });
 

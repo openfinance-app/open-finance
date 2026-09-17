@@ -23,7 +23,7 @@ vi.mock('@/hooks/useCurrency', () => ({
   useUpdateExchangeRates: () => ({ mutate: mockMutate, isPending: false }),
 }));
 
-vi.mock('@/context/AuthContext', async (importOriginal) => {
+vi.mock('@/context/AuthContext', async importOriginal => {
   const actual = await importOriginal<typeof import('@/context/AuthContext')>();
   return {
     ...actual,
@@ -34,8 +34,8 @@ vi.mock('@/context/AuthContext', async (importOriginal) => {
       login: vi.fn(),
       logout: vi.fn(),
       updateBaseCurrency: vi.fn(),
-      loading: false
-    }))
+      loading: false,
+    })),
   };
 });
 

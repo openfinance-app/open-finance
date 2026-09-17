@@ -38,10 +38,17 @@ describe('ProtectedRoute', () => {
           <NumberFormatProvider>
             <CurrencyDisplayProvider>
               <VisibilityProvider>
-                <MemoryRouter initialEntries={["/dashboard"]}>
+                <MemoryRouter initialEntries={['/dashboard']}>
                   <Routes>
                     <Route path="/login" element={<div>login</div>} />
-                    <Route path="/dashboard" element={<ProtectedRoute><Content /></ProtectedRoute>} />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <Content />
+                        </ProtectedRoute>
+                      }
+                    />
                   </Routes>
                 </MemoryRouter>
               </VisibilityProvider>
@@ -67,10 +74,17 @@ describe('ProtectedRoute', () => {
           <NumberFormatProvider>
             <CurrencyDisplayProvider>
               <VisibilityProvider>
-                <MemoryRouter initialEntries={["/dashboard"]}>
+                <MemoryRouter initialEntries={['/dashboard']}>
                   <Routes>
                     <Route path="/login" element={<div>login</div>} />
-                    <Route path="/dashboard" element={<ProtectedRoute><Content /></ProtectedRoute>} />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <Content />
+                        </ProtectedRoute>
+                      }
+                    />
                   </Routes>
                 </MemoryRouter>
               </VisibilityProvider>

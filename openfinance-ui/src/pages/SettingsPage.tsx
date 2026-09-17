@@ -1,12 +1,12 @@
 /**
  * SettingsPage - User settings management
- * 
+ *
  * Implements TASK-6.3:
  * - Tabbed interface for different settings categories
  * - General settings (base currency)
  * - Security settings (future: password change)
  * - Display settings (future: theme, date format)
- * 
+ *
  * Requirements: REQ-6.3 (User Settings & Preferences)
  */
 import { useState, useEffect } from 'react';
@@ -49,9 +49,7 @@ export default function SettingsPage() {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-text-primary">{t('title')}</h1>
-          <p className="text-text-secondary mt-2">
-            {t('description')}
-          </p>
+          <p className="text-text-secondary mt-2">{t('description')}</p>
         </div>
 
         {/* Tabs */}
@@ -112,18 +110,17 @@ export default function SettingsPage() {
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
               )}
             </button>
-
           </div>
         </div>
 
         {/* Tab Content */}
         <div>
           {activeTab === 'general' && <GeneralSettings onHasChanges={setGeneralHasChanges} />}
-          
+
           {activeTab === 'security' && <SecuritySettings />}
 
           {activeTab === 'display' && <DisplaySettings />}
-          
+
           {activeTab === 'backup' && <BackupSettings />}
         </div>
       </div>

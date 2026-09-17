@@ -37,7 +37,9 @@ describe('useFileUpload hooks', () => {
 
       const { result } = renderHook(() => useFileUpload(), { wrapper });
 
-      const file = new File(['QIF content'], 'transactions.qif', { type: 'application/octet-stream' });
+      const file = new File(['QIF content'], 'transactions.qif', {
+        type: 'application/octet-stream',
+      });
 
       await act(async () => {
         result.current.mutate(file);
@@ -50,7 +52,7 @@ describe('useFileUpload hooks', () => {
         expect.any(FormData),
         expect.objectContaining({
           headers: { 'Content-Type': 'multipart/form-data' },
-        }),
+        })
       );
     });
 

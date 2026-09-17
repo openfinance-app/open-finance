@@ -103,6 +103,7 @@ class TransactionLiabilitySyncTest {
 
     @BeforeEach
     void setUp() {
+        when(realEstateRepository.existsByIdAndUserId(PROPERTY_ID, USER_ID)).thenReturn(true);
         for (long categoryId : new long[] {5L, 6L}) {
             when(categoryRepository.findByIdAndUserId(categoryId, 1L))
                     .thenReturn(
@@ -389,7 +390,8 @@ class TransactionLiabilitySyncTest {
         ArgumentCaptor<RealEstateValueHistory> historyCaptor =
                 ArgumentCaptor.forClass(RealEstateValueHistory.class);
         verify(realEstateValueHistoryRepository).save(historyCaptor.capture());
-        assertThat(historyCaptor.getValue().getRecordedValue()).isEqualTo("205000.00");
+        assertThat(historyCaptor.getValue().getRecordedValue()).isEqualTo("5000.00");
+        assertThat(historyCaptor.getValue().isAdjustment()).isTrue();
         assertThat(historyCaptor.getValue().getPropertyId()).isEqualTo(PROPERTY_ID);
     }
 

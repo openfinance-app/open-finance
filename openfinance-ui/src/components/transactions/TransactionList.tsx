@@ -9,7 +9,24 @@
 import React, { useEffect, useState } from 'react';
 import { ROW_HIGHLIGHT_SCROLL_DELAY_MS } from '@/constants/timing';
 import { useTranslation } from 'react-i18next';
-import { Edit2, Trash2, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Calendar, Scissors, ChevronDown, ChevronUp, CreditCard, Banknote, Landmark, Repeat, Globe, FileText, Wallet } from 'lucide-react';
+import {
+  Edit2,
+  Trash2,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ArrowRightLeft,
+  Calendar,
+  Scissors,
+  ChevronDown,
+  ChevronUp,
+  CreditCard,
+  Banknote,
+  Landmark,
+  Repeat,
+  Globe,
+  FileText,
+  Wallet,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -120,9 +137,10 @@ function PayeeAvatarWithFallback({ payee }: { payee: Payee }) {
         src={payee.logo}
         alt={payee.name}
         className="h-10 w-10 rounded-full object-contain bg-white p-0.5 border border-border"
-        onError={(e) => {
+        onError={e => {
           (e.currentTarget as HTMLImageElement).classList.add('hidden');
-          const fallback = (e.currentTarget as HTMLImageElement).nextElementSibling as HTMLElement | null;
+          const fallback = (e.currentTarget as HTMLImageElement)
+            .nextElementSibling as HTMLElement | null;
           if (fallback) fallback.classList.remove('hidden');
         }}
       />
@@ -208,18 +226,9 @@ function CategoryPill({
  * PaymentMethodPill — small muted icon + label describing how the transaction
  * was paid.
  */
-function PaymentMethodPill({
-  method,
-  label,
-}: {
-  method: PaymentMethod;
-  label: string;
-}) {
+function PaymentMethodPill({ method, label }: { method: PaymentMethod; label: string }) {
   return (
-    <span
-      className="inline-flex items-center gap-1 text-xs text-text-tertiary"
-      title={label}
-    >
+    <span className="inline-flex items-center gap-1 text-xs text-text-tertiary" title={label}>
       {getPaymentMethodIcon(method)}
       <span className="truncate max-w-32">{label}</span>
     </span>
@@ -276,9 +285,7 @@ function TransactionItem({
   const payeeObj = transaction.payee ? payeesMap.get(transaction.payee) : undefined;
 
   // Resolve the source account (for its institution logo)
-  const accountObj = transaction.accountId
-    ? accountsMap.get(transaction.accountId)
-    : undefined;
+  const accountObj = transaction.accountId ? accountsMap.get(transaction.accountId) : undefined;
 
   // Category info — prefer full category object, fall back to denormalized backend fields
   const categoryName = transaction.category?.name || transaction.categoryName;
@@ -300,10 +307,10 @@ function TransactionItem({
       className={cn(
         'flex items-center gap-3 p-4 bg-surface rounded-lg hover:bg-surface-elevated transition-all duration-300 group relative',
         isHighlighted &&
-        'ring-2 ring-primary ring-offset-2 ring-offset-background bg-primary/5 shadow-lg scale-[1.02] z-30',
-        onViewDetail && 'cursor-pointer',
+          'ring-2 ring-primary ring-offset-2 ring-offset-background bg-primary/5 shadow-lg scale-[1.02] z-30',
+        onViewDetail && 'cursor-pointer'
       )}
-      onClick={(e) => {
+      onClick={e => {
         if ((e.target as HTMLElement).closest('button')) return;
         // Prevent spurious click-through when a Radix Select dropdown closes
         // (the portal is removed before the click fires, causing it to land on the card)
@@ -327,11 +334,9 @@ function TransactionItem({
               <div
                 className={cn(
                   'absolute -bottom-0.5 -right-0.5 flex h-[1.1rem] w-[1.1rem] items-center justify-center rounded-full border-2 border-background z-10',
-                  getTransactionColor(transaction.type),
+                  getTransactionColor(transaction.type)
                 )}
-                title={
-                  transaction.type.charAt(0) + transaction.type.slice(1).toLowerCase()
-                }
+                title={transaction.type.charAt(0) + transaction.type.slice(1).toLowerCase()}
               >
                 <span className="[&>svg]:h-2.5 [&>svg]:w-2.5">
                   {getTransactionIcon(transaction.type)}
@@ -344,7 +349,7 @@ function TransactionItem({
           <div
             className={cn(
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-full z-10',
-              getTransactionColor(transaction.type),
+              getTransactionColor(transaction.type)
             )}
           >
             {getTransactionIcon(transaction.type)}
@@ -356,13 +361,9 @@ function TransactionItem({
           <div
             className={cn(
               'absolute left-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-background z-20',
-              isTransferSource ? 'bg-error -bottom-1.5' : 'bg-success -top-1.5',
+              isTransferSource ? 'bg-error -bottom-1.5' : 'bg-success -top-1.5'
             )}
-            title={
-              isTransferSource
-                ? tl('list.aria.transferSource')
-                : tl('list.aria.transferDest')
-            }
+            title={isTransferSource ? tl('list.aria.transferSource') : tl('list.aria.transferDest')}
           />
         )}
       </div>
@@ -388,7 +389,7 @@ function TransactionItem({
           {transaction.hasSplits && (
             <button
               type="button"
-              onClick={() => setSplitsExpanded((prev) => !prev)}
+              onClick={() => setSplitsExpanded(prev => !prev)}
               aria-expanded={splitsExpanded}
               aria-label={t('aria.toggleSplitDetails')}
               title="This transaction is split across multiple categories"
@@ -457,9 +458,9 @@ function TransactionItem({
             ? rawTags
             : typeof rawTags === 'string'
               ? rawTags
-                .split(',')
-                .map((tag: string) => tag.trim())
-                .filter((tag: string) => tag.length > 0)
+                  .split(',')
+                  .map((tag: string) => tag.trim())
+                  .filter((tag: string) => tag.length > 0)
               : [];
 
           return tags.length > 0 ? (
@@ -486,7 +487,7 @@ function TransactionItem({
             'font-mono font-semibold',
             transaction.type === 'INCOME' && 'text-success',
             transaction.type === 'EXPENSE' && 'text-error',
-            transaction.type === 'TRANSFER' && 'text-text-primary',
+            transaction.type === 'TRANSFER' && 'text-text-primary'
           )}
         >
           {transaction.type === 'INCOME' && '+'}
@@ -511,7 +512,7 @@ function TransactionItem({
                 alt=""
                 aria-hidden="true"
                 className="h-3.5 w-3.5 rounded-full object-contain shrink-0"
-                onError={(e) => {
+                onError={e => {
                   (e.currentTarget as HTMLImageElement).style.display = 'none';
                 }}
               />
@@ -544,10 +545,7 @@ function TransactionItem({
         {/* Payment method shown under the account name */}
         {transaction.paymentMethod && paymentMethodLabel && (
           <div className="mt-0.5 flex justify-end">
-            <PaymentMethodPill
-              method={transaction.paymentMethod}
-              label={paymentMethodLabel}
-            />
+            <PaymentMethodPill method={transaction.paymentMethod} label={paymentMethodLabel} />
           </div>
         )}
       </div>
@@ -556,7 +554,7 @@ function TransactionItem({
       <div
         className={cn(
           'flex items-center gap-1 transition-opacity duration-300 shrink-0',
-          isHighlighted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+          isHighlighted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
         )}
       >
         <Button
@@ -566,9 +564,7 @@ function TransactionItem({
           className="h-8 w-8 p-0"
           aria-label={t('aria.editTransaction')}
           title={
-            transaction.transferId
-              ? tl('list.aria.editTransfer')
-              : tl('list.aria.editTransaction')
+            transaction.transferId ? tl('list.aria.editTransfer') : tl('list.aria.editTransaction')
           }
         >
           <Edit2 className="h-4 w-4" />
@@ -603,11 +599,11 @@ export function TransactionList({
   const { data: payees = [] } = useActivePayees();
 
   // Build a name → Payee lookup map for O(1) access in each row
-  const payeesMap = new Map<string, Payee>(payees.map((p) => [p.name, p]));
+  const payeesMap = new Map<string, Payee>(payees.map(p => [p.name, p]));
 
   // Fetch all accounts (incl. closed) to resolve institution logos per row
   const { data: accounts = [] } = useAccounts('all');
-  const accountsMap = new Map<number, Account>(accounts.map((a) => [a.id, a]));
+  const accountsMap = new Map<number, Account>(accounts.map(a => [a.id, a]));
 
   // Group transactions by date
   const grouped = groupByDate(transactions, settings?.dateFormat);
@@ -618,16 +614,12 @@ export function TransactionList({
   });
 
   if (transactions.length === 0) {
-    return (
-      <div className="text-center py-12 text-text-secondary">
-        {t('empty.noResults')}
-      </div>
-    );
+    return <div className="text-center py-12 text-text-secondary">{t('empty.noResults')}</div>;
   }
 
   return (
     <div className="space-y-6">
-      {sortedDates.map((dateKey) => {
+      {sortedDates.map(dateKey => {
         const dateTransactions = grouped.get(dateKey) || [];
         const renderedTransferIds = new Set<string>();
 
@@ -647,17 +639,13 @@ export function TransactionList({
                   }
 
                   const pairTransaction = dateTransactions.find(
-                    (t) =>
-                      t.transferId === transaction.transferId &&
-                      t.id !== transaction.id,
+                    t => t.transferId === transaction.transferId && t.id !== transaction.id
                   );
 
                   if (pairTransaction) {
                     renderedTransferIds.add(transaction.transferId);
-                    const sourceTx =
-                      transaction.type === 'EXPENSE' ? transaction : pairTransaction;
-                    const destTx =
-                      transaction.type === 'INCOME' ? transaction : pairTransaction;
+                    const sourceTx = transaction.type === 'EXPENSE' ? transaction : pairTransaction;
+                    const destTx = transaction.type === 'INCOME' ? transaction : pairTransaction;
 
                     return (
                       <div

@@ -2,7 +2,7 @@
  * TransactionsPage Component
  * Task 3.2.13: Create TransactionsPage component
  * Task 4.4.6: Document title management
- * 
+ *
  * Main page for viewing and managing transactions with filters and pagination
  */
 import { useEffect, useRef, useState } from 'react';
@@ -31,7 +31,11 @@ import {
   useCategories,
 } from '@/hooks/useTransactions';
 import { useAccounts } from '@/hooks/useAccounts';
-import type { Transaction, TransactionRequest, TransactionFilters as Filters } from '@/types/transaction';
+import type {
+  Transaction,
+  TransactionRequest,
+  TransactionFilters as Filters,
+} from '@/types/transaction';
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const VALID_TYPES = ['INCOME', 'EXPENSE', 'TRANSFER'] as const;
@@ -42,7 +46,9 @@ export default function TransactionsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const highlightId = searchParams.get('highlight') ? parseInt(searchParams.get('highlight')!) : null;
+  const highlightId = searchParams.get('highlight')
+    ? parseInt(searchParams.get('highlight')!)
+    : null;
   const categoryId = searchParams.get('category') ? parseInt(searchParams.get('category')!) : null;
   const categoryIdParam = searchParams.get('categoryId')
     ? parseInt(searchParams.get('categoryId')!)
@@ -176,7 +182,7 @@ export default function TransactionsPage() {
               payee: data.payee,
               tags: data.tags,
               isReconciled: editingTransaction.isReconciled,
-              paymentMethod: data.paymentMethod
+              paymentMethod: data.paymentMethod,
             },
           });
         } else {
@@ -257,10 +263,7 @@ export default function TransactionsPage() {
       {/* Filters */}
       {showFilters && (
         <div className="mb-6">
-          <TransactionFilters
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-          />
+          <TransactionFilters filters={filters} onFiltersChange={handleFiltersChange} />
         </div>
       )}
 
@@ -281,27 +284,24 @@ export default function TransactionsPage() {
             filters.keyword
               ? t('empty.noKeywordMatch')
               : Object.entries(filters).some(
-                  ([k, v]) =>
-                    !['page', 'size', 'sort'].includes(k) &&
-                    v !== undefined &&
-                    v !== null &&
-                    v !== '',
-                )
-              ? t('empty.noMatch')
-              : t('empty.noTransactions')
+                    ([k, v]) =>
+                      !['page', 'size', 'sort'].includes(k) &&
+                      v !== undefined &&
+                      v !== null &&
+                      v !== ''
+                  )
+                ? t('empty.noMatch')
+                : t('empty.noTransactions')
           }
           action={
             !Object.entries(filters).some(
               ([k, v]) =>
-                !['page', 'size', 'sort'].includes(k) &&
-                v !== undefined &&
-                v !== null &&
-                v !== '',
+                !['page', 'size', 'sort'].includes(k) && v !== undefined && v !== null && v !== ''
             )
               ? {
-                label: t('empty.addCta'),
-                onClick: handleCreate,
-              }
+                  label: t('empty.addCta'),
+                  onClick: handleCreate,
+                }
               : undefined
           }
         />
@@ -316,13 +316,13 @@ export default function TransactionsPage() {
             onDelete={handleDelete}
             highlightedId={highlightId}
             sortDirection={filters.sort?.endsWith(',asc') ? 'asc' : 'desc'}
-            onViewDetail={(tx) => setDetailTransaction(tx)}
-            onFilterByCategory={(filterCategoryId) => {
-              setFilters((prev) => ({ ...prev, categoryId: filterCategoryId, page: 0 }));
+            onViewDetail={tx => setDetailTransaction(tx)}
+            onFilterByCategory={filterCategoryId => {
+              setFilters(prev => ({ ...prev, categoryId: filterCategoryId, page: 0 }));
               setShowFilters(true);
             }}
-            onFilterByAccount={(filterAccountId) => {
-              setFilters((prev) => ({ ...prev, accountId: filterAccountId, page: 0 }));
+            onFilterByAccount={filterAccountId => {
+              setFilters(prev => ({ ...prev, accountId: filterAccountId, page: 0 }));
               setShowFilters(true);
             }}
           />
@@ -368,7 +368,7 @@ export default function TransactionsPage() {
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
         open={!!deletingTransaction}
-        onOpenChange={(open) => !open && setDeletingTransaction(null)}
+        onOpenChange={open => !open && setDeletingTransaction(null)}
         onConfirm={handleConfirmDelete}
         title={t('dialogs.delete.title')}
         description={t('dialogs.delete.description')}
@@ -383,7 +383,7 @@ export default function TransactionsPage() {
         <TransactionDetailModal
           transaction={detailTransaction}
           onClose={() => setDetailTransaction(null)}
-          onEdit={(tx) => {
+          onEdit={tx => {
             setDetailTransaction(null);
             handleEdit(tx);
           }}

@@ -185,7 +185,9 @@ public class FileValidationService {
      */
     public String detectFileFormat(MultipartFile file) throws IOException {
         try (BufferedReader reader =
-                new BufferedReader(new InputStreamReader(file.getInputStream()))) {
+                new BufferedReader(
+                        new InputStreamReader(
+                                file.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
 
             String firstLine = reader.readLine();
             if (firstLine == null) {
@@ -245,7 +247,9 @@ public class FileValidationService {
      */
     private boolean containsMaliciousContent(MultipartFile file, String detectedFormat) {
         try (BufferedReader reader =
-                new BufferedReader(new InputStreamReader(file.getInputStream()))) {
+                new BufferedReader(
+                        new InputStreamReader(
+                                file.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
 
             String line;
             int lineCount = 0;

@@ -33,8 +33,8 @@ describe('useMarketData hooks', () => {
     it('should fetch market quote for a symbol', async () => {
       const mockQuote = {
         symbol: 'AAPL',
-        price: 175.50,
-        change: 2.30,
+        price: 175.5,
+        change: 2.3,
         changePercent: 1.33,
         volume: 50000000,
         marketCap: 2800000000000,
@@ -84,15 +84,28 @@ describe('useMarketData hooks', () => {
   describe('useHistoricalPrices', () => {
     it('should fetch historical prices for a symbol', async () => {
       const mockPrices = [
-        { date: '2024-01-01', close: 170.0, open: 168.0, high: 172.0, low: 167.0, volume: 30000000 },
-        { date: '2024-01-02', close: 175.5, open: 170.0, high: 176.0, low: 169.0, volume: 40000000 },
+        {
+          date: '2024-01-01',
+          close: 170.0,
+          open: 168.0,
+          high: 172.0,
+          low: 167.0,
+          volume: 30000000,
+        },
+        {
+          date: '2024-01-02',
+          close: 175.5,
+          open: 170.0,
+          high: 176.0,
+          low: 169.0,
+          volume: 40000000,
+        },
       ];
       mockedApiClient.get.mockResolvedValue({ data: mockPrices });
 
-      const { result } = renderHook(
-        () => useHistoricalPrices('AAPL', '2024-01-01', '2024-01-31'),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useHistoricalPrices('AAPL', '2024-01-01', '2024-01-31'), {
+        wrapper,
+      });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockPrices);
@@ -103,10 +116,9 @@ describe('useMarketData hooks', () => {
     });
 
     it('should be disabled when symbol is null', () => {
-      const { result } = renderHook(
-        () => useHistoricalPrices(null, '2024-01-01', '2024-01-31'),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useHistoricalPrices(null, '2024-01-01', '2024-01-31'), {
+        wrapper,
+      });
       expect(result.current.fetchStatus).toBe('idle');
     });
   });
@@ -114,7 +126,7 @@ describe('useMarketData hooks', () => {
   // ── useUpdateAssetPrice ─────────────────────────────────────────────────
   describe('useUpdateAssetPrice', () => {
     it('should update price for a single asset', async () => {
-      const mockResponse = { assetId: 1, symbol: 'AAPL', newPrice: 175.50, previousPrice: 170.0 };
+      const mockResponse = { assetId: 1, symbol: 'AAPL', newPrice: 175.5, previousPrice: 170.0 };
       mockedApiClient.post.mockResolvedValue({ data: mockResponse });
 
       const { result } = renderHook(() => useUpdateAssetPrice(), { wrapper });

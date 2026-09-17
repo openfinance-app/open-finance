@@ -17,24 +17,23 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, helperText, type = 'text', id, required, icon, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
     const errorId = error ? `${inputId}-error` : undefined;
-    
+
     return (
       <div className="w-full">
         {label && (
-          <label
-            htmlFor={inputId}
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
+          <label htmlFor={inputId} className="block text-sm font-medium text-text-primary mb-1.5">
             {label}
             {required && <span aria-label="required"> *</span>}
           </label>
         )}
         <div className="relative group">
           {icon && (
-            <div className={cn(
-               "absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-200",
-               error ? "text-error" : "text-text-muted group-focus-within:text-primary"
-            )}>
+            <div
+              className={cn(
+                'absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-200',
+                error ? 'text-error' : 'text-text-muted group-focus-within:text-primary'
+              )}
+            >
               {icon}
             </div>
           )}
@@ -65,9 +64,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {error}
           </p>
         )}
-        {helperText && !error && (
-          <p className="mt-1.5 text-sm text-text-secondary">{helperText}</p>
-        )}
+        {helperText && !error && <p className="mt-1.5 text-sm text-text-secondary">{helperText}</p>}
       </div>
     );
   }

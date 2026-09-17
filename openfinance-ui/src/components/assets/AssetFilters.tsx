@@ -1,6 +1,6 @@
 /**
  * AssetFilters Component
- * 
+ *
  * Filter controls for assets (keyword, type, currency, value range, etc.)
  */
 import { Search, X } from 'lucide-react';
@@ -45,10 +45,7 @@ const sortOptions: { value: string; labelKey: string }[] = [
   { value: 'purchaseDate,asc', labelKey: 'filtersPanel.sortOptions.oldestFirst' },
 ];
 
-export function AssetFilters({
-  filters,
-  onFiltersChange,
-}: AssetFiltersProps) {
+export function AssetFilters({ filters, onFiltersChange }: AssetFiltersProps) {
   const { t } = useTranslation('assets');
   const handleChange = (key: keyof AssetFilters, value: string | number | boolean | undefined) => {
     onFiltersChange({
@@ -65,7 +62,7 @@ export function AssetFilters({
   };
 
   const hasActiveFilters = Object.keys(filters).some(
-    (key) =>
+    key =>
       filters[key as keyof AssetFilters] !== undefined &&
       key !== 'page' &&
       key !== 'size' &&
@@ -86,12 +83,14 @@ export function AssetFilters({
             type="text"
             placeholder={t('form.searchPlaceholder')}
             value={filters.keyword || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('keyword', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleChange('keyword', e.target.value)
+            }
             className="pl-10 pr-10"
           />
           <RegexToggle
             enabled={!!filters.keywordRegex}
-            onChange={(val) => handleChange('keywordRegex', val || undefined)}
+            onChange={val => handleChange('keywordRegex', val || undefined)}
             className="absolute right-2 top-1/2 -translate-y-1/2"
           />
         </div>
@@ -107,10 +106,10 @@ export function AssetFilters({
           <select
             id="type"
             value={filters.type || ''}
-            onChange={(e) => handleChange('type', e.target.value || undefined)}
+            onChange={e => handleChange('type', e.target.value || undefined)}
             className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
-            {assetTypes.map((type) => (
+            {assetTypes.map(type => (
               <option key={type.value} value={type.value}>
                 {t(type.labelKey)}
               </option>
@@ -125,7 +124,7 @@ export function AssetFilters({
           </label>
           <CurrencySelector
             value={filters.currency}
-            onValueChange={(val) => handleChange('currency', val)}
+            onValueChange={val => handleChange('currency', val)}
             allowNone={true}
           />
         </div>
@@ -140,7 +139,9 @@ export function AssetFilters({
             type="text"
             placeholder={t('form.symbolFilterPlaceholder')}
             value={filters.symbol || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('symbol', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleChange('symbol', e.target.value)
+            }
           />
         </div>
 
@@ -153,10 +154,10 @@ export function AssetFilters({
             id="sort"
             data-testid="filter-sort"
             value={filters.sort || 'name,asc'}
-            onChange={(e) => handleChange('sort', e.target.value || undefined)}
+            onChange={e => handleChange('sort', e.target.value || undefined)}
             className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
-            {sortOptions.map((option) => (
+            {sortOptions.map(option => (
               <option key={option.value} value={option.value}>
                 {t(option.labelKey)}
               </option>
@@ -167,27 +168,33 @@ export function AssetFilters({
         {/* Value Range */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="valueMin" className="block text-sm font-medium text-text-primary mb-1.5">
+            <label
+              htmlFor="valueMin"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
               {t('filtersPanel.minValue')}
             </label>
             <NumberInput
               id="valueMin"
               data-testid="filter-min-value"
               value={filters.valueMin !== undefined ? String(filters.valueMin) : ''}
-              onChange={(val) => handleChange('valueMin', val ? parseFloat(val) : undefined)}
+              onChange={val => handleChange('valueMin', val ? parseFloat(val) : undefined)}
               placeholder="0.00"
               min="0"
             />
           </div>
           <div>
-            <label htmlFor="valueMax" className="block text-sm font-medium text-text-primary mb-1.5">
+            <label
+              htmlFor="valueMax"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
               {t('filtersPanel.maxValue')}
             </label>
             <NumberInput
               id="valueMax"
               data-testid="filter-max-value"
               value={filters.valueMax !== undefined ? String(filters.valueMax) : ''}
-              onChange={(val) => handleChange('valueMax', val ? parseFloat(val) : undefined)}
+              onChange={val => handleChange('valueMax', val ? parseFloat(val) : undefined)}
               placeholder="0.00"
               min="0"
             />
@@ -197,23 +204,29 @@ export function AssetFilters({
         {/* Purchase Date Range */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="purchaseDateFrom" className="block text-sm font-medium text-text-primary mb-1.5">
+            <label
+              htmlFor="purchaseDateFrom"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
               {t('filtersPanel.purchasedFrom')}
             </label>
             <DateInput
               id="purchaseDateFrom"
               value={filters.purchaseDateFrom || ''}
-              onChange={(val) => handleChange('purchaseDateFrom', val || undefined)}
+              onChange={val => handleChange('purchaseDateFrom', val || undefined)}
             />
           </div>
           <div>
-            <label htmlFor="purchaseDateTo" className="block text-sm font-medium text-text-primary mb-1.5">
+            <label
+              htmlFor="purchaseDateTo"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
               {t('filtersPanel.purchasedTo')}
             </label>
             <DateInput
               id="purchaseDateTo"
               value={filters.purchaseDateTo || ''}
-              onChange={(val) => handleChange('purchaseDateTo', val || undefined)}
+              onChange={val => handleChange('purchaseDateTo', val || undefined)}
             />
           </div>
         </div>

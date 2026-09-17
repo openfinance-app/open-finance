@@ -11,21 +11,12 @@
 import { useState } from 'react';
 import { CheckSquare, Square, Wand2, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/Dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { useAnalyzeBudgets, useBulkCreateBudgets } from '@/hooks/useBudgets';
-import type {
-  BudgetPeriod,
-  BudgetSuggestion,
-  BudgetBulkCreateResponse,
-} from '@/types/budget';
+import type { BudgetPeriod, BudgetSuggestion, BudgetBulkCreateResponse } from '@/types/budget';
 import { format, addMonths, addQuarters, addYears, addWeeks } from 'date-fns';
 
 // ─── types ───────────────────────────────────────────────────────────────────
@@ -153,15 +144,11 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
       });
       setSuggestions(result);
       // Pre-select all suggestions that don't already have a budget
-      const preSelected = new Set(
-        result
-          .filter((s) => !s.hasExistingBudget)
-          .map((s) => s.categoryId)
-      );
+      const preSelected = new Set(result.filter(s => !s.hasExistingBudget).map(s => s.categoryId));
       setSelectedIds(preSelected);
       // Initialise editable amounts from suggested values
       const amounts: Record<number, string> = {};
-      result.forEach((s) => {
+      result.forEach(s => {
         amounts[s.categoryId] = String(s.suggestedAmount);
       });
       setEditedAmounts(amounts);
@@ -172,7 +159,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
   };
 
   const toggleSelect = (categoryId: number) => {
-    setSelectedIds((prev) => {
+    setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(categoryId)) {
         next.delete(categoryId);
@@ -184,7 +171,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
   };
 
   const selectAll = () => {
-    setSelectedIds(new Set(suggestions.map((s) => s.categoryId)));
+    setSelectedIds(new Set(suggestions.map(s => s.categoryId)));
   };
 
   const deselectAll = () => {
@@ -193,10 +180,10 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
 
   /** Step 2 → bulk-create selected suggestions. */
   const handleCreate = async () => {
-    const selected = suggestions.filter((s) => selectedIds.has(s.categoryId));
+    const selected = suggestions.filter(s => selectedIds.has(s.categoryId));
     const startDate = today();
 
-    const budgets = selected.map((s) => ({
+    const budgets = selected.map(s => ({
       categoryId: s.categoryId,
       amount: String(
         parseFloat(editedAmounts[s.categoryId] ?? String(s.suggestedAmount)) || s.suggestedAmount
@@ -223,7 +210,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
 
   // ── render ──────────────────────────────────────────────────────────────────
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
+    <Dialog open={open} onOpenChange={isOpen => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -237,7 +224,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
 
         {/* ── Step indicator ───────────────────────────────────────────────── */}
         <div className="flex items-center gap-1 mb-4">
-          {([1, 2, 3] as WizardStep[]).map((s) => (
+          {([1, 2, 3] as WizardStep[]).map(s => (
             <div
               key={s}
               className={`flex-1 h-1.5 rounded-full transition-colors ${
@@ -250,9 +237,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
         {/* ── Step 1 — Configure ───────────────────────────────────────────── */}
         {step === 1 && (
           <div className="space-y-5">
-            <p className="text-sm text-text-secondary">
-              {t('wizard.step1.description')}
-            </p>
+            <p className="text-sm text-text-secondary">{t('wizard.step1.description')}</p>
 
             <div className="grid grid-cols-2 gap-4">
               {/* Period */}
@@ -262,10 +247,10 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                 </label>
                 <select
                   value={period}
-                  onChange={(e) => setPeriod(e.target.value as BudgetPeriod)}
+                  onChange={e => setPeriod(e.target.value as BudgetPeriod)}
                   className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
                 >
-                  {PERIOD_OPTIONS.map((opt) => (
+                  {PERIOD_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
@@ -280,10 +265,10 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                 </label>
                 <select
                   value={lookbackMonths}
-                  onChange={(e) => setLookbackMonths(Number(e.target.value))}
+                  onChange={e => setLookbackMonths(Number(e.target.value))}
                   className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
                 >
-                  {LOOKBACK_OPTIONS.map((opt) => (
+                  {LOOKBACK_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
@@ -308,7 +293,9 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                 onClick={handleAnalyze}
                 disabled={analyzeMutation.isPending}
               >
-                {analyzeMutation.isPending ? t('wizard.step1.analysing') : t('wizard.step1.analyseSpending')}
+                {analyzeMutation.isPending
+                  ? t('wizard.step1.analysing')
+                  : t('wizard.step1.analyseSpending')}
               </Button>
             </div>
           </div>
@@ -362,7 +349,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
 
                 {/* Suggestion list */}
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                  {suggestions.map((s) => {
+                  {suggestions.map(s => {
                     const isSelected = selectedIds.has(s.categoryId);
                     return (
                       <div
@@ -399,23 +386,20 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                           <p className="text-xs text-text-secondary mt-0.5">
                             {t('wizard.step2.avg')}{' '}
                             <ConvertedAmount amount={s.averageSpent} currency={s.currency} inline />{' '}
-                            /{' '}
-                            {s.period.toLowerCase()} · {t('wizard.step2.transactions', { count: s.transactionCount })}
+                            / {s.period.toLowerCase()} ·{' '}
+                            {t('wizard.step2.transactions', { count: s.transactionCount })}
                           </p>
                         </div>
 
                         {/* Editable suggested amount */}
-                        <div
-                          className="flex-shrink-0"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
                             <span className="text-xs text-text-tertiary">{s.currency}</span>
                             <NumberInput
                               min="0"
                               value={editedAmounts[s.categoryId] ?? String(s.suggestedAmount)}
-                              onChange={(value) =>
-                                setEditedAmounts((prev) => ({
+                              onChange={value =>
+                                setEditedAmounts(prev => ({
                                   ...prev,
                                   [s.categoryId]: value,
                                 }))
@@ -502,7 +486,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
             {/* Created budgets preview */}
             {bulkResult.created.length > 0 && (
               <div className="space-y-1 max-h-40 overflow-y-auto">
-                {bulkResult.created.map((b) => (
+                {bulkResult.created.map(b => (
                   <div
                     key={b.id}
                     className="flex items-center justify-between px-3 py-2 rounded bg-surface text-sm"

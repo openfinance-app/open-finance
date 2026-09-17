@@ -29,10 +29,7 @@ interface BudgetFiltersProps {
  */
 export function BudgetFilters({ filters, onFiltersChange }: BudgetFiltersProps) {
   const { t } = useTranslation('budgets');
-  const handleChange = (
-    key: keyof BudgetFiltersState,
-    value: string | boolean | undefined
-  ) => {
+  const handleChange = (key: keyof BudgetFiltersState, value: string | boolean | undefined) => {
     onFiltersChange({
       ...filters,
       [key]: value || value === false ? value : undefined,
@@ -60,7 +57,10 @@ export function BudgetFilters({ filters, onFiltersChange }: BudgetFiltersProps) 
     <div className="space-y-4 p-4 bg-surface rounded-lg border border-border">
       {/* Search keyword */}
       <div>
-        <label htmlFor="budget-keyword" className="block text-sm font-medium text-text-primary mb-1.5">
+        <label
+          htmlFor="budget-keyword"
+          className="block text-sm font-medium text-text-primary mb-1.5"
+        >
           {t('filters.search')}
         </label>
         <div className="relative">
@@ -77,7 +77,7 @@ export function BudgetFilters({ filters, onFiltersChange }: BudgetFiltersProps) 
           />
           <RegexToggle
             enabled={!!filters.keywordRegex}
-            onChange={(val) => handleChange('keywordRegex', val || undefined)}
+            onChange={val => handleChange('keywordRegex', val || undefined)}
             className="absolute right-2 top-1/2 -translate-y-1/2"
           />
         </div>
@@ -87,18 +87,19 @@ export function BudgetFilters({ filters, onFiltersChange }: BudgetFiltersProps) 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Period filter */}
         <div>
-          <label htmlFor="budget-period" className="block text-sm font-medium text-text-primary mb-1.5">
+          <label
+            htmlFor="budget-period"
+            className="block text-sm font-medium text-text-primary mb-1.5"
+          >
             {t('filters.period')}
           </label>
           <select
             id="budget-period"
             value={filters.period || ''}
-            onChange={(e) =>
-              handleChange('period', e.target.value || undefined)
-            }
+            onChange={e => handleChange('period', e.target.value || undefined)}
             className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
-            {periodOptions.map((opt) => (
+            {periodOptions.map(opt => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>

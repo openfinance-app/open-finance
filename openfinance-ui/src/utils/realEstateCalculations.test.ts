@@ -1,6 +1,6 @@
 /**
  * Unit Tests for Real Estate Calculations
- * 
+ *
  * Tests for math utility functions
  * Requirements: REQ-3.1.1, REQ-5.x
  */
@@ -128,7 +128,7 @@ describe('Real Estate Calculations', () => {
       const monthlyPayment = calculateMonthlyPayment(200000, 4.2, 25);
       const after1Year = calculateRemainingCapital(200000, 4.2, monthlyPayment, 12);
       const after2Years = calculateRemainingCapital(200000, 4.2, monthlyPayment, 24);
-      
+
       expect(after1Year).toBeLessThan(200000);
       expect(after2Years).toBeLessThan(after1Year);
     });
@@ -385,7 +385,7 @@ describe('Real Estate Calculations', () => {
       };
       const monthlyPayment = calculateMonthlyPayment(276000, 4.2, 25);
       const result = calculateMonthlyBuyCost(inputs, monthlyPayment);
-      
+
       expect(result).toBeGreaterThan(monthlyPayment);
     });
   });

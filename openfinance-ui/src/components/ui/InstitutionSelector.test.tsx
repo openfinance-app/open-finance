@@ -9,7 +9,12 @@ vi.mock('@/hooks/useInstitutions', () => ({
 
 vi.mock('@/components/ui/Select', () => ({
   Select: ({ children, disabled }: any) => <div data-disabled={disabled}>{children}</div>,
-  SelectContent: ({ children, headerSlot }: any) => <div>{headerSlot}{children}</div>,
+  SelectContent: ({ children, headerSlot }: any) => (
+    <div>
+      {headerSlot}
+      {children}
+    </div>
+  ),
   SelectItem: ({ children, value }: any) => <div data-testid={`item-${value}`}>{children}</div>,
   SelectTrigger: ({ children }: any) => <div>{children}</div>,
   SelectValue: ({ children, placeholder }: any) => <div>{children ?? placeholder}</div>,
@@ -83,7 +88,10 @@ describe('InstitutionSelector', () => {
 
   it('renders with disabled state', () => {
     render(<InstitutionSelector onValueChange={vi.fn()} disabled={true} />, { wrapper: Wrapper });
-    expect(screen.getByText('BNP Paribas').closest('[data-disabled]')).toHaveAttribute('data-disabled', 'true');
+    expect(screen.getByText('BNP Paribas').closest('[data-disabled]')).toHaveAttribute(
+      'data-disabled',
+      'true'
+    );
   });
 
   it('renders None text when no value selected', () => {

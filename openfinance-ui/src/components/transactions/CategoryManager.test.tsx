@@ -67,9 +67,15 @@ describe('CategoryManager', () => {
     renderWithProviders(<CategoryManager open={true} onOpenChange={vi.fn()} />);
     const input = screen.getByRole('textbox');
     await user.type(input, 'Groceries');
-    const addButton = screen.getAllByRole('button').find(
-      (btn) => !btn.textContent?.includes('Expenses') && !btn.textContent?.includes('Income') && !btn.textContent?.includes('Close') && !btn.textContent?.includes('Delete')
-    );
+    const addButton = screen
+      .getAllByRole('button')
+      .find(
+        btn =>
+          !btn.textContent?.includes('Expenses') &&
+          !btn.textContent?.includes('Income') &&
+          !btn.textContent?.includes('Close') &&
+          !btn.textContent?.includes('Delete')
+      );
     await user.click(addButton!);
     expect(mockCreateMutateAsync).toHaveBeenCalledWith({ name: 'Groceries', type: 'EXPENSE' });
   });

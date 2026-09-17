@@ -18,22 +18,18 @@ import type { Account } from '@/types/account';
 // ─── Context mocks ────────────────────────────────────────────────────────────
 
 vi.mock('@/context/VisibilityContext', () => ({
-  VisibilityProvider: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
+  VisibilityProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   useVisibility: vi.fn(() => ({ isAmountsVisible: true })),
 }));
 
 vi.mock('@/context/AuthContext', () => ({
-  AuthProvider: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   useAuthContext: vi.fn(() => ({ baseCurrency: 'USD' })),
 }));
 
 // ─── Hook mocks ───────────────────────────────────────────────────────────────
 
-vi.mock('@/hooks/useAccounts', async (importOriginal) => {
+vi.mock('@/hooks/useAccounts', async importOriginal => {
   const actual = await importOriginal<typeof useAccountsModule>();
   return {
     ...actual,
@@ -43,7 +39,7 @@ vi.mock('@/hooks/useAccounts', async (importOriginal) => {
   };
 });
 
-vi.mock('@/hooks/useTransactions', async (importOriginal) => {
+vi.mock('@/hooks/useTransactions', async importOriginal => {
   const actual = await importOriginal<typeof useTransactionsModule>();
   return {
     ...actual,
@@ -91,8 +87,6 @@ vi.mock('@/components/ui/Dialog', () => ({
     <div data-testid="dialog-title">{children}</div>
   ),
 }));
-
-
 
 // ─── Typed mock helpers ───────────────────────────────────────────────────────
 

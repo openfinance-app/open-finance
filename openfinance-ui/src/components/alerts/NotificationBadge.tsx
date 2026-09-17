@@ -2,9 +2,18 @@ import { useState, useRef, useEffect, forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bell, X, ExternalLink, Check, RefreshCw } from 'lucide-react';
 import { useUnreadAlertCount, useUnreadAlerts, useMarkAlertAsRead } from '@/hooks/useAlerts';
-import { useNotifications, useNotificationCount, useUpdateExchangeRatesFromNotification } from '@/hooks/useNotifications';
+import {
+  useNotifications,
+  useNotificationCount,
+  useUpdateExchangeRatesFromNotification,
+} from '@/hooks/useNotifications';
 import { getAlertSeverity, getAlertColor, type BudgetAlert } from '@/types/alert';
-import { getNotificationColor, getNotificationIcon, type INotification, type NotificationType } from '@/types/notification';
+import {
+  getNotificationColor,
+  getNotificationIcon,
+  type INotification,
+  type NotificationType,
+} from '@/types/notification';
 import { useNavigate } from 'react-router';
 
 /**
@@ -97,9 +106,7 @@ export function NotificationBadge() {
       </button>
 
       {/* Dropdown */}
-      {isOpen && (
-        <NotificationDropdown onClose={() => setIsOpen(false)} ref={dropdownRef} />
-      )}
+      {isOpen && <NotificationDropdown onClose={() => setIsOpen(false)} ref={dropdownRef} />}
     </div>
   );
 }
@@ -124,7 +131,8 @@ const NotificationDropdown = forwardRef<HTMLDivElement, NotificationDropdownProp
     const visibleBudgetAlerts = budgetAlerts?.slice(0, 5) || [];
     const visibleSystemNotifications = systemNotifications || [];
 
-    const hasNotifications = visibleBudgetAlerts.length > 0 || visibleSystemNotifications.length > 0;
+    const hasNotifications =
+      visibleBudgetAlerts.length > 0 || visibleSystemNotifications.length > 0;
 
     const handleMarkAsRead = (alertId: string) => {
       markAsRead.mutate(alertId);
@@ -238,7 +246,7 @@ function SystemNotificationItem({ notification, onClick }: SystemNotificationIte
       onClick={onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onClick()}
+      onKeyDown={e => e.key === 'Enter' && onClick()}
       aria-label={notification.title}
     >
       <div className="flex items-start gap-3">
@@ -260,9 +268,7 @@ function SystemNotificationItem({ notification, onClick }: SystemNotificationIte
               </span>
             )}
           </div>
-          <p className="text-xs text-text-secondary line-clamp-2 mb-2">
-            {notification.message}
-          </p>
+          <p className="text-xs text-text-secondary line-clamp-2 mb-2">{notification.message}</p>
           <span className="inline-flex items-center gap-1 text-xs text-primary">
             {notification.actionLabel}
             <ExternalLink className="w-3 h-3" />
@@ -295,10 +301,7 @@ function StaleExchangeRatesNotificationItem({
   const { t } = useTranslation('common');
 
   return (
-    <div
-      className="px-4 py-3 transition-colors"
-      aria-label={notification.title}
-    >
+    <div className="px-4 py-3 transition-colors" aria-label={notification.title}>
       <div className="flex items-start gap-3">
         {/* Icon */}
         <div className="text-2xl flex-shrink-0">{icon}</div>
@@ -366,7 +369,7 @@ function BudgetAlertItem({ alert, onNavigate, onMarkRead, isMarkingRead }: Budge
       onClick={onNavigate}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onNavigate()}
+      onKeyDown={e => e.key === 'Enter' && onNavigate()}
       aria-label={t('notifications.budgetAlert', { name: alert.budgetName })}
     >
       <div className="flex items-start gap-3">
@@ -400,7 +403,7 @@ function BudgetAlertItem({ alert, onNavigate, onMarkRead, isMarkingRead }: Budge
               <ExternalLink className="w-3 h-3" />
             </span>
             <button
-              onClick={(e) => {
+              onClick={e => {
                 // Prevent the parent click (navigate) from firing
                 e.stopPropagation();
                 onMarkRead();

@@ -1,6 +1,6 @@
 /**
  * VisibilityContext - Manages global amounts visibility state
- * 
+ *
  * Provides a toggle to hide/show financial amounts across the application
  * for enhanced privacy when sharing screens or using in public settings.
  */
@@ -54,7 +54,7 @@ export function VisibilityProvider({ children }: VisibilityProviderProps) {
    * Toggle amounts visibility
    */
   const toggleAmountsVisibility = useCallback(() => {
-    setIsAmountsVisible((prev) => !prev);
+    setIsAmountsVisible(prev => !prev);
   }, []);
 
   /**
@@ -82,10 +82,10 @@ export function VisibilityProvider({ children }: VisibilityProviderProps) {
  */
 export function useVisibility(): VisibilityContextType {
   const context = useContext(VisibilityContext);
-  
+
   if (context === undefined) {
     throw new Error('useVisibility must be used within VisibilityProvider');
   }
-  
+
   return context;
 }

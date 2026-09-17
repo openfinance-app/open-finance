@@ -16,14 +16,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import {
-  MessageCircle,
-  X,
-  Minimize2,
-  Trash2,
-  AlertCircle,
-  Sparkles,
-} from 'lucide-react';
+import { MessageCircle, X, Minimize2, Trash2, AlertCircle, Sparkles } from 'lucide-react';
 import { useAIChat, useSendMessage } from '@/hooks/useAIChat';
 import ChatMessage from '@/components/ai/ChatMessage';
 import ChatInput from '@/components/ai/ChatInput';
@@ -45,10 +38,7 @@ export const FloatingAIChat: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const {
-    isOllamaAvailable,
-    isCheckingHealth,
-  } = useAIChat(conversationId);
+  const { isOllamaAvailable, isCheckingHealth } = useAIChat(conversationId);
 
   const sendMessage = useSendMessage();
 
@@ -79,7 +69,7 @@ export const FloatingAIChat: React.FC = () => {
       timestamp: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
 
     try {
@@ -95,7 +85,7 @@ export const FloatingAIChat: React.FC = () => {
         timestamp: response.timestamp,
       };
 
-      setMessages((prev) => [...prev, aiMessage]);
+      setMessages(prev => [...prev, aiMessage]);
       setConversationId(response.conversation_id);
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -103,13 +93,22 @@ export const FloatingAIChat: React.FC = () => {
       let errorContent: string;
       if (axios.isAxiosError(error) && (error.code === 'ERR_NETWORK' || !error.response)) {
         // Network failure or Ollama unreachable — no HTTP response received
-        errorContent = t('networkError', 'The AI service is temporarily unreachable. Please check your connection and try again.');
+        errorContent = t(
+          'networkError',
+          'The AI service is temporarily unreachable. Please check your connection and try again.'
+        );
       } else if (axios.isAxiosError(error) && error.response && error.response.status >= 500) {
         // Backend/server-side error
-        errorContent = t('serverError', 'The AI service encountered an internal error. Please try again in a moment.');
+        errorContent = t(
+          'serverError',
+          'The AI service encountered an internal error. Please try again in a moment.'
+        );
       } else {
         // Generic processing error (e.g. 4xx or unknown)
-        errorContent = t('processingError', 'Sorry, I encountered an error processing your request. Please try again.');
+        errorContent = t(
+          'processingError',
+          'Sorry, I encountered an error processing your request. Please try again.'
+        );
       }
 
       const errorMessage: Message = {
@@ -118,7 +117,7 @@ export const FloatingAIChat: React.FC = () => {
         timestamp: new Date().toISOString(),
       };
 
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     }
   }, [inputValue, sendMessage, conversationId, t]);
 
@@ -133,7 +132,7 @@ export const FloatingAIChat: React.FC = () => {
   }, []);
 
   const toggleOpen = useCallback(() => {
-    setIsOpen((prev) => !prev);
+    setIsOpen(prev => !prev);
   }, []);
 
   // Don't render if AI service is unavailable and we've checked
@@ -154,7 +153,7 @@ export const FloatingAIChat: React.FC = () => {
             // Desktop: anchored bottom-right, fixed size
             'bottom-24 right-6 w-[420px] h-[600px]',
             // Mobile: nearly full-screen
-            'max-sm:inset-x-3 max-sm:top-16 max-sm:bottom-20 max-sm:w-auto max-sm:h-auto max-sm:right-3',
+            'max-sm:inset-x-3 max-sm:top-16 max-sm:bottom-20 max-sm:w-auto max-sm:h-auto max-sm:right-3'
           )}
           role="dialog"
           aria-label={t('title', 'AI Financial Assistant')}
@@ -208,10 +207,26 @@ export const FloatingAIChat: React.FC = () => {
                 {/* Compact suggested prompts for widget */}
                 <div className="w-full space-y-2">
                   {[
-                    { label: t('prompt.spending', 'Analyze my spending'), question: 'Can you analyze my spending patterns and tell me where most of my money is going?' },
-                    { label: t('prompt.budget', 'Budget advice'), question: 'Based on my income and expenses, what budget recommendations do you have?' },
-                    { label: t('prompt.summary', 'Financial summary'), question: 'Can you give me an overall summary of my current financial situation?' },
-                    { label: t('prompt.savings', 'Savings tips'), question: 'What are some practical tips to reduce my expenses and save more money?' },
+                    {
+                      label: t('prompt.spending', 'Analyze my spending'),
+                      question:
+                        'Can you analyze my spending patterns and tell me where most of my money is going?',
+                    },
+                    {
+                      label: t('prompt.budget', 'Budget advice'),
+                      question:
+                        'Based on my income and expenses, what budget recommendations do you have?',
+                    },
+                    {
+                      label: t('prompt.summary', 'Financial summary'),
+                      question:
+                        'Can you give me an overall summary of my current financial situation?',
+                    },
+                    {
+                      label: t('prompt.savings', 'Savings tips'),
+                      question:
+                        'What are some practical tips to reduce my expenses and save more money?',
+                    },
                   ].map((p, i) => (
                     <button
                       key={i}
@@ -228,11 +243,7 @@ export const FloatingAIChat: React.FC = () => {
               /* Messages */
               <>
                 {messages.map((message, index) => (
-                  <ChatMessage
-                    key={index}
-                    message={message}
-                    isStreaming={false}
-                  />
+                  <ChatMessage key={index} message={message} isStreaming={false} />
                 ))}
                 <div ref={messagesEndRef} />
               </>
@@ -271,16 +282,12 @@ export const FloatingAIChat: React.FC = () => {
           'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
           isOpen
             ? 'bg-surface-elevated text-text-primary hover:bg-surface border border-border'
-            : 'bg-gradient-to-br from-blue-600 to-emerald-600 text-white hover:shadow-xl hover:scale-105',
+            : 'bg-gradient-to-br from-blue-600 to-emerald-600 text-white hover:shadow-xl hover:scale-105'
         )}
         aria-label={isOpen ? t('closeChat', 'Close chat') : t('openChat', 'Open AI Assistant')}
         aria-expanded={isOpen}
       >
-        {isOpen ? (
-          <X className="w-6 h-6" />
-        ) : (
-          <MessageCircle className="w-6 h-6" />
-        )}
+        {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
       </button>
     </>
   );

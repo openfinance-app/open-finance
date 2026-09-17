@@ -57,9 +57,7 @@ describe('AlertDescription', () => {
   });
 
   it('passes through className', () => {
-    const { container } = render(
-      <AlertDescription className="desc-class">Desc</AlertDescription>
-    );
+    const { container } = render(<AlertDescription className="desc-class">Desc</AlertDescription>);
     expect((container.firstChild as HTMLElement).className).toContain('desc-class');
   });
 });

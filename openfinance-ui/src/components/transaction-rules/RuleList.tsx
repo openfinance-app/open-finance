@@ -13,13 +13,13 @@ import { Edit2, Trash2, Sliders, ChevronUp, ChevronDown, ChevronsUpDown } from '
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/layout/EmptyState';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/Tooltip';
-import type { TransactionRule, RuleConditionField, RuleConditionOperator, RuleActionType } from '@/types/transactionRules';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
+import type {
+  TransactionRule,
+  RuleConditionField,
+  RuleConditionOperator,
+  RuleActionType,
+} from '@/types/transactionRules';
 
 // ---------------------------------------------------------------------------
 // Sorting
@@ -84,11 +84,20 @@ interface SortHeaderProps {
   className?: string;
 }
 
-function SortHeader({ label, sortKey, currentKey, currentDir, onSort, className }: SortHeaderProps) {
+function SortHeader({
+  label,
+  sortKey,
+  currentKey,
+  currentDir,
+  onSort,
+  className,
+}: SortHeaderProps) {
   const { t } = useTranslation('rules');
   const isActive = currentKey === sortKey;
   const ariaLabel = isActive
-    ? (currentDir === 'asc' ? t('list.sortDesc') : t('list.sortAsc'))
+    ? currentDir === 'asc'
+      ? t('list.sortDesc')
+      : t('list.sortAsc')
     : t('list.sortAsc');
 
   return (
@@ -134,7 +143,7 @@ export function RuleList({
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortKey(key);
       setSortDir('asc');
@@ -162,17 +171,51 @@ export function RuleList({
       <div className="bg-surface rounded-xl border border-border overflow-hidden">
         {/* Table header */}
         <div className="grid grid-cols-[1fr_80px_80px_70px_70px_120px] items-center gap-4 px-4 py-3 border-b border-border text-xs font-medium text-text-secondary uppercase tracking-wide">
-          <SortHeader label={t('list.name')} sortKey="name" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
-          <SortHeader label={t('list.priority')} sortKey="priority" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-center" />
-          <SortHeader label={t('list.status')} sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-center" />
-          <SortHeader label={t('list.conditions')} sortKey="conditions" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-center" />
-          <SortHeader label={t('list.actions')} sortKey="actions" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="justify-center" />
+          <SortHeader
+            label={t('list.name')}
+            sortKey="name"
+            currentKey={sortKey}
+            currentDir={sortDir}
+            onSort={handleSort}
+          />
+          <SortHeader
+            label={t('list.priority')}
+            sortKey="priority"
+            currentKey={sortKey}
+            currentDir={sortDir}
+            onSort={handleSort}
+            className="justify-center"
+          />
+          <SortHeader
+            label={t('list.status')}
+            sortKey="status"
+            currentKey={sortKey}
+            currentDir={sortDir}
+            onSort={handleSort}
+            className="justify-center"
+          />
+          <SortHeader
+            label={t('list.conditions')}
+            sortKey="conditions"
+            currentKey={sortKey}
+            currentDir={sortDir}
+            onSort={handleSort}
+            className="justify-center"
+          />
+          <SortHeader
+            label={t('list.actions')}
+            sortKey="actions"
+            currentKey={sortKey}
+            currentDir={sortDir}
+            onSort={handleSort}
+            className="justify-center"
+          />
           <span className="text-right">{t('list.controls')}</span>
         </div>
 
         {/* Table rows */}
         <div className="divide-y divide-border">
-          {sorted.map((rule) => (
+          {sorted.map(rule => (
             <RuleRow
               key={rule.id}
               rule={rule}
@@ -232,11 +275,11 @@ function RuleRow({ rule, onEdit, onDelete, onToggle, isMutating }: RuleRowProps)
   const { t } = useTranslation('rules');
 
   const conditionTooltip = rule.conditions
-    .map((c) => `${FIELD_SHORT[c.field]} ${OP_SHORT[c.operator]} "${c.value}"`)
+    .map(c => `${FIELD_SHORT[c.field]} ${OP_SHORT[c.operator]} "${c.value}"`)
     .join('\n');
 
   const actionTooltip = rule.actions
-    .map((a) => {
+    .map(a => {
       const base = ACTION_SHORT[a.actionType];
       return a.actionValue ? `${base}: ${a.actionValue}` : base;
     })
@@ -342,5 +385,3 @@ function RuleRow({ rule, onEdit, onDelete, onToggle, isMutating }: RuleRowProps)
     </div>
   );
 }
-
-

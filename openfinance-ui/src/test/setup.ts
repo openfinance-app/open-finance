@@ -1,6 +1,6 @@
 /**
  * Test Setup Configuration
- * 
+ *
  * Configures the testing environment for all test files.
  * This file is imported automatically by Vitest.
  */
@@ -19,20 +19,35 @@ global.ResizeObserver = class ResizeObserver {
 
 // Global mock for recharts to avoid testing errors with JSDOM and ESM imports
 vi.mock('recharts', async () => {
-  const MockComponent = ({ children, 'data-testid': testId }: { children?: React.ReactNode; 'data-testid'?: string }) => 
-    React.createElement('div', { 'data-testid': testId }, children);
-  
+  const MockComponent = ({
+    children,
+    'data-testid': testId,
+  }: {
+    children?: React.ReactNode;
+    'data-testid'?: string;
+  }) => React.createElement('div', { 'data-testid': testId }, children);
+
   return {
-    ResponsiveContainer: ({ children }: any) => React.createElement('div', { 'data-testid': 'responsive-container' }, children),
-    AreaChart: ({ children }: any) => React.createElement('div', { 'data-testid': 'area-chart' }, children),
-    BarChart: ({ children }: any) => React.createElement('div', { 'data-testid': 'bar-chart' }, children),
-    LineChart: ({ children }: any) => React.createElement('div', { 'data-testid': 'line-chart' }, children),
-    PieChart: ({ children }: any) => React.createElement('div', { 'data-testid': 'pie-chart' }, children),
-    Treemap: ({ children }: any) => React.createElement('div', { 'data-testid': 'tree-map' }, children),
-    Sankey: ({ children }: any) => React.createElement('div', { 'data-testid': 'sankey' }, children),
-    RadarChart: ({ children }: any) => React.createElement('div', { 'data-testid': 'radar-chart' }, children),
-    ScatterChart: ({ children }: any) => React.createElement('div', { 'data-testid': 'scatter-chart' }, children),
-    ComposedChart: ({ children }: any) => React.createElement('div', { 'data-testid': 'composed-chart' }, children),
+    ResponsiveContainer: ({ children }: any) =>
+      React.createElement('div', { 'data-testid': 'responsive-container' }, children),
+    AreaChart: ({ children }: any) =>
+      React.createElement('div', { 'data-testid': 'area-chart' }, children),
+    BarChart: ({ children }: any) =>
+      React.createElement('div', { 'data-testid': 'bar-chart' }, children),
+    LineChart: ({ children }: any) =>
+      React.createElement('div', { 'data-testid': 'line-chart' }, children),
+    PieChart: ({ children }: any) =>
+      React.createElement('div', { 'data-testid': 'pie-chart' }, children),
+    Treemap: ({ children }: any) =>
+      React.createElement('div', { 'data-testid': 'tree-map' }, children),
+    Sankey: ({ children }: any) =>
+      React.createElement('div', { 'data-testid': 'sankey' }, children),
+    RadarChart: ({ children }: any) =>
+      React.createElement('div', { 'data-testid': 'radar-chart' }, children),
+    ScatterChart: ({ children }: any) =>
+      React.createElement('div', { 'data-testid': 'scatter-chart' }, children),
+    ComposedChart: ({ children }: any) =>
+      React.createElement('div', { 'data-testid': 'composed-chart' }, children),
     Area: MockComponent,
     XAxis: MockComponent,
     YAxis: MockComponent,
@@ -54,12 +69,14 @@ vi.mock('recharts', async () => {
 
 // Global mock for react-grid-layout to avoid measurement issues in JSDOM
 vi.mock('react-grid-layout/legacy', () => ({
-  Responsive: ({ children }: any) => React.createElement('div', { 'data-testid': 'responsive-grid-layout' }, children),
+  Responsive: ({ children }: any) =>
+    React.createElement('div', { 'data-testid': 'responsive-grid-layout' }, children),
   WidthProvider: (component: any) => component,
 }));
 
 vi.mock('react-grid-layout', () => ({
-  Responsive: ({ children }: any) => React.createElement('div', { 'data-testid': 'responsive-grid-layout' }, children),
+  Responsive: ({ children }: any) =>
+    React.createElement('div', { 'data-testid': 'responsive-grid-layout' }, children),
   WidthProvider: (component: any) => component,
 }));
 

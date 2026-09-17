@@ -1,7 +1,7 @@
 /**
  * RecurringTransactionForm Component
  * Task 12.2.9: Add recurring option to TransactionForm (standalone recurring form)
- * 
+ *
  * Form for creating/editing recurring transactions with frequency and end date options
  */
 import { useEffect, useMemo } from 'react';
@@ -32,15 +32,17 @@ import type {
 import type { TransactionType, Category } from '@/types/transaction';
 import type { Account } from '@/types/account';
 
-const optionalNumber = z.preprocess((value) => {
-  if (value === '' || value === null || value === undefined) {
-    return undefined;
-  }
-  if (typeof value === 'number' && Number.isNaN(value)) {
-    return undefined;
-  }
-  return value;
-}, z.number().optional()).optional() as z.ZodType<number | undefined>;
+const optionalNumber = z
+  .preprocess(value => {
+    if (value === '' || value === null || value === undefined) {
+      return undefined;
+    }
+    if (typeof value === 'number' && Number.isNaN(value)) {
+      return undefined;
+    }
+    return value;
+  }, z.number().optional())
+  .optional() as z.ZodType<number | undefined>;
 
 // Static schema used only for TypeScript type inference
 const _recurringTransactionSchemaShape = z.object({
@@ -61,35 +63,44 @@ const _recurringTransactionSchemaShape = z.object({
 type RecurringTransactionFormData = z.infer<typeof _recurringTransactionSchemaShape>;
 
 function createRecurringTransactionSchema(t: (key: string) => string) {
-  return z.object({
-    accountId: z.number({ message: t('form.validation.accountRequired') }),
-    toAccountId: optionalNumber,
-    type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
-    amount: z.string().min(1, t('form.validation.amountInvalid')).refine(isValidDecimalString, t('form.validation.amountInvalid')).refine((v) => Number(v) > 0, t('form.validation.amountPositive')),
-    currency: z.string().length(3, t('form.validation.currencyLength')),
-    categoryId: optionalNumber,
-    payee: z.string().optional(),
-    description: z.string().min(1, t('form.validation.descriptionRequired')).max(200, t('form.validation.descriptionTooLong')),
-    notes: z.string().max(1000, t('form.validation.notesTooLong')).optional(),
-    frequency: z.enum(['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']),
-    nextOccurrence: z.string().min(1, t('form.validation.nextOccurrenceRequired')),
-    endDate: z.string().optional(),
-  }).superRefine((data, ctx) => {
-    if (data.type === 'TRANSFER' && !data.toAccountId) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: t('form.validation.toAccountRequired'),
-        path: ['toAccountId'],
-      });
-    }
-    if (data.endDate && data.nextOccurrence && data.endDate < data.nextOccurrence) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: t('form.validation.endDateAfterNext'),
-        path: ['endDate'],
-      });
-    }
-  });
+  return z
+    .object({
+      accountId: z.number({ message: t('form.validation.accountRequired') }),
+      toAccountId: optionalNumber,
+      type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
+      amount: z
+        .string()
+        .min(1, t('form.validation.amountInvalid'))
+        .refine(isValidDecimalString, t('form.validation.amountInvalid'))
+        .refine(v => Number(v) > 0, t('form.validation.amountPositive')),
+      currency: z.string().length(3, t('form.validation.currencyLength')),
+      categoryId: optionalNumber,
+      payee: z.string().optional(),
+      description: z
+        .string()
+        .min(1, t('form.validation.descriptionRequired'))
+        .max(200, t('form.validation.descriptionTooLong')),
+      notes: z.string().max(1000, t('form.validation.notesTooLong')).optional(),
+      frequency: z.enum(['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']),
+      nextOccurrence: z.string().min(1, t('form.validation.nextOccurrenceRequired')),
+      endDate: z.string().optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.type === 'TRANSFER' && !data.toAccountId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t('form.validation.toAccountRequired'),
+          path: ['toAccountId'],
+        });
+      }
+      if (data.endDate && data.nextOccurrence && data.endDate < data.nextOccurrence) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t('form.validation.endDateAfterNext'),
+          path: ['endDate'],
+        });
+      }
+    });
 }
 
 interface RecurringTransactionFormProps {
@@ -143,28 +154,28 @@ export function RecurringTransactionForm({
     resolver: zodResolver(schema) as any,
     defaultValues: recurringTransaction
       ? {
-        accountId: recurringTransaction.accountId,
-        toAccountId: recurringTransaction.toAccountId || undefined,
-        type: recurringTransaction.type,
-        amount: String(recurringTransaction.amount),
-        currency: recurringTransaction.currency,
-        categoryId: recurringTransaction.categoryId || undefined,
-        payee: recurringTransaction.payee || undefined,
-        description: recurringTransaction.description,
-        notes: recurringTransaction.notes || '',
-        frequency: recurringTransaction.frequency,
-        nextOccurrence: recurringTransaction.nextOccurrence,
-        endDate: recurringTransaction.endDate || '',
-      }
+          accountId: recurringTransaction.accountId,
+          toAccountId: recurringTransaction.toAccountId || undefined,
+          type: recurringTransaction.type,
+          amount: String(recurringTransaction.amount),
+          currency: recurringTransaction.currency,
+          categoryId: recurringTransaction.categoryId || undefined,
+          payee: recurringTransaction.payee || undefined,
+          description: recurringTransaction.description,
+          notes: recurringTransaction.notes || '',
+          frequency: recurringTransaction.frequency,
+          nextOccurrence: recurringTransaction.nextOccurrence,
+          endDate: recurringTransaction.endDate || '',
+        }
       : {
-        type: 'EXPENSE',
-        currency: baseCurrency || DEFAULT_CURRENCY,
-        frequency: 'MONTHLY',
-        nextOccurrence: new Date().toISOString().split('T')[0],
-        amount: '0',
-        description: '',
-        payee: undefined,
-      },
+          type: 'EXPENSE',
+          currency: baseCurrency || DEFAULT_CURRENCY,
+          frequency: 'MONTHLY',
+          nextOccurrence: new Date().toISOString().split('T')[0],
+          amount: '0',
+          description: '',
+          payee: undefined,
+        },
   });
 
   const selectedType = watch('type');
@@ -173,8 +184,14 @@ export function RecurringTransactionForm({
   const currency = watch('currency');
 
   // Currency conversion for preview
-  const { data: exchangeRate } = useLatestExchangeRate(currency || DEFAULT_CURRENCY, baseCurrency || DEFAULT_CURRENCY);
-  const convertedAmount = amount && exchangeRate && currency !== baseCurrency ? multiply(Number(amount), exchangeRate.rate) : null;
+  const { data: exchangeRate } = useLatestExchangeRate(
+    currency || DEFAULT_CURRENCY,
+    baseCurrency || DEFAULT_CURRENCY
+  );
+  const convertedAmount =
+    amount && exchangeRate && currency !== baseCurrency
+      ? multiply(Number(amount), exchangeRate.rate)
+      : null;
 
   // Get payees for auto-fill logic
   const { data: payees = [] } = useActivePayees();
@@ -198,7 +215,7 @@ export function RecurringTransactionForm({
   // Set currency from selected account
   useEffect(() => {
     if (selectedAccountId) {
-      const account = accounts.find((a) => a.id === selectedAccountId);
+      const account = accounts.find(a => a.id === selectedAccountId);
       if (account) {
         setValue('currency', account.currency);
       }
@@ -235,7 +252,7 @@ export function RecurringTransactionForm({
             {...register('type')}
             className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
-            {transactionTypes.map((type) => (
+            {transactionTypes.map(type => (
               <option key={type.value} value={type.value}>
                 {type.label}
               </option>
@@ -266,7 +283,11 @@ export function RecurringTransactionForm({
           {convertedAmount !== null && (
             <p className="mt-1 text-xs text-text-secondary">
               {t('form.approx')}{' '}
-              <ConvertedAmount amount={convertedAmount} currency={baseCurrency || DEFAULT_CURRENCY} inline />{' '}
+              <ConvertedAmount
+                amount={convertedAmount}
+                currency={baseCurrency || DEFAULT_CURRENCY}
+                inline
+              />{' '}
               ({t('form.inBaseCurrency')})
             </p>
           )}
@@ -276,7 +297,12 @@ export function RecurringTransactionForm({
           <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.currency')} *
           </label>
-          <Input id="currency" {...register('currency')} readOnly error={errors.currency?.message} />
+          <Input
+            id="currency"
+            {...register('currency')}
+            readOnly
+            error={errors.currency?.message}
+          />
         </div>
       </div>
 
@@ -298,7 +324,9 @@ export function RecurringTransactionForm({
               />
             )}
           />
-          {errors.accountId && <p className="mt-1 text-sm text-error">{errors.accountId.message}</p>}
+          {errors.accountId && (
+            <p className="mt-1 text-sm text-error">{errors.accountId.message}</p>
+          )}
         </div>
 
         {selectedType === 'TRANSFER' ? (
@@ -318,7 +346,9 @@ export function RecurringTransactionForm({
                 />
               )}
             />
-            {errors.toAccountId && <p className="mt-1 text-sm text-error">{errors.toAccountId.message}</p>}
+            {errors.toAccountId && (
+              <p className="mt-1 text-sm text-error">{errors.toAccountId.message}</p>
+            )}
           </div>
         ) : (
           <div>
@@ -327,7 +357,7 @@ export function RecurringTransactionForm({
             </label>
             <PayeeSelector
               value={watch('payee')?.toString()}
-              onValueChange={(value) => setValue('payee', value || undefined)}
+              onValueChange={value => setValue('payee', value || undefined)}
               placeholder={t('form.payeePlaceholder')}
               allowNewPayee={true}
             />
@@ -338,7 +368,10 @@ export function RecurringTransactionForm({
       {/* Row 3: Description and Category */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-text-primary mb-1.5">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-text-primary mb-1.5"
+          >
             {t('form.description')} *
           </label>
           <Input
@@ -351,19 +384,24 @@ export function RecurringTransactionForm({
 
         {selectedType !== 'TRANSFER' && (
           <div>
-            <label htmlFor="categoryId" className="block text-sm font-medium text-text-primary mb-1.5">
+            <label
+              htmlFor="categoryId"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
               {t('form.category')}
             </label>
             <CategorySelect
               value={watch('categoryId')}
-              onValueChange={(value) => setValue('categoryId', value)}
+              onValueChange={value => setValue('categoryId', value)}
               placeholder={t('form.selectCategory')}
               type={selectedType}
               allowNone={true}
               allowCreateInline
               inferredType={selectedType ?? 'EXPENSE'}
             />
-            {errors.categoryId && <p className="mt-1 text-sm text-error">{errors.categoryId.message}</p>}
+            {errors.categoryId && (
+              <p className="mt-1 text-sm text-error">{errors.categoryId.message}</p>
+            )}
           </div>
         )}
       </div>
@@ -379,17 +417,22 @@ export function RecurringTransactionForm({
             {...register('frequency')}
             className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
-            {frequencies.map((freq) => (
+            {frequencies.map(freq => (
               <option key={freq.value} value={freq.value}>
                 {freq.label}
               </option>
             ))}
           </select>
-          {errors.frequency && <p className="mt-1 text-sm text-error">{errors.frequency.message}</p>}
+          {errors.frequency && (
+            <p className="mt-1 text-sm text-error">{errors.frequency.message}</p>
+          )}
         </div>
 
         <div>
-          <label htmlFor="nextOccurrence" className="block text-sm font-medium text-text-primary mb-1.5">
+          <label
+            htmlFor="nextOccurrence"
+            className="block text-sm font-medium text-text-primary mb-1.5"
+          >
             {t('form.nextOccurrence')} *
           </label>
           <Controller

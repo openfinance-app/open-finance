@@ -88,9 +88,7 @@ describe('AttachmentList', () => {
   describe('Loading state', () => {
     it('should render a loading spinner while fetching', () => {
       mockUseAttachments.mockReturnValue({ data: undefined, isLoading: true });
-      renderWithProviders(
-        <AttachmentList entityType="TRANSACTION" entityId={10} />
-      );
+      renderWithProviders(<AttachmentList entityType="TRANSACTION" entityId={10} />);
       // The spinner uses Loader2; check that empty list is not rendered
       expect(screen.queryByText(/Attachments/)).not.toBeInTheDocument();
     });

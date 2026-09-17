@@ -1,6 +1,6 @@
 /**
  * RealEstateToolsHub Component
- * 
+ *
  * Landing page for real estate tools
  * Provides navigation to Buy/Rent Comparator and Rental Simulator
  * Requirements: REQ-4.1.1
@@ -59,14 +59,11 @@ export const RealEstateToolsHub: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <PageHeader
-        title={t('toolsHub.pageTitle')}
-        description={t('toolsHub.pageDescription')}
-      />
+      <PageHeader title={t('toolsHub.pageTitle')} description={t('toolsHub.pageDescription')} />
 
       {/* Tools Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-        {tools.map((tool) => (
+        {tools.map(tool => (
           <Card
             key={tool.id}
             className={`relative overflow-hidden border-2 ${tool.locked ? 'opacity-70 border-border bg-muted/30' : tool.color}`}
@@ -81,18 +78,12 @@ export const RealEstateToolsHub: React.FC = () => {
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-background/80">
-                    {tool.icon}
-                  </div>
-                  <div className="p-2 rounded-lg bg-background/60">
-                    {tool.secondaryIcon}
-                  </div>
+                  <div className="p-3 rounded-lg bg-background/80">{tool.icon}</div>
+                  <div className="p-2 rounded-lg bg-background/60">{tool.secondaryIcon}</div>
                 </div>
               </div>
               <CardTitle className="text-2xl mt-4">{tool.title}</CardTitle>
-              <CardDescription className="text-base mt-2">
-                {tool.description}
-              </CardDescription>
+              <CardDescription className="text-base mt-2">{tool.description}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Features List */}
@@ -150,30 +141,22 @@ export const RealEstateToolsHub: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h4 className="font-semibold mb-2">{t('toolsHub.step1Title')}</h4>
-              <p className="text-sm text-muted-foreground">
-                {t('toolsHub.step1Description')}
-              </p>
+              <p className="text-sm text-muted-foreground">{t('toolsHub.step1Description')}</p>
             </div>
             <div>
               <h4 className="font-semibold mb-2">{t('toolsHub.step2Title')}</h4>
-              <p className="text-sm text-muted-foreground">
-                {t('toolsHub.step2Description')}
-              </p>
+              <p className="text-sm text-muted-foreground">{t('toolsHub.step2Description')}</p>
             </div>
           </div>
 
           <div className="bg-muted/50 p-4 rounded-lg mt-4">
-            <p className="text-sm">
-              {t('toolsHub.tip')}
-            </p>
+            <p className="text-sm">{t('toolsHub.tip')}</p>
           </div>
         </CardContent>
       </Card>
 
       {/* Legal Disclaimer */}
-      <p className="text-xs text-muted-foreground text-center mt-8">
-        {t('toolsHub.disclaimer')}
-      </p>
+      <p className="text-xs text-muted-foreground text-center mt-8">{t('toolsHub.disclaimer')}</p>
     </div>
   );
 };

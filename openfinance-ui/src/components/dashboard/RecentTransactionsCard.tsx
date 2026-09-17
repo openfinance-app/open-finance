@@ -29,13 +29,7 @@ const isFutureDate = (dateString: string) => {
 /**
  * MiniPayeeAvatar — compact payee logo or initial avatar for the dashboard row.
  */
-function MiniPayeeAvatar({
-  payee,
-  type,
-}: {
-  payee: Payee | undefined;
-  type: Transaction['type'];
-}) {
+function MiniPayeeAvatar({ payee, type }: { payee: Payee | undefined; type: Transaction['type'] }) {
   const isIncome = type === 'INCOME';
   const isExpense = type === 'EXPENSE';
   const bgColor = isIncome
@@ -52,7 +46,7 @@ function MiniPayeeAvatar({
           src={payee.logo}
           alt={payee.name}
           className="h-8 w-8 rounded-full object-contain bg-surface p-0.5 border border-border"
-          onError={(e) => {
+          onError={e => {
             (e.currentTarget as HTMLImageElement).classList.add('hidden');
             const fallback = (e.currentTarget as HTMLImageElement)
               .nextElementSibling as HTMLElement | null;
@@ -115,7 +109,7 @@ export default function RecentTransactionsCard({
   const { data: settings } = useUserSettings();
   // Fetch payees to resolve logos for avatars
   const { data: payees = [] } = useActivePayees();
-  const payeesMap = new Map<string, Payee>(payees.map((p) => [p.name, p]));
+  const payeesMap = new Map<string, Payee>(payees.map(p => [p.name, p]));
 
   if (isLoading) {
     return (
@@ -154,9 +148,7 @@ export default function RecentTransactionsCard({
           <h3 className="text-lg font-semibold text-text-primary leading-tight">
             {t('transactions.title')}
           </h3>
-          {periodLabel && (
-            <p className="text-xs text-text-secondary mt-0.5">{periodLabel}</p>
-          )}
+          {periodLabel && <p className="text-xs text-text-secondary mt-0.5">{periodLabel}</p>}
         </div>
         <a
           href="/transactions"
@@ -167,7 +159,7 @@ export default function RecentTransactionsCard({
       </div>
 
       <div className="space-y-1 flex-1 overflow-y-auto min-h-0 pr-2 scrollbar-thin">
-        {transactions.map((transaction) => {
+        {transactions.map(transaction => {
           const isIncome = transaction.type === 'INCOME';
           const isExpense = transaction.type === 'EXPENSE';
           const amountColor = isIncome
@@ -177,17 +169,12 @@ export default function RecentTransactionsCard({
               : 'text-text-primary';
 
           // Resolve payee object for logo
-          const payeeObj = transaction.payee
-            ? payeesMap.get(transaction.payee)
-            : undefined;
+          const payeeObj = transaction.payee ? payeesMap.get(transaction.payee) : undefined;
 
           // Category metadata
-          const categoryName =
-            transaction.category?.name || transaction.categoryName;
-          const categoryColor =
-            transaction.category?.color || transaction.categoryColor;
-          const categoryIcon =
-            transaction.category?.icon || transaction.categoryIcon;
+          const categoryName = transaction.category?.name || transaction.categoryName;
+          const categoryColor = transaction.category?.color || transaction.categoryColor;
+          const categoryIcon = transaction.category?.icon || transaction.categoryIcon;
 
           return (
             <div
@@ -196,7 +183,7 @@ export default function RecentTransactionsCard({
               tabIndex={0}
               aria-label={t('transactions.viewTransaction')}
               onClick={() => navigate(`/transactions?highlight=${transaction.id}`)}
-              onKeyDown={(e) => {
+              onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   navigate(`/transactions?highlight=${transaction.id}`);
@@ -246,8 +233,7 @@ export default function RecentTransactionsCard({
                         <span
                           className="inline-block h-1.5 w-1.5 rounded-full shrink-0"
                           style={{
-                            backgroundColor:
-                              categoryColor || 'var(--color-primary, #6366f1)',
+                            backgroundColor: categoryColor || 'var(--color-primary, #6366f1)',
                           }}
                           aria-hidden="true"
                         />

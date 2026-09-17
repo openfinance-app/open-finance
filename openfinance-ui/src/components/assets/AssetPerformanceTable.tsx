@@ -1,7 +1,7 @@
 /**
  * AssetPerformanceTable Component
  * Task 5.4.3: Create AssetPerformanceTable component
- * 
+ *
  * Sortable table displaying asset performance with gain/loss details
  */
 import { useState, useMemo } from 'react';
@@ -37,7 +37,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
   // Sort assets based on current sort config
   const sortedAssets = useMemo(() => {
     const sorted = [...assets];
-    
+
     sorted.sort((a, b) => {
       const { field, direction } = sortConfig;
       let aValue: string | number;
@@ -174,7 +174,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
           </tr>
         </thead>
         <tbody>
-          {sortedAssets.map((asset) => (
+          {sortedAssets.map(asset => (
             <tr
               key={asset.id}
               onClick={() => handleRowClick(asset.id)}
@@ -200,7 +200,11 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                   <ConvertedAmount
                     amount={asset.totalCost}
                     currency={asset.currency}
-                    convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.totalCost, asset.exchangeRate) : undefined}
+                    convertedAmount={
+                      asset.isConverted && asset.exchangeRate
+                        ? multiply(asset.totalCost, asset.exchangeRate)
+                        : undefined
+                    }
                     baseCurrency={asset.baseCurrency}
                     exchangeRate={asset.exchangeRate}
                     isConverted={asset.isConverted}
@@ -208,10 +212,15 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                   />
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {asset.quantity} × <ConvertedAmount
+                  {asset.quantity} ×{' '}
+                  <ConvertedAmount
                     amount={asset.purchasePrice}
                     currency={asset.currency}
-                    convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.purchasePrice, asset.exchangeRate) : undefined}
+                    convertedAmount={
+                      asset.isConverted && asset.exchangeRate
+                        ? multiply(asset.purchasePrice, asset.exchangeRate)
+                        : undefined
+                    }
                     baseCurrency={asset.baseCurrency}
                     exchangeRate={asset.exchangeRate}
                     isConverted={asset.isConverted}
@@ -220,25 +229,30 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                 </p>
               </td>
               <td className="py-3 px-4 text-right">
-                 <p className="text-sm font-medium text-foreground">
-                   {/* REQ-2.2: Display current value with base-currency conversion when available */}
-                   <ConvertedAmount
-                     amount={asset.totalValue}
-                     currency={asset.currency}
-                     convertedAmount={asset.valueInBaseCurrency}
-                     baseCurrency={asset.baseCurrency}
-                     exchangeRate={asset.exchangeRate}
-                     isConverted={asset.isConverted}
-                     secondaryAmount={asset.valueInSecondaryCurrency}
-                     secondaryCurrency={asset.secondaryCurrency}
-                     inline
-                    />
-                  </p>
+                <p className="text-sm font-medium text-foreground">
+                  {/* REQ-2.2: Display current value with base-currency conversion when available */}
+                  <ConvertedAmount
+                    amount={asset.totalValue}
+                    currency={asset.currency}
+                    convertedAmount={asset.valueInBaseCurrency}
+                    baseCurrency={asset.baseCurrency}
+                    exchangeRate={asset.exchangeRate}
+                    isConverted={asset.isConverted}
+                    secondaryAmount={asset.valueInSecondaryCurrency}
+                    secondaryCurrency={asset.secondaryCurrency}
+                    inline
+                  />
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {asset.quantity} × <ConvertedAmount
+                  {asset.quantity} ×{' '}
+                  <ConvertedAmount
                     amount={asset.currentPrice}
                     currency={asset.currency}
-                    convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.currentPrice, asset.exchangeRate) : undefined}
+                    convertedAmount={
+                      asset.isConverted && asset.exchangeRate
+                        ? multiply(asset.currentPrice, asset.exchangeRate)
+                        : undefined
+                    }
                     baseCurrency={asset.baseCurrency}
                     exchangeRate={asset.exchangeRate}
                     isConverted={asset.isConverted}
@@ -257,7 +271,11 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                     <ConvertedAmount
                       amount={asset.unrealizedGain}
                       currency={asset.currency}
-                      convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.unrealizedGain, asset.exchangeRate) : undefined}
+                      convertedAmount={
+                        asset.isConverted && asset.exchangeRate
+                          ? multiply(asset.unrealizedGain, asset.exchangeRate)
+                          : undefined
+                      }
                       baseCurrency={asset.baseCurrency}
                       exchangeRate={asset.exchangeRate}
                       isConverted={asset.isConverted}
@@ -278,7 +296,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
 
       {/* Mobile Card View */}
       <div className="md:hidden space-y-3">
-        {sortedAssets.map((asset) => (
+        {sortedAssets.map(asset => (
           <div
             key={asset.id}
             onClick={() => handleRowClick(asset.id)}
@@ -297,20 +315,20 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-sm">
-               <div>
+              <div>
                 <p className="text-xs text-muted-foreground mb-1">{t('table.currentValue')}</p>
-                 <p className="font-medium text-foreground">
-                   {/* REQ-2.2: Display current value with base-currency conversion when available */}
-                   <ConvertedAmount
-                     amount={asset.totalValue}
-                     currency={asset.currency}
-                     convertedAmount={asset.valueInBaseCurrency}
-                     baseCurrency={asset.baseCurrency}
-                     exchangeRate={asset.exchangeRate}
-                     isConverted={asset.isConverted}
-                     secondaryAmount={asset.valueInSecondaryCurrency}
-                     secondaryCurrency={asset.secondaryCurrency}
-                     inline
+                <p className="font-medium text-foreground">
+                  {/* REQ-2.2: Display current value with base-currency conversion when available */}
+                  <ConvertedAmount
+                    amount={asset.totalValue}
+                    currency={asset.currency}
+                    convertedAmount={asset.valueInBaseCurrency}
+                    baseCurrency={asset.baseCurrency}
+                    exchangeRate={asset.exchangeRate}
+                    isConverted={asset.isConverted}
+                    secondaryAmount={asset.valueInSecondaryCurrency}
+                    secondaryCurrency={asset.secondaryCurrency}
+                    inline
                   />
                 </p>
               </div>

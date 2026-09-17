@@ -1,8 +1,8 @@
 /**
  * Budget Alert Components
- * 
+ *
  * Sprint 8 - Task 8.3: Budget Monitoring & Alerts
- * 
+ *
  * Export all alert-related components for easy importing
  */
 

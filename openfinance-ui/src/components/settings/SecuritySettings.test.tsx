@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent } from '@/test/test-utils';
+import {
+  renderWithProviders,
+  mockAuthentication,
+  clearAuthentication,
+  userEvent,
+} from '@/test/test-utils';
 import { SecuritySettings } from './SecuritySettings';
 
 vi.mock('@/services/apiClient', () => ({
@@ -123,9 +128,15 @@ describe('SecuritySettings', () => {
     const changeButtons = screen.getAllByText('Change');
     await user.click(changeButtons[1]);
 
-    await user.type(screen.getByPlaceholderText(/enter your current master password/i), 'oldmaster1');
+    await user.type(
+      screen.getByPlaceholderText(/enter your current master password/i),
+      'oldmaster1'
+    );
     await user.type(screen.getByPlaceholderText(/enter your new master password/i), 'newmaster12');
-    await user.type(screen.getByPlaceholderText(/confirm your new master password/i), 'newmaster12');
+    await user.type(
+      screen.getByPlaceholderText(/confirm your new master password/i),
+      'newmaster12'
+    );
     await user.click(screen.getByRole('button', { name: /^change master password$/i }));
 
     await waitFor(() => {
@@ -202,9 +213,15 @@ describe('SecuritySettings', () => {
     const changeButtons = screen.getAllByText('Change');
     await user.click(changeButtons[1]);
 
-    await user.type(screen.getByPlaceholderText(/enter your current master password/i), 'wrongmaster');
+    await user.type(
+      screen.getByPlaceholderText(/enter your current master password/i),
+      'wrongmaster'
+    );
     await user.type(screen.getByPlaceholderText(/enter your new master password/i), 'newmaster12');
-    await user.type(screen.getByPlaceholderText(/confirm your new master password/i), 'newmaster12');
+    await user.type(
+      screen.getByPlaceholderText(/confirm your new master password/i),
+      'newmaster12'
+    );
     await user.click(screen.getByRole('button', { name: /^change master password$/i }));
 
     await waitFor(() => {
@@ -260,7 +277,10 @@ describe('SecuritySettings', () => {
     const changeButtons = screen.getAllByText('Change');
     await user.click(changeButtons[1]);
 
-    await user.type(screen.getByPlaceholderText(/enter your new master password/i), 'SuperStr0ng!Pass');
+    await user.type(
+      screen.getByPlaceholderText(/enter your new master password/i),
+      'SuperStr0ng!Pass'
+    );
     await waitFor(() => {
       expect(screen.getByText(/strong|good/i)).toBeInTheDocument();
     });

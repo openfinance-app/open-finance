@@ -27,9 +27,7 @@ describe('RuleList', () => {
       conditions: [
         { id: 1, field: 'DESCRIPTION', operator: 'CONTAINS', value: 'grocery', sortOrder: 0 },
       ],
-      actions: [
-        { id: 1, actionType: 'SET_CATEGORY', actionValue: 'Groceries', sortOrder: 0 },
-      ],
+      actions: [{ id: 1, actionType: 'SET_CATEGORY', actionValue: 'Groceries', sortOrder: 0 }],
     },
     {
       id: 2,
@@ -39,9 +37,7 @@ describe('RuleList', () => {
       conditions: [
         { id: 2, field: 'DESCRIPTION', operator: 'CONTAINS', value: 'salary', sortOrder: 0 },
       ],
-      actions: [
-        { id: 2, actionType: 'SET_CATEGORY', actionValue: 'Income', sortOrder: 0 },
-      ],
+      actions: [{ id: 2, actionType: 'SET_CATEGORY', actionValue: 'Income', sortOrder: 0 }],
     },
   ];
 

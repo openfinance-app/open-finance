@@ -58,7 +58,12 @@ let mockIsLoading = false;
 let mockError: Error | null = null;
 
 vi.mock('@/hooks/useAssets', () => ({
-  useAssetsSearch: vi.fn(() => ({ data: mockPagedData, isLoading: mockIsLoading, error: mockError, refetch: mockRefetchFn })),
+  useAssetsSearch: vi.fn(() => ({
+    data: mockPagedData,
+    isLoading: mockIsLoading,
+    error: mockError,
+    refetch: mockRefetchFn,
+  })),
   useAssets: () => ({ data: [mockAsset], isLoading: false, error: null }),
   useAsset: () => ({ data: null, isLoading: false, error: null }),
   useCreateAsset: () => ({ mutate: vi.fn(), mutateAsync: mockCreateFn, isPending: false }),
@@ -85,22 +90,34 @@ vi.mock('@/components/assets/AssetForm', () => ({
   AssetForm: ({ onCancel, onSubmit }: any) => (
     <div data-testid="asset-form">
       <button onClick={onCancel}>Cancel</button>
-      <button data-testid="form-submit" onClick={() => onSubmit({ name: 'Test', assetType: 'STOCK', quantity: 1, purchasePrice: 100 })}>Submit</button>
+      <button
+        data-testid="form-submit"
+        onClick={() =>
+          onSubmit({ name: 'Test', assetType: 'STOCK', quantity: 1, purchasePrice: 100 })
+        }
+      >
+        Submit
+      </button>
     </div>
   ),
 }));
 
 vi.mock('@/components/assets/AssetDetailModal', () => ({
-  AssetDetailModal: ({ asset, onClose, onEdit, onDelete }: any) => (
+  AssetDetailModal: ({ asset, onClose, onEdit, onDelete }: any) =>
     asset ? (
       <div data-testid="asset-detail-modal">
         {asset.name}
-        <button data-testid="modal-edit" onClick={() => onEdit(asset)}>Edit</button>
-        <button data-testid="modal-delete" onClick={() => onDelete(asset.id)}>Delete</button>
-        <button data-testid="modal-close" onClick={onClose}>Close</button>
+        <button data-testid="modal-edit" onClick={() => onEdit(asset)}>
+          Edit
+        </button>
+        <button data-testid="modal-delete" onClick={() => onDelete(asset.id)}>
+          Delete
+        </button>
+        <button data-testid="modal-close" onClick={onClose}>
+          Close
+        </button>
       </div>
-    ) : null
-  ),
+    ) : null,
 }));
 
 vi.mock('@/components/assets/AssetList', () => ({
@@ -110,9 +127,21 @@ vi.mock('@/components/assets/AssetList', () => ({
         <div key={a.id}>
           <span>{a.name}</span>
           {a.symbol && <span>{a.symbol}</span>}
-          {onEdit && <button data-testid={`edit-${a.id}`} onClick={() => onEdit(a)}>Edit</button>}
-          {onDelete && <button data-testid={`del-${a.id}`} onClick={() => onDelete(a.id)}>Del</button>}
-          {onView && <button data-testid={`view-${a.id}`} onClick={() => onView(a)}>View</button>}
+          {onEdit && (
+            <button data-testid={`edit-${a.id}`} onClick={() => onEdit(a)}>
+              Edit
+            </button>
+          )}
+          {onDelete && (
+            <button data-testid={`del-${a.id}`} onClick={() => onDelete(a.id)}>
+              Del
+            </button>
+          )}
+          {onView && (
+            <button data-testid={`view-${a.id}`} onClick={() => onView(a)}>
+              View
+            </button>
+          )}
         </div>
       ))}
     </div>

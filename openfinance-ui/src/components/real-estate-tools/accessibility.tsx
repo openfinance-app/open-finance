@@ -1,6 +1,6 @@
 /**
  * Accessibility Helpers for Real Estate Tools
- * 
+ *
  * ARIA labels, keyboard navigation, and screen reader announcements
  * Requirements: REQ-3.3.x, REQ-6.6
  */
@@ -26,15 +26,15 @@ export function useAnnouncer() {
 /**
  * Hook for keyboard shortcuts
  */
-export function useKeyboardShortcuts(shortcuts: {
-  [key: string]: () => void;
-}) {
+export function useKeyboardShortcuts(shortcuts: { [key: string]: () => void }) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Don't trigger shortcuts when typing in input fields
-      if (event.target instanceof HTMLInputElement ||
-          event.target instanceof HTMLTextAreaElement ||
-          event.target instanceof HTMLSelectElement) {
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        event.target instanceof HTMLSelectElement
+      ) {
         return;
       }
 
@@ -129,13 +129,7 @@ export const LiveRegion: React.FC<{
   priority?: 'polite' | 'assertive';
 }> = ({ id, children, priority = 'polite' }) => {
   return (
-    <div
-      id={id}
-      role="status"
-      aria-live={priority}
-      aria-atomic="true"
-      className="sr-only"
-    >
+    <div id={id} role="status" aria-live={priority} aria-atomic="true" className="sr-only">
       {children}
     </div>
   );
@@ -159,7 +153,7 @@ export function useFocusTrap(isActive: boolean, containerRef: React.RefObject<HT
     const focusableElements = container.querySelectorAll<HTMLElement>(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
-    
+
     const firstElement = focusableElements[0];
     const lastElement = focusableElements[focusableElements.length - 1];
 

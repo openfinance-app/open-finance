@@ -1,12 +1,17 @@
 /**
  * Market data hooks
  * Task 5.4.4: Market data integration hooks
- * 
+ *
  * Provides React Query hooks for market data operations
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
-import type { MarketQuote, HistoricalPrice, SymbolSearchResult, UpdatePriceResponse } from '@/types/market';
+import type {
+  MarketQuote,
+  HistoricalPrice,
+  SymbolSearchResult,
+  UpdatePriceResponse,
+} from '@/types/market';
 
 /**
  * Fetch real-time quote for a symbol
@@ -35,7 +40,9 @@ export function useSymbolSearch(query: string) {
     queryFn: async () => {
       if (!query || query.length < 2) return [];
 
-      const response = await apiClient.get<SymbolSearchResult[]>(`/market/search?q=${encodeURIComponent(query)}`);
+      const response = await apiClient.get<SymbolSearchResult[]>(
+        `/market/search?q=${encodeURIComponent(query)}`
+      );
       return response.data;
     },
     enabled: query.length >= 2,
@@ -46,11 +53,7 @@ export function useSymbolSearch(query: string) {
 /**
  * Fetch historical prices for a symbol
  */
-export function useHistoricalPrices(
-  symbol: string | null,
-  startDate: string,
-  endDate: string
-) {
+export function useHistoricalPrices(symbol: string | null, startDate: string, endDate: string) {
   return useQuery<HistoricalPrice[]>({
     queryKey: ['market', 'history', symbol, startDate, endDate],
     queryFn: async () => {
@@ -62,7 +65,9 @@ export function useHistoricalPrices(
         endDate,
       });
 
-      const response = await apiClient.get<HistoricalPrice[]>(`/market/history?${params.toString()}`);
+      const response = await apiClient.get<HistoricalPrice[]>(
+        `/market/history?${params.toString()}`
+      );
       return response.data;
     },
     enabled: !!symbol && !!startDate && !!endDate,
@@ -78,7 +83,9 @@ export function useUpdateAssetPrice() {
 
   return useMutation<UpdatePriceResponse, Error, number>({
     mutationFn: async (assetId: number) => {
-      const response = await apiClient.post<UpdatePriceResponse>(`/market/assets/${assetId}/update-price`);
+      const response = await apiClient.post<UpdatePriceResponse>(
+        `/market/assets/${assetId}/update-price`
+      );
       return response.data;
     },
     onSuccess: () => {

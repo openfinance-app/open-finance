@@ -9,24 +9,27 @@ vi.mock('recharts', () => ({
     return (
       <div data-testid="treemap">
         {JSON.stringify(data)}
-        {ContentComponent && data?.map((item: any, i: number) => (
-          <ContentComponent
-            key={i}
-            x={10}
-            y={10}
-            width={item._testWidth ?? 100}
-            height={item._testHeight ?? 50}
-            depth={1}
-            index={i}
-            name={item.name}
-            percentage={item.percentage}
-            isLiability={item.isLiability}
-          />
-        ))}
+        {ContentComponent &&
+          data?.map((item: any, i: number) => (
+            <ContentComponent
+              key={i}
+              x={10}
+              y={10}
+              width={item._testWidth ?? 100}
+              height={item._testHeight ?? 50}
+              depth={1}
+              index={i}
+              name={item.name}
+              percentage={item.percentage}
+              isLiability={item.isLiability}
+            />
+          ))}
       </div>
     );
   },
-  ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
+  ResponsiveContainer: ({ children }: any) => (
+    <div data-testid="responsive-container">{children}</div>
+  ),
   Tooltip: ({ content }: any) => {
     const TooltipComponent = content?.type || content;
     if (!TooltipComponent) return null;
@@ -34,15 +37,17 @@ vi.mock('recharts', () => ({
       <div data-testid="tooltip-wrapper">
         <TooltipComponent
           active={true}
-          payload={[{
-            payload: {
-              name: 'STOCKS',
-              originalValue: 10000,
-              percentage: 40,
-              isLiability: false,
-              currency: 'EUR',
+          payload={[
+            {
+              payload: {
+                name: 'STOCKS',
+                originalValue: 10000,
+                percentage: 40,
+                isLiability: false,
+                currency: 'EUR',
+              },
             },
-          }]}
+          ]}
           formatFn={(key: string) => key}
         />
         <TooltipComponent active={false} payload={[]} formatFn={(key: string) => key} />
@@ -64,8 +69,21 @@ import NetWorthAllocationChart from './NetWorthAllocationChart';
 describe('NetWorthAllocationChart', () => {
   const allocations = [
     { category: 'STOCKS', value: 10000, percentage: 40, type: 'asset' as const, currency: 'EUR' },
-    { category: 'REAL_ESTATE', value: 8000, percentage: 32, type: 'asset' as const, currency: 'EUR' },
-    { category: 'MORTGAGE', value: -7000, percentage: 28, type: 'liability' as const, isLiability: true, currency: 'EUR' },
+    {
+      category: 'REAL_ESTATE',
+      value: 8000,
+      percentage: 32,
+      type: 'asset' as const,
+      currency: 'EUR',
+    },
+    {
+      category: 'MORTGAGE',
+      value: -7000,
+      percentage: 28,
+      type: 'liability' as const,
+      isLiability: true,
+      currency: 'EUR',
+    },
   ];
 
   beforeEach(() => {
@@ -136,7 +154,14 @@ describe('NetWorthAllocationChart', () => {
 
   it('uses absolute values for liability items', () => {
     const liabilityOnly = [
-      { category: 'MORTGAGE', value: -5000, percentage: 100, type: 'liability' as const, isLiability: true, currency: 'EUR' },
+      {
+        category: 'MORTGAGE',
+        value: -5000,
+        percentage: 100,
+        type: 'liability' as const,
+        isLiability: true,
+        currency: 'EUR',
+      },
     ];
     renderWithProviders(<NetWorthAllocationChart allocations={liabilityOnly} currency="EUR" />);
     const treemap = screen.getByTestId('treemap');

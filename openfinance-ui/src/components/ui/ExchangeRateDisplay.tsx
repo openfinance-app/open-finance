@@ -1,7 +1,7 @@
 /**
  * ExchangeRateDisplay component
  * Sprint 6 - Task 6.2.14: Display exchange rates
- * 
+ *
  * Shows currency conversion information with exchange rates.
  * Used for displaying foreign currency account balances in base currency.
  */
@@ -31,27 +31,27 @@ interface ExchangeRateDisplayProps {
 
 /**
  * ExchangeRateDisplay component
- * 
+ *
  * Displays exchange rate information between two currencies.
  * Optionally shows converted amount and refresh functionality.
- * 
+ *
  * @example
  * // Basic rate display
  * <ExchangeRateDisplay from="USD" to="EUR" />
- * 
+ *
  * @example
  * // With amount conversion
  * <ExchangeRateDisplay from="USD" to="EUR" amount={100} />
  * // Shows: "100 USD ≈ 85.00 EUR (1 USD = 0.85 EUR)"
- * 
+ *
  * @example
  * // Compact mode with refresh
- * <ExchangeRateDisplay 
- *   from="GBP" 
- *   to="USD" 
- *   amount={500} 
- *   compact 
- *   showRefresh 
+ * <ExchangeRateDisplay
+ *   from="GBP"
+ *   to="USD"
+ *   amount={500}
+ *   compact
+ *   showRefresh
  * />
  */
 export function ExchangeRateDisplay({
@@ -63,21 +63,17 @@ export function ExchangeRateDisplay({
   className = '',
 }: ExchangeRateDisplayProps) {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { 
-    data: exchangeRate, 
-    isLoading, 
-    isError, 
+  const {
+    data: exchangeRate,
+    isLoading,
+    isError,
     refetch,
-    isFetching
+    isFetching,
   } = useLatestExchangeRate(from, to, refreshKey);
 
   // Handle same currency
   if (from === to) {
-    return (
-      <div className={`text-sm text-text-muted ${className}`}>
-        Same currency
-      </div>
-    );
+    return <div className={`text-sm text-text-muted ${className}`}>Same currency</div>;
   }
 
   // Loading state
@@ -97,12 +93,7 @@ export function ExchangeRateDisplay({
         <TrendingDown className="h-3 w-3" />
         <span>Unable to load exchange rate</span>
         {showRefresh && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => refetch()}
-            className="h-6 px-2"
-          >
+          <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-6 px-2">
             Retry
           </Button>
         )}
@@ -178,9 +169,7 @@ export function ExchangeRateDisplay({
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium text-text-primary">
-            Exchange Rate
-          </span>
+          <span className="text-sm font-medium text-text-primary">Exchange Rate</span>
         </div>
         {showRefresh && (
           <Button
@@ -215,16 +204,16 @@ export function ExchangeRateDisplay({
       {/* Rate information */}
       <div className="space-y-1 text-sm">
         <div className="flex items-center justify-between">
-          <span className="text-text-muted">Rate ({from} → {to}):</span>
-          <span className="font-mono text-text-primary">
-            {formatExchangeRate(rate)}
+          <span className="text-text-muted">
+            Rate ({from} → {to}):
           </span>
+          <span className="font-mono text-text-primary">{formatExchangeRate(rate)}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-text-muted">Rate ({to} → {from}):</span>
-          <span className="font-mono text-text-primary">
-            {formatExchangeRate(inverseRate)}
+          <span className="text-text-muted">
+            Rate ({to} → {from}):
           </span>
+          <span className="font-mono text-text-primary">{formatExchangeRate(inverseRate)}</span>
         </div>
       </div>
 
@@ -239,7 +228,7 @@ export function ExchangeRateDisplay({
 
 /**
  * ExchangeRateInline - Inline rate display for tight spaces
- * 
+ *
  * @example
  * <ExchangeRateInline from="USD" to="EUR" />
  * // Shows: "1 USD = 0.85 EUR"
@@ -257,12 +246,11 @@ export function ExchangeRateInline({
   hint?: string;
 }) {
   const hasFixedRate = rate !== undefined;
-  const { data: exchangeRate, isLoading, isError } = useLatestExchangeRate(
-    from,
-    to,
-    undefined,
-    !hasFixedRate,
-  );
+  const {
+    data: exchangeRate,
+    isLoading,
+    isError,
+  } = useLatestExchangeRate(from, to, undefined, !hasFixedRate);
 
   if (from === to) return null;
 

@@ -8,7 +8,7 @@ import { LoanCalculator } from '@/components/loan-calculator/LoanCalculator';
 // ---------------------------------------------------------------------------
 
 const mockUseAuthContext = vi.fn();
-vi.mock('@/context/AuthContext', async (importOriginal) => {
+vi.mock('@/context/AuthContext', async importOriginal => {
   const actual = await importOriginal<typeof import('@/context/AuthContext')>();
   return {
     ...actual,
@@ -42,8 +42,8 @@ const defaultInput = {
 
 const mockResult = {
   monthlyPayment: 1319.91,
-  totalInterest: 116778.40,
-  totalPayment: 316778.40,
+  totalInterest: 116778.4,
+  totalPayment: 316778.4,
   amortizationSchedule: [
     // 12 entries for year 1
     ...Array.from({ length: 12 }, (_, i) => ({

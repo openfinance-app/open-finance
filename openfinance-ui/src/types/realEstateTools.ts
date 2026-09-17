@@ -1,6 +1,6 @@
 /**
  * Real Estate Tools Type Definitions
- * 
+ *
  * TypeScript interfaces for Buy/Rent Comparator and Property Rental Investment Simulator
  * Requirements: REQ-1.1.x, REQ-1.2.x, REQ-2.1.x, REQ-2.2.x, REQ-2.3.x
  */
@@ -24,7 +24,7 @@ export interface PurchaseInputs {
   notaryFeesPercent: number;
   /** Agency fees in EUR (default: 0) */
   agencyFees: number;
-  
+
   // Financing
   /** Personal down payment in EUR (default: 60000) */
   downPayment: number;
@@ -32,7 +32,7 @@ export interface PurchaseInputs {
   loanDuration: number;
   /** Annual interest rate TAEG % (default: 4.2) */
   interestRate: number;
-  
+
   // Insurance & Fees
   /** Total insurance cost over loan duration in EUR (default: 12900) */
   totalInsurance: number;
@@ -42,7 +42,7 @@ export interface PurchaseInputs {
   guaranteeFees: number;
   /** Account maintenance fees in EUR (default: 720) */
   accountFees: number;
-  
+
   // Recurring charges
   /** Annual property tax in EUR (default: 2000) */
   propertyTax: number;
@@ -572,8 +572,8 @@ export const REGIME_LIMITS = {
  * REQ-2.4.x
  */
 export const REGIME_RATES = {
-  MICRO_FONCIER_ABATEMENT: 0.30,
-  MICRO_BIC_ABATEMENT: 0.50,
+  MICRO_FONCIER_ABATEMENT: 0.3,
+  MICRO_BIC_ABATEMENT: 0.5,
   SOCIAL_CONTRIBUTIONS_STANDARD: 0.172,
   SOCIAL_CONTRIBUTIONS_LMP: 0.45,
   BUILDING_DEPRECIATION_YEARS: 25,

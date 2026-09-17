@@ -11,8 +11,9 @@ export default defineConfig({
     // (e.g. DashboardPage) when the full suite runs in parallel and CPU is
     // contended, causing sporadic "Test timed out in 5000ms" flakes.
     testTimeout: 15000,
-    pool: 'vmThreads',
-    execArgv: ['--experimental-require-module'],
+    // Native Node module loading supports the patched ESM d3-color dependency used by the map.
+    pool: 'forks',
+    maxWorkers: 4,
     setupFiles: ['./src/test/globals-polyfill.ts', './src/test/setup.ts'],
     // Keep test output minimal: suppress noisy console.* that is expected
     // (i18next banner, MSW unhandled warnings, intentional error-path logs).
@@ -66,13 +67,13 @@ export default defineConfig({
         '**/*.config.*',
         '**/mockData',
         'dist/',
-        'public/**'
-      ]
-    }
+        'public/**',
+      ],
+    },
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src')
-    }
-  }
+      '@': resolve(__dirname, './src'),
+    },
+  },
 });

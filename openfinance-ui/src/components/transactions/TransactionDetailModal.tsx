@@ -71,7 +71,6 @@ const TYPE_CONFIG = {
   },
 } as const;
 
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function TransactionDetailModal({
@@ -121,10 +120,7 @@ export function TransactionDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal panel */}
       <div className="relative bg-surface border border-border rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto m-4">
@@ -135,7 +131,7 @@ export function TransactionDetailModal({
               className={cn(
                 'flex h-10 w-10 items-center justify-center rounded-xl shrink-0',
                 typeConfig.bg,
-                typeConfig.color,
+                typeConfig.color
               )}
             >
               {typeConfig.icon}
@@ -184,12 +180,7 @@ export function TransactionDetailModal({
           <div className="mb-6 p-4 bg-background border border-border rounded-lg flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">{t('detail.amountLabel')}</p>
-              <p
-                className={cn(
-                  'text-3xl font-bold font-mono',
-                  typeConfig.color,
-                )}
-              >
+              <p className={cn('text-3xl font-bold font-mono', typeConfig.color)}>
                 {typeConfig.sign}
                 <ConvertedAmount
                   amount={transaction.amount}
@@ -217,7 +208,7 @@ export function TransactionDetailModal({
           {/* Tabs */}
           <div className="border-b border-border mb-6">
             <div className="flex gap-4">
-              {tabs.map((tab) => (
+              {tabs.map(tab => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
@@ -225,7 +216,7 @@ export function TransactionDetailModal({
                     'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
                     activeTab === tab.key
                       ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground',
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
                   )}
                 >
                   {tab.key === 'attachments' ? (
@@ -246,7 +237,9 @@ export function TransactionDetailModal({
             <div className="space-y-6">
               {/* Core fields */}
               <div className="bg-background border border-border rounded-lg p-6">
-                <h3 className="text-base font-semibold text-foreground mb-4">{t('detail.sections.details')}</h3>
+                <h3 className="text-base font-semibold text-foreground mb-4">
+                  {t('detail.sections.details')}
+                </h3>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
@@ -297,9 +290,7 @@ export function TransactionDetailModal({
                       <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                         {t('detail.fields.payee')}
                       </dt>
-                      <dd className="text-sm font-medium text-foreground">
-                        {transaction.payee}
-                      </dd>
+                      <dd className="text-sm font-medium text-foreground">{transaction.payee}</dd>
                     </div>
                   )}
                   {transaction.description && (
@@ -331,7 +322,9 @@ export function TransactionDetailModal({
                         {t('detail.fields.paymentMethod')}
                       </dt>
                       <dd className="text-sm font-medium text-foreground">
-                        {t('form.paymentMethods.' + transaction.paymentMethod, { defaultValue: transaction.paymentMethod })}
+                        {t('form.paymentMethods.' + transaction.paymentMethod, {
+                          defaultValue: transaction.paymentMethod,
+                        })}
                       </dd>
                     </div>
                   )}
@@ -343,14 +336,14 @@ export function TransactionDetailModal({
                       <dd className="text-sm font-medium text-foreground">
                         {transaction.currency}
                         {transaction.isConverted && transaction.exchangeRate && (
-                           <span className="ml-2 text-xs text-muted-foreground">
-                             (1 {transaction.currency} ={' '}
-                             {formatCurrency(
-                               transaction.exchangeRate,
-                               transaction.baseCurrency ?? transaction.currency,
-                             )}
-                             )
-                           </span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            (1 {transaction.currency} ={' '}
+                            {formatCurrency(
+                              transaction.exchangeRate,
+                              transaction.baseCurrency ?? transaction.currency
+                            )}
+                            )
+                          </span>
                         )}
                       </dd>
                     </div>
@@ -361,17 +354,19 @@ export function TransactionDetailModal({
               {/* Notes */}
               {transaction.notes && (
                 <div className="bg-background border border-border rounded-lg p-6">
-                  <h3 className="text-base font-semibold text-foreground mb-3">{t('detail.sections.notes')}</h3>
-                  <p className="text-sm text-foreground whitespace-pre-wrap">
-                    {transaction.notes}
-                  </p>
+                  <h3 className="text-base font-semibold text-foreground mb-3">
+                    {t('detail.sections.notes')}
+                  </h3>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{transaction.notes}</p>
                 </div>
               )}
 
               {/* Tags */}
               {tags.length > 0 && (
                 <div className="bg-background border border-border rounded-lg p-6">
-                  <h3 className="text-base font-semibold text-foreground mb-3">{t('detail.sections.tags')}</h3>
+                  <h3 className="text-base font-semibold text-foreground mb-3">
+                    {t('detail.sections.tags')}
+                  </h3>
                   <div className="flex flex-wrap gap-2">
                     {tags.map((tag, i) => (
                       <Badge key={i} variant="info">
@@ -387,13 +382,13 @@ export function TransactionDetailModal({
           {/* ── Splits Tab ── */}
           {activeTab === 'splits' && transaction.hasSplits && (
             <div className="bg-background border border-border rounded-lg p-6">
-              <h3 className="text-base font-semibold text-foreground mb-4">{t('detail.sections.splitLines')}</h3>
+              <h3 className="text-base font-semibold text-foreground mb-4">
+                {t('detail.sections.splitLines')}
+              </h3>
               {transaction.splits && transaction.splits.length > 0 ? (
                 <SplitDetail splits={transaction.splits} currency={transaction.currency} />
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  {t('splitDetail.noSplitDetails')}
-                </p>
+                <p className="text-sm text-muted-foreground">{t('splitDetail.noSplitDetails')}</p>
               )}
             </div>
           )}

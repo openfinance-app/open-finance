@@ -49,12 +49,14 @@ describe('useBuyRentCalculations', () => {
   it('should initialize with default inputs', () => {
     const { result } = renderHook(() => useBuyRentCalculations());
 
-    expect(result.current.inputs).toEqual(expect.objectContaining({
-      purchase: expect.any(Object),
-      rental: expect.any(Object),
-      market: expect.any(Object),
-      resale: expect.any(Object),
-    }));
+    expect(result.current.inputs).toEqual(
+      expect.objectContaining({
+        purchase: expect.any(Object),
+        rental: expect.any(Object),
+        market: expect.any(Object),
+        resale: expect.any(Object),
+      })
+    );
     expect(result.current.results).toBeNull();
     expect(result.current.isCalculating).toBe(false);
     expect(result.current.errors).toEqual([]);
@@ -171,9 +173,7 @@ describe('useBuyRentCalculations', () => {
 
     expect(result.current.results).toBeNull();
     expect(result.current.errors).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ field: 'general' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ field: 'general' })])
     );
     expect(result.current.isCalculating).toBe(false);
   });
@@ -207,14 +207,26 @@ describe('useBuyRentCalculations', () => {
     expect(result.current.inputs.purchase).toEqual(DEFAULT_BUY_RENT_INPUTS.purchase);
     expect(result.current.inputs.market).toEqual(DEFAULT_BUY_RENT_INPUTS.market);
     expect(result.current.inputs.resale).toEqual(DEFAULT_BUY_RENT_INPUTS.resale);
-    expect(result.current.inputs.rental.monthlyRent).toBe(DEFAULT_BUY_RENT_INPUTS.rental.monthlyRent);
-    expect(result.current.inputs.rental.monthlyCharges).toBe(DEFAULT_BUY_RENT_INPUTS.rental.monthlyCharges);
-    expect(result.current.inputs.rental.securityDeposit).toBe(DEFAULT_BUY_RENT_INPUTS.rental.securityDeposit);
-    expect(result.current.inputs.rental.rentalInsurance).toBe(DEFAULT_BUY_RENT_INPUTS.rental.rentalInsurance);
+    expect(result.current.inputs.rental.monthlyRent).toBe(
+      DEFAULT_BUY_RENT_INPUTS.rental.monthlyRent
+    );
+    expect(result.current.inputs.rental.monthlyCharges).toBe(
+      DEFAULT_BUY_RENT_INPUTS.rental.monthlyCharges
+    );
+    expect(result.current.inputs.rental.securityDeposit).toBe(
+      DEFAULT_BUY_RENT_INPUTS.rental.securityDeposit
+    );
+    expect(result.current.inputs.rental.rentalInsurance).toBe(
+      DEFAULT_BUY_RENT_INPUTS.rental.rentalInsurance
+    );
     expect(result.current.inputs.rental.garbageTax).toBe(DEFAULT_BUY_RENT_INPUTS.rental.garbageTax);
     // initialSavings and monthlySavings are auto-derived from downPayment and derivedValues
-    expect(result.current.inputs.rental.initialSavings).toBe(DEFAULT_BUY_RENT_INPUTS.purchase.downPayment);
-    expect(result.current.inputs.rental.monthlySavings).toBe(mockDerivedValues.suggestedMonthlySavings);
+    expect(result.current.inputs.rental.initialSavings).toBe(
+      DEFAULT_BUY_RENT_INPUTS.purchase.downPayment
+    );
+    expect(result.current.inputs.rental.monthlySavings).toBe(
+      mockDerivedValues.suggestedMonthlySavings
+    );
   });
 
   it('should set all inputs at once', () => {

@@ -62,7 +62,15 @@ interface EditState {
   memo: string;
 }
 
-const INFO_PREFIXES = ['AUTO-MATCH:', 'AI_MATCH:', 'CATEGORY_SUGGESTION:', 'CATEGORY_UNKNOWN:', 'DUPLICATE:', 'RULE_MATCH:', 'RULE_SKIP:'];
+const INFO_PREFIXES = [
+  'AUTO-MATCH:',
+  'AI_MATCH:',
+  'CATEGORY_SUGGESTION:',
+  'CATEGORY_UNKNOWN:',
+  'DUPLICATE:',
+  'RULE_MATCH:',
+  'RULE_SKIP:',
+];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -74,18 +82,18 @@ const INFO_PREFIXES = ['AUTO-MATCH:', 'AI_MATCH:', 'CATEGORY_SUGGESTION:', 'CATE
  * user's own category names (e.g., "Dining Out").
  */
 const CATEGORY_NORMALISATION_MAP: Record<string, string[]> = {
-  'dining': ['dining out', 'restaurants', 'eating out', 'food & drink', 'food'],
-  'groceries': ['groceries', 'supermarket', 'food & groceries'],
-  'transport': ['transport', 'transportation', 'commute'],
-  'fuel': ['fuel', 'petrol', 'gas', 'transport'],
-  'utilities': ['utilities', 'bills', 'energy'],
-  'entertainment': ['entertainment', 'leisure', 'fun'],
-  'healthcare': ['healthcare', 'medical', 'health', 'pharmacy'],
-  'insurance': ['insurance'],
-  'salary': ['salary', 'income', 'wages', 'payroll'],
-  'rent': ['rent', 'housing', 'mortgage'],
-  'shopping': ['shopping', 'clothing', 'retail'],
-  'subscriptions': ['subscriptions', 'streaming', 'services'],
+  dining: ['dining out', 'restaurants', 'eating out', 'food & drink', 'food'],
+  groceries: ['groceries', 'supermarket', 'food & groceries'],
+  transport: ['transport', 'transportation', 'commute'],
+  fuel: ['fuel', 'petrol', 'gas', 'transport'],
+  utilities: ['utilities', 'bills', 'energy'],
+  entertainment: ['entertainment', 'leisure', 'fun'],
+  healthcare: ['healthcare', 'medical', 'health', 'pharmacy'],
+  insurance: ['insurance'],
+  salary: ['salary', 'income', 'wages', 'payroll'],
+  rent: ['rent', 'housing', 'mortgage'],
+  shopping: ['shopping', 'clothing', 'retail'],
+  subscriptions: ['subscriptions', 'streaming', 'services'],
 };
 
 /**
@@ -98,7 +106,10 @@ const CATEGORY_NORMALISATION_MAP: Record<string, string[]> = {
 function normaliseCategoryTerms(rawCategory: string): string[] {
   const terms: string[] = [];
   // Split by ':' or '/' to get path segments
-  const parts = rawCategory.split(/[:/]/).map((p) => p.trim().toLowerCase()).filter(Boolean);
+  const parts = rawCategory
+    .split(/[:/]/)
+    .map(p => p.trim().toLowerCase())
+    .filter(Boolean);
   // Most-specific segment first (last in the path)
   for (let i = parts.length - 1; i >= 0; i--) {
     const term = parts[i];
@@ -126,7 +137,7 @@ function autoAssignCategory(
   // 1. Exact name match on the raw category field from the parsed file
   if (transaction.category) {
     const exact = categories.find(
-      (c) => c.name.toLowerCase() === transaction.category!.toLowerCase()
+      c => c.name.toLowerCase() === transaction.category!.toLowerCase()
     );
     if (exact) return exact.name;
   }
@@ -138,7 +149,7 @@ function autoAssignCategory(
     const terms = normaliseCategoryTerms(rawCategory);
     for (const term of terms) {
       const match = categories.find(
-        (c) =>
+        c =>
           c.name.toLowerCase() === term ||
           c.name.toLowerCase().includes(term) ||
           term.includes(c.name.toLowerCase())
@@ -222,11 +233,11 @@ export function ImportReview({
     const errorIndices = transactions
       .map((t, idx) => {
         const hasRealErrors = t.validationErrors?.some(
-          (e) => !INFO_PREFIXES.some((p) => e.startsWith(p))
+          e => !INFO_PREFIXES.some(p => e.startsWith(p))
         );
         return hasRealErrors ? idx : -1;
       })
-      .filter((idx) => idx !== -1);
+      .filter(idx => idx !== -1);
     if (errorIndices.length > 0) {
       setExpandedRows(new Set(errorIndices));
     }
@@ -270,10 +281,10 @@ export function ImportReview({
   // -------------------------------------------------------------------------
   const uniqueCategories = useMemo(() => {
     const map = new Map<string, number>();
-    transactions.forEach((t) => {
+    transactions.forEach(t => {
       if (t.category) map.set(t.category, (map.get(t.category) ?? 0) + 1);
       if (t.splitTransaction && t.splits) {
-        t.splits.forEach((s) => {
+        t.splits.forEach(s => {
           if (s.category) map.set(s.category, (map.get(s.category) ?? 0) + 1);
         });
       }
@@ -291,9 +302,7 @@ export function ImportReview({
 
     uniqueCategories.forEach(({ name }) => {
       if (!(name in newMappings)) {
-        const match = categories.find(
-          (c) => c.name.toLowerCase() === name.toLowerCase()
-        );
+        const match = categories.find(c => c.name.toLowerCase() === name.toLowerCase());
         if (match) {
           newMappings[name] = match.id;
           mappingChanged = true;
@@ -320,34 +329,34 @@ export function ImportReview({
   const filteredTransactions = useMemo(() => {
     switch (filter) {
       case 'duplicates':
-        return transactionsWithIndex.filter((t) => t.potentialDuplicate);
+        return transactionsWithIndex.filter(t => t.potentialDuplicate);
       case 'errors':
-        return transactionsWithIndex.filter((t) =>
-          t.validationErrors.some((e) => !INFO_PREFIXES.some((p) => e.startsWith(p)))
+        return transactionsWithIndex.filter(t =>
+          t.validationErrors.some(e => !INFO_PREFIXES.some(p => e.startsWith(p)))
         );
       case 'uncategorized':
-        return transactionsWithIndex.filter((t) => !t.category);
+        return transactionsWithIndex.filter(t => !t.category);
       case 'auto_assigned':
-        return transactionsWithIndex.filter((t) => autoAssignedIndices.has(t.originalIndex));
+        return transactionsWithIndex.filter(t => autoAssignedIndices.has(t.originalIndex));
       default:
         return transactionsWithIndex;
     }
   }, [transactionsWithIndex, filter, autoAssignedIndices]);
 
   const stats = useMemo(() => {
-    const errorCount = transactions.filter((t) =>
-      t.validationErrors.some((e) => !INFO_PREFIXES.some((prefix) => e.startsWith(prefix)))
+    const errorCount = transactions.filter(t =>
+      t.validationErrors.some(e => !INFO_PREFIXES.some(prefix => e.startsWith(prefix)))
     ).length;
 
     return {
       total: transactions.length,
-      duplicates: transactions.filter((t) => t.potentialDuplicate).length,
+      duplicates: transactions.filter(t => t.potentialDuplicate).length,
       errors: errorCount,
-      categorized: transactions.filter((t) => {
+      categorized: transactions.filter(t => {
         if (!t.category) return false;
         return (
           categoryMappings[t.category] != null ||
-          categories.some((c) => c.name.toLowerCase() === t.category!.toLowerCase()) ||
+          categories.some(c => c.name.toLowerCase() === t.category!.toLowerCase()) ||
           newCategoryNames.includes(t.category)
         );
       }).length,
@@ -356,7 +365,7 @@ export function ImportReview({
 
   const allSelected =
     filteredTransactions.length > 0 &&
-    filteredTransactions.every((t) => selectedRows.has(t.originalIndex));
+    filteredTransactions.every(t => selectedRows.has(t.originalIndex));
   const someSelected = selectedRows.size > 0 && !allSelected;
 
   // -------------------------------------------------------------------------
@@ -364,14 +373,14 @@ export function ImportReview({
   // -------------------------------------------------------------------------
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedRows(new Set(filteredTransactions.map((t) => t.originalIndex)));
+      setSelectedRows(new Set(filteredTransactions.map(t => t.originalIndex)));
     } else {
       setSelectedRows(new Set());
     }
   };
 
   const toggleRowSelection = useCallback((originalIndex: number) => {
-    setSelectedRows((prev) => {
+    setSelectedRows(prev => {
       const next = new Set(prev);
       if (next.has(originalIndex)) next.delete(originalIndex);
       else next.add(originalIndex);
@@ -433,7 +442,7 @@ export function ImportReview({
   // Handlers — expand/collapse
   // -------------------------------------------------------------------------
   const toggleRowExpansion = (originalIndex: number) => {
-    setExpandedRows((prev) => {
+    setExpandedRows(prev => {
       const next = new Set(prev);
       if (next.has(originalIndex)) next.delete(originalIndex);
       else next.add(originalIndex);
@@ -457,7 +466,6 @@ export function ImportReview({
   // -------------------------------------------------------------------------
   return (
     <div className="space-y-4">
-
       {/* ── Auto-assign notification ──────────────────────────────────────── */}
       {autoAssignedCount > 0 && (
         <button
@@ -469,11 +477,11 @@ export function ImportReview({
             <span className="font-semibold text-text-primary">
               {t('review.autoAssignedCount', { count: autoAssignedCount })}
             </span>{' '}
-            <span className="text-text-secondary">
-              {t('review.autoAssignedDescription')}
-            </span>
+            <span className="text-text-secondary">{t('review.autoAssignedDescription')}</span>
             <span className="ml-2 text-xs text-primary underline underline-offset-2">
-              {filter === 'auto_assigned' ? t('review.filters.showAll') : t('review.filters.viewThese')}
+              {filter === 'auto_assigned'
+                ? t('review.filters.showAll')
+                : t('review.filters.viewThese')}
             </span>
           </div>
         </button>
@@ -483,54 +491,70 @@ export function ImportReview({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
         <div className="text-sm text-text-secondary flex flex-wrap gap-x-3 gap-y-1">
           <span>
-            <span className="font-semibold text-text-primary">{stats.total}</span> {t('review.stats.transactions')}
+            <span className="font-semibold text-text-primary">{stats.total}</span>{' '}
+            {t('review.stats.transactions')}
           </span>
           <span className="text-text-tertiary">·</span>
           <span className="flex items-center space-x-1">
             <Tag className="h-3.5 w-3.5 text-text-tertiary" />
             <span>
-              <span className={stats.categorized === stats.total ? 'text-green-600 font-semibold' : 'font-semibold text-amber-600'}>
+              <span
+                className={
+                  stats.categorized === stats.total
+                    ? 'text-green-600 font-semibold'
+                    : 'font-semibold text-amber-600'
+                }
+              >
                 {stats.categorized}
               </span>
-              <span className="text-text-tertiary">/{stats.total}</span> {t('review.stats.categorized')}
+              <span className="text-text-tertiary">/{stats.total}</span>{' '}
+              {t('review.stats.categorized')}
             </span>
           </span>
           {stats.duplicates > 0 && (
             <>
               <span className="text-text-tertiary">·</span>
-              <span className="font-semibold text-amber-600">{stats.duplicates} {t('review.stats.duplicates')}</span>
+              <span className="font-semibold text-amber-600">
+                {stats.duplicates} {t('review.stats.duplicates')}
+              </span>
             </>
           )}
           {stats.errors > 0 && (
             <>
               <span className="text-text-tertiary">·</span>
-              <span className="font-semibold text-red-600">{stats.errors} {t('review.stats.errors')}</span>
+              <span className="font-semibold text-red-600">
+                {stats.errors} {t('review.stats.errors')}
+              </span>
             </>
           )}
         </div>
 
         <div className="flex space-x-2 flex-wrap gap-y-2">
-          {(['all', 'duplicates', 'errors', 'uncategorized'] as FilterType[]).map((f) => {
+          {(['all', 'duplicates', 'errors', 'uncategorized'] as FilterType[]).map(f => {
             const count =
-              f === 'duplicates' ? stats.duplicates
-              : f === 'errors' ? stats.errors
-              : f === 'uncategorized' ? stats.total - stats.categorized
-              : null;
+              f === 'duplicates'
+                ? stats.duplicates
+                : f === 'errors'
+                  ? stats.errors
+                  : f === 'uncategorized'
+                    ? stats.total - stats.categorized
+                    : null;
             if (f !== 'all' && count === 0) return null;
             return (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1 text-sm rounded-md transition-colors capitalize ${filter === f
-                  ? f === 'all'
-                    ? 'bg-primary text-white'
-                    : f === 'duplicates'
-                      ? 'bg-amber-600 text-white'
-                      : f === 'errors'
-                        ? 'bg-red-600 text-white'
-                        : 'bg-amber-500 text-white'
-                  : 'bg-surface hover:bg-surface-elevated text-text-secondary'
-                  }`}
+                className={`px-3 py-1 text-sm rounded-md transition-colors capitalize ${
+                  filter === f
+                    ? f === 'all'
+                      ? 'bg-primary text-white'
+                      : f === 'duplicates'
+                        ? 'bg-amber-600 text-white'
+                        : f === 'errors'
+                          ? 'bg-red-600 text-white'
+                          : 'bg-amber-500 text-white'
+                    : 'bg-surface hover:bg-surface-elevated text-text-secondary'
+                }`}
               >
                 {f === 'all'
                   ? t('review.filters.all')
@@ -538,7 +562,9 @@ export function ImportReview({
                     ? t('review.filters.duplicates', { count: stats.duplicates })
                     : f === 'errors'
                       ? t('review.filters.errors', { count: stats.errors })
-                      : t('review.filters.uncategorized', { count: stats.total - stats.categorized })}
+                      : t('review.filters.uncategorized', {
+                          count: stats.total - stats.categorized,
+                        })}
               </button>
             );
           })}
@@ -551,10 +577,14 @@ export function ImportReview({
           <summary className="cursor-pointer select-none flex items-center justify-between px-4 py-3 bg-surface-elevated text-sm hover:bg-surface transition-colors">
             <span className="flex items-center space-x-2 font-medium text-text-primary">
               <Info className="h-4 w-4 text-primary" />
-              <span>{t('review.categoryAssignments.title', { count: uniqueCategories.length })}</span>
-              {newCategoryNames.filter((n) => uniqueCategories.some((u) => u.name === n)).length > 0 && (
+              <span>
+                {t('review.categoryAssignments.title', { count: uniqueCategories.length })}
+              </span>
+              {newCategoryNames.filter(n => uniqueCategories.some(u => u.name === n)).length >
+                0 && (
                 <span className="ml-1.5 text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
-                  {newCategoryNames.filter((n) => uniqueCategories.some((u) => u.name === n)).length} to create
+                  {newCategoryNames.filter(n => uniqueCategories.some(u => u.name === n)).length} to
+                  create
                 </span>
               )}
             </span>
@@ -589,7 +619,7 @@ export function ImportReview({
                           </span>
                           <button
                             type="button"
-                            onClick={() => setMappingPanelOverride((p) => ({ ...p, [name]: true }))}
+                            onClick={() => setMappingPanelOverride(p => ({ ...p, [name]: true }))}
                             className="text-xs text-text-tertiary hover:text-primary underline underline-offset-2"
                             title="Map to existing category instead"
                           >
@@ -601,13 +631,17 @@ export function ImportReview({
                           <div className="flex-1 min-w-0">
                             <CategorySelect
                               value={mappedId ?? undefined}
-                              onValueChange={(val) => {
+                              onValueChange={val => {
                                 const next = { ...categoryMappings };
                                 if (val == null) {
                                   delete next[name];
                                   // Clearing while in override → revert to "will be created"
                                   if (showOverride) {
-                                    setMappingPanelOverride((p) => { const n = { ...p }; delete n[name]; return n; });
+                                    setMappingPanelOverride(p => {
+                                      const n = { ...p };
+                                      delete n[name];
+                                      return n;
+                                    });
                                     if (!newCategoryNames.includes(name)) {
                                       onNewCategoryNamesChange([...newCategoryNames, name]);
                                     }
@@ -616,9 +650,15 @@ export function ImportReview({
                                   next[name] = val;
                                   // Remove from "to create" if user mapped to existing
                                   if (newCategoryNames.includes(name)) {
-                                    onNewCategoryNamesChange(newCategoryNames.filter((n) => n !== name));
+                                    onNewCategoryNamesChange(
+                                      newCategoryNames.filter(n => n !== name)
+                                    );
                                   }
-                                  setMappingPanelOverride((p) => { const n = { ...p }; delete n[name]; return n; });
+                                  setMappingPanelOverride(p => {
+                                    const n = { ...p };
+                                    delete n[name];
+                                    return n;
+                                  });
                                 }
                                 onCategoryMappingsChange(next);
                               }}
@@ -633,7 +673,7 @@ export function ImportReview({
                               type="button"
                               title="Cancel — keep as will be created"
                               onClick={() =>
-                                setMappingPanelOverride((p) => {
+                                setMappingPanelOverride(p => {
                                   const n = { ...p };
                                   delete n[name];
                                   return n;
@@ -739,7 +779,7 @@ export function ImportReview({
                   <input
                     type="checkbox"
                     checked={allSelected}
-                    ref={(input) => {
+                    ref={input => {
                       if (input) input.indeterminate = someSelected;
                     }}
                     onChange={handleSelectAll}
@@ -777,18 +817,24 @@ export function ImportReview({
                   </td>
                 </tr>
               ) : (
-                filteredTransactions.map((transaction) => {
+                filteredTransactions.map(transaction => {
                   const idx = transaction.originalIndex;
                   const isEditing = editingRow === idx;
                   const isExpanded = expandedRows.has(idx);
                   const isSelected = selectedRows.has(idx);
                   const hasSplits = transaction.splitTransaction && transaction.splits.length > 0;
-                  const hasErrors = transaction.validationErrors.some((e) =>
-                    !INFO_PREFIXES.some((p) => e.startsWith(p))
+                  const hasErrors = transaction.validationErrors.some(
+                    e => !INFO_PREFIXES.some(p => e.startsWith(p))
                   );
-                  const hasRuleMatch = transaction.validationErrors.some((e) => e.startsWith('RULE_MATCH:'));
-                  const hasAIMatch = transaction.validationErrors.some((e) => e.startsWith('AI_MATCH:'));
-                  const hasRuleSkip = transaction.validationErrors.some((e) => e.startsWith('RULE_SKIP:'));
+                  const hasRuleMatch = transaction.validationErrors.some(e =>
+                    e.startsWith('RULE_MATCH:')
+                  );
+                  const hasAIMatch = transaction.validationErrors.some(e =>
+                    e.startsWith('AI_MATCH:')
+                  );
+                  const hasRuleSkip = transaction.validationErrors.some(e =>
+                    e.startsWith('RULE_SKIP:')
+                  );
                   const isDuplicate = transaction.potentialDuplicate;
 
                   return (
@@ -822,16 +868,16 @@ export function ImportReview({
                           {formatDate(transaction.transactionDate)}
                         </td>
 
-                         {/* Payee */}
-                         <td className="py-2.5 px-4 text-sm text-text-primary font-medium">
-                           {isEditing ? (
-                             <PayeeCombobox
-                               value={editState.payee}
-                               onValueChange={(val) => setEditState((s) => ({ ...s, payee: val }))}
-                               placeholder={t('review.table.payee')}
-                               className="w-full"
-                             />
-                           ) : (
+                        {/* Payee */}
+                        <td className="py-2.5 px-4 text-sm text-text-primary font-medium">
+                          {isEditing ? (
+                            <PayeeCombobox
+                              value={editState.payee}
+                              onValueChange={val => setEditState(s => ({ ...s, payee: val }))}
+                              placeholder={t('review.table.payee')}
+                              className="w-full"
+                            />
+                          ) : (
                             <div
                               className="max-w-[180px] truncate"
                               title={transaction.originalPayee || transaction.payee || undefined}
@@ -845,30 +891,33 @@ export function ImportReview({
 
                         {/* Amount */}
                         <td className="py-2.5 px-4 text-sm text-right font-mono whitespace-nowrap">
-                           <span className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-500'}>
-                             <ConvertedAmount
-                               amount={transaction.amount}
-                               currency={transaction.currency || baseCurrency}
-                               inline
-                             />
-                           </span>
+                          <span
+                            className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-500'}
+                          >
+                            <ConvertedAmount
+                              amount={transaction.amount}
+                              currency={transaction.currency || baseCurrency}
+                              inline
+                            />
+                          </span>
                         </td>
 
-                         {/* Category */}
-                         <td className="py-2.5 px-4 text-sm min-w-[160px]">
-                           {isEditing ? (
-                             <CategoryCombobox
-                               value={editState.category}
-                               onValueChange={(val) =>
-                                 setEditState((s) => ({ ...s, category: val }))
-                               }
-                               placeholder={t('review.table.noCategory')}
-                               className="w-full text-sm"
-                             />
+                        {/* Category */}
+                        <td className="py-2.5 px-4 text-sm min-w-[160px]">
+                          {isEditing ? (
+                            <CategoryCombobox
+                              value={editState.category}
+                              onValueChange={val => setEditState(s => ({ ...s, category: val }))}
+                              placeholder={t('review.table.noCategory')}
+                              className="w-full text-sm"
+                            />
                           ) : transaction.category ? (
                             <span className="inline-flex items-center space-x-1">
                               <Tag className="h-3 w-3 text-text-tertiary flex-shrink-0" />
-                              <span className="text-text-secondary truncate max-w-[200px]" title={transaction.category}>
+                              <span
+                                className="text-text-secondary truncate max-w-[200px]"
+                                title={transaction.category}
+                              >
                                 {translateCategoryName(tCategories, transaction.category)}
                               </span>
                             </span>
@@ -888,7 +937,7 @@ export function ImportReview({
                             <input
                               type="text"
                               value={editState.memo}
-                              onChange={(e) => setEditState((s) => ({ ...s, memo: e.target.value }))}
+                              onChange={e => setEditState(s => ({ ...s, memo: e.target.value }))}
                               className="w-full px-2 py-1 bg-surface border border-primary rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                             />
                           ) : (
@@ -902,7 +951,9 @@ export function ImportReview({
                         <td className="py-2.5 px-4">
                           <div className="flex items-center space-x-1.5">
                             {isDuplicate && (
-                              <Badge variant="warning" size="sm">Duplicate</Badge>
+                              <Badge variant="warning" size="sm">
+                                Duplicate
+                              </Badge>
                             )}
                             {hasErrors && (
                               <button
@@ -919,7 +970,11 @@ export function ImportReview({
                               </button>
                             )}
                             {hasRuleMatch && (
-                              <Badge variant="info" size="sm" className="bg-primary/10 text-primary border-primary/20">
+                              <Badge
+                                variant="info"
+                                size="sm"
+                                className="bg-primary/10 text-primary border-primary/20"
+                              >
                                 <span className="flex items-center space-x-1">
                                   <Sparkles className="h-3 w-3" />
                                   <span>Matched</span>
@@ -927,7 +982,11 @@ export function ImportReview({
                               </Badge>
                             )}
                             {hasAIMatch && !hasRuleMatch && (
-                              <Badge variant="info" size="sm" className="bg-violet-500/10 text-violet-600 border-violet-500/20">
+                              <Badge
+                                variant="info"
+                                size="sm"
+                                className="bg-violet-500/10 text-violet-600 border-violet-500/20"
+                              >
                                 <span className="flex items-center space-x-1">
                                   <Sparkles className="h-3 w-3" />
                                   <span>AI</span>
@@ -935,12 +994,18 @@ export function ImportReview({
                               </Badge>
                             )}
                             {hasRuleSkip && (
-                              <Badge variant="default" size="sm" className="bg-gray-100 text-gray-500 border-gray-200">
+                              <Badge
+                                variant="default"
+                                size="sm"
+                                className="bg-gray-100 text-gray-500 border-gray-200"
+                              >
                                 <span>Skipped</span>
                               </Badge>
                             )}
                             {hasSplits && !isDuplicate && !hasErrors && (
-                              <Badge variant="default" size="sm">Split</Badge>
+                              <Badge variant="default" size="sm">
+                                Split
+                              </Badge>
                             )}
                           </div>
                         </td>
@@ -993,53 +1058,57 @@ export function ImportReview({
                         </td>
                       </tr>
 
-                             {hasErrors && (
-                               <div className="mb-3">
-                                 <div className="flex items-start space-x-2 text-sm">
-                                   <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                                   <div>
-                                     <div className="font-medium text-red-600 mb-1">{t('review.table.validationErrors')}</div>
-                                     <ul className="list-disc list-inside text-red-600 space-y-0.5">
-                                       {transaction.validationErrors.map((err, i) => (
-                                         <li key={i}>{translateValidationError(err)}</li>
-                                       ))}
-                                     </ul>
-                                   </div>
-                                 </div>
-                               </div>
-                             )}
+                      {hasErrors && (
+                        <div className="mb-3">
+                          <div className="flex items-start space-x-2 text-sm">
+                            <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="font-medium text-red-600 mb-1">
+                                {t('review.table.validationErrors')}
+                              </div>
+                              <ul className="list-disc list-inside text-red-600 space-y-0.5">
+                                {transaction.validationErrors.map((err, i) => (
+                                  <li key={i}>{translateValidationError(err)}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
-                             {hasSplits && (
-                               <div>
-                                 <div className="font-medium text-text-primary text-sm mb-2">{t('review.table.splitLines')}</div>
-                                 <div className="space-y-1">
-                                   {transaction.splits.map((split, i) => (
-                                     <div
-                                       key={i}
-                                       className="flex items-center justify-between text-sm bg-app-bg rounded px-3 py-2 gap-4"
-                                     >
-                                        <span className="text-text-secondary flex-1 truncate">
-                                          {split.category
-                                            ? translateCategoryName(tCategories, split.category)
-                                            : '—'}
-                                        </span>
-                                        <span className="font-mono text-text-primary whitespace-nowrap">
-                                          <ConvertedAmount
-                                            amount={split.amount}
-                                            currency={transaction.currency || baseCurrency}
-                                            inline
-                                          />
-                                        </span>
-                                       {split.memo && (
-                                         <span className="text-text-tertiary text-xs truncate max-w-[160px]">
-                                           {split.memo}
-                                         </span>
-                                       )}
-                                     </div>
-                                   ))}
-                                 </div>
-                               </div>
-                             )}
+                      {hasSplits && (
+                        <div>
+                          <div className="font-medium text-text-primary text-sm mb-2">
+                            {t('review.table.splitLines')}
+                          </div>
+                          <div className="space-y-1">
+                            {transaction.splits.map((split, i) => (
+                              <div
+                                key={i}
+                                className="flex items-center justify-between text-sm bg-app-bg rounded px-3 py-2 gap-4"
+                              >
+                                <span className="text-text-secondary flex-1 truncate">
+                                  {split.category
+                                    ? translateCategoryName(tCategories, split.category)
+                                    : '—'}
+                                </span>
+                                <span className="font-mono text-text-primary whitespace-nowrap">
+                                  <ConvertedAmount
+                                    amount={split.amount}
+                                    currency={transaction.currency || baseCurrency}
+                                    inline
+                                  />
+                                </span>
+                                {split.memo && (
+                                  <span className="text-text-tertiary text-xs truncate max-w-[160px]">
+                                    {split.memo}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </React.Fragment>
                   );
                 })
@@ -1053,9 +1122,7 @@ export function ImportReview({
       {stats.categorized < stats.total && (
         <div className="flex items-start space-x-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
           <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-          <span>
-            {t('review.categorizationHint', { count: stats.total - stats.categorized })}
-          </span>
+          <span>{t('review.categorizationHint', { count: stats.total - stats.categorized })}</span>
         </div>
       )}
     </div>

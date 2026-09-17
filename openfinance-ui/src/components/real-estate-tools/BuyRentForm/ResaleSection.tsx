@@ -1,6 +1,6 @@
 /**
  * ResaleSection Component
- * 
+ *
  * Resale target parameters form section
  * Requirements: REQ-1.4.1
  */
@@ -40,10 +40,7 @@ export const ResaleSection: React.FC<ResaleSectionProps> = ({
 
   return (
     <Card className="h-full">
-      <CardHeader
-        className="bg-success/10 cursor-pointer select-none"
-        onClick={onToggle}
-      >
+      <CardHeader className="bg-success/10 cursor-pointer select-none" onClick={onToggle}>
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <Target className="h-5 w-5" />
@@ -55,8 +52,9 @@ export const ResaleSection: React.FC<ResaleSectionProps> = ({
         </CardTitle>
       </CardHeader>
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
-          }`}
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
       >
         <CardContent className="p-4 space-y-4">
           {/* Validation Badge */}
@@ -74,12 +72,16 @@ export const ResaleSection: React.FC<ResaleSectionProps> = ({
               <Label htmlFor="targetYear" className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 {t('resaleSection.targetYear')}
-                {isValid && <Badge variant="success" className="text-xs">{t('resaleSection.valid')}</Badge>}
+                {isValid && (
+                  <Badge variant="success" className="text-xs">
+                    {t('resaleSection.valid')}
+                  </Badge>
+                )}
               </Label>
               <NumberInput
                 id="targetYear"
                 value={String(inputs.targetYear)}
-                onChange={(value) => onUpdate('targetYear', parseInt(value, 10) || 1)}
+                onChange={value => onUpdate('targetYear', parseInt(value, 10) || 1)}
                 min={1}
                 max={loanDuration}
                 className={!isValid ? 'border-warning' : ''}
@@ -89,7 +91,9 @@ export const ResaleSection: React.FC<ResaleSectionProps> = ({
               </p>
               {getFieldError('targetYear') && (
                 <Alert variant="error" className="py-2">
-                  <AlertDescription className="text-xs">{getFieldError('targetYear')}</AlertDescription>
+                  <AlertDescription className="text-xs">
+                    {getFieldError('targetYear')}
+                  </AlertDescription>
                 </Alert>
               )}
             </div>
@@ -103,7 +107,7 @@ export const ResaleSection: React.FC<ResaleSectionProps> = ({
               <NumberInput
                 id="desiredProfit"
                 value={String(inputs.desiredProfit)}
-                onChange={(value) => onUpdate('desiredProfit', parseFloat(value) || 0)}
+                onChange={value => onUpdate('desiredProfit', parseFloat(value) || 0)}
                 min={0}
               />
               <p className="text-xs text-muted-foreground">
@@ -120,16 +124,16 @@ export const ResaleSection: React.FC<ResaleSectionProps> = ({
               <NumberInput
                 id="resaleFeesPercent"
                 value={String(inputs.resaleFeesPercent)}
-                onChange={(value) => onUpdate('resaleFeesPercent', parseFloat(value) || 0)}
+                onChange={value => onUpdate('resaleFeesPercent', parseFloat(value) || 0)}
                 min={0}
                 max={100}
               />
-              <p className="text-xs text-muted-foreground">
-                {t('resaleSection.resaleFeesHelp')}
-              </p>
+              <p className="text-xs text-muted-foreground">{t('resaleSection.resaleFeesHelp')}</p>
               {getFieldError('resaleFeesPercent') && (
                 <Alert variant="error" className="py-2">
-                  <AlertDescription className="text-xs">{getFieldError('resaleFeesPercent')}</AlertDescription>
+                  <AlertDescription className="text-xs">
+                    {getFieldError('resaleFeesPercent')}
+                  </AlertDescription>
                 </Alert>
               )}
             </div>

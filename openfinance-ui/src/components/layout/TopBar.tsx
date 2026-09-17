@@ -35,8 +35,7 @@ export function TopBar({ searchRef }: TopBarProps) {
       )}
     >
       {/* Left section - Page title placeholder */}
-      <div className="flex items-center gap-4 shrink-0">
-      </div>
+      <div className="flex items-center gap-4 shrink-0"></div>
 
       {/* Center section - Global Search (TASK-12.4.5) */}
       <div className="hidden md:flex flex-1 max-w-2xl justify-center">
@@ -58,11 +57,7 @@ export function TopBar({ searchRef }: TopBarProps) {
             aria-label={isAmountsVisible ? t('hideAmounts') : t('showAmounts')}
             title={isAmountsVisible ? t('hideAmounts') : t('showAmounts')}
           >
-            {isAmountsVisible ? (
-              <Eye size={20} />
-            ) : (
-              <EyeOff size={20} />
-            )}
+            {isAmountsVisible ? <Eye size={20} /> : <EyeOff size={20} />}
           </button>
 
           <NotificationBadge />

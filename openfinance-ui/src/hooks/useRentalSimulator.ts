@@ -1,12 +1,12 @@
 /**
  * useRentalSimulator Hook
- * 
+ *
  * React hook for managing Rental Simulator state and calculations
  * Requirements: REQ-2.4.x, REQ-2.5.x, REQ-2.6.2, REQ-2.6.3
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import type { 
+import type {
   InvestmentInputs,
   InvestmentResults,
   RegimeCalculationResult,
@@ -25,11 +25,11 @@ export interface UseRentalSimulatorReturn {
   results: InvestmentResults | null;
   isCalculating: boolean;
   errors: ValidationError[];
-  
+
   // Derived values
   recommendedRegime: TaxRegime | null;
   eligibleRegimes: TaxRegime[];
-  
+
   // Actions
   updateCreditInput: (field: keyof InvestmentInputs['credit'], value: number) => void;
   updatePropertyInput: (field: keyof InvestmentInputs['property'], value: string | number) => void;
@@ -39,7 +39,7 @@ export interface UseRentalSimulatorReturn {
   reset: () => void;
   setInputs: (inputs: InvestmentInputs) => void;
   loadSharedData: (sharedData: SharedPropertyData) => void;
-  
+
   // Helpers
   getRegimeResult: (regime: TaxRegime) => RegimeCalculationResult | null;
   isRegimeEligible: (regime: TaxRegime) => boolean;
@@ -66,22 +66,21 @@ function createDefaultInputs(sharedData?: SharedPropertyData): InvestmentInputs 
     expenses: {
       ...DEFAULT_INVESTMENT_INPUTS.expenses,
       propertyTax: sharedData?.propertyTax || DEFAULT_INVESTMENT_INPUTS.expenses.propertyTax,
-      nonRecoverableCharges: sharedData?.coOwnershipCharges || DEFAULT_INVESTMENT_INPUTS.expenses.nonRecoverableCharges,
+      nonRecoverableCharges:
+        sharedData?.coOwnershipCharges || DEFAULT_INVESTMENT_INPUTS.expenses.nonRecoverableCharges,
     },
   };
 }
 
 /**
  * Hook for managing Rental Simulator state and calculations
- * 
+ *
  * @param sharedData - Optional shared data from Buy/Rent comparator
  * @returns Hook state and actions
  */
-export function useRentalSimulator(
-  sharedData?: SharedPropertyData
-): UseRentalSimulatorReturn {
+export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSimulatorReturn {
   // Main state
-  const [inputs, setInputsState] = useState<InvestmentInputs>(() => 
+  const [inputs, setInputsState] = useState<InvestmentInputs>(() =>
     createDefaultInputs(sharedData)
   );
   const [results, setResults] = useState<InvestmentResults | null>(null);
@@ -121,9 +120,16 @@ export function useRentalSimulator(
     if (!results) return [];
     const regimes: TaxRegime[] = ['micro_foncier', 'reel_foncier', 'lmnp_reel', 'micro_bic'];
     return regimes.filter(regime => {
-      const result = results[regime === 'micro_foncier' ? 'microFoncier' :
-                            regime === 'reel_foncier' ? 'reelFoncier' :
-                            regime === 'lmnp_reel' ? 'lmnpReel' : 'microBic'];
+      const result =
+        results[
+          regime === 'micro_foncier'
+            ? 'microFoncier'
+            : regime === 'reel_foncier'
+              ? 'reelFoncier'
+              : regime === 'lmnp_reel'
+                ? 'lmnpReel'
+                : 'microBic'
+        ];
       return result.eligible;
     });
   }, [results]);
@@ -131,66 +137,66 @@ export function useRentalSimulator(
   /**
    * Update a credit input field
    */
-  const updateCreditInput = useCallback((
-    field: keyof InvestmentInputs['credit'],
-    value: number
-  ) => {
-    setInputsState(prev => ({
-      ...prev,
-      credit: {
-        ...prev.credit,
-        [field]: value,
-      },
-    }));
-  }, []);
+  const updateCreditInput = useCallback(
+    (field: keyof InvestmentInputs['credit'], value: number) => {
+      setInputsState(prev => ({
+        ...prev,
+        credit: {
+          ...prev.credit,
+          [field]: value,
+        },
+      }));
+    },
+    []
+  );
 
   /**
    * Update a property input field
    */
-  const updatePropertyInput = useCallback((
-    field: keyof InvestmentInputs['property'],
-    value: string | number
-  ) => {
-    setInputsState(prev => ({
-      ...prev,
-      property: {
-        ...prev.property,
-        [field]: value,
-      },
-    }));
-  }, []);
+  const updatePropertyInput = useCallback(
+    (field: keyof InvestmentInputs['property'], value: string | number) => {
+      setInputsState(prev => ({
+        ...prev,
+        property: {
+          ...prev.property,
+          [field]: value,
+        },
+      }));
+    },
+    []
+  );
 
   /**
    * Update a revenue input field
    */
-  const updateRevenueInput = useCallback((
-    field: keyof InvestmentInputs['revenue'],
-    value: number
-  ) => {
-    setInputsState(prev => ({
-      ...prev,
-      revenue: {
-        ...prev.revenue,
-        [field]: value,
-      },
-    }));
-  }, []);
+  const updateRevenueInput = useCallback(
+    (field: keyof InvestmentInputs['revenue'], value: number) => {
+      setInputsState(prev => ({
+        ...prev,
+        revenue: {
+          ...prev.revenue,
+          [field]: value,
+        },
+      }));
+    },
+    []
+  );
 
   /**
    * Update an expense input field
    */
-  const updateExpenseInput = useCallback((
-    field: keyof InvestmentInputs['expenses'],
-    value: number
-  ) => {
-    setInputsState(prev => ({
-      ...prev,
-      expenses: {
-        ...prev.expenses,
-        [field]: value,
-      },
-    }));
-  }, []);
+  const updateExpenseInput = useCallback(
+    (field: keyof InvestmentInputs['expenses'], value: number) => {
+      setInputsState(prev => ({
+        ...prev,
+        expenses: {
+          ...prev.expenses,
+          [field]: value,
+        },
+      }));
+    },
+    []
+  );
 
   /**
    * Run the calculation
@@ -209,7 +215,7 @@ export function useRentalSimulator(
     }
 
     setIsCalculating(true);
-    
+
     // Use setTimeout to allow UI to show loading state
     calculationTimeoutRef.current = setTimeout(() => {
       try {
@@ -218,10 +224,12 @@ export function useRentalSimulator(
         setErrors([]);
       } catch (error) {
         console.error('Calculation error:', error);
-        setErrors([{ 
-          field: 'general', 
-          message: "Une erreur est survenue lors du calcul. Veuillez vérifier vos données." 
-        }]);
+        setErrors([
+          {
+            field: 'general',
+            message: 'Une erreur est survenue lors du calcul. Veuillez vérifier vos données.',
+          },
+        ]);
       } finally {
         setIsCalculating(false);
         calculationTimeoutRef.current = null;
@@ -276,20 +284,32 @@ export function useRentalSimulator(
   /**
    * Get result for a specific regime
    */
-  const getRegimeResult = useCallback((regime: TaxRegime): RegimeCalculationResult | null => {
-    if (!results) return null;
-    return results[regime === 'micro_foncier' ? 'microFoncier' :
-                   regime === 'reel_foncier' ? 'reelFoncier' :
-                   regime === 'lmnp_reel' ? 'lmnpReel' : 'microBic'];
-  }, [results]);
+  const getRegimeResult = useCallback(
+    (regime: TaxRegime): RegimeCalculationResult | null => {
+      if (!results) return null;
+      return results[
+        regime === 'micro_foncier'
+          ? 'microFoncier'
+          : regime === 'reel_foncier'
+            ? 'reelFoncier'
+            : regime === 'lmnp_reel'
+              ? 'lmnpReel'
+              : 'microBic'
+      ];
+    },
+    [results]
+  );
 
   /**
    * Check if a regime is eligible
    */
-  const isRegimeEligible = useCallback((regime: TaxRegime): boolean => {
-    const result = getRegimeResult(regime);
-    return result?.eligible ?? false;
-  }, [getRegimeResult]);
+  const isRegimeEligible = useCallback(
+    (regime: TaxRegime): boolean => {
+      const result = getRegimeResult(regime);
+      return result?.eligible ?? false;
+    },
+    [getRegimeResult]
+  );
 
   return {
     // State
@@ -297,11 +317,11 @@ export function useRentalSimulator(
     results,
     isCalculating,
     errors,
-    
+
     // Derived values
     recommendedRegime,
     eligibleRegimes,
-    
+
     // Actions
     updateCreditInput,
     updatePropertyInput,
@@ -311,7 +331,7 @@ export function useRentalSimulator(
     reset,
     setInputs,
     loadSharedData,
-    
+
     // Helpers
     getRegimeResult,
     isRegimeEligible,

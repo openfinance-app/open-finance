@@ -14,14 +14,17 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * Global exception handler for REST API endpoints.
@@ -900,6 +903,42 @@ public class GlobalExceptionHandler {
      * @param request the web request
      * @return HTTP 500 Internal Server Error with generic error message
      */
+    @ExceptionHandler({
+        HttpMessageNotReadableException.class,
+        MethodArgumentTypeMismatchException.class,
+        MissingServletRequestParameterException.class
+    })
+    public ResponseEntity<ErrorResponse> handleRequestBinding(Exception ex, WebRequest request) {
+        return error(HttpStatus.BAD_REQUEST, "error.request.invalid", null, request);
+    }
+
+    @ExceptionHandler(ExchangeRateUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleUnavailableRate(
+            ExchangeRateUnavailableException ex, WebRequest request) {
+        log.warn(
+                "Exchange rate unavailable for {} to {}", ex.getFromCurrency(), ex.getToCurrency());
+        return error(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "error.exchange.rate.unavailable",
+                new Object[] {ex.getFromCurrency(), ex.getToCurrency()},
+                request);
+    }
+
+    private ResponseEntity<ErrorResponse> error(
+            HttpStatus status, String key, Object[] arguments, WebRequest request) {
+        return ResponseEntity.status(status)
+                .body(
+                        ErrorResponse.builder()
+                                .timestamp(LocalDateTime.now())
+                                .status(status.value())
+                                .error(status.getReasonPhrase())
+                                .message(
+                                        messageSource.getMessage(
+                                                key, arguments, LocaleContextHolder.getLocale()))
+                                .path(getRequestPath(request))
+                                .build());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, WebRequest request) {
 

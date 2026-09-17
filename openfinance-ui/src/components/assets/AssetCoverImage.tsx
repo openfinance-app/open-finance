@@ -16,11 +16,7 @@ export function AssetCoverImage({ asset }: { asset: Asset }) {
   if (url) {
     return (
       <div className="rounded-lg overflow-hidden border border-border">
-        <img
-          src={url}
-          alt={asset.name}
-          className="w-full h-32 object-cover"
-        />
+        <img src={url} alt={asset.name} className="w-full h-32 object-cover" />
       </div>
     );
   }
@@ -28,11 +24,7 @@ export function AssetCoverImage({ asset }: { asset: Asset }) {
   if (asset.photoPath) {
     return (
       <div className="rounded-lg overflow-hidden border border-border">
-        <img
-          src={asset.photoPath}
-          alt={asset.name}
-          className="w-full h-32 object-cover"
-        />
+        <img src={asset.photoPath} alt={asset.name} className="w-full h-32 object-cover" />
       </div>
     );
   }

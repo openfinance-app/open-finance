@@ -52,7 +52,7 @@ export function useUpdateBaseCurrency() {
       });
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       // Persist the new baseCurrency into AuthContext (and underlying storage)
       // so it survives page refreshes without requiring a re-login.
       updateUser({ baseCurrency: data.baseCurrency });
@@ -118,7 +118,7 @@ export function useUpdateUserSettings() {
       const response = await apiClient.put('/users/me/settings', settings);
       return response.data as UserSettings;
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       // Update settings cache
       queryClient.setQueryData(['user', 'settings'], data);
 

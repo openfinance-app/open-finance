@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getResultTypeDisplayName, getResultTypeIcon, getResultRoute, highlightMatch } from './search';
+import {
+  getResultTypeDisplayName,
+  getResultTypeIcon,
+  getResultRoute,
+  highlightMatch,
+} from './search';
 import type { SearchResult, SearchResultType } from './search';
 
 describe('getResultTypeDisplayName', () => {
@@ -57,7 +62,9 @@ describe('getResultRoute', () => {
     expect(getResultRoute(makeResult('LIABILITY'))).toBe('/liabilities?highlight=42');
     expect(getResultRoute(makeResult('BUDGET'))).toBe('/budget/42');
     expect(getResultRoute(makeResult('CATEGORY'))).toBe('/transactions?category=42');
-    expect(getResultRoute(makeResult('RECURRING_TRANSACTION'))).toBe('/recurring-transactions?highlight=42');
+    expect(getResultRoute(makeResult('RECURRING_TRANSACTION'))).toBe(
+      '/recurring-transactions?highlight=42'
+    );
   });
 
   it('returns / for unknown type', () => {

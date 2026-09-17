@@ -2,7 +2,19 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { useTransactions, useCreateTransaction, useCreateTransfer, useUpdateTransaction, useUpdateTransfer, useDeleteTransaction, useCategories, useCreateCategory, useCategoryTree, useDeleteCategory, useUpdateCategory } from './useTransactions';
+import {
+  useTransactions,
+  useCreateTransaction,
+  useCreateTransfer,
+  useUpdateTransaction,
+  useUpdateTransfer,
+  useDeleteTransaction,
+  useCategories,
+  useCreateCategory,
+  useCategoryTree,
+  useDeleteCategory,
+  useUpdateCategory,
+} from './useTransactions';
 import apiClient from '@/services/apiClient';
 
 // Mock the API client
@@ -37,9 +49,7 @@ describe('useTransactions', () => {
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
   describe('Encryption Key Validation', () => {
@@ -87,14 +97,11 @@ describe('useTransactions', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockedApiClient.get).toHaveBeenCalledWith(
-        '/transactions/search?sort=date%2Cdesc',
-        {
-          headers: {
-            'X-Encryption-Session': 'test-encryption-key',
-          },
-        }
-      );
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/transactions/search?sort=date%2Cdesc', {
+        headers: {
+          'X-Encryption-Session': 'test-encryption-key',
+        },
+      });
     });
 
     it('builds correct query parameters with filters', async () => {
@@ -139,14 +146,11 @@ describe('useTransactions', () => {
         'size=10&' +
         'sort=amount%2Casc';
 
-      expect(mockedApiClient.get).toHaveBeenCalledWith(
-        expectedUrl,
-        {
-          headers: {
-            'X-Encryption-Session': 'test-encryption-key',
-          },
-        }
-      );
+      expect(mockedApiClient.get).toHaveBeenCalledWith(expectedUrl, {
+        headers: {
+          'X-Encryption-Session': 'test-encryption-key',
+        },
+      });
     });
 
     it('uses default sort when no sort is provided', async () => {
@@ -216,9 +220,7 @@ describe('useTransactions', () => {
 
     it('returns the correct data structure', async () => {
       const mockData = {
-        content: [
-          { id: 1, description: 'Test transaction', amount: 100 },
-        ],
+        content: [{ id: 1, description: 'Test transaction', amount: 100 }],
         totalElements: 1,
         totalPages: 1,
         number: 0,
@@ -274,15 +276,35 @@ describe('useTransactions', () => {
       mockedApiClient.post.mockResolvedValue({ data: { id: 1, description: 'New' } });
 
       const { result } = renderHook(() => useCreateTransaction(), { wrapper });
-      await result.current.mutateAsync({ type: 'EXPENSE', accountId: 1, amount: 50, currency: 'USD', date: '2026-01-01', description: 'Test' });
+      await result.current.mutateAsync({
+        type: 'EXPENSE',
+        accountId: 1,
+        amount: 50,
+        currency: 'USD',
+        date: '2026-01-01',
+        description: 'Test',
+      });
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/transactions', expect.any(Object), expect.objectContaining({ headers: { 'X-Encryption-Session': 'test-key' } }));
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/transactions',
+        expect.any(Object),
+        expect.objectContaining({ headers: { 'X-Encryption-Session': 'test-key' } })
+      );
     });
 
     it('throws when encryption key missing', async () => {
       mockSessionStorage.getItem.mockReturnValue(null);
       const { result } = renderHook(() => useCreateTransaction(), { wrapper });
-      await expect(result.current.mutateAsync({ type: 'EXPENSE', accountId: 1, amount: 50, currency: 'USD', date: '2026-01-01', description: 'Test' })).rejects.toThrow('Encryption key not found');
+      await expect(
+        result.current.mutateAsync({
+          type: 'EXPENSE',
+          accountId: 1,
+          amount: 50,
+          currency: 'USD',
+          date: '2026-01-01',
+          description: 'Test',
+        })
+      ).rejects.toThrow('Encryption key not found');
     });
   });
 
@@ -292,9 +314,21 @@ describe('useTransactions', () => {
       mockedApiClient.post.mockResolvedValue({ data: { id: 2 } });
 
       const { result } = renderHook(() => useCreateTransfer(), { wrapper });
-      await result.current.mutateAsync({ type: 'TRANSFER', accountId: 1, toAccountId: 2, amount: 100, currency: 'USD', date: '2026-01-01', description: 'Transfer' } as any);
+      await result.current.mutateAsync({
+        type: 'TRANSFER',
+        accountId: 1,
+        toAccountId: 2,
+        amount: 100,
+        currency: 'USD',
+        date: '2026-01-01',
+        description: 'Transfer',
+      } as any);
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/transactions/transfer', expect.any(Object), expect.any(Object));
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/transactions/transfer',
+        expect.any(Object),
+        expect.any(Object)
+      );
     });
   });
 
@@ -304,15 +338,41 @@ describe('useTransactions', () => {
       mockedApiClient.put.mockResolvedValue({ data: { id: 1 } });
 
       const { result } = renderHook(() => useUpdateTransaction(), { wrapper });
-      await result.current.mutateAsync({ id: 1, data: { type: 'EXPENSE', accountId: 1, amount: 75, currency: 'USD', date: '2026-01-01', description: 'Updated' } });
+      await result.current.mutateAsync({
+        id: 1,
+        data: {
+          type: 'EXPENSE',
+          accountId: 1,
+          amount: 75,
+          currency: 'USD',
+          date: '2026-01-01',
+          description: 'Updated',
+        },
+      });
 
-      expect(mockedApiClient.put).toHaveBeenCalledWith('/transactions/1', expect.any(Object), expect.any(Object));
+      expect(mockedApiClient.put).toHaveBeenCalledWith(
+        '/transactions/1',
+        expect.any(Object),
+        expect.any(Object)
+      );
     });
 
     it('throws when encryption key missing', async () => {
       mockSessionStorage.getItem.mockReturnValue(null);
       const { result } = renderHook(() => useUpdateTransaction(), { wrapper });
-      await expect(result.current.mutateAsync({ id: 1, data: { type: 'EXPENSE', accountId: 1, amount: 75, currency: 'USD', date: '2026-01-01', description: 'x' } })).rejects.toThrow('Encryption key not found');
+      await expect(
+        result.current.mutateAsync({
+          id: 1,
+          data: {
+            type: 'EXPENSE',
+            accountId: 1,
+            amount: 75,
+            currency: 'USD',
+            date: '2026-01-01',
+            description: 'x',
+          },
+        })
+      ).rejects.toThrow('Encryption key not found');
     });
   });
 
@@ -322,9 +382,22 @@ describe('useTransactions', () => {
       mockedApiClient.put.mockResolvedValue({ data: { id: 1 } });
 
       const { result } = renderHook(() => useUpdateTransfer(), { wrapper });
-      await result.current.mutateAsync({ transferId: 99, data: { fromAccountId: 1, toAccountId: 2, amount: 200, currency: 'USD', date: '2026-01-01' } } as any);
+      await result.current.mutateAsync({
+        transferId: 99,
+        data: {
+          fromAccountId: 1,
+          toAccountId: 2,
+          amount: 200,
+          currency: 'USD',
+          date: '2026-01-01',
+        },
+      } as any);
 
-      expect(mockedApiClient.put).toHaveBeenCalledWith('/transactions/transfers/99', expect.any(Object), expect.any(Object));
+      expect(mockedApiClient.put).toHaveBeenCalledWith(
+        '/transactions/transfers/99',
+        expect.any(Object),
+        expect.any(Object)
+      );
     });
   });
 
@@ -362,7 +435,10 @@ describe('useTransactions', () => {
 
       const { result } = renderHook(() => useCategories('INCOME'), { wrapper });
       await waitFor(() => expect(result.current.data).toBeDefined());
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/categories?type=INCOME', expect.any(Object));
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/categories?type=INCOME',
+        expect.any(Object)
+      );
     });
   });
 
@@ -374,7 +450,11 @@ describe('useTransactions', () => {
       const { result } = renderHook(() => useCreateCategory(), { wrapper });
       await result.current.mutateAsync({ name: 'New Cat', type: 'EXPENSE' } as any);
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/categories', expect.any(Object), expect.any(Object));
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/categories',
+        expect.any(Object),
+        expect.any(Object)
+      );
     });
   });
 
@@ -407,9 +487,16 @@ describe('useTransactions', () => {
       mockedApiClient.put.mockResolvedValue({ data: { id: 5, name: 'Updated' } });
 
       const { result } = renderHook(() => useUpdateCategory(), { wrapper });
-      await result.current.mutateAsync({ id: 5, data: { name: 'Updated', type: 'EXPENSE' } } as any);
+      await result.current.mutateAsync({
+        id: 5,
+        data: { name: 'Updated', type: 'EXPENSE' },
+      } as any);
 
-      expect(mockedApiClient.put).toHaveBeenCalledWith('/categories/5', expect.any(Object), expect.any(Object));
+      expect(mockedApiClient.put).toHaveBeenCalledWith(
+        '/categories/5',
+        expect.any(Object),
+        expect.any(Object)
+      );
     });
   });
 });

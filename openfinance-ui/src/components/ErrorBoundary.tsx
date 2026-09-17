@@ -46,9 +46,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <Card className="max-w-md w-full">
             <CardHeader>
               <CardTitle className="text-error">{i18n.t('errorBoundary.title')}</CardTitle>
-              <CardDescription>
-                {i18n.t('errorBoundary.description')}
-              </CardDescription>
+              <CardDescription>{i18n.t('errorBoundary.description')}</CardDescription>
             </CardHeader>
             <CardContent>
               {this.state.error && (
@@ -63,10 +61,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               <Button variant="primary" onClick={this.handleReset}>
                 {i18n.t('errorBoundary.tryAgain')}
               </Button>
-              <Button
-                variant="secondary"
-                onClick={() => window.location.reload()}
-              >
+              <Button variant="secondary" onClick={() => window.location.reload()}>
                 {i18n.t('errorBoundary.reloadPage')}
               </Button>
             </CardFooter>

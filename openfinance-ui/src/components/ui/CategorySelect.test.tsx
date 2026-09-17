@@ -29,7 +29,7 @@ beforeAll(() => {
 });
 
 // Mock the entire useTransactions module so useCategoryTree can be controlled per-test
-vi.mock('@/hooks/useTransactions', async (importOriginal) => {
+vi.mock('@/hooks/useTransactions', async importOriginal => {
   const actual = await importOriginal<typeof useTransactionsModule>();
   return {
     ...actual,
@@ -100,16 +100,9 @@ function loadedResult(data: CategoryTreeNode[] = mockCategories) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function renderSelect(
-  props: Partial<React.ComponentProps<typeof CategorySelect>> = {}
-) {
+function renderSelect(props: Partial<React.ComponentProps<typeof CategorySelect>> = {}) {
   const onValueChange = vi.fn();
-  render(
-    <CategorySelect
-      onValueChange={onValueChange}
-      {...props}
-    />
-  );
+  render(<CategorySelect onValueChange={onValueChange} {...props} />);
   return { onValueChange };
 }
 
@@ -577,14 +570,12 @@ describe('CategorySelect — allowCreateInline', () => {
 
     const onValueChange = vi.fn();
     render(
-      <CategorySelect
-        onValueChange={onValueChange}
-        allowCreateInline
-        inferredType="EXPENSE"
-      />
+      <CategorySelect onValueChange={onValueChange} allowCreateInline inferredType="EXPENSE" />
     );
 
-    const trigger = document.querySelector<HTMLButtonElement>('[data-testid="create-inline-trigger"]');
+    const trigger = document.querySelector<HTMLButtonElement>(
+      '[data-testid="create-inline-trigger"]'
+    );
     expect(trigger).not.toBeNull();
     fireEvent.click(trigger!);
 

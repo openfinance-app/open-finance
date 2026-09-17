@@ -26,11 +26,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @DisplayName("ConfigController Integration Tests")
 class ConfigControllerTest {
 
-    @MockBean
-    private OperationHistoryService operationHistoryService;
+    @MockBean private OperationHistoryService operationHistoryService;
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
     @Test
     @DisplayName("GET /api/v1/config/security - public endpoint exposes encryption mode")

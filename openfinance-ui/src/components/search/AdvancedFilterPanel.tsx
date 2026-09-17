@@ -2,7 +2,7 @@
  * AdvancedFilterPanel Component
  * Task 12.4.6: Create AdvancedFilterPanel component
  * Task 12.4.8: Add saved searches UI
- * 
+ *
  * Expandable filter panel for advanced search with multiple filter types
  */
 import { useState } from 'react';
@@ -29,7 +29,13 @@ interface AdvancedFilterPanelProps {
 }
 
 const entityTypeValues: SearchResultType[] = [
-  'TRANSACTION', 'ACCOUNT', 'ASSET', 'REAL_ESTATE', 'LIABILITY', 'BUDGET', 'CATEGORY',
+  'TRANSACTION',
+  'ACCOUNT',
+  'ASSET',
+  'REAL_ESTATE',
+  'LIABILITY',
+  'BUDGET',
+  'CATEGORY',
 ];
 
 const transactionTypeValues: TransactionType[] = ['INCOME', 'EXPENSE', 'TRANSFER'];
@@ -71,13 +77,10 @@ export function AdvancedFilterPanel({
   };
 
   // Helper to toggle array values (multi-select)
-  const toggleArrayValue = <K extends keyof AdvancedSearchRequest>(
-    key: K,
-    value: any
-  ) => {
+  const toggleArrayValue = <K extends keyof AdvancedSearchRequest>(key: K, value: any) => {
     const currentArray = (filters[key] as any[]) || [];
     const newArray = currentArray.includes(value)
-      ? currentArray.filter((v) => v !== value)
+      ? currentArray.filter(v => v !== value)
       : [...currentArray, value];
 
     updateFilter(key, (newArray.length > 0 ? newArray : undefined) as any);
@@ -104,7 +107,12 @@ export function AdvancedFilterPanel({
 
   // Count active filters (excluding query)
   const activeFilterCount = Object.entries(filters).filter(
-    ([key, value]) => key !== 'query' && key !== 'limit' && value !== undefined && value !== null && (Array.isArray(value) ? value.length > 0 : true)
+    ([key, value]) =>
+      key !== 'query' &&
+      key !== 'limit' &&
+      value !== undefined &&
+      value !== null &&
+      (Array.isArray(value) ? value.length > 0 : true)
   ).length;
 
   return (
@@ -117,7 +125,9 @@ export function AdvancedFilterPanel({
         <div className="flex items-center gap-3">
           <Filter className="h-5 w-5 text-primary" />
           <div>
-            <h3 className="font-semibold text-text-primary">{t('navigation:search.advancedFilters')}</h3>
+            <h3 className="font-semibold text-text-primary">
+              {t('navigation:search.advancedFilters')}
+            </h3>
             <p className="text-sm text-text-secondary mt-0.5">
               {activeFilterCount > 0
                 ? t('navigation:search.filtersActive', { count: activeFilterCount })
@@ -148,14 +158,10 @@ export function AdvancedFilterPanel({
               {t('navigation:search.filters.searchIn')}
             </label>
             <div className="flex flex-wrap gap-2">
-              {entityTypeValues.map((value) => (
+              {entityTypeValues.map(value => (
                 <Badge
                   key={value}
-                  variant={
-                    filters.entityTypes?.includes(value)
-                      ? 'info'
-                      : 'default'
-                  }
+                  variant={filters.entityTypes?.includes(value) ? 'info' : 'default'}
                   className="cursor-pointer hover:bg-primary/20 transition-colors"
                   onClick={() => toggleArrayValue('entityTypes', value)}
                 >
@@ -178,7 +184,7 @@ export function AdvancedFilterPanel({
                 <NumberInput
                   id="minAmount"
                   value={filters.minAmount !== undefined ? String(filters.minAmount) : ''}
-                  onChange={(val) => updateFilter('minAmount', val ? parseFloat(val) : undefined)}
+                  onChange={val => updateFilter('minAmount', val ? parseFloat(val) : undefined)}
                   placeholder="0.00"
                   min="0"
                 />
@@ -190,7 +196,7 @@ export function AdvancedFilterPanel({
                 <NumberInput
                   id="maxAmount"
                   value={filters.maxAmount !== undefined ? String(filters.maxAmount) : ''}
-                  onChange={(val) => updateFilter('maxAmount', val ? parseFloat(val) : undefined)}
+                  onChange={val => updateFilter('maxAmount', val ? parseFloat(val) : undefined)}
                   placeholder="0.00"
                   min="0"
                 />
@@ -206,7 +212,7 @@ export function AdvancedFilterPanel({
 
             {/* Date presets */}
             <div className="flex flex-wrap gap-2 mb-4">
-              {datePresetKeys.map((preset) => (
+              {datePresetKeys.map(preset => (
                 <Button
                   key={preset.key}
                   variant="ghost"
@@ -227,7 +233,7 @@ export function AdvancedFilterPanel({
                 <DateInput
                   id="dateFrom"
                   value={filters.dateFrom || ''}
-                  onChange={(val) => updateFilter('dateFrom', val || undefined)}
+                  onChange={val => updateFilter('dateFrom', val || undefined)}
                 />
               </div>
               <div>
@@ -237,7 +243,7 @@ export function AdvancedFilterPanel({
                 <DateInput
                   id="dateTo"
                   value={filters.dateTo || ''}
-                  onChange={(val) => updateFilter('dateTo', val || undefined)}
+                  onChange={val => updateFilter('dateTo', val || undefined)}
                 />
               </div>
             </div>
@@ -250,14 +256,10 @@ export function AdvancedFilterPanel({
                 {t('navigation:search.filters.accounts')}
               </label>
               <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
-                {accounts.map((account) => (
+                {accounts.map(account => (
                   <Badge
                     key={account.id}
-                    variant={
-                      filters.accountIds?.includes(account.id)
-                        ? 'info'
-                        : 'default'
-                    }
+                    variant={filters.accountIds?.includes(account.id) ? 'info' : 'default'}
                     className="cursor-pointer hover:bg-primary/20 transition-colors"
                     onClick={() => toggleArrayValue('accountIds', account.id)}
                   >
@@ -275,14 +277,10 @@ export function AdvancedFilterPanel({
                 {t('navigation:search.filters.categories')}
               </label>
               <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
-                {categories.map((category) => (
+                {categories.map(category => (
                   <Badge
                     key={category.id}
-                    variant={
-                      filters.categoryIds?.includes(category.id)
-                        ? 'info'
-                        : 'default'
-                    }
+                    variant={filters.categoryIds?.includes(category.id) ? 'info' : 'default'}
                     className="cursor-pointer hover:bg-primary/20 transition-colors"
                     onClick={() => toggleArrayValue('categoryIds', category.id)}
                   >
@@ -300,14 +298,10 @@ export function AdvancedFilterPanel({
                 {t('navigation:search.filters.tags')}
               </label>
               <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
-                {allTags.slice(0, 20).map((tagInfo) => (
+                {allTags.slice(0, 20).map(tagInfo => (
                   <Badge
                     key={tagInfo.tag}
-                    variant={
-                      filters.tags?.includes(tagInfo.tag)
-                        ? 'info'
-                        : 'default'
-                    }
+                    variant={filters.tags?.includes(tagInfo.tag) ? 'info' : 'default'}
                     className="cursor-pointer hover:bg-primary/20 transition-colors"
                     onClick={() => toggleArrayValue('tags', tagInfo.tag)}
                   >
@@ -327,19 +321,25 @@ export function AdvancedFilterPanel({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Transaction Type */}
               <div>
-                <label htmlFor="transactionType" className="block text-xs text-text-secondary mb-1.5">
+                <label
+                  htmlFor="transactionType"
+                  className="block text-xs text-text-secondary mb-1.5"
+                >
                   {t('navigation:search.filters.type')}
                 </label>
                 <select
                   id="transactionType"
                   value={filters.transactionType || ''}
-                  onChange={(e) =>
-                    updateFilter('transactionType', (e.target.value || undefined) as TransactionType | undefined)
+                  onChange={e =>
+                    updateFilter(
+                      'transactionType',
+                      (e.target.value || undefined) as TransactionType | undefined
+                    )
                   }
                   className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
                 >
                   <option value="">{t('navigation:search.filters.allTypes')}</option>
-                  {transactionTypeValues.map((value) => (
+                  {transactionTypeValues.map(value => (
                     <option key={value} value={value}>
                       {t(`transactions:types.${value}`, value)}
                     </option>
@@ -361,12 +361,9 @@ export function AdvancedFilterPanel({
                         ? 'true'
                         : 'false'
                   }
-                  onChange={(e) => {
+                  onChange={e => {
                     const value = e.target.value;
-                    updateFilter(
-                      'isReconciled',
-                      value === '' ? undefined : value === 'true'
-                    );
+                    updateFilter('isReconciled', value === '' ? undefined : value === 'true');
                   }}
                   className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
                 >
@@ -381,11 +378,7 @@ export function AdvancedFilterPanel({
           {/* Action Buttons */}
           <div className="flex items-center justify-between pt-4 border-t border-border">
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                onClick={clearFilters}
-                disabled={activeFilterCount === 0}
-              >
+              <Button variant="ghost" onClick={clearFilters} disabled={activeFilterCount === 0}>
                 <X className="h-4 w-4 mr-2" />
                 {t('common:buttons.clearFilters', 'Clear All Filters')}
               </Button>
@@ -394,19 +387,20 @@ export function AdvancedFilterPanel({
                   variant="ghost"
                   onClick={onSaveSearch}
                   disabled={isLoading}
-                  title={t('common:buttons.saveSearchHint', 'Save this search for quick access later')}
+                  title={t(
+                    'common:buttons.saveSearchHint',
+                    'Save this search for quick access later'
+                  )}
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {t('common:buttons.saveSearch', 'Save Search')}
                 </Button>
               )}
             </div>
-            <Button
-              variant="primary"
-              onClick={() => onApply()}
-              disabled={isLoading}
-            >
-              {isLoading ? t('common:status.searching', 'Searching...') : t('common:buttons.applyFilters', 'Apply Filters')}
+            <Button variant="primary" onClick={() => onApply()} disabled={isLoading}>
+              {isLoading
+                ? t('common:status.searching', 'Searching...')
+                : t('common:buttons.applyFilters', 'Apply Filters')}
             </Button>
           </div>
         </div>

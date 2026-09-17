@@ -14,10 +14,7 @@ export interface YearNAnalysisCardProps {
   targetYear: number;
 }
 
-export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
-  analysis,
-  targetYear,
-}) => {
+export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, targetYear }) => {
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('realEstate');
   const buyAdvantage = analysis.netWorth > analysis.rentSavings;
@@ -66,13 +63,21 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
                 <TableRow>
                   <TableCell className="font-medium">{t('results.propertyValue')}</TableCell>
                   <TableCell className="text-right text-green-600">
-                    <ConvertedAmount amount={analysis.propertyValue} currency={baseCurrency} inline />
+                    <ConvertedAmount
+                      amount={analysis.propertyValue}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.remainingCapital')}</TableCell>
                   <TableCell className="text-right text-red-600">
-                    <ConvertedAmount amount={analysis.remainingCapital} currency={baseCurrency} inline />
+                    <ConvertedAmount
+                      amount={analysis.remainingCapital}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </TableCell>
                 </TableRow>
                 <TableRow>
@@ -84,13 +89,21 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
                 <TableRow>
                   <TableCell className="font-medium">{t('results.costsTotal')}</TableCell>
                   <TableCell className="text-right">
-                    <ConvertedAmount amount={analysis.totalCostsBuy} currency={baseCurrency} inline />
+                    <ConvertedAmount
+                      amount={analysis.totalCostsBuy}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.netExpense')}</TableCell>
                   <TableCell className="text-right text-red-600">
-                    <ConvertedAmount amount={analysis.netExpenseBuy} currency={baseCurrency} inline />
+                    <ConvertedAmount
+                      amount={analysis.netExpenseBuy}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -174,13 +187,21 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
                 <TableRow>
                   <TableCell className="font-medium">{t('results.costsTotal')}</TableCell>
                   <TableCell className="text-right">
-                    <ConvertedAmount amount={analysis.totalCostsRent} currency={baseCurrency} inline />
+                    <ConvertedAmount
+                      amount={analysis.totalCostsRent}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.netExpense')}</TableCell>
                   <TableCell className="text-right text-red-600">
-                    <ConvertedAmount amount={analysis.netExpenseRent} currency={baseCurrency} inline />
+                    <ConvertedAmount
+                      amount={analysis.netExpenseRent}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -222,7 +243,9 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
-              <p className="text-sm text-muted-foreground mb-2">{t('results.netWorthDifference')}</p>
+              <p className="text-sm text-muted-foreground mb-2">
+                {t('results.netWorthDifference')}
+              </p>
               <p className={`text-2xl font-bold ${buyAdvantage ? 'text-primary' : 'text-warning'}`}>
                 {buyAdvantage ? '+' : ''}
                 <ConvertedAmount
@@ -232,12 +255,16 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
                 />
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {t('results.inFavorOf', { scenario: buyAdvantage ? t('results.buyGenitive') : t('results.rentGenitive') })}
+                {t('results.inFavorOf', {
+                  scenario: buyAdvantage ? t('results.buyGenitive') : t('results.rentGenitive'),
+                })}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground mb-2">{t('results.expenseDifference')}</p>
-              <p className={`text-2xl font-bold ${analysis.netExpenseBuy < analysis.netExpenseRent ? 'text-primary' : 'text-warning'}`}>
+              <p
+                className={`text-2xl font-bold ${analysis.netExpenseBuy < analysis.netExpenseRent ? 'text-primary' : 'text-warning'}`}
+              >
                 <ConvertedAmount
                   amount={Math.abs(analysis.netExpenseBuy - analysis.netExpenseRent)}
                   currency={baseCurrency}
@@ -245,17 +272,20 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({
                 />
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {t('results.savedWith', { scenario: analysis.netExpenseBuy < analysis.netExpenseRent ? t('results.buyGenitive') : t('results.rentGenitive') })}
+                {t('results.savedWith', {
+                  scenario:
+                    analysis.netExpenseBuy < analysis.netExpenseRent
+                      ? t('results.buyGenitive')
+                      : t('results.rentGenitive'),
+                })}
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground mb-2">{t('results.annualProfitability')}</p>
-              <p className="text-2xl font-bold">
-                {analysis.annualProfitability.toFixed(2)}%
+              <p className="text-sm text-muted-foreground mb-2">
+                {t('results.annualProfitability')}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t('results.forBuyScenario')}
-              </p>
+              <p className="text-2xl font-bold">{analysis.annualProfitability.toFixed(2)}%</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('results.forBuyScenario')}</p>
             </div>
           </div>
         </CardContent>

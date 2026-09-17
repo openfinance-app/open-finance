@@ -14,10 +14,7 @@ export const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
       <div
         ref={ref}
         aria-hidden="true"
-        className={cn(
-          'relative overflow-hidden rounded-md bg-muted skeleton-sweep',
-          className
-        )}
+        className={cn('relative overflow-hidden rounded-md bg-muted skeleton-sweep', className)}
         {...props}
       />
     );

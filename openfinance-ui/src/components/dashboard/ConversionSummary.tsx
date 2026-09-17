@@ -81,11 +81,7 @@ function RateSummary({ fromCurrency, baseCurrency, convertedCount }: RateSummary
       </span>
 
       {/* Last updated timestamp */}
-      {!isLoading && rateDate && (
-        <span>
-          Rates updated: {formatRateDate(rateDate)}
-        </span>
-      )}
+      {!isLoading && rateDate && <span>Rates updated: {formatRateDate(rateDate)}</span>}
 
       {/* Stale warning */}
       {stale && (
@@ -135,9 +131,7 @@ export function ConversionSummary() {
   }
 
   // Find accounts with a currency different from the user's base currency
-  const foreignAccounts = accounts.filter(
-    (a) => a.currency && a.currency !== baseCurrency
-  );
+  const foreignAccounts = accounts.filter(a => a.currency && a.currency !== baseCurrency);
 
   if (foreignAccounts.length === 0) {
     return null;

@@ -40,17 +40,13 @@ describe('LiabilitySelector', () => {
 
   it('shows loading state', () => {
     mockIsLoading = true;
-    renderWithProviders(
-      <LiabilitySelector onValueChange={onValueChange} />
-    );
+    renderWithProviders(<LiabilitySelector onValueChange={onValueChange} />);
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
 
   it('shows error state', () => {
     mockIsError = true;
-    renderWithProviders(
-      <LiabilitySelector onValueChange={onValueChange} />
-    );
+    renderWithProviders(<LiabilitySelector onValueChange={onValueChange} />);
     expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
   });
 
@@ -62,23 +58,17 @@ describe('LiabilitySelector', () => {
   });
 
   it('shows selected liability name', () => {
-    renderWithProviders(
-      <LiabilitySelector value={1} onValueChange={onValueChange} />
-    );
+    renderWithProviders(<LiabilitySelector value={1} onValueChange={onValueChange} />);
     expect(screen.getByText('Credit Card A')).toBeInTheDocument();
   });
 
   it('shows currency next to selected liability', () => {
-    renderWithProviders(
-      <LiabilitySelector value={1} onValueChange={onValueChange} />
-    );
+    renderWithProviders(<LiabilitySelector value={1} onValueChange={onValueChange} />);
     expect(screen.getByText('(USD)')).toBeInTheDocument();
   });
 
   it('respects disabled prop', () => {
-    renderWithProviders(
-      <LiabilitySelector onValueChange={onValueChange} disabled />
-    );
+    renderWithProviders(<LiabilitySelector onValueChange={onValueChange} disabled />);
     expect(screen.getByRole('combobox')).toBeDisabled();
   });
 
@@ -86,7 +76,7 @@ describe('LiabilitySelector', () => {
     renderWithProviders(
       <LiabilitySelector
         onValueChange={onValueChange}
-        liabilityFilter={(l) => l.type === 'MORTGAGE'}
+        liabilityFilter={l => l.type === 'MORTGAGE'}
       />
     );
     expect(screen.getByRole('combobox')).toBeInTheDocument();

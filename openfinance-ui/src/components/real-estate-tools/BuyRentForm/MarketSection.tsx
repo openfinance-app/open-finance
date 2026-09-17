@@ -1,6 +1,6 @@
 /**
  * MarketSection Component
- * 
+ *
  * Market evolution parameters form section
  * Requirements: REQ-1.3.1
  */
@@ -35,10 +35,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
 
   return (
     <Card className="h-full">
-      <CardHeader
-        className="bg-info/10 cursor-pointer select-none"
-        onClick={onToggle}
-      >
+      <CardHeader className="bg-info/10 cursor-pointer select-none" onClick={onToggle}>
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
@@ -50,8 +47,9 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
         </CardTitle>
       </CardHeader>
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
-          }`}
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
       >
         <CardContent className="p-4 space-y-4">
           <div className="space-y-4">
@@ -64,7 +62,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
               <NumberInput
                 id="priceEvolution"
                 value={String(inputs.priceEvolution)}
-                onChange={(value) => onUpdate('priceEvolution', parseFloat(value) || 0)}
+                onChange={value => onUpdate('priceEvolution', parseFloat(value) || 0)}
                 min={-50}
                 max={50}
               />
@@ -73,7 +71,9 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
               </p>
               {getFieldError('priceEvolution') && (
                 <Alert variant="error" className="py-2">
-                  <AlertDescription className="text-xs">{getFieldError('priceEvolution')}</AlertDescription>
+                  <AlertDescription className="text-xs">
+                    {getFieldError('priceEvolution')}
+                  </AlertDescription>
                 </Alert>
               )}
             </div>
@@ -87,7 +87,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
               <NumberInput
                 id="rentEvolution"
                 value={String(inputs.rentEvolution)}
-                onChange={(value) => onUpdate('rentEvolution', parseFloat(value) || 0)}
+                onChange={value => onUpdate('rentEvolution', parseFloat(value) || 0)}
                 min={-50}
                 max={50}
               />
@@ -96,7 +96,9 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
               </p>
               {getFieldError('rentEvolution') && (
                 <Alert variant="error" className="py-2">
-                  <AlertDescription className="text-xs">{getFieldError('rentEvolution')}</AlertDescription>
+                  <AlertDescription className="text-xs">
+                    {getFieldError('rentEvolution')}
+                  </AlertDescription>
                 </Alert>
               )}
             </div>
@@ -110,7 +112,7 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
               <NumberInput
                 id="investmentReturn"
                 value={String(inputs.investmentReturn)}
-                onChange={(value) => onUpdate('investmentReturn', parseFloat(value) || 0)}
+                onChange={value => onUpdate('investmentReturn', parseFloat(value) || 0)}
                 min={-20}
                 max={50}
               />
@@ -119,7 +121,9 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
               </p>
               {getFieldError('investmentReturn') && (
                 <Alert variant="error" className="py-2">
-                  <AlertDescription className="text-xs">{getFieldError('investmentReturn')}</AlertDescription>
+                  <AlertDescription className="text-xs">
+                    {getFieldError('investmentReturn')}
+                  </AlertDescription>
                 </Alert>
               )}
             </div>
@@ -133,16 +137,16 @@ export const MarketSection: React.FC<MarketSectionProps> = ({
               <NumberInput
                 id="inflation"
                 value={String(inputs.inflation)}
-                onChange={(value) => onUpdate('inflation', parseFloat(value) || 0)}
+                onChange={value => onUpdate('inflation', parseFloat(value) || 0)}
                 min={-10}
                 max={50}
               />
-              <p className="text-xs text-muted-foreground">
-                {t('marketSection.inflationHelp')}
-              </p>
+              <p className="text-xs text-muted-foreground">{t('marketSection.inflationHelp')}</p>
               {getFieldError('inflation') && (
                 <Alert variant="error" className="py-2">
-                  <AlertDescription className="text-xs">{getFieldError('inflation')}</AlertDescription>
+                  <AlertDescription className="text-xs">
+                    {getFieldError('inflation')}
+                  </AlertDescription>
                 </Alert>
               )}
             </div>

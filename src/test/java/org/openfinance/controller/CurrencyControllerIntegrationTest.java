@@ -260,8 +260,7 @@ class CurrencyControllerIntegrationTest {
     @Test
     @DisplayName("Should return 403 when not authenticated (all currencies)")
     void shouldReturn403WhenNotAuthenticatedAllCurrencies() throws Exception {
-        mockMvc.perform(get("/api/v1/currencies/all"))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/currencies/all")).andExpect(status().isForbidden());
     }
 
     // ========== GET /api/v1/currencies/exchange-rates (Get Rate for Date) ==========
@@ -302,11 +301,8 @@ class CurrencyControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should return 500 when date format is invalid")
-    void shouldReturn500WhenDateFormatInvalid() throws Exception {
-        // TODO: Should return 400, but Spring's date parsing throws exception (→500)
-        // Need proper @ExceptionHandler for MethodArgumentTypeMismatchException in
-        // GlobalExceptionHandler
+    @DisplayName("Should return 400 when date format is invalid")
+    void shouldReturn400WhenDateFormatInvalid() throws Exception {
         mockMvc.perform(
                         get("/api/v1/currencies/exchange-rates")
                                 .param("from", "USD")
@@ -314,7 +310,7 @@ class CurrencyControllerIntegrationTest {
                                 .param("date", "invalid-date")
                                 .header("Authorization", "Bearer " + userToken)
                                 .header("X-Encryption-Session", userEncKey))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isBadRequest());
     }
 
     @Test

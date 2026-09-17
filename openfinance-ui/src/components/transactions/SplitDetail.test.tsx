@@ -20,7 +20,7 @@ const mockSplits: TransactionSplitResponse[] = [
     categoryName: 'Shopping',
     categoryColor: '#ff0000',
     categoryIcon: '🛒',
-    amount: 50.00,
+    amount: 50.0,
     description: 'Groceries',
   },
   {
@@ -30,7 +30,7 @@ const mockSplits: TransactionSplitResponse[] = [
     categoryName: 'Entertainment',
     categoryColor: '#00ff00',
     categoryIcon: undefined,
-    amount: 25.50,
+    amount: 25.5,
     description: undefined,
   },
   {
@@ -52,10 +52,7 @@ interface RenderComponentOptions {
   currency?: string;
 }
 
-function renderComponent({
-  splits = mockSplits,
-  currency = 'EUR',
-}: RenderComponentOptions = {}) {
+function renderComponent({ splits = mockSplits, currency = 'EUR' }: RenderComponentOptions = {}) {
   renderWithProviders(<SplitDetail splits={splits} currency={currency} />);
 }
 
@@ -201,7 +198,7 @@ describe('SplitDetail', () => {
           categoryName: 'Test',
           categoryColor: '#000000',
           categoryIcon: undefined,
-          amount: -25.50,
+          amount: -25.5,
           description: 'Negative amount',
         },
       ];
@@ -263,7 +260,8 @@ describe('SplitDetail', () => {
           categoryColor: '#000000',
           categoryIcon: undefined,
           amount: 50,
-          description: 'This is a very long description that should be truncated in the UI to prevent overflow and maintain good layout',
+          description:
+            'This is a very long description that should be truncated in the UI to prevent overflow and maintain good layout',
         },
       ];
 

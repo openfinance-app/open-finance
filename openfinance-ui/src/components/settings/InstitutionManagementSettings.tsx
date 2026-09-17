@@ -1,6 +1,6 @@
 /**
  * InstitutionManagementSettings component
- * 
+ *
  * Settings section for managing financial institutions.
  * Users can view, add, edit, and delete custom institutions.
  */
@@ -54,7 +54,7 @@ export function InstitutionManagementSettings() {
 
   // Filter institutions by search query
   const filteredInstitutions = institutions?.filter(
-    (inst) =>
+    inst =>
       inst.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       inst.bic?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -83,7 +83,7 @@ export function InstitutionManagementSettings() {
     reader.onload = () => {
       const base64 = reader.result as string;
       setLogoPreview(base64);
-      setFormData((prev) => ({ ...prev, logo: base64 }));
+      setFormData(prev => ({ ...prev, logo: base64 }));
     };
     reader.onerror = () => {
       setLogoError(t('form.logoReadError'));
@@ -94,7 +94,7 @@ export function InstitutionManagementSettings() {
   const handleRemoveLogo = () => {
     setLogoPreview(null);
     setLogoError(null);
-    setFormData((prev) => ({ ...prev, logo: '' }));
+    setFormData(prev => ({ ...prev, logo: '' }));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -222,9 +222,9 @@ export function InstitutionManagementSettings() {
     );
   }
 
-  const allCustomInstitutions = institutions?.filter((inst) => !inst.isSystem) || [];
-  const systemInstitutions = filteredInstitutions?.filter((inst) => inst.isSystem) || [];
-  const customInstitutions = filteredInstitutions?.filter((inst) => !inst.isSystem) || [];
+  const allCustomInstitutions = institutions?.filter(inst => !inst.isSystem) || [];
+  const systemInstitutions = filteredInstitutions?.filter(inst => inst.isSystem) || [];
+  const customInstitutions = filteredInstitutions?.filter(inst => !inst.isSystem) || [];
 
   return (
     <div className="space-y-6">
@@ -232,9 +232,7 @@ export function InstitutionManagementSettings() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-text-primary">{t('title')}</h2>
-          <p className="text-sm text-text-secondary mt-1">
-            {t('description')}
-          </p>
+          <p className="text-sm text-text-secondary mt-1">{t('description')}</p>
         </div>
         <Button variant="primary" onClick={openCreateForm}>
           <Plus className="h-4 w-4 mr-2" />
@@ -248,7 +246,7 @@ export function InstitutionManagementSettings() {
           type="text"
           placeholder={t('searchPlaceholder')}
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={e => setSearchQuery(e.target.value)}
           className="pl-10"
         />
         <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
@@ -275,7 +273,7 @@ export function InstitutionManagementSettings() {
           )
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {customInstitutions.map((inst) => (
+            {customInstitutions.map(inst => (
               <Card key={inst.id} className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
@@ -292,14 +290,12 @@ export function InstitutionManagementSettings() {
                     </div>
                     <div>
                       <h4 className="font-medium text-text-primary">{inst.name}</h4>
-                      {inst.bic && (
-                        <p className="text-xs text-text-muted">{inst.bic}</p>
+                      {inst.bic && <p className="text-xs text-text-muted">{inst.bic}</p>}
+                      {inst.country && (
+                        <p className="text-xs text-text-muted">
+                          {ALL_COUNTRIES.find(c => c.code === inst.country)?.name || inst.country}
+                        </p>
                       )}
-                        {inst.country && (
-                          <p className="text-xs text-text-muted">
-                            {ALL_COUNTRIES.find((c) => c.code === inst.country)?.name || inst.country}
-                          </p>
-                        )}
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -332,11 +328,9 @@ export function InstitutionManagementSettings() {
         <h3 className="text-lg font-medium text-text-primary">
           {t('system.title', { count: systemInstitutions.length })}
         </h3>
-        <p className="text-sm text-text-secondary">
-          {t('system.description')}
-        </p>
+        <p className="text-sm text-text-secondary">{t('system.description')}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {systemInstitutions.slice(0, showAllSystem ? undefined : 12).map((inst) => (
+          {systemInstitutions.slice(0, showAllSystem ? undefined : 12).map(inst => (
             <Card key={inst.id} className="p-4 opacity-75">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -361,7 +355,7 @@ export function InstitutionManagementSettings() {
         {systemInstitutions.length > 12 && (
           <button
             type="button"
-            onClick={() => setShowAllSystem((prev) => !prev)}
+            onClick={() => setShowAllSystem(prev => !prev)}
             className="w-full text-sm text-primary hover:text-primary/80 text-center py-2 transition-colors"
           >
             {showAllSystem
@@ -391,7 +385,7 @@ export function InstitutionManagementSettings() {
               </label>
               <Input
                 value={formData.name}
-                onChange={(e) => {
+                onChange={e => {
                   setFormData({ ...formData, name: e.target.value });
                   setFormError(null);
                 }}
@@ -406,22 +400,20 @@ export function InstitutionManagementSettings() {
               </label>
               <Input
                 value={formData.bic}
-                onChange={(e) => {
+                onChange={e => {
                   const value = e.target.value.toUpperCase();
                   setFormData({ ...formData, bic: value });
                   setBicError(null);
                   setFormError(null);
                 }}
-                onBlur={(e) => validateBic(e.target.value)}
+                onBlur={e => validateBic(e.target.value)}
                 placeholder={t('form.bicPlaceholder')}
                 maxLength={11}
               />
               {bicError ? (
                 <p className="text-xs text-error mt-1">{bicError}</p>
               ) : (
-                <p className="text-xs text-text-muted mt-1">
-                  {t('form.bicHelp')}
-                </p>
+                <p className="text-xs text-text-muted mt-1">{t('form.bicHelp')}</p>
               )}
             </div>
 
@@ -431,7 +423,7 @@ export function InstitutionManagementSettings() {
               </label>
               <CountrySelector
                 value={formData.country ?? ''}
-                onValueChange={(value) => {
+                onValueChange={value => {
                   setFormData({ ...formData, country: value });
                   setFormError(null);
                 }}
@@ -497,16 +489,10 @@ export function InstitutionManagementSettings() {
                 </div>
 
                 {/* Error Message */}
-                {logoError && (
-                  <p className="text-xs text-error">{logoError}</p>
-                )}
+                {logoError && <p className="text-xs text-error">{logoError}</p>}
 
                 {/* Help Text */}
-                {!logoPreview && (
-                  <p className="text-xs text-text-muted">
-                    {t('form.logoHelp')}
-                  </p>
-                )}
+                {!logoPreview && <p className="text-xs text-text-muted">{t('form.logoHelp')}</p>}
               </div>
             </div>
 
@@ -528,7 +514,10 @@ export function InstitutionManagementSettings() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deletingInstitution} onOpenChange={(open) => !open && setDeletingInstitution(null)}>
+      <Dialog
+        open={!!deletingInstitution}
+        onOpenChange={open => !open && setDeletingInstitution(null)}
+      >
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle>{t('deleteDialog.title')}</DialogTitle>

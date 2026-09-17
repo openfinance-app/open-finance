@@ -5,7 +5,7 @@ import { X, AlertTriangle, AlertCircle } from 'lucide-react';
 
 /**
  * AlertBanner Component (Task 8.3.5)
- * 
+ *
  * Displays budget warnings at the top of dashboard/budget pages.
  * Features:
  * - Shows top 3 most critical unread alerts
@@ -26,14 +26,12 @@ export function AlertBanner() {
   if (!alerts || alerts.length === 0) return null;
 
   // Filter out dismissed alerts and show top 3 most critical
-  const visibleAlerts = alerts
-    .filter((alert: BudgetAlert) => !dismissed.has(alert.id))
-    .slice(0, 3);
+  const visibleAlerts = alerts.filter((alert: BudgetAlert) => !dismissed.has(alert.id)).slice(0, 3);
 
   if (visibleAlerts.length === 0) return null;
 
   const handleDismiss = (alertId: string) => {
-    setDismissed((prev) => new Set(prev).add(alertId));
+    setDismissed(prev => new Set(prev).add(alertId));
   };
 
   const handleMarkAsRead = (alertId: string) => {
@@ -128,12 +126,12 @@ function AlertItem({ alert, onMarkRead, onDismiss, isMarkingRead }: AlertItemPro
           onClick={onMarkRead}
           disabled={isMarkingRead}
           className="text-xs text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
-          >
-            Mark read
-          </button>
-          <button
-            onClick={onDismiss}
-            className="text-text-secondary hover:text-text-primary transition-colors"
+        >
+          Mark read
+        </button>
+        <button
+          onClick={onDismiss}
+          className="text-text-secondary hover:text-text-primary transition-colors"
           aria-label="Dismiss alert"
         >
           <X className="w-4 h-4" />

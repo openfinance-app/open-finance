@@ -86,7 +86,11 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
   const { t } = useTranslation('dashboard');
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();
   const { data: assets, isLoading: assetsLoading, error: assetsError } = useAssets();
-  const { data: properties, isLoading: propertiesLoading, error: propertiesError } = useProperties();
+  const {
+    data: properties,
+    isLoading: propertiesLoading,
+    error: propertiesError,
+  } = useProperties();
   const { data: settings } = useUserSettings();
   const {
     convert,
@@ -121,22 +125,16 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
   const aggregation = useMemo<Aggregation>(() => {
     const map = new Map<string, CountryDatum>();
 
-    const bump = (
-      code: string,
-      value: number,
-      kind: 'institution' | 'realEstate',
-    ) => {
+    const bump = (code: string, value: number, kind: 'institution' | 'realEstate') => {
       const key = normalizeAlpha2(code);
-      const existing =
-        map.get(key) ??
-        {
-          code: key,
-          amount: 0,
-          institutionsAmount: 0,
-          realEstateAmount: 0,
-          accountCount: 0,
-          propertyCount: 0,
-        };
+      const existing = map.get(key) ?? {
+        code: key,
+        amount: 0,
+        institutionsAmount: 0,
+        realEstateAmount: 0,
+        accountCount: 0,
+        propertyCount: 0,
+      };
       existing.amount = add(existing.amount, value);
       if (kind === 'institution') {
         existing.institutionsAmount = add(existing.institutionsAmount, value);
@@ -182,7 +180,7 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
     }
 
     const countries = Array.from(map.values()).sort(
-      (a, b) => Math.abs(b.amount) - Math.abs(a.amount),
+      (a, b) => Math.abs(b.amount) - Math.abs(a.amount)
     );
     const maxAbs = countries.reduce((max, c) => Math.max(max, Math.abs(c.amount)), 0);
 
@@ -205,7 +203,7 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
         <div className="h-6 bg-surface-elevated rounded w-48 mb-4" />
         <div className="h-56 bg-surface-elevated rounded mb-4" />
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="h-8 bg-surface-elevated rounded" />
           ))}
         </div>
@@ -234,21 +232,23 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
 
   const dotRadius = (amount: number): number => {
     if (maxAbs <= 0) return 0;
-    return MIN_DOT_RADIUS + (MAX_DOT_RADIUS - MIN_DOT_RADIUS) * Math.sqrt(Math.abs(amount) / maxAbs);
+    return (
+      MIN_DOT_RADIUS + (MAX_DOT_RADIUS - MIN_DOT_RADIUS) * Math.sqrt(Math.abs(amount) / maxAbs)
+    );
   };
 
   const markers = countries
-    .map((c) => ({ datum: c, centroid: countryCentroid(c.code) }))
+    .map(c => ({ datum: c, centroid: countryCentroid(c.code) }))
     .filter((m): m is { datum: CountryDatum; centroid: [number, number] } => m.centroid !== null);
 
   const hasData = countries.length > 0;
-  const tooltipDatum = tooltip ? countries.find((c) => c.code === tooltip.code) : undefined;
+  const tooltipDatum = tooltip ? countries.find(c => c.code === tooltip.code) : undefined;
 
   // Overall aggregates for the legend (not a per-country breakdown).
   const institutionsTotal = countries.reduce((s, c) => add(s, c.institutionsAmount), 0);
   const realEstateTotal = add(
     countries.reduce((s, c) => add(s, c.realEstateAmount), 0),
-    unmappedPropertyAmount,
+    unmappedPropertyAmount
   );
   const grandTotal = add(institutionsTotal, realEstateTotal);
   const totalAccounts = countries.reduce((s, c) => s + c.accountCount, 0);
@@ -278,7 +278,7 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
         {hasData && (
           <button
             type="button"
-            onClick={() => setShowLegend((v) => !v)}
+            onClick={() => setShowLegend(v => !v)}
             aria-pressed={showLegend}
             title={t('financialMap.toggleLegend')}
             className="inline-flex items-center justify-center rounded-md p-1 text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
@@ -305,7 +305,7 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
           <ZoomableGroup center={[0, 8]} zoom={1} minZoom={1} maxZoom={8}>
             <Geographies geography={WORLD_TOPOLOGY}>
               {({ geographies }: { geographies: GeoItem[] }) =>
-                geographies.map((geo) => (
+                geographies.map(geo => (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
@@ -335,8 +335,8 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
             {/* Relation lines: user location → finance locations */}
             {userCentroid &&
               markers
-                .filter((m) => m.datum.code !== userCountry)
-                .map((m) => (
+                .filter(m => m.datum.code !== userCountry)
+                .map(m => (
                   <Line
                     key={`line-${m.datum.code}`}
                     from={userCentroid}
@@ -358,8 +358,8 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
                 <Marker key={`dot-${m.datum.code}`} coordinates={m.centroid}>
                   <g
                     style={{ cursor: 'pointer' }}
-                    onMouseEnter={(e) => showTip(m.datum.code, e)}
-                    onMouseMove={(e) => showTip(m.datum.code, e)}
+                    onMouseEnter={e => showTip(m.datum.code, e)}
+                    onMouseMove={e => showTip(m.datum.code, e)}
                     onMouseLeave={() => setTooltip(null)}
                   >
                     {/* Expanding, fading pulse ring */}
@@ -397,7 +397,7 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
               <Marker coordinates={userCentroid}>
                 <g
                   transform="translate(-7, -14)"
-                  onMouseEnter={(e) => userCountry && showTip(userCountry, e)}
+                  onMouseEnter={e => userCountry && showTip(userCountry, e)}
                   onMouseLeave={() => setTooltip(null)}
                 >
                   <path
@@ -467,7 +467,8 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
               )}
             </span>
             <span className="text-sm font-mono text-text-primary">
-              <ConvertedAmount className='z-50 relative'
+              <ConvertedAmount
+                className="z-50 relative"
                 amount={institutionsTotal}
                 currency={baseCurrency}
                 isConverted={false}
@@ -487,7 +488,8 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
               )}
             </span>
             <span className="text-sm font-mono text-text-primary">
-              <ConvertedAmount className='z-50 relative'
+              <ConvertedAmount
+                className="z-50 relative"
                 amount={realEstateTotal}
                 currency={baseCurrency}
                 isConverted={false}
@@ -499,11 +501,10 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
             </span>
           </div>
           <div className="flex items-center justify-between gap-2 border-t border-border pt-2">
-            <span className="text-sm font-medium text-text-primary">
-              {t('financialMap.total')}
-            </span>
+            <span className="text-sm font-medium text-text-primary">{t('financialMap.total')}</span>
             <span className="text-sm font-mono font-semibold text-text-primary">
-              <ConvertedAmount className='z-50 relative'
+              <ConvertedAmount
+                className="z-50 relative"
                 amount={grandTotal}
                 currency={baseCurrency}
                 isConverted={false}

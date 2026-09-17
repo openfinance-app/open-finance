@@ -84,12 +84,9 @@ export function useBudgetSummary(period?: BudgetPeriod) {
     queryKey: ['budgets', 'summary', period],
     queryFn: async () => {
       const params = period ? `?period=${period}` : '';
-      const response = await apiClient.get<BudgetSummaryResponse>(
-        `/budgets/summary${params}`,
-        {
-          headers: buildEncryptionHeaders(),
-        }
-      );
+      const response = await apiClient.get<BudgetSummaryResponse>(`/budgets/summary${params}`, {
+        headers: buildEncryptionHeaders(),
+      });
       return response.data;
     },
   });
@@ -169,12 +166,9 @@ export function useBudgetHistory(budgetId: number | null) {
     queryFn: async () => {
       if (!budgetId) throw new Error('Budget ID is required');
 
-      const response = await apiClient.get<BudgetHistoryResponse>(
-        `/budgets/${budgetId}/history`,
-        {
-          headers: buildEncryptionHeaders(),
-        }
-      );
+      const response = await apiClient.get<BudgetHistoryResponse>(`/budgets/${budgetId}/history`, {
+        headers: buildEncryptionHeaders(),
+      });
       return response.data;
     },
     enabled: !!budgetId,
@@ -190,13 +184,9 @@ export function useBudgetHistory(budgetId: number | null) {
 export function useAnalyzeBudgets() {
   return useMutation<BudgetSuggestion[], Error, BudgetSuggestionRequest>({
     mutationFn: async (request: BudgetSuggestionRequest) => {
-      const response = await apiClient.post<BudgetSuggestion[]>(
-        '/budgets/suggestions',
-        request,
-        {
-          headers: buildEncryptionHeaders(),
-        }
-      );
+      const response = await apiClient.post<BudgetSuggestion[]>('/budgets/suggestions', request, {
+        headers: buildEncryptionHeaders(),
+      });
       return response.data;
     },
   });
@@ -213,13 +203,9 @@ export function useBulkCreateBudgets() {
 
   return useMutation<BudgetBulkCreateResponse, Error, BudgetBulkCreateRequest>({
     mutationFn: async (request: BudgetBulkCreateRequest) => {
-      const response = await apiClient.post<BudgetBulkCreateResponse>(
-        '/budgets/bulk',
-        request,
-        {
-          headers: buildEncryptionHeaders(),
-        }
-      );
+      const response = await apiClient.post<BudgetBulkCreateResponse>('/budgets/bulk', request, {
+        headers: buildEncryptionHeaders(),
+      });
       return response.data;
     },
     onSuccess: () => {

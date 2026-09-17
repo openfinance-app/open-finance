@@ -1,6 +1,6 @@
 /**
  * ExpensesSection Component
- * 
+ *
  * Owner expenses parameters
  * Requirements: REQ-2.3.x
  */
@@ -35,7 +35,8 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('realEstate');
 
-  const getFieldError = (field: string) => errors.find(e => e.field === `expenses.${field}`)?.message;
+  const getFieldError = (field: string) =>
+    errors.find(e => e.field === `expenses.${field}`)?.message;
 
   const totalDeductibleExpenses =
     inputs.propertyTax +
@@ -49,10 +50,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
 
   return (
     <Card className="h-full">
-      <CardHeader
-        className="bg-info/10 cursor-pointer select-none pb-4"
-        onClick={onToggle}
-      >
+      <CardHeader className="bg-info/10 cursor-pointer select-none pb-4" onClick={onToggle}>
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
@@ -64,8 +62,9 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
         </CardTitle>
       </CardHeader>
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
-          }`}
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
       >
         <CardContent className="p-4 space-y-4">
           {/* Tax Section */}
@@ -80,7 +79,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <NumberInput
                 id="propertyTax"
                 value={String(inputs.propertyTax)}
-                onChange={(value) => onUpdate('propertyTax', parseFloat(value) || 0)}
+                onChange={value => onUpdate('propertyTax', parseFloat(value) || 0)}
                 min={0}
               />
             </div>
@@ -90,7 +89,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <NumberInput
                 id="cfe"
                 value={String(inputs.cfe)}
-                onChange={(value) => onUpdate('cfe', parseFloat(value) || 0)}
+                onChange={value => onUpdate('cfe', parseFloat(value) || 0)}
                 min={0}
               />
             </div>
@@ -100,7 +99,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <NumberInput
                 id="cvae"
                 value={String(inputs.cvae)}
-                onChange={(value) => onUpdate('cvae', parseFloat(value) || 0)}
+                onChange={value => onUpdate('cvae', parseFloat(value) || 0)}
                 min={0}
               />
             </div>
@@ -116,11 +115,13 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             </h4>
 
             <div className="space-y-2">
-              <Label htmlFor="nonRecoverableCharges">{t('expensesSection.nonRecoverableCharges')}</Label>
+              <Label htmlFor="nonRecoverableCharges">
+                {t('expensesSection.nonRecoverableCharges')}
+              </Label>
               <NumberInput
                 id="nonRecoverableCharges"
                 value={String(inputs.nonRecoverableCharges)}
-                onChange={(value) => onUpdate('nonRecoverableCharges', parseFloat(value) || 0)}
+                onChange={value => onUpdate('nonRecoverableCharges', parseFloat(value) || 0)}
                 min={0}
               />
             </div>
@@ -130,7 +131,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <NumberInput
                 id="annualMaintenance"
                 value={String(inputs.annualMaintenance)}
-                onChange={(value) => onUpdate('annualMaintenance', parseFloat(value) || 0)}
+                onChange={value => onUpdate('annualMaintenance', parseFloat(value) || 0)}
                 min={0}
               />
             </div>
@@ -150,7 +151,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <NumberInput
                 id="managementFees"
                 value={String(inputs.managementFees)}
-                onChange={(value) => onUpdate('managementFees', parseFloat(value) || 0)}
+                onChange={value => onUpdate('managementFees', parseFloat(value) || 0)}
                 min={0}
               />
             </div>
@@ -160,7 +161,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <NumberInput
                 id="pnoInsurance"
                 value={String(inputs.pnoInsurance)}
-                onChange={(value) => onUpdate('pnoInsurance', parseFloat(value) || 0)}
+                onChange={value => onUpdate('pnoInsurance', parseFloat(value) || 0)}
                 min={0}
               />
             </div>
@@ -170,7 +171,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <NumberInput
                 id="accountingFees"
                 value={String(inputs.accountingFees)}
-                onChange={(value) => onUpdate('accountingFees', parseFloat(value) || 0)}
+                onChange={value => onUpdate('accountingFees', parseFloat(value) || 0)}
                 min={0}
               />
             </div>
@@ -187,13 +188,15 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             <NumberInput
               id="marginalTaxRate"
               value={String(inputs.marginalTaxRate)}
-              onChange={(value) => onUpdate('marginalTaxRate', parseFloat(value) || 0)}
+              onChange={value => onUpdate('marginalTaxRate', parseFloat(value) || 0)}
               min={0}
               max={60}
             />
             {getFieldError('marginalTaxRate') && (
               <Alert variant="error" className="py-2">
-                <AlertDescription className="text-xs">{getFieldError('marginalTaxRate')}</AlertDescription>
+                <AlertDescription className="text-xs">
+                  {getFieldError('marginalTaxRate')}
+                </AlertDescription>
               </Alert>
             )}
           </div>
@@ -201,7 +204,9 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
           {/* Expenses Summary */}
           <div className="pt-2 border-t">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('expensesSection.totalDeductibleExpenses')}</span>
+              <span className="text-muted-foreground">
+                {t('expensesSection.totalDeductibleExpenses')}
+              </span>
               <span className="font-semibold text-error">
                 <ConvertedAmount amount={totalDeductibleExpenses} currency={baseCurrency} inline />
               </span>

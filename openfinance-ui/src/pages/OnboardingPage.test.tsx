@@ -10,7 +10,7 @@ vi.mock('@/hooks/useAuth', () => ({
 }));
 vi.mock('@/components/ui/CurrencySelector', () => ({
   CurrencySelector: (props: any) => (
-    <select data-testid="currency-selector" onChange={(e) => props.onValueChange?.(e.target.value)}>
+    <select data-testid="currency-selector" onChange={e => props.onValueChange?.(e.target.value)}>
       <option value="USD">USD</option>
     </select>
   ),

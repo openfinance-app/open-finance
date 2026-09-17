@@ -25,9 +25,7 @@ const renderWithProviders = (ui: React.ReactElement) => {
   return render(
     <QueryClientProvider client={queryClient}>
       <I18nextProvider i18n={i18n}>
-        <MemoryRouter>
-          {ui}
-        </MemoryRouter>
+        <MemoryRouter>{ui}</MemoryRouter>
       </I18nextProvider>
     </QueryClientProvider>
   );
@@ -62,14 +60,24 @@ describe('InsightsCard', () => {
   });
 
   it('renders loading state', () => {
-    mockUseTopInsightsReturn = { data: undefined, isLoading: true, error: null, refetch: mockRefetch };
+    mockUseTopInsightsReturn = {
+      data: undefined,
+      isLoading: true,
+      error: null,
+      refetch: mockRefetch,
+    };
     renderWithProviders(<InsightsCard />);
     // Should show skeleton/loading indicators, not insight content
     expect(screen.queryByText('High spending in Restaurants')).not.toBeInTheDocument();
   });
 
   it('renders error state with retry button', () => {
-    mockUseTopInsightsReturn = { data: undefined, isLoading: false, error: new Error('fail'), refetch: mockRefetch };
+    mockUseTopInsightsReturn = {
+      data: undefined,
+      isLoading: false,
+      error: new Error('fail'),
+      refetch: mockRefetch,
+    };
     renderWithProviders(<InsightsCard />);
     const retryBtn = screen.getByRole('button', { name: /retry/i });
     expect(retryBtn).toBeInTheDocument();
@@ -239,7 +247,12 @@ describe('InsightsCard', () => {
   });
 
   it('renders error message from Error instance', () => {
-    mockUseTopInsightsReturn = { data: undefined, isLoading: false, error: new Error('Custom error message'), refetch: mockRefetch };
+    mockUseTopInsightsReturn = {
+      data: undefined,
+      isLoading: false,
+      error: new Error('Custom error message'),
+      refetch: mockRefetch,
+    };
     renderWithProviders(<InsightsCard />);
     expect(screen.getByText('Custom error message')).toBeInTheDocument();
   });

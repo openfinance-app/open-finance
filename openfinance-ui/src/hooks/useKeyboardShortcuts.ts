@@ -55,8 +55,7 @@ export function useKeyboardShortcuts({ onFocusSearch }: UseKeyboardShortcutsOpti
   useEffect(() => {
     const isMac = navigator.platform.toUpperCase().includes('MAC');
 
-    const isModifierHeld = (e: KeyboardEvent): boolean =>
-      isMac ? e.metaKey : e.ctrlKey;
+    const isModifierHeld = (e: KeyboardEvent): boolean => (isMac ? e.metaKey : e.ctrlKey);
 
     const isInputFocused = (): boolean => {
       const el = document.activeElement;

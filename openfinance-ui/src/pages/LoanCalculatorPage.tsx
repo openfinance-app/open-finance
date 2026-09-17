@@ -12,7 +12,10 @@ export default function LoanCalculatorPage() {
     <div className="p-8">
       <PageHeader
         title={t('loanCalculator.title', 'Loan Calculator')}
-        description={t('loanCalculator.description', 'Calculate your monthly payments, total interest, and view the amortization schedule for your loan.')}
+        description={t(
+          'loanCalculator.description',
+          'Calculate your monthly payments, total interest, and view the amortization schedule for your loan.'
+        )}
       />
       <div className="mt-8">
         <LoanCalculator />

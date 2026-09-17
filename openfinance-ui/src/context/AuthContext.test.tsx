@@ -5,7 +5,16 @@ import { AuthProvider, useAuthContext } from './AuthContext';
 import { VisibilityProvider } from './VisibilityContext';
 
 function Consumer() {
-  const { user, isAuthenticated, isLoading, token, sessionStartTime, baseCurrency, setAuth, clearAuth } = useAuthContext();
+  const {
+    user,
+    isAuthenticated,
+    isLoading,
+    token,
+    sessionStartTime,
+    baseCurrency,
+    setAuth,
+    clearAuth,
+  } = useAuthContext();
   return (
     <div>
       <div>loading:{String(isLoading)}</div>
@@ -14,7 +23,17 @@ function Consumer() {
       <div>token:{token ?? 'null'}</div>
       <div>baseCurrency:{baseCurrency}</div>
       <div>sessionStartTime:{sessionStartTime ?? 'null'}</div>
-      <button onClick={() => setAuth({ id: 2, username: 'bob', email: '', createdAt: new Date().toISOString() } as any, 'tkn', true)}>set</button>
+      <button
+        onClick={() =>
+          setAuth(
+            { id: 2, username: 'bob', email: '', createdAt: new Date().toISOString() } as any,
+            'tkn',
+            true
+          )
+        }
+      >
+        set
+      </button>
       <button onClick={() => clearAuth()}>clear</button>
     </div>
   );

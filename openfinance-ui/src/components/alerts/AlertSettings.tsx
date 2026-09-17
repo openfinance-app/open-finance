@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAlertsByBudget, useCreateAlert, useUpdateAlert, useDeleteAlert } from '@/hooks/useAlerts';
+import {
+  useAlertsByBudget,
+  useCreateAlert,
+  useUpdateAlert,
+  useDeleteAlert,
+} from '@/hooks/useAlerts';
 import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
 import type { BudgetAlert, CreateAlertRequest, UpdateAlertRequest } from '@/types/alert';
 import { NumberInput } from '@/components/ui/NumberInput';
 
 /**
  * AlertSettings Component (Task 8.3.7)
- * 
+ *
  * Configure alert thresholds per budget.
  * Features:
  * - Embedded in budget detail view or modal
@@ -87,7 +92,7 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
 
   const suggestedThresholds = [25, 50, 75, 90, 100, 125];
   const usedThresholds = new Set(alerts.map((a: BudgetAlert) => a.threshold));
-  const availableThresholds = suggestedThresholds.filter((t) => !usedThresholds.has(t));
+  const availableThresholds = suggestedThresholds.filter(t => !usedThresholds.has(t));
 
   if (isLoading) {
     return (
@@ -128,8 +133,8 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
             <AlertSettingItem
               key={alert.id}
               alert={alert}
-              onToggleEnabled={(isEnabled) => handleToggleEnabled(alert.id, isEnabled)}
-              onUpdateThreshold={(threshold) => handleUpdateThreshold(alert.id, threshold)}
+              onToggleEnabled={isEnabled => handleToggleEnabled(alert.id, isEnabled)}
+              onUpdateThreshold={threshold => handleUpdateThreshold(alert.id, threshold)}
               onDelete={() => handleDeleteAlert(alert.id)}
               isUpdating={updateAlert.isPending}
               isDeleting={deleteAlert.isPending}
@@ -139,13 +144,18 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
       ) : (
         <div className="py-8 text-center text-text-secondary">
           <p className="text-sm">No alerts configured</p>
-          <p className="text-xs mt-1">Add an alert to get notified when spending exceeds a threshold</p>
+          <p className="text-xs mt-1">
+            Add an alert to get notified when spending exceeds a threshold
+          </p>
         </div>
       )}
 
       {/* Add Alert Form */}
       {isAddingAlert && (
-        <form onSubmit={handleCreateAlert} className="p-4 bg-surface rounded-lg border border-border">
+        <form
+          onSubmit={handleCreateAlert}
+          className="p-4 bg-surface rounded-lg border border-border"
+        >
           <label className="block text-sm font-medium text-text-secondary mb-2">
             Alert Threshold
           </label>
@@ -158,7 +168,7 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
               max="150"
               step="5"
               value={newThreshold}
-              onChange={(e) => setNewThreshold(Number(e.target.value))}
+              onChange={e => setNewThreshold(Number(e.target.value))}
               className="w-full h-2 bg-surface-elevated rounded-lg appearance-none cursor-pointer accent-primary"
             />
             <div className="flex items-center justify-between">
@@ -173,7 +183,7 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
             <div className="mt-3">
               <p className="text-xs text-text-secondary mb-2">Quick select:</p>
               <div className="flex flex-wrap gap-2">
-                {availableThresholds.map((threshold) => (
+                {availableThresholds.map(threshold => (
                   <button
                     key={threshold}
                     type="button"
@@ -191,7 +201,8 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
           <div className="mt-4 p-3 bg-background rounded border border-border">
             <p className="text-xs text-text-secondary mb-1">Alert will trigger when:</p>
             <p className="text-sm text-text-primary">
-              Spending reaches <span className="font-bold text-primary">{newThreshold}%</span> of budget
+              Spending reaches <span className="font-bold text-primary">{newThreshold}%</span> of
+              budget
             </p>
           </div>
 
@@ -261,13 +272,15 @@ function AlertSettingItem({
       <button
         onClick={() => onToggleEnabled(!alert.isEnabled)}
         disabled={isUpdating || isDeleting}
-        className={`w-10 h-6 rounded-full transition-colors relative flex-shrink-0 ${alert.isEnabled ? 'bg-primary' : 'bg-surface-elevated'
-          } disabled:opacity-50`}
+        className={`w-10 h-6 rounded-full transition-colors relative flex-shrink-0 ${
+          alert.isEnabled ? 'bg-primary' : 'bg-surface-elevated'
+        } disabled:opacity-50`}
         aria-label={alert.isEnabled ? 'Disable alert' : 'Enable alert'}
       >
         <div
-          className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${alert.isEnabled ? 'translate-x-5' : 'translate-x-1'
-            }`}
+          className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+            alert.isEnabled ? 'translate-x-5' : 'translate-x-1'
+          }`}
         />
       </button>
 
@@ -278,7 +291,7 @@ function AlertSettingItem({
             min="1"
             max="150"
             value={String(editThreshold)}
-            onChange={(val) => setEditThreshold(Number(val))}
+            onChange={val => setEditThreshold(Number(val))}
             className="w-20 px-2 py-1 bg-background border border-border rounded text-text-primary text-sm"
           />
           <span className="text-sm text-text-secondary">%</span>
@@ -301,9 +314,7 @@ function AlertSettingItem({
         <div className="flex-1 flex items-center gap-2">
           <span className="text-sm font-semibold text-text-primary">{alert.threshold}%</span>
           <span className="text-xs text-text-secondary">threshold</span>
-          {alert.lastTriggered && (
-            <span className="text-xs text-yellow-500">• Triggered</span>
-          )}
+          {alert.lastTriggered && <span className="text-xs text-yellow-500">• Triggered</span>}
         </div>
       )}
 

@@ -1,7 +1,7 @@
 /**
  * FileUpload Component
  * Task 7.1.7: Create FileUpload component with drag-and-drop
- * 
+ *
  * Provides a drag-and-drop file upload interface for importing transactions
  */
 import React, { useState, useRef, useCallback } from 'react';
@@ -29,7 +29,9 @@ export function FileUpload({
   const { t } = useTranslation('import');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>(
+    'idle'
+  );
   const [errorMessage, setErrorMessage] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,7 +56,10 @@ export function FileUpload({
 
       // Validate file size — reject empty files
       if (file.size === 0) {
-        const error = t('upload.fileEmpty', 'Le fichier sélectionné est vide (0 B). Veuillez sélectionner un fichier valide.');
+        const error = t(
+          'upload.fileEmpty',
+          'Le fichier sélectionné est vide (0 B). Veuillez sélectionner un fichier valide.'
+        );
         setErrorMessage(error);
         setUploadStatus('error');
         onUploadError?.(error);
@@ -141,11 +146,11 @@ export function FileUpload({
     setErrorMessage('');
 
     uploadFile.mutate(selectedFile, {
-      onSuccess: (response) => {
+      onSuccess: response => {
         setUploadStatus('success');
         onUploadSuccess?.(response);
       },
-      onError: (error) => {
+      onError: error => {
         const axiosError = error as unknown as { response?: { data?: { message?: string } } };
         const errorMsg = axiosError?.response?.data?.message || error.message || t('upload.failed');
         setErrorMessage(errorMsg);
@@ -172,9 +177,10 @@ export function FileUpload({
         onDrop={handleDrop}
         className={`
           relative border-2 border-dashed rounded-lg p-8 text-center transition-all
-          ${isDragging
-            ? 'border-primary bg-primary/5'
-            : 'border-border-subtle hover:border-primary/50'
+          ${
+            isDragging
+              ? 'border-primary bg-primary/5'
+              : 'border-border-subtle hover:border-primary/50'
           }
           ${uploadStatus === 'success' ? 'border-green-500 bg-green-500/5' : ''}
           ${uploadStatus === 'error' ? 'border-red-500 bg-red-500/5' : ''}
@@ -196,12 +202,8 @@ export function FileUpload({
               </div>
             </div>
             <div>
-              <p className="text-lg font-medium text-text-primary mb-1">
-                {t('upload.dropHere')}
-              </p>
-              <p className="text-sm text-text-secondary mb-4">
-                {t('upload.orBrowse')}
-              </p>
+              <p className="text-lg font-medium text-text-primary mb-1">{t('upload.dropHere')}</p>
+              <p className="text-sm text-text-secondary mb-4">{t('upload.orBrowse')}</p>
               <button
                 onClick={handleBrowseClick}
                 className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover transition-colors"
@@ -269,12 +271,8 @@ export function FileUpload({
               </div>
             </div>
             <div>
-              <p className="text-lg font-medium text-green-500 mb-1">
-                {t('upload.success')}
-              </p>
-              <p className="text-sm text-text-tertiary">
-                {t('upload.successDesc')}
-              </p>
+              <p className="text-lg font-medium text-green-500 mb-1">{t('upload.success')}</p>
+              <p className="text-sm text-text-tertiary">{t('upload.successDesc')}</p>
             </div>
             <button
               onClick={handleClearFile}
@@ -293,9 +291,7 @@ export function FileUpload({
               </div>
             </div>
             <div>
-              <p className="text-lg font-medium text-red-500 mb-1">
-                {t('upload.failed')}
-              </p>
+              <p className="text-lg font-medium text-red-500 mb-1">{t('upload.failed')}</p>
               <p className="text-sm text-text-secondary">{errorMessage}</p>
             </div>
             <button

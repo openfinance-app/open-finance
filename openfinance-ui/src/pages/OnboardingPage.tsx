@@ -24,7 +24,6 @@ import type { OnboardingRequest } from '@/types/user';
 // Locale-based defaults
 // ---------------------------------------------------------------------------
 
-
 function detectDefaults(): {
   country: string;
   baseCurrency: string;
@@ -51,16 +50,16 @@ function detectDefaults(): {
     langCode === 'fr' || (countryCode && !['US', 'CA'].includes(countryCode) && langCode !== 'en')
       ? 'DD/MM/YYYY'
       : countryCode === 'US'
-      ? 'MM/DD/YYYY'
-      : 'DD/MM/YYYY';
+        ? 'MM/DD/YYYY'
+        : 'DD/MM/YYYY';
 
   // Number format
   const numberFormat: OnboardingRequest['numberFormat'] =
     langCode === 'fr'
       ? '1 234,56'
       : countryCode === 'US' || countryCode === 'CA' || countryCode === 'GB'
-      ? '1,234.56'
-      : '1.234,56';
+        ? '1,234.56'
+        : '1.234,56';
 
   return { country: countryCode, baseCurrency, language, dateFormat, numberFormat };
 }
@@ -69,7 +68,15 @@ function detectDefaults(): {
 // Section wrapper
 // ---------------------------------------------------------------------------
 
-function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+function Section({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-1">
@@ -134,9 +141,7 @@ function RadioGroup<T extends string>({
           />
           <div>
             <span className="text-sm font-medium text-text-primary">{opt.label}</span>
-            {opt.description && (
-              <p className="text-xs text-text-muted mt-0.5">{opt.description}</p>
-            )}
+            {opt.description && <p className="text-xs text-text-muted mt-0.5">{opt.description}</p>}
           </div>
         </label>
       ))}
@@ -170,9 +175,14 @@ export default function OnboardingPage() {
   const [baseCurrency, setBaseCurrency] = useState(defaults.baseCurrency);
   const [secondaryCurrency, setSecondaryCurrency] = useState<string | undefined>(undefined);
   const [language, setLanguage] = useState<string>(defaults.language);
-  const [dateFormat, setDateFormat] = useState<OnboardingRequest['dateFormat']>(defaults.dateFormat);
-  const [numberFormat, setNumberFormat] = useState<OnboardingRequest['numberFormat']>(defaults.numberFormat);
-  const [amountDisplayMode, setAmountDisplayMode] = useState<OnboardingRequest['amountDisplayMode']>('base');
+  const [dateFormat, setDateFormat] = useState<OnboardingRequest['dateFormat']>(
+    defaults.dateFormat
+  );
+  const [numberFormat, setNumberFormat] = useState<OnboardingRequest['numberFormat']>(
+    defaults.numberFormat
+  );
+  const [amountDisplayMode, setAmountDisplayMode] =
+    useState<OnboardingRequest['amountDisplayMode']>('base');
 
   // Sync i18n when language changes
   useEffect(() => {
@@ -258,7 +268,6 @@ export default function OnboardingPage() {
         {/* Form card */}
         <div className="bg-surface rounded-xl border border-border p-5 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
-
             {/* Error banner */}
             {completeOnboarding.isError && (
               <div
@@ -286,7 +295,7 @@ export default function OnboardingPage() {
 
               <Section title={t('language.label')}>
                 <div className="flex rounded-lg border border-border overflow-hidden h-10">
-                  {(['en', 'fr'] as const).map((lang) => (
+                  {(['en', 'fr'] as const).map(lang => (
                     <button
                       key={lang}
                       type="button"
@@ -331,7 +340,7 @@ export default function OnboardingPage() {
             {/* Date Format — compact 3-button toggle strip */}
             <Section title={t('dateFormat.label')}>
               <div className="flex rounded-lg border border-border overflow-hidden h-9">
-                {dateFormatOptions.map((opt) => (
+                {dateFormatOptions.map(opt => (
                   <button
                     key={opt.value}
                     type="button"

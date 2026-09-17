@@ -31,7 +31,7 @@ function AppLayoutInner({ children }: AppLayoutProps) {
   useEffect(() => {
     if (settings && !hasSyncedRef.current) {
       const pendingSync = sessionStorage.getItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC);
-      
+
       if (pendingSync && pendingSync !== settings.language) {
         // User changed language on the login page before authenticating
         // We should push this new preference to the backend instead of reverting
@@ -41,7 +41,7 @@ function AppLayoutInner({ children }: AppLayoutProps) {
         // Normal flow: use the backend setting
         void setLocale(settings.language);
       }
-      
+
       hasSyncedRef.current = true;
     }
   }, [settings, locale, setLocale]);
@@ -98,4 +98,3 @@ export function AppLayout({ children }: AppLayoutProps) {
     </SidebarProvider>
   );
 }
-

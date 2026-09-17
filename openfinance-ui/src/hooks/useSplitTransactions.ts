@@ -27,7 +27,7 @@ export function useSplitTransactions(transactionId: number | null) {
         `/transactions/${transactionId}/splits`,
         {
           headers: buildEncryptionHeaders(),
-        },
+        }
       );
 
       return response.data;

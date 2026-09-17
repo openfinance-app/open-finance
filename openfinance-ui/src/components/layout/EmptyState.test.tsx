@@ -17,9 +17,7 @@ describe('EmptyState', () => {
   });
 
   it('renders description when provided', () => {
-    renderWithProviders(
-      <EmptyState title="Empty" description="Try adjusting your filters" />
-    );
+    renderWithProviders(<EmptyState title="Empty" description="Try adjusting your filters" />);
     expect(screen.getByText('Try adjusting your filters')).toBeInTheDocument();
   });
 
@@ -40,10 +38,7 @@ describe('EmptyState', () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <EmptyState
-        title="Empty"
-        action={{ label: 'Add Item', onClick: handleClick }}
-      />
+      <EmptyState title="Empty" action={{ label: 'Add Item', onClick: handleClick }} />
     );
 
     const button = screen.getByRole('button', { name: 'Add Item' });

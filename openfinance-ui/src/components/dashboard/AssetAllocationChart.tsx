@@ -1,7 +1,7 @@
 /**
  * AssetAllocationChart Component
  * Task 4.3.6: Create AssetAllocationChart component with treemap visualization
- * 
+ *
  * Treemap showing asset allocation by type/category
  * Reference: image.png - Finary dashboard treemap
  */
@@ -24,19 +24,19 @@ interface AssetAllocationChartProps {
  * Based on design system chart colors (design.md Section 1.3.2)
  */
 const ASSET_TYPE_COLORS: Record<string, string> = {
-  STOCK: '#7b68ee',        // Purple
-  ETF: '#9c27b0',          // Deep Purple
-  CRYPTO: '#f5a623',       // Gold
-  BOND: '#4a90e2',         // Blue
-  MUTUAL_FUND: '#00c9a7',  // Teal
-  REAL_ESTATE: '#ff6b7a',  // Coral
-  COMMODITY: '#e91e63',    // Pink
-  VEHICLE: '#ff9800',      // Orange
-  JEWELRY: '#ffd700',      // Gold
-  COLLECTIBLE: '#9575cd',  // Light Purple
-  ELECTRONICS: '#64b5f6',  // Light Blue
-  FURNITURE: '#81c784',    // Light Green
-  OTHER: '#b0bec5',        // Gray
+  STOCK: '#7b68ee', // Purple
+  ETF: '#9c27b0', // Deep Purple
+  CRYPTO: '#f5a623', // Gold
+  BOND: '#4a90e2', // Blue
+  MUTUAL_FUND: '#00c9a7', // Teal
+  REAL_ESTATE: '#ff6b7a', // Coral
+  COMMODITY: '#e91e63', // Pink
+  VEHICLE: '#ff9800', // Orange
+  JEWELRY: '#ffd700', // Gold
+  COLLECTIBLE: '#9575cd', // Light Purple
+  ELECTRONICS: '#64b5f6', // Light Blue
+  FURNITURE: '#81c784', // Light Green
+  OTHER: '#b0bec5', // Gray
 };
 
 /**
@@ -47,15 +47,11 @@ const CustomTooltip = ({ active, payload }: any) => {
     const data = payload[0].payload;
     return (
       <div className="bg-surface rounded-lg shadow-lg p-4 border border-border">
-        <p className="text-sm font-semibold text-text-primary mb-2">
-          {data.typeName}
-        </p>
+        <p className="text-sm font-semibold text-text-primary mb-2">{data.typeName}</p>
         <p className="text-lg font-bold text-text-primary mb-1">
           <ConvertedAmount amount={data.totalValue} currency={data.currency} inline />
         </p>
-        <p className="text-sm text-text-secondary mb-1">
-          {data.percentage}% of portfolio
-        </p>
+        <p className="text-sm text-text-secondary mb-1">{data.percentage}% of portfolio</p>
         <p className="text-xs text-text-muted">
           {data.assetCount} {data.assetCount === 1 ? 'asset' : 'assets'}
         </p>
@@ -69,7 +65,20 @@ const CustomTooltip = ({ active, payload }: any) => {
  * Custom content renderer for treemap cells
  */
 const CustomContent = (props: any) => {
-  const { x, y, width, height, typeName, percentage, totalValue, currency, type, isVisible, formatFn, onNavigate } = props;
+  const {
+    x,
+    y,
+    width,
+    height,
+    typeName,
+    percentage,
+    totalValue,
+    currency,
+    type,
+    isVisible,
+    formatFn,
+    onNavigate,
+  } = props;
 
   // Only show text if cell is large enough
   const showText = width > 80 && height > 50;
@@ -132,7 +141,10 @@ const CustomContent = (props: any) => {
   );
 };
 
-export default function AssetAllocationChart({ allocations, currency: _currency }: AssetAllocationChartProps) {
+export default function AssetAllocationChart({
+  allocations,
+  currency: _currency,
+}: AssetAllocationChartProps) {
   const { isAmountsVisible } = useVisibility();
   const { format } = useFormatCurrency();
   const { t } = useTranslation('dashboard');
@@ -140,7 +152,9 @@ export default function AssetAllocationChart({ allocations, currency: _currency 
   const navigateToType = (type: string) => navigate(`/assets?type=${encodeURIComponent(type)}`);
   // Prepare data for treemap (recharts expects 'name' and 'size' fields)
   const treemapData = allocations.map(allocation => {
-    const translatedType = t(`assetTypes.${allocation.type}`, { defaultValue: allocation.typeName });
+    const translatedType = t(`assetTypes.${allocation.type}`, {
+      defaultValue: allocation.typeName,
+    });
     return {
       name: translatedType,
       size: allocation.totalValue,
@@ -156,9 +170,13 @@ export default function AssetAllocationChart({ allocations, currency: _currency 
   if (treemapData.length === 0) {
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">{t('assetAllocation.title')}</h3>
+        <h3 className="text-lg font-semibold text-text-primary mb-4">
+          {t('assetAllocation.title')}
+        </h3>
         <div className="flex items-center justify-center flex-1 min-h-0 text-text-secondary">
-          <p>{t('assetAllocation.empty')} {t('assetAllocation.emptySub')}</p>
+          <p>
+            {t('assetAllocation.empty')} {t('assetAllocation.emptySub')}
+          </p>
         </div>
       </div>
     );
@@ -208,10 +226,14 @@ export default function AssetAllocationChart({ allocations, currency: _currency 
           >
             <div
               className="w-4 h-4 rounded"
-              style={{ backgroundColor: ASSET_TYPE_COLORS[allocation.type] || ASSET_TYPE_COLORS.OTHER }}
+              style={{
+                backgroundColor: ASSET_TYPE_COLORS[allocation.type] || ASSET_TYPE_COLORS.OTHER,
+              }}
             />
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-text-secondary truncate">{t(`assetTypes.${allocation.type}`, { defaultValue: allocation.typeName })}</p>
+              <p className="text-xs text-text-secondary truncate">
+                {t(`assetTypes.${allocation.type}`, { defaultValue: allocation.typeName })}
+              </p>
               <p className="text-sm font-semibold text-text-primary">
                 {allocation.percentage.toFixed(1)}%
               </p>

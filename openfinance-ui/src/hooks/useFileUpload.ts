@@ -1,7 +1,7 @@
 /**
  * File upload hooks
  * Task 7.1.8: Create useFileUpload hook
- * 
+ *
  * Provides React Query hooks for file upload operations
  */
 import { useState } from 'react';
@@ -12,10 +12,10 @@ import type { FileUploadResponse, FileUploadError } from '@/types/import';
 
 /**
  * Upload a file for transaction import
- * 
+ *
  * @example
  * const uploadFile = useFileUpload();
- * 
+ *
  * const handleUpload = (file: File) => {
  *   uploadFile.mutate(file, {
  *     onSuccess: (data) => {
@@ -35,15 +35,11 @@ export function useFileUpload() {
       formData.append('file', file);
 
       // Upload with authorization header (no encryption key needed for file upload)
-      const response = await apiClient.post<FileUploadResponse>(
-        '/import/upload',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
+      const response = await apiClient.post<FileUploadResponse>('/import/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
       // Check if upload was successful
       if (response.data.status === 'INVALID' || response.data.status === 'ERROR') {
@@ -84,20 +80,16 @@ export function useFileUploadWithProgress() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await apiClient.post<FileUploadResponse>(
-        '/import/upload',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: (event: AxiosProgressEvent) => {
-            if (event.total) {
-              setUploadProgress(Math.round((event.loaded * 100) / event.total));
-            }
-          },
-        }
-      );
+      const response = await apiClient.post<FileUploadResponse>('/import/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (event: AxiosProgressEvent) => {
+          if (event.total) {
+            setUploadProgress(Math.round((event.loaded * 100) / event.total));
+          }
+        },
+      });
 
       if (response.data.status === 'INVALID' || response.data.status === 'ERROR') {
         throw {

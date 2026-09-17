@@ -1,14 +1,14 @@
 /**
  * Chat Input Component
  * Task 11.3.3: Create ChatInput component
- * 
+ *
  * Multi-line text input for chatting with AI assistant:
  * - Auto-resizing textarea
  * - Send button
  * - Keyboard shortcuts (Enter to send, Shift+Enter for new line)
  * - Character limit indicator
  * - Loading state
- * 
+ *
  * @since Sprint 11 - AI Assistant Integration
  */
 import React, { useRef, useEffect } from 'react';
@@ -17,22 +17,22 @@ import { Send, Loader2 } from 'lucide-react';
 interface ChatInputProps {
   /** Current input value */
   value: string;
-  
+
   /** Input change handler */
   onChange: (value: string) => void;
-  
+
   /** Submit handler */
   onSubmit: () => void;
-  
+
   /** Whether a message is currently being sent */
   isLoading?: boolean;
-  
+
   /** Whether input is disabled */
   disabled?: boolean;
-  
+
   /** Placeholder text */
   placeholder?: string;
-  
+
   /** Maximum character length */
   maxLength?: number;
 }
@@ -58,7 +58,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (textarea) {
       // Reset height to recalculate
       textarea.style.height = 'auto';
-      
+
       // Set to scroll height (capped at 200px max)
       const newHeight = Math.min(textarea.scrollHeight, 200);
       textarea.style.height = `${newHeight}px`;
@@ -95,16 +95,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* Input container */}
       <div
         className={`relative flex items-end gap-2 rounded-2xl border-2 transition-all ${
-          isFocused
-            ? 'border-primary bg-background'
-            : 'border-border bg-surface'
+          isFocused ? 'border-primary bg-background' : 'border-border bg-surface'
         } ${disabled || isLoading ? 'opacity-60' : ''}`}
       >
         {/* Textarea */}
         <textarea
           ref={textareaRef}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={e => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -123,30 +121,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           className="flex-shrink-0 mr-2 mb-2 p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-surface-elevated disabled:cursor-not-allowed transition-colors"
           title={isOverLimit ? 'Message too long' : 'Send message (Enter)'}
         >
-          {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <Send className="w-5 h-5" />
-          )}
+          {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
         </button>
       </div>
 
       {/* Footer with character count and help text */}
       <div className="flex items-center justify-between text-xs text-text-secondary px-1">
         <span>
-          Press <kbd className="px-1.5 py-0.5 bg-surface-elevated rounded">Enter</kbd> to
-          send,{' '}
-          <kbd className="px-1.5 py-0.5 bg-surface-elevated rounded">Shift+Enter</kbd> for
-          new line
+          Press <kbd className="px-1.5 py-0.5 bg-surface-elevated rounded">Enter</kbd> to send,{' '}
+          <kbd className="px-1.5 py-0.5 bg-surface-elevated rounded">Shift+Enter</kbd> for new line
         </span>
 
         {/* Character count */}
         {isNearLimit && (
-          <span
-            className={`font-medium ${
-              isOverLimit ? 'text-red-600' : 'text-amber-600'
-            }`}
-          >
+          <span className={`font-medium ${isOverLimit ? 'text-red-600' : 'text-amber-600'}`}>
             {value.length}/{maxLength}
           </span>
         )}

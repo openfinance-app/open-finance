@@ -7,10 +7,10 @@ export const registerServiceWorker = (): void => {
     window.addEventListener('load', () => {
       navigator.serviceWorker
         .register('/sw.js')
-        .then((registration) => {
+        .then(registration => {
           console.info('Service Worker registered:', registration.scope);
         })
-        .catch((error) => {
+        .catch(error => {
           console.error('Service Worker registration failed:', error);
         });
     });
@@ -20,7 +20,7 @@ export const registerServiceWorker = (): void => {
 export const unregisterServiceWorker = (): void => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.ready
-      .then((registration) => registration.unregister())
-      .catch((error) => console.error(error));
+      .then(registration => registration.unregister())
+      .catch(error => console.error(error));
   }
 };

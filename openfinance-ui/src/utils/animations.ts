@@ -179,8 +179,7 @@ export const animationClasses = {
   /**
    * Button hover animation
    */
-  buttonHover:
-    'transition-all duration-150 ease-in-out hover:brightness-110 active:scale-95',
+  buttonHover: 'transition-all duration-150 ease-in-out hover:brightness-110 active:scale-95',
 
   /**
    * Card hover animation
@@ -211,8 +210,7 @@ export const microInteractions = {
   /**
    * Input focus effect
    */
-  inputFocus:
-    'focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200',
+  inputFocus: 'focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200',
 
   /**
    * Checkbox/Radio check effect

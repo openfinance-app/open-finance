@@ -10,7 +10,9 @@ vi.mock('@/context/NumberFormatContext', () => ({
 }));
 
 vi.mock('@/components/ui/PrivateAmount', () => ({
-  PrivateAmount: ({ children }: { children: React.ReactNode }) => <span data-testid="private-amount">{children}</span>,
+  PrivateAmount: ({ children }: { children: React.ReactNode }) => (
+    <span data-testid="private-amount">{children}</span>
+  ),
 }));
 
 import { ConvertedAmount } from './ConvertedAmount';
@@ -19,7 +21,6 @@ import { useNumberFormat } from '@/context/NumberFormatContext';
 
 const mockCurrencyDisplay = useCurrencyDisplay as ReturnType<typeof vi.fn>;
 const mockNumberFormat = useNumberFormat as ReturnType<typeof vi.fn>;
-
 
 vi.mock('@/components/ui/Tooltip', () => ({
   TooltipProvider: ({ children }: any) => <>{children}</>,
@@ -31,7 +32,7 @@ vi.mock('@/components/ui/Tooltip', () => ({
     <div role="tooltip" id={id} className={className}>
       {children}
     </div>
-  )
+  ),
 }));
 
 describe('ConvertedAmount', () => {
@@ -247,9 +248,7 @@ describe('ConvertedAmount', () => {
       displayMode: 'both',
       secondaryCurrency: null,
     });
-    render(
-      <ConvertedAmount amount={100} currency="USD" isConverted={false} />
-    );
+    render(<ConvertedAmount amount={100} currency="USD" isConverted={false} />);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 

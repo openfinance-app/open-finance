@@ -153,10 +153,7 @@ export function percentage(part: Numeric, whole: Numeric, decimals = 2): number 
  * decimals) is tracked separately as Critical Theme 3 and is out of scope here.
  */
 export function toMinorUnits(value: Numeric, decimals = 2): number {
-  return toDecimal(value)
-    .times(new Decimal(10).pow(decimals))
-    .toDecimalPlaces(0)
-    .toNumber();
+  return toDecimal(value).times(new Decimal(10).pow(decimals)).toDecimalPlaces(0).toNumber();
 }
 
 /** Converts an integer number of minor units back to a decimal value. */

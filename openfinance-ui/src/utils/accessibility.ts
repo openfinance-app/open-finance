@@ -49,14 +49,13 @@ export class FocusTrap {
 
     this.focusableElements = Array.from(
       this.container.querySelectorAll<HTMLElement>(focusableSelectors)
-    ).filter((el) => {
+    ).filter(el => {
       // Filter out hidden elements
       return el.offsetParent !== null && !el.hasAttribute('aria-hidden');
     });
 
     this.firstFocusable = this.focusableElements[0] || null;
-    this.lastFocusable =
-      this.focusableElements[this.focusableElements.length - 1] || null;
+    this.lastFocusable = this.focusableElements[this.focusableElements.length - 1] || null;
   }
 
   /**
@@ -160,10 +159,7 @@ export function isElementVisible(element: HTMLElement): boolean {
   if (!element.offsetParent) return false;
 
   const rect = element.getBoundingClientRect();
-  const viewHeight = Math.max(
-    document.documentElement.clientHeight,
-    window.innerHeight
-  );
+  const viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight);
 
   return !(rect.bottom < 0 || rect.top - viewHeight >= 0);
 }
@@ -186,13 +182,12 @@ export function getNextFocusableElement(
 
   const focusableElements = Array.from(
     document.querySelectorAll<HTMLElement>(focusableSelectors)
-  ).filter((el) => el.offsetParent !== null);
+  ).filter(el => el.offsetParent !== null);
 
   const currentIndex = focusableElements.indexOf(current);
   if (currentIndex === -1) return null;
 
-  const nextIndex =
-    direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+  const nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
 
   if (nextIndex < 0 || nextIndex >= focusableElements.length) return null;
 
@@ -236,10 +231,7 @@ export function isKey(event: KeyboardEvent, ...keys: string[]): boolean {
 /**
  * Handle keyboard activation (Enter or Space)
  */
-export function handleActivation(
-  event: KeyboardEvent,
-  callback: () => void
-): void {
+export function handleActivation(event: KeyboardEvent, callback: () => void): void {
   if (isKey(event, Keys.ENTER, Keys.SPACE)) {
     event.preventDefault();
     callback();
@@ -325,9 +317,7 @@ export const ariaProps = {
   /**
    * Alert/notification
    */
-  alert: (
-    type: 'info' | 'success' | 'warning' | 'error' = 'info'
-  ): Record<string, string> => ({
+  alert: (type: 'info' | 'success' | 'warning' | 'error' = 'info'): Record<string, string> => ({
     role: 'alert',
     'aria-live': type === 'error' ? 'assertive' : 'polite',
   }),
@@ -335,10 +325,7 @@ export const ariaProps = {
   /**
    * Dialog/modal
    */
-  dialog: (
-    labelId: string,
-    descriptionId?: string
-  ): Record<string, string | boolean> => ({
+  dialog: (labelId: string, descriptionId?: string): Record<string, string | boolean> => ({
     role: 'dialog',
     'aria-modal': 'true',
     'aria-labelledby': labelId,
@@ -356,10 +343,7 @@ export const ariaProps = {
   /**
    * Button with expanded state (e.g., accordion, dropdown)
    */
-  expandButton: (
-    expanded: boolean,
-    controlsId?: string
-  ): Record<string, string> => ({
+  expandButton: (expanded: boolean, controlsId?: string): Record<string, string> => ({
     'aria-expanded': String(expanded),
     ...(controlsId && { 'aria-controls': controlsId }),
   }),

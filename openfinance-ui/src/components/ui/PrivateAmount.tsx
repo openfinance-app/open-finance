@@ -1,6 +1,6 @@
 /**
  * PrivateAmount - Component that wraps financial amounts with privacy blur
- * 
+ *
  * Automatically blurs content when amounts visibility is toggled off,
  * with smooth animation transitions.
  */

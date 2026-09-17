@@ -2,7 +2,11 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { useNotifications, useNotificationCount, useUpdateExchangeRatesFromNotification } from './useNotifications';
+import {
+  useNotifications,
+  useNotificationCount,
+  useUpdateExchangeRatesFromNotification,
+} from './useNotifications';
 import apiClient from '@/services/apiClient';
 
 vi.mock('@/services/apiClient');
@@ -21,9 +25,7 @@ describe('useNotifications', () => {
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
   const mockNotifications = [
@@ -115,7 +117,9 @@ describe('useNotifications', () => {
       });
 
       expect(result.current.data).toEqual(mockResponse);
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/notifications/actions/update-exchange-rates');
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/notifications/actions/update-exchange-rates'
+      );
     });
 
     it('should invalidate queries on success', async () => {

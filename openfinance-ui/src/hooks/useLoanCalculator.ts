@@ -1,104 +1,106 @@
 import { useState, useCallback } from 'react';
 import {
-    DEFAULT_LOAN_CALCULATOR_INPUT,
-    type LoanCalculatorInput,
-    type LoanCalculatorResult,
-    type LoanAmortizationEntry,
+  DEFAULT_LOAN_CALCULATOR_INPUT,
+  type LoanCalculatorInput,
+  type LoanCalculatorResult,
+  type LoanAmortizationEntry,
 } from '../types/calculator';
 import { add, divide, multiply, pow, subtract } from '@/utils/money';
 
 interface LoanCalculatorState {
-    input: LoanCalculatorInput;
-    result: LoanCalculatorResult | null;
+  input: LoanCalculatorInput;
+  result: LoanCalculatorResult | null;
 }
 
 export function useLoanCalculator() {
-    const [state, setState] = useState<LoanCalculatorState>({
-        input: DEFAULT_LOAN_CALCULATOR_INPUT,
-        result: null,
+  const [state, setState] = useState<LoanCalculatorState>({
+    input: DEFAULT_LOAN_CALCULATOR_INPUT,
+    result: null,
+  });
+
+  const updateInput = useCallback(
+    <K extends keyof LoanCalculatorInput>(key: K, value: LoanCalculatorInput[K]) => {
+      setState(prev => ({
+        ...prev,
+        input: { ...prev.input, [key]: value },
+      }));
+    },
+    []
+  );
+
+  const resetInputs = useCallback(() => {
+    setState({
+      input: DEFAULT_LOAN_CALCULATOR_INPUT,
+      result: null,
     });
+  }, []);
 
-    const updateInput = useCallback(<K extends keyof LoanCalculatorInput>(
-        key: K,
-        value: LoanCalculatorInput[K]
-    ) => {
-        setState((prev) => ({
-            ...prev,
-            input: { ...prev.input, [key]: value },
-        }));
-    }, []);
+  const calculate = useCallback(() => {
+    const { principal, annualRate, years } = state.input;
 
-    const resetInputs = useCallback(() => {
-        setState({
-            input: DEFAULT_LOAN_CALCULATOR_INPUT,
-            result: null,
-        });
-    }, []);
+    const monthlyRate = divide(divide(annualRate, 100), 12);
+    const totalPayments = years * 12;
 
-    const calculate = useCallback(() => {
-        const { principal, annualRate, years } = state.input;
+    let monthlyPayment = 0;
 
-        const monthlyRate = divide(divide(annualRate, 100), 12);
-        const totalPayments = years * 12;
+    if (monthlyRate === 0) {
+      monthlyPayment = divide(principal, totalPayments);
+    } else {
+      const factor = pow(add(1, monthlyRate), totalPayments);
+      monthlyPayment = divide(
+        multiply(multiply(principal, monthlyRate), factor),
+        subtract(factor, 1)
+      );
+    }
 
-        let monthlyPayment = 0;
+    const schedule: LoanAmortizationEntry[] = [];
+    let remainingBalance = principal;
+    let cumulativeInterest = 0;
+    let totalInterest = 0;
 
-        if (monthlyRate === 0) {
-            monthlyPayment = divide(principal, totalPayments);
-        } else {
-            const factor = pow(add(1, monthlyRate), totalPayments);
-            monthlyPayment = divide(multiply(multiply(principal, monthlyRate), factor), subtract(factor, 1));
-        }
+    for (let i = 1; i <= totalPayments; i++) {
+      const interestPortion = multiply(remainingBalance, monthlyRate);
+      let principalPortion = subtract(monthlyPayment, interestPortion);
 
-        const schedule: LoanAmortizationEntry[] = [];
-        let remainingBalance = principal;
-        let cumulativeInterest = 0;
-        let totalInterest = 0;
+      if (i === totalPayments) {
+        principalPortion = remainingBalance;
+        monthlyPayment = add(principalPortion, interestPortion);
+      }
 
-        for (let i = 1; i <= totalPayments; i++) {
-            const interestPortion = multiply(remainingBalance, monthlyRate);
-            let principalPortion = subtract(monthlyPayment, interestPortion);
+      remainingBalance = subtract(remainingBalance, principalPortion);
+      if (remainingBalance < 0) remainingBalance = 0;
 
-            if (i === totalPayments) {
-                principalPortion = remainingBalance;
-                monthlyPayment = add(principalPortion, interestPortion);
-            }
+      cumulativeInterest = add(cumulativeInterest, interestPortion);
 
-            remainingBalance = subtract(remainingBalance, principalPortion);
-            if (remainingBalance < 0) remainingBalance = 0;
+      schedule.push({
+        paymentNumber: i,
+        paymentAmount: monthlyPayment,
+        principalPortion,
+        interestPortion,
+        remainingBalance,
+        cumulativeInterest,
+      });
+    }
 
-            cumulativeInterest = add(cumulativeInterest, interestPortion);
+    totalInterest = cumulativeInterest;
+    const totalPayment = add(principal, totalInterest);
 
-            schedule.push({
-                paymentNumber: i,
-                paymentAmount: monthlyPayment,
-                principalPortion,
-                interestPortion,
-                remainingBalance,
-                cumulativeInterest
-            });
-        }
+    setState(prev => ({
+      ...prev,
+      result: {
+        monthlyPayment,
+        totalInterest,
+        totalPayment,
+        amortizationSchedule: schedule,
+      },
+    }));
+  }, [state.input]);
 
-        totalInterest = cumulativeInterest;
-        const totalPayment = add(principal, totalInterest);
-
-        setState(prev => ({
-            ...prev,
-            result: {
-                monthlyPayment,
-                totalInterest,
-                totalPayment,
-                amortizationSchedule: schedule
-            }
-        }));
-
-    }, [state.input]);
-
-    return {
-        input: state.input,
-        result: state.result,
-        updateInput,
-        resetInputs,
-        calculate,
-    };
+  return {
+    input: state.input,
+    result: state.result,
+    updateInput,
+    resetInputs,
+    calculate,
+  };
 }

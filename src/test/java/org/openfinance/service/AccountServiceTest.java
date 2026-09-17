@@ -47,6 +47,12 @@ class AccountServiceTest {
 
     @Mock private AccountRepository accountRepository;
 
+    @Mock
+    private org.openfinance.repository.AccountStatusHistoryRepository
+            accountStatusHistoryRepository;
+
+    @Mock private org.openfinance.repository.NetWorthRepository netWorthRepository;
+
     @Mock private AssetRepository assetRepository;
 
     @Mock private AccountMapper accountMapper;

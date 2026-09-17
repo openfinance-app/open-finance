@@ -37,12 +37,14 @@ describe('useRentalSimulator', () => {
   it('should initialize with default inputs', () => {
     const { result } = renderHook(() => useRentalSimulator());
 
-    expect(result.current.inputs).toEqual(expect.objectContaining({
-      credit: expect.any(Object),
-      property: expect.any(Object),
-      revenue: expect.any(Object),
-      expenses: expect.any(Object),
-    }));
+    expect(result.current.inputs).toEqual(
+      expect.objectContaining({
+        credit: expect.any(Object),
+        property: expect.any(Object),
+        revenue: expect.any(Object),
+        expenses: expect.any(Object),
+      })
+    );
     expect(result.current.results).toBeNull();
     expect(result.current.isCalculating).toBe(false);
     expect(result.current.errors).toEqual([]);
@@ -161,9 +163,7 @@ describe('useRentalSimulator', () => {
 
     expect(result.current.results).toBeNull();
     expect(result.current.errors).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ field: 'general' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ field: 'general' })])
     );
     expect(result.current.isCalculating).toBe(false);
   });

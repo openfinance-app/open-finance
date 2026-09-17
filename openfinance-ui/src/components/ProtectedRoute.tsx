@@ -36,7 +36,9 @@ interface ProtectedRouteProps {
  * } />
  * ```
  */
-export const ProtectedRoute = React.memo(function ProtectedRoute({ children }: ProtectedRouteProps) {
+export const ProtectedRoute = React.memo(function ProtectedRoute({
+  children,
+}: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuthContext();
   const location = useLocation();
 
@@ -56,9 +58,5 @@ export const ProtectedRoute = React.memo(function ProtectedRoute({ children }: P
   }
 
   // Render protected content wrapped in app layout
-  return (
-    <AppLayout>
-      {children}
-    </AppLayout>
-  );
+  return <AppLayout>{children}</AppLayout>;
 });

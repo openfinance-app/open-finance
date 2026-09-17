@@ -47,11 +47,7 @@ import {
 import { useCreateCategory } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import apiClient from '@/services/apiClient';
-import type {
-  FileUploadResponse,
-  ImportWizardStep,
-  ImportTransactionDTO,
-} from '@/types/import';
+import type { FileUploadResponse, ImportWizardStep, ImportTransactionDTO } from '@/types/import';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -129,14 +125,17 @@ export function ImportWizard() {
   const acceptedFormats = skroogeJsonEnabled
     ? [...BASE_ACCEPTED_FORMATS, SKROOGE_JSON_FORMAT]
     : BASE_ACCEPTED_FORMATS;
-  const startImport = useStartImport();  const { data: session, isLoading: isLoadingSession } = useImportSession(sessionId, {
+  const startImport = useStartImport();
+  const { data: session, isLoading: isLoadingSession } = useImportSession(sessionId, {
     pollInterval: 2000,
   });
   // Pass session status so the hook disables itself once the session reaches a
   // terminal state (COMPLETED / FAILED / CANCELLED) — prevents 400 errors from
   // React Query re-fetching /review on an already-completed session.
-  const { data: transactions = [], isLoading: isLoadingTransactions } =
-    useImportTransactions(sessionId, session?.status);
+  const { data: transactions = [], isLoading: isLoadingTransactions } = useImportTransactions(
+    sessionId,
+    session?.status
+  );
   const confirmImport = useConfirmImport();
   const cancelImport = useCancelImport();
   const updateAccount = useUpdateAccount();
@@ -203,7 +202,7 @@ export function ImportWizard() {
 
   // Block tab-close / page refresh
   useBeforeUnload(
-    (e) => {
+    e => {
       if (isMidway) {
         e.preventDefault();
       }
@@ -268,21 +267,20 @@ export function ImportWizard() {
           return created.id;
         } catch (err: unknown) {
           // Category already exists — refetch with English names to match QIF category names
-          const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+          const token =
+            localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ||
+            sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
           const { buildEncryptionHeaders } = await import('@/utils/encryption');
-          const resp = await fetch(
-            `${apiClient.defaults.baseURL}/categories`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                ...buildEncryptionHeaders(),
-                'Accept-Language': 'en',
-              },
-            }
-          );
+          const resp = await fetch(`${apiClient.defaults.baseURL}/categories`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              ...buildEncryptionHeaders(),
+              'Accept-Language': 'en',
+            },
+          });
           if (!resp.ok) throw err;
           const cats: { id: number; name: string }[] = await resp.json();
-          const found = cats.find((c) => c.name.toLowerCase() === name.toLowerCase());
+          const found = cats.find(c => c.name.toLowerCase() === name.toLowerCase());
           if (found) return found.id;
           throw err; // Re-throw if we still can't find it
         }
@@ -291,8 +289,8 @@ export function ImportWizard() {
       // Determine the type (EXPENSE/INCOME) of transactions using each new category name.
       // Default to EXPENSE; if only income transactions use it, use INCOME.
       const getTypeForCategory = (catName: string): 'EXPENSE' | 'INCOME' => {
-        const txns = localTransactions.filter((t) => t.category === catName);
-        if (txns.length > 0 && txns.every((t) => t.amount > 0)) return 'INCOME';
+        const txns = localTransactions.filter(t => t.category === catName);
+        if (txns.length > 0 && txns.every(t => t.amount > 0)) return 'INCOME';
         return 'EXPENSE';
       };
 
@@ -301,9 +299,7 @@ export function ImportWizard() {
         if (finalMappings[sourceName] != null) continue;
 
         // Check if it was created in a previous iteration (e.g., as a parent)
-        const existing = allCategories.find(
-          (c) => c.name.toLowerCase() === sourceName.toLowerCase()
-        );
+        const existing = allCategories.find(c => c.name.toLowerCase() === sourceName.toLowerCase());
         if (existing) {
           finalMappings[sourceName] = existing.id;
           continue;
@@ -312,7 +308,10 @@ export function ImportWizard() {
         let type = getTypeForCategory(sourceName);
 
         // Detect hierarchical path (e.g. "Divers:Achat Divers" or "Divers/Achat Divers")
-        const parts = sourceName.split(/[:/]/).map((p) => p.trim()).filter(Boolean);
+        const parts = sourceName
+          .split(/[:/]/)
+          .map(p => p.trim())
+          .filter(Boolean);
 
         if (parts.length > 1) {
           // Hierarchical: find or create the parent first, then the leaf
@@ -320,7 +319,7 @@ export function ImportWizard() {
           let parentId: number | undefined = undefined;
 
           const existingParent =
-            allCategories.find((c) => c.name.toLowerCase() === parentName.toLowerCase()) ??
+            allCategories.find(c => c.name.toLowerCase() === parentName.toLowerCase()) ??
             // Also check already-created parents in finalMappings
             null;
 
@@ -343,7 +342,7 @@ export function ImportWizard() {
 
           const leafName = parts[parts.length - 1];
           const existingLeaf = allCategories.find(
-            (c) => c.name.toLowerCase() === leafName.toLowerCase()
+            c => c.name.toLowerCase() === leafName.toLowerCase()
           );
           if (existingLeaf) {
             finalMappings[sourceName] = existingLeaf.id;
@@ -436,7 +435,7 @@ export function ImportWizard() {
       updateTransactions
         .mutateAsync({ sessionId, transactions: localTransactions })
         .then(() => setCurrentStep(nextStep))
-        .catch((e) => console.error('Failed to update transactions', e));
+        .catch(e => console.error('Failed to update transactions', e));
       return;
     }
 
@@ -458,7 +457,7 @@ export function ImportWizard() {
       updateTransactions
         .mutateAsync({ sessionId, transactions: localTransactions })
         .then(() => setCurrentStep(STEPS[prevIndex]))
-        .catch((e) => {
+        .catch(e => {
           console.error('Failed to persist transactions before navigating back', e);
           // Navigate anyway — local state still holds the edits
           setCurrentStep(STEPS[prevIndex]);
@@ -475,7 +474,6 @@ export function ImportWizard() {
 
   return (
     <div className="max-w-5xl mx-auto">
-
       {/* ── Cancel-confirmation overlay ─────────────────────────────────── */}
       {showCancelConfirm && (
         <div
@@ -535,26 +533,25 @@ export function ImportWizard() {
             // `index < currentStepIndex`. We treat it as completed once the
             // session has reached a terminal state so it turns green.
             const isImportTerminal =
-              !!session?.status &&
-              ['COMPLETED', 'FAILED', 'CANCELLED'].includes(session.status);
+              !!session?.status && ['COMPLETED', 'FAILED', 'CANCELLED'].includes(session.status);
 
             return STEPS.map((step, index) => {
               const isActive = step === currentStep && !isImportTerminal;
               const isCompleted =
-                index < currentStepIndex ||
-                (step === 'progress' && isImportTerminal);
+                index < currentStepIndex || (step === 'progress' && isImportTerminal);
               const StepIconComp = STEP_INFO[step].icon;
 
               return (
                 <div key={step} className="flex items-center flex-1">
                   <div className="flex flex-col items-center flex-1">
                     <div
-                      className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${isCompleted
+                      className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${
+                        isCompleted
                           ? 'border-green-500 bg-green-500 text-white'
                           : isActive
                             ? 'border-primary bg-primary text-white'
                             : 'border-border bg-surface text-text-tertiary'
-                        }`}
+                      }`}
                     >
                       <StepIconComp
                         className={`h-5 w-5 ${isActive && step === 'progress' ? 'animate-spin' : ''}`}
@@ -566,8 +563,9 @@ export function ImportWizard() {
                   </div>
                   {index < STEPS.length - 1 && (
                     <div
-                      className={`h-0.5 flex-1 transition-all ${isCompleted ? 'bg-green-500' : 'bg-border'
-                        }`}
+                      className={`h-0.5 flex-1 transition-all ${
+                        isCompleted ? 'bg-green-500' : 'bg-border'
+                      }`}
                     />
                   )}
                 </div>
@@ -579,12 +577,11 @@ export function ImportWizard() {
 
       {/* ── Step content ───────────────────────────────────────────────── */}
       <div className="bg-surface border border-border rounded-lg p-6 mb-6 min-h-[400px]">
-
         {/* Step 1 — Upload */}
         {currentStep === 'upload' && (
           <FileUpload
             onUploadSuccess={handleUploadSuccess}
-            onUploadError={(error) => console.error(error)}
+            onUploadError={error => console.error(error)}
             acceptedFormats={acceptedFormats}
           />
         )}
@@ -604,7 +601,8 @@ export function ImportWizard() {
                 <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
                 <div>
                   <span className="font-semibold">{t('wizard.accountSelection.matched')}</span>{' '}
-                  <span className="font-mono">{session.suggestedAccountName}</span> {t('wizard.accountSelection.matchedSuffix')}
+                  <span className="font-mono">{session.suggestedAccountName}</span>{' '}
+                  {t('wizard.accountSelection.matchedSuffix')}
                 </div>
               </div>
             )}
@@ -616,7 +614,9 @@ export function ImportWizard() {
                 <div>
                   <span className="font-semibold">{t('wizard.accountSelection.detected')}</span>{' '}
                   <span className="font-mono">{session.suggestedAccountName}</span>.{' '}
-                  {t('wizard.accountSelection.detectedSuffix', { name: session.suggestedAccountName })}
+                  {t('wizard.accountSelection.detectedSuffix', {
+                    name: session.suggestedAccountName,
+                  })}
                 </div>
               </div>
             )}
@@ -626,18 +626,21 @@ export function ImportWizard() {
               <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-app-bg text-sm text-text-secondary">
                 <FileSearch className="h-4 w-4 mt-0.5 flex-shrink-0 text-text-tertiary" />
                 <div>
-                  {t('wizard.accountSelection.noneFound', { name: fileName.replace(/\.[^.]+$/, '') || 'Imported' })}
+                  {t('wizard.accountSelection.noneFound', {
+                    name: fileName.replace(/\.[^.]+$/, '') || 'Imported',
+                  })}
                 </div>
               </div>
             )}
 
             {/* ── Parsing in progress ──────────────────────────────────────── */}
-            {(!session || (!session.readyForReview && session.status !== 'FAILED')) && !startImport.isError && (
-              <div className="flex items-center gap-2 text-sm text-primary bg-primary/5 p-3 rounded-lg border border-primary/20">
-                <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
-                <span>{t('wizard.accountSelection.parsing')}</span>
-              </div>
-            )}
+            {(!session || (!session.readyForReview && session.status !== 'FAILED')) &&
+              !startImport.isError && (
+                <div className="flex items-center gap-2 text-sm text-primary bg-primary/5 p-3 rounded-lg border border-primary/20">
+                  <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+                  <span>{t('wizard.accountSelection.parsing')}</span>
+                </div>
+              )}
 
             {/* ── Start Import Error (network/server error before session exists) ── */}
             {startImport.isError && !sessionId && (
@@ -645,7 +648,9 @@ export function ImportWizard() {
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
                   <div>
-                    <span className="font-semibold block">{t('wizard.accountSelection.uploadFailed')}</span>
+                    <span className="font-semibold block">
+                      {t('wizard.accountSelection.uploadFailed')}
+                    </span>
                     <span>
                       {startImport.error?.message
                         ? startImport.error.message
@@ -654,7 +659,12 @@ export function ImportWizard() {
                   </div>
                 </div>
                 <div className="mt-2 ml-7">
-                  <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="bg-white">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.location.reload()}
+                    className="bg-white"
+                  >
                     {t('wizard.accountSelection.startOver')}
                   </Button>
                 </div>
@@ -667,12 +677,19 @@ export function ImportWizard() {
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
                   <div>
-                    <span className="font-semibold block">{t('wizard.accountSelection.parsingFailed')}</span>
+                    <span className="font-semibold block">
+                      {t('wizard.accountSelection.parsingFailed')}
+                    </span>
                     <span>{t('wizard.accountSelection.parsingFailedDesc')}</span>
                   </div>
                 </div>
                 <div className="mt-2 ml-7">
-                  <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="bg-white">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.location.reload()}
+                    className="bg-white"
+                  >
                     {t('wizard.accountSelection.startOver')}
                   </Button>
                 </div>
@@ -683,25 +700,27 @@ export function ImportWizard() {
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1.5">
                 {t('wizard.accountSelection.label')}{' '}
-                <span className="text-text-tertiary text-xs font-normal">({t('common:labels.optional')})</span>
+                <span className="text-text-tertiary text-xs font-normal">
+                  ({t('common:labels.optional')})
+                </span>
               </label>
               <SimpleSelect
                 value={accountId?.toString() ?? ''}
-                onChange={(e) =>
-                  setAccountId(e.target.value ? parseInt(e.target.value, 10) : null)
-                }
-                disabled={
-                  isLoadingSession || startImport.isPending || updateAccount.isPending
-                }
+                onChange={e => setAccountId(e.target.value ? parseInt(e.target.value, 10) : null)}
+                disabled={isLoadingSession || startImport.isPending || updateAccount.isPending}
               >
                 <option value="">
                   {session?.suggestedAccountName
-                    ? t('wizard.accountSelection.autoCreateLabel', { name: session.suggestedAccountName })
+                    ? t('wizard.accountSelection.autoCreateLabel', {
+                        name: session.suggestedAccountName,
+                      })
                     : fileName
-                      ? t('wizard.accountSelection.autoCreateLabel', { name: fileName.replace(/\.[^.]+$/, '') || 'Imported' })
+                      ? t('wizard.accountSelection.autoCreateLabel', {
+                          name: fileName.replace(/\.[^.]+$/, '') || 'Imported',
+                        })
                       : t('wizard.accountSelection.leaveBlank')}
                 </option>
-                {accounts.map((account) => (
+                {accounts.map(account => (
                   <option key={account.id} value={account.id}>
                     {account.name} ({account.type})
                   </option>
@@ -712,7 +731,8 @@ export function ImportWizard() {
             {/* ── File name ────────────────────────────────────────────────── */}
             {fileName && (
               <div className="text-xs text-text-tertiary">
-                {t('summary.file')}: <span className="text-text-secondary font-medium">{fileName}</span>
+                {t('summary.file')}:{' '}
+                <span className="text-text-secondary font-medium">{fileName}</span>
               </div>
             )}
 
@@ -771,15 +791,21 @@ export function ImportWizard() {
                 <div className="text-sm text-text-secondary">{t('summary.account')}</div>
                 <div className="text-base font-medium text-text-primary mt-1">
                   {accountId
-                    ? (accounts.find((a) => a.id === accountId)?.name ?? 'Unknown')
-                    : (session?.suggestedAccountName
-                      ? t('wizard.accountSelection.autoCreateLabel', { name: session.suggestedAccountName })
-                      : t('wizard.accountSelection.autoCreateLabel', { name: fileName.replace(/\.[^.]+$/, '') || 'Imported' }))}
+                    ? (accounts.find(a => a.id === accountId)?.name ?? 'Unknown')
+                    : session?.suggestedAccountName
+                      ? t('wizard.accountSelection.autoCreateLabel', {
+                          name: session.suggestedAccountName,
+                        })
+                      : t('wizard.accountSelection.autoCreateLabel', {
+                          name: fileName.replace(/\.[^.]+$/, '') || 'Imported',
+                        })}
                 </div>
               </div>
 
               <div className="bg-app-bg border border-border rounded-lg p-4">
-                <div className="text-sm text-text-secondary">{t('summary.transactionsToImport')}</div>
+                <div className="text-sm text-text-secondary">
+                  {t('summary.transactionsToImport')}
+                </div>
                 <div className="text-2xl font-bold text-text-primary mt-1">
                   {localTransactions.length}
                 </div>
@@ -788,7 +814,7 @@ export function ImportWizard() {
               <div className="bg-app-bg border border-border rounded-lg p-4">
                 <div className="text-sm text-text-secondary">{t('summary.categorized')}</div>
                 <div className="text-2xl font-bold text-text-primary mt-1">
-                  {localTransactions.filter((t) => !!t.category).length}
+                  {localTransactions.filter(t => !!t.category).length}
                   <span className="text-sm font-normal text-text-tertiary ml-1">
                     / {localTransactions.length}
                   </span>
@@ -801,7 +827,7 @@ export function ImportWizard() {
                 type="checkbox"
                 id="skipDuplicates"
                 checked={skipDuplicates}
-                onChange={(e) => setSkipDuplicates(e.target.checked)}
+                onChange={e => setSkipDuplicates(e.target.checked)}
                 className="rounded border-border text-primary focus:ring-primary"
               />
               <label

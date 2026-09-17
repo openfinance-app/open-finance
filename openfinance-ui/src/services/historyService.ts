@@ -4,7 +4,7 @@ import type { OperationHistoryResponse, PageableResponse, EntityType } from '../
 export const historyService = {
   /**
    * Retrieves a paginated list of operation history.
-   * 
+   *
    * @param page Page index (0-based)
    * @param size Page size
    * @param entityType Optional filter by entity type
@@ -39,7 +39,7 @@ export const historyService = {
 
   /**
    * Undoes the specific history entry.
-   * 
+   *
    * @param historyId The history entry ID.
    * @returns The updated operation history entry.
    */
@@ -50,12 +50,12 @@ export const historyService = {
 
   /**
    * Redoes the specific history entry.
-   * 
+   *
    * @param historyId The history entry ID.
    * @returns The updated operation history entry.
    */
   redo: async (historyId: number): Promise<OperationHistoryResponse> => {
     const { data } = await apiClient.post<OperationHistoryResponse>(`/history/${historyId}/redo`);
     return data;
-  }
+  },
 };

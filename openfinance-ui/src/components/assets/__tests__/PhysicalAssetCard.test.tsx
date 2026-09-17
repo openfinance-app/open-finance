@@ -5,9 +5,7 @@ import { PhysicalAssetCard } from '../PhysicalAssetCard';
 import { AssetCoverImage } from '../AssetCoverImage';
 
 vi.mock('../AssetCoverImage', () => ({
-  AssetCoverImage: ({ asset }: any) => (
-    <div data-testid="asset-cover">cover-{asset.id}</div>
-  ),
+  AssetCoverImage: ({ asset }: any) => <div data-testid="asset-cover">cover-{asset.id}</div>,
 }));
 
 vi.mock('@/hooks/useSecondaryConversion', () => ({

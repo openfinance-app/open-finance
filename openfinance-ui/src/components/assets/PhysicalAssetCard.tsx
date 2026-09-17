@@ -1,7 +1,7 @@
 /**
  * PhysicalAssetCard Component
  * Task 9.2.6: Create PhysicalAssetCard component
- * 
+ *
  * Displays physical asset details with depreciation, condition, and warranty status
  */
 import { Badge } from '@/components/ui/Badge';
@@ -11,13 +11,7 @@ import { AssetCoverImage } from './AssetCoverImage';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { getConditionBadgeVariant, getAssetTypeBadgeVariant } from '@/hooks/useAssets';
 import { subtract, percentage } from '@/utils/money';
-import { 
-  Package, 
-  Shield, 
-  TrendingDown, 
-  Calendar,
-  Info
-} from 'lucide-react';
+import { Package, Shield, TrendingDown, Calendar, Info } from 'lucide-react';
 import type { Asset } from '@/types/asset';
 
 interface PhysicalAssetCardProps {
@@ -26,14 +20,19 @@ interface PhysicalAssetCardProps {
 }
 
 export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(asset.currency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(asset.currency);
   const isWarrantyValid = asset.isWarrantyValid;
 
   // Actual market value change: purchase cost vs current market value
   const currentValue = asset.totalValue; // quantity × currentPrice (actual market value)
   const valueLoss = subtract(asset.totalCost, currentValue);
   const lossPercent = asset.totalCost > 0 ? percentage(valueLoss, asset.totalCost) : 0;
-  const retainedPercent = asset.totalCost > 0 ? Math.min(percentage(currentValue, asset.totalCost), 100) : 0;
+  const retainedPercent =
+    asset.totalCost > 0 ? Math.min(percentage(currentValue, asset.totalCost), 100) : 0;
   const hasValueChange = asset.totalCost > 0 && currentValue !== asset.totalCost;
 
   return (
@@ -46,23 +45,14 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <Package className="h-5 w-5 text-text-secondary" />
-            <Badge 
-              variant={getAssetTypeBadgeVariant(asset.type)} 
-              size="sm"
-            >
+            <Badge variant={getAssetTypeBadgeVariant(asset.type)} size="sm">
               {asset.type.charAt(0) + asset.type.slice(1).toLowerCase()}
             </Badge>
           </div>
-          <h3 className="text-lg font-semibold text-text-primary line-clamp-2">
-            {asset.name}
-          </h3>
+          <h3 className="text-lg font-semibold text-text-primary line-clamp-2">{asset.name}</h3>
         </div>
         {asset.condition && (
-          <Badge 
-            variant={getConditionBadgeVariant(asset.condition)} 
-            size="md"
-            className="ml-2"
-          >
+          <Badge variant={getConditionBadgeVariant(asset.condition)} size="md" className="ml-2">
             {asset.condition.charAt(0) + asset.condition.slice(1).toLowerCase()}
           </Badge>
         )}
@@ -86,8 +76,8 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           <div className="flex items-center gap-2 text-sm">
             <span className="text-text-secondary font-medium">Serial:</span>
             <span className="text-text-primary font-mono text-xs">
-              {asset.serialNumber.length > 20 
-                ? `${asset.serialNumber.substring(0, 20)}...` 
+              {asset.serialNumber.length > 20
+                ? `${asset.serialNumber.substring(0, 20)}...`
                 : asset.serialNumber}
             </span>
           </div>
@@ -102,23 +92,25 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
               <TrendingDown className="h-4 w-4 text-text-secondary" />
               <span className="text-text-secondary font-medium">Value Change</span>
             </div>
-            <span className={`text-xs font-medium ${valueLoss > 0 ? 'text-red-500' : 'text-green-500'}`}>
-              {valueLoss > 0 ? '-' : '+'}{Math.abs(lossPercent).toFixed(0)}%
-              {' '}
-              ({valueLoss > 0 ? '-' : '+'}
+            <span
+              className={`text-xs font-medium ${valueLoss > 0 ? 'text-red-500' : 'text-green-500'}`}
+            >
+              {valueLoss > 0 ? '-' : '+'}
+              {Math.abs(lossPercent).toFixed(0)}% ({valueLoss > 0 ? '-' : '+'}
               <ConvertedAmount
                 amount={Math.abs(valueLoss)}
                 currency={asset.currency}
                 isConverted={false}
                 inline
-              />)
+              />
+              )
             </span>
           </div>
-          
+
           {/* Progress Bar — green = retained value, gray = loss */}
           <div className="relative h-6 bg-red-100 dark:bg-red-950 rounded-full overflow-hidden border border-border">
             {/* Retained value portion */}
-            <div 
+            <div
               className={`absolute inset-y-0 left-0 transition-all duration-300 ${
                 valueLoss > 0
                   ? 'bg-gradient-to-r from-green-500 to-green-600'
@@ -126,7 +118,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
               }`}
               style={{ width: `${retainedPercent}%` }}
             />
-            
+
             {/* Labels */}
             <div className="relative h-full flex items-center justify-between px-3 text-xs font-medium">
               <span className="text-white drop-shadow-md">
@@ -149,11 +141,13 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
               )}
             </div>
           </div>
-          
+
           {/* Legend */}
           <div className="flex items-center gap-4 text-xs text-text-tertiary pt-1">
             <div className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded-full ${valueLoss > 0 ? 'bg-green-500' : 'bg-blue-500'}`} />
+              <div
+                className={`w-3 h-3 rounded-full ${valueLoss > 0 ? 'bg-green-500' : 'bg-blue-500'}`}
+              />
               <span>Current Value</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -170,17 +164,17 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           <div className="text-xs text-text-secondary mb-1">Current Value</div>
           <div className="text-lg font-bold text-text-primary">
             {/* Reference REQ-10.1: Show asset value with base-currency conversion hint */}
-             <ConvertedAmount
-               amount={asset.totalValue}
-               currency={asset.currency}
-               convertedAmount={asset.valueInBaseCurrency}
-               baseCurrency={asset.baseCurrency}
-               exchangeRate={asset.exchangeRate}
-               isConverted={asset.isConverted}
-               secondaryAmount={asset.valueInSecondaryCurrency}
-               secondaryCurrency={asset.secondaryCurrency}
-               inline
-             />
+            <ConvertedAmount
+              amount={asset.totalValue}
+              currency={asset.currency}
+              convertedAmount={asset.valueInBaseCurrency}
+              baseCurrency={asset.baseCurrency}
+              exchangeRate={asset.exchangeRate}
+              isConverted={asset.isConverted}
+              secondaryAmount={asset.valueInSecondaryCurrency}
+              secondaryCurrency={asset.secondaryCurrency}
+              inline
+            />
           </div>
         </div>
         <div>
@@ -205,13 +199,8 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           <Shield className={`h-4 w-4 ${isWarrantyValid ? 'text-success' : 'text-error'}`} />
           <div className="flex-1">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-text-primary">
-                Warranty
-              </span>
-              <Badge 
-                variant={isWarrantyValid ? 'success' : 'error'} 
-                size="sm"
-              >
+              <span className="text-sm font-medium text-text-primary">Warranty</span>
+              <Badge variant={isWarrantyValid ? 'success' : 'error'} size="sm">
                 {isWarrantyValid ? 'Active' : 'Expired'}
               </Badge>
             </div>
@@ -222,7 +211,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
                 {new Date(asset.warrantyExpiration).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
-                  year: 'numeric'
+                  year: 'numeric',
                 })}
               </span>
             </div>
@@ -237,9 +226,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           <span>
             Useful life: {asset.usefulLifeYears} years
             {!!asset.holdingDays && (
-              <span className="ml-1">
-                ({Math.floor(asset.holdingDays / 365)} years owned)
-              </span>
+              <span className="ml-1">({Math.floor(asset.holdingDays / 365)} years owned)</span>
             )}
           </span>
         </div>

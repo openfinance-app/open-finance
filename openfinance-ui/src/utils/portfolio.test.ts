@@ -10,24 +10,25 @@ import {
 } from './portfolio';
 import type { Asset } from '@/types/asset';
 
-const makeAsset = (overrides: Partial<Asset> = {}): Asset => ({
-  id: 1,
-  userId: 1,
-  name: 'Test Stock',
-  assetType: 'STOCK',
-  type: 'STOCK',
-  quantity: 10,
-  purchasePrice: 100,
-  currentPrice: 150,
-  totalValue: 1500,
-  totalCost: 1000,
-  currentValue: 1500,
-  unrealizedGain: 500,
-  gainPercentage: 0.5,
-  currency: 'USD',
-  createdAt: '2024-01-01',
-  ...overrides,
-} as Asset);
+const makeAsset = (overrides: Partial<Asset> = {}): Asset =>
+  ({
+    id: 1,
+    userId: 1,
+    name: 'Test Stock',
+    assetType: 'STOCK',
+    type: 'STOCK',
+    quantity: 10,
+    purchasePrice: 100,
+    currentPrice: 150,
+    totalValue: 1500,
+    totalCost: 1000,
+    currentValue: 1500,
+    unrealizedGain: 500,
+    gainPercentage: 0.5,
+    currency: 'USD',
+    createdAt: '2024-01-01',
+    ...overrides,
+  }) as Asset;
 
 describe('calculatePortfolioMetrics', () => {
   it('returns zeros for empty array', () => {

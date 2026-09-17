@@ -2,7 +2,14 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/Table';
 import { useTranslation } from 'react-i18next';
 import type { BuyRentResults } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
@@ -56,7 +63,7 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {results.years.map((year) => {
+              {results.years.map(year => {
                 const isExpanded = expandedYears.has(year.year);
                 const showWarning = isPriceAboveMinimum(
                   year.buy.propertyValue,
@@ -80,29 +87,61 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <ConvertedAmount amount={year.buy.annualCost} currency={baseCurrency} inline />
+                        <ConvertedAmount
+                          amount={year.buy.annualCost}
+                          currency={baseCurrency}
+                          inline
+                        />
                       </TableCell>
                       <TableCell>
-                        <ConvertedAmount amount={year.buy.cumulativeCost} currency={baseCurrency} inline />
+                        <ConvertedAmount
+                          amount={year.buy.cumulativeCost}
+                          currency={baseCurrency}
+                          inline
+                        />
                       </TableCell>
                       <TableCell className="text-green-600">
-                        <ConvertedAmount amount={year.buy.propertyValue} currency={baseCurrency} inline />
+                        <ConvertedAmount
+                          amount={year.buy.propertyValue}
+                          currency={baseCurrency}
+                          inline
+                        />
                       </TableCell>
                       <TableCell className="text-red-600">
-                        <ConvertedAmount amount={year.buy.remainingCapital} currency={baseCurrency} inline />
+                        <ConvertedAmount
+                          amount={year.buy.remainingCapital}
+                          currency={baseCurrency}
+                          inline
+                        />
                       </TableCell>
                       <TableCell className={showWarning ? 'text-red-600 font-semibold' : ''}>
-                        <ConvertedAmount amount={year.buy.minimumResalePrice} currency={baseCurrency} inline />
+                        <ConvertedAmount
+                          amount={year.buy.minimumResalePrice}
+                          currency={baseCurrency}
+                          inline
+                        />
                         {showWarning && ' ⚠️'}
                       </TableCell>
                       <TableCell>
-                        <ConvertedAmount amount={year.rent.annualCost} currency={baseCurrency} inline />
+                        <ConvertedAmount
+                          amount={year.rent.annualCost}
+                          currency={baseCurrency}
+                          inline
+                        />
                       </TableCell>
                       <TableCell>
-                        <ConvertedAmount amount={year.rent.cumulativeCost} currency={baseCurrency} inline />
+                        <ConvertedAmount
+                          amount={year.rent.cumulativeCost}
+                          currency={baseCurrency}
+                          inline
+                        />
                       </TableCell>
                       <TableCell className="text-green-600">
-                        <ConvertedAmount amount={year.rent.savings} currency={baseCurrency} inline />
+                        <ConvertedAmount
+                          amount={year.rent.savings}
+                          currency={baseCurrency}
+                          inline
+                        />
                       </TableCell>
                     </TableRow>
 
@@ -111,15 +150,25 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                         <TableCell colSpan={9} className="bg-muted/30 p-4">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                              <p className="font-medium text-muted-foreground">{t('yearlyTable.buyDetails')}</p>
+                              <p className="font-medium text-muted-foreground">
+                                {t('yearlyTable.buyDetails')}
+                              </p>
                               <ul className="mt-2 space-y-1">
                                 <li>
                                   {t('yearlyTable.mortgage')}:{' '}
-                                  <ConvertedAmount amount={year.buy.details.mortgage} currency={baseCurrency} inline />
+                                  <ConvertedAmount
+                                    amount={year.buy.details.mortgage}
+                                    currency={baseCurrency}
+                                    inline
+                                  />
                                 </li>
                                 <li>
                                   {t('yearlyTable.insurance')}:{' '}
-                                  <ConvertedAmount amount={year.buy.details.insurance} currency={baseCurrency} inline />
+                                  <ConvertedAmount
+                                    amount={year.buy.details.insurance}
+                                    currency={baseCurrency}
+                                    inline
+                                  />
                                 </li>
                                 <li>
                                   {t('yearlyTable.propertyTax')}:{' '}
@@ -148,15 +197,25 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                               </ul>
                             </div>
                             <div>
-                              <p className="font-medium text-muted-foreground">{t('yearlyTable.netWorth')}</p>
+                              <p className="font-medium text-muted-foreground">
+                                {t('yearlyTable.netWorth')}
+                              </p>
                               <ul className="mt-2 space-y-1">
                                 <li>
                                   {t('yearlyTable.value')}:{' '}
-                                  <ConvertedAmount amount={year.buy.propertyValue} currency={baseCurrency} inline />
+                                  <ConvertedAmount
+                                    amount={year.buy.propertyValue}
+                                    currency={baseCurrency}
+                                    inline
+                                  />
                                 </li>
                                 <li>
                                   {t('yearlyTable.capitalDue')}:{' '}
-                                  <ConvertedAmount amount={year.buy.remainingCapital} currency={baseCurrency} inline />
+                                  <ConvertedAmount
+                                    amount={year.buy.remainingCapital}
+                                    currency={baseCurrency}
+                                    inline
+                                  />
                                 </li>
                                 <li className="font-semibold">
                                   {t('yearlyTable.net')}:{' '}
@@ -169,7 +228,9 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                               </ul>
                             </div>
                             <div>
-                              <p className="font-medium text-muted-foreground">{t('yearlyTable.rentDetails')}</p>
+                              <p className="font-medium text-muted-foreground">
+                                {t('yearlyTable.rentDetails')}
+                              </p>
                               <ul className="mt-2 space-y-1">
                                 <li>
                                   {t('yearlyTable.rent')}:{' '}
@@ -189,25 +250,35 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                                 </li>
                                 <li>
                                   {t('yearlyTable.total')}:{' '}
-                                  <ConvertedAmount amount={year.rent.annualCost} currency={baseCurrency} inline />
+                                  <ConvertedAmount
+                                    amount={year.rent.annualCost}
+                                    currency={baseCurrency}
+                                    inline
+                                  />
                                 </li>
                               </ul>
                             </div>
                             <div>
-                              <p className="font-medium text-muted-foreground">{t('yearlyTable.comparison')}</p>
+                              <p className="font-medium text-muted-foreground">
+                                {t('yearlyTable.comparison')}
+                              </p>
                               <ul className="mt-2 space-y-1">
                                 <li>
                                   {t('yearlyTable.difference')}:{' '}
                                   <ConvertedAmount
                                     amount={
-                                      year.buy.propertyValue - year.buy.remainingCapital - year.rent.savings
+                                      year.buy.propertyValue -
+                                      year.buy.remainingCapital -
+                                      year.rent.savings
                                     }
                                     currency={baseCurrency}
                                     inline
                                   />
                                 </li>
                                 <li>
-                                  {t('yearlyTable.advantage')}: {(year.buy.propertyValue - year.buy.remainingCapital) > year.rent.savings
+                                  {t('yearlyTable.advantage')}:{' '}
+                                  {year.buy.propertyValue - year.buy.remainingCapital >
+                                  year.rent.savings
                                     ? t('results.buyGenitive')
                                     : t('results.rentGenitive')}
                                 </li>
@@ -232,10 +303,7 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
           >
             {t('yearlyTable.expandAll')}
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setExpandedYears(new Set())}
-          >
+          <Button variant="outline" onClick={() => setExpandedYears(new Set())}>
             {t('yearlyTable.collapseAll')}
           </Button>
         </div>

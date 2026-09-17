@@ -115,7 +115,7 @@ export function SplitTransactionForm({
   const handleChangeField = <K extends keyof TransactionSplitRequest>(
     index: number,
     field: K,
-    value: TransactionSplitRequest[K],
+    value: TransactionSplitRequest[K]
   ) => {
     const updated = splits.map((s, i) => (i === index ? { ...s, [field]: value } : s));
     onChange(updated);
@@ -133,7 +133,7 @@ export function SplitTransactionForm({
           <div className="col-span-3">
             <CategorySelect
               value={split.categoryId}
-              onValueChange={(value) => handleChangeField(index, 'categoryId', value)}
+              onValueChange={value => handleChangeField(index, 'categoryId', value)}
               placeholder={t('splitForm.categoryPlaceholder')}
               type={transactionType}
               allowNone={true}
@@ -146,7 +146,7 @@ export function SplitTransactionForm({
           <div>
             <NumberInput
               value={split.amount === 0 ? '' : String(split.amount)}
-              onChange={(val) => handleChangeField(index, 'amount', val ? Number(val) : 0)}
+              onChange={val => handleChangeField(index, 'amount', val ? Number(val) : 0)}
               placeholder="0.00"
               aria-label={`Split ${index + 1} amount`}
               className="font-mono"
@@ -158,9 +158,7 @@ export function SplitTransactionForm({
           <div>
             <Input
               value={split.description ?? ''}
-              onChange={(e) =>
-                handleChangeField(index, 'description', e.target.value || undefined)
-              }
+              onChange={e => handleChangeField(index, 'description', e.target.value || undefined)}
               placeholder={t('splitForm.notesPlaceholder')}
               maxLength={255}
               aria-label={`Split ${index + 1} description`}
@@ -177,7 +175,9 @@ export function SplitTransactionForm({
               onClick={() => handleRemove(index)}
               aria-label={`Remove split ${index + 1}`}
               disabled={splits.length <= 2}
-              title={splits.length <= 2 ? t('splitForm.removeDisabledTitle') : t('splitForm.removeTitle')}
+              title={
+                splits.length <= 2 ? t('splitForm.removeDisabledTitle') : t('splitForm.removeTitle')
+              }
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -225,14 +225,16 @@ export function SplitTransactionForm({
         </div>
         <div
           className={`flex justify-between font-medium mt-1 pt-1 border-t border-border ${
-            isValid
-              ? 'text-success'
-              : remaining > 0
-                ? 'text-warning'
-                : 'text-error'
+            isValid ? 'text-success' : remaining > 0 ? 'text-warning' : 'text-error'
           }`}
         >
-          <span>{isValid ? t('splitForm.balanced') : remaining > 0 ? t('splitForm.remaining') : t('splitForm.overBy')}</span>
+          <span>
+            {isValid
+              ? t('splitForm.balanced')
+              : remaining > 0
+                ? t('splitForm.remaining')
+                : t('splitForm.overBy')}
+          </span>
           <span className="font-mono">
             {isValid ? (
               '✓'

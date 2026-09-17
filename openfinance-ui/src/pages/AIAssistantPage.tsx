@@ -1,9 +1,9 @@
 /**
  * AI Assistant Page
  * Task 11.3.1: Create AIAssistantPage component
- * 
+ *
  * Main chat interface for interacting with the AI financial advisor
- * 
+ *
  * @since Sprint 11 - AI Assistant Integration
  */
 import React, { useRef, useEffect } from 'react';
@@ -27,12 +27,8 @@ export const AIAssistantPage: React.FC = () => {
   const [conversationId, setConversationId] = React.useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const {
-    isOllamaAvailable,
-    isCheckingHealth,
-    healthError,
-    refetchHealth
-  } = useAIChat(conversationId);
+  const { isOllamaAvailable, isCheckingHealth, healthError, refetchHealth } =
+    useAIChat(conversationId);
 
   const sendMessage = useSendMessage();
 
@@ -51,7 +47,7 @@ export const AIAssistantPage: React.FC = () => {
     };
 
     // Add user message immediately
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
 
     try {
@@ -69,7 +65,7 @@ export const AIAssistantPage: React.FC = () => {
         timestamp: response.timestamp,
       };
 
-      setMessages((prev) => [...prev, aiMessage]);
+      setMessages(prev => [...prev, aiMessage]);
       setConversationId(response.conversation_id);
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -81,7 +77,7 @@ export const AIAssistantPage: React.FC = () => {
         timestamp: new Date().toISOString(),
       };
 
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     }
   };
 
@@ -106,12 +102,8 @@ export const AIAssistantPage: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="max-w-md w-full bg-surface rounded-lg shadow-lg p-8 text-center">
           <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-text-primary mb-2">
-            {t('unavailable.title')}
-          </h2>
-          <p className="text-text-secondary mb-6">
-            {t('unavailable.description')}
-          </p>
+          <h2 className="text-2xl font-bold text-text-primary mb-2">{t('unavailable.title')}</h2>
+          <p className="text-text-secondary mb-6">{t('unavailable.description')}</p>
           <button
             onClick={() => refetchHealth()}
             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -134,12 +126,8 @@ export const AIAssistantPage: React.FC = () => {
               <Bot className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-text-primary">
-                {t('title')}
-              </h1>
-              <p className="text-sm text-text-secondary">
-                {t('subtitle')}
-              </p>
+              <h1 className="text-xl font-bold text-text-primary">{t('title')}</h1>
+              <p className="text-sm text-text-secondary">{t('subtitle')}</p>
             </div>
           </div>
 
@@ -163,9 +151,7 @@ export const AIAssistantPage: React.FC = () => {
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center">
                 <Sparkles className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-text-primary mb-2">
-                {t('welcome.title')}
-              </h2>
+              <h2 className="text-2xl font-bold text-text-primary mb-2">{t('welcome.title')}</h2>
               <p className="text-text-secondary mb-8 max-w-2xl mx-auto">
                 {t('welcome.description')}
               </p>
@@ -180,11 +166,7 @@ export const AIAssistantPage: React.FC = () => {
             // Messages
             <>
               {messages.map((message, index) => (
-                <ChatMessage
-                  key={index}
-                  message={message}
-                  isStreaming={false}
-                />
+                <ChatMessage key={index} message={message} isStreaming={false} />
               ))}
 
               {/* Scroll anchor */}

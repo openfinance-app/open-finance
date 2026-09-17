@@ -1,7 +1,7 @@
 /**
  * Recurring Transaction Types
  * Task 12.2.11: Create useRecurringTransactions hook (types)
- * 
+ *
  * TypeScript interfaces and types for recurring transaction management
  */
 
@@ -19,7 +19,7 @@ export const RECURRING_FREQUENCIES = {
   YEARLY: 'YEARLY',
 } as const;
 
-export type RecurringFrequency = typeof RECURRING_FREQUENCIES[keyof typeof RECURRING_FREQUENCIES];
+export type RecurringFrequency = (typeof RECURRING_FREQUENCIES)[keyof typeof RECURRING_FREQUENCIES];
 
 /**
  * Recurring transaction entity from backend
@@ -115,7 +115,9 @@ export function getFrequencyDisplayName(frequency: RecurringFrequency): string {
 /**
  * Helper function to get frequency badge color
  */
-export function getFrequencyBadgeVariant(frequency: RecurringFrequency): 'default' | 'secondary' | 'outline' {
+export function getFrequencyBadgeVariant(
+  frequency: RecurringFrequency
+): 'default' | 'secondary' | 'outline' {
   switch (frequency) {
     case 'DAILY':
       return 'default';

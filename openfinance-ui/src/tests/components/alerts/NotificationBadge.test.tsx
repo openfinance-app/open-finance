@@ -29,7 +29,7 @@ vi.mock('@/hooks/useNotifications', () => ({
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
-vi.mock('react-router', async (importOriginal) => {
+vi.mock('react-router', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router')>();
   return {
     ...actual,
@@ -213,7 +213,8 @@ describe('NotificationBadge', () => {
       await waitFor(() => expect(screen.getByText('Spending alert')).toBeInTheDocument());
 
       // Find and click the mark-read button
-      const markReadBtn = document.querySelector('[aria-label*="mark"]') ||
+      const markReadBtn =
+        document.querySelector('[aria-label*="mark"]') ||
         document.querySelector('[aria-label*="Mark"]');
       if (markReadBtn) {
         fireEvent.click(markReadBtn);
@@ -276,7 +277,11 @@ describe('NotificationBadge', () => {
 
     it('should call update exchange rates mutation', async () => {
       const mockMutate = vi.fn();
-      mockUseUpdateExchangeRates.mockReturnValue({ mutate: mockMutate, isPending: false, isSuccess: false });
+      mockUseUpdateExchangeRates.mockReturnValue({
+        mutate: mockMutate,
+        isPending: false,
+        isSuccess: false,
+      });
       mockUseNotifications.mockReturnValue({
         data: [
           makeNotification({
@@ -294,7 +299,8 @@ describe('NotificationBadge', () => {
       await waitFor(() => expect(screen.getByText('Stale Exchange Rates')).toBeInTheDocument());
 
       // Click the update rates button
-      const updateBtn = document.querySelector('[aria-label*="update"]') ||
+      const updateBtn =
+        document.querySelector('[aria-label*="update"]') ||
         document.querySelector('[aria-label*="Update"]');
       if (updateBtn) {
         fireEvent.click(updateBtn);
@@ -303,7 +309,11 @@ describe('NotificationBadge', () => {
     });
 
     it('should show success message after exchange rates update', async () => {
-      mockUseUpdateExchangeRates.mockReturnValue({ mutate: vi.fn(), isPending: false, isSuccess: true });
+      mockUseUpdateExchangeRates.mockReturnValue({
+        mutate: vi.fn(),
+        isPending: false,
+        isSuccess: true,
+      });
       mockUseNotifications.mockReturnValue({
         data: [
           makeNotification({

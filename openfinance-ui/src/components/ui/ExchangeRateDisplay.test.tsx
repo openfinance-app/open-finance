@@ -43,7 +43,7 @@ vi.mock('@/components/ui/ConvertedAmount', () => ({
   ),
 }));
 
-vi.mock('@/utils/currency', async (importOriginal) => {
+vi.mock('@/utils/currency', async importOriginal => {
   const actual = await importOriginal<typeof import('@/utils/currency')>();
   return {
     ...actual,
@@ -102,9 +102,7 @@ describe('ExchangeRateDisplay', () => {
       isFetching: false,
     });
 
-    renderWithProviders(
-      <ExchangeRateDisplay from="USD" to="EUR" showRefresh />
-    );
+    renderWithProviders(<ExchangeRateDisplay from="USD" to="EUR" showRefresh />);
     expect(screen.getByText('Retry')).toBeInTheDocument();
   });
 
@@ -123,9 +121,7 @@ describe('ExchangeRateDisplay', () => {
       isFetching: false,
     });
 
-    renderWithProviders(
-      <ExchangeRateDisplay from="USD" to="EUR" compact />
-    );
+    renderWithProviders(<ExchangeRateDisplay from="USD" to="EUR" compact />);
     expect(screen.getByText(/1 USD = 0\.8500 EUR/)).toBeInTheDocument();
   });
 
@@ -144,9 +140,7 @@ describe('ExchangeRateDisplay', () => {
       isFetching: false,
     });
 
-    renderWithProviders(
-      <ExchangeRateDisplay from="USD" to="EUR" amount={100} compact />
-    );
+    renderWithProviders(<ExchangeRateDisplay from="USD" to="EUR" amount={100} compact />);
     expect(screen.getByText(/100 USD ≈ 85 EUR/)).toBeInTheDocument();
     expect(screen.getByText(/1 USD = 0\.8500 EUR/)).toBeInTheDocument();
   });
@@ -166,9 +160,7 @@ describe('ExchangeRateDisplay', () => {
       isFetching: false,
     });
 
-    renderWithProviders(
-      <ExchangeRateDisplay from="USD" to="EUR" />
-    );
+    renderWithProviders(<ExchangeRateDisplay from="USD" to="EUR" />);
     expect(screen.getByText('Exchange Rate')).toBeInTheDocument();
     expect(screen.getByText('Source: ECB')).toBeInTheDocument();
   });
@@ -188,9 +180,7 @@ describe('ExchangeRateDisplay', () => {
       isFetching: false,
     });
 
-    renderWithProviders(
-      <ExchangeRateDisplay from="USD" to="EUR" amount={100} />
-    );
+    renderWithProviders(<ExchangeRateDisplay from="USD" to="EUR" amount={100} />);
     expect(screen.getByTestId('converted-amount')).toBeInTheDocument();
     expect(screen.getByText('100 USD ≈ 85 EUR')).toBeInTheDocument();
   });
@@ -210,9 +200,7 @@ describe('ExchangeRateDisplay', () => {
       isFetching: false,
     });
 
-    renderWithProviders(
-      <ExchangeRateDisplay from="USD" to="EUR" showRefresh />
-    );
+    renderWithProviders(<ExchangeRateDisplay from="USD" to="EUR" showRefresh />);
     expect(screen.getByText('Refresh')).toBeInTheDocument();
   });
 });

@@ -289,7 +289,9 @@ function buildPrimaryDisplay(
             formatCurrency(convertedAmount!, baseCurrency!, opts)
           )}
         </PrivateAmount>
-        <span className="text-muted-foreground mx-0.5" aria-hidden="true">·</span>
+        <span className="text-muted-foreground mx-0.5" aria-hidden="true">
+          ·
+        </span>
         <PrivateAmount inline className="text-muted-foreground text-sm">
           {formatCurrency(amount, currency, opts)}
         </PrivateAmount>
@@ -390,7 +392,18 @@ export function ConvertedAmount({
         numberFormat,
         animate
       ),
-    [amount, currency, convertedAmount, baseCurrency, isConverted, displayMode, compact, inline, numberFormat, animate]
+    [
+      amount,
+      currency,
+      convertedAmount,
+      baseCurrency,
+      isConverted,
+      displayMode,
+      compact,
+      inline,
+      numberFormat,
+      animate,
+    ]
   );
 
   const hasTooltip = tooltipLines.length > 0;
@@ -413,16 +426,16 @@ export function ConvertedAmount({
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
-        <TooltipTrigger asChild>
-          {content}
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
         <TooltipContent
           id={tooltipId}
           className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
           sideOffset={4}
         >
           {tooltipLines.map((line, i) => (
-            <span key={i} className="block">{line}</span>
+            <span key={i} className="block">
+              {line}
+            </span>
           ))}
         </TooltipContent>
       </Tooltip>

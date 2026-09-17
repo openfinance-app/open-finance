@@ -1,7 +1,7 @@
 /**
  * AssetAllocationChart Component
  * Task 5.4.2: Create AssetAllocationChart component
- * 
+ *
  * Pie chart showing asset allocation by type with percentages
  */
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
@@ -18,7 +18,9 @@ interface AssetAllocationChartProps {
  * Get color for asset type
  */
 const getColor = (type: string, index: number): string => {
-  return ASSET_TYPE_COLORS[type] || ASSET_TYPE_COLOR_FALLBACKS[index % ASSET_TYPE_COLOR_FALLBACKS.length];
+  return (
+    ASSET_TYPE_COLORS[type] || ASSET_TYPE_COLOR_FALLBACKS[index % ASSET_TYPE_COLOR_FALLBACKS.length]
+  );
 };
 
 /**
@@ -56,18 +58,12 @@ function CustomTooltip({ active, payload, formatFn }: CustomTooltipProps) {
     const data = payload[0].payload;
     return (
       <div className="bg-surface border border-border rounded-lg p-3 shadow-lg">
-        <p className="text-sm font-medium text-foreground mb-1">
-          {getAssetTypeLabel(data.type)}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Value: {formatFn(data.value)}
-        </p>
+        <p className="text-sm font-medium text-foreground mb-1">{getAssetTypeLabel(data.type)}</p>
+        <p className="text-sm text-muted-foreground">Value: {formatFn(data.value)}</p>
         <p className="text-sm text-muted-foreground">
           Percentage: {formatPercentage(data.percentage, false)}
         </p>
-        <p className="text-sm text-muted-foreground">
-          Assets: {data.count}
-        </p>
+        <p className="text-sm text-muted-foreground">Assets: {data.count}</p>
       </div>
     );
   }
@@ -78,14 +74,7 @@ function CustomTooltip({ active, payload, formatFn }: CustomTooltipProps) {
  * Custom label for pie chart slices
  */
 
-function renderCustomLabel({
-  cx,
-  cy,
-  midAngle,
-  innerRadius,
-  outerRadius,
-  percent,
-}: any) {
+function renderCustomLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) {
   // Only show label if percentage is >= 5%
   if (percent < 0.05) return null;
 
@@ -127,10 +116,7 @@ function CustomLegend({ payload }: LegendProps) {
     <div className="flex flex-wrap justify-center gap-3 mt-4">
       {payload.map((entry, index) => (
         <div key={`legend-${index}`} className="flex items-center gap-2">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: entry.color }}
-          />
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
           <span className="text-xs text-muted-foreground">
             {getAssetTypeLabel(entry.payload.type)}
           </span>

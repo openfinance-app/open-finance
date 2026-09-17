@@ -21,7 +21,7 @@ export function useFinanceNews(language: string) {
       const response = await apiClient.get<RssFeedItem[]>('/rss/finance', {
         headers: {
           ...buildEncryptionHeaders(),
-          'Accept-Language': language
+          'Accept-Language': language,
         },
       });
       return response.data;

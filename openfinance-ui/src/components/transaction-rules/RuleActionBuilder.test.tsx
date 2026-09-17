@@ -99,12 +99,7 @@ describe('RuleActionBuilder', () => {
   });
 
   it('should render empty state when no actions', () => {
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={[]}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={[]} onChange={mockOnChange} />);
 
     expect(screen.getByText('No actions added yet. Add at least one action.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add action/i })).toBeInTheDocument();
@@ -119,12 +114,7 @@ describe('RuleActionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={actions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={actions} onChange={mockOnChange} />);
 
     expect(screen.getByDisplayValue('Set Category')).toBeInTheDocument();
     // CategorySelect mock renders a <select> — value is the ID resolved from name
@@ -132,12 +122,7 @@ describe('RuleActionBuilder', () => {
   });
 
   it('should add a new action when add button is clicked', () => {
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={[]}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={[]} onChange={mockOnChange} />);
 
     const addButton = screen.getByRole('button', { name: /add action/i });
     fireEvent.click(addButton);
@@ -167,12 +152,7 @@ describe('RuleActionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={actions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={actions} onChange={mockOnChange} />);
 
     const removeButtons = screen.getAllByRole('button', { name: /remove action/i });
     fireEvent.click(removeButtons[0]);
@@ -195,12 +175,7 @@ describe('RuleActionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={actions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={actions} onChange={mockOnChange} />);
 
     const typeSelect = screen.getByRole('combobox', { name: 'Action type' });
     fireEvent.change(typeSelect, { target: { value: 'SET_PAYEE' } });
@@ -225,12 +200,7 @@ describe('RuleActionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={actions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={actions} onChange={mockOnChange} />);
 
     expect(screen.getByRole('combobox', { name: 'Category name' })).toBeInTheDocument();
   });
@@ -244,12 +214,7 @@ describe('RuleActionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={actions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={actions} onChange={mockOnChange} />);
 
     expect(screen.getByRole('combobox', { name: 'Payee name' })).toBeInTheDocument();
   });
@@ -263,12 +228,7 @@ describe('RuleActionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={actions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={actions} onChange={mockOnChange} />);
 
     expect(screen.getByRole('textbox', { name: 'Tag name' })).toBeInTheDocument();
   });
@@ -282,12 +242,7 @@ describe('RuleActionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={actions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={actions} onChange={mockOnChange} />);
 
     expect(screen.getByRole('textbox', { name: 'Description' })).toBeInTheDocument();
   });
@@ -301,12 +256,7 @@ describe('RuleActionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={actions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={actions} onChange={mockOnChange} />);
 
     const amountInput = screen.getByRole('textbox', { name: 'Amount' });
     expect(amountInput).toHaveAttribute('type', 'text');
@@ -324,12 +274,7 @@ describe('RuleActionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={actions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={actions} onChange={mockOnChange} />);
 
     expect(screen.getByRole('combobox', { name: 'Category name' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Split amount' })).toBeInTheDocument();
@@ -344,16 +289,9 @@ describe('RuleActionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={actions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={actions} onChange={mockOnChange} />);
 
-    fireEvent.pointerMove(
-      screen.getByRole('button', { name: /transaction will be skipped/i })
-    );
+    fireEvent.pointerMove(screen.getByRole('button', { name: /transaction will be skipped/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Transaction will be skipped during import.')).toBeInTheDocument();
@@ -369,12 +307,7 @@ describe('RuleActionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={actions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={actions} onChange={mockOnChange} />);
 
     // The mock select uses numeric IDs; selecting id=2 → Transport
     const categorySelect = screen.getByRole('combobox', { name: 'Category name' });
@@ -400,12 +333,7 @@ describe('RuleActionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleActionBuilder
-        actions={actions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleActionBuilder actions={actions} onChange={mockOnChange} />);
 
     const categorySelect = screen.getByRole('combobox', { name: 'Category name' });
     const amountInput = screen.getByRole('textbox', { name: 'Split amount' });

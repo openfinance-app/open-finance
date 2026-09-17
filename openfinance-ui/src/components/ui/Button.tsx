@@ -13,8 +13,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
  * Follows Finary design style with gold primary color
  */
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', children, isLoading, disabled, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50';
+  (
+    { className, variant = 'primary', size = 'md', children, isLoading, disabled, ...props },
+    ref
+  ) => {
+    const baseStyles =
+      'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50';
 
     const variants = {
       primary: 'bg-primary text-background hover:bg-primary/90 active:bg-primary/80',
@@ -22,7 +26,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       ghost: 'bg-transparent hover:bg-surface text-text-primary',
       danger: 'bg-error text-white hover:bg-error/90 active:bg-error/80',
       destructive: 'bg-destructive text-white hover:bg-destructive/90 active:bg-destructive/80',
-      outline: 'border border-border bg-transparent hover:bg-surface hover:text-text-primary text-text-primary',
+      outline:
+        'border border-border bg-transparent hover:bg-surface hover:text-text-primary text-text-primary',
       default: 'bg-primary text-background hover:bg-primary/90 active:bg-primary/80',
     };
 

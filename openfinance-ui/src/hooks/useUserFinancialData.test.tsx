@@ -20,12 +20,12 @@ describe('useUserFinancialData', () => {
 
   it('should initialize with null data and not loading', async () => {
     mockGet.mockResolvedValue({ data: [] });
-    
+
     const { result } = renderHook(() => useUserFinancialData());
 
     // Initially loading
     expect(result.current.isLoading).toBe(true);
-    
+
     // Wait for loading to complete
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);

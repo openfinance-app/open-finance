@@ -30,7 +30,7 @@ vi.mock('@/components/LoadingComponents', () => ({
 
 // Mock other components that might be complex
 vi.mock('@/components/ui/Dialog', () => ({
-  Dialog: ({ children, open }: any) => open ? <div data-testid="dialog">{children}</div> : null,
+  Dialog: ({ children, open }: any) => (open ? <div data-testid="dialog">{children}</div> : null),
   DialogContent: ({ children }: any) => <div>{children}</div>,
   DialogHeader: ({ children }: any) => <div>{children}</div>,
   DialogTitle: ({ children }: any) => <div>{children}</div>,
@@ -40,9 +40,15 @@ vi.mock('@/components/budgets/BudgetCard', () => ({
   BudgetCard: ({ budget, onEdit, onDelete, onViewDetail }: any) => (
     <div data-testid={`budget-card-${budget.budgetId}`}>
       {budget.categoryName}
-      <button data-testid={`edit-${budget.budgetId}`} onClick={() => onEdit(budget.budgetId)}>Edit</button>
-      <button data-testid={`del-${budget.budgetId}`} onClick={() => onDelete(budget.budgetId)}>Del</button>
-      <button data-testid={`view-${budget.budgetId}`} onClick={() => onViewDetail(budget.budgetId)}>View</button>
+      <button data-testid={`edit-${budget.budgetId}`} onClick={() => onEdit(budget.budgetId)}>
+        Edit
+      </button>
+      <button data-testid={`del-${budget.budgetId}`} onClick={() => onDelete(budget.budgetId)}>
+        Del
+      </button>
+      <button data-testid={`view-${budget.budgetId}`} onClick={() => onViewDetail(budget.budgetId)}>
+        View
+      </button>
     </div>
   ),
 }));
@@ -57,7 +63,9 @@ vi.mock('@/components/budgets/AlertBanner', () => ({
   AlertBanner: ({ title, onDismiss }: any) => (
     <div data-testid="alert-banner">
       {title}
-      <button data-testid="dismiss-alert" onClick={onDismiss}>Dismiss</button>
+      <button data-testid="dismiss-alert" onClick={onDismiss}>
+        Dismiss
+      </button>
     </div>
   ),
 }));
@@ -67,16 +75,22 @@ vi.mock('@/components/budgets/BudgetForm', () => ({
     <div data-testid="budget-form">
       Budget Form
       {serverError && <span data-testid="form-error">{serverError}</span>}
-      <button data-testid="form-submit" onClick={() => onSubmit({ categoryId: 1, amount: 100, period: 'MONTHLY' })}>Submit</button>
-      <button data-testid="form-cancel" onClick={onCancel}>Cancel</button>
+      <button
+        data-testid="form-submit"
+        onClick={() => onSubmit({ categoryId: 1, amount: 100, period: 'MONTHLY' })}
+      >
+        Submit
+      </button>
+      <button data-testid="form-cancel" onClick={onCancel}>
+        Cancel
+      </button>
     </div>
   ),
 }));
 
 vi.mock('@/components/budgets/BudgetWizard', () => ({
-  BudgetWizard: ({ open }: { open: boolean }) => (
-    open ? <div data-testid="budget-wizard">Budget Wizard</div> : null
-  ),
+  BudgetWizard: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="budget-wizard">Budget Wizard</div> : null,
 }));
 
 vi.mock('@/components/budgets/BudgetDetailModal', () => ({
@@ -86,15 +100,18 @@ vi.mock('@/components/budgets/BudgetDetailModal', () => ({
 }));
 
 vi.mock('@/components/ConfirmationDialog', () => ({
-  ConfirmationDialog: ({ open, title, onConfirm, onOpenChange }: any) => (
+  ConfirmationDialog: ({ open, title, onConfirm, onOpenChange }: any) =>
     open ? (
       <div data-testid="confirmation-dialog">
         {title}
-        <button data-testid="confirm-btn" onClick={onConfirm}>Confirm</button>
-        <button data-testid="cancel-btn" onClick={() => onOpenChange(false)}>Cancel</button>
+        <button data-testid="confirm-btn" onClick={onConfirm}>
+          Confirm
+        </button>
+        <button data-testid="cancel-btn" onClick={() => onOpenChange(false)}>
+          Cancel
+        </button>
       </div>
-    ) : null
-  ),
+    ) : null,
 }));
 
 // Import after mocking
@@ -119,12 +136,13 @@ const mockUseNavigate = vi.mocked(useNavigate);
 const mockUseSearchParams = vi.mocked(useSearchParams);
 const mockSetSearchParams = vi.fn();
 
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: { retry: false },
-    mutations: { retry: false },
-  },
-});
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
 
 const mockBudgetSummary: BudgetSummaryResponse = {
   totalBudgets: 2,
@@ -241,7 +259,9 @@ describe('BudgetsPage', () => {
       renderWithProviders(<BudgetsPage />, { queryClient });
 
       expect(screen.getByText('No budgets yet')).toBeInTheDocument();
-      expect(screen.getByText('Create your first budget to start tracking your spending')).toBeInTheDocument();
+      expect(
+        screen.getByText('Create your first budget to start tracking your spending')
+      ).toBeInTheDocument();
       expect(screen.getAllByRole('button', { name: 'Add Budget' })).toHaveLength(2); // Header and empty state
     });
   });
@@ -430,7 +450,9 @@ describe('BudgetsPage', () => {
 
       renderWithProviders(<BudgetsPage />, { queryClient });
 
-      expect(screen.getByText('Failed to load budgets. Please try again later.')).toBeInTheDocument();
+      expect(
+        screen.getByText('Failed to load budgets. Please try again later.')
+      ).toBeInTheDocument();
     });
   });
 
@@ -614,7 +636,9 @@ describe('BudgetsPage', () => {
       renderWithProviders(<BudgetsPage />, { queryClient });
       fireEvent.click(screen.getByRole('button', { name: 'Add Budget' }));
       fireEvent.click(screen.getByTestId('form-submit'));
-      await waitFor(() => expect(screen.getByTestId('form-error')).toHaveTextContent('Duplicate budget'));
+      await waitFor(() =>
+        expect(screen.getByTestId('form-error')).toHaveTextContent('Duplicate budget')
+      );
     });
   });
 
@@ -728,7 +752,11 @@ describe('BudgetsPage', () => {
 
     beforeEach(() => {
       mockUseBudgetSummary.mockReturnValue({
-        data: { ...mockBudgetSummary, totalBudgets: 3, budgets: [...mockBudgetSummary.budgets, deepLinkBudget] },
+        data: {
+          ...mockBudgetSummary,
+          totalBudgets: 3,
+          budgets: [...mockBudgetSummary.budgets, deepLinkBudget],
+        },
         isLoading: false,
         error: null,
       } as any);

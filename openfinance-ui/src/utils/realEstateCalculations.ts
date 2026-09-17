@@ -1,20 +1,12 @@
 /**
  * Real Estate Math Utility Functions
- * 
+ *
  * Core calculation formulas for Buy/Rent Comparator and Rental Simulator
  * Requirements: REQ-1.5.1, REQ-1.5.2, REQ-1.5.3, REQ-1.5.4
  */
 
 import type { PurchaseInputs } from '@/types/realEstateTools';
-import {
-  add,
-  subtract,
-  multiply,
-  divide,
-  sum,
-  pow,
-  roundToDecimals,
-} from '@/utils/money';
+import { add, subtract, multiply, divide, sum, pow, roundToDecimals } from '@/utils/money';
 
 /**
  * Calculate monthly mortgage payment using actuarial formula
@@ -24,14 +16,14 @@ import {
  *   P = principal (borrowed amount)
  *   r = monthly interest rate (annual / 12 / 100)
  *   n = total number of payments (years * 12)
- * 
+ *
  * REQ-1.5.1
- * 
+ *
  * @param principal - Principal amount borrowed (EUR)
  * @param annualRate - Annual interest rate (percentage, e.g., 4.2 for 4.2%)
  * @param years - Loan duration in years
  * @returns Monthly payment amount in EUR
- * 
+ *
  * @example
  * calculateMonthlyPayment(240000, 4.2, 25) // Returns ~1299.32
  */
@@ -55,10 +47,7 @@ export function calculateMonthlyPayment(
 
   // Actuarial formula
   const factor = pow(add(1, monthlyRate), numPayments);
-  const payment = divide(
-    multiply(multiply(principal, monthlyRate), factor),
-    subtract(factor, 1)
-  );
+  const payment = divide(multiply(multiply(principal, monthlyRate), factor), subtract(factor, 1));
 
   return roundToDecimals(payment, 2); // Round to 2 decimal places
 }
@@ -72,15 +61,15 @@ export function calculateMonthlyPayment(
  *   r = monthly interest rate
  *   m = months elapsed
  *   M = monthly payment
- * 
+ *
  * REQ-1.5.2
- * 
+ *
  * @param principal - Initial borrowed amount (EUR)
  * @param annualRate - Annual interest rate (percentage)
  * @param monthlyPayment - Monthly payment amount (EUR)
  * @param monthsElapsed - Number of months elapsed
  * @returns Remaining capital in EUR
- * 
+ *
  * @example
  * const monthlyPayment = calculateMonthlyPayment(240000, 4.2, 25);
  * calculateRemainingCapital(240000, 4.2, monthlyPayment, 60) // After 5 years
@@ -116,15 +105,15 @@ export function calculateRemainingCapital(
  * Calculate compound interest growth with optional monthly contributions
  * Formula for principal: A = P * (1 + r)^t
  * Formula for contributions: FV = PMT * (((1 + r)^n - 1) / r)
- * 
+ *
  * REQ-1.5.3
- * 
+ *
  * @param principal - Initial principal amount (EUR)
  * @param annualRate - Annual return rate (percentage, e.g., 4 for 4%)
  * @param years - Number of years
  * @param monthlyContribution - Optional monthly contribution (EUR)
  * @returns Final amount in EUR
- * 
+ *
  * @example
  * calculateCompoundInterest(10000, 4, 10, 500) // Initial 10k + 500/month for 10 years at 4%
  */
@@ -164,15 +153,15 @@ export function calculateCompoundInterest(
 /**
  * Calculate minimum resale price to cover costs and achieve target profit
  * Formula: Prix_min = (Cout_total + Capital_restant + Benefice_souhaite) / (1 - Frais_revente)
- * 
+ *
  * REQ-1.5.4
- * 
+ *
  * @param totalCosts - Total costs incurred (EUR)
  * @param remainingCapital - Remaining capital to repay (EUR)
  * @param targetProfit - Desired net profit (EUR)
  * @param resaleFeesPercent - Resale fees percentage (e.g., 8 for 8%)
  * @returns Minimum resale price in EUR
- * 
+ *
  * @example
  * calculateMinimumResalePrice(150000, 200000, 50000, 8) // ~434,783
  */
@@ -196,10 +185,10 @@ export function calculateMinimumResalePrice(
 
 /**
  * Calculate total property price including fees
- * 
+ *
  * @param inputs - Purchase input parameters
  * @returns Total price in EUR
- * 
+ *
  * @example
  * calculateTotalPrice({ propertyPrice: 300000, renovationAmount: 0, notaryFeesPercent: 7, agencyFees: 0 })
  * // Returns 321000
@@ -211,22 +200,19 @@ export function calculateTotalPrice(inputs: PurchaseInputs): number {
 
 /**
  * Calculate borrowed amount (total price - down payment)
- * 
+ *
  * @param totalPrice - Total property price including fees (EUR)
  * @param downPayment - Personal down payment (EUR)
  * @returns Borrowed amount in EUR
  */
-export function calculateBorrowedAmount(
-  totalPrice: number,
-  downPayment: number
-): number {
+export function calculateBorrowedAmount(totalPrice: number, downPayment: number): number {
   return Math.max(0, subtract(totalPrice, downPayment));
 }
 
 /**
  * Calculate minimum required down payment (fees only)
  * This represents the minimum cash needed at purchase (notary, agency, application fees, etc.)
- * 
+ *
  * @param inputs - Purchase input parameters
  * @returns Minimum down payment in EUR
  */
@@ -238,15 +224,12 @@ export function calculateMinimumDownPayment(inputs: PurchaseInputs): number {
 /**
  * Calculate annual interest portion of a payment
  * Formula: Interest = Remaining_Capital * Annual_Rate
- * 
+ *
  * @param remainingCapital - Current remaining capital (EUR)
  * @param annualRate - Annual interest rate (percentage)
  * @returns Annual interest amount in EUR
  */
-export function calculateAnnualInterest(
-  remainingCapital: number,
-  annualRate: number
-): number {
+export function calculateAnnualInterest(remainingCapital: number, annualRate: number): number {
   if (remainingCapital <= 0 || annualRate <= 0) return 0;
   return multiply(remainingCapital, divide(annualRate, 100));
 }
@@ -254,15 +237,12 @@ export function calculateAnnualInterest(
 /**
  * Calculate monthly buy scenario costs
  * Includes mortgage, taxes, insurance, and other recurring charges
- * 
+ *
  * @param inputs - Purchase input parameters
  * @param monthlyPayment - Monthly mortgage payment (EUR)
  * @returns Total monthly cost in EUR
  */
-export function calculateMonthlyBuyCost(
-  inputs: PurchaseInputs,
-  monthlyPayment: number
-): number {
+export function calculateMonthlyBuyCost(inputs: PurchaseInputs, monthlyPayment: number): number {
   const monthlyCharges = add(
     divide(
       sum([
@@ -274,10 +254,7 @@ export function calculateMonthlyBuyCost(
       ]),
       12
     ),
-    divide(
-      divide(multiply(inputs.propertyPrice, inputs.maintenancePercent), 100),
-      12
-    )
+    divide(divide(multiply(inputs.propertyPrice, inputs.maintenancePercent), 100), 12)
   );
 
   return add(monthlyPayment, monthlyCharges);
@@ -285,7 +262,7 @@ export function calculateMonthlyBuyCost(
 
 /**
  * Calculate monthly rental scenario costs
- * 
+ *
  * @param monthlyRent - Monthly rent excluding charges (EUR)
  * @param monthlyCharges - Monthly rental charges (EUR)
  * @param annualInsurance - Annual rental insurance (EUR)
@@ -298,15 +275,12 @@ export function calculateMonthlyRentCost(
   annualInsurance: number,
   annualGarbageTax: number
 ): number {
-  return add(
-    add(monthlyRent, monthlyCharges),
-    divide(add(annualInsurance, annualGarbageTax), 12)
-  );
+  return add(add(monthlyRent, monthlyCharges), divide(add(annualInsurance, annualGarbageTax), 12));
 }
 
 /**
  * Calculate inflation-adjusted amount
- * 
+ *
  * @param baseAmount - Base amount (EUR)
  * @param inflationRate - Annual inflation rate (percentage)
  * @param years - Number of years
@@ -323,7 +297,7 @@ export function calculateInflationAdjustedAmount(
 
 /**
  * Calculate property value with appreciation
- * 
+ *
  * @param initialValue - Initial property value (EUR)
  * @param appreciationRate - Annual appreciation rate (percentage)
  * @param years - Number of years
@@ -340,7 +314,7 @@ export function calculateAppreciatedValue(
 
 /**
  * Calculate annual insurance cost distributed over loan duration
- * 
+ *
  * @param totalInsurance - Total insurance cost over loan duration (EUR)
  * @param loanDurationYears - Loan duration in years
  * @returns Annual insurance cost in EUR
@@ -355,15 +329,12 @@ export function calculateAnnualInsurance(
 
 /**
  * Calculate annual fee distributed over loan duration
- * 
+ *
  * @param totalFee - Total fee amount (EUR)
  * @param loanDurationYears - Loan duration in years
  * @returns Annual fee amount in EUR
  */
-export function calculateAnnualizedFee(
-  totalFee: number,
-  loanDurationYears: number
-): number {
+export function calculateAnnualizedFee(totalFee: number, loanDurationYears: number): number {
   if (loanDurationYears <= 0) return totalFee;
   return divide(totalFee, loanDurationYears);
 }
@@ -375,7 +346,7 @@ export function calculateAnnualizedFee(
 
 /**
  * Round a number to specified decimal places
- * 
+ *
  * @param value - Number to round
  * @param decimals - Number of decimal places (default: 2)
  * @returns Rounded number
@@ -386,7 +357,7 @@ export function round(value: number, decimals: number = 2): number {
 
 /**
  * Calculate sum of values in an object
- * 
+ *
  * @param obj - Object with numeric values
  * @returns Sum of all values
  */
@@ -396,7 +367,7 @@ export function sumObjectValues(obj: Record<string, number>): number {
 
 /**
  * Validate that a number is within a range
- * 
+ *
  * @param value - Number to validate
  * @param min - Minimum allowed value
  * @param max - Maximum allowed value
@@ -408,7 +379,7 @@ export function clamp(value: number, min: number, max: number): number {
 
 /**
  * Check if a value is a valid positive number
- * 
+ *
  * @param value - Value to check
  * @returns True if valid positive number
  */

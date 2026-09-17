@@ -6,14 +6,14 @@
 import { TransformStream, ReadableStream, WritableStream } from 'node:stream/web';
 
 if (typeof globalThis.TransformStream === 'undefined') {
-    // @ts-expect-error — injecting into VM context global
-    globalThis.TransformStream = TransformStream;
+  // @ts-expect-error — injecting into VM context global
+  globalThis.TransformStream = TransformStream;
 }
 if (typeof globalThis.ReadableStream === 'undefined') {
-    // @ts-expect-error — injecting into VM context global
-    globalThis.ReadableStream = ReadableStream;
+  // @ts-expect-error — injecting into VM context global
+  globalThis.ReadableStream = ReadableStream;
 }
 if (typeof globalThis.WritableStream === 'undefined') {
-    // @ts-expect-error — injecting into VM context global
-    globalThis.WritableStream = WritableStream;
+  // @ts-expect-error — injecting into VM context global
+  globalThis.WritableStream = WritableStream;
 }

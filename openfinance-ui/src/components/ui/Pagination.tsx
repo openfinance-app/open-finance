@@ -1,7 +1,7 @@
 /**
  * Pagination Component
  * Task 3.3.6: Add pagination controls
- * 
+ *
  * Reusable pagination component with page navigation and size selector
  */
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
@@ -18,7 +18,6 @@ interface PaginationProps {
   onPageSizeChange: (size: number) => void;
   pageSizeOptions?: number[];
 }
-
 
 export function Pagination({
   currentPage,
@@ -88,7 +87,8 @@ export function Pagination({
         {t('pagination.showing')}{' '}
         <span className="font-medium text-text-primary">{startIndex}</span> {t('pagination.to')}{' '}
         <span className="font-medium text-text-primary">{endIndex}</span> {t('pagination.of')}{' '}
-        <span className="font-medium text-text-primary">{totalElements}</span> {t('pagination.results')}
+        <span className="font-medium text-text-primary">{totalElements}</span>{' '}
+        {t('pagination.results')}
       </div>
 
       {/* Pagination controls */}
@@ -98,11 +98,11 @@ export function Pagination({
           <span className="text-sm text-text-secondary">{t('pagination.show')}</span>
           <select
             value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            onChange={e => onPageSizeChange(Number(e.target.value))}
             className="h-9 px-2 rounded-lg bg-surface border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             aria-label={t('pagination.rowsPerPage')}
           >
-            {pageSizeOptions.map((size) => (
+            {pageSizeOptions.map(size => (
               <option key={size} value={size}>
                 {size}
               </option>

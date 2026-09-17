@@ -12,24 +12,18 @@ describe('CountrySelector', () => {
   });
 
   it('renders with placeholder when no value', () => {
-    renderWithProviders(
-      <CountrySelector value="" onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CountrySelector value="" onValueChange={onValueChange} />);
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
 
   it('displays selected country name', () => {
-    renderWithProviders(
-      <CountrySelector value="US" onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CountrySelector value="US" onValueChange={onValueChange} />);
     expect(screen.getByText('United States')).toBeInTheDocument();
   });
 
   it('opens dropdown and shows search input', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CountrySelector value="" onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CountrySelector value="" onValueChange={onValueChange} />);
 
     await user.click(screen.getByRole('button'));
 
@@ -40,9 +34,7 @@ describe('CountrySelector', () => {
 
   it('filters countries by search query', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CountrySelector value="" onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CountrySelector value="" onValueChange={onValueChange} />);
 
     await user.click(screen.getByRole('button'));
 
@@ -78,9 +70,7 @@ describe('CountrySelector', () => {
 
   it('selects a country and calls onValueChange', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CountrySelector value="" onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CountrySelector value="" onValueChange={onValueChange} />);
 
     await user.click(screen.getByRole('button'));
 
@@ -100,18 +90,14 @@ describe('CountrySelector', () => {
   });
 
   it('respects disabled prop', () => {
-    renderWithProviders(
-      <CountrySelector value="" onValueChange={onValueChange} disabled />
-    );
+    renderWithProviders(<CountrySelector value="" onValueChange={onValueChange} disabled />);
 
     expect(screen.getByRole('button')).toBeDisabled();
   });
 
   it('closes dropdown on Escape key in search', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CountrySelector value="" onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CountrySelector value="" onValueChange={onValueChange} />);
 
     await user.click(screen.getByRole('button'));
 
@@ -128,9 +114,7 @@ describe('CountrySelector', () => {
 
   it('shows check mark for selected country', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CountrySelector value="FR" onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CountrySelector value="FR" onValueChange={onValueChange} />);
 
     await user.click(screen.getByRole('button'));
 

@@ -10,7 +10,14 @@
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@/constants/routes';
 import { useTranslation } from 'react-i18next';
-import { Target, TrendingDown, ArrowRight, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import {
+  Target,
+  TrendingDown,
+  ArrowRight,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
@@ -25,29 +32,41 @@ import type { BudgetProgressResponse, BudgetStatus } from '@/types/budget';
 
 function statusColor(status: BudgetStatus) {
   switch (status) {
-    case 'ON_TRACK': return 'bg-success';
-    case 'WARNING':  return 'bg-warning';
-    case 'EXCEEDED': return 'bg-error';
-    default:         return 'bg-text-tertiary';
+    case 'ON_TRACK':
+      return 'bg-success';
+    case 'WARNING':
+      return 'bg-warning';
+    case 'EXCEEDED':
+      return 'bg-error';
+    default:
+      return 'bg-text-tertiary';
   }
 }
 
 function statusTextColor(status: BudgetStatus) {
   switch (status) {
-    case 'ON_TRACK': return 'text-success';
-    case 'WARNING':  return 'text-warning';
-    case 'EXCEEDED': return 'text-error';
-    default:         return 'text-text-tertiary';
+    case 'ON_TRACK':
+      return 'text-success';
+    case 'WARNING':
+      return 'text-warning';
+    case 'EXCEEDED':
+      return 'text-error';
+    default:
+      return 'text-text-tertiary';
   }
 }
 
 function StatusIcon({ status }: { status: BudgetStatus }) {
   const cls = cn('h-3.5 w-3.5 shrink-0', statusTextColor(status));
   switch (status) {
-    case 'ON_TRACK': return <CheckCircle2 className={cls} />;
-    case 'WARNING':  return <AlertTriangle className={cls} />;
-    case 'EXCEEDED': return <XCircle      className={cls} />;
-    default:         return null;
+    case 'ON_TRACK':
+      return <CheckCircle2 className={cls} />;
+    case 'WARNING':
+      return <AlertTriangle className={cls} />;
+    case 'EXCEEDED':
+      return <XCircle className={cls} />;
+    default:
+      return null;
   }
 }
 
@@ -61,7 +80,11 @@ interface BudgetRowProps {
 
 function BudgetRow({ budget, baseCurrency, onOpen }: BudgetRowProps) {
   const pct = Math.min(budget.percentageSpent, 100);
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(baseCurrency);
   const { t } = useTranslation('dashboard');
 
   return (
@@ -85,33 +108,36 @@ function BudgetRow({ budget, baseCurrency, onOpen }: BudgetRowProps) {
             {formatPercentage(budget.percentageSpent, 0)}
           </span>
           <span className="text-xs text-text-tertiary font-mono">
-              <ConvertedAmount
-                amount={budget.spent}
-                currency={baseCurrency}
-                isConverted={false}
-                secondaryAmount={convert(budget.spent)}
-                secondaryCurrency={secCurrency}
-                secondaryExchangeRate={secondaryExchangeRate}
-                inline
-              />
-              {' / '}
-              <ConvertedAmount
-                amount={budget.budgeted}
-                currency={baseCurrency}
-                isConverted={false}
-                secondaryAmount={convert(budget.budgeted)}
-                secondaryCurrency={secCurrency}
-                secondaryExchangeRate={secondaryExchangeRate}
-                inline
-              />
-            </span>
+            <ConvertedAmount
+              amount={budget.spent}
+              currency={baseCurrency}
+              isConverted={false}
+              secondaryAmount={convert(budget.spent)}
+              secondaryCurrency={secCurrency}
+              secondaryExchangeRate={secondaryExchangeRate}
+              inline
+            />
+            {' / '}
+            <ConvertedAmount
+              amount={budget.budgeted}
+              currency={baseCurrency}
+              isConverted={false}
+              secondaryAmount={convert(budget.budgeted)}
+              secondaryCurrency={secCurrency}
+              secondaryExchangeRate={secondaryExchangeRate}
+              inline
+            />
+          </span>
         </div>
       </div>
 
       {/* Progress bar */}
       <div className="h-1.5 bg-surface-elevated rounded-full overflow-hidden">
         <div
-          className={cn('h-full rounded-full transition-all duration-500', statusColor(budget.status))}
+          className={cn(
+            'h-full rounded-full transition-all duration-500',
+            statusColor(budget.status)
+          )}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -127,7 +153,11 @@ export default function BudgetProgressCard() {
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
   const { baseCurrency } = useAuthContext();
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(baseCurrency);
 
   // Fetch summary for the current (default) period — no period filter keeps it current
   const { data: summary, isLoading, isError } = useBudgetSummary();
@@ -191,9 +221,9 @@ export default function BudgetProgressCard() {
   }
 
   // ── derived values ─────────────────────────────────────────────────────────
-  const globalPct     = Math.min(summary.averageSpentPercentage, 100);
-  const exceededCount = summary.budgets.filter((b) => b.status === 'EXCEEDED').length;
-  const warningCount  = summary.budgets.filter((b) => b.status === 'WARNING').length;
+  const globalPct = Math.min(summary.averageSpentPercentage, 100);
+  const exceededCount = summary.budgets.filter(b => b.status === 'EXCEEDED').length;
+  const warningCount = summary.budgets.filter(b => b.status === 'WARNING').length;
 
   // Sort: exceeded first, then warning, then on-track; within each group sort by pct desc
   const sorted = [...summary.budgets].sort((a, b) => {
@@ -202,15 +232,13 @@ export default function BudgetProgressCard() {
     if (diff !== 0) return diff;
     return b.percentageSpent - a.percentageSpent;
   });
-  const visible  = sorted.slice(0, MAX_VISIBLE);
-  const hasMore  = sorted.length > MAX_VISIBLE;
+  const visible = sorted.slice(0, MAX_VISIBLE);
+  const hasMore = sorted.length > MAX_VISIBLE;
 
   // Overall bar color
   const overallPct = summary.averageSpentPercentage;
   const overallBarColor =
-    overallPct >= 100 ? 'bg-error' :
-    overallPct >= 75  ? 'bg-warning' :
-    'bg-success';
+    overallPct >= 100 ? 'bg-error' : overallPct >= 75 ? 'bg-warning' : 'bg-success';
 
   // ── render ─────────────────────────────────────────────────────────────────
   return (
@@ -220,10 +248,7 @@ export default function BudgetProgressCard() {
           <CardTitle className="flex items-center gap-2 text-base">
             <Target className="h-4 w-4 text-primary shrink-0" />
             {t('cards.budgetCard.title')}
-            <HelpTooltip
-              text={t('cards.budgetCard.tooltip')}
-              side="right"
-            />
+            <HelpTooltip text={t('cards.budgetCard.tooltip')} side="right" />
           </CardTitle>
           <button
             onClick={() => navigate(ROUTES.BUDGET)}
@@ -236,11 +261,12 @@ export default function BudgetProgressCard() {
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col gap-4 pt-0 min-h-0">
-
         {/* ── Global aggregate bar ──────────────────────────────────────────── */}
         <div className="shrink-0 rounded-lg bg-surface-elevated/50 border border-border p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-text-secondary">{t('cards.budgetCard.overall')}</span>
+            <span className="text-xs font-medium text-text-secondary">
+              {t('cards.budgetCard.overall')}
+            </span>
             <div className="flex items-center gap-2">
               {exceededCount > 0 && (
                 <span className="flex items-center gap-1 text-xs text-error font-medium">
@@ -279,10 +305,16 @@ export default function BudgetProgressCard() {
               />
               {' ' + t('cards.budgetCard.spent')}
             </span>
-            <span className={cn(
-              'font-mono font-semibold',
-              overallPct >= 100 ? 'text-error' : overallPct >= 75 ? 'text-warning' : 'text-success'
-            )}>
+            <span
+              className={cn(
+                'font-mono font-semibold',
+                overallPct >= 100
+                  ? 'text-error'
+                  : overallPct >= 75
+                    ? 'text-warning'
+                    : 'text-success'
+              )}
+            >
               {formatPercentage(summary.averageSpentPercentage, 1)}
             </span>
             <span className="font-mono text-text-secondary">
@@ -302,7 +334,7 @@ export default function BudgetProgressCard() {
 
         {/* ── Individual budget rows ────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
-          {visible.map((budget) => (
+          {visible.map(budget => (
             <BudgetRow
               key={budget.budgetId}
               budget={budget}
@@ -324,10 +356,12 @@ export default function BudgetProgressCard() {
         {/* ── Footer stats ──────────────────────────────────────────────────── */}
         <div className="shrink-0 flex items-center justify-between pt-3 border-t border-border text-xs text-text-tertiary">
           <span>{t('cards.budgetCard.active', { count: summary.activeBudgets })}</span>
-          <span className={cn(
-            'font-mono font-medium',
-            summary.totalRemaining < 0 ? 'text-error' : 'text-success'
-          )}>
+          <span
+            className={cn(
+              'font-mono font-medium',
+              summary.totalRemaining < 0 ? 'text-error' : 'text-success'
+            )}
+          >
             <ConvertedAmount
               amount={Math.abs(summary.totalRemaining)}
               currency={baseCurrency}
@@ -337,7 +371,9 @@ export default function BudgetProgressCard() {
               secondaryExchangeRate={secondaryExchangeRate}
               inline
             />
-            {summary.totalRemaining < 0 ? ' ' + t('cards.budgetCard.over') : ' ' + t('cards.budgetCard.remaining')}
+            {summary.totalRemaining < 0
+              ? ' ' + t('cards.budgetCard.over')
+              : ' ' + t('cards.budgetCard.remaining')}
           </span>
         </div>
       </CardContent>

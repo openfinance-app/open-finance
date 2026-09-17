@@ -4,7 +4,13 @@ import { MemoryRouter } from 'react-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/test/i18n-test';
-import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent, createTestQueryClient } from '@/test/test-utils';
+import {
+  renderWithProviders,
+  mockAuthentication,
+  clearAuthentication,
+  userEvent,
+  createTestQueryClient,
+} from '@/test/test-utils';
 import { AuthProvider } from '@/context/AuthContext';
 import { NumberFormatProvider } from '@/context/NumberFormatContext';
 import { DecimalPlacesProvider } from '@/context/DecimalPlacesContext';
@@ -47,11 +53,27 @@ const mockDeleteMutateAsync = vi.fn();
 // ---------------------------------------------------------------------------
 vi.mock('@/hooks/useLiabilities', () => ({
   useLiabilities: () => ({ data: [], isLoading: false, error: null }),
-  useLiabilitiesPaged: () => ({ data: mockPagedResponse, isLoading: mockIsLoading, error: mockError }),
+  useLiabilitiesPaged: () => ({
+    data: mockPagedResponse,
+    isLoading: mockIsLoading,
+    error: mockError,
+  }),
   useLiability: () => ({ data: null, isLoading: false, error: null }),
-  useCreateLiability: () => ({ mutate: vi.fn(), mutateAsync: mockCreateMutateAsync, isPending: false }),
-  useUpdateLiability: () => ({ mutate: vi.fn(), mutateAsync: mockUpdateMutateAsync, isPending: false }),
-  useDeleteLiability: () => ({ mutate: vi.fn(), mutateAsync: mockDeleteMutateAsync, isPending: false }),
+  useCreateLiability: () => ({
+    mutate: vi.fn(),
+    mutateAsync: mockCreateMutateAsync,
+    isPending: false,
+  }),
+  useUpdateLiability: () => ({
+    mutate: vi.fn(),
+    mutateAsync: mockUpdateMutateAsync,
+    isPending: false,
+  }),
+  useDeleteLiability: () => ({
+    mutate: vi.fn(),
+    mutateAsync: mockDeleteMutateAsync,
+    isPending: false,
+  }),
   useAmortizationSchedule: () => ({ data: null, isLoading: false }),
   useLiabilityTotals: () => ({ data: null, isLoading: false }),
   useLiabilityBreakdown: () => ({ data: null, isLoading: false }),
@@ -67,7 +89,20 @@ vi.mock('@/components/liabilities/LiabilityForm', () => ({
   LiabilityForm: ({ onSubmit, onCancel, liability }: any) => (
     <div data-testid="liability-form">
       {liability && <span data-testid="editing-name">{liability.name}</span>}
-      <button onClick={() => onSubmit({ name: 'Test', liabilityType: 'MORTGAGE', principalAmount: 100000, currency: 'USD', interestRate: 5, startDate: '2024-01-01' })}>Submit</button>
+      <button
+        onClick={() =>
+          onSubmit({
+            name: 'Test',
+            liabilityType: 'MORTGAGE',
+            principalAmount: 100000,
+            currency: 'USD',
+            interestRate: 5,
+            startDate: '2024-01-01',
+          })
+        }
+      >
+        Submit
+      </button>
       <button onClick={onCancel}>Cancel</button>
     </div>
   ),
@@ -91,7 +126,9 @@ vi.mock('@/components/liabilities/LiabilityList', () => ({
 vi.mock('@/components/liabilities/LiabilityFilters', () => ({
   LiabilityFilters: ({ onFiltersChange }: any) => (
     <div data-testid="liability-filters">
-      <button onClick={() => onFiltersChange({ type: 'MORTGAGE', search: '' })}>Apply Filter</button>
+      <button onClick={() => onFiltersChange({ type: 'MORTGAGE', search: '' })}>
+        Apply Filter
+      </button>
     </div>
   ),
 }));

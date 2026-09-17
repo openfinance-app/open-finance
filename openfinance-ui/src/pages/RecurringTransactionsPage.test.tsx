@@ -10,7 +10,11 @@ let mockIsLoading = false;
 let mockError: Error | null = null;
 
 vi.mock('@/hooks/useRecurringTransactions', () => ({
-  useRecurringTransactionsPaged: () => ({ data: mockData, isLoading: mockIsLoading, error: mockError }),
+  useRecurringTransactionsPaged: () => ({
+    data: mockData,
+    isLoading: mockIsLoading,
+    error: mockError,
+  }),
   useCreateRecurringTransaction: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useUpdateRecurringTransaction: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteRecurringTransaction: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -73,7 +77,14 @@ describe('RecurringTransactionsPage', () => {
   it('renders recurring transaction cards with data', () => {
     mockData = {
       content: [
-        { id: 1, description: 'Monthly Rent', amount: 1000, isActive: true, isEnded: false, isDue: false },
+        {
+          id: 1,
+          description: 'Monthly Rent',
+          amount: 1000,
+          isActive: true,
+          isEnded: false,
+          isDue: false,
+        },
         { id: 2, description: 'Netflix', amount: 15, isActive: true, isEnded: false, isDue: true },
       ],
       totalPages: 1,

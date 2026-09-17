@@ -24,7 +24,7 @@ vi.mock('@/components/ui/PayeeSelector', () => ({
       aria-label={ariaLabel}
       value={value}
       placeholder={placeholder}
-      onChange={(e) => onValueChange(e.target.value)}
+      onChange={e => onValueChange(e.target.value)}
     />
   ),
 }));
@@ -37,14 +37,11 @@ describe('RuleConditionBuilder', () => {
   });
 
   it('should render empty state when no conditions', () => {
-    renderWithProviders(
-      <RuleConditionBuilder
-        conditions={[]}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleConditionBuilder conditions={[]} onChange={mockOnChange} />);
 
-    expect(screen.getByText('No conditions added yet. Add at least one condition.')).toBeInTheDocument();
+    expect(
+      screen.getByText('No conditions added yet. Add at least one condition.')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add condition/i })).toBeInTheDocument();
   });
 
@@ -58,12 +55,7 @@ describe('RuleConditionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleConditionBuilder
-        conditions={conditions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleConditionBuilder conditions={conditions} onChange={mockOnChange} />);
 
     expect(screen.getByDisplayValue('Description / Payee')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Contains')).toBeInTheDocument();
@@ -71,12 +63,7 @@ describe('RuleConditionBuilder', () => {
   });
 
   it('should add a new condition when add button is clicked', () => {
-    renderWithProviders(
-      <RuleConditionBuilder
-        conditions={[]}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleConditionBuilder conditions={[]} onChange={mockOnChange} />);
 
     const addButton = screen.getByRole('button', { name: /add condition/i });
     fireEvent.click(addButton);
@@ -107,12 +94,7 @@ describe('RuleConditionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleConditionBuilder
-        conditions={conditions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleConditionBuilder conditions={conditions} onChange={mockOnChange} />);
 
     const removeButtons = screen.getAllByRole('button', { name: /remove condition/i });
     fireEvent.click(removeButtons[0]);
@@ -137,12 +119,7 @@ describe('RuleConditionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleConditionBuilder
-        conditions={conditions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleConditionBuilder conditions={conditions} onChange={mockOnChange} />);
 
     const fieldSelect = screen.getByRole('combobox', { name: 'Condition field' });
     fireEvent.change(fieldSelect, { target: { value: 'AMOUNT' } });
@@ -167,12 +144,7 @@ describe('RuleConditionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleConditionBuilder
-        conditions={conditions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleConditionBuilder conditions={conditions} onChange={mockOnChange} />);
 
     const operatorSelect = screen.getByRole('combobox', { name: 'Condition operator' });
     fireEvent.change(operatorSelect, { target: { value: 'EQUALS' } });
@@ -197,12 +169,7 @@ describe('RuleConditionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleConditionBuilder
-        conditions={conditions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleConditionBuilder conditions={conditions} onChange={mockOnChange} />);
 
     const valueInput = screen.getByRole('textbox', { name: 'Condition value' });
     fireEvent.change(valueInput, { target: { value: 'new value' } });
@@ -227,12 +194,7 @@ describe('RuleConditionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleConditionBuilder
-        conditions={conditions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleConditionBuilder conditions={conditions} onChange={mockOnChange} />);
 
     expect(screen.getByDisplayValue('Credit (Income)')).toBeInTheDocument();
   });
@@ -247,12 +209,7 @@ describe('RuleConditionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleConditionBuilder
-        conditions={conditions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleConditionBuilder conditions={conditions} onChange={mockOnChange} />);
 
     const valueInput = screen.getByRole('spinbutton', { name: 'Condition value' });
     expect(valueInput).toHaveAttribute('type', 'number');
@@ -269,12 +226,7 @@ describe('RuleConditionBuilder', () => {
       },
     ];
 
-    renderWithProviders(
-      <RuleConditionBuilder
-        conditions={conditions}
-        onChange={mockOnChange}
-      />
-    );
+    renderWithProviders(<RuleConditionBuilder conditions={conditions} onChange={mockOnChange} />);
 
     // Should show numeric operators
     expect(screen.getByDisplayValue('Greater than')).toBeInTheDocument();

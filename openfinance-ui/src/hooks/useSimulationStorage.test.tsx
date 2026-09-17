@@ -23,7 +23,13 @@ describe('useSimulationStorage', () => {
     name: 'Rental Sim',
     simulationType: 'rental_investment' as const,
     data: JSON.stringify({
-      credit: { monthlyPayment: 1000, annualCost: 12000, totalCost: 300000, assurance: 50, bankFees: 500 },
+      credit: {
+        monthlyPayment: 1000,
+        annualCost: 12000,
+        totalCost: 300000,
+        assurance: 50,
+        bankFees: 500,
+      },
       property: { totalPrice: 250000, furnishingType: 'unfurnished', furnitureValue: 0 },
       revenue: { monthlyRent: 900, recoverableCharges: 100, occupancyRate: 95, badDebtRate: 1 },
       expenses: { propertyTax: 2000 },
@@ -36,7 +42,9 @@ describe('useSimulationStorage', () => {
     vi.clearAllMocks();
     // Default: GET /real-estate-simulations returns list
     mockedApiClient.get.mockResolvedValue({ data: [mockApiSimulation, mockApiSimulation2] });
-    mockedApiClient.post.mockResolvedValue({ data: { ...mockApiSimulation, id: 3, name: 'New Sim' } });
+    mockedApiClient.post.mockResolvedValue({
+      data: { ...mockApiSimulation, id: 3, name: 'New Sim' },
+    });
     mockedApiClient.put.mockResolvedValue({ data: { ...mockApiSimulation, name: 'Renamed Sim' } });
     mockedApiClient.delete.mockResolvedValue({ data: {} });
 
@@ -132,7 +140,11 @@ describe('useSimulationStorage', () => {
 
     let success: boolean | undefined;
     await act(async () => {
-      success = await result.current.saveSimulation('Too Many', 'buy_rent', DEFAULT_BUY_RENT_INPUTS);
+      success = await result.current.saveSimulation(
+        'Too Many',
+        'buy_rent',
+        DEFAULT_BUY_RENT_INPUTS
+      );
     });
 
     expect(success).toBe(false);
@@ -153,7 +165,11 @@ describe('useSimulationStorage', () => {
 
     let success: boolean | undefined;
     await act(async () => {
-      success = await result.current.saveSimulation('Fail Sim', 'buy_rent', DEFAULT_BUY_RENT_INPUTS);
+      success = await result.current.saveSimulation(
+        'Fail Sim',
+        'buy_rent',
+        DEFAULT_BUY_RENT_INPUTS
+      );
     });
 
     expect(success).toBe(false);
@@ -232,10 +248,15 @@ describe('useSimulationStorage', () => {
     });
 
     expect(success).toBe(true);
-    expect(mockedApiClient.put).toHaveBeenCalledWith('/real-estate-simulations/1', expect.objectContaining({
-      name: 'Renamed Sim',
-    }));
-    expect(result.current.simulations.find(s => s.metadata.id === '1')?.metadata.name).toBe('Renamed Sim');
+    expect(mockedApiClient.put).toHaveBeenCalledWith(
+      '/real-estate-simulations/1',
+      expect.objectContaining({
+        name: 'Renamed Sim',
+      })
+    );
+    expect(result.current.simulations.find(s => s.metadata.id === '1')?.metadata.name).toBe(
+      'Renamed Sim'
+    );
   });
 
   it('should reject rename with empty name', async () => {
@@ -352,7 +373,13 @@ describe('useSimulationStorage', () => {
     // After import, refreshSimulations is called
     mockedApiClient.get
       .mockResolvedValueOnce({ data: [mockApiSimulation, mockApiSimulation2] }) // initial load
-      .mockResolvedValueOnce({ data: [mockApiSimulation, mockApiSimulation2, { ...mockApiSimulation, id: 3, name: 'Imported' }] }); // refresh after import
+      .mockResolvedValueOnce({
+        data: [
+          mockApiSimulation,
+          mockApiSimulation2,
+          { ...mockApiSimulation, id: 3, name: 'Imported' },
+        ],
+      }); // refresh after import
 
     const { result } = renderHook(() => useSimulationStorage());
 
@@ -362,7 +389,13 @@ describe('useSimulationStorage', () => {
 
     const importData: any[] = [
       {
-        metadata: { id: 'imp1', name: 'Imported Sim', type: 'buy_rent', createdAt: new Date(), updatedAt: new Date() },
+        metadata: {
+          id: 'imp1',
+          name: 'Imported Sim',
+          type: 'buy_rent',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
         data: DEFAULT_BUY_RENT_INPUTS,
       },
     ];
@@ -373,10 +406,13 @@ describe('useSimulationStorage', () => {
     });
 
     expect(success).toBe(true);
-    expect(mockedApiClient.post).toHaveBeenCalledWith('/real-estate-simulations', expect.objectContaining({
-      name: 'Imported Sim',
-      simulationType: 'buy_rent',
-    }));
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/real-estate-simulations',
+      expect.objectContaining({
+        name: 'Imported Sim',
+        simulationType: 'buy_rent',
+      })
+    );
   });
 
   it('should reject import of non-array JSON', async () => {
@@ -402,9 +438,7 @@ describe('useSimulationStorage', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    const invalidData = [
-      { metadata: { id: '1', name: 'Bad' }, data: { noValidFields: true } },
-    ];
+    const invalidData = [{ metadata: { id: '1', name: 'Bad' }, data: { noValidFields: true } }];
 
     let success: boolean | undefined;
     await act(async () => {
@@ -432,7 +466,13 @@ describe('useSimulationStorage', () => {
 
     const importData = [
       {
-        metadata: { id: 'imp1', name: 'One More', type: 'buy_rent', createdAt: new Date(), updatedAt: new Date() },
+        metadata: {
+          id: 'imp1',
+          name: 'One More',
+          type: 'buy_rent',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
         data: DEFAULT_BUY_RENT_INPUTS,
       },
     ];
@@ -493,8 +533,11 @@ describe('useSimulationStorage', () => {
       await result.current.saveSimulation(longName, 'buy_rent', DEFAULT_BUY_RENT_INPUTS);
     });
 
-    expect(mockedApiClient.post).toHaveBeenCalledWith('/real-estate-simulations', expect.objectContaining({
-      name: 'A'.repeat(100), // truncated to 100 chars
-    }));
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/real-estate-simulations',
+      expect.objectContaining({
+        name: 'A'.repeat(100), // truncated to 100 chars
+      })
+    );
   });
 });

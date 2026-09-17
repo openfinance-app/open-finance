@@ -33,7 +33,7 @@ export const CURRENCIES = [
   { code: 'ETH', symbol: 'Ξ', name: 'Ethereum' },
 ] as const;
 
-export type CurrencyCode = typeof CURRENCIES[number]['code'];
+export type CurrencyCode = (typeof CURRENCIES)[number]['code'];
 
 /**
  * Application-wide default/fallback currency (ISO 4217).
@@ -148,7 +148,7 @@ export function getDecimalPlacesOverride(): number | null {
 
 /**
  * Get the number of decimal places for a currency
- * 
+ *
  * @param currencyCode - Currency code (e.g., 'USD', 'BTC')
  * @returns Number of decimal places (0 for JPY, 8 for crypto, 2 for most)
  */
@@ -243,9 +243,7 @@ export function applyNumberFormat(formattedEnUS: string, fmt: NumberFormat | und
   if (!fmt || fmt === '1,234.56') return formattedEnUS; // already en-US
 
   // Tokenise the existing en-US separators
-  const tokenised = formattedEnUS
-    .replace(/,/g, TOKEN_THOUSANDS)
-    .replace(/\./g, TOKEN_DECIMAL);
+  const tokenised = formattedEnUS.replace(/,/g, TOKEN_THOUSANDS).replace(/\./g, TOKEN_DECIMAL);
 
   if (fmt === '1.234,56') {
     return tokenised
@@ -261,14 +259,14 @@ export function applyNumberFormat(formattedEnUS: string, fmt: NumberFormat | und
 
 /**
  * Format a number as currency with proper symbol and formatting
- * 
+ *
  * Handles all currency-specific rules:
  * - JPY, KRW: 0 decimals
  * - BTC, ETH: 8 decimals
  * - CHF, SEK: symbol after amount
  * - Negative amounts: proper sign handling
  * - Compact mode: 1.5K, 2.3M, 1.2B
- * 
+ *
  * @param amount - The numeric amount to format
  * @param currencyCode - The currency code (e.g., 'USD', 'EUR', 'BTC')
  * @param options - Formatting options
@@ -299,7 +297,11 @@ export function formatCurrency(
 
   // Format in compact mode
   if (compact) {
-    return formatCurrencyCompact(amount, currencyCode, { showSymbol, decimals: decimalPlaces, numberFormat });
+    return formatCurrencyCompact(amount, currencyCode, {
+      showSymbol,
+      decimals: decimalPlaces,
+      numberFormat,
+    });
   }
 
   // Format number with locale-appropriate separators (always en-US base, then convert)
@@ -330,9 +332,7 @@ export function formatCurrency(
   let formatted: string;
   if (accounting && amount < 0) {
     // Accounting format: ($1,234.56)
-    formatted = symbolAfter
-      ? `(${formattedNumber} ${symbol})`
-      : `(${symbol}${formattedNumber})`;
+    formatted = symbolAfter ? `(${formattedNumber} ${symbol})` : `(${symbol}${formattedNumber})`;
   } else {
     formatted = symbolAfter
       ? `${sign}${formattedNumber} ${symbol}`
@@ -344,7 +344,7 @@ export function formatCurrency(
 
 /**
  * Format currency in compact notation (1.5K, 2.3M, 1.2B)
- * 
+ *
  * @param amount - The numeric amount to format
  * @param currencyCode - The currency code
  * @param options - Formatting options
@@ -386,9 +386,7 @@ export function formatCurrencyCompact(
     value = absAmount;
     suffix = '';
     const formatted = applyNumberFormat(value.toFixed(decimalPlaces), numberFormat);
-    return symbolAfter
-      ? `${sign}${formatted} ${symbol}`.trim()
-      : `${sign}${symbol}${formatted}`;
+    return symbolAfter ? `${sign}${formatted} ${symbol}`.trim() : `${sign}${symbol}${formatted}`;
   }
 
   // Format with specified decimals; apply number format to decimal separator only
@@ -404,9 +402,9 @@ export function formatCurrencyCompact(
 
 /**
  * Parse a currency string to a number
- * 
+ *
  * Removes currency symbols, commas, and other formatting
- * 
+ *
  * @param value - Currency string (e.g., "$1,234.56", "€1.234,56")
  * @returns Parsed number or null if invalid
  */
@@ -431,7 +429,7 @@ export function parseCurrency(value: string): number | null {
 
 /**
  * Format a currency amount with color coding based on positive/negative
- * 
+ *
  * @param amount - Amount to format
  * @param currencyCode - Currency code
  * @param options - Formatting options
