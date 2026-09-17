@@ -263,7 +263,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                 <select
                   value={period}
                   onChange={(e) => setPeriod(e.target.value as BudgetPeriod)}
-                  className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
                 >
                   {PERIOD_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -281,7 +281,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                 <select
                   value={lookbackMonths}
                   onChange={(e) => setLookbackMonths(Number(e.target.value))}
-                  className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
                 >
                   {LOOKBACK_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>

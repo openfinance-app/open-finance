@@ -49,5 +49,9 @@
   },
   "submit": "Get Started",
   "submitting": "Saving your preferences…",
-  "error": "Something went wrong. Please try again."
+  "error": "Something went wrong. Please try again.",
+  "sections": {
+    "profile": "Your region & currency",
+    "formats": "Display formats"
+  }
 }

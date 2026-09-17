@@ -121,7 +121,7 @@ export function AccountFilters({
             id="type"
             value={filters.type || ''}
             onChange={(e) => handleChange('type', e.target.value || undefined)}
-            className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
             {accountTypes.map((type) => (
               <option key={type.value} value={type.value}>
@@ -164,7 +164,7 @@ export function AccountFilters({
                 handleChange('isActive', e.target.value === 'active');
               }
             }}
-            className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
             <option value="">{t('filters.allAccounts')}</option>
             <option value="active">{t('filters.active')}</option>
@@ -182,7 +182,7 @@ export function AccountFilters({
             data-testid="filter-sort"
             value={filters.sort || 'name,asc'}
             onChange={(e) => handleChange('sort', e.target.value || undefined)}
-            className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
             {sortOptions.map((option) => (
               <option key={option.value} value={option.value}>

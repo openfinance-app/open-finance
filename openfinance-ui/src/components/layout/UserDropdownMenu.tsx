@@ -155,7 +155,7 @@ export function UserDropdownMenu() {
             'absolute right-0 mt-2 w-56',
             'bg-surface border border-border rounded-lg shadow-lg',
             'py-2 z-50',
-            'animate-in fade-in slide-in-from-top-2 duration-200'
+            'pop-enter'
           )}
         >
           {/* User info */}

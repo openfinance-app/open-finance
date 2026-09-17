@@ -851,7 +851,8 @@ export function TransactionForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
+      {/* ── Zone 1: essentials — type, date, currency, amount ─────────────── */}
       {/* Row 1: Type & Date */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Transaction Type */}
@@ -865,7 +866,7 @@ export function TransactionForm({
             aria-required="true"
             aria-invalid={errors.type ? 'true' : 'false'}
             aria-describedby={errors.type ? 'type-error' : undefined}
-            className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
             {TRANSACTION_TYPES.map(type => (
               <option key={type} value={type}>
@@ -973,6 +974,7 @@ export function TransactionForm({
         </div>
       </div>
 
+      {/* ── Zone 2: accounts ──────────────────────────────────────────────── */}
       {/* Row 3: Accounts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Account */}
@@ -1029,12 +1031,15 @@ export function TransactionForm({
         )}
       </div>
 
+      {/* ── Zone 3: context — payee, payment, category, linkages ──────────── */}
+      <div aria-hidden="true" className="border-t border-border/60" />
+
       {/* Row 4: Payee & Payment Method */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Payee */}
         <div>
           <div className="flex items-center gap-1 mb-1.5">
-            <label htmlFor="payee" className="block text-sm font-medium text-text-primary">
+            <label htmlFor="payee" className="block text-sm font-medium text-text-secondary">
               {t('form.payee')}
             </label>
             <HelpTooltip text={t('form.payeeHint')} side="right" />
@@ -1056,7 +1061,7 @@ export function TransactionForm({
         {/* Payment Method */}
         <div>
           <div className="flex items-center gap-1 mb-1.5">
-            <label htmlFor="paymentMethod" className="block text-sm font-medium text-text-primary">
+            <label htmlFor="paymentMethod" className="block text-sm font-medium text-text-secondary">
               {t('form.paymentMethod')}
             </label>
             <HelpTooltip text={t('form.paymentMethodHint')} side="right" />
@@ -1069,7 +1074,7 @@ export function TransactionForm({
                 id="paymentMethod"
                 value={field.value || ''}
                 onChange={field.onChange}
-                className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
               >
                 {PAYMENT_METHOD_VALUES.map(method => (
                   <option key={method} value={method}>
@@ -1204,7 +1209,7 @@ export function TransactionForm({
       {selectedType === 'EXPENSE' && liabilities.length > 0 && (
         <div>
           <div className="flex items-center gap-1 mb-1.5">
-            <label htmlFor="liabilityId" className="block text-sm font-medium text-text-primary">
+            <label htmlFor="liabilityId" className="block text-sm font-medium text-text-secondary">
               {t('form.linkedLiability')}
             </label>
             <HelpTooltip text={t('form.linkedLiabilityHint')} side="right" />
@@ -1335,13 +1340,16 @@ export function TransactionForm({
         </div>
       )}
 
+      {/* ── Zone 4: free text — description, tags, notes ──────────────────── */}
+      <div aria-hidden="true" className="border-t border-border/60" />
+
       {/* Row 5: Description and Tags */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Description */}
         <div>
           <label
             htmlFor="description"
-            className="block text-sm font-medium text-text-primary mb-1.5"
+            className="block text-sm font-medium text-text-secondary mb-1.5"
           >
             {t('form.description')}
           </label>
@@ -1356,7 +1364,7 @@ export function TransactionForm({
         {/* Tags */}
         <div>
           <div className="flex items-center gap-1 mb-1.5">
-            <label className="block text-sm font-medium text-text-primary">{t('form.tags')}</label>
+            <label className="block text-sm font-medium text-text-secondary">{t('form.tags')}</label>
             <HelpTooltip text={t('form.tagsHint')} side="right" />
           </div>
           <TagInput
@@ -1372,7 +1380,7 @@ export function TransactionForm({
 
       {/* Notes */}
       <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-text-primary mb-1.5">
+        <label htmlFor="notes" className="block text-sm font-medium text-text-secondary mb-1.5">
           {t('form.notes')}
         </label>
         <textarea
@@ -1382,7 +1390,7 @@ export function TransactionForm({
           placeholder={t('form.notesPlaceholder')}
           aria-invalid={errors.notes ? 'true' : 'false'}
           aria-describedby={errors.notes ? 'notes-error' : undefined}
-          className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+          className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
         />
         {errors.notes && (
           <p id="notes-error" className="mt-1 text-sm text-error" role="alert">
@@ -1392,7 +1400,7 @@ export function TransactionForm({
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end gap-3 pt-4">
+      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
         <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
           {t('form.cancel')}
         </Button>

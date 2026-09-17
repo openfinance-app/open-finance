@@ -347,6 +347,11 @@
     },
     "totalEarned": "Total gagné",
     "projectedNextYear": "Projection année prochaine",
+    "filter": {
+      "all": "Tous",
+      "accounts": "Comptes",
+      "liabilities": "Passifs"
+    },
     "noData": "Aucune donnée d'intérêt disponible pour cette période.",
     "projShort": "Proj.",
     "viewDetails": "Voir les détails de {{account}}"
@@ -374,6 +379,7 @@
     "Crypto": "Crypto",
     "Commodities": "Matières premières",
     "Other": "Autre",
+    "Other_Assets": "Autres actifs",
     "Bonds": "Obligations",
     "Money_Market": "Marché monétaire",
     "Mortgages": "Prêts immobiliers",

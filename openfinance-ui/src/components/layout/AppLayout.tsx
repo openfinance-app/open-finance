@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { FloatingAIChat } from '@/components/ai/FloatingAIChat';
@@ -20,6 +21,7 @@ export interface AppLayoutProps {
  */
 function AppLayoutInner({ children }: AppLayoutProps) {
   const isMobile = useIsMobile();
+  const location = useLocation();
   const { data: settings } = useUserSettings();
   const { locale, setLocale } = useLocale();
   const hasSyncedRef = useRef(false);
@@ -66,7 +68,10 @@ function AppLayoutInner({ children }: AppLayoutProps) {
           )}
         >
           <div className="mx-auto max-w-7xl">
-            {children}
+            {/* Keyed by pathname so each route re-runs the entrance animation */}
+            <div key={location.pathname} className="page-enter">
+              {children}
+            </div>
           </div>
         </main>
       </div>

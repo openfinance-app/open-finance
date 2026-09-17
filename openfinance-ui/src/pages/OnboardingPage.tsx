@@ -7,11 +7,12 @@
  */
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Globe, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { Button } from '@/components/ui/Button';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
+import { AppLogo } from '@/components/ui/AppLogo';
 import { useCompleteOnboarding } from '@/hooks/useAuth';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
 import { CountrySelector } from '@/components/common/CountrySelector';
@@ -95,22 +96,32 @@ function RadioGroup<T extends string>({
   value,
   onChange,
   options,
+  columns = 2,
 }: {
   name: string;
   value: T;
   onChange: (v: T) => void;
   options: RadioOption<T>[];
+  /** Grid columns on sm+ (default: 2). Mobile always stacks. */
+  columns?: 2 | 3;
 }) {
+  const lastIsOdd = columns === 2 && options.length % 2 === 1;
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-      {options.map((opt) => (
+    <div
+      className={cn(
+        'grid grid-cols-1 gap-1.5',
+        columns === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'
+      )}
+    >
+      {options.map((opt, i) => (
         <label
           key={opt.value}
           className={cn(
             'flex items-start gap-2.5 rounded-lg border p-2.5 cursor-pointer transition-colors',
             value === opt.value
               ? 'border-primary bg-primary/10'
-              : 'border-border bg-surface hover:border-border-hover'
+              : 'border-border bg-surface hover:border-primary/40 hover:bg-surface-elevated',
+            lastIsOdd && i === options.length - 1 && 'sm:col-span-2'
           )}
         >
           <input
@@ -119,7 +130,7 @@ function RadioGroup<T extends string>({
             value={opt.value}
             checked={value === opt.value}
             onChange={() => onChange(opt.value)}
-            className="mt-0.5 accent-yellow-500 shrink-0"
+            className="mt-0.5 accent-primary shrink-0"
           />
           <div>
             <span className="text-sm font-medium text-text-primary">{opt.label}</span>
@@ -129,6 +140,20 @@ function RadioGroup<T extends string>({
           </div>
         </label>
       ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section group header — compact uppercase micro-label dividing the form
+// ---------------------------------------------------------------------------
+
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="pt-1" aria-hidden="true">
+      <p className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+        {children}
+      </p>
     </div>
   );
 }
@@ -214,25 +239,25 @@ export default function OnboardingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex items-start justify-center px-4 py-8 relative">
+    <div className="min-h-screen bg-background flex items-start justify-center px-4 pt-20 pb-8 sm:pt-8 sm:pb-8 relative">
       {/* Language switcher */}
       <div className="absolute top-4 right-4 z-10" role="region" aria-label="Language selection">
         <LanguageSelector />
       </div>
 
-      <div className="w-full max-w-xl">
+      <div className="w-full max-w-3xl page-enter">
         {/* Header */}
-        <div className="text-center mb-5">
-          <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-primary/15 mb-3">
-            <Globe className="w-5 h-5 text-primary" />
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
+            <AppLogo size={30} showText={false} />
           </div>
           <h1 className="text-2xl font-bold text-text-primary mb-1">{t('title')}</h1>
           <p className="text-text-secondary text-sm">{t('subtitle')}</p>
         </div>
 
         {/* Form card */}
-        <div className="bg-surface rounded-xl border border-border p-5">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-surface rounded-xl border border-border p-5 sm:p-8">
+          <form onSubmit={handleSubmit} className="space-y-5">
 
             {/* Error banner */}
             {completeOnboarding.isError && (
@@ -244,8 +269,11 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {/* Country + Language — side by side */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* ── Group: region & currency ─────────────────────────────────── */}
+            <GroupLabel>{t('sections.profile')}</GroupLabel>
+
+            {/* Country + Language */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Section title={t('country.label')}>
                 <CountrySelector
                   value={country}
@@ -277,8 +305,8 @@ export default function OnboardingPage() {
               </Section>
             </div>
 
-            {/* Base Currency + Secondary Currency — side by side */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Base Currency + Secondary Currency */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Section title={t('baseCurrency.label')} hint={t('baseCurrency.hint')}>
                 <CurrencySelector
                   value={baseCurrency}
@@ -296,6 +324,9 @@ export default function OnboardingPage() {
                 />
               </Section>
             </div>
+
+            {/* ── Group: display formats ───────────────────────────────────── */}
+            <GroupLabel>{t('sections.formats')}</GroupLabel>
 
             {/* Date Format — compact 3-button toggle strip */}
             <Section title={t('dateFormat.label')}>
@@ -325,6 +356,7 @@ export default function OnboardingPage() {
                 value={numberFormat}
                 onChange={setNumberFormat}
                 options={numberFormatOptions}
+                columns={3}
               />
             </Section>
 
@@ -335,6 +367,7 @@ export default function OnboardingPage() {
                 value={amountDisplayMode}
                 onChange={setAmountDisplayMode}
                 options={amountDisplayModeOptions}
+                columns={3}
               />
             </Section>
 

@@ -31,20 +31,25 @@ export function EmptyState({
     <div
       className={cn(
         'flex flex-col items-center justify-center',
-        'py-12 px-4 text-center',
+        'py-16 px-4 text-center',
         className
       )}
     >
       {Icon && (
-        <div className="mb-4 p-4 rounded-full bg-surface">
-          <Icon size={32} className="text-text-secondary" />
+        <div
+          className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-elevated border border-border"
+          aria-hidden="true"
+        >
+          <Icon size={28} strokeWidth={1.75} className="text-primary/80" />
         </div>
       )}
 
       <h3 className="text-lg font-semibold text-text-primary mb-2">{title}</h3>
 
       {description && (
-        <p className="text-sm text-text-secondary mb-6 max-w-md">{description}</p>
+        <p className="text-sm text-text-secondary mb-6 max-w-sm leading-relaxed">
+          {description}
+        </p>
       )}
 
       {action && (

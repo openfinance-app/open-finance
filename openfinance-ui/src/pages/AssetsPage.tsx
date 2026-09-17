@@ -4,7 +4,7 @@
  * 
  * Main page for managing user investment assets with filters and pagination
  */
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { Plus, Filter, DollarSign, PieChart, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -312,10 +312,12 @@ export default function AssetsPage() {
       {!isLoading && allAssets.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Total Portfolio Value */}
-          <div className="bg-surface border border-border rounded-lg p-6">
+          <div className="bg-surface border border-border rounded-lg p-6 stagger-item" style={{ '--stagger-index': 0 } as React.CSSProperties}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">{t('summary.totalPortfolioValue')}</span>
-              <DollarSign className="h-5 w-5 text-primary" />
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10" aria-hidden="true">
+                <DollarSign className="h-4 w-4 text-primary" />
+              </span>
             </div>
             <ConvertedAmount
               amount={globalSummary.totalValue}
@@ -324,6 +326,7 @@ export default function AssetsPage() {
               secondaryAmount={convert(globalSummary.totalValue)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
+              animate
               className="text-2xl font-bold text-foreground"
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -346,10 +349,12 @@ export default function AssetsPage() {
           </div>
 
           {/* Total Cost Basis */}
-          <div className="bg-surface border border-border rounded-lg p-6">
+          <div className="bg-surface border border-border rounded-lg p-6 stagger-item" style={{ '--stagger-index': 1 } as React.CSSProperties}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">{t('summary.totalCostBasis')}</span>
-              <PieChart className="h-5 w-5 text-muted-foreground" />
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-elevated" aria-hidden="true">
+                <PieChart className="h-4 w-4 text-muted-foreground" />
+              </span>
             </div>
             <ConvertedAmount
               amount={globalSummary.totalCost}
@@ -378,14 +383,16 @@ export default function AssetsPage() {
           </div>
 
           {/* Merged Unrealized Gain/Loss + Overall Return */}
-          <div className="bg-surface border border-border rounded-lg p-6">
+          <div className="bg-surface border border-border rounded-lg p-6 stagger-item" style={{ '--stagger-index': 2 } as React.CSSProperties}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">{t('summary.overallReturn')}</span>
-              {globalSummary.totalGain >= 0 ? (
-                <TrendingUp className="h-5 w-5 text-green-600" />
-              ) : (
-                <TrendingDown className="h-5 w-5 text-red-600" />
-              )}
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-elevated" aria-hidden="true">
+                {globalSummary.totalGain >= 0 ? (
+                  <TrendingUp className="h-4 w-4 text-success" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 text-error" />
+                )}
+              </span>
             </div>
             <ConvertedAmount
               amount={globalSummary.totalGain}
@@ -394,6 +401,7 @@ export default function AssetsPage() {
               secondaryAmount={convert(globalSummary.totalGain)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
+              animate
               className={`text-2xl font-bold ${getGainLossColor(globalSummary.totalGain)}`}
             />
             <p className={`text-xs mt-1 ${getGainLossColor(globalSummary.gainPct)}`}>
@@ -408,10 +416,12 @@ export default function AssetsPage() {
           </div>
 
           {/* Best Performer */}
-          <div className="bg-surface border border-border rounded-lg p-6">
+          <div className="bg-surface border border-border rounded-lg p-6 stagger-item" style={{ '--stagger-index': 3 } as React.CSSProperties}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">{t('summary.bestPerformer')}</span>
-              <TrendingUp className="h-5 w-5 text-green-600" />
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10" aria-hidden="true">
+                <TrendingUp className="h-4 w-4 text-success" />
+              </span>
             </div>
             {best.length > 0 ? (
               <>

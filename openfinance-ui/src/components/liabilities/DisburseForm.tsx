@@ -66,7 +66,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
   };
 
   const selectClass =
-    'w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent';
+    'w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150';
 
   return (
     <div

@@ -6,7 +6,7 @@
  * 
  * Main page for managing user accounts with filters and pagination
  */
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { Plus, Filter } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -376,20 +376,27 @@ export default function AccountsPage() {
       {/* Total Balance Summary */}
       {!isLoading && allAccounts && allAccounts.length > 0 && (
         <div className="mb-6 p-6 rounded-lg bg-surface border border-border">
-          <h3 className="text-lg font-semibold mb-4 text-text-primary">{t('totalBalance')}</h3>
-          <div className="space-y-2">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-text-secondary mb-4">
+            {t('totalBalance')}
+          </h3>
+          <div className="flex flex-wrap gap-x-10 gap-y-3">
             {Object.entries(allTotalsByCurrency).map(([currency, totals]) => (
-              <div key={currency} className="flex items-center justify-between">
-                <span className="text-text-secondary">{currency}:</span>
-                <div className="text-right">
+              <div key={currency}>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+                    {currency}
+                  </span>
+                </div>
+                <div>
                   {/* Global total is always the primary figure */}
                   <ConvertedAmount
-                    className="text-xl font-mono font-semibold text-text-primary"
+                    className="text-2xl font-mono font-semibold text-text-primary"
                     amount={totals.nativeTotal}
                     currency={currency}
                     convertedAmount={totals.hasConversion ? totals.baseCurrencyTotal : undefined}
                     baseCurrency={totals.baseCurrency}
                     isConverted={totals.hasConversion}
+                    animate
                   />
                   {/* Show filtered subtotal as secondary when a filter is active */}
                   {isFiltered && filteredTotalsByCurrency[currency] && (
@@ -449,16 +456,21 @@ export default function AccountsPage() {
       {!isLoading && accounts && accounts.length > 0 && (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-            {accounts.map((account) => (
-              <AccountCard
+            {accounts.map((account, index) => (
+              <div
                 key={account.id}
-                account={account}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onClose={handleClose}
-                onReopen={handleReopen}
-                onViewDetail={(a) => setDetailAccountId(a.id)}
-              />
+                className="stagger-item"
+                style={{ '--stagger-index': index } as React.CSSProperties}
+              >
+                <AccountCard
+                  account={account}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onClose={handleClose}
+                  onReopen={handleReopen}
+                  onViewDetail={(a) => setDetailAccountId(a.id)}
+                />
+              </div>
             ))}
           </div>
 

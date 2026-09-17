@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* Radix/shadcn animation utilities (animate-in, fade-in, zoom-in-95, slide-in-from-*) */
+@import 'tw-animate-css';
 
 /* Self-hosted fonts comply with the same-origin font policy, including offline use. */
 @font-face {
@@ -37,12 +39,29 @@
   /* Text Colors */
   --color-text-primary: #ffffff;
   --color-text-secondary: #a0a0a0;
+  --color-text-tertiary: #8a8a8a;
   --color-text-muted: #666666;
+
+  /* Neutral fill for skeletons and subtle placeholders */
+  --color-muted: #2a2a2a;
 
   /* Status Colors */
   --color-success: #00c853;
   --color-error: #ff5252;
   --color-warning: #ffc107;
+
+  /* shadcn-compat aliases — referenced across the codebase, must resolve */
+  --color-muted-foreground: #8a8a8a;
+  --color-foreground: #ffffff;
+  --color-destructive: #ff5252;
+  --color-primary-foreground: #0a0a0a;
+  --color-secondary-foreground: #ffffff;
+  --color-accent: #2a2a2a;
+  --color-accent-foreground: #ffffff;
+  --color-card: #1a1a1a;
+  --color-card-foreground: #ffffff;
+  --color-input: #333333;
+  --color-ring: #f5a623;
 
   /* Font Families */
   --font-family-sans:
@@ -56,6 +75,13 @@
 
   /* Border Radius */
   --radius-card: 12px;
+
+  /* Motion tokens — confident arrivals, quick feedback */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 240ms;
+  --duration-slow: 420ms;
 }
 
 /* ─── Light theme overrides ───────────────────────────────────────────────── */
@@ -74,11 +100,27 @@
 
   --color-text-primary: #111111;
   --color-text-secondary: #555555;
+  --color-text-tertiary: #6b6b6b;
   --color-text-muted: #888888;
+
+  --color-muted: #ececec;
 
   --color-success: #00a844;
   --color-error: #e03030;
   --color-warning: #d97706;
+
+  /* shadcn-compat aliases — light theme */
+  --color-muted-foreground: #6b6b6b;
+  --color-foreground: #111111;
+  --color-destructive: #e03030;
+  --color-primary-foreground: #1a1a1a;
+  --color-secondary-foreground: #111111;
+  --color-accent: #f0f0f0;
+  --color-accent-foreground: #111111;
+  --color-card: #ffffff;
+  --color-card-foreground: #111111;
+  --color-input: #e0e0e0;
+  --color-ring: #e0941a;
 }
 
 * {
@@ -110,6 +152,19 @@ h6 {
   font-variant-numeric: tabular-nums;
 }
 
+/* Text selection matches the amber accent */
+::selection {
+  background-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  color: var(--color-text-primary);
+}
+
+/* Consistent keyboard focus ring across the app */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* Gain/Loss color coding */
 .gain-positive {
   color: var(--color-success);
@@ -119,16 +174,16 @@ h6 {
   color: var(--color-error);
 }
 
-/* Shimmer loading effect */
+/* Shimmer loading effect — amber-tinted sweep used on skeletons */
 .shimmer {
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(245, 166, 35, 0.2) 50%,
+    rgba(245, 166, 35, 0.12) 50%,
     rgba(255, 255, 255, 0) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer 1.8s var(--ease-out-quart) infinite;
 }
 
 @keyframes shimmer {
@@ -153,7 +208,7 @@ h6 {
 @keyframes slide-in-up {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -164,7 +219,7 @@ h6 {
 @keyframes slide-in-down {
   from {
     opacity: 0;
-    transform: translateY(-16px);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
@@ -175,13 +230,216 @@ h6 {
 @keyframes scale-in {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
     transform: scale(1);
   }
 }
+
+/* Page-level entrance: short travel, confident deceleration */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Skeleton sweep: the overlay travels across the fill (transform-only, GPU-friendly) */
+@keyframes skeleton-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(200%);
+  }
+}
+
+/* Skeleton shimmer overlay — disabled under reduced motion */
+.skeleton-sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  animation: skeleton-sweep 1.8s infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+}
+
+/* ─── Entrance utilities ─────────────────────────────────────────────────── */
+/* Keyed page transition — applied by AppLayout on route change */
+.page-enter {
+  animation: page-enter var(--duration-normal) var(--ease-out-expo) both;
+}
+
+/* Staggered list entrance: set --stagger-index on each child (0-based).
+   Total delay is capped at 360ms so long lists never feel slow. */
+.stagger-item {
+  animation: slide-in-up var(--duration-normal) var(--ease-out-expo) both;
+  animation-delay: min(calc(var(--stagger-index, 0) * 45ms), 360ms);
+}
+
+/* Popover / dropdown entrance (replaces the absent tailwindcss-animate plugin) */
+.pop-enter {
+  animation: slide-in-down var(--duration-fast) var(--ease-out-expo) both;
+  transform-origin: top right;
+}
+
+/* Progress fill: animates from 0 to its inline scaleX value on mount and keeps
+   smooth transitions on updates. Pair with an inline transform: scaleX(p). */
+.progress-fill {
+  transform-origin: left center;
+  animation: progress-grow 700ms var(--ease-out-expo) both;
+  transition: transform 500ms var(--ease-out-expo);
+}
+
+@keyframes progress-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+
+/* ─── Dashboard grid: drag & resize gestures ─────────────────────────────── */
+/* Overrides react-grid-layout defaults (red placeholder, invisible handles)
+   to speak this app's amber world and motion tokens. Scoped at higher
+   specificity than the library defaults so injection order can't flip them. */
+
+/* Cards glide into place with the app easing when siblings reflow */
+.react-grid-layout .react-grid-item {
+  transition:
+    transform var(--duration-normal) var(--ease-out-expo),
+    width var(--duration-normal) var(--ease-out-expo),
+    height var(--duration-normal) var(--ease-out-expo);
+}
+
+/* While the pointer drives a card, movement stays 1:1 — no transition lag */
+.react-grid-layout .react-grid-item.resizing,
+.react-grid-layout .react-grid-item.react-draggable-dragging {
+  transition: none;
+}
+
+/* Lifted card: real depth (offset + soft blur) plus an amber state ring */
+.react-grid-layout .react-grid-item.react-draggable-dragging,
+.react-grid-layout .react-grid-item.resizing {
+  z-index: 30;
+  border-radius: var(--radius-card);
+  cursor: grabbing;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-primary) 45%, transparent),
+    0 24px 48px -16px rgba(0, 0, 0, 0.65);
+}
+
+/* Drop target: replaces RGL's red blob with a breathing amber outline */
+.react-grid-layout .react-grid-item.react-grid-placeholder {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border: 1.5px dashed color-mix(in srgb, var(--color-primary) 55%, transparent);
+  border-radius: var(--radius-card);
+  opacity: 1;
+  animation: placeholder-breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes placeholder-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Resize grip: the library's black triangle is invisible on dark surfaces —
+   replace it with a diagonal-striped chip that tints amber on hover */
+.react-grid-layout .react-grid-item > .react-resizable-handle {
+  background-image: none;
+  padding: 0;
+}
+
+.react-grid-layout .react-grid-item > .react-resizable-handle::after {
+  right: 4px;
+  bottom: 4px;
+  width: 11px;
+  height: 11px;
+  border: none;
+  border-radius: 3px;
+  background-color: color-mix(in srgb, var(--color-surface-elevated) 85%, transparent);
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 2px,
+    var(--color-text-tertiary) 2px 3px
+  );
+  transition: background-color var(--duration-fast) ease;
+}
+
+.react-grid-layout .react-grid-item > .react-resizable-handle:hover::after {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 2px,
+    var(--color-primary) 2px 3px
+  );
+}
+
+/* While resizing, a soft scrim calms the card contents that reflow underneath */
+.react-grid-layout .react-grid-item.resizing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-background) 30%, transparent);
+  pointer-events: none;
+}
+
+/* The whole grid shows the grabbing cursor for the duration of a drag */
+body.react-draggable-transparent-selection {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-grid-layout .react-grid-item.react-grid-placeholder {
+    animation: none;
+  }
+}
+
+/* ─── Reduced motion: keep state changes, remove travel ──────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .stagger-item,
+  .pop-enter {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+
+  .stagger-item {
+    animation-delay: 0ms;
+  }
+
+  .shimmer {
+    animation: none;
+  }
+
+  .skeleton-sweep::after {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 
 /* Global scrollbar styling */
 ::-webkit-scrollbar {

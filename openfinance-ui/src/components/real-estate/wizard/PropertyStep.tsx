@@ -49,7 +49,7 @@ export function PropertyStep({ property, onChange, today }: PropertyStepProps) {
           id="wizard-type"
           value={property.propertyType}
           onChange={e => onChange({ propertyType: e.target.value })}
-          className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary"
+          className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
         >
           {PROPERTY_TYPE_OPTIONS.map(type => (
             <option key={type} value={type}>

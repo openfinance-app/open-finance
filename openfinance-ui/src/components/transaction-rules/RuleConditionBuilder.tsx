@@ -172,7 +172,7 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
             <select
               value={condition.field}
               onChange={(e) => handleFieldChange(index, e.target.value as RuleConditionField)}
-              className="flex-1 min-w-[160px] h-9 rounded-md border border-border bg-background px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="flex-1 min-w-[160px] h-9 rounded-md border border-border bg-background px-3 pr-8 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               aria-label="Condition field"
             >
               {(Object.keys(FIELD_LABELS) as RuleConditionField[]).map((field) => (
@@ -188,7 +188,7 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
               onChange={(e) =>
                 handleOperatorChange(index, e.target.value as RuleConditionOperator)
               }
-              className="flex-1 min-w-[180px] h-9 rounded-md border border-border bg-background px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="flex-1 min-w-[180px] h-9 rounded-md border border-border bg-background px-3 pr-8 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               aria-label="Condition operator"
             >
               {availableOperators.map((op) => (
@@ -203,7 +203,7 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
               <select
                 value={condition.value}
                 onChange={(e) => handleValueChange(index, e.target.value)}
-                className="flex-1 h-9 rounded-md border border-border bg-background px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="flex-1 h-9 rounded-md border border-border bg-background px-3 pr-8 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 aria-label="Condition value"
               >
                 <option value="">{t('form.conditions.selectType')}</option>

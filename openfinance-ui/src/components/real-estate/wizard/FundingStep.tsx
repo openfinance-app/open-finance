@@ -37,7 +37,7 @@ export function FundingStep({
             value={funding.source}
             onChange={e => onChange({ source: e.target.value as FundingStepState['source'] })}
             disabled={locked}
-            className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary disabled:opacity-50"
+            className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary disabled:opacity-50 text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
             <option value="new">{t('wizard.funding.new')}</option>
             <option value="existing">{t('wizard.funding.existing')}</option>
@@ -56,7 +56,7 @@ export function FundingStep({
             value={funding.route}
             onChange={e => onChange({ route: e.target.value as FundingStepState['route'] })}
             disabled={funding.source === 'none'}
-            className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary disabled:opacity-50"
+            className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary disabled:opacity-50 text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
             <option value="direct">{t('wizard.route.direct')}</option>
             <option value="account">{t('wizard.route.account')}</option>

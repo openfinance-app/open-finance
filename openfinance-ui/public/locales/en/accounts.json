@@ -89,6 +89,7 @@
     "balance": "Balance",
     "earnedSoFar": "Earned so far",
     "projectedNet": "Proj. 1Y Net",
+    "reopen": "Reopen account",
     "inactive": "Inactive",
     "loadingAccounts": "Loading accounts...",
     "failedToLoad": "Failed to load accounts",

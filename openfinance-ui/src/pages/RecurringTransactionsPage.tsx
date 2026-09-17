@@ -283,7 +283,7 @@ export default function RecurringTransactionsPage() {
             <div>
               <label className="block text-sm font-medium mb-2">{t('filters.type')}</label>
               <select
-                className="w-full px-3 py-2 bg-background border border-border rounded-md"
+                className="w-full px-3 pr-8 py-2 bg-background border border-border rounded-md"
                 value={filters.type || 'all'}
                 onChange={(e) => handleFilterChange('type', e.target.value)}
               >
@@ -298,7 +298,7 @@ export default function RecurringTransactionsPage() {
             <div>
               <label className="block text-sm font-medium mb-2">{t('filters.frequency')}</label>
               <select
-                className="w-full px-3 py-2 bg-background border border-border rounded-md"
+                className="w-full px-3 pr-8 py-2 bg-background border border-border rounded-md"
                 value={filters.frequency || 'all'}
                 onChange={(e) => handleFilterChange('frequency', e.target.value)}
               >
@@ -316,7 +316,7 @@ export default function RecurringTransactionsPage() {
             <div>
               <label className="block text-sm font-medium mb-2">{t('filters.status')}</label>
               <select
-                className="w-full px-3 py-2 bg-background border border-border rounded-md"
+                className="w-full px-3 pr-8 py-2 bg-background border border-border rounded-md"
                 value={filters.isActive === undefined ? 'all' : filters.isActive ? 'active' : 'paused'}
                 onChange={(e) =>
                   handleFilterChange('isActive', e.target.value === 'all' ? undefined : e.target.value === 'active')

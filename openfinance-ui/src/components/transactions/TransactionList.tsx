@@ -6,7 +6,7 @@
  * Shows payee logos/avatars and category info on each transaction card.
  * Shows visual connectors between linked transfer transactions.
  */
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ROW_HIGHLIGHT_SCROLL_DELAY_MS } from '@/constants/timing';
 import { useTranslation } from 'react-i18next';
 import { Edit2, Trash2, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Calendar, Scissors, ChevronDown, ChevronUp, CreditCard, Banknote, Landmark, Repeat, Globe, FileText, Wallet } from 'lucide-react';
@@ -378,7 +378,7 @@ function TransactionItem({
             <Badge
               variant="warning"
               className="shrink-0 flex items-center gap-1"
-              title={`Scheduled for ${transaction.date}`}
+              title={tl('list.badges.future')}
             >
               <Calendar className="h-3 w-3" />
               <span className="text-xs">{tl('list.badges.future')}</span>
@@ -634,12 +634,12 @@ export function TransactionList({
         return (
           <div key={dateKey}>
             {/* Date group header */}
-            <h3 className="text-sm font-semibold text-text-secondary mb-3 sticky top-0 bg-background py-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-3 sticky top-0 bg-background py-2 z-10 border-b border-border/60">
               {dateKey}
             </h3>
 
             <div className="space-y-2">
-              {dateTransactions.map((transaction) => {
+              {dateTransactions.map((transaction, index) => {
                 // Handle transfer pairs
                 if (transaction.transferId) {
                   if (renderedTransferIds.has(transaction.transferId)) {
@@ -662,7 +662,8 @@ export function TransactionList({
                     return (
                       <div
                         key={`transfer-${transaction.transferId}`}
-                        className="relative"
+                        className="relative stagger-item"
+                        style={{ '--stagger-index': index } as React.CSSProperties}
                       >
                         <TransactionItem
                           transaction={sourceTx}
@@ -698,18 +699,23 @@ export function TransactionList({
 
                 // Regular (non-transfer) transaction
                 return (
-                  <TransactionItem
+                  <div
                     key={transaction.id}
-                    transaction={transaction}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    isHighlighted={highlightedId === transaction.id}
-                    payeesMap={payeesMap}
-                    accountsMap={accountsMap}
-                    onViewDetail={onViewDetail}
-                    onFilterByCategory={onFilterByCategory}
-                    onFilterByAccount={onFilterByAccount}
-                  />
+                    className="stagger-item"
+                    style={{ '--stagger-index': index } as React.CSSProperties}
+                  >
+                    <TransactionItem
+                      transaction={transaction}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      isHighlighted={highlightedId === transaction.id}
+                      payeesMap={payeesMap}
+                      accountsMap={accountsMap}
+                      onViewDetail={onViewDetail}
+                      onFilterByCategory={onFilterByCategory}
+                      onFilterByAccount={onFilterByAccount}
+                    />
+                  </div>
                 );
               })}
             </div>

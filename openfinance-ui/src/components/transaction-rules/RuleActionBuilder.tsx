@@ -265,7 +265,7 @@ export function RuleActionBuilder({ actions, onChange }: RuleActionBuilderProps)
           <select
             value={action.actionType}
             onChange={(e) => handleTypeChange(index, e.target.value as RuleActionType)}
-            className="min-w-[160px] h-9 rounded-md border border-border bg-background px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary shrink-0"
+            className="min-w-[160px] h-9 rounded-md border border-border bg-background px-3 pr-8 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary shrink-0"
             aria-label="Action type"
           >
             {ALL_ACTION_TYPES.map((type) => (

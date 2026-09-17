@@ -361,7 +361,7 @@ export default function RealEstatePage() {
                 id="propertyType"
                 value={searchFilters.propertyType || ''}
                 onChange={e => handleFiltersChange('propertyType', e.target.value || undefined)}
-                className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
               >
                 <option value="">{t('filters.allTypes')}</option>
                 <option value={PropertyTypeEnum.RESIDENTIAL}>{t('filters.residential')}</option>
@@ -390,7 +390,7 @@ export default function RealEstatePage() {
                   onChange={val =>
                     handleFiltersChange('valueMin', val ? parseFloat(val) : undefined)
                   }
-                  className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
                 />
               </div>
               <div>
@@ -408,7 +408,7 @@ export default function RealEstatePage() {
                   onChange={val =>
                     handleFiltersChange('valueMax', val ? parseFloat(val) : undefined)
                   }
-                  className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
                 />
               </div>
             </div>
@@ -422,7 +422,7 @@ export default function RealEstatePage() {
                 id="sort"
                 value={searchFilters.sort || 'name,asc'}
                 onChange={e => handleFiltersChange('sort', e.target.value)}
-                className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
               >
                 {sortOptions.map(option => (
                   <option key={option.value} value={option.value}>

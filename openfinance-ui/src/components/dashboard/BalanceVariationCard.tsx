@@ -156,7 +156,7 @@ export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: Ba
         <select
           value={selection}
           onChange={e => setSelection(e.target.value)}
-          className="bg-surface-elevated text-text-primary text-sm rounded-lg px-3 py-1.5 border border-border focus:outline-none focus:ring-1 focus:ring-primary max-w-64 truncate"
+          className="bg-surface-elevated text-text-primary text-sm rounded-lg px-3 pr-8 py-1.5 border border-border focus:outline-none focus:ring-1 focus:ring-primary max-w-64 truncate"
         >
           <option value="netWorth">{t('balanceVariation.viewNetWorth')}</option>
           {yearlyData.accounts.length > 0 && (
@@ -183,7 +183,7 @@ export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: Ba
         <select
           value={chartType}
           onChange={e => setChartType(e.target.value as ChartType)}
-          className="bg-surface-elevated text-text-primary text-sm rounded-lg px-3 py-1.5 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+          className="bg-surface-elevated text-text-primary text-sm rounded-lg px-3 pr-8 py-1.5 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
         >
           <option value="bar">{t('balanceVariation.chartBar')}</option>
           <option value="line">{t('balanceVariation.chartLine')}</option>

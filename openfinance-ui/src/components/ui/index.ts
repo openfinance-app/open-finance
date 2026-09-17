@@ -8,5 +8,6 @@ export * from './Dialog';
 export * from './Tooltip';
 export * from './HelpTooltip';
 export * from './Progress';
+export * from './AnimatedNumber';
 export * from './Alert';
 export * from './RegexToggle';

@@ -105,7 +105,7 @@ export default function HistoryPage() {
 
         <div className="flex items-center gap-3 shrink-0">
           <select
-            className="h-10 px-3 py-2 border rounded-md border-input bg-background/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="h-10 px-3 pr-8 py-2 border rounded-md border-input bg-background/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             value={entityTypeFilter || ''}
             onChange={e => {
               setEntityTypeFilter(e.target.value ? (e.target.value as EntityType) : undefined);

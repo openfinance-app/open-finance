@@ -3,10 +3,16 @@ import { render } from '@testing-library/react';
 import { Skeleton } from './Skeleton';
 
 describe('Skeleton', () => {
-  it('renders a div with pulse animation', () => {
+  it('renders a div with the shimmer sweep animation', () => {
     const { container } = render(<Skeleton />);
     const el = container.firstChild as HTMLElement;
-    expect(el.className).toContain('animate-pulse');
+    expect(el.className).toContain('skeleton-sweep');
+  });
+
+  it('renders with a visible neutral fill', () => {
+    const { container } = render(<Skeleton />);
+    const el = container.firstChild as HTMLElement;
+    expect(el.className).toContain('bg-muted');
   });
 
   it('applies rounded styling', () => {

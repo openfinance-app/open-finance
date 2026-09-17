@@ -37,6 +37,7 @@ import type { AmountDisplayMode } from '@/context/CurrencyDisplayContext';
 import { useNumberFormat } from '@/context/NumberFormatContext';
 import type { NumberFormat } from '@/context/NumberFormatContext';
 import { PrivateAmount } from '@/components/ui/PrivateAmount';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { formatCurrency, formatExchangeRate } from '@/utils/currency';
 import { cn } from '@/lib/utils';
@@ -84,6 +85,12 @@ export interface ConvertedAmountProps {
 
   /** Use compact K/M notation (default: false) */
   compact?: boolean;
+  /**
+   * Count the primary amount up/down with an eased ramp when it changes.
+   * Intended for hero figures only (net worth, page-level totals).
+   * Default: false — the value renders statically.
+   */
+  animate?: boolean;
   /** Additional CSS classes applied to the outer wrapper */
   className?: string;
   /** Whether to display inline (default: false) */
@@ -227,28 +234,61 @@ function buildPrimaryDisplay(
   displayMode: AmountDisplayMode,
   compact: boolean,
   inline: boolean,
-  numberFormat: NumberFormat
+  numberFormat: NumberFormat,
+  animate: boolean
 ): ReactNode {
   const opts = { compact, numberFormat };
   const canShowBase = isConverted === true && convertedAmount != null && baseCurrency;
 
   if (displayMode === 'base') {
     return canShowBase ? (
-      <PrivateAmount inline={inline}>{formatCurrency(convertedAmount!, baseCurrency!, opts)}</PrivateAmount>
+      <PrivateAmount inline={inline}>
+        {animate ? (
+          <AnimatedNumber
+            value={convertedAmount!}
+            format={v => formatCurrency(v, baseCurrency!, opts)}
+          />
+        ) : (
+          formatCurrency(convertedAmount!, baseCurrency!, opts)
+        )}
+      </PrivateAmount>
     ) : (
-      <PrivateAmount inline={inline}>{formatCurrency(amount, currency, opts)}</PrivateAmount>
+      <PrivateAmount inline={inline}>
+        {animate ? (
+          <AnimatedNumber value={amount} format={v => formatCurrency(v, currency, opts)} />
+        ) : (
+          formatCurrency(amount, currency, opts)
+        )}
+      </PrivateAmount>
     );
   }
 
   if (displayMode === 'native') {
-    return <PrivateAmount inline={inline}>{formatCurrency(amount, currency, opts)}</PrivateAmount>;
+    return (
+      <PrivateAmount inline={inline}>
+        {animate ? (
+          <AnimatedNumber value={amount} format={v => formatCurrency(v, currency, opts)} />
+        ) : (
+          formatCurrency(amount, currency, opts)
+        )}
+      </PrivateAmount>
+    );
   }
 
   // 'both'
   if (canShowBase && currency !== baseCurrency) {
     return (
       <span className="inline-flex items-baseline gap-1">
-        <PrivateAmount inline>{formatCurrency(convertedAmount!, baseCurrency!, opts)}</PrivateAmount>
+        <PrivateAmount inline>
+          {animate ? (
+            <AnimatedNumber
+              value={convertedAmount!}
+              format={v => formatCurrency(v, baseCurrency!, opts)}
+            />
+          ) : (
+            formatCurrency(convertedAmount!, baseCurrency!, opts)
+          )}
+        </PrivateAmount>
         <span className="text-muted-foreground mx-0.5" aria-hidden="true">·</span>
         <PrivateAmount inline className="text-muted-foreground text-sm">
           {formatCurrency(amount, currency, opts)}
@@ -257,7 +297,15 @@ function buildPrimaryDisplay(
     );
   }
 
-  return <PrivateAmount inline={inline}>{formatCurrency(amount, currency, opts)}</PrivateAmount>;
+  return (
+    <PrivateAmount inline={inline}>
+      {animate ? (
+        <AnimatedNumber value={amount} format={v => formatCurrency(v, currency, opts)} />
+      ) : (
+        formatCurrency(amount, currency, opts)
+      )}
+    </PrivateAmount>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -286,6 +334,7 @@ export function ConvertedAmount({
   secondaryCurrency: secondaryCurrencyProp,
   secondaryExchangeRate,
   compact = false,
+  animate = false,
   className,
   inline = false,
 }: ConvertedAmountProps) {
@@ -338,9 +387,10 @@ export function ConvertedAmount({
         displayMode,
         compact,
         inline,
-        numberFormat
+        numberFormat,
+        animate
       ),
-    [amount, currency, convertedAmount, baseCurrency, isConverted, displayMode, compact, inline, numberFormat]
+    [amount, currency, convertedAmount, baseCurrency, isConverted, displayMode, compact, inline, numberFormat, animate]
   );
 
   const hasTooltip = tooltipLines.length > 0;

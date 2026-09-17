@@ -72,6 +72,7 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline
+                animate
               />
             </p>
             <p className="text-xs text-text-tertiary">
@@ -108,6 +109,7 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline
+                animate
               />
             </p>
             <p className="text-xs text-text-tertiary">
@@ -155,6 +157,7 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline
+                animate
               />
             </p>
             <p className="text-xs text-text-tertiary">
@@ -190,14 +193,14 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
             <div className="h-1.5 bg-surface-elevated rounded-full overflow-hidden">
               <div
                 className={cn(
-                  'h-full transition-all duration-300 rounded-full',
+                  'h-full rounded-full progress-fill',
                   avgSpentPercentage < 75
                     ? 'bg-success'
                     : avgSpentPercentage < 100
                       ? 'bg-warning'
                       : 'bg-error'
                 )}
-                style={{ width: `${Math.min(avgSpentPercentage, 100)}%` }}
+                style={{ transform: `scaleX(${Math.min(avgSpentPercentage, 100) / 100})` }}
               />
             </div>
             {isFiltered && filteredTotals && (

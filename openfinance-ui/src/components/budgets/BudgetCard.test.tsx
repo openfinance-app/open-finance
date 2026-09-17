@@ -319,9 +319,9 @@ describe('BudgetCard', () => {
         />
       );
 
-      // Progress bar should be capped at 100% width
+      // Progress bar should be capped at 100% (scaleX transform)
       const progressBar = screen.getByTestId('budget-card').querySelector('.h-full');
-      expect((progressBar as HTMLElement)?.style.width).toBe('100%');
+      expect((progressBar as HTMLElement)?.style.transform).toBe('scaleX(1)');
     });
 
     it('should handle unknown status gracefully', () => {

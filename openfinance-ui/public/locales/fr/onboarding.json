@@ -49,5 +49,9 @@
   },
   "submit": "Commencer",
   "submitting": "Enregistrement de vos préférences…",
-  "error": "Une erreur s'est produite. Veuillez réessayer."
+  "error": "Une erreur s'est produite. Veuillez réessayer.",
+  "sections": {
+    "profile": "Votre région et vos devises",
+    "formats": "Formats d'affichage"
+  }
 }

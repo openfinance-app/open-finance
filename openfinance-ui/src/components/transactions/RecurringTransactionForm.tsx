@@ -233,7 +233,7 @@ export function RecurringTransactionForm({
           <select
             id="type"
             {...register('type')}
-            className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
             {transactionTypes.map((type) => (
               <option key={type.value} value={type.value}>
@@ -377,7 +377,7 @@ export function RecurringTransactionForm({
           <select
             id="frequency"
             {...register('frequency')}
-            className="w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
             {frequencies.map((freq) => (
               <option key={freq.value} value={freq.value}>
@@ -436,7 +436,7 @@ export function RecurringTransactionForm({
           id="notes"
           rows={2}
           {...register('notes')}
-          className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+          className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
           placeholder={t('form.notesPlaceholder')}
         />
         {errors.notes && <p className="mt-1 text-sm text-error">{errors.notes.message}</p>}
@@ -451,7 +451,7 @@ export function RecurringTransactionForm({
       )}
 
       {/* Form Actions */}
-      <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex items-center justify-end gap-3 border-t border-border bg-surface px-6 py-4">
         <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
           {t('form.cancel')}
         </Button>

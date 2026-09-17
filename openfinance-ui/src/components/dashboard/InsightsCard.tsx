@@ -271,14 +271,19 @@ export default function InsightsCard() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
-          <div className="text-center py-8">
-            <Lightbulb className="h-12 w-12 text-text-muted mx-auto mb-3" />
-            <p className="text-text-secondary text-sm mb-2">{t('insightsCard.noInsights')}</p>
-            <p className="text-text-muted text-xs">
-              {t('insightsCard.generatePrompt')}
-            </p>
+        <CardContent className="flex-1 flex flex-col items-center justify-center text-center py-6">
+          <div
+            className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20"
+            aria-hidden="true"
+          >
+            <Lightbulb className="h-7 w-7 text-primary" strokeWidth={1.75} />
           </div>
+          <p className="text-text-primary text-sm font-medium mb-1">
+            {t('insightsCard.noInsights')}
+          </p>
+          <p className="text-text-muted text-xs max-w-[16rem]">
+            {t('insightsCard.generatePrompt')}
+          </p>
         </CardContent>
       </Card>
     );

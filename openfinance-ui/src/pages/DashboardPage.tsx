@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router';
 import { Plus, ChevronDown, GripVertical, SlidersHorizontal } from 'lucide-react';
 import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
@@ -43,6 +44,7 @@ import RssFeedCard from '../components/dashboard/RssFeedCard';
 import BalanceVariationCard from '../components/dashboard/BalanceVariationCard';
 import FinancialMap from '../components/dashboard/FinancialMap';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { subtract, percentage } from '@/utils/money';
 import { periodToDateRange } from '@/utils/navigation';
@@ -162,6 +164,7 @@ const DEFAULT_LAYOUT_BY_ID: Record<string, any> = generateDefaultLayouts().lg.re
 
 export default function DashboardPage() {
   const { t } = useTranslation('dashboard');
+  const navigate = useNavigate();
   useDocumentTitle(t('title'));
 
   // ── Period state ────────────────────────────────────────────────────────────
@@ -782,7 +785,7 @@ export default function DashboardPage() {
             </button>
 
             {isCardMenuOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-surface border border-border rounded-lg shadow-lg p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute right-0 mt-2 w-64 bg-surface border border-border rounded-lg shadow-lg p-3 z-50 pop-enter">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs uppercase tracking-wide text-text-secondary">
                     {t('showCards')}
@@ -835,9 +838,10 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Add Transaction */}
+          {/* Add Transaction — opens the create form on the transactions page,
+              which already owns the form/dialog/mutations (openForm deep-link) */}
           <button
-            onClick={() => window.dispatchEvent(new CustomEvent('open-transaction-modal'))}
+            onClick={() => navigate('/transactions', { state: { openForm: true } })}
             className="px-4 py-2 bg-primary text-black font-semibold rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
           >
             <Plus className="h-5 w-5" />
@@ -889,7 +893,7 @@ export default function DashboardPage() {
                 data-grid={savedPosition ?? DEFAULT_LAYOUT_BY_ID[card.id]}
                 className="relative group flex flex-col h-full rounded-lg overflow-hidden"
               >
-                <div className="drag-handle absolute right-3 top-3 z-10 p-1 bg-surface/80 rounded cursor-move text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary">
+                <div className="drag-handle absolute right-3 top-3 z-10 p-1 bg-surface/80 rounded cursor-grab active:cursor-grabbing text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary">
                   <GripVertical className="h-4 w-4" />
                 </div>
                 <div className="flex-1 h-full w-full">{card.render()}</div>
@@ -900,16 +904,20 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Summary stats bar ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-        <div className="bg-surface rounded-lg p-4 border border-border">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+        <div className="min-w-0 bg-surface rounded-lg p-4 border border-border">
           <div className="text-xs text-text-secondary mb-1">{t('stats.totalAccounts')}</div>
-          <div className="text-2xl font-bold text-text-primary">{summary.totalAccounts}</div>
+          <div className="text-lg sm:text-xl xl:text-2xl font-bold text-text-primary font-mono">
+            <AnimatedNumber value={summary.totalAccounts} format={v => Math.round(v).toString()} />
+          </div>
         </div>
-        <div className="bg-surface rounded-lg p-4 border border-border">
+        <div className="min-w-0 bg-surface rounded-lg p-4 border border-border">
           <div className="text-xs text-text-secondary mb-1">{t('stats.totalTransactions')}</div>
-          <div className="text-2xl font-bold text-text-primary">{summary.totalTransactions}</div>
+          <div className="text-lg sm:text-xl xl:text-2xl font-bold text-text-primary font-mono">
+            <AnimatedNumber value={summary.totalTransactions} format={v => Math.round(v).toString()} />
+          </div>
         </div>
-        <div className="bg-surface rounded-lg p-4 border border-border">
+        <div className="min-w-0 bg-surface rounded-lg p-4 border border-border">
           <div className="text-xs text-text-secondary mb-1">{t('stats.totalAssets')}</div>
           <ConvertedAmount
             amount={summary.netWorth.totalAssets}
@@ -918,10 +926,11 @@ export default function DashboardPage() {
             secondaryAmount={convert(summary.netWorth.totalAssets)}
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
-            className="text-2xl font-bold text-green-500 font-mono"
+            animate
+            className="text-lg sm:text-xl xl:text-2xl font-bold text-green-500 font-mono"
           />
         </div>
-        <div className="bg-surface rounded-lg p-4 border border-border">
+        <div className="min-w-0 bg-surface rounded-lg p-4 border border-border">
           <div className="text-xs text-text-secondary mb-1">{t('stats.totalLiabilities')}</div>
           <ConvertedAmount
             amount={summary.netWorth.totalLiabilities}
@@ -930,7 +939,8 @@ export default function DashboardPage() {
             secondaryAmount={convert(summary.netWorth.totalLiabilities)}
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
-            className="text-2xl font-bold text-red-500 font-mono"
+            animate
+            className="text-lg sm:text-xl xl:text-2xl font-bold text-red-500 font-mono"
           />
         </div>
       </div>

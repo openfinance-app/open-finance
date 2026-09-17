@@ -25,8 +25,9 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
         ref={ref}
         className={cn(
           'rounded-[var(--radius-card)] bg-surface border border-border',
-          'transition-all duration-150',
-          hover && 'hover:bg-surface-elevated hover:shadow-lg hover:scale-[1.02]',
+          'transition-[background-color,border-color,box-shadow,transform] duration-200 ease-out',
+          hover &&
+            'hover:bg-surface-elevated hover:border-border/80 hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,0.6)] hover:-translate-y-0.5',
           paddingStyles[padding],
           className
         )}

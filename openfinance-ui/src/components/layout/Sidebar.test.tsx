@@ -55,7 +55,7 @@ describe('Sidebar', () => {
       renderWithProviders(<Sidebar />);
       expect(screen.getByText('Dashboard')).toBeInTheDocument();
       expect(screen.getByText('Import')).toBeInTheDocument();
-      expect(screen.getByText('Budget')).toBeInTheDocument();
+      expect(screen.getByText('Budgets')).toBeInTheDocument();
     });
 
     it('renders institutions group with children', () => {

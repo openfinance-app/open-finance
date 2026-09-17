@@ -55,6 +55,7 @@ export default function NetWorthCard({ netWorth, periodLabel = 'last month', per
           secondaryAmount={convert(netWorth.netWorth)}
           secondaryCurrency={secCurrency}
           secondaryExchangeRate={secondaryExchangeRate}
+          animate
           className="text-5xl font-bold text-text-primary font-mono tracking-tight"
         />
         <div className="flex items-center gap-1 text-sm text-text-secondary mt-1">

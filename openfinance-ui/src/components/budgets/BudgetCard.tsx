@@ -179,10 +179,10 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
         <div className="h-2 bg-surface-elevated rounded-full overflow-hidden">
           <div
             className={cn(
-              'h-full transition-all duration-300 rounded-full',
+              'h-full rounded-full progress-fill',
               getProgressColor(budget.status)
             )}
-            style={{ width: `${progressWidth}%` }}
+            style={{ transform: `scaleX(${progressWidth / 100})` }}
           />
         </div>
         {isOverBudget && (

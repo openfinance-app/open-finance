@@ -140,7 +140,7 @@ describe('AccountCard', () => {
       renderWithProviders(
         <AccountCard account={baseAccount} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
-      const deleteBtn = screen.getByTitle(/delete permanently/i);
+      const deleteBtn = screen.getByTitle(/delete account permanently/i);
       fireEvent.click(deleteBtn);
       expect(mockOnDelete).toHaveBeenCalledWith(baseAccount);
     });
@@ -197,7 +197,7 @@ describe('AccountCard', () => {
           onViewDetail={mockOnViewDetail}
         />
       );
-      const deleteBtn = screen.getByTitle(/delete permanently/i);
+      const deleteBtn = screen.getByTitle(/delete account permanently/i);
       fireEvent.click(deleteBtn);
       expect(mockOnViewDetail).not.toHaveBeenCalled();
     });

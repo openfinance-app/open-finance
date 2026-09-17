@@ -59,12 +59,12 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
 
   return (
     <Card
-      className="p-6 hover:bg-surface-elevated transition-colors duration-150 group cursor-pointer"
+      className="p-6 hover:bg-surface-elevated transition-colors duration-200 group cursor-pointer h-full flex flex-col"
       onClick={handleCardClick}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 pb-4">
         {/* Icon */}
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors duration-200 group-hover:bg-primary/15">
           {account.institution?.logo ? (
             <img
               src={account.institution.logo}
@@ -113,8 +113,8 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
                 onReopen(account);
               }}
               className="h-8 w-8 p-0 text-success hover:text-success hover:bg-success/10"
-              aria-label="Reopen account"
-              title="Reopen account"
+              aria-label={t('card.reopen')}
+              title={t('card.reopen')}
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
@@ -131,7 +131,7 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
               }}
               className="h-8 w-8 p-0 text-warning hover:text-warning hover:bg-warning/10"
               aria-label={tc('aria.closeAccount')}
-              title="Close account"
+              title={tc('aria.closeAccount')}
             >
               <XCircle className="h-4 w-4" />
             </Button>
@@ -147,7 +147,7 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
             }}
             className="h-8 w-8 p-0 text-error hover:text-error hover:bg-error/10"
             aria-label={tc('aria.deleteAccount')}
-            title="Delete permanently"
+            title={tc('aria.deleteAccount')}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -168,8 +168,8 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
         </div>
       </div>
 
-      {/* Balance + Interest in one row */}
-      <div className="mt-4 pt-4 border-t border-border flex items-start justify-between gap-3">
+      {/* Balance + Interest in one row — pinned to the card bottom for equal-height grids */}
+      <div className="mt-auto pt-4 border-t border-border flex items-start justify-between gap-3">
         {/* Left: balance */}
         <div className="min-w-0">
           <p className="text-sm text-text-secondary mb-1">{t('card.balance')}</p>
@@ -189,6 +189,7 @@ export function AccountCard({ account, onEdit, onDelete, onClose, onReopen, onVi
                isConverted={account.isConverted}
                secondaryAmount={account.balanceInSecondaryCurrency}
                secondaryCurrency={account.secondaryCurrency}
+               animate
              />
           </div>
         </div>

@@ -172,7 +172,10 @@ export default function InstitutionBreakdown({
             {rows.map(row => {
               const clickable = row.id !== null && row.accountCount > 0;
               const RowTag = clickable ? 'button' : 'div';
-              const percent = grandTotal > 0 ? percentage(row.totalBalance, grandTotal) : 0;
+              // Percentages are only meaningful against a positive total —
+              // with a zero/negative net total they would all read 0.0%.
+              const showPercent = grandTotal > 0;
+              const percent = showPercent ? percentage(row.totalBalance, grandTotal) : 0;
               return (
                 <RowTag
                   key={row.id ?? 'none'}
@@ -216,15 +219,19 @@ export default function InstitutionBreakdown({
                       {amount(row.totalBalance)}
                     </div>
                   </div>
-                  <div className="w-full bg-surface-elevated rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-primary h-full rounded-full transition-all duration-300"
-                      style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
-                    />
-                  </div>
-                  <div className="mt-1 text-xs text-text-secondary">
-                    {t('institutionBreakdown.percentOfTotal', { percent: percent.toFixed(1) })}
-                  </div>
+                  {showPercent && (
+                    <>
+                      <div className="w-full bg-surface-elevated rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-primary h-full rounded-full progress-fill"
+                          style={{ transform: `scaleX(${Math.max(0, Math.min(100, percent)) / 100})` }}
+                        />
+                      </div>
+                      <div className="mt-1 text-xs text-text-secondary">
+                        {t('institutionBreakdown.percentOfTotal', { percent: percent.toFixed(1) })}
+                      </div>
+                    </>
+                  )}
                 </RowTag>
               );
             })}
