@@ -136,9 +136,7 @@ export function CurrencyDisplayProvider({ children }: CurrencyDisplayProviderPro
   );
 
   return (
-    <CurrencyDisplayContext.Provider value={value}>
-      {children}
-    </CurrencyDisplayContext.Provider>
+    <CurrencyDisplayContext.Provider value={value}>{children}</CurrencyDisplayContext.Provider>
   );
 }
 

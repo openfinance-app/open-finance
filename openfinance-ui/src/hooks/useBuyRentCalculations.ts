@@ -1,13 +1,13 @@
 /**
  * useBuyRentCalculations Hook
- * 
+ *
  * React hook for managing Buy/Rent calculator state and calculations
  * Requirements: REQ-1.2.2, REQ-1.2.3, REQ-3.1.2
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import type { 
-  BuyRentInputs, 
+import type {
+  BuyRentInputs,
   BuyRentResults,
   ValidationError,
   YearNAnalysis,
@@ -22,7 +22,7 @@ export interface UseBuyRentCalculationsReturn {
   results: BuyRentResults | null;
   isCalculating: boolean;
   errors: ValidationError[];
-  
+
   // Derived values (real-time)
   derivedValues: {
     totalPrice: number;
@@ -31,7 +31,7 @@ export interface UseBuyRentCalculationsReturn {
     minimumDownPayment: number;
     suggestedMonthlySavings: number;
   };
-  
+
   // Actions
   updatePurchaseInput: (field: keyof BuyRentInputs['purchase'], value: number | boolean) => void;
   updateRentalInput: (field: keyof BuyRentInputs['rental'], value: number) => void;
@@ -40,7 +40,7 @@ export interface UseBuyRentCalculationsReturn {
   calculate: () => void;
   reset: () => void;
   setInputs: (inputs: BuyRentInputs) => void;
-  
+
   // Analysis
   getYearNAnalysis: (year: number) => YearNAnalysis | null;
   isValidResaleYear: boolean;
@@ -48,7 +48,7 @@ export interface UseBuyRentCalculationsReturn {
 
 /**
  * Hook for managing Buy/Rent calculator state and calculations
- * 
+ *
  * @param initialInputs - Optional initial input values
  * @returns Hook state and actions
  */
@@ -72,8 +72,9 @@ export function useBuyRentCalculations(
   // Auto-update savings fields when costs change (prevent infinite loop)
   useEffect(() => {
     const shouldUpdateInitialSavings = inputs.rental.initialSavings !== inputs.purchase.downPayment;
-    const shouldUpdateMonthlySavings = inputs.rental.monthlySavings !== derivedValues.suggestedMonthlySavings;
-    
+    const shouldUpdateMonthlySavings =
+      inputs.rental.monthlySavings !== derivedValues.suggestedMonthlySavings;
+
     if (shouldUpdateInitialSavings || shouldUpdateMonthlySavings) {
       setInputsState(prev => ({
         ...prev,
@@ -100,26 +101,23 @@ export function useBuyRentCalculations(
   /**
    * Update a purchase input field
    */
-  const updatePurchaseInput = useCallback((
-    field: keyof BuyRentInputs['purchase'],
-    value: number | boolean
-  ) => {
-    setInputsState(prev => ({
-      ...prev,
-      purchase: {
-        ...prev.purchase,
-        [field]: value,
-      },
-    }));
-  }, []);
+  const updatePurchaseInput = useCallback(
+    (field: keyof BuyRentInputs['purchase'], value: number | boolean) => {
+      setInputsState(prev => ({
+        ...prev,
+        purchase: {
+          ...prev.purchase,
+          [field]: value,
+        },
+      }));
+    },
+    []
+  );
 
   /**
    * Update a rental input field
    */
-  const updateRentalInput = useCallback((
-    field: keyof BuyRentInputs['rental'],
-    value: number
-  ) => {
+  const updateRentalInput = useCallback((field: keyof BuyRentInputs['rental'], value: number) => {
     setInputsState(prev => ({
       ...prev,
       rental: {
@@ -132,10 +130,7 @@ export function useBuyRentCalculations(
   /**
    * Update a market input field
    */
-  const updateMarketInput = useCallback((
-    field: keyof BuyRentInputs['market'],
-    value: number
-  ) => {
+  const updateMarketInput = useCallback((field: keyof BuyRentInputs['market'], value: number) => {
     setInputsState(prev => ({
       ...prev,
       market: {
@@ -148,10 +143,7 @@ export function useBuyRentCalculations(
   /**
    * Update a resale input field
    */
-  const updateResaleInput = useCallback((
-    field: keyof BuyRentInputs['resale'],
-    value: number
-  ) => {
+  const updateResaleInput = useCallback((field: keyof BuyRentInputs['resale'], value: number) => {
     setInputsState(prev => ({
       ...prev,
       resale: {
@@ -178,7 +170,7 @@ export function useBuyRentCalculations(
     }
 
     setIsCalculating(true);
-    
+
     // Use setTimeout to allow UI to show loading state
     calculationTimeoutRef.current = setTimeout(() => {
       try {
@@ -187,10 +179,12 @@ export function useBuyRentCalculations(
         setErrors([]);
       } catch (error) {
         console.error('Calculation error:', error);
-        setErrors([{ 
-          field: 'general', 
-          message: 'Une erreur est survenue lors du calcul. Veuillez vérifier vos données.' 
-        }]);
+        setErrors([
+          {
+            field: 'general',
+            message: 'Une erreur est survenue lors du calcul. Veuillez vérifier vos données.',
+          },
+        ]);
       } finally {
         setIsCalculating(false);
         calculationTimeoutRef.current = null;
@@ -226,10 +220,13 @@ export function useBuyRentCalculations(
   /**
    * Get analysis for a specific year
    */
-  const getYearNAnalysis = useCallback((year: number): YearNAnalysis | null => {
-    if (!results) return null;
-    return RealEstateCalculationService.calculateYearNAnalysis(results, year);
-  }, [results]);
+  const getYearNAnalysis = useCallback(
+    (year: number): YearNAnalysis | null => {
+      if (!results) return null;
+      return RealEstateCalculationService.calculateYearNAnalysis(results, year);
+    },
+    [results]
+  );
 
   // Check if resale year is valid
   const isValidResaleYear = useMemo(() => {
@@ -242,10 +239,10 @@ export function useBuyRentCalculations(
     results,
     isCalculating,
     errors,
-    
+
     // Derived values
     derivedValues,
-    
+
     // Actions
     updatePurchaseInput,
     updateRentalInput,
@@ -254,7 +251,7 @@ export function useBuyRentCalculations(
     calculate,
     reset,
     setInputs,
-    
+
     // Analysis
     getYearNAnalysis,
     isValidResaleYear,

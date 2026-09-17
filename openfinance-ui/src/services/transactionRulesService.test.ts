@@ -144,7 +144,7 @@ describe('transactionRulesService', () => {
   });
 
   describe('toggleRule', () => {
-    it('should toggle a rule\'s enabled state', async () => {
+    it("should toggle a rule's enabled state", async () => {
       const mockResponse = { data: mockRule };
       mockApiClient.patch.mockResolvedValue(mockResponse);
 

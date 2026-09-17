@@ -1,18 +1,22 @@
 /**
  * GeneralSettings - General user settings component
- * 
+ *
  * Implements TASK-6.3:
  * - Base currency selection and update
  * - Secondary currency selection (comparison currency shown in tooltips)
  * - Shows current base currency from user profile
  * - Success/error notifications for updates
- * 
+ *
  * Requirements: REQ-6.3 (User Settings & Preferences), REQ-15.1–REQ-15.4
  */
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthContext } from '@/context/AuthContext';
-import { useUserSettings, useUpdateBaseCurrency, useUpdateUserSettings } from '@/hooks/useUserSettings';
+import {
+  useUserSettings,
+  useUpdateBaseCurrency,
+  useUpdateUserSettings,
+} from '@/hooks/useUserSettings';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { SETTINGS_SUCCESS_MESSAGE_DURATION_MS } from '@/constants/timing';
@@ -59,7 +63,9 @@ function SecondaryCurrencySelector({
     return (
       <div className="flex h-10 w-full items-center justify-center rounded-lg border border-border bg-surface px-3 py-2">
         <Loader2 className="h-4 w-4 animate-spin text-text-muted" />
-        <span className="ml-2 text-sm text-text-muted">{t('general.currencies.loadingCurrencies')}</span>
+        <span className="ml-2 text-sm text-text-muted">
+          {t('general.currencies.loadingCurrencies')}
+        </span>
       </div>
     );
   }
@@ -79,20 +85,19 @@ function SecondaryCurrencySelector({
         const translatedName = tCurrency(`currency.${c.code}`, { defaultValue: c.name });
         return [c.code, translatedName, c.name, c.symbol]
           .filter(Boolean)
-          .some((v) => v.toLowerCase().includes(normalizedQuery));
+          .some(v => v.toLowerCase().includes(normalizedQuery));
       })
     : activeCurrencies;
 
-  const selectedCurrency = value && value !== '__none__'
-    ? currencies.find((c: Currency) => c.code === value)
-    : undefined;
+  const selectedCurrency =
+    value && value !== '__none__' ? currencies.find((c: Currency) => c.code === value) : undefined;
 
   return (
     <Select
       value={value || '__none__'}
       onValueChange={onValueChange}
       disabled={disabled}
-      onOpenChange={(open) => {
+      onOpenChange={open => {
         setIsOpen(open);
         if (!open) setSearchQuery('');
       }}
@@ -110,8 +115,8 @@ function SecondaryCurrencySelector({
           )}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent 
-        className="p-0 flex flex-col" 
+      <SelectContent
+        className="p-0 flex flex-col"
         viewportClassName="p-1"
         headerSlot={
           <div className="shrink-0 border-b border-border bg-surface p-2">
@@ -120,8 +125,8 @@ function SecondaryCurrencySelector({
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.stopPropagation()}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => e.stopPropagation()}
                 placeholder={t('general.currencies.searchPlaceholder')}
                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 autoFocus={isOpen}
@@ -140,7 +145,9 @@ function SecondaryCurrencySelector({
           </div>
         ) : (
           visibleCurrencies.map((currency: Currency) => {
-            const translatedName = tCurrency(`currency.${currency.code}`, { defaultValue: currency.name });
+            const translatedName = tCurrency(`currency.${currency.code}`, {
+              defaultValue: currency.name,
+            });
             return (
               <SelectItem key={currency.code} value={currency.code}>
                 <span className="flex items-center gap-2">
@@ -156,7 +163,6 @@ function SecondaryCurrencySelector({
     </Select>
   );
 }
-
 
 /**
  * General settings component with base currency and secondary currency selection
@@ -222,7 +228,7 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
    * Requirement REQ-15.1–REQ-15.4, REQ-2.2
    */
   const handleSecondaryCurrencyChange = (value: string) => {
-    const code = value === '__none__' ? null : (value || null);
+    const code = value === '__none__' ? null : value || null;
     setSecondaryCurrency(code);
     updateSettings.mutate(
       { secondaryCurrency: code ?? '' },
@@ -281,7 +287,9 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
       <div className="bg-surface rounded-lg p-6 border border-border">
         <div className="flex items-center gap-2 mb-1">
           <Globe className="h-5 w-5 text-text-secondary" />
-          <h3 className="text-base font-semibold text-text-primary">{t('general.country.sectionTitle')}</h3>
+          <h3 className="text-base font-semibold text-text-primary">
+            {t('general.country.sectionTitle')}
+          </h3>
         </div>
         <p className="text-xs text-text-secondary mb-4">{t('general.country.description')}</p>
 
@@ -301,15 +309,15 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
           </div>
         )}
 
-        <p className="mt-3 text-xs text-text-muted">
-          {t('general.country.toolNote')}
-        </p>
+        <p className="mt-3 text-xs text-text-muted">{t('general.country.toolNote')}</p>
       </div>
 
       {/* Currencies Section — Base Currency + Secondary Currency */}
       <div className="bg-surface rounded-lg p-6 border border-border">
         {/* Section title */}
-        <h3 className="text-base font-semibold text-text-primary mb-5">{t('general.currencies.sectionTitle')}</h3>
+        <h3 className="text-base font-semibold text-text-primary mb-5">
+          {t('general.currencies.sectionTitle')}
+        </h3>
 
         {/* Base Currency */}
         <div className="mb-6">
@@ -331,11 +339,13 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
           {user && (
             <div className="text-xs text-text-secondary mb-4">
               <p>
-                {t('general.currencies.current')} <span className="text-text-primary font-medium">{user.baseCurrency}</span>
+                {t('general.currencies.current')}{' '}
+                <span className="text-text-primary font-medium">{user.baseCurrency}</span>
               </p>
               {hasChanges && (
                 <p className="text-primary mt-1">
-                  {t('general.currencies.new')} <span className="font-medium">{selectedCurrency}</span>
+                  {t('general.currencies.new')}{' '}
+                  <span className="font-medium">{selectedCurrency}</span>
                 </p>
               )}
             </div>
@@ -384,9 +394,7 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
         {/* Error Message */}
         {updateBaseCurrency.isError && (
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-            <p className="text-sm text-red-400">
-              {t('general.currencies.updateError')}
-            </p>
+            <p className="text-sm text-red-400">{t('general.currencies.updateError')}</p>
           </div>
         )}
 
@@ -417,12 +425,9 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
         </button>
 
         {!hasChanges && (
-          <p className="text-xs text-text-muted mt-2">
-            {t('general.currencies.noChanges')}
-          </p>
+          <p className="text-xs text-text-muted mt-2">{t('general.currencies.noChanges')}</p>
         )}
       </div>
-
     </div>
   );
 }

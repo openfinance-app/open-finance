@@ -8,7 +8,13 @@ import { MemoryRouter } from 'react-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/test/i18n-test';
-import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent, createTestQueryClient } from '@/test/test-utils';
+import {
+  renderWithProviders,
+  mockAuthentication,
+  clearAuthentication,
+  userEvent,
+  createTestQueryClient,
+} from '@/test/test-utils';
 import { AuthProvider } from '@/context/AuthContext';
 import { NumberFormatProvider } from '@/context/NumberFormatContext';
 import { DecimalPlacesProvider } from '@/context/DecimalPlacesContext';
@@ -93,7 +99,11 @@ vi.mock('@/components/accounts/AccountForm', () => ({
   AccountForm: ({ account, onSubmit, onCancel }: any) => (
     <div data-testid="account-form">
       {account && <span data-testid="editing-name">{account.name}</span>}
-      <button onClick={() => onSubmit({ name: 'Test', type: 'CHECKING', currency: 'USD', balance: 1000 })}>Submit</button>
+      <button
+        onClick={() => onSubmit({ name: 'Test', type: 'CHECKING', currency: 'USD', balance: 1000 })}
+      >
+        Submit
+      </button>
       <button onClick={onCancel}>Cancel</button>
     </div>
   ),
@@ -209,7 +219,9 @@ describe('AccountsPage', () => {
     renderWithProviders(<AccountsPage />);
     const editButtons = screen.getAllByRole('button', { name: /^edit$/i });
     await user.click(editButtons[0]);
-    await waitFor(() => expect(screen.getByTestId('editing-name')).toHaveTextContent('Checking Account'));
+    await waitFor(() =>
+      expect(screen.getByTestId('editing-name')).toHaveTextContent('Checking Account')
+    );
   });
 
   it('submits edit form', async () => {

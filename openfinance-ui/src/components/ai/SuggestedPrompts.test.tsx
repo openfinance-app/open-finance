@@ -22,6 +22,6 @@ describe('SuggestedPrompts', () => {
   it('disables buttons when disabled prop is true', () => {
     render(<SuggestedPrompts onSelectPrompt={vi.fn()} disabled />);
     const buttons = screen.getAllByRole('button');
-    buttons.forEach((btn) => expect(btn).toBeDisabled());
+    buttons.forEach(btn => expect(btn).toBeDisabled());
   });
 });

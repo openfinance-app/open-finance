@@ -53,6 +53,7 @@ public class LiabilityTrancheService {
 
     public void allocateRepayment(
             Long userId, Liability liability, Transaction tx, BigDecimal principal) {
+        org.openfinance.util.LoanPostingPolicy.validateDate(liability, tx.getDate());
         BigDecimal balance = balanceOf(liability);
         if (principal.signum() < 0 || principal.compareTo(balance) > 0) {
             throw new InvalidTransactionException("Principal payment exceeds outstanding debt");

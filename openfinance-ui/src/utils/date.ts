@@ -94,8 +94,8 @@ export function parseDisplayDate(input: string, dateFormat?: string): string | n
   if (!s) return null;
 
   let y: number, mo: number, d: number;
-  const parts = s.split(/[-/.]/).map((p) => p.trim());
-  if (parts.length !== 3 || parts.some((p) => p === '' || Number.isNaN(Number(p)))) return null;
+  const parts = s.split(/[-/.]/).map(p => p.trim());
+  if (parts.length !== 3 || parts.some(p => p === '' || Number.isNaN(Number(p)))) return null;
 
   // A leading 4-digit component is an unambiguous ISO date, accepted regardless
   // of the configured format (covers native-picker, pasted, or programmatic values).
@@ -194,7 +194,10 @@ export function getStartOfYear(): string {
  * Group transactions by date for display
  * Returns a map of date string => items
  */
-export function groupByDate<T extends { date: string }>(items: T[], dateFormat?: string): Map<string, T[]> {
+export function groupByDate<T extends { date: string }>(
+  items: T[],
+  dateFormat?: string
+): Map<string, T[]> {
   const groups = new Map<string, T[]>();
 
   items.forEach(item => {

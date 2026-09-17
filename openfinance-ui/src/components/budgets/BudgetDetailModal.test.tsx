@@ -16,22 +16,18 @@ import type { BudgetHistoryResponse, BudgetResponse } from '@/types/budget';
 // ─── Context mocks ────────────────────────────────────────────────────────────
 
 vi.mock('@/context/VisibilityContext', () => ({
-  VisibilityProvider: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
+  VisibilityProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   useVisibility: vi.fn(() => ({ isAmountsVisible: true })),
 }));
 
 vi.mock('@/context/AuthContext', () => ({
-  AuthProvider: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   useAuthContext: vi.fn(() => ({ baseCurrency: 'USD' })),
 }));
 
 // ─── Hook mocks ───────────────────────────────────────────────────────────────
 
-vi.mock('@/hooks/useBudgets', async (importOriginal) => {
+vi.mock('@/hooks/useBudgets', async importOriginal => {
   const actual = await importOriginal<typeof useBudgetsModule>();
   return {
     ...actual,
@@ -44,11 +40,11 @@ vi.mock('@/hooks/useBudgets', async (importOriginal) => {
 
 vi.mock('@/components/ui/PrivateAmount', () => ({
   PrivateAmount: ({ children, inline }: { children: React.ReactNode; inline?: boolean }) => (
-    <span data-testid="private-amount" data-inline={inline}>{children}</span>
+    <span data-testid="private-amount" data-inline={inline}>
+      {children}
+    </span>
   ),
 }));
-
-
 
 // ─── Typed mock helpers ───────────────────────────────────────────────────────
 
@@ -232,9 +228,7 @@ describe('BudgetDetailModal', () => {
         isLoading: false,
       } as any);
       renderWithProviders(<BudgetDetailModal {...defaultProps} />);
-      expect(
-        screen.getByText('No history entries found for this budget.')
-      ).toBeInTheDocument();
+      expect(screen.getByText('No history entries found for this budget.')).toBeInTheDocument();
     });
   });
 

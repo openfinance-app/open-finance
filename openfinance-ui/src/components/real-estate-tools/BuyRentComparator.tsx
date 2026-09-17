@@ -1,9 +1,9 @@
 /**
  * BuyRentComparator Component
- * 
+ *
  * Main container component for the Buy vs Rent comparison tool
  * Requirements: REQ-1.1.x - REQ-1.7.x
- * 
+ *
  * Redesigned: single-page layout without tabs, compact grid structure
  */
 
@@ -62,13 +62,8 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
     isValidResaleYear,
   } = useBuyRentCalculations(buyVsRentInitialInputs);
 
-  const {
-    simulations,
-    saveSimulation,
-    loadSimulation,
-    deleteSimulation,
-    hasSimulationWithName,
-  } = useSimulationStorage();
+  const { simulations, saveSimulation, loadSimulation, deleteSimulation, hasSimulationWithName } =
+    useSimulationStorage();
 
   const hasErrors = errors.length > 0;
   const generalErrors = errors.filter(e => e.field === 'general');
@@ -103,7 +98,11 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
           annualCost: derivedValues.monthlyPayment * 12,
           totalCost: 0,
           assurance: inputs.purchase.totalInsurance / inputs.purchase.loanDuration,
-          bankFees: (inputs.purchase.applicationFees + inputs.purchase.guaranteeFees + inputs.purchase.accountFees) / inputs.purchase.loanDuration,
+          bankFees:
+            (inputs.purchase.applicationFees +
+              inputs.purchase.guaranteeFees +
+              inputs.purchase.accountFees) /
+            inputs.purchase.loanDuration,
         },
         propertyTax: inputs.purchase.propertyTax,
         coOwnershipCharges: inputs.purchase.coOwnershipCharges,
@@ -114,23 +113,35 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
 
   const handlePropertySelect = (propertyData: Partial<typeof inputs>) => {
     if (propertyData.purchase) {
-      Object.keys(propertyData.purchase).forEach((key) => {
-        updatePurchaseInput(key as keyof typeof inputs.purchase, propertyData.purchase![key as keyof typeof inputs.purchase]);
+      Object.keys(propertyData.purchase).forEach(key => {
+        updatePurchaseInput(
+          key as keyof typeof inputs.purchase,
+          propertyData.purchase![key as keyof typeof inputs.purchase]
+        );
       });
     }
     if (propertyData.rental) {
-      Object.keys(propertyData.rental).forEach((key) => {
-        updateRentalInput(key as keyof typeof inputs.rental, propertyData.rental![key as keyof typeof inputs.rental]);
+      Object.keys(propertyData.rental).forEach(key => {
+        updateRentalInput(
+          key as keyof typeof inputs.rental,
+          propertyData.rental![key as keyof typeof inputs.rental]
+        );
       });
     }
     if (propertyData.market) {
-      Object.keys(propertyData.market).forEach((key) => {
-        updateMarketInput(key as keyof typeof inputs.market, propertyData.market![key as keyof typeof inputs.market]);
+      Object.keys(propertyData.market).forEach(key => {
+        updateMarketInput(
+          key as keyof typeof inputs.market,
+          propertyData.market![key as keyof typeof inputs.market]
+        );
       });
     }
     if (propertyData.resale) {
-      Object.keys(propertyData.resale).forEach((key) => {
-        updateResaleInput(key as keyof typeof inputs.resale, propertyData.resale![key as keyof typeof inputs.resale]);
+      Object.keys(propertyData.resale).forEach(key => {
+        updateResaleInput(
+          key as keyof typeof inputs.resale,
+          propertyData.resale![key as keyof typeof inputs.resale]
+        );
       });
     }
     calculate();
@@ -178,10 +189,7 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <PageHeader
-        title={t('comparator.title')}
-        description={t('comparator.description')}
-      />
+      <PageHeader title={t('comparator.title')} description={t('comparator.description')} />
 
       {/* Top Bar: Simulation + Property Selector */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
@@ -207,17 +215,13 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
       {/* Error Alerts */}
       {generalErrors.length > 0 && (
         <Alert variant="error" className="mb-6">
-          <AlertDescription>
-            {generalErrors.map(e => e.message).join(', ')}
-          </AlertDescription>
+          <AlertDescription>{generalErrors.map(e => e.message).join(', ')}</AlertDescription>
         </Alert>
       )}
 
       {nameError && (
         <Alert variant="error" className="mb-6">
-          <AlertDescription>
-            {nameError}
-          </AlertDescription>
+          <AlertDescription>{nameError}</AlertDescription>
         </Alert>
       )}
 
@@ -233,13 +237,21 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
           <div>
             <p className="text-muted-foreground">{t('comparator.borrowedAmount')}</p>
             <p className="font-semibold">
-              <ConvertedAmount amount={derivedValues.borrowedAmount} currency={baseCurrency} inline />
+              <ConvertedAmount
+                amount={derivedValues.borrowedAmount}
+                currency={baseCurrency}
+                inline
+              />
             </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t('comparator.monthlyPayment')}</p>
             <p className="font-semibold">
-              <ConvertedAmount amount={derivedValues.monthlyPayment} currency={baseCurrency} inline />
+              <ConvertedAmount
+                amount={derivedValues.monthlyPayment}
+                currency={baseCurrency}
+                inline
+              />
               {t('comparator.monthly')}
             </p>
           </div>
@@ -318,12 +330,7 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
           )}
         </Button>
 
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={reset}
-          disabled={isCalculating}
-        >
+        <Button variant="outline" size="lg" onClick={reset} disabled={isCalculating}>
           <RefreshCw className="mr-2 h-4 w-4" />
           {t('comparator.reset')}
         </Button>

@@ -32,7 +32,14 @@ export function AppLogo({ size = 32, showText = true, className }: AppLogoProps)
       >
         <defs>
           {/* Gold gradient background */}
-          <linearGradient id={`${id}-bg`} x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <linearGradient
+            id={`${id}-bg`}
+            x1="0"
+            y1="0"
+            x2="32"
+            y2="32"
+            gradientUnits="userSpaceOnUse"
+          >
             <stop offset="0%" stopColor="#f7b733" />
             <stop offset="100%" stopColor="#d4881a" />
           </linearGradient>
@@ -80,8 +87,7 @@ export function AppLogo({ size = 32, showText = true, className }: AppLogoProps)
       {/* ── Wordmark ── */}
       {showText && (
         <span className="text-xl font-bold text-text-primary tracking-tight">
-          Open{' '}
-          <span className="text-primary">Finance</span>
+          Open <span className="text-primary">Finance</span>
         </span>
       )}
     </div>

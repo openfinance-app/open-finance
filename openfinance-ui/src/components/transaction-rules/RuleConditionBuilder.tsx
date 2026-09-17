@@ -43,8 +43,6 @@ const NUMERIC_OPERATORS: RuleConditionOperator[] = [
 /** Operators available for TRANSACTION_TYPE field */
 const TYPE_OPERATORS: RuleConditionOperator[] = ['EQUALS', 'NOT_EQUALS'];
 
-
-
 function operatorsForField(field: RuleConditionField): RuleConditionOperator[] {
   switch (field) {
     case 'AMOUNT':
@@ -136,25 +134,19 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
   };
 
   const handleOperatorChange = (index: number, operator: RuleConditionOperator) => {
-    const updated = conditions.map((c, i) =>
-      i === index ? { ...c, operator } : c
-    );
+    const updated = conditions.map((c, i) => (i === index ? { ...c, operator } : c));
     onChange(updated);
   };
 
   const handleValueChange = (index: number, value: string) => {
-    const updated = conditions.map((c, i) =>
-      i === index ? { ...c, value } : c
-    );
+    const updated = conditions.map((c, i) => (i === index ? { ...c, value } : c));
     onChange(updated);
   };
 
   return (
     <div className="space-y-3">
       {conditions.length === 0 && (
-        <p className="text-sm text-text-secondary italic">
-          {t('form.conditions.empty')}
-        </p>
+        <p className="text-sm text-text-secondary italic">{t('form.conditions.empty')}</p>
       )}
 
       {conditions.map((condition, index) => {
@@ -171,11 +163,11 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
             {/* Field selector */}
             <select
               value={condition.field}
-              onChange={(e) => handleFieldChange(index, e.target.value as RuleConditionField)}
+              onChange={e => handleFieldChange(index, e.target.value as RuleConditionField)}
               className="flex-1 min-w-[160px] h-9 rounded-md border border-border bg-background px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               aria-label="Condition field"
             >
-              {(Object.keys(FIELD_LABELS) as RuleConditionField[]).map((field) => (
+              {(Object.keys(FIELD_LABELS) as RuleConditionField[]).map(field => (
                 <option key={field} value={field}>
                   {FIELD_LABELS[field]}
                 </option>
@@ -185,13 +177,11 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
             {/* Operator selector */}
             <select
               value={condition.operator}
-              onChange={(e) =>
-                handleOperatorChange(index, e.target.value as RuleConditionOperator)
-              }
+              onChange={e => handleOperatorChange(index, e.target.value as RuleConditionOperator)}
               className="flex-1 min-w-[180px] h-9 rounded-md border border-border bg-background px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               aria-label="Condition operator"
             >
-              {availableOperators.map((op) => (
+              {availableOperators.map(op => (
                 <option key={op} value={op}>
                   {OPERATOR_LABELS[op]}
                 </option>
@@ -202,7 +192,7 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
             {isTypeField ? (
               <select
                 value={condition.value}
-                onChange={(e) => handleValueChange(index, e.target.value)}
+                onChange={e => handleValueChange(index, e.target.value)}
                 className="flex-1 h-9 rounded-md border border-border bg-background px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 aria-label="Condition value"
               >
@@ -217,7 +207,7 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
               <div className="flex-1">
                 <PayeeCombobox
                   value={condition.value}
-                  onValueChange={(value) => handleValueChange(index, value)}
+                  onValueChange={value => handleValueChange(index, value)}
                   placeholder={t('form.conditions.enterValue')}
                   ariaLabel="Condition value"
                 />
@@ -229,7 +219,7 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
                 min={isAmountField ? '0' : undefined}
                 placeholder={isAmountField ? '0.00' : t('form.conditions.enterValue')}
                 value={condition.value}
-                onChange={(e) => handleValueChange(index, e.target.value)}
+                onChange={e => handleValueChange(index, e.target.value)}
                 className="flex-1"
                 aria-label="Condition value"
               />

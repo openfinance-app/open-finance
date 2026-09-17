@@ -2,7 +2,18 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { useBudgetHistory, useBudgets, useBudget, useBudgetProgress, useBudgetSummary, useCreateBudget, useUpdateBudget, useDeleteBudget, useAnalyzeBudgets, useBulkCreateBudgets } from './useBudgets';
+import {
+  useBudgetHistory,
+  useBudgets,
+  useBudget,
+  useBudgetProgress,
+  useBudgetSummary,
+  useCreateBudget,
+  useUpdateBudget,
+  useDeleteBudget,
+  useAnalyzeBudgets,
+  useBulkCreateBudgets,
+} from './useBudgets';
 import apiClient from '@/services/apiClient';
 import type { BudgetHistoryResponse } from '@/types/budget';
 
@@ -38,9 +49,7 @@ describe('useBudgetHistory', () => {
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
   describe('Query Configuration', () => {
@@ -191,7 +200,10 @@ describe('useBudgets', () => {
     mockedApiClient.get.mockResolvedValue({ data: [{ id: 1, name: 'Food' }] });
     const { result } = renderHook(() => useBudgets(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(mockedApiClient.get).toHaveBeenCalledWith('/budgets', expect.objectContaining({ headers: { 'X-Encryption-Session': 'test-key' } }));
+    expect(mockedApiClient.get).toHaveBeenCalledWith(
+      '/budgets',
+      expect.objectContaining({ headers: { 'X-Encryption-Session': 'test-key' } })
+    );
   });
 
   it('fetches budgets with period', async () => {
@@ -274,7 +286,10 @@ describe('useBudgetSummary', () => {
     mockedApiClient.get.mockResolvedValue({ data: { totalBudgets: 3 } });
     const { result } = renderHook(() => useBudgetSummary('YEARLY'), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(mockedApiClient.get).toHaveBeenCalledWith('/budgets/summary?period=YEARLY', expect.anything());
+    expect(mockedApiClient.get).toHaveBeenCalledWith(
+      '/budgets/summary?period=YEARLY',
+      expect.anything()
+    );
   });
 });
 
@@ -294,9 +309,18 @@ describe('useCreateBudget', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     const { result } = renderHook(() => useCreateBudget(), { wrapper });
     await act(async () => {
-      await result.current.mutateAsync({ categoryId: 1, amount: 500, period: 'MONTHLY', currency: 'USD' } as any);
+      await result.current.mutateAsync({
+        categoryId: 1,
+        amount: 500,
+        period: 'MONTHLY',
+        currency: 'USD',
+      } as any);
     });
-    expect(mockedApiClient.post).toHaveBeenCalledWith('/budgets', expect.anything(), expect.anything());
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/budgets',
+      expect.anything(),
+      expect.anything()
+    );
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['budgets'] });
   });
 });
@@ -316,9 +340,16 @@ describe('useUpdateBudget', () => {
     mockedApiClient.put.mockResolvedValue({ data: { id: 1, name: 'Food' } });
     const { result } = renderHook(() => useUpdateBudget(), { wrapper });
     await act(async () => {
-      await result.current.mutateAsync({ id: 1, data: { categoryId: 1, amount: 600, period: 'MONTHLY', currency: 'USD' } as any });
+      await result.current.mutateAsync({
+        id: 1,
+        data: { categoryId: 1, amount: 600, period: 'MONTHLY', currency: 'USD' } as any,
+      });
     });
-    expect(mockedApiClient.put).toHaveBeenCalledWith('/budgets/1', expect.anything(), expect.anything());
+    expect(mockedApiClient.put).toHaveBeenCalledWith(
+      '/budgets/1',
+      expect.anything(),
+      expect.anything()
+    );
   });
 });
 
@@ -360,7 +391,11 @@ describe('useAnalyzeBudgets', () => {
     await act(async () => {
       await result.current.mutateAsync({ months: 3 } as any);
     });
-    expect(mockedApiClient.post).toHaveBeenCalledWith('/budgets/suggestions', expect.anything(), expect.anything());
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/budgets/suggestions',
+      expect.anything(),
+      expect.anything()
+    );
   });
 });
 
@@ -382,7 +417,11 @@ describe('useBulkCreateBudgets', () => {
     await act(async () => {
       await result.current.mutateAsync({ budgets: [] } as any);
     });
-    expect(mockedApiClient.post).toHaveBeenCalledWith('/budgets/bulk', expect.anything(), expect.anything());
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/budgets/bulk',
+      expect.anything(),
+      expect.anything()
+    );
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['budgets'] });
   });
 });

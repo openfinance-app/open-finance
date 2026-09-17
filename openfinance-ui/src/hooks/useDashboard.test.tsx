@@ -149,9 +149,12 @@ describe('useDashboard hooks', () => {
       const { result } = renderHook(() => useNetWorthHistory(), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/dashboard/networth-history', expect.objectContaining({
-        params: { period: 365 },
-      }));
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/dashboard/networth-history',
+        expect.objectContaining({
+          params: { period: 365 },
+        })
+      );
     });
   });
 
@@ -205,9 +208,12 @@ describe('useDashboard hooks', () => {
       const { result } = renderHook(() => useBorrowingCapacity(), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/dashboard/borrowing-capacity', expect.objectContaining({
-        params: { period: 90 },
-      }));
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/dashboard/borrowing-capacity',
+        expect.objectContaining({
+          params: { period: 90 },
+        })
+      );
     });
   });
 
@@ -259,9 +265,12 @@ describe('useDashboard hooks', () => {
       const { result } = renderHook(() => useEstimatedInterest(), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/dashboard/estimated-interest', expect.objectContaining({
-        params: { period: '1Y' },
-      }));
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/dashboard/estimated-interest',
+        expect.objectContaining({
+          params: { period: '1Y' },
+        })
+      );
     });
   });
 

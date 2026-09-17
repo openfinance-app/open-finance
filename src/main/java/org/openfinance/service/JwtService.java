@@ -51,7 +51,8 @@ public class JwtService {
     public JwtService(
             @Value("${jwt.secret}") String jwtSecret,
             @Value("${jwt.expiration:86400000}") long jwtExpirationMs) {
-        this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        this.signingKey =
+                Keys.hmacShaKeyFor(jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         this.jwtExpirationMs = jwtExpirationMs;
         // log at debug to avoid logging environment sensitive initialization in production logs
         log.debug("JwtService initialized with HS256 algorithm, expiration={}ms", jwtExpirationMs);

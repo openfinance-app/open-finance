@@ -19,7 +19,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
       md: 'p-6',
       lg: 'p-8',
     };
-    
+
     return (
       <div
         ref={ref}
@@ -47,11 +47,7 @@ export interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
 export const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <div
-        ref={ref}
-        className={cn('flex flex-col space-y-1.5 pb-6', className)}
-        {...props}
-      >
+      <div ref={ref} className={cn('flex flex-col space-y-1.5 pb-6', className)} {...props}>
         {children}
       </div>
     );
@@ -70,7 +66,10 @@ export const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(
     return (
       <Component
         ref={ref as React.Ref<HTMLHeadingElement>}
-        className={cn('text-xl font-semibold leading-none tracking-tight text-text-primary', className)}
+        className={cn(
+          'text-xl font-semibold leading-none tracking-tight text-text-primary',
+          className
+        )}
         {...props}
       >
         {children}
@@ -88,11 +87,7 @@ export interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraph
 export const CardDescription = React.forwardRef<HTMLParagraphElement, CardDescriptionProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <p
-        ref={ref}
-        className={cn('text-sm text-text-secondary', className)}
-        {...props}
-      >
+      <p ref={ref} className={cn('text-sm text-text-secondary', className)} {...props}>
         {children}
       </p>
     );
@@ -124,11 +119,7 @@ export interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
 export const CardFooter = React.forwardRef<HTMLDivElement, CardFooterProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <div
-        ref={ref}
-        className={cn('flex items-center pt-6', className)}
-        {...props}
-      >
+      <div ref={ref} className={cn('flex items-center pt-6', className)} {...props}>
         {children}
       </div>
     );

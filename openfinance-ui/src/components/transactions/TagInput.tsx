@@ -1,13 +1,12 @@
 /**
  * TagInput Component
  * Task 12.3.4: Create TagInput component with autocomplete and tag chips display
- * 
+ *
  * Component for entering and managing transaction tags with autocomplete functionality
  */
 import { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
-
 
 interface TagInputProps {
   value: string[];
@@ -20,7 +19,7 @@ interface TagInputProps {
 
 /**
  * TagInput - Component for entering tags with autocomplete
- * 
+ *
  * Features:
  * - Add tags by typing and pressing Enter, comma, or space
  * - Remove tags by clicking the X button
@@ -28,7 +27,7 @@ interface TagInputProps {
  * - Tag chips display with visual styling
  * - Maximum tag limit enforcement
  * - Duplicate tag prevention
- * 
+ *
  * @param value - Array of current tags
  * @param onChange - Callback when tags change
  * @param suggestions - Optional array of suggested tags for autocomplete
@@ -52,10 +51,7 @@ export function TagInput({
 
   // Filter suggestions based on input value and exclude already added tags
   const filteredSuggestions = suggestions
-    .filter((tag) =>
-      tag.toLowerCase().includes(inputValue.toLowerCase()) &&
-      !value.includes(tag)
-    )
+    .filter(tag => tag.toLowerCase().includes(inputValue.toLowerCase()) && !value.includes(tag))
     .slice(0, 5); // Show max 5 suggestions
 
   // Reset selected suggestion when filtered suggestions change
@@ -135,16 +131,14 @@ export function TagInput({
     // Arrow Down: Navigate suggestions
     if (e.key === 'ArrowDown' && showSuggestions) {
       e.preventDefault();
-      setSelectedSuggestionIndex((prev) =>
-        prev < filteredSuggestions.length - 1 ? prev + 1 : prev
-      );
+      setSelectedSuggestionIndex(prev => (prev < filteredSuggestions.length - 1 ? prev + 1 : prev));
       return;
     }
 
     // Arrow Up: Navigate suggestions
     if (e.key === 'ArrowUp' && showSuggestions) {
       e.preventDefault();
-      setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : 0));
+      setSelectedSuggestionIndex(prev => (prev > 0 ? prev - 1 : 0));
       return;
     }
 
@@ -181,7 +175,7 @@ export function TagInput({
             {!disabled && (
               <button
                 type="button"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   removeTag(index);
                 }}
@@ -216,9 +210,7 @@ export function TagInput({
 
       {/* Max Tags Warning */}
       {value.length >= maxTags && (
-        <p className="mt-1 text-xs text-warning">
-          Maximum {maxTags} tags reached
-        </p>
+        <p className="mt-1 text-xs text-warning">Maximum {maxTags} tags reached</p>
       )}
 
       {/* Autocomplete Suggestions Dropdown */}
@@ -235,9 +227,10 @@ export function TagInput({
               onMouseEnter={() => setSelectedSuggestionIndex(index)}
               className={`
                 w-full text-left px-3 py-2 text-sm transition-colors
-                ${index === selectedSuggestionIndex
-                  ? 'bg-surface text-text-primary'
-                  : 'bg-background text-text-secondary hover:bg-surface-elevated'
+                ${
+                  index === selectedSuggestionIndex
+                    ? 'bg-surface text-text-primary'
+                    : 'bg-background text-text-secondary hover:bg-surface-elevated'
                 }
               `}
             >

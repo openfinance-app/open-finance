@@ -37,7 +37,7 @@ interface LocaleContextValue {
 const LocaleContext = createContext<LocaleContextValue>({
   locale: 'en',
   dateFnsLocale: enUS,
-  setLocale: async () => { },
+  setLocale: async () => {},
   isChangingLocale: false,
 });
 
@@ -47,7 +47,9 @@ const LocaleContext = createContext<LocaleContextValue>({
  * Errors are swallowed — the locale change still applies locally.
  */
 async function persistLocaleToBackend(locale: string): Promise<void> {
-  const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+  const token =
+    localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ||
+    sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
   if (!token) {
     // User is not logged in — store flag so AppLayout can sync it after login.
     sessionStorage.setItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC, locale);
@@ -67,9 +69,26 @@ async function persistLocaleToBackend(locale: string): Promise<void> {
 
 // All namespaces defined in i18n.ts
 const ALL_NAMESPACES = [
-  'common', 'auth', 'navigation', 'dashboard', 'accounts', 'transactions',
-  'assets', 'liabilities', 'budgets', 'categories', 'import', 'recurring',
-  'realEstate', 'rules', 'backup', 'settings', 'ai', 'tools', 'errors', 'validation'
+  'common',
+  'auth',
+  'navigation',
+  'dashboard',
+  'accounts',
+  'transactions',
+  'assets',
+  'liabilities',
+  'budgets',
+  'categories',
+  'import',
+  'recurring',
+  'realEstate',
+  'rules',
+  'backup',
+  'settings',
+  'ai',
+  'tools',
+  'errors',
+  'validation',
 ];
 
 export const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

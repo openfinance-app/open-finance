@@ -1,10 +1,10 @@
 /**
  * BackupSettings - Backup and restore settings component
- * 
+ *
  * Implements TASK-12.5.7:
  * - Display backup information and quick access
  * - Link to full BackupPage for managing backups
- * 
+ *
  * Requirements: REQ-2.14.2 (Data Backup & Restore)
  */
 import { useNavigate } from 'react-router';
@@ -28,9 +28,12 @@ export function BackupSettings() {
   // Calculate statistics
   const completedBackups = backups?.filter(b => b.status === 'COMPLETED') || [];
   const automaticBackups = completedBackups.filter(b => b.backupType === 'AUTOMATIC');
-  const latestBackup = completedBackups.length > 0
-    ? completedBackups.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
-    : null;
+  const latestBackup =
+    completedBackups.length > 0
+      ? completedBackups.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0]
+      : null;
 
   const totalSize = completedBackups.reduce((sum, b) => sum + b.fileSize, 0);
   const formattedTotalSize = formatBytes(totalSize);
@@ -63,7 +66,9 @@ export function BackupSettings() {
     <div className="space-y-6">
       {/* Section Header */}
       <div>
-        <h2 className="text-xl font-semibold text-text-primary mb-2">{t('overview.sectionTitle')}</h2>
+        <h2 className="text-xl font-semibold text-text-primary mb-2">
+          {t('overview.sectionTitle')}
+        </h2>
         <p className="text-text-secondary text-sm">{t('overview.sectionDescription')}</p>
       </div>
 
@@ -74,9 +79,7 @@ export function BackupSettings() {
             <Database className="h-5 w-5 text-primary" />
             <h3 className="text-base font-medium text-text-primary">{t('overview.cardTitle')}</h3>
           </div>
-          <p className="text-xs text-text-secondary">
-            {t('overview.cardDescription')}
-          </p>
+          <p className="text-xs text-text-secondary">{t('overview.cardDescription')}</p>
         </div>
 
         {/* Loading State */}
@@ -96,9 +99,7 @@ export function BackupSettings() {
                 <Database className="h-4 w-4 text-primary" />
                 <span className="text-xs text-text-secondary">{t('overview.totalBackups')}</span>
               </div>
-              <p className="text-2xl font-bold text-text-primary">
-                {completedBackups.length}
-              </p>
+              <p className="text-2xl font-bold text-text-primary">{completedBackups.length}</p>
               {automaticBackups.length > 0 && (
                 <p className="text-xs text-text-muted mt-1">
                   {t('overview.automatic', { count: automaticBackups.length })}
@@ -117,7 +118,9 @@ export function BackupSettings() {
               </p>
               {latestBackup && (
                 <p className="text-xs text-text-muted mt-1">
-                  {latestBackup.backupType === 'AUTOMATIC' ? t('overview.automatic_type') : t('overview.manual_type')}
+                  {latestBackup.backupType === 'AUTOMATIC'
+                    ? t('overview.automatic_type')
+                    : t('overview.manual_type')}
                 </p>
               )}
             </div>
@@ -128,12 +131,12 @@ export function BackupSettings() {
                 <HardDrive className="h-4 w-4 text-primary" />
                 <span className="text-xs text-text-secondary">{t('overview.storageUsed')}</span>
               </div>
-              <p className="text-2xl font-bold text-text-primary">
-                {formattedTotalSize}
-              </p>
+              <p className="text-2xl font-bold text-text-primary">{formattedTotalSize}</p>
               {completedBackups.length > 0 && (
                 <p className="text-xs text-text-muted mt-1">
-                  {t('overview.average', { size: formatBytes(totalSize / completedBackups.length) })}
+                  {t('overview.average', {
+                    size: formatBytes(totalSize / completedBackups.length),
+                  })}
                 </p>
               )}
             </div>

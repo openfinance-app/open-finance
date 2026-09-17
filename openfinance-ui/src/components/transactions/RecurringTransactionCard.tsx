@@ -1,10 +1,19 @@
 /**
  * RecurringTransactionCard Component
  * Task 12.2.10: Create RecurringTransactionCard component
- * 
+ *
  * Displays individual recurring transaction with frequency, next occurrence, and pause/resume functionality
  */
-import { Calendar, Pause, Play, Edit, Trash2, TrendingUp, TrendingDown, ArrowRightLeft } from 'lucide-react';
+import {
+  Calendar,
+  Pause,
+  Play,
+  Edit,
+  Trash2,
+  TrendingUp,
+  TrendingDown,
+  ArrowRightLeft,
+} from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
@@ -46,7 +55,8 @@ export function RecurringTransactionCard({
     if (recurringTransaction.isEnded) return t('status.ended');
     if (!recurringTransaction.isActive) return t('status.paused');
     if (recurringTransaction.isDue) return t('status.dueNow');
-    if (recurringTransaction.daysUntilNext <= 7 && recurringTransaction.daysUntilNext >= 0) return t('status.dueSoon');
+    if (recurringTransaction.daysUntilNext <= 7 && recurringTransaction.daysUntilNext >= 0)
+      return t('status.dueSoon');
     return t('status.active');
   };
 
@@ -57,10 +67,10 @@ export function RecurringTransactionCard({
     baseCurrency
   );
   const exchangeRate = isSameCurrency ? 1 : (exchangeRateData?.rate ?? undefined);
-  const convertedAmount = exchangeRate !== undefined
-    ? multiply(recurringTransaction.amount, exchangeRate)
-    : undefined;
-  const isConverted = isSameCurrency || (exchangeRate !== undefined && convertedAmount !== undefined);
+  const convertedAmount =
+    exchangeRate !== undefined ? multiply(recurringTransaction.amount, exchangeRate) : undefined;
+  const isConverted =
+    isSameCurrency || (exchangeRate !== undefined && convertedAmount !== undefined);
 
   const isTransfer = recurringTransaction.type === 'TRANSFER';
   const isIncome = recurringTransaction.type === 'INCOME';
@@ -91,7 +101,7 @@ export function RecurringTransactionCard({
     <Card className="p-4 hover:shadow-md transition-shadow">
       <div
         className="flex items-start justify-between gap-4 cursor-pointer"
-        onClick={(e) => {
+        onClick={e => {
           if ((e.target as HTMLElement).closest('button')) return;
           onViewDetail?.(recurringTransaction);
         }}
@@ -126,9 +136,7 @@ export function RecurringTransactionCard({
               <Badge variant="default">
                 {t('filters.' + recurringTransaction.frequency.toLowerCase())}
               </Badge>
-              <Badge variant="info">
-                {getStatusText()}
-              </Badge>
+              <Badge variant="info">{getStatusText()}</Badge>
               {!recurringTransaction.isEnded && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
@@ -141,14 +149,24 @@ export function RecurringTransactionCard({
             {recurringTransaction.endDate && (
               <div className="text-xs text-muted-foreground mt-1">
                 {recurringTransaction.isEnded
-                  ? t('card.endedOn', { date: format(new Date(recurringTransaction.endDate), 'PP', { locale: dateFnsLocale }) })
-                  : t('card.endsOn', { date: format(new Date(recurringTransaction.endDate), 'PP', { locale: dateFnsLocale }) })}
+                  ? t('card.endedOn', {
+                      date: format(new Date(recurringTransaction.endDate), 'PP', {
+                        locale: dateFnsLocale,
+                      }),
+                    })
+                  : t('card.endsOn', {
+                      date: format(new Date(recurringTransaction.endDate), 'PP', {
+                        locale: dateFnsLocale,
+                      }),
+                    })}
               </div>
             )}
 
             {/* Notes (if present) */}
             {recurringTransaction.notes && (
-              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{recurringTransaction.notes}</p>
+              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                {recurringTransaction.notes}
+              </p>
             )}
           </div>
         </div>

@@ -1,6 +1,6 @@
 /**
  * Private currency formatting utilities
- * 
+ *
  * Wraps currency formatting with privacy blur functionality and the user's
  * number format preference from NumberFormatContext.
  */
@@ -27,11 +27,7 @@ export function usePrivateCurrencyFormatter() {
     options: FormatCurrencyOptions = {}
   ) => {
     const formatted = formatCurrency(amount, currencyCode, { numberFormat, ...options });
-    return (
-      <PrivateAmount inline>
-        {formatted}
-      </PrivateAmount>
-    );
+    return <PrivateAmount inline>{formatted}</PrivateAmount>;
   };
 
   return { formatPrivate };
@@ -55,10 +51,6 @@ export function formatPrivateCurrency(
   options: FormatCurrencyOptions = {}
 ) {
   const formatted = formatCurrency(amount, currencyCode, options);
-  
-  return (
-    <PrivateAmount inline>
-      {formatted}
-    </PrivateAmount>
-  );
+
+  return <PrivateAmount inline>{formatted}</PrivateAmount>;
 }

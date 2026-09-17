@@ -6,7 +6,9 @@ import type { IBorrowingCapacity } from '@/types/dashboard';
 
 vi.mock('@/components/ui/ConvertedAmount', () => ({
   ConvertedAmount: ({ amount, currency }: any) => (
-    <span data-testid="converted-amount">{amount} {currency}</span>
+    <span data-testid="converted-amount">
+      {amount} {currency}
+    </span>
   ),
 }));
 

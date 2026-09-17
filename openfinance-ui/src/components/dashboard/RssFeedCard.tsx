@@ -42,7 +42,7 @@ function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
               {cleanTitle}
             </h4>
             <button
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 if (item.link) {
                   onDiscard(item.link);
@@ -56,11 +56,14 @@ function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs text-text-muted">
-              {item.pubDate ? (
-                differenceInDays(new Date(), new Date(item.pubDate)) <= 7
-                  ? formatDistanceToNow(new Date(item.pubDate), { addSuffix: true, locale: dateLocale })
+              {item.pubDate
+                ? differenceInDays(new Date(), new Date(item.pubDate)) <= 7
+                  ? formatDistanceToNow(new Date(item.pubDate), {
+                      addSuffix: true,
+                      locale: dateLocale,
+                    })
                   : format(new Date(item.pubDate), 'PP', { locale: dateLocale })
-              )                   : t('cards.rssFeed.recently')}
+                : t('cards.rssFeed.recently')}
             </span>
             <Badge variant="info" size="sm" className="opacity-70 text-[10px] uppercase">
               {item.source}
@@ -101,7 +104,7 @@ export default function RssFeedCard() {
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
           <div className="space-y-3">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4].map(i => (
               <div key={i} className="animate-pulse">
                 <div className="h-20 bg-surface-elevated rounded-lg"></div>
               </div>
@@ -186,17 +189,9 @@ export default function RssFeedCard() {
           <div className="flex items-center gap-2">
             <Rss className="h-5 w-5 text-primary" />
             <CardTitle>{t('cards.rssFeed.title')}</CardTitle>
-            <HelpTooltip
-              text={t('cards.rssFeed.rssTooltip')}
-              side="right"
-            />
+            <HelpTooltip text={t('cards.rssFeed.rssTooltip')} side="right" />
           </div>
-          <Button
-            onClick={handleRetry}
-            isLoading={isFetching}
-            variant="secondary"
-            size="sm"
-          >
+          <Button onClick={handleRetry} isLoading={isFetching} variant="secondary" size="sm">
             <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
             {t('insightsCard.refresh')}
           </Button>
@@ -204,14 +199,16 @@ export default function RssFeedCard() {
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
         <div className="space-y-3">
-          {displayedFeeds.length > 0 ? displayedFeeds.map((item, idx) => (
-            <FeedItem
-              key={idx}
-              item={item}
-              onClick={() => setSelectedItem(item)}
-              onDiscard={handleDiscard}
-            />
-          )) : (
+          {displayedFeeds.length > 0 ? (
+            displayedFeeds.map((item, idx) => (
+              <FeedItem
+                key={idx}
+                item={item}
+                onClick={() => setSelectedItem(item)}
+                onDiscard={handleDiscard}
+              />
+            ))
+          ) : (
             <div className="text-center py-8">
               <p className="text-text-secondary text-sm">{t('cards.rssFeed.allDiscarded')}</p>
             </div>
@@ -219,20 +216,27 @@ export default function RssFeedCard() {
         </div>
       </CardContent>
 
-      <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
+      <Dialog open={!!selectedItem} onOpenChange={open => !open && setSelectedItem(null)}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex flex-row items-start gap-3 pr-6">
               <div className="flex-shrink-0 mt-0.5">
                 <Newspaper className="h-5 w-5 text-primary" />
               </div>
-              <div className="flex-1 leading-tight mt-0.5" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedItem?.title || '', { ALLOWED_TAGS: [] }) }}></div>
+              <div
+                className="flex-1 leading-tight mt-0.5"
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(selectedItem?.title || '', { ALLOWED_TAGS: [] }),
+                }}
+              ></div>
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <div 
+            <div
               className="text-sm text-text-secondary leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedItem?.description || '') }} 
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(selectedItem?.description || ''),
+              }}
             />
           </div>
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
@@ -243,18 +247,20 @@ export default function RssFeedCard() {
                 </Badge>
               )}
               <span className="text-xs text-text-muted">
-                {selectedItem?.pubDate && (
-                  differenceInDays(new Date(), new Date(selectedItem.pubDate)) <= 7
-                    ? formatDistanceToNow(new Date(selectedItem.pubDate), { addSuffix: true, locale: dateLocale })
-                    : format(new Date(selectedItem.pubDate), 'PP', { locale: dateLocale })
-                )}
+                {selectedItem?.pubDate &&
+                  (differenceInDays(new Date(), new Date(selectedItem.pubDate)) <= 7
+                    ? formatDistanceToNow(new Date(selectedItem.pubDate), {
+                        addSuffix: true,
+                        locale: dateLocale,
+                      })
+                    : format(new Date(selectedItem.pubDate), 'PP', { locale: dateLocale }))}
               </span>
             </div>
-            
+
             {selectedItem?.link && (
-              <a 
-                href={selectedItem.link} 
-                target="_blank" 
+              <a
+                href={selectedItem.link}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary-hover transition-colors"
               >

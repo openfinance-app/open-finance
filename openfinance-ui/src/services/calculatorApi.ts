@@ -1,6 +1,6 @@
 /**
  * Financial Freedom Calculator API Service
- * 
+ *
  * API client for financial freedom and savings longevity calculations
  */
 
@@ -14,7 +14,7 @@ import type {
 
 /**
  * Calculate time to financial freedom
- * 
+ *
  * @param input Calculator input parameters
  * @returns Promise with calculation result
  */
@@ -30,13 +30,13 @@ export async function calculateTimeline(
     inflationRate: input.inflationRate ?? 2.5,
     adjustForInflation: input.adjustForInflation ?? false,
   });
-  
+
   return response.data;
 }
 
 /**
  * Calculate savings longevity
- * 
+ *
  * @param currentSavings Current total savings
  * @param monthlyExpenses Expected monthly expenses
  * @param annualReturnRate Expected annual return rate
@@ -54,13 +54,13 @@ export async function calculateLongevity(
       annualReturnRate,
     },
   });
-  
+
   return response.data;
 }
 
 /**
  * Get default calculation parameters
- * 
+ *
  * @returns Promise with default parameters
  */
 export async function getCalculationDefaults(): Promise<CalculationDefaults> {

@@ -8,12 +8,17 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { screen, waitFor, fireEvent } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent } from '@/test/test-utils';
+import {
+  renderWithProviders,
+  mockAuthentication,
+  clearAuthentication,
+  userEvent,
+} from '@/test/test-utils';
 import { BudgetForm } from '@/components/budgets/BudgetForm';
 import type { BudgetResponse } from '@/types/budget';
 
-vi.mock('@/hooks/useUserSettings', async (importOriginal) => {
-  const actual = await importOriginal() as any;
+vi.mock('@/hooks/useUserSettings', async importOriginal => {
+  const actual = (await importOriginal()) as any;
   return {
     ...actual,
     useUserSettings: () => ({ data: { dateFormat: 'YYYY-MM-DD' }, isLoading: false }),
@@ -26,7 +31,7 @@ vi.mock('@/components/ui/CurrencySelector', () => ({
     <select
       data-testid="currency-selector"
       value={value || ''}
-      onChange={(e) => onValueChange(e.target.value)}
+      onChange={e => onValueChange(e.target.value)}
     >
       <option value="">{placeholder || 'Select currency'}</option>
       <option value="USD">USD</option>
@@ -41,7 +46,7 @@ vi.mock('@/components/ui/CategorySelect', () => ({
       data-testid="category-select"
       aria-label="Category"
       value={value || ''}
-      onChange={(e) => onValueChange(e.target.value ? Number(e.target.value) : undefined)}
+      onChange={e => onValueChange(e.target.value ? Number(e.target.value) : undefined)}
     >
       <option value="">{placeholder || 'Select category'}</option>
       <option value="1">Food</option>
@@ -82,9 +87,7 @@ describe('BudgetForm', () => {
 
   describe('Rendering', () => {
     it('should render all required form fields', () => {
-      renderWithProviders(
-        <BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
-      );
+      renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       // Category uses mocked CategorySelect with aria-label
       expect(screen.getByLabelText(/Category/i)).toBeInTheDocument();
@@ -95,9 +98,7 @@ describe('BudgetForm', () => {
     });
 
     it('should show "Create Budget" button for new budget', () => {
-      renderWithProviders(
-        <BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
-      );
+      renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       expect(screen.getByRole('button', { name: /create budget/i })).toBeInTheDocument();
     });
@@ -111,55 +112,42 @@ describe('BudgetForm', () => {
     });
 
     it('should show Cancel button', () => {
-      renderWithProviders(
-        <BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
-      );
+      renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
     });
 
     it('should render budget period options', () => {
-      renderWithProviders(
-        <BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
-      );
+      renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       const periodSelect = screen.getByLabelText(/Budget Period/i) as HTMLSelectElement;
       expect(periodSelect.options.length).toBe(4); // WEEKLY, MONTHLY, QUARTERLY, YEARLY
     });
 
     it('should default to Monthly period', () => {
-      renderWithProviders(
-        <BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
-      );
+      renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       const periodSelect = screen.getByLabelText(/Budget Period/i) as HTMLSelectElement;
       expect(periodSelect.value).toBe('MONTHLY');
     });
 
     it('should render rollover checkbox', () => {
-      renderWithProviders(
-        <BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
-      );
+      renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       expect(screen.getByLabelText(/Rollover unused budget/i)).toBeInTheDocument();
     });
 
     it('should render notes field', () => {
-      renderWithProviders(
-        <BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
-      );
+      renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       expect(screen.getByLabelText(/Notes/i)).toBeInTheDocument();
     });
   });
 
   describe('Validation', () => {
-
     it('should show error when end date is before start date', async () => {
       const user = userEvent.setup();
-      renderWithProviders(
-        <BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
-      );
+      renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       const startDateInput = screen.getByLabelText(/Start Date/i);
       const endDateInput = screen.getByLabelText(/End Date/i);
@@ -177,7 +165,9 @@ describe('BudgetForm', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/End date must be at least 1 day after start date/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/End date must be at least 1 day after start date/i)
+        ).toBeInTheDocument();
       });
     });
   });
@@ -185,9 +175,7 @@ describe('BudgetForm', () => {
   describe('Submission', () => {
     it('should call onCancel when Cancel button is clicked', async () => {
       const user = userEvent.setup();
-      renderWithProviders(
-        <BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
-      );
+      renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
       await user.click(cancelButton);

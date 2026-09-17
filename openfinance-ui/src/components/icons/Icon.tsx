@@ -17,20 +17,14 @@ export function Icon({ icon, name, size = 20, className }: IconProps) {
   let IconComponent: LucideIcon | undefined = icon;
 
   if (!IconComponent && name) {
-    // Resolve icon from name string
-    // @ts-expect-error - Dynamic access to Lucide icons by string name
-    IconComponent = LucideIcons[name] || LucideIcons[name.charAt(0).toUpperCase() + name.slice(1)] || LucideIcons.HelpCircle;
+    const icons = LucideIcons.icons as Partial<Record<string, LucideIcon>>;
+    IconComponent =
+      icons[name] || icons[name.charAt(0).toUpperCase() + name.slice(1)] || LucideIcons.HelpCircle;
   }
 
   if (!IconComponent) {
     IconComponent = LucideIcons.HelpCircle;
   }
 
-  return (
-    <IconComponent
-      size={size}
-      className={cn('inline-block', className)}
-      aria-hidden="true"
-    />
-  );
+  return <IconComponent size={size} className={cn('inline-block', className)} aria-hidden="true" />;
 }

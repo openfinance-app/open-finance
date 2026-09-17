@@ -14,9 +14,7 @@ describe('PeriodSelector', () => {
   });
 
   it('shows years in the custom period label', () => {
-    renderWithProviders(
-      <PeriodSelector selectedPeriod="CUSTOM" onPeriodChange={vi.fn()} />
-    );
+    renderWithProviders(<PeriodSelector selectedPeriod="CUSTOM" onPeriodChange={vi.fn()} />);
 
     expect(
       screen.getByRole('button', {

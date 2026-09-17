@@ -60,39 +60,51 @@ type SelectContentProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.
 export const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   SelectContentProps
->(({ className, children, position = 'popper', viewportClassName, headerSlot, footerSlot, ...props }, ref) => (
-  <SelectPrimitive.Portal>
-    <SelectPrimitive.Content
-      ref={ref}
-      className={cn(
-        'relative z-[100] min-w-32 overflow-hidden rounded-lg border border-border bg-surface text-text-primary shadow-md',
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-        position === 'popper' &&
-        'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
-        className
-      )}
-      position={position}
-      {...props}
-    >
-      {/* headerSlot renders outside Viewport so Radix never steals focus from it */}
-      {headerSlot}
-      <SelectPrimitive.Viewport
+>(
+  (
+    {
+      className,
+      children,
+      position = 'popper',
+      viewportClassName,
+      headerSlot,
+      footerSlot,
+      ...props
+    },
+    ref
+  ) => (
+    <SelectPrimitive.Portal>
+      <SelectPrimitive.Content
+        ref={ref}
         className={cn(
-          'max-h-72 overflow-y-auto p-1',
+          'relative z-[100] min-w-32 overflow-hidden rounded-lg border border-border bg-surface text-text-primary shadow-md',
+          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
           position === 'popper' &&
-          'w-full min-w-(--radix-select-trigger-width)',
-          viewportClassName
+            'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
+          className
         )}
-        onWheel={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
+        position={position}
+        {...props}
       >
-        {children}
-      </SelectPrimitive.Viewport>
-      {/* footerSlot renders outside Viewport */}
-      {footerSlot}
-    </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
-));
+        {/* headerSlot renders outside Viewport so Radix never steals focus from it */}
+        {headerSlot}
+        <SelectPrimitive.Viewport
+          className={cn(
+            'max-h-72 overflow-y-auto p-1',
+            position === 'popper' && 'w-full min-w-(--radix-select-trigger-width)',
+            viewportClassName
+          )}
+          onWheel={e => e.stopPropagation()}
+          onTouchMove={e => e.stopPropagation()}
+        >
+          {children}
+        </SelectPrimitive.Viewport>
+        {/* footerSlot renders outside Viewport */}
+        {footerSlot}
+      </SelectPrimitive.Content>
+    </SelectPrimitive.Portal>
+  )
+);
 
 SelectContent.displayName = SelectPrimitive.Content.displayName;
 

@@ -55,6 +55,11 @@ class NetWorthServiceBackfillTest {
 
     @Mock private NetWorthRepository netWorthRepository;
     @Mock private AccountRepository accountRepository;
+
+    @Mock
+    private org.openfinance.repository.AccountStatusHistoryRepository
+            accountStatusHistoryRepository;
+
     @Mock private AssetRepository assetRepository;
     @Mock private LiabilityRepository liabilityRepository;
     @Mock private RealEstateRepository realEstateRepository;
@@ -84,7 +89,7 @@ class NetWorthServiceBackfillTest {
                 .when(exchangeRateService.convert(any(BigDecimal.class), any(), any(), any()))
                 .thenAnswer(i -> i.getArgument(0));
 
-        when(accountRepository.findByUserIdAndIsActive(USER_ID, true)).thenReturn(List.of());
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(List.of());
         when(assetRepository.findByUserId(USER_ID)).thenReturn(List.of());
         when(realEstateRepository.findByUserIdAndIsActive(USER_ID, true)).thenReturn(List.of());
         when(realEstateValueHistoryRepository.findByUserId(USER_ID)).thenReturn(List.of());
@@ -119,7 +124,7 @@ class NetWorthServiceBackfillTest {
                         .currency("USD")
                         .openingDate(LocalDate.of(2025, 1, 1))
                         .build();
-        when(accountRepository.findByUserIdAndIsActive(USER_ID, true)).thenReturn(List.of(account));
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(List.of(account));
     }
 
     /** Persisted repayments carry their exact applied principal. */

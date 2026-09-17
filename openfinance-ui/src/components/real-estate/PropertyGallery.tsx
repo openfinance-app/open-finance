@@ -44,7 +44,7 @@ export function PropertyGallery({ propertyId }: PropertyGalleryProps) {
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-3 gap-2">
-        {images.map((img) => (
+        {images.map(img => (
           <GalleryImage key={img.id} attachmentId={img.id} fileName={img.fileName} />
         ))}
       </div>

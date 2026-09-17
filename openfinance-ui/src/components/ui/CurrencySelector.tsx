@@ -109,9 +109,7 @@ export function CurrencySelector({
     );
   }
 
-  const baseCurrencies = showInactive
-    ? currencies
-    : currencies.filter((c: Currency) => c.isActive);
+  const baseCurrencies = showInactive ? currencies : currencies.filter((c: Currency) => c.isActive);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const visibleCurrencies = normalizedQuery
@@ -119,13 +117,11 @@ export function CurrencySelector({
         const translatedName = t(`currency.${currency.code}`, { defaultValue: currency.name });
         return [currency.code, translatedName, currency.name, currency.symbol]
           .filter(Boolean)
-          .some((v) => v.toLowerCase().includes(normalizedQuery));
+          .some(v => v.toLowerCase().includes(normalizedQuery));
       })
     : baseCurrencies;
 
-  const selectedCurrency = value
-    ? currencies.find((c: Currency) => c.code === value)
-    : undefined;
+  const selectedCurrency = value ? currencies.find((c: Currency) => c.code === value) : undefined;
 
   const selectedTranslatedName = selectedCurrency
     ? t(`currency.${selectedCurrency.code}`, { defaultValue: selectedCurrency.name })
@@ -170,20 +166,20 @@ export function CurrencySelector({
           align="start"
           sideOffset={4}
           // At minimum match the trigger width, but allow growing wider for long names
-          style={{ 
-            minWidth: 'var(--radix-popover-trigger-width)', 
-            width: 'max-content', 
+          style={{
+            minWidth: 'var(--radix-popover-trigger-width)',
+            width: 'max-content',
             maxWidth: '420px',
-            maxHeight: 'var(--radix-popover-content-available-height)'
+            maxHeight: 'var(--radix-popover-content-available-height)',
           }}
           className={cn(
             'z-[100] flex flex-col overflow-hidden rounded-lg border border-border bg-surface text-text-primary shadow-md',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
           )}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => {
+          onOpenAutoFocus={e => e.preventDefault()}
+          onEscapeKeyDown={e => {
             // Prevent the Escape event from bubbling to the parent Dialog
             e.stopPropagation();
           }}
@@ -196,8 +192,8 @@ export function CurrencySelector({
                 ref={searchRef}
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => {
                   if (e.key === 'Escape') {
                     e.stopPropagation();
                     setOpen(false);
@@ -211,10 +207,10 @@ export function CurrencySelector({
           </div>
 
           {/* Options list */}
-          <div 
+          <div
             className="flex-1 overflow-y-auto p-1 shrink min-h-0 max-h-72"
-            onWheel={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
+            onWheel={e => e.stopPropagation()}
+            onTouchMove={e => e.stopPropagation()}
           >
             {allowNone && (
               <button
@@ -234,12 +230,12 @@ export function CurrencySelector({
             )}
 
             {visibleCurrencies.length === 0 ? (
-              <div className="p-3 text-center text-sm text-text-muted">
-                {t('noMatch')}
-              </div>
+              <div className="p-3 text-center text-sm text-text-muted">{t('noMatch')}</div>
             ) : (
               visibleCurrencies.map((currency: Currency) => {
-                const translatedName = t(`currency.${currency.code}`, { defaultValue: currency.name });
+                const translatedName = t(`currency.${currency.code}`, {
+                  defaultValue: currency.name,
+                });
                 return (
                   <button
                     key={currency.code}
@@ -253,18 +249,14 @@ export function CurrencySelector({
                   >
                     {/* Check indicator */}
                     <span className="w-4 shrink-0 flex items-center justify-center">
-                      {value === currency.code && (
-                        <Check className="h-4 w-4 text-primary" />
-                      )}
+                      {value === currency.code && <Check className="h-4 w-4 text-primary" />}
                     </span>
                     {/* Code */}
                     <span className="w-12 shrink-0 font-mono font-semibold text-primary">
                       {currency.code}
                     </span>
                     {/* Name — takes remaining space, no wrap */}
-                    <span className="text-text-muted whitespace-nowrap">
-                      {translatedName}
-                    </span>
+                    <span className="text-text-muted whitespace-nowrap">{translatedName}</span>
                   </button>
                 );
               })
@@ -323,13 +315,11 @@ export function CurrencySelectorCompact({
         const translatedName = t(`currency.${currency.code}`, { defaultValue: currency.name });
         return [currency.code, translatedName, currency.name, currency.symbol]
           .filter(Boolean)
-          .some((v) => v.toLowerCase().includes(normalizedQuery));
+          .some(v => v.toLowerCase().includes(normalizedQuery));
       })
     : currencies;
 
-  const selectedCurrency = value
-    ? currencies.find((c: Currency) => c.code === value)
-    : undefined;
+  const selectedCurrency = value ? currencies.find((c: Currency) => c.code === value) : undefined;
 
   const handleSelect = (code: string) => {
     onValueChange(code);
@@ -352,9 +342,7 @@ export function CurrencySelectorCompact({
         >
           {value && selectedCurrency ? (
             <span className="flex items-center gap-1">
-              <span className="font-semibold text-primary">
-                {selectedCurrency.symbol}
-              </span>
+              <span className="font-semibold text-primary">{selectedCurrency.symbol}</span>
               <span className="font-mono">{value}</span>
             </span>
           ) : (
@@ -373,10 +361,10 @@ export function CurrencySelectorCompact({
             'z-[100] w-56 flex flex-col overflow-hidden rounded-lg border border-border bg-surface text-text-primary shadow-md',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
           )}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => {
+          onOpenAutoFocus={e => e.preventDefault()}
+          onEscapeKeyDown={e => {
             // Prevent the Escape event from bubbling to the parent Dialog
             e.stopPropagation();
           }}
@@ -388,8 +376,8 @@ export function CurrencySelectorCompact({
                 ref={searchRef}
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => {
                   if (e.key === 'Escape') {
                     e.stopPropagation();
                     setOpen(false);
@@ -402,10 +390,10 @@ export function CurrencySelectorCompact({
             </div>
           </div>
 
-          <div 
+          <div
             className="flex-1 overflow-y-auto p-1 shrink min-h-0 max-h-72"
-            onWheel={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
+            onWheel={e => e.stopPropagation()}
+            onTouchMove={e => e.stopPropagation()}
           >
             {visibleCurrencies.length === 0 ? (
               <div className="p-2 text-center text-sm text-text-muted">
@@ -424,14 +412,10 @@ export function CurrencySelectorCompact({
                   )}
                 >
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                    {value === currency.code && (
-                      <Check className="h-4 w-4 text-primary" />
-                    )}
+                    {value === currency.code && <Check className="h-4 w-4 text-primary" />}
                   </span>
                   <span className="flex items-center gap-2">
-                    <span className="w-6 font-semibold text-primary">
-                      {currency.symbol}
-                    </span>
+                    <span className="w-6 font-semibold text-primary">{currency.symbol}</span>
                     <span className="font-mono">{currency.code}</span>
                   </span>
                 </button>

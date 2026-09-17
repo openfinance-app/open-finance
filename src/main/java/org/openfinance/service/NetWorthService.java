@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.Account;
+import org.openfinance.entity.AccountStatusHistory;
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.Liability;
 import org.openfinance.entity.MovementType;
@@ -20,7 +21,9 @@ import org.openfinance.entity.RealEstateProperty;
 import org.openfinance.entity.RealEstateValueHistory;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
+import org.openfinance.exception.ExchangeRateUnavailableException;
 import org.openfinance.repository.AccountRepository;
+import org.openfinance.repository.AccountStatusHistoryRepository;
 import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.LiabilityRepository;
@@ -76,6 +79,7 @@ public class NetWorthService {
 
     private final NetWorthRepository netWorthRepository;
     private final AccountRepository accountRepository;
+    private final AccountStatusHistoryRepository accountStatusHistoryRepository;
     private final CurrencyRepository currencyRepository;
     private final AssetRepository assetRepository;
     private final LiabilityRepository liabilityRepository;
@@ -264,6 +268,8 @@ public class NetWorthService {
                                                     baseCurrency);
                                         }
                                         return BigDecimal.ZERO;
+                                    } catch (ExchangeRateUnavailableException e) {
+                                        throw e;
                                     } catch (Exception e) {
                                         log.error(
                                                 "Failed to decrypt real estate property value for property ID {} (user {}): {}. Skipping property in net worth calculation.",
@@ -385,24 +391,25 @@ public class NetWorthService {
      */
     private BigDecimal convertToBaseCurrency(
             BigDecimal amount, String fromCurrency, String baseCurrency) {
+        return convertToBaseCurrency(amount, fromCurrency, baseCurrency, null);
+    }
+
+    private BigDecimal convertToBaseCurrency(
+            BigDecimal amount, String fromCurrency, String baseCurrency, LocalDate date) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;
         }
 
-        if (fromCurrency.equalsIgnoreCase(baseCurrency)) {
+        if (fromCurrency != null && fromCurrency.equalsIgnoreCase(baseCurrency)) {
             return amount;
         }
 
         try {
-            return exchangeRateService.convert(amount, fromCurrency, baseCurrency);
+            return date == null
+                    ? exchangeRateService.convert(amount, fromCurrency, baseCurrency)
+                    : exchangeRateService.convert(amount, fromCurrency, baseCurrency, date);
         } catch (Exception e) {
-            log.warn(
-                    "Failed to convert {} {} to {}: {}. Using original amount.",
-                    amount,
-                    fromCurrency,
-                    baseCurrency,
-                    e.getMessage());
-            return amount; // Fallback: use unconverted amount
+            throw new ExchangeRateUnavailableException(fromCurrency, baseCurrency, e);
         }
     }
 
@@ -718,7 +725,10 @@ public class NetWorthService {
                     effectiveEnd);
         }
 
-        List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
+        List<Account> accounts = accountRepository.findByUserId(userId);
+        Map<Long, List<AccountStatusHistory>> statusByAccount =
+                accountStatusHistoryRepository.findByUserId(userId).stream()
+                        .collect(Collectors.groupingBy(AccountStatusHistory::getAccountId));
         List<Asset> assets = assetRepository.findByUserId(userId);
         List<Transaction> allTransactions = transactionRepository.findByUserId(userId);
 
@@ -781,6 +791,9 @@ public class NetWorthService {
                 BigDecimal totalLiabilities = BigDecimal.ZERO;
 
                 for (Account account : accounts) {
+                    if (!accountWasActive(
+                            statusByAccount.getOrDefault(account.getId(), List.of()), targetDate))
+                        continue;
                     LocalDate earliest = accountEarliestDate.get(account.getId());
                     if (earliest != null && earliest.isAfter(targetDate)) {
                         continue;
@@ -791,23 +804,12 @@ public class NetWorthService {
                     AccountCurrencyService.Position position =
                             accountCurrencyService.historicalPosition(
                                     account, historicalBalance, targetDate, userId);
-                    BigDecimal convertedBalance;
-                    try {
-                        convertedBalance =
-                                position.currency() != null
-                                                && !position.currency().equals(baseCurrency)
-                                        ? exchangeRateService.convert(
-                                                position.amount(),
-                                                position.currency(),
-                                                baseCurrency,
-                                                targetDate)
-                                        : position.amount();
-                    } catch (Exception e) {
-                        log.warn(
-                                "Currency conversion failed for backfill (account {}), using raw amount",
-                                account.getId());
-                        convertedBalance = historicalBalance;
-                    }
+                    BigDecimal convertedBalance =
+                            convertToBaseCurrency(
+                                    position.amount(),
+                                    position.currency(),
+                                    baseCurrency,
+                                    targetDate);
 
                     if (convertedBalance.compareTo(BigDecimal.ZERO) > 0) {
                         totalAssets = totalAssets.add(convertedBalance);
@@ -833,20 +835,9 @@ public class NetWorthService {
                         continue;
                     }
                     BigDecimal costBasis = asset.getPurchasePrice().multiply(asset.getQuantity());
-                    BigDecimal convertedCostBasis;
-                    try {
-                        convertedCostBasis =
-                                asset.getCurrency() != null
-                                                && !asset.getCurrency().equals(baseCurrency)
-                                        ? exchangeRateService.convert(
-                                                costBasis, asset.getCurrency(), baseCurrency)
-                                        : costBasis;
-                    } catch (Exception e) {
-                        log.warn(
-                                "Currency conversion failed for asset {} in backfill, using raw amount",
-                                asset.getId());
-                        convertedCostBasis = costBasis;
-                    }
+                    BigDecimal convertedCostBasis =
+                            convertToBaseCurrency(
+                                    costBasis, asset.getCurrency(), baseCurrency, targetDate);
                     if (convertedCostBasis.compareTo(BigDecimal.ZERO) > 0) {
                         totalAssets = totalAssets.add(convertedCostBasis);
                     }
@@ -869,41 +860,24 @@ public class NetWorthService {
                                     valueHistoryByProperty.getOrDefault(
                                             property.getId(), List.of());
                             // Find the most recent entry on or before targetDate
-                            Optional<RealEstateValueHistory> historyEntry =
-                                    history.stream()
-                                            .filter(h -> !h.getEffectiveDate().isAfter(targetDate))
-                                            .filter(h -> valuationAppliesAt(h, targetDate))
-                                            .max(
-                                                    Comparator.comparing(
-                                                                    RealEstateValueHistory
-                                                                            ::getEffectiveDate)
-                                                            .thenComparing(
-                                                                    RealEstateValueHistory::getId));
-
-                            BigDecimal value;
-                            if (historyEntry.isPresent()) {
-                                value = new BigDecimal(historyEntry.get().getRecordedValue());
-                            } else {
-                                // No history yet â€” use purchasePrice as best proxy for early
-                                // dates
-                                if (property.getPurchasePrice() != null
-                                        && !property.getPurchasePrice().isBlank()) {
-                                    value = new BigDecimal(property.getPurchasePrice());
-                                } else {
-                                    continue;
-                                }
-                            }
-
+                            org.openfinance.util.PropertyValuationHistory.Valuation valuation =
+                                    org.openfinance.util.PropertyValuationHistory.atDate(
+                                            property,
+                                            history.stream()
+                                                    .filter(h -> valuationAppliesAt(h, targetDate))
+                                                    .toList(),
+                                            targetDate);
                             BigDecimal converted =
                                     convertToBaseCurrency(
-                                            value,
-                                            historyEntry
-                                                    .map(RealEstateValueHistory::getCurrency)
-                                                    .orElse(property.getCurrency()),
-                                            baseCurrency);
+                                            valuation.amount(),
+                                            valuation.currency(),
+                                            baseCurrency,
+                                            targetDate);
                             if (converted.compareTo(BigDecimal.ZERO) > 0) {
                                 totalAssets = totalAssets.add(converted);
                             }
+                        } catch (ExchangeRateUnavailableException e) {
+                            throw e;
                         } catch (Exception e) {
                             log.warn(
                                     "Could not compute historical value for real estate property {} in backfill, skipping",
@@ -930,10 +904,13 @@ public class NetWorthService {
                                     convertToBaseCurrency(
                                             historicalBalance,
                                             liability.getCurrency(),
-                                            baseCurrency);
+                                            baseCurrency,
+                                            targetDate);
                             if (converted.compareTo(BigDecimal.ZERO) > 0) {
                                 totalLiabilities = totalLiabilities.add(converted);
                             }
+                        } catch (ExchangeRateUnavailableException e) {
+                            throw e;
                         } catch (Exception e) {
                             log.warn(
                                     "Could not compute historical balance for liability {} in backfill, skipping",
@@ -980,6 +957,16 @@ public class NetWorthService {
     }
 
     /** A reversed direct draw stops contributing its valuation on the reversal date. */
+    private boolean accountWasActive(List<AccountStatusHistory> history, LocalDate date) {
+        return history.stream()
+                .filter(h -> !h.getEffectiveDate().isAfter(date))
+                .max(
+                        Comparator.comparing(AccountStatusHistory::getEffectiveDate)
+                                .thenComparing(AccountStatusHistory::getId))
+                .map(AccountStatusHistory::isActive)
+                .orElse(true);
+    }
+
     private boolean valuationAppliesAt(RealEstateValueHistory history, LocalDate date) {
         if (history.getSourceTrancheId() == null) return true;
         return liabilityTrancheRepository

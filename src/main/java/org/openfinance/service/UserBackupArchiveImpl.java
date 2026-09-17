@@ -46,6 +46,7 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
                     "categories",
                     "accounts",
                     "account_currency_changes",
+                    "account_status_history",
                     "assets",
                     "liabilities",
                     "real_estate_properties",

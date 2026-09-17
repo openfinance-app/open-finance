@@ -1,6 +1,6 @@
 /**
  * Payee management hooks
- * 
+ *
  * Provides React Query hooks for payee CRUD operations
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

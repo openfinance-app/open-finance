@@ -4,10 +4,10 @@ import { createLogger, logger, devLog, devTable } from '@/utils/logger';
 describe('Logger', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    vi.spyOn(console, 'debug').mockImplementation(() => { });
-    vi.spyOn(console, 'info').mockImplementation(() => { });
-    vi.spyOn(console, 'warn').mockImplementation(() => { });
-    vi.spyOn(console, 'error').mockImplementation(() => { });
+    vi.spyOn(console, 'debug').mockImplementation(() => {});
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   it('creates a logger instance', () => {
@@ -141,7 +141,7 @@ describe('Logger', () => {
 
 describe('devLog', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'log').mockImplementation(() => { });
+    vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   it('logs in development mode', () => {
@@ -152,7 +152,7 @@ describe('devLog', () => {
 
 describe('devTable', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'table').mockImplementation(() => { });
+    vi.spyOn(console, 'table').mockImplementation(() => {});
   });
 
   it('calls console.table in development mode', () => {
@@ -163,7 +163,7 @@ describe('devTable', () => {
 
 describe('default logger export', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'info').mockImplementation(() => { });
+    vi.spyOn(console, 'info').mockImplementation(() => {});
   });
 
   it('is a usable Logger instance', () => {

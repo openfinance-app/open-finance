@@ -4,7 +4,9 @@ import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { AssetPerformanceTable } from '../AssetPerformanceTable';
 
 vi.mock('../LastUpdatedIndicator', () => ({
-  LastUpdatedIndicator: ({ lastUpdated }: any) => <span data-testid="last-updated">{lastUpdated}</span>,
+  LastUpdatedIndicator: ({ lastUpdated }: any) => (
+    <span data-testid="last-updated">{lastUpdated}</span>
+  ),
 }));
 
 vi.mock('@/components/ui/ConvertedAmount', () => ({

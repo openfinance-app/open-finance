@@ -51,12 +51,13 @@ function BreakdownRow({
 
   return (
     <div
-      className={`flex justify-between items-center py-2 ${highlight
-        ? 'font-semibold text-text-primary'
-        : secondary
-          ? 'text-text-tertiary'
-          : 'text-text-secondary'
-        }`}
+      className={`flex justify-between items-center py-2 ${
+        highlight
+          ? 'font-semibold text-text-primary'
+          : secondary
+            ? 'text-text-tertiary'
+            : 'text-text-secondary'
+      }`}
     >
       <span className="text-sm">{label}</span>
       <span className={`text-sm font-mono ${highlight ? 'text-text-primary' : ''}`}>
@@ -103,7 +104,11 @@ function BreakdownSection({
  * total paid, and projections for the remaining term.
  */
 export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelProps) {
-  const { data: breakdown, isLoading: isLoadingBreakdown, error: breakdownError } = useLiabilityBreakdown(liability.id);
+  const {
+    data: breakdown,
+    isLoading: isLoadingBreakdown,
+    error: breakdownError,
+  } = useLiabilityBreakdown(liability.id);
   const { t } = useTranslation('liabilities');
 
   if (isLoadingBreakdown) {
@@ -149,8 +154,12 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
               <Home className="h-4 w-4" />
             </div>
             <div>
-        <p className="text-xs text-text-tertiary font-medium uppercase tracking-wider">{t('breakdown.linkedAsset')}</p>
-              <p className="text-sm font-medium text-text-primary">{liability.linkedPropertyName}</p>
+              <p className="text-xs text-text-tertiary font-medium uppercase tracking-wider">
+                {t('breakdown.linkedAsset')}
+              </p>
+              <p className="text-sm font-medium text-text-primary">
+                {liability.linkedPropertyName}
+              </p>
             </div>
           </div>
         </div>
@@ -174,7 +183,9 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
               </span>
             </div>
             <div>
-              <p className="text-xs text-text-tertiary font-medium uppercase tracking-wider">{t('breakdown.institution')}</p>
+              <p className="text-xs text-text-tertiary font-medium uppercase tracking-wider">
+                {t('breakdown.institution')}
+              </p>
               <p className="text-sm font-medium text-text-primary">{liability.institution.name}</p>
             </div>
           </div>
@@ -203,8 +214,8 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
               exchangeRate={rate}
               isConverted={isConverted}
               inline
-            />
-            {' '}{t('breakdown.paid')}
+            />{' '}
+            {t('breakdown.paid')}
           </span>
           <span>
             <ConvertedAmount
@@ -215,8 +226,8 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
               exchangeRate={rate}
               isConverted={isConverted}
               inline
-            />
-            {' '}{t('breakdown.remaining')}
+            />{' '}
+            {t('breakdown.remaining')}
           </span>
         </div>
       </div>
@@ -226,15 +237,36 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
         title={t('breakdown.amountsPaidTitle')}
         icon={<DollarSign className="h-4 w-4" />}
       >
-        <BreakdownRow label={t('breakdown.principalPaid')} value={breakdown.principalPaid} liability={liability} />
-        <BreakdownRow label={t('breakdown.interestPaid')} value={breakdown.interestPaid} liability={liability} />
+        <BreakdownRow
+          label={t('breakdown.principalPaid')}
+          value={breakdown.principalPaid}
+          liability={liability}
+        />
+        <BreakdownRow
+          label={t('breakdown.interestPaid')}
+          value={breakdown.interestPaid}
+          liability={liability}
+        />
         {breakdown.insurancePaid > 0 && (
-          <BreakdownRow label={t('breakdown.insurancePaid')} value={breakdown.insurancePaid} liability={liability} />
+          <BreakdownRow
+            label={t('breakdown.insurancePaid')}
+            value={breakdown.insurancePaid}
+            liability={liability}
+          />
         )}
         {breakdown.feesPaid > 0 && (
-          <BreakdownRow label={t('breakdown.feesPaid')} value={breakdown.feesPaid} liability={liability} />
+          <BreakdownRow
+            label={t('breakdown.feesPaid')}
+            value={breakdown.feesPaid}
+            liability={liability}
+          />
         )}
-        <BreakdownRow label={t('breakdown.totalPaid')} value={breakdown.totalPaid} liability={liability} highlight />
+        <BreakdownRow
+          label={t('breakdown.totalPaid')}
+          value={breakdown.totalPaid}
+          liability={liability}
+          highlight
+        />
       </BreakdownSection>
 
       {/* Projections */}
@@ -242,10 +274,22 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
         title={t('breakdown.projectedTitle')}
         icon={<TrendingDown className="h-4 w-4" />}
       >
-        <BreakdownRow label={t('breakdown.remainingBalance')} value={breakdown.currentBalance} liability={liability} />
-        <BreakdownRow label={t('breakdown.projectedInterest')} value={breakdown.projectedInterest} liability={liability} />
+        <BreakdownRow
+          label={t('breakdown.remainingBalance')}
+          value={breakdown.currentBalance}
+          liability={liability}
+        />
+        <BreakdownRow
+          label={t('breakdown.projectedInterest')}
+          value={breakdown.projectedInterest}
+          liability={liability}
+        />
         {breakdown.projectedInsurance > 0 && (
-          <BreakdownRow label={t('breakdown.projectedInsurance')} value={breakdown.projectedInsurance} liability={liability} />
+          <BreakdownRow
+            label={t('breakdown.projectedInsurance')}
+            value={breakdown.projectedInsurance}
+            liability={liability}
+          />
         )}
         <BreakdownRow
           label={t('breakdown.totalProjectedCost')}
@@ -263,13 +307,19 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
         >
           {liability.insurancePercentage && (
             <BreakdownRow
-              label={t('breakdown.annualInsuranceRate', { rate: liability.insurancePercentage.toFixed(2) })}
+              label={t('breakdown.annualInsuranceRate', {
+                rate: liability.insurancePercentage.toFixed(2),
+              })}
               value={liability.monthlyInsuranceCost}
               liability={liability}
             />
           )}
           {liability.additionalFees && (
-            <BreakdownRow label={t('breakdown.oneTimeFee')} value={liability.additionalFees} liability={liability} />
+            <BreakdownRow
+              label={t('breakdown.oneTimeFee')}
+              value={liability.additionalFees}
+              liability={liability}
+            />
           )}
         </BreakdownSection>
       )}

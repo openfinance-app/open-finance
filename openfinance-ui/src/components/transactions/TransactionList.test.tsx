@@ -22,7 +22,7 @@ beforeAll(() => {
 
 // ── Mock hooks ────────────────────────────────────────────────────────────────
 
-vi.mock('@/hooks/usePayees', async (importOriginal) => {
+vi.mock('@/hooks/usePayees', async importOriginal => {
   const actual = await importOriginal<typeof usePayeesModule>();
   return { ...actual, useActivePayees: vi.fn() };
 });
@@ -77,7 +77,7 @@ const mockSplitTransaction: Transaction = {
   userId: 1,
   accountId: 1,
   type: 'EXPENSE',
-  amount: 75.00,
+  amount: 75.0,
   currency: 'EUR',
   date: '2024-06-01',
   description: 'Split transaction test',
@@ -93,7 +93,7 @@ const mockSplitTransaction: Transaction = {
       categoryName: 'Shopping',
       categoryColor: '#ff0000',
       categoryIcon: '🛒',
-      amount: 50.00,
+      amount: 50.0,
       description: 'Groceries',
     },
     {
@@ -103,7 +103,7 @@ const mockSplitTransaction: Transaction = {
       categoryName: 'Entertainment',
       categoryColor: '#00ff00',
       categoryIcon: undefined,
-      amount: 25.00,
+      amount: 25.0,
       description: 'Music subscription',
     },
   ],
@@ -114,7 +114,7 @@ const mockRegularTransaction: Transaction = {
   userId: 1,
   accountId: 1,
   type: 'EXPENSE',
-  amount: 25.00,
+  amount: 25.0,
   currency: 'EUR',
   date: '2024-06-01',
   description: 'Regular transaction',
@@ -205,7 +205,10 @@ describe('TransactionList', () => {
       const splitBadge = screen.getByText('Split').closest('button');
       expect(splitBadge).toHaveAttribute('aria-expanded', 'false');
       expect(splitBadge).toHaveAttribute('aria-label', 'Toggle split details');
-      expect(splitBadge).toHaveAttribute('title', 'This transaction is split across multiple categories');
+      expect(splitBadge).toHaveAttribute(
+        'title',
+        'This transaction is split across multiple categories'
+      );
     });
 
     it('toggles split details expansion when split badge is clicked', async () => {
@@ -290,7 +293,7 @@ describe('TransactionList', () => {
             categoryId: 10,
             categoryName: 'Shopping',
             categoryColor: '#ff0000',
-            amount: 30.00,
+            amount: 30.0,
             description: 'More groceries',
           },
         ],
@@ -339,7 +342,7 @@ describe('TransactionList', () => {
             categoryId: 10,
             categoryName: 'Shopping',
             categoryColor: '#ff0000',
-            amount: 75.00,
+            amount: 75.0,
             description: 'Single split',
           },
         ],
@@ -358,7 +361,7 @@ describe('TransactionList', () => {
         categoryId: 10,
         categoryName: `Category ${i + 1}`,
         categoryColor: '#ff0000',
-        amount: 7.50,
+        amount: 7.5,
         description: `Split ${i + 1}`,
       }));
 
@@ -377,7 +380,7 @@ describe('TransactionList', () => {
       const negativeSplitTransaction: Transaction = {
         ...mockSplitTransaction,
         type: 'INCOME',
-        amount: -75.00,
+        amount: -75.0,
         splits: [
           {
             id: 1,
@@ -385,7 +388,7 @@ describe('TransactionList', () => {
             categoryId: 10,
             categoryName: 'Shopping',
             categoryColor: '#ff0000',
-            amount: -50.00,
+            amount: -50.0,
             description: 'Negative split',
           },
           {
@@ -394,7 +397,7 @@ describe('TransactionList', () => {
             categoryId: 20,
             categoryName: 'Entertainment',
             categoryColor: '#00ff00',
-            amount: -25.00,
+            amount: -25.0,
             description: 'Another negative split',
           },
         ],
@@ -630,8 +633,18 @@ describe('TransactionList', () => {
 
   describe('Sort Direction', () => {
     it('sorts date groups in descending order by default', () => {
-      const tx1: Transaction = { ...mockRegularTransaction, id: 40, date: '2024-01-01', description: 'Old' };
-      const tx2: Transaction = { ...mockRegularTransaction, id: 41, date: '2024-06-01', description: 'New' };
+      const tx1: Transaction = {
+        ...mockRegularTransaction,
+        id: 40,
+        date: '2024-01-01',
+        description: 'Old',
+      };
+      const tx2: Transaction = {
+        ...mockRegularTransaction,
+        id: 41,
+        date: '2024-06-01',
+        description: 'New',
+      };
       renderWithProviders(
         <TransactionList transactions={[tx1, tx2]} onEdit={vi.fn()} onDelete={vi.fn()} />
       );
@@ -641,10 +654,25 @@ describe('TransactionList', () => {
     });
 
     it('sorts date groups in ascending order when specified', () => {
-      const tx1: Transaction = { ...mockRegularTransaction, id: 42, date: '2024-01-01', description: 'Old' };
-      const tx2: Transaction = { ...mockRegularTransaction, id: 43, date: '2024-06-01', description: 'New' };
+      const tx1: Transaction = {
+        ...mockRegularTransaction,
+        id: 42,
+        date: '2024-01-01',
+        description: 'Old',
+      };
+      const tx2: Transaction = {
+        ...mockRegularTransaction,
+        id: 43,
+        date: '2024-06-01',
+        description: 'New',
+      };
       renderWithProviders(
-        <TransactionList transactions={[tx1, tx2]} onEdit={vi.fn()} onDelete={vi.fn()} sortDirection="asc" />
+        <TransactionList
+          transactions={[tx1, tx2]}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          sortDirection="asc"
+        />
       );
       const headings = screen.getAllByRole('heading', { level: 3 });
       expect(headings.length).toBeGreaterThanOrEqual(2);
@@ -675,7 +703,9 @@ describe('TransactionList', () => {
           onFilterByAccount={onFilterByAccount}
         />
       );
-      await userEvent.click(screen.getByRole('button', { name: 'Filter transactions by Entertainment' }));
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Filter transactions by Entertainment' })
+      );
       expect(onFilterByCategory).toHaveBeenCalledTimes(1);
       expect(onFilterByCategory).toHaveBeenCalledWith(20);
       expect(onViewDetail).not.toHaveBeenCalled();
@@ -696,7 +726,9 @@ describe('TransactionList', () => {
           onFilterByAccount={onFilterByAccount}
         />
       );
-      await userEvent.click(screen.getByRole('button', { name: 'Filter transactions by Main Checking' }));
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Filter transactions by Main Checking' })
+      );
       expect(onFilterByAccount).toHaveBeenCalledTimes(1);
       expect(onFilterByAccount).toHaveBeenCalledWith(3);
       expect(onViewDetail).not.toHaveBeenCalled();
@@ -724,7 +756,9 @@ describe('TransactionList', () => {
       renderWithProviders(
         <TransactionList transactions={[filterTx]} onEdit={vi.fn()} onDelete={vi.fn()} />
       );
-      expect(screen.queryByRole('button', { name: /Filter transactions by/ })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Filter transactions by/ })
+      ).not.toBeInTheDocument();
       expect(screen.getByText('Entertainment')).toBeInTheDocument();
       expect(screen.getByText('Main Checking')).toBeInTheDocument();
     });

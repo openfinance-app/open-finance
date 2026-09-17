@@ -1,7 +1,7 @@
 /**
  * CategoryMapping Component
  * Task 7.4.11: Create CategoryMapping component
- * 
+ *
  * UI for mapping imported categories to existing user categories
  */
 import { useState, useMemo } from 'react';
@@ -91,14 +91,12 @@ export function CategoryMapping({
   const getMappedCategoryName = (sourceCategory: string): string => {
     const categoryId = categoryMappings[sourceCategory];
     if (!categoryId) return t('categoryMapping.notMapped');
-    
+
     const category = categories.find(c => c.id === categoryId);
     return category ? category.name : t('categoryMapping.unknown');
   };
 
-  const unmappedCount = uniqueCategories.filter(
-    uc => !categoryMappings[uc.category]
-  ).length;
+  const unmappedCount = uniqueCategories.filter(uc => !categoryMappings[uc.category]).length;
 
   return (
     <div className="space-y-4">
@@ -106,14 +104,14 @@ export function CategoryMapping({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-text-primary">{t('categoryMapping.title')}</h3>
-          <p className="text-sm text-text-secondary mt-1">
-            {t('categoryMapping.description')}
-          </p>
+          <p className="text-sm text-text-secondary mt-1">{t('categoryMapping.description')}</p>
         </div>
         {unmappedCount > 0 && (
           <div className="flex items-center space-x-2 text-amber-600">
             <AlertCircle className="h-4 w-4" />
-            <span className="text-sm font-medium">{t('categoryMapping.unmapped', { count: unmappedCount })}</span>
+            <span className="text-sm font-medium">
+              {t('categoryMapping.unmapped', { count: unmappedCount })}
+            </span>
           </div>
         )}
       </div>
@@ -125,17 +123,12 @@ export function CategoryMapping({
           const isMapped = mappedCategoryId !== undefined && mappedCategoryId !== null;
 
           return (
-            <div
-              key={category}
-              className={`p-4 ${!isMapped ? 'bg-amber-500/5' : ''}`}
-            >
+            <div key={category} className={`p-4 ${!isMapped ? 'bg-amber-500/5' : ''}`}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0 sm:space-x-4">
                 {/* Source Category */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2">
-                    <span className="font-medium text-text-primary truncate">
-                      {category}
-                    </span>
+                    <span className="font-medium text-text-primary truncate">{category}</span>
                     <span className="flex-shrink-0 text-xs text-text-tertiary bg-surface-elevated px-2 py-1 rounded">
                       {count} transaction{count !== 1 ? 's' : ''}
                     </span>
@@ -150,7 +143,7 @@ export function CategoryMapping({
                   <div className="flex-1">
                     <SimpleSelect
                       value={mappedCategoryId?.toString() || ''}
-                      onChange={(e) => {
+                      onChange={e => {
                         const value = e.target.value;
                         if (value === 'create') {
                           openCreateDialog(category);
@@ -163,7 +156,7 @@ export function CategoryMapping({
                       className={`w-full ${!isMapped ? 'border-amber-500' : ''}`}
                     >
                       <option value="">{t('categoryMapping.selectCategory')}</option>
-                      {categories.map((cat) => (
+                      {categories.map(cat => (
                         <option key={cat.id} value={cat.id}>
                           {cat.name} ({cat.type})
                         </option>
@@ -172,7 +165,7 @@ export function CategoryMapping({
                       <option value="skip">{t('categoryMapping.skip')}</option>
                     </SimpleSelect>
                   </div>
-                  
+
                   {!isMapped && (
                     <Button
                       variant="ghost"
@@ -189,7 +182,8 @@ export function CategoryMapping({
               {/* Show current mapping */}
               {isMapped && mappedCategoryId && (
                 <div className="mt-2 text-xs text-text-tertiary">
-                  {t('categoryMapping.mappedTo')} <span className="text-text-secondary">{getMappedCategoryName(category)}</span>
+                  {t('categoryMapping.mappedTo')}{' '}
+                  <span className="text-text-secondary">{getMappedCategoryName(category)}</span>
                 </div>
               )}
             </div>
@@ -200,21 +194,20 @@ export function CategoryMapping({
       {/* Summary */}
       <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4">
         <p className="text-sm text-text-secondary">
-          <strong className="text-text-primary">{uniqueCategories.length}</strong> {t('categoryMapping.summaryFound')}{' '}
-          <strong className="text-text-primary">
-            {uniqueCategories.length - unmappedCount}
-          </strong>{' '}
-          {t('categoryMapping.summaryMapped')}, <strong className="text-amber-600">{unmappedCount}</strong> {t('categoryMapping.summaryUnmapped')}.
+          <strong className="text-text-primary">{uniqueCategories.length}</strong>{' '}
+          {t('categoryMapping.summaryFound')}{' '}
+          <strong className="text-text-primary">{uniqueCategories.length - unmappedCount}</strong>{' '}
+          {t('categoryMapping.summaryMapped')},{' '}
+          <strong className="text-amber-600">{unmappedCount}</strong>{' '}
+          {t('categoryMapping.summaryUnmapped')}.
         </p>
-        <p className="text-xs text-text-tertiary mt-1">
-          {t('categoryMapping.summaryNote')}
-        </p>
+        <p className="text-xs text-text-tertiary mt-1">{t('categoryMapping.summaryNote')}</p>
       </div>
 
       {/* Create Category Dialog */}
       <Dialog
         open={showCreateDialog}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           if (!open) {
             setShowCreateDialog(false);
             setNewCategoryName('');
@@ -233,7 +226,7 @@ export function CategoryMapping({
               </label>
               <Input
                 value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
+                onChange={e => setNewCategoryName(e.target.value)}
                 placeholder={t('categoryMapping.enterCategoryName')}
               />
             </div>
@@ -244,7 +237,7 @@ export function CategoryMapping({
               </label>
               <SimpleSelect
                 value={newCategoryType}
-                onChange={(e) => setNewCategoryType(e.target.value as 'INCOME' | 'EXPENSE')}
+                onChange={e => setNewCategoryType(e.target.value as 'INCOME' | 'EXPENSE')}
               >
                 <option value="EXPENSE">{t('categoryMapping.expense')}</option>
                 <option value="INCOME">{t('categoryMapping.income')}</option>

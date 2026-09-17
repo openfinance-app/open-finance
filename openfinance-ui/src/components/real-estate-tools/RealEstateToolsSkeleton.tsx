@@ -1,6 +1,6 @@
 /**
  * RealEstateToolsSkeleton Component
- * 
+ *
  * Loading skeleton for real estate tools
  * Requirements: REQ-6.3
  */

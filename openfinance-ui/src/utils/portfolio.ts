@@ -41,8 +41,8 @@ export const calculatePortfolioMetrics = (assets: Asset[]): PortfolioMetrics => 
     };
   }
 
-  const totalValue = sum(assets.map((asset) => Number(asset.totalValue)));
-  const totalCost = sum(assets.map((asset) => Number(asset.totalCost)));
+  const totalValue = sum(assets.map(asset => Number(asset.totalValue)));
+  const totalCost = sum(assets.map(asset => Number(asset.totalCost)));
   const unrealizedGain = subtract(totalValue, totalCost);
   const gainPercentage = totalCost > 0 ? percentage(unrealizedGain, totalCost) : 0;
 
@@ -63,18 +63,21 @@ export const calculateAssetAllocation = (assets: Asset[]): AssetAllocation[] => 
     return [];
   }
 
-  const totalValue = sum(assets.map((asset) => Number(asset.totalValue)));
+  const totalValue = sum(assets.map(asset => Number(asset.totalValue)));
 
   // Group by asset type
-  const allocationMap = assets.reduce((acc, asset) => {
-    const type = asset.type;
-    if (!acc[type]) {
-      acc[type] = { value: 0, count: 0 };
-    }
-    acc[type].value = add(acc[type].value, Number(asset.totalValue));
-    acc[type].count += 1;
-    return acc;
-  }, {} as Record<string, { value: number; count: number }>);
+  const allocationMap = assets.reduce(
+    (acc, asset) => {
+      const type = asset.type;
+      if (!acc[type]) {
+        acc[type] = { value: 0, count: 0 };
+      }
+      acc[type].value = add(acc[type].value, Number(asset.totalValue));
+      acc[type].count += 1;
+      return acc;
+    },
+    {} as Record<string, { value: number; count: number }>
+  );
 
   // Convert to array and calculate percentages
   return Object.entries(allocationMap)

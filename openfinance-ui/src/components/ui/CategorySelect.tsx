@@ -1,7 +1,7 @@
 /**
  * CategorySelect component
  * Task CAT-2.3: Create CategorySelect component
- * 
+ *
  * A dropdown component for selecting categories with search functionality.
  * Supports grouping by parent category, type filtering, and creating new categories.
  *
@@ -14,11 +14,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { DROPDOWN_CLOSE_DELAY_MS } from '@/constants/timing';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/Popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/Popover';
 import { markSelectInteraction } from '@/utils/selectClickGuard';
 import { useCategoryTree, useCreateCategory } from '@/hooks/useTransactions';
 import { useQueryClient } from '@tanstack/react-query';
@@ -197,8 +193,7 @@ export function CategorySelect({
           await queryClient.setQueryData(['categories', 'tree'], res.data);
           const flat = flattenCategories(res.data);
           const match = flat.find(
-            ({ category }) =>
-              category.name.toLowerCase() === searchQuery.trim().toLowerCase()
+            ({ category }) => category.name.toLowerCase() === searchQuery.trim().toLowerCase()
           );
           if (match) {
             onValueChange(match.category.id);
@@ -222,7 +217,7 @@ export function CategorySelect({
   return (
     <Popover
       open={isOpen}
-      onOpenChange={(open) => {
+      onOpenChange={open => {
         setIsOpen(open);
         if (!open) {
           markSelectInteraction();
@@ -268,9 +263,7 @@ export function CategorySelect({
           </button>
         </PopoverTrigger>
         {/* Pointer-blocking overlay while creating */}
-        {isCreating && (
-          <div className="absolute inset-0 z-10 cursor-wait" aria-hidden="true" />
-        )}
+        {isCreating && <div className="absolute inset-0 z-10 cursor-wait" aria-hidden="true" />}
         {/* sr-only test trigger — allows tests to invoke creation path */}
         {allowCreateInline && (
           <button
@@ -286,19 +279,22 @@ export function CategorySelect({
 
       <PopoverContent
         className="max-h-[400px] flex flex-col p-0 w-(--radix-popover-trigger-width)"
-        onOpenAutoFocus={(e) => e.preventDefault()}
+        onOpenAutoFocus={e => e.preventDefault()}
       >
         {/* Search header */}
         <div className="p-2 border-b border-border bg-surface shrink-0">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"
+            />
             <Input
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder={searchPlaceholder ?? t('search.placeholder')}
               className="pl-9 h-9"
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => {
+              onClick={e => e.stopPropagation()}
+              onKeyDown={e => {
                 if (e.key === 'Escape') setIsOpen(false);
               }}
               autoFocus
@@ -311,8 +307,8 @@ export function CategorySelect({
             lock doesn't cancel scrolling inside this portaled popover. */}
         <div
           className="max-h-72 overflow-y-auto p-1"
-          onWheel={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
+          onWheel={e => e.stopPropagation()}
+          onTouchMove={e => e.stopPropagation()}
         >
           {/* Loading State */}
           {isLoading && (
@@ -323,18 +319,12 @@ export function CategorySelect({
 
           {/* Error State */}
           {isError && (
-            <div className="p-4 text-center text-sm text-error">
-              {t('loadError.title')}
-            </div>
+            <div className="p-4 text-center text-sm text-error">{t('loadError.title')}</div>
           )}
 
           {/* None Option */}
           {allowNone && !isLoading && (
-            <button
-              type="button"
-              className={itemClass}
-              onClick={() => selectItem(undefined)}
-            >
+            <button type="button" className={itemClass} onClick={() => selectItem(undefined)}>
               {value === undefined && (
                 <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
                   <Check className="h-4 w-4 text-primary" />
@@ -345,61 +335,59 @@ export function CategorySelect({
           )}
 
           {/* Category List */}
-          {!isLoading && flatCategories.map(({ category, depth }) => (
-            <button
-              key={category.id}
-              type="button"
-              className={cn(itemClass, 'cursor-pointer')}
-              onClick={() => selectItem(category.id)}
-            >
-              {value === category.id && (
-                <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                  <Check className="h-4 w-4 text-primary" />
-                </span>
-              )}
-              <div
-                className="flex items-center gap-2"
-                style={{ paddingLeft: `${depth * 16}px` }}
+          {!isLoading &&
+            flatCategories.map(({ category, depth }) => (
+              <button
+                key={category.id}
+                type="button"
+                className={cn(itemClass, 'cursor-pointer')}
+                onClick={() => selectItem(category.id)}
               >
-                {/* Expand indicator for subcategories */}
-                {depth > 0 && (
-                  <ChevronRight size={14} className="text-text-tertiary" />
+                {value === category.id && (
+                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                    <Check className="h-4 w-4 text-primary" />
+                  </span>
                 )}
+                <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 16}px` }}>
+                  {/* Expand indicator for subcategories */}
+                  {depth > 0 && <ChevronRight size={14} className="text-text-tertiary" />}
 
-                {/* Icon */}
-                <div
-                  className="w-6 h-6 rounded flex items-center justify-center text-white text-xs shrink-0"
-                  style={{ backgroundColor: category.color || '#6B7280' }}
-                >
-                  {category.icon ? (
-                    <span className="text-[10px]">{category.icon}</span>
-                  ) : (
-                    <FolderOpen size={12} />
-                  )}
+                  {/* Icon */}
+                  <div
+                    className="w-6 h-6 rounded flex items-center justify-center text-white text-xs shrink-0"
+                    style={{ backgroundColor: category.color || '#6B7280' }}
+                  >
+                    {category.icon ? (
+                      <span className="text-[10px]">{category.icon}</span>
+                    ) : (
+                      <FolderOpen size={12} />
+                    )}
+                  </div>
+
+                  {/* Name */}
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate">{category.name}</div>
+                    {category.mccCode && (
+                      <div className="text-xs text-text-tertiary">MCC: {category.mccCode}</div>
+                    )}
+                  </div>
+
+                  {/* Transaction count */}
+                  <span className="text-xs text-text-tertiary">
+                    {category.transactionCount || 0}
+                  </span>
                 </div>
-
-                {/* Name */}
-                <div className="flex-1 min-w-0">
-                  <div className="truncate">{category.name}</div>
-                  {category.mccCode && (
-                    <div className="text-xs text-text-tertiary">MCC: {category.mccCode}</div>
-                  )}
-                </div>
-
-                {/* Transaction count */}
-                <span className="text-xs text-text-tertiary">
-                  {category.transactionCount || 0}
-                </span>
-              </div>
-            </button>
-          ))}
+              </button>
+            ))}
 
           {/* Empty State */}
-          {!isLoading && flatCategories.length === 0 && !shouldShowCreateInline(searchQuery, flatCategories, allowCreateInline) && (
-            <div className="p-4 text-center text-sm text-text-tertiary">
-              {searchQuery ? 'No matching categories' : 'No categories available'}
-            </div>
-          )}
+          {!isLoading &&
+            flatCategories.length === 0 &&
+            !shouldShowCreateInline(searchQuery, flatCategories, allowCreateInline) && (
+              <div className="p-4 text-center text-sm text-text-tertiary">
+                {searchQuery ? 'No matching categories' : 'No categories available'}
+              </div>
+            )}
 
           {/* Inline create item */}
           {!isLoading && shouldShowCreateInline(searchQuery, flatCategories, allowCreateInline) && (
@@ -423,7 +411,7 @@ export function CategorySelect({
               variant="ghost"
               size="sm"
               className="w-full justify-start text-primary"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 onCreateNew?.();
               }}

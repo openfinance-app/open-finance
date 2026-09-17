@@ -27,11 +27,7 @@ export const LoadingSkeleton = React.forwardRef<HTMLDivElement, LoadingSkeletonP
     return (
       <div
         ref={ref}
-        className={cn(
-          'bg-surface-elevated shimmer',
-          variantStyles[variant],
-          className
-        )}
+        className={cn('bg-surface-elevated shimmer', variantStyles[variant], className)}
         style={style}
         {...props}
       />
@@ -91,11 +87,9 @@ export const LoadingSpinner = React.forwardRef<HTMLDivElement, LoadingSpinnerPro
   }
 );
 
-
 export const FullPageSpinner = () => (
   <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
     <LoadingSpinner size="lg" />
   </div>
 );
 FullPageSpinner.displayName = 'FullPageSpinner';
-

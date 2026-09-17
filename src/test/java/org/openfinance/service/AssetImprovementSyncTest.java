@@ -92,6 +92,7 @@ class AssetImprovementSyncTest {
 
     @BeforeEach
     void setUp() {
+        when(assetRepository.existsByIdAndUserId(ASSET_ID, USER_ID)).thenReturn(true);
         when(userRepository.findById(any())).thenReturn(Optional.empty());
         org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
                 defaultCurrencyProvider, userRepository);

@@ -17,16 +17,10 @@ export function PageHeader({ title, description, actions, className }: PageHeade
     <div className={cn('flex items-start justify-between gap-4 mb-6', className)}>
       <div className="flex-1 min-w-0">
         <h1 className="text-2xl font-bold text-text-primary mb-1">{title}</h1>
-        {description && (
-          <p className="text-sm text-text-secondary">{description}</p>
-        )}
+        {description && <p className="text-sm text-text-secondary">{description}</p>}
       </div>
 
-      {actions && (
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {actions}
-        </div>
-      )}
+      {actions && <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>}
     </div>
   );
 }

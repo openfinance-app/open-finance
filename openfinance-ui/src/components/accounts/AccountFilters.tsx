@@ -1,6 +1,6 @@
 /**
  * AccountFilters Component
- * 
+ *
  * Filter controls for accounts (keyword, type, currency, balance range, institution)
  */
 import { useState, useRef, useEffect } from 'react';
@@ -17,10 +17,7 @@ interface AccountFiltersProps {
   onFiltersChange: (filters: AccountFilters) => void;
 }
 
-export function AccountFilters({
-  filters,
-  onFiltersChange,
-}: AccountFiltersProps) {
+export function AccountFilters({ filters, onFiltersChange }: AccountFiltersProps) {
   const { t } = useTranslation('accounts');
 
   const accountTypes: { value: AccountType | ''; label: string }[] = [
@@ -63,7 +60,10 @@ export function AccountFilters({
     }, 400);
   };
 
-  const handleChange = (key: keyof AccountFilters, value: string | number | boolean | undefined) => {
+  const handleChange = (
+    key: keyof AccountFilters,
+    value: string | number | boolean | undefined
+  ) => {
     onFiltersChange({
       ...filters,
       [key]: value || value === false ? value : undefined,
@@ -78,7 +78,7 @@ export function AccountFilters({
   };
 
   const hasActiveFilters = Object.keys(filters).some(
-    (key) =>
+    key =>
       filters[key as keyof AccountFilters] !== undefined &&
       key !== 'page' &&
       key !== 'size' &&
@@ -99,12 +99,14 @@ export function AccountFilters({
             type="text"
             placeholder={t('form.searchPlaceholder')}
             value={localKeyword}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleKeywordChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleKeywordChange(e.target.value)
+            }
             className="pl-10 pr-10"
           />
           <RegexToggle
             enabled={!!filters.keywordRegex}
-            onChange={(val) => handleChange('keywordRegex', val || undefined)}
+            onChange={val => handleChange('keywordRegex', val || undefined)}
             className="absolute right-2 top-1/2 -translate-y-1/2"
           />
         </div>
@@ -120,10 +122,10 @@ export function AccountFilters({
           <select
             id="type"
             value={filters.type || ''}
-            onChange={(e) => handleChange('type', e.target.value || undefined)}
+            onChange={e => handleChange('type', e.target.value || undefined)}
             className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           >
-            {accountTypes.map((type) => (
+            {accountTypes.map(type => (
               <option key={type.value} value={type.value}>
                 {type.label}
               </option>
@@ -138,7 +140,7 @@ export function AccountFilters({
           </label>
           <CurrencySelector
             value={filters.currency}
-            onValueChange={(val) => handleChange('currency', val)}
+            onValueChange={val => handleChange('currency', val)}
             allowNone={true}
           />
         </div>
@@ -150,14 +152,8 @@ export function AccountFilters({
           </label>
           <select
             id="isActive"
-            value={
-              filters.isActive === undefined
-                ? ''
-                : filters.isActive
-                  ? 'active'
-                  : 'closed'
-            }
-            onChange={(e) => {
+            value={filters.isActive === undefined ? '' : filters.isActive ? 'active' : 'closed'}
+            onChange={e => {
               if (e.target.value === '') {
                 handleChange('isActive', undefined);
               } else {
@@ -181,10 +177,10 @@ export function AccountFilters({
             id="sort"
             data-testid="filter-sort"
             value={filters.sort || 'name,asc'}
-            onChange={(e) => handleChange('sort', e.target.value || undefined)}
+            onChange={e => handleChange('sort', e.target.value || undefined)}
             className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           >
-            {sortOptions.map((option) => (
+            {sortOptions.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -195,27 +191,33 @@ export function AccountFilters({
         {/* Balance Range */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="balanceMin" className="block text-sm font-medium text-text-primary mb-1.5">
+            <label
+              htmlFor="balanceMin"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
               {t('filters.minBalance')}
             </label>
             <NumberInput
               id="balanceMin"
               data-testid="filter-min-balance"
               value={filters.balanceMin !== undefined ? String(filters.balanceMin) : ''}
-              onChange={(val) => handleChange('balanceMin', val ? parseFloat(val) : undefined)}
+              onChange={val => handleChange('balanceMin', val ? parseFloat(val) : undefined)}
               placeholder="0.00"
               min="0"
             />
           </div>
           <div>
-            <label htmlFor="balanceMax" className="block text-sm font-medium text-text-primary mb-1.5">
+            <label
+              htmlFor="balanceMax"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
               {t('filters.maxBalance')}
             </label>
             <NumberInput
               id="balanceMax"
               data-testid="filter-max-balance"
               value={filters.balanceMax !== undefined ? String(filters.balanceMax) : ''}
-              onChange={(val) => handleChange('balanceMax', val ? parseFloat(val) : undefined)}
+              onChange={val => handleChange('balanceMax', val ? parseFloat(val) : undefined)}
               placeholder="0.00"
               min="0"
             />
@@ -224,7 +226,10 @@ export function AccountFilters({
 
         {/* Institution filter */}
         <div>
-          <label htmlFor="institution" className="block text-sm font-medium text-text-primary mb-1.5">
+          <label
+            htmlFor="institution"
+            className="block text-sm font-medium text-text-primary mb-1.5"
+          >
             {t('filters.institution')}
           </label>
           <Input

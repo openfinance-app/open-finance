@@ -70,6 +70,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final org.openfinance.repository.AccountStatusHistoryRepository
+            accountStatusHistoryRepository;
+    private final org.openfinance.repository.NetWorthRepository netWorthRepository;
     private final AccountMapper accountMapper;
     private final EncryptionService encryptionService;
     private final TransactionRepository transactionRepository;
@@ -551,6 +554,7 @@ public class AccountService {
         // Close account (soft delete)
         account.setIsActive(false);
         accountRepository.save(account);
+        recordAccountStatus(account, false);
 
         log.info("Account closed successfully: id={}, userId={}", accountId, userId);
     }
@@ -616,8 +620,21 @@ public class AccountService {
         // Reopen account
         account.setIsActive(true);
         accountRepository.save(account);
+        recordAccountStatus(account, true);
 
         log.info("Account reopened successfully: id={}, userId={}", accountId, userId);
+    }
+
+    private void recordAccountStatus(Account account, boolean active) {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        accountStatusHistoryRepository.save(
+                org.openfinance.entity.AccountStatusHistory.builder()
+                        .accountId(account.getId())
+                        .userId(account.getUserId())
+                        .effectiveDate(today)
+                        .active(active)
+                        .build());
+        netWorthRepository.deleteByUserIdAndSnapshotDateBetween(account.getUserId(), today, today);
     }
 
     /**

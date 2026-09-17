@@ -1,6 +1,6 @@
 /**
  * DashboardPage Integration Tests
- * 
+ *
  * Tests the dashboard page component with mocked API responses
  * to verify data fetching, rendering, and user interactions.
  */
@@ -12,12 +12,42 @@ import { renderWithProviders, mockAuthentication, clearAuthentication } from '@/
 import { server } from '@/test/mocks/server';
 import DashboardPage from '@/pages/DashboardPage';
 
-
-
 describe('DashboardPage Integration Tests', () => {
   beforeEach(() => {
     clearAuthentication();
     mockAuthentication();
+  });
+
+  it('shows the unavailable conversion instead of a mislabeled total', async () => {
+    server.use(
+      http.get('/api/v1/dashboard', () =>
+        HttpResponse.json(
+          { message: 'The JPY to EUR exchange rate is unavailable.' },
+          { status: 503 }
+        )
+      )
+    );
+    renderWithProviders(<DashboardPage />);
+    expect(
+      await screen.findByText('The JPY to EUR exchange rate is unavailable.', {}, { timeout: 5000 })
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/20,000\.00/)).not.toBeInTheDocument();
+  });
+
+  it('shows unavailable historical conversion while preserving the valid current summary', async () => {
+    server.use(
+      http.get('/api/v1/dashboard/networth-history', () =>
+        HttpResponse.json(
+          { message: 'The historical JPY to EUR exchange rate is unavailable.' },
+          { status: 503 }
+        )
+      )
+    );
+    renderWithProviders(<DashboardPage />);
+    expect(await screen.findByRole('alert', {}, { timeout: 5000 })).toHaveTextContent(
+      'The historical JPY to EUR exchange rate is unavailable.'
+    );
+    expect((await screen.findAllByText(/20,000\.00/))[0]).toBeInTheDocument();
   });
 
   describe('Data Fetching and Rendering', () => {
@@ -37,7 +67,7 @@ describe('DashboardPage Integration Tests', () => {
       // Dashboard shows aggregate stats, not individual account listings
       const totalAccountsLabel = await screen.findByText(/Total Accounts/i);
       expect(totalAccountsLabel).toBeInTheDocument();
-      
+
       // Verify the stat value (2 accounts from mock)
       const statsSection = totalAccountsLabel.closest('.bg-surface');
       expect(statsSection).toBeInTheDocument();
@@ -50,12 +80,12 @@ describe('DashboardPage Integration Tests', () => {
       // First wait for dashboard summary to load (indicated by stats at bottom)
       const totalAccountsLabel = await screen.findByText(/Total Accounts/i, {}, { timeout: 5000 });
       expect(totalAccountsLabel).toBeInTheDocument();
-      
+
       // The dashboard uses a grid layout with cards that may take time to render
       // Check for transaction descriptions that appear in RecentTransactionsCard
       const groceries = await screen.findByText('Weekly groceries', {}, { timeout: 5000 });
       expect(groceries).toBeInTheDocument();
-      
+
       const salary = await screen.findByText('Monthly salary', {}, { timeout: 5000 });
       expect(salary).toBeInTheDocument();
     });
@@ -91,9 +121,11 @@ describe('DashboardPage Integration Tests', () => {
       // Wait for change amount to appear
       const changeElement = (await screen.findAllByText(/2,000\.00/))[0];
       expect(changeElement).toBeInTheDocument();
-      
+
       // Verify it has positive/success styling (implementation-dependent)
-      const parent = changeElement.closest('.text-success, .text-green-500, .text-green-600, .text-green-400');
+      const parent = changeElement.closest(
+        '.text-success, .text-green-500, .text-green-600, .text-green-400'
+      );
       // If we can't find a direct class match, at least we know it renders
       if (parent) {
         expect(parent).toBeTruthy();
@@ -129,7 +161,7 @@ describe('DashboardPage Integration Tests', () => {
       // Find add transaction button
       const addButton = await screen.findByText(/Add Transaction/i);
       expect(addButton).toBeInTheDocument();
-      
+
       // Click on add transaction button
       fireEvent.click(addButton);
       // Navigation would be verified with a navigation mock
@@ -140,7 +172,7 @@ describe('DashboardPage Integration Tests', () => {
 
       // Wait for page to load
       await screen.findAllByText(/Net Worth/i);
-      
+
       // Period selector buttons should be present (1D, 7D, 1M, YTD, 1Y, ALL)
       // We can check for at least one period button
       const periodButtons = document.querySelectorAll('button[class*="period"]');
@@ -155,36 +187,46 @@ describe('DashboardPage Integration Tests', () => {
       };
 
       server.use(
-        http.get('/api/v1/dashboard/cashflow', () => delayedJson({ income: 5000, expenses: 3000, savings: 2000 })),
-        http.get('/api/v1/dashboard/networth-history', () => delayedJson([
-          { date: '2026-01-01', netWorth: 18000.0 },
-          { date: '2026-02-01', netWorth: 19000.0 },
-          { date: '2026-02-04', netWorth: 20000.0 },
-        ])),
-        http.get('/api/v1/dashboard/portfolio-performance', () => delayedJson({
-          totalValue: 50000.0,
-          totalGainLoss: 5000.0,
-          percentageChange: 11.11,
-          performance: [
-            { date: '2026-01-01', value: 45000.0 },
-            { date: '2026-01-15', value: 47000.0 },
-          ],
-        })),
-        http.get('/api/v1/dashboard/borrowing-capacity', () => delayedJson({
-          estimatedCapacity: 50000.0,
-          monthlyIncome: 6000.0,
-          monthlyDebtObligations: 1000.0,
-          debtToIncomeRatio: 16.67,
-          isHealthy: true,
-        })),
-        http.get('/api/v1/dashboard/cashflow-sankey', () => delayedJson({
-          totalIncome: 5000,
-          totalExpenses: 3000,
-          surplus: 2000,
-          incomeSources: [],
-          expenseCategories: [],
-          period: 30,
-        })),
+        http.get('/api/v1/dashboard/cashflow', () =>
+          delayedJson({ income: 5000, expenses: 3000, savings: 2000 })
+        ),
+        http.get('/api/v1/dashboard/networth-history', () =>
+          delayedJson([
+            { date: '2026-01-01', netWorth: 18000.0 },
+            { date: '2026-02-01', netWorth: 19000.0 },
+            { date: '2026-02-04', netWorth: 20000.0 },
+          ])
+        ),
+        http.get('/api/v1/dashboard/portfolio-performance', () =>
+          delayedJson({
+            totalValue: 50000.0,
+            totalGainLoss: 5000.0,
+            percentageChange: 11.11,
+            performance: [
+              { date: '2026-01-01', value: 45000.0 },
+              { date: '2026-01-15', value: 47000.0 },
+            ],
+          })
+        ),
+        http.get('/api/v1/dashboard/borrowing-capacity', () =>
+          delayedJson({
+            estimatedCapacity: 50000.0,
+            monthlyIncome: 6000.0,
+            monthlyDebtObligations: 1000.0,
+            debtToIncomeRatio: 16.67,
+            isHealthy: true,
+          })
+        ),
+        http.get('/api/v1/dashboard/cashflow-sankey', () =>
+          delayedJson({
+            totalIncome: 5000,
+            totalExpenses: 3000,
+            surplus: 2000,
+            incomeSources: [],
+            expenseCategories: [],
+            period: 30,
+          })
+        ),
         http.get('/api/v1/transactions/search', () => delayedJson({ content: [] }))
       );
 
@@ -209,7 +251,9 @@ describe('DashboardPage Integration Tests', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/date range|plage de dates personnalisée/i)).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: /dashboard|tableau de bord/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('heading', { name: /dashboard|tableau de bord/i })
+        ).toBeInTheDocument();
         expect(screen.getByDisplayValue('2026-01-01')).toBeInTheDocument();
       });
     }, 15000);
@@ -228,7 +272,7 @@ describe('DashboardPage Integration Tests', () => {
       server.use(
         http.get('/api/v1/dashboard/summary', () =>
           HttpResponse.json({ message: 'Server error' }, { status: 500 })
-        ),
+        )
       );
       renderWithProviders(<DashboardPage />);
       const errorText = await screen.findByText(/failed to load/i, {}, { timeout: 10000 });
@@ -240,11 +284,11 @@ describe('DashboardPage Integration Tests', () => {
     it('should open cards menu and toggle a card off', async () => {
       renderWithProviders(<DashboardPage />);
       await screen.findAllByText(/Net Worth/i);
-      
+
       // Find the cards/sliders button
       const cardsButton = screen.getByRole('button', { name: /^cards$|^cartes$/i });
       fireEvent.click(cardsButton);
-      
+
       // Should see checkboxes for card visibility
       await waitFor(() => {
         const checkboxes = document.querySelectorAll('input[type="checkbox"]');
@@ -257,17 +301,17 @@ describe('DashboardPage Integration Tests', () => {
       localStorage.setItem('open_finance_dashboard_layouts', JSON.stringify({ lg: [] }));
       renderWithProviders(<DashboardPage />);
       await screen.findAllByText(/Net Worth/i);
-      
+
       // Open cards menu
       const cardsButton = screen.getByRole('button', { name: /^cards$|^cartes$/i });
       fireEvent.click(cardsButton);
-      
+
       // Click reset layout
       await waitFor(() => {
         const resetButton = screen.getByText(/reset/i);
         fireEvent.click(resetButton);
       });
-      
+
       // Verify localStorage was updated with default layout
       const stored = JSON.parse(localStorage.getItem('open_finance_dashboard_layouts') || '{}');
       expect(stored.lg).toBeDefined();
@@ -279,11 +323,11 @@ describe('DashboardPage Integration Tests', () => {
     it('should switch to 1Y period and update net worth change', async () => {
       renderWithProviders(<DashboardPage />);
       await screen.findAllByText(/Net Worth/i);
-      
+
       // Find and click the 1Y period button
       const yearButton = await screen.findByRole('button', { name: /1Y|1A/i });
       fireEvent.click(yearButton);
-      
+
       // Dashboard should still render after period change
       expect(screen.getAllByText(/Net Worth/i).length).toBeGreaterThan(0);
     });
@@ -291,10 +335,10 @@ describe('DashboardPage Integration Tests', () => {
     it('should switch to ALL period', async () => {
       renderWithProviders(<DashboardPage />);
       await screen.findAllByText(/Net Worth/i);
-      
+
       const allButton = await screen.findByRole('button', { name: /^ALL$|^TOUT$/i });
       fireEvent.click(allButton);
-      
+
       expect(screen.getAllByText(/Net Worth/i).length).toBeGreaterThan(0);
     });
   });
@@ -306,14 +350,18 @@ describe('DashboardPage Integration Tests', () => {
       // Wait for page to load - use Net Worth text that appears in card title
       const netWorthElements = await screen.findAllByText(/Net Worth/i, {}, { timeout: 5000 });
       expect(netWorthElements.length).toBeGreaterThan(0);
-      
+
       // Verify summary stats section at bottom (these are always rendered)
       const totalAccountsLabel = await screen.findByText(/Total Accounts/i, {}, { timeout: 5000 });
       expect(totalAccountsLabel).toBeInTheDocument();
-      
-      const totalTransactionsLabel = await screen.findByText(/Total Transactions/i, {}, { timeout: 5000 });
+
+      const totalTransactionsLabel = await screen.findByText(
+        /Total Transactions/i,
+        {},
+        { timeout: 5000 }
+      );
       expect(totalTransactionsLabel).toBeInTheDocument();
-      
+
       // Verify transaction data appears (indicating grid layout rendered)
       const groceries = await screen.findByText('Weekly groceries', {}, { timeout: 5000 });
       expect(groceries).toBeInTheDocument();

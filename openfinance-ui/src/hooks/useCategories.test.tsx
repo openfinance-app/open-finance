@@ -21,15 +21,29 @@ describe('useCategories', () => {
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
   const mockCategories = [
     { id: 1, name: 'Salary', type: 'INCOME', isSystem: true, subcategoryCount: 0 },
-    { id: 2, name: 'Groceries', type: 'EXPENSE', parentId: null, isSystem: true, subcategoryCount: 3 },
-    { id: 3, name: 'Rent', type: 'EXPENSE', parentId: null, icon: '🏠', color: '#3498db', isSystem: true, subcategoryCount: 0 },
+    {
+      id: 2,
+      name: 'Groceries',
+      type: 'EXPENSE',
+      parentId: null,
+      isSystem: true,
+      subcategoryCount: 3,
+    },
+    {
+      id: 3,
+      name: 'Rent',
+      type: 'EXPENSE',
+      parentId: null,
+      icon: '🏠',
+      color: '#3498db',
+      isSystem: true,
+      subcategoryCount: 0,
+    },
   ];
 
   it('should fetch categories successfully', async () => {

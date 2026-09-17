@@ -42,9 +42,27 @@ describe('BackupSettings', () => {
 
   it('displays backup statistics with completed backups', () => {
     mockBackups = [
-      { id: 1, status: 'COMPLETED', backupType: 'MANUAL', createdAt: new Date().toISOString(), fileSize: 1024 * 1024 },
-      { id: 2, status: 'COMPLETED', backupType: 'AUTOMATIC', createdAt: new Date(Date.now() - 86400000).toISOString(), fileSize: 2048 * 1024 },
-      { id: 3, status: 'FAILED', backupType: 'MANUAL', createdAt: new Date().toISOString(), fileSize: 0 },
+      {
+        id: 1,
+        status: 'COMPLETED',
+        backupType: 'MANUAL',
+        createdAt: new Date().toISOString(),
+        fileSize: 1024 * 1024,
+      },
+      {
+        id: 2,
+        status: 'COMPLETED',
+        backupType: 'AUTOMATIC',
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        fileSize: 2048 * 1024,
+      },
+      {
+        id: 3,
+        status: 'FAILED',
+        backupType: 'MANUAL',
+        createdAt: new Date().toISOString(),
+        fileSize: 0,
+      },
     ];
     renderWithProviders(<BackupSettings />);
     // Should show count of completed backups (2, not 3)
@@ -60,7 +78,13 @@ describe('BackupSettings', () => {
   it('shows latest backup time', () => {
     const now = new Date();
     mockBackups = [
-      { id: 1, status: 'COMPLETED', backupType: 'MANUAL', createdAt: now.toISOString(), fileSize: 512 },
+      {
+        id: 1,
+        status: 'COMPLETED',
+        backupType: 'MANUAL',
+        createdAt: now.toISOString(),
+        fileSize: 512,
+      },
     ];
     renderWithProviders(<BackupSettings />);
     // Should show a relative time like "just now" or "X minutes ago"
@@ -69,7 +93,13 @@ describe('BackupSettings', () => {
 
   it('formats storage size correctly', () => {
     mockBackups = [
-      { id: 1, status: 'COMPLETED', backupType: 'MANUAL', createdAt: new Date().toISOString(), fileSize: 1048576 }, // 1 MB
+      {
+        id: 1,
+        status: 'COMPLETED',
+        backupType: 'MANUAL',
+        createdAt: new Date().toISOString(),
+        fileSize: 1048576,
+      }, // 1 MB
     ];
     renderWithProviders(<BackupSettings />);
     expect(screen.getByText('1.00 MB')).toBeInTheDocument();
@@ -77,8 +107,20 @@ describe('BackupSettings', () => {
 
   it('shows automatic backup count', () => {
     mockBackups = [
-      { id: 1, status: 'COMPLETED', backupType: 'AUTOMATIC', createdAt: new Date().toISOString(), fileSize: 100 },
-      { id: 2, status: 'COMPLETED', backupType: 'AUTOMATIC', createdAt: new Date().toISOString(), fileSize: 200 },
+      {
+        id: 1,
+        status: 'COMPLETED',
+        backupType: 'AUTOMATIC',
+        createdAt: new Date().toISOString(),
+        fileSize: 100,
+      },
+      {
+        id: 2,
+        status: 'COMPLETED',
+        backupType: 'AUTOMATIC',
+        createdAt: new Date().toISOString(),
+        fileSize: 200,
+      },
     ];
     renderWithProviders(<BackupSettings />);
     // Should show automatic count text
@@ -95,7 +137,13 @@ describe('BackupSettings', () => {
 
   it('shows backup type label for latest backup', () => {
     mockBackups = [
-      { id: 1, status: 'COMPLETED', backupType: 'AUTOMATIC', createdAt: new Date().toISOString(), fileSize: 500 },
+      {
+        id: 1,
+        status: 'COMPLETED',
+        backupType: 'AUTOMATIC',
+        createdAt: new Date().toISOString(),
+        fileSize: 500,
+      },
     ];
     renderWithProviders(<BackupSettings />);
     // Should show automatic type label

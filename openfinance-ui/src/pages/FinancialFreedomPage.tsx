@@ -1,4 +1,3 @@
-
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -6,11 +5,11 @@ import { FinancialFreedomCalculator } from '@/components/financial-freedom/Finan
 
 /**
  * Financial Freedom Calculator Page
- * 
+ *
  * This page provides a comprehensive financial planning tool that helps users
  * determine when they can achieve financial independence based on their current
  * savings, expenses, and investment returns.
- * 
+ *
  * Features:
  * - Time to Financial Freedom calculation (4% rule)
  * - Savings Longevity analysis

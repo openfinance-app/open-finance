@@ -63,7 +63,9 @@ public class UniqueTestDatabaseEnvironmentPostProcessor implements EnvironmentPo
             Files.createDirectories(dir);
             Path dbFile = Files.createTempFile(dir, "test-", ".db");
             String url =
-                    "jdbc:sqlite:" + dbFile + "?foreign_keys=on&journal_mode=DELETE&busy_timeout=10000";
+                    "jdbc:sqlite:"
+                            + dbFile
+                            + "?foreign_keys=on&journal_mode=DELETE&busy_timeout=10000";
             environment
                     .getPropertySources()
                     .addFirst(
@@ -80,8 +82,8 @@ public class UniqueTestDatabaseEnvironmentPostProcessor implements EnvironmentPo
      * database and test classes pollute each other (duplicate-key failures for shared fixtures such
      * as {@code users.username}).
      *
-     * <p>If the configured user lacks {@code CREATEDB} privilege (e.g. local sandbox), falls back to
-     * the original database and logs a warning - parallel contexts may then interfere.
+     * <p>If the configured user lacks {@code CREATEDB} privilege (e.g. local sandbox), falls back
+     * to the original database and logs a warning - parallel contexts may then interfere.
      *
      * @param environment environment to inject the unique URL into
      * @param currentUrl the CI-provided PostgreSQL URL
@@ -120,8 +122,8 @@ public class UniqueTestDatabaseEnvironmentPostProcessor implements EnvironmentPo
      * @param dbName the unique database name to create
      * @throws SQLException if creation fails (e.g. the user lacks CREATEDB)
      */
-    private void createUniqueDatabase(String adminUrl, String username, String password, String dbName)
-            throws SQLException {
+    private void createUniqueDatabase(
+            String adminUrl, String username, String password, String dbName) throws SQLException {
         try (Connection conn = DriverManager.getConnection(adminUrl, username, password);
                 Statement stmt = conn.createStatement()) {
             setStatementTimeout(stmt);

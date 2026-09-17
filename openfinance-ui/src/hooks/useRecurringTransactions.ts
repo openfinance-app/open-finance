@@ -1,7 +1,7 @@
 /**
  * Recurring Transaction Management Hooks
  * Task 12.2.11: Create useRecurringTransactions hook
- * 
+ *
  * React Query hooks for managing recurring transactions
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -47,7 +47,17 @@ export function useRecurringTransactions(filters?: RecurringTransactionFilters) 
  * Fetch recurring transactions with pagination and optional filters
  */
 export function useRecurringTransactionsPaged(filters: RecurringTransactionFilters = {}) {
-  const { page = 0, size = 20, type, frequency, isActive, accountId, search, searchRegex, sort = 'nextOccurrence,asc' } = filters;
+  const {
+    page = 0,
+    size = 20,
+    type,
+    frequency,
+    isActive,
+    accountId,
+    search,
+    searchRegex,
+    sort = 'nextOccurrence,asc',
+  } = filters;
 
   return useQuery({
     queryKey: ['recurringTransactions', 'paged', filters],
@@ -80,7 +90,9 @@ export function useRecurringTransactionsPaged(filters: RecurringTransactionFilte
 /**
  * Fetch active recurring transactions only
  */
-export function useActiveRecurringTransactions(filters?: Omit<RecurringTransactionFilters, 'isActive'>) {
+export function useActiveRecurringTransactions(
+  filters?: Omit<RecurringTransactionFilters, 'isActive'>
+) {
   return useRecurringTransactions({ ...filters, isActive: true });
 }
 
@@ -145,11 +157,19 @@ export function useCreateRecurringTransaction() {
 export function useUpdateRecurringTransaction() {
   const queryClient = useQueryClient();
 
-  return useMutation<RecurringTransaction, Error, { id: number; data: RecurringTransactionRequest }>({
+  return useMutation<
+    RecurringTransaction,
+    Error,
+    { id: number; data: RecurringTransactionRequest }
+  >({
     mutationFn: async ({ id, data }) => {
-      const response = await apiClient.put<RecurringTransaction>(`/recurring-transactions/${id}`, data, {
-        headers: buildEncryptionHeaders(),
-      });
+      const response = await apiClient.put<RecurringTransaction>(
+        `/recurring-transactions/${id}`,
+        data,
+        {
+          headers: buildEncryptionHeaders(),
+        }
+      );
       return response.data;
     },
     onSuccess: () => {

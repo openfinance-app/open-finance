@@ -36,7 +36,10 @@ export async function createRule(data: TransactionRuleRequest): Promise<Transact
 /**
  * Update an existing transaction rule.
  */
-export async function updateRule(id: number, data: TransactionRuleRequest): Promise<TransactionRule> {
+export async function updateRule(
+  id: number,
+  data: TransactionRuleRequest
+): Promise<TransactionRule> {
   const response = await apiClient.put<TransactionRule>(`${BASE_URL}/${id}`, data);
   return response.data;
 }

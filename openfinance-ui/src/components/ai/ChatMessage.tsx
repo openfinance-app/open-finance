@@ -1,13 +1,13 @@
 /**
  * Chat Message Component
  * Task 11.3.2: Create ChatMessage component
- * 
+ *
  * Displays individual chat messages with:
  * - Different styling for user vs AI messages
  * - Markdown rendering for AI responses
  * - Timestamps
  * - Copy to clipboard functionality
- * 
+ *
  * @since Sprint 11 - AI Assistant Integration
  */
 import React from 'react';
@@ -43,23 +43,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
       {/* Avatar */}
       <div
-        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isUser ? 'bg-blue-600' : 'bg-emerald-600'
-          }`}
+        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+          isUser ? 'bg-blue-600' : 'bg-emerald-600'
+        }`}
       >
-        {isUser ? (
-          <User className="w-5 h-5 text-white" />
-        ) : (
-          <Bot className="w-5 h-5 text-white" />
-        )}
+        {isUser ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
       </div>
 
       {/* Message Content */}
       <div className={`flex-1 max-w-3xl ${isUser ? 'flex justify-end' : ''}`}>
         <div
-          className={`rounded-2xl px-4 py-3 ${isUser
-              ? 'bg-blue-600 text-white'
-              : 'bg-surface-elevated text-text-primary'
-            }`}
+          className={`rounded-2xl px-4 py-3 ${
+            isUser ? 'bg-blue-600 text-white' : 'bg-surface-elevated text-text-primary'
+          }`}
         >
           {/* Message text */}
           {isUser ? (
@@ -149,8 +145,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
 
           {/* Timestamp and actions */}
           <div
-            className={`flex items-center gap-2 mt-2 text-xs ${isUser ? 'text-blue-100' : 'text-text-secondary'
-              }`}
+            className={`flex items-center gap-2 mt-2 text-xs ${
+              isUser ? 'text-blue-100' : 'text-text-secondary'
+            }`}
           >
             <span>{formattedTime}</span>
 

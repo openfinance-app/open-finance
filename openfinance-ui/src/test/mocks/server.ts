@@ -1,6 +1,6 @@
 /**
  * MSW Server Setup for Testing
- * 
+ *
  * Configures Mock Service Worker to intercept HTTP requests
  * during test execution. This server runs in Node.js environment.
  */

@@ -7,17 +7,12 @@ import { useState, useCallback } from 'react';
 import apiClient from '@/services/apiClient';
 import { buildEncryptionHeaders } from '@/utils/encryption';
 import { SEARCH_DEBOUNCE_MS } from '@/constants/timing';
-import type {
-  GlobalSearchResponse,
-  AdvancedSearchRequest,
-  SavedSearch,
-} from '../types/search';
+import type { GlobalSearchResponse, AdvancedSearchRequest, SavedSearch } from '../types/search';
 
 const SEARCH_KEYS = {
   all: ['search'] as const,
   global: (query: string) => [...SEARCH_KEYS.all, 'global', query] as const,
-  advanced: (request: AdvancedSearchRequest) =>
-    [...SEARCH_KEYS.all, 'advanced', request] as const,
+  advanced: (request: AdvancedSearchRequest) => [...SEARCH_KEYS.all, 'advanced', request] as const,
   saved: () => [...SEARCH_KEYS.all, 'saved'] as const,
 };
 
@@ -52,13 +47,9 @@ export const useGlobalSearch = (
 export const useAdvancedSearch = () => {
   return useMutation({
     mutationFn: async (request: AdvancedSearchRequest) => {
-      const response = await apiClient.post<GlobalSearchResponse>(
-        '/search/advanced',
-        request,
-        {
-          headers: buildEncryptionHeaders(),
-        }
-      );
+      const response = await apiClient.post<GlobalSearchResponse>('/search/advanced', request, {
+        headers: buildEncryptionHeaders(),
+      });
 
       return response.data;
     },
@@ -103,7 +94,7 @@ export const useSavedSearches = () => {
 
   const deleteSearch = useCallback(
     (id: string) => {
-      const updated = savedSearches.filter((s) => s.id !== id);
+      const updated = savedSearches.filter(s => s.id !== id);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       setSavedSearches(updated);
     },
@@ -112,7 +103,7 @@ export const useSavedSearches = () => {
 
   const updateLastUsed = useCallback(
     (id: string) => {
-      const updated = savedSearches.map((s) =>
+      const updated = savedSearches.map(s =>
         s.id === id ? { ...s, lastUsed: new Date().toISOString() } : s
       );
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -169,10 +160,7 @@ export const useSearchWithDebounce = (initialQuery: string = '') => {
       const recent: string[] = stored ? JSON.parse(stored) : [];
 
       // Add to front, remove duplicates, limit to 10
-      const updated = [
-        searchQuery,
-        ...recent.filter((q) => q !== searchQuery),
-      ].slice(0, 10);
+      const updated = [searchQuery, ...recent.filter(q => q !== searchQuery)].slice(0, 10);
 
       localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
     } catch (error) {

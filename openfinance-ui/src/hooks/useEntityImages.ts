@@ -10,14 +10,10 @@ import { useAttachments } from '@/hooks/useAttachments';
 import type { Attachment, AttachmentEntityType } from '@/types/attachment';
 
 /** Image attachments of an entity (metadata only). Shares the ['attachments', filters] query key with the attachments tab, so uploads there auto-refresh covers/galleries. */
-export function useEntityImages(
-  entityType: AttachmentEntityType,
-  entityId: number | null
-) {
-  const filters =
-    entityId != null ? { entityType, entityId } : undefined;
+export function useEntityImages(entityType: AttachmentEntityType, entityId: number | null) {
+  const filters = entityId != null ? { entityType, entityId } : undefined;
   const { data: attachments, isLoading } = useAttachments(filters);
-  const images: Attachment[] = (attachments ?? []).filter((a) => a.image);
+  const images: Attachment[] = (attachments ?? []).filter(a => a.image);
   return { images, isLoading };
 }
 
@@ -36,7 +32,12 @@ export function useAttachmentImageUrl(attachmentId: number | null): string | nul
           headers: buildEncryptionHeaders(),
         });
         if (cancelled) return;
-        const blob = new Blob([response.data], { type: response.headers['content-type'] });
+        const blob = new Blob([response.data], {
+          type:
+            typeof response.headers['content-type'] === 'string'
+              ? response.headers['content-type']
+              : undefined,
+        });
         objectUrl = URL.createObjectURL(blob);
         setUrl(objectUrl);
       } catch {

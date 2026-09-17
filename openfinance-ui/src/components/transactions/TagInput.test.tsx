@@ -180,11 +180,7 @@ describe('TagInput', () => {
     const onChange = vi.fn();
 
     renderWithProviders(
-      <TagInput
-        value={[]}
-        onChange={onChange}
-        suggestions={['groceries', 'gas', 'gym']}
-      />
+      <TagInput value={[]} onChange={onChange} suggestions={['groceries', 'gas', 'gym']} />
     );
 
     const input = screen.getByPlaceholderText('Add tags (press Enter, comma, or space)');
@@ -220,7 +216,9 @@ describe('TagInput', () => {
 
   it('shows placeholder only when no tags exist', () => {
     const { rerender } = renderWithProviders(<TagInput value={[]} onChange={vi.fn()} />);
-    expect(screen.getByPlaceholderText('Add tags (press Enter, comma, or space)')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Add tags (press Enter, comma, or space)')
+    ).toBeInTheDocument();
 
     rerender(<TagInput value={['tag1']} onChange={vi.fn()} />);
     const input = screen.getByRole('textbox');

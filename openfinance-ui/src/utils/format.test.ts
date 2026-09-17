@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { formatCurrency, formatPercentage, formatNumber, formatCompactCurrency, getGainLossClass, formatGainLoss } from './format';
+import {
+  formatCurrency,
+  formatPercentage,
+  formatNumber,
+  formatCompactCurrency,
+  getGainLossClass,
+  formatGainLoss,
+} from './format';
 
 describe('formatCurrency', () => {
   it('formats EUR by default', () => {

@@ -1,6 +1,6 @@
 /**
  * RealEstateToolsWrapper Component
- * 
+ *
  * Wrapper component that handles routing and data sharing between
  * Buy/Rent Comparator and Rental Simulator
  * Requirements: REQ-4.2.1, REQ-5.4
@@ -45,19 +45,14 @@ export const RealEstateToolsWrapper: React.FC = () => {
       <Route
         path="buy-rent"
         element={
-          <BuyRentComparator
-            onNavigateToRentalSimulator={handleNavigateToRentalSimulator}
-          />
+          <BuyRentComparator onNavigateToRentalSimulator={handleNavigateToRentalSimulator} />
         }
       />
       <Route
         path="rental"
         element={
           <RentalSimulatorGuard>
-            <PropertyRentalSimulator
-              sharedData={sharedData}
-              onNavigateBack={handleNavigateBack}
-            />
+            <PropertyRentalSimulator sharedData={sharedData} onNavigateBack={handleNavigateBack} />
           </RentalSimulatorGuard>
         }
       />

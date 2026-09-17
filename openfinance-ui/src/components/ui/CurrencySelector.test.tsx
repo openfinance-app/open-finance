@@ -51,17 +51,13 @@ describe('CurrencySelector', () => {
   });
 
   it('displays selected currency with code', () => {
-    renderWithProviders(
-      <CurrencySelector value="USD" onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CurrencySelector value="USD" onValueChange={onValueChange} />);
     expect(screen.getByText('USD')).toBeInTheDocument();
   });
 
   it('opens dropdown and shows currencies when clicked', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CurrencySelector onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CurrencySelector onValueChange={onValueChange} />);
 
     const trigger = screen.getByRole('button');
     await user.click(trigger);
@@ -74,9 +70,7 @@ describe('CurrencySelector', () => {
 
   it('filters inactive currencies by default', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CurrencySelector onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CurrencySelector onValueChange={onValueChange} />);
 
     await user.click(screen.getByRole('button'));
 
@@ -88,9 +82,7 @@ describe('CurrencySelector', () => {
 
   it('shows inactive currencies when showInactive is true', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CurrencySelector onValueChange={onValueChange} showInactive />
-    );
+    renderWithProviders(<CurrencySelector onValueChange={onValueChange} showInactive />);
 
     await user.click(screen.getByRole('button'));
 
@@ -101,9 +93,7 @@ describe('CurrencySelector', () => {
 
   it('calls onValueChange when selecting a currency', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CurrencySelector onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CurrencySelector onValueChange={onValueChange} />);
 
     await user.click(screen.getByRole('button'));
 
@@ -124,9 +114,7 @@ describe('CurrencySelector', () => {
 
   it('shows allowNone option when enabled', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CurrencySelector value="USD" onValueChange={onValueChange} allowNone />
-    );
+    renderWithProviders(<CurrencySelector value="USD" onValueChange={onValueChange} allowNone />);
 
     await user.click(screen.getByRole('button'));
 
@@ -136,18 +124,14 @@ describe('CurrencySelector', () => {
   });
 
   it('disables the trigger when disabled prop is true', () => {
-    renderWithProviders(
-      <CurrencySelector onValueChange={onValueChange} disabled />
-    );
+    renderWithProviders(<CurrencySelector onValueChange={onValueChange} disabled />);
 
     expect(screen.getByRole('button')).toBeDisabled();
   });
 
   it('filters currencies by search query', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CurrencySelector onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CurrencySelector onValueChange={onValueChange} />);
 
     await user.click(screen.getByRole('button'));
 
@@ -165,9 +149,7 @@ describe('CurrencySelector', () => {
 
   it('shows no match for unmatched search', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CurrencySelector onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CurrencySelector onValueChange={onValueChange} />);
 
     await user.click(screen.getByRole('button'));
     await waitFor(() => {
@@ -193,33 +175,25 @@ describe('CurrencySelectorCompact', () => {
   });
 
   it('renders with selected currency symbol and code', () => {
-    renderWithProviders(
-      <CurrencySelectorCompact value="USD" onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CurrencySelectorCompact value="USD" onValueChange={onValueChange} />);
     expect(screen.getByText('$')).toBeInTheDocument();
     expect(screen.getByText('USD')).toBeInTheDocument();
   });
 
   it('renders placeholder when no value', () => {
-    renderWithProviders(
-      <CurrencySelectorCompact onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CurrencySelectorCompact onValueChange={onValueChange} />);
     expect(screen.getByText('Select')).toBeInTheDocument();
   });
 
   it('shows loading spinner when loading', () => {
     mockIsLoading = true;
-    renderWithProviders(
-      <CurrencySelectorCompact onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CurrencySelectorCompact onValueChange={onValueChange} />);
     expect(document.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
   it('opens dropdown and shows currencies', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CurrencySelectorCompact onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CurrencySelectorCompact onValueChange={onValueChange} />);
 
     await user.click(screen.getByRole('button'));
 
@@ -230,9 +204,7 @@ describe('CurrencySelectorCompact', () => {
 
   it('selects a currency from the dropdown', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CurrencySelectorCompact onValueChange={onValueChange} />
-    );
+    renderWithProviders(<CurrencySelectorCompact onValueChange={onValueChange} />);
 
     await user.click(screen.getByRole('button'));
 

@@ -1,6 +1,6 @@
 /**
  * Sensitivity Analysis Component
- * 
+ *
  * Displays comparison of different return rate scenarios
  */
 

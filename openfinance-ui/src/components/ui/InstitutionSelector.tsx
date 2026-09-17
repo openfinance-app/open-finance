@@ -1,6 +1,6 @@
 /**
  * InstitutionSelector component
- * 
+ *
  * A dropdown component for selecting financial institutions with search functionality.
  * Supports grouping by country and displays institution logo.
  */
@@ -68,15 +68,15 @@ export function InstitutionSelector({
     const normalizedQuery = searchQuery.trim().toLowerCase();
     const filtered = normalizedQuery
       ? institutions.filter(
-        (inst) =>
-          inst.name.toLowerCase().includes(normalizedQuery) ||
-          inst.bic?.toLowerCase().includes(normalizedQuery)
-      )
+          inst =>
+            inst.name.toLowerCase().includes(normalizedQuery) ||
+            inst.bic?.toLowerCase().includes(normalizedQuery)
+        )
       : institutions;
 
     // Group by country
     const groups: Record<string, Institution[]> = {};
-    filtered.forEach((inst) => {
+    filtered.forEach(inst => {
       const country = inst.country || 'OTHER';
       if (!groups[country]) {
         groups[country] = [];
@@ -85,7 +85,7 @@ export function InstitutionSelector({
     });
 
     // Sort each group by name
-    Object.keys(groups).forEach((country) => {
+    Object.keys(groups).forEach(country => {
       groups[country].sort((a, b) => a.name.localeCompare(b.name));
     });
 
@@ -103,7 +103,7 @@ export function InstitutionSelector({
   }, [groupedInstitutions]);
 
   const selectedInstitution = value
-    ? institutions?.find((inst) => inst.id.toString() === value)
+    ? institutions?.find(inst => inst.id.toString() === value)
     : undefined;
 
   // Render logo
@@ -111,20 +111,11 @@ export function InstitutionSelector({
     const sizeClasses = size === 'sm' ? 'h-6 w-6' : 'h-8 w-8';
     if (logo) {
       return (
-        <img
-          src={logo}
-          alt=""
-          className={cn('rounded object-contain bg-white', sizeClasses)}
-        />
+        <img src={logo} alt="" className={cn('rounded object-contain bg-white', sizeClasses)} />
       );
     }
     return (
-      <div
-        className={cn(
-          'flex items-center justify-center rounded bg-primary/10',
-          sizeClasses
-        )}
-      >
+      <div className={cn('flex items-center justify-center rounded bg-primary/10', sizeClasses)}>
         <Building2 className="h-4 w-4 text-primary" />
       </div>
     );
@@ -161,7 +152,7 @@ export function InstitutionSelector({
       value={value || '__none__'}
       onValueChange={handleValueChange}
       disabled={disabled}
-      onOpenChange={(open) => {
+      onOpenChange={open => {
         setIsOpen(open);
         if (!open) {
           setSearchQuery('');
@@ -187,8 +178,8 @@ export function InstitutionSelector({
           )}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent 
-        className="p-0 flex flex-col" 
+      <SelectContent
+        className="p-0 flex flex-col"
         viewportClassName="p-1"
         headerSlot={
           <div className="shrink-0 border-b border-border bg-surface p-2">
@@ -197,8 +188,8 @@ export function InstitutionSelector({
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                onKeyDown={(event) => event.stopPropagation()}
+                onChange={event => setSearchQuery(event.target.value)}
+                onKeyDown={event => event.stopPropagation()}
                 placeholder={t('institutions:searchInstitution')}
                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 autoFocus={isOpen}
@@ -221,7 +212,7 @@ export function InstitutionSelector({
         )}
 
         {/* Grouped institutions using SelectItem */}
-        {sortedCountries.map((country) => (
+        {sortedCountries.map(country => (
           <div key={country} className="mt-2">
             {/* Country header */}
             <div className="px-2 py-1 text-xs font-semibold text-text-muted">
@@ -229,11 +220,8 @@ export function InstitutionSelector({
             </div>
 
             {/* Institutions in this country */}
-            {groupedInstitutions[country].map((inst) => (
-              <SelectItem
-                key={inst.id}
-                value={inst.id.toString()}
-              >
+            {groupedInstitutions[country].map(inst => (
+              <SelectItem key={inst.id} value={inst.id.toString()}>
                 <div className="flex items-center gap-2">
                   {/* Logo in place of checkmark */}
                   <span className="flex h-4 w-4 items-center justify-center shrink-0">
@@ -249,9 +237,7 @@ export function InstitutionSelector({
                   </span>
                   <div className="flex flex-col">
                     <span className="text-sm">{inst.name}</span>
-                    {inst.bic && (
-                      <span className="text-xs text-text-muted">{inst.bic}</span>
-                    )}
+                    {inst.bic && <span className="text-xs text-text-muted">{inst.bic}</span>}
                   </div>
                 </div>
               </SelectItem>

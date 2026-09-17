@@ -103,9 +103,16 @@ describe('AccountCard', () => {
   });
 
   describe('Different account types', () => {
-    const types: Account['type'][] = ['CHECKING', 'SAVINGS', 'CREDIT_CARD', 'INVESTMENT', 'CASH', 'OTHER'];
+    const types: Account['type'][] = [
+      'CHECKING',
+      'SAVINGS',
+      'CREDIT_CARD',
+      'INVESTMENT',
+      'CASH',
+      'OTHER',
+    ];
 
-    types.forEach((type) => {
+    types.forEach(type => {
       it(`should render ${type} account without errors`, () => {
         const account = { ...baseAccount, type };
         renderWithProviders(

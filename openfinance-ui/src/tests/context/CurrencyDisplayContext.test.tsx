@@ -128,7 +128,10 @@ describe('CurrencyDisplayContext', () => {
       });
 
       expect(screen.getByTestId('secondary')).toHaveTextContent('USD');
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('open_finance_secondary_currency', 'USD');
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'open_finance_secondary_currency',
+        'USD'
+      );
     });
 
     it('should remove localStorage entry when setting to null', () => {
@@ -182,7 +185,10 @@ describe('CurrencyDisplayContext', () => {
       });
 
       expect(screen.getByTestId('secondary')).toHaveTextContent('USD');
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('open_finance_secondary_currency', 'USD');
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'open_finance_secondary_currency',
+        'USD'
+      );
     });
 
     it('should treat empty string as null', () => {
@@ -234,7 +240,10 @@ describe('CurrencyDisplayContext', () => {
       });
 
       expect(screen.getByTestId('mode')).toHaveTextContent('native');
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('open_finance_amount_display_mode', 'native');
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'open_finance_amount_display_mode',
+        'native'
+      );
     });
   });
 
@@ -284,7 +293,10 @@ describe('CurrencyDisplayContext', () => {
 
       screen.getByText('Set Mode').click();
 
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to persist currency display mode:', expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to persist currency display mode:',
+        expect.any(Error)
+      );
 
       consoleSpy.mockRestore();
     });

@@ -10,10 +10,7 @@ export default function PremiumPage() {
 
   return (
     <div className="p-8">
-      <PageHeader
-        title={t('premium.title')}
-        description={t('premium.description')}
-      />
+      <PageHeader title={t('premium.title')} description={t('premium.description')} />
       <EmptyState
         icon={Gift}
         title={t('premium.comingSoon')}

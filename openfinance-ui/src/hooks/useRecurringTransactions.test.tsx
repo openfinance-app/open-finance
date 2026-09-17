@@ -91,30 +91,26 @@ describe('useRecurringTransactions hooks', () => {
     it('should fetch with account filter', async () => {
       mockedApiClient.get.mockResolvedValue({ data: [mockRecurringTransaction] });
 
-      const { result } = renderHook(
-        () => useRecurringTransactions({ accountId: 1 }),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useRecurringTransactions({ accountId: 1 }), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(mockedApiClient.get).toHaveBeenCalledWith(
         expect.stringContaining('accountId=1'),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
     it('should fetch active recurring transactions when isActive=true', async () => {
       mockedApiClient.get.mockResolvedValue({ data: [mockRecurringTransaction] });
 
-      const { result } = renderHook(
-        () => useRecurringTransactions({ isActive: true }),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useRecurringTransactions({ isActive: true }), {
+        wrapper,
+      });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(mockedApiClient.get).toHaveBeenCalledWith(
         expect.stringContaining('/recurring-transactions/active'),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
@@ -140,16 +136,15 @@ describe('useRecurringTransactions hooks', () => {
       };
       mockedApiClient.get.mockResolvedValue({ data: pagedResponse });
 
-      const { result } = renderHook(
-        () => useRecurringTransactionsPaged({ page: 0, size: 20 }),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useRecurringTransactionsPaged({ page: 0, size: 20 }), {
+        wrapper,
+      });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(pagedResponse);
       expect(mockedApiClient.get).toHaveBeenCalledWith(
         expect.stringContaining('/recurring-transactions/paged'),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
 
@@ -158,8 +153,9 @@ describe('useRecurringTransactions hooks', () => {
       mockedApiClient.get.mockResolvedValue({ data: pagedResponse });
 
       const { result } = renderHook(
-        () => useRecurringTransactionsPaged({ type: 'EXPENSE', frequency: 'MONTHLY', search: 'rent' }),
-        { wrapper },
+        () =>
+          useRecurringTransactionsPaged({ type: 'EXPENSE', frequency: 'MONTHLY', search: 'rent' }),
+        { wrapper }
       );
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -173,10 +169,9 @@ describe('useRecurringTransactions hooks', () => {
       const pagedResponse = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 };
       mockedApiClient.get.mockResolvedValue({ data: pagedResponse });
 
-      const { result } = renderHook(
-        () => useRecurringTransactionsPaged({ accountId: 1 }),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useRecurringTransactionsPaged({ accountId: 1 }), {
+        wrapper,
+      });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       const url = mockedApiClient.get.mock.calls[0][0] as string;
@@ -187,10 +182,9 @@ describe('useRecurringTransactions hooks', () => {
       const pagedResponse = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 };
       mockedApiClient.get.mockResolvedValue({ data: pagedResponse });
 
-      const { result } = renderHook(
-        () => useRecurringTransactionsPaged({ page: 0, size: 20 }),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useRecurringTransactionsPaged({ page: 0, size: 20 }), {
+        wrapper,
+      });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       const url = mockedApiClient.get.mock.calls[0][0] as string;
@@ -208,7 +202,7 @@ describe('useRecurringTransactions hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(mockedApiClient.get).toHaveBeenCalledWith(
         expect.stringContaining('/recurring-transactions/active'),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
   });
@@ -325,7 +319,7 @@ describe('useRecurringTransactions hooks', () => {
       expect(mockedApiClient.put).toHaveBeenCalledWith(
         '/recurring-transactions/1',
         expect.any(Object),
-        expect.any(Object),
+        expect.any(Object)
       );
     });
   });
@@ -380,7 +374,7 @@ describe('useRecurringTransactions hooks', () => {
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/recurring-transactions/1/pause',
         {},
-        { headers: { 'X-Encryption-Session': 'test-encryption-key' } },
+        { headers: { 'X-Encryption-Session': 'test-encryption-key' } }
       );
     });
   });
@@ -402,7 +396,7 @@ describe('useRecurringTransactions hooks', () => {
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/recurring-transactions/1/resume',
         {},
-        { headers: { 'X-Encryption-Session': 'test-encryption-key' } },
+        { headers: { 'X-Encryption-Session': 'test-encryption-key' } }
       );
     });
   });

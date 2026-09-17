@@ -1,6 +1,6 @@
 /**
  * SharedParametersPanel Component
- * 
+ *
  * Displays data inherited from Buy/Rent comparator
  * Requirements: REQ-4.2.1
  */
@@ -18,9 +18,7 @@ export interface SharedParametersPanelProps {
   sharedData: SharedPropertyData;
 }
 
-export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
-  sharedData,
-}) => {
+export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({ sharedData }) => {
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('realEstate');
   if (!sharedData) {
@@ -85,7 +83,9 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
           <div className="flex items-center gap-3 bg-background/50 p-3 rounded">
             <FileText className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-xs text-muted-foreground">{t('sharedParameters.coOwnershipCharges')}</p>
+              <p className="text-xs text-muted-foreground">
+                {t('sharedParameters.coOwnershipCharges')}
+              </p>
               <p className="font-medium">
                 <ConvertedAmount
                   amount={sharedData.coOwnershipCharges}
@@ -100,9 +100,7 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({
 
         {/* Note */}
         <div className="mt-4 text-sm text-muted-foreground">
-          <p>
-            {t('sharedParameters.note')}
-          </p>
+          <p>{t('sharedParameters.note')}</p>
         </div>
       </CardContent>
     </Card>

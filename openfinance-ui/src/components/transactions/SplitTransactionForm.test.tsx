@@ -37,7 +37,7 @@ vi.mock('@/components/ui/CategorySelect', () => ({
     <select
       data-testid="category-select"
       value={value ?? ''}
-      onChange={(e) => onValueChange(e.target.value ? Number(e.target.value) : undefined)}
+      onChange={e => onValueChange(e.target.value ? Number(e.target.value) : undefined)}
       placeholder={placeholder}
     >
       <option value="">-- no category --</option>
@@ -50,7 +50,7 @@ vi.mock('@/components/ui/CategorySelect', () => ({
 
 // ── Mock hooks ────────────────────────────────────────────────────────────────
 
-vi.mock('@/hooks/useTransactions', async (importOriginal) => {
+vi.mock('@/hooks/useTransactions', async importOriginal => {
   const actual = await importOriginal<typeof useTransactionsModule>();
   return { ...actual, useCategoryTree: vi.fn() };
 });
@@ -220,14 +220,14 @@ describe('SplitTransactionForm', () => {
       const removeButtons = screen.getAllByRole('button', { name: /remove split/i });
       removeButtons[0].click(); // Remove first split
 
-      expect(onChange).toHaveBeenCalledWith([
-        mockSplits[1],
-        threeSplits[2],
-      ]);
+      expect(onChange).toHaveBeenCalledWith([mockSplits[1], threeSplits[2]]);
     });
 
     it('pre-populates new split with remaining amount when adding', () => {
-      const { onChange } = renderForm({ totalAmount: 100, splits: [{ categoryId: 10, amount: 30 }] });
+      const { onChange } = renderForm({
+        totalAmount: 100,
+        splits: [{ categoryId: 10, amount: 30 }],
+      });
 
       const addButton = screen.getByRole('button', { name: /add split/i });
       addButton.click();
@@ -265,7 +265,10 @@ describe('SplitTransactionForm', () => {
     });
 
     it('pre-populates new split with 0 when total is exceeded', () => {
-      const { onChange } = renderForm({ totalAmount: 50, splits: [{ categoryId: 10, amount: 60 }] });
+      const { onChange } = renderForm({
+        totalAmount: 50,
+        splits: [{ categoryId: 10, amount: 60 }],
+      });
 
       const addButton = screen.getByRole('button', { name: /add split/i });
       addButton.click();
@@ -293,10 +296,7 @@ describe('SplitTransactionForm', () => {
         firstCategorySelect.dispatchEvent(new Event('change', { bubbles: true }));
       });
 
-      expect(onChange).toHaveBeenCalledWith([
-        { ...mockSplits[0], categoryId: 20 },
-        mockSplits[1],
-      ]);
+      expect(onChange).toHaveBeenCalledWith([{ ...mockSplits[0], categoryId: 20 }, mockSplits[1]]);
     });
 
     it('calls onChange when amount is updated', () => {
@@ -306,10 +306,7 @@ describe('SplitTransactionForm', () => {
 
       fireEvent.change(amountInput, { target: { value: '75' } });
 
-      expect(onChange).toHaveBeenCalledWith([
-        { ...mockSplits[0], amount: 75 },
-        mockSplits[1],
-      ]);
+      expect(onChange).toHaveBeenCalledWith([{ ...mockSplits[0], amount: 75 }, mockSplits[1]]);
     });
 
     it('calls onChange when description is updated', () => {
@@ -332,10 +329,7 @@ describe('SplitTransactionForm', () => {
 
       fireEvent.change(amountInput, { target: { value: '' } });
 
-      expect(onChange).toHaveBeenCalledWith([
-        { ...mockSplits[0], amount: 0 },
-        mockSplits[1],
-      ]);
+      expect(onChange).toHaveBeenCalledWith([{ ...mockSplits[0], amount: 0 }, mockSplits[1]]);
     });
 
     it('converts undefined description to undefined', () => {
@@ -399,14 +393,14 @@ describe('SplitTransactionForm', () => {
       renderForm({ totalAmount: 100, splits: mockSplits });
 
       expect(screen.getByRole('alert')).toBeInTheDocument();
-      expect(screen.getByText((content) => content.includes('short.'))).toBeInTheDocument();
+      expect(screen.getByText(content => content.includes('short.'))).toBeInTheDocument();
     });
 
     it('shows validation error banner when over by amount', () => {
       renderForm({ totalAmount: 50, splits: mockSplits });
 
       expect(screen.getByRole('alert')).toBeInTheDocument();
-      expect(screen.getByText((content) => content.includes('over.'))).toBeInTheDocument();
+      expect(screen.getByText(content => content.includes('over.'))).toBeInTheDocument();
     });
 
     it('does not show validation error banner when balanced', () => {
@@ -454,9 +448,7 @@ describe('SplitTransactionForm', () => {
     });
 
     it('handles splits without description', () => {
-      const noDescriptionSplits: TransactionSplitRequest[] = [
-        { categoryId: 10, amount: 50 },
-      ];
+      const noDescriptionSplits: TransactionSplitRequest[] = [{ categoryId: 10, amount: 50 }];
 
       renderForm({ splits: noDescriptionSplits });
 
@@ -533,7 +525,7 @@ describe('SplitTransactionForm', () => {
       renderForm({ totalAmount: 50, splits: overAllocatedSplits });
 
       expect(screen.getByRole('alert')).toBeInTheDocument();
-      expect(screen.getByText((content) => content.includes('over.'))).toBeInTheDocument();
+      expect(screen.getByText(content => content.includes('over.'))).toBeInTheDocument();
     });
   });
 

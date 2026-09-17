@@ -45,8 +45,8 @@ public class AssetSpecification {
      *
      * <p><strong>Value filters are intentionally excluded here.</strong> Total value is {@code
      * quantity * currentPrice}, but {@code quantity} is AES-encrypted, so the product cannot be
-     * computed at the DB level. {@code valueMin}/{@code valueMax} are applied in-memory on decrypted
-     * values in {@link org.openfinance.service.AssetService#searchAssets}.
+     * computed at the DB level. {@code valueMin}/{@code valueMax} are applied in-memory on
+     * decrypted values in {@link org.openfinance.service.AssetService#searchAssets}.
      *
      * @param userId the user ID (required for security)
      * @param criteria the search criteria

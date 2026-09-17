@@ -39,7 +39,6 @@ import type { BudgetRequest, BudgetResponse } from '@/types/budget';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '@/constants/pagination';
 import { matchesQuery } from '@/utils/searchMatch';
 
-
 export default function BudgetsPage() {
   const { t } = useTranslation('budgets');
   useDocumentTitle(t('title'));
@@ -75,9 +74,7 @@ export default function BudgetsPage() {
 
   // Derive the period filter for the API call
   const periodFilter =
-    filters.period === undefined || filters.period === ''
-      ? undefined
-      : filters.period;
+    filters.period === undefined || filters.period === '' ? undefined : filters.period;
 
   const { data: summary, isLoading: summaryLoading, error } = useBudgetSummary(periodFilter);
   const { data: editingBudget, isLoading: editBudgetLoading } = useBudget(editingBudgetId);
@@ -96,7 +93,7 @@ export default function BudgetsPage() {
   const openParam = searchParams.get('open') ? parseInt(searchParams.get('open')!) : null;
   useEffect(() => {
     if (!openParam) return;
-    if (allBudgetProgress.some((b) => b.budgetId === openParam)) {
+    if (allBudgetProgress.some(b => b.budgetId === openParam)) {
       setDetailBudgetId(openParam);
       const next = new URLSearchParams(searchParams);
       next.delete('open');
@@ -108,7 +105,7 @@ export default function BudgetsPage() {
   const filteredBudgets = useMemo(() => {
     const query = (filters.keyword || '').trim();
     if (!query) return allBudgetProgress;
-    return allBudgetProgress.filter((b) =>
+    return allBudgetProgress.filter(b =>
       matchesQuery(b.categoryName, query, !!filters.keywordRegex)
     );
   }, [allBudgetProgress, filters.keyword, filters.keywordRegex]);
@@ -142,7 +139,7 @@ export default function BudgetsPage() {
     if (!allBudgetProgress) return [];
     return allBudgetProgress
       .filter(
-        (budget) =>
+        budget =>
           (budget.status === 'WARNING' || budget.status === 'EXCEEDED') &&
           !dismissedAlerts.has(budget.budgetId)
       )
@@ -202,7 +199,7 @@ export default function BudgetsPage() {
   };
 
   const handleDismissAlert = (budgetId: number) => {
-    setDismissedAlerts((prev) => {
+    setDismissedAlerts(prev => {
       const next = new Set(prev).add(budgetId);
       localStorage.setItem('dismissed_budget_alerts', JSON.stringify([...next]));
       return next;
@@ -210,7 +207,7 @@ export default function BudgetsPage() {
   };
 
   const deletingBudgetName = allBudgetProgress.find(
-    (b) => b.budgetId === deletingBudgetId
+    b => b.budgetId === deletingBudgetId
   )?.categoryName;
 
   if (error) {
@@ -260,7 +257,7 @@ export default function BudgetsPage() {
       {/* Alerts */}
       {budgetAlerts.length > 0 && (
         <div className="space-y-3 mb-6">
-          {budgetAlerts.map((budget) => (
+          {budgetAlerts.map(budget => (
             <AlertBanner
               key={budget.budgetId}
               variant={budget.status === 'EXCEEDED' ? 'error' : 'warning'}
@@ -271,8 +268,14 @@ export default function BudgetsPage() {
               }
               message={
                 budget.status === 'EXCEEDED'
-                  ? t('alerts.exceededMessage', { pct: budget.percentageSpent.toFixed(1), categoryName: budget.categoryName })
-                  : t('alerts.warningMessage', { pct: budget.percentageSpent.toFixed(1), categoryName: budget.categoryName })
+                  ? t('alerts.exceededMessage', {
+                      pct: budget.percentageSpent.toFixed(1),
+                      categoryName: budget.categoryName,
+                    })
+                  : t('alerts.warningMessage', {
+                      pct: budget.percentageSpent.toFixed(1),
+                      categoryName: budget.categoryName,
+                    })
               }
               onDismiss={() => handleDismissAlert(budget.budgetId)}
             />
@@ -313,17 +316,13 @@ export default function BudgetsPage() {
       {!summaryLoading && allBudgetProgress.length > 0 && filteredBudgets.length === 0 && (
         <EmptyState
           title={t('empty.noMatch')}
-          description={
-            hasActiveFilters
-              ? t('empty.noMatchDescription')
-              : t('empty.noBudgetsFound')
-          }
+          description={hasActiveFilters ? t('empty.noMatchDescription') : t('empty.noBudgetsFound')}
           action={
             hasActiveFilters
               ? {
-                label: t('empty.clearFilters'),
-                onClick: () => handleFiltersChange({}),
-              }
+                  label: t('empty.clearFilters'),
+                  onClick: () => handleFiltersChange({}),
+                }
               : undefined
           }
         />
@@ -333,7 +332,7 @@ export default function BudgetsPage() {
       {!summaryLoading && paginatedBudgets.length > 0 && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {paginatedBudgets.map((budget) => (
+            {paginatedBudgets.map(budget => (
               <BudgetCard
                 key={budget.budgetId}
                 budget={budget}
@@ -364,14 +363,16 @@ export default function BudgetsPage() {
       {/* Create/Edit Dialog */}
       <Dialog
         open={isFormOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           if (!open && (createBudget.isPending || updateBudget.isPending)) return;
           setIsFormOpen(open);
         }}
       >
         <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingBudgetId ? t('dialogs.editTitle') : t('dialogs.createTitle')}</DialogTitle>
+            <DialogTitle>
+              {editingBudgetId ? t('dialogs.editTitle') : t('dialogs.createTitle')}
+            </DialogTitle>
           </DialogHeader>
           {editingBudgetId && editBudgetLoading ? (
             <LoadingSkeleton className="h-40" />
@@ -391,7 +392,7 @@ export default function BudgetsPage() {
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
         open={!!deletingBudgetId}
-        onOpenChange={(open) => !open && setDeletingBudgetId(null)}
+        onOpenChange={open => !open && setDeletingBudgetId(null)}
         onConfirm={handleConfirmDelete}
         title={t('dialogs.delete.title')}
         description={t('dialogs.delete.description', { name: deletingBudgetName })}
@@ -405,10 +406,7 @@ export default function BudgetsPage() {
 
       {/* Budget Detail Modal */}
       {detailBudgetId !== null && (
-        <BudgetDetailModal
-          budgetId={detailBudgetId}
-          onClose={() => setDetailBudgetId(null)}
-        />
+        <BudgetDetailModal budgetId={detailBudgetId} onClose={() => setDetailBudgetId(null)} />
       )}
     </div>
   );

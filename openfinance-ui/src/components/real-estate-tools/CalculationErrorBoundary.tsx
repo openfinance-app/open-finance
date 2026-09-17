@@ -1,6 +1,6 @@
 /**
  * CalculationErrorBoundary Component
- * 
+ *
  * Error boundary for catching calculation errors gracefully
  * Requirements: REQ-6.x
  */

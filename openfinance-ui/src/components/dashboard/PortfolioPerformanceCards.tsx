@@ -1,7 +1,7 @@
 /**
  * PortfolioPerformanceCards Component
  * Task 4.3.8: Create PortfolioPerformanceCards component with sparkline charts
- * 
+ *
  * Performance cards with mini sparkline charts
  * Reference: image.png - "Ma performance" cards from Finary dashboard
  */
@@ -22,9 +22,14 @@ interface PortfolioPerformanceCardsProps {
 /**
  * Individual performance card with sparkline
  */
-function PerformanceCard({ performance, t }: { performance: IPortfolioPerformance, t: any }) {
-  const { label, currentValue, changeAmount, changePercentage, currency, sparklineData } = performance;
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(currency);
+function PerformanceCard({ performance, t }: { performance: IPortfolioPerformance; t: any }) {
+  const { label, currentValue, changeAmount, changePercentage, currency, sparklineData } =
+    performance;
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(currency);
 
   // Determine trend direction
   const isPositive = changeAmount >= 0;
@@ -67,10 +72,10 @@ function PerformanceCard({ performance, t }: { performance: IPortfolioPerformanc
 
       {/* Change Indicator */}
       <div className="flex items-center gap-2 mb-3">
-        <TrendIcon 
+        <TrendIcon
           className={`h-4 w-4 ${
             isPositive ? 'text-green-500' : isNeutral ? 'text-text-muted' : 'text-red-500'
-          }`} 
+          }`}
         />
         <span
           className={`text-sm font-semibold ${
@@ -93,7 +98,8 @@ function PerformanceCard({ performance, t }: { performance: IPortfolioPerformanc
             isPositive ? 'text-green-500' : isNeutral ? 'text-text-muted' : 'text-red-500'
           }`}
         >
-          ({isPositive && '+'}{changePercentage.toFixed(2)}%)
+          ({isPositive && '+'}
+          {changePercentage.toFixed(2)}%)
         </span>
       </div>
 
@@ -120,13 +126,18 @@ function PerformanceCard({ performance, t }: { performance: IPortfolioPerformanc
   );
 }
 
-export default function PortfolioPerformanceCards({ performances, periodLabel }: PortfolioPerformanceCardsProps) {
+export default function PortfolioPerformanceCards({
+  performances,
+  periodLabel,
+}: PortfolioPerformanceCardsProps) {
   const { t } = useTranslation('dashboard');
 
   if (performances.length === 0) {
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">{t('portfolioPerformance.title')}</h3>
+        <h3 className="text-lg font-semibold text-text-primary mb-4">
+          {t('portfolioPerformance.title')}
+        </h3>
         <div className="flex items-center justify-center h-32 text-text-secondary">
           <div className="text-center">
             <p>{t('portfolioPerformance.empty')}</p>
@@ -141,10 +152,12 @@ export default function PortfolioPerformanceCards({ performances, periodLabel }:
     <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col space-y-4 overflow-y-auto scrollbar-thin">
       {/* Header */}
       <div>
-        <h3 className="text-lg font-semibold text-text-primary mb-1">{t('portfolioPerformance.title')}</h3>
+        <h3 className="text-lg font-semibold text-text-primary mb-1">
+          {t('portfolioPerformance.title')}
+        </h3>
         <p className="text-sm text-text-secondary">
-          {periodLabel 
-            ? t('portfolioPerformance.metricsForPeriod', { period: periodLabel }) 
+          {periodLabel
+            ? t('portfolioPerformance.metricsForPeriod', { period: periodLabel })
             : t('portfolioPerformance.subtitle')}
         </p>
       </div>

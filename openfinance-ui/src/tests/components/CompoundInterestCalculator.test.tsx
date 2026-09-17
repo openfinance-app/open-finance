@@ -9,7 +9,7 @@ import { CompoundInterestCalculator } from '@/components/compound-interest/Compo
 // ---------------------------------------------------------------------------
 
 const mockUseAuthContext = vi.fn();
-vi.mock('@/context/AuthContext', async (importOriginal) => {
+vi.mock('@/context/AuthContext', async importOriginal => {
   const actual = await importOriginal<typeof import('@/context/AuthContext')>();
   return {
     ...actual,

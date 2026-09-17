@@ -3,13 +3,31 @@ import { screen, fireEvent } from '@testing-library/react';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 
 vi.mock('@/hooks/useAccounts', () => ({
-  useAccounts: () => ({ data: [{ id: 1, name: 'Checking' }, { id: 2, name: 'Savings' }], isLoading: false }),
+  useAccounts: () => ({
+    data: [
+      { id: 1, name: 'Checking' },
+      { id: 2, name: 'Savings' },
+    ],
+    isLoading: false,
+  }),
 }));
 vi.mock('@/hooks/useCategories', () => ({
-  useCategories: () => ({ data: [{ id: 10, name: 'Food' }, { id: 11, name: 'Transport' }], isLoading: false }),
+  useCategories: () => ({
+    data: [
+      { id: 10, name: 'Food' },
+      { id: 11, name: 'Transport' },
+    ],
+    isLoading: false,
+  }),
 }));
 vi.mock('@/hooks/useTransactionTags', () => ({
-  useTransactionTags: () => ({ data: [{ tag: 'groceries', count: 5 }, { tag: 'fuel', count: 3 }], isLoading: false }),
+  useTransactionTags: () => ({
+    data: [
+      { tag: 'groceries', count: 5 },
+      { tag: 'fuel', count: 3 },
+    ],
+    isLoading: false,
+  }),
 }));
 
 import { AdvancedFilterPanel } from './AdvancedFilterPanel';
@@ -55,7 +73,9 @@ describe('AdvancedFilterPanel', () => {
 
   it('calls onFiltersChange when min amount changes', () => {
     const onFiltersChange = vi.fn();
-    renderWithProviders(<AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />);
+    renderWithProviders(
+      <AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     fireEvent.change(screen.getByLabelText(/minimum/i), { target: { value: '100' } });
     expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ minAmount: 100 }));
@@ -111,7 +131,9 @@ describe('AdvancedFilterPanel', () => {
 
   it('shows save search button when onSaveSearch provided and filters active', () => {
     const filtersWithValues = { query: 'test', minAmount: 100 };
-    renderWithProviders(<AdvancedFilterPanel {...defaultProps} filters={filtersWithValues} onSaveSearch={vi.fn()} />);
+    renderWithProviders(
+      <AdvancedFilterPanel {...defaultProps} filters={filtersWithValues} onSaveSearch={vi.fn()} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     expect(screen.getByText(/Save Search/i)).toBeInTheDocument();
   });
@@ -125,7 +147,9 @@ describe('AdvancedFilterPanel', () => {
 
   it('calls onFiltersChange when max amount changes', () => {
     const onFiltersChange = vi.fn();
-    renderWithProviders(<AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />);
+    renderWithProviders(
+      <AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     fireEvent.change(screen.getByLabelText(/maximum/i), { target: { value: '500' } });
     expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ maxAmount: 500 }));
@@ -134,7 +158,11 @@ describe('AdvancedFilterPanel', () => {
   it('clears min amount when input emptied', () => {
     const onFiltersChange = vi.fn();
     renderWithProviders(
-      <AdvancedFilterPanel {...defaultProps} filters={{ minAmount: 100 }} onFiltersChange={onFiltersChange} />
+      <AdvancedFilterPanel
+        {...defaultProps}
+        filters={{ minAmount: 100 }}
+        onFiltersChange={onFiltersChange}
+      />
     );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     fireEvent.change(screen.getByLabelText(/minimum/i), { target: { value: '' } });
@@ -143,47 +171,67 @@ describe('AdvancedFilterPanel', () => {
 
   it('toggles entity type badge on click', () => {
     const onFiltersChange = vi.fn();
-    renderWithProviders(<AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />);
+    renderWithProviders(
+      <AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     // Entity types are translated - ASSET becomes 'Assets'
     fireEvent.click(screen.getByText('Assets'));
-    expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ entityTypes: ['ASSET'] }));
+    expect(onFiltersChange).toHaveBeenCalledWith(
+      expect.objectContaining({ entityTypes: ['ASSET'] })
+    );
   });
 
   it('removes entity type when already selected', () => {
     const onFiltersChange = vi.fn();
     renderWithProviders(
-      <AdvancedFilterPanel {...defaultProps} filters={{ entityTypes: ['TRANSACTION'] }} onFiltersChange={onFiltersChange} />
+      <AdvancedFilterPanel
+        {...defaultProps}
+        filters={{ entityTypes: ['TRANSACTION'] }}
+        onFiltersChange={onFiltersChange}
+      />
     );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     // Entity types are translated - TRANSACTION becomes 'Transactions'
     const txBadges = screen.getAllByText('Transactions');
     fireEvent.click(txBadges[0]);
-    expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ entityTypes: undefined }));
+    expect(onFiltersChange).toHaveBeenCalledWith(
+      expect.objectContaining({ entityTypes: undefined })
+    );
   });
 
   it('applies date preset on click', () => {
     const onFiltersChange = vi.fn();
-    renderWithProviders(<AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />);
+    renderWithProviders(
+      <AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     fireEvent.click(screen.getByText(/today/i));
-    expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({
-      dateFrom: expect.any(String),
-      dateTo: expect.any(String),
-    }));
+    expect(onFiltersChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dateFrom: expect.any(String),
+        dateTo: expect.any(String),
+      })
+    );
   });
 
   it('updates dateFrom on date input change', () => {
     const onFiltersChange = vi.fn();
-    renderWithProviders(<AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />);
+    renderWithProviders(
+      <AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     fireEvent.change(screen.getByLabelText(/from/i), { target: { value: '2024-01-01' } });
-    expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ dateFrom: '2024-01-01' }));
+    expect(onFiltersChange).toHaveBeenCalledWith(
+      expect.objectContaining({ dateFrom: '2024-01-01' })
+    );
   });
 
   it('updates dateTo on date input change', () => {
     const onFiltersChange = vi.fn();
-    renderWithProviders(<AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />);
+    renderWithProviders(
+      <AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     fireEvent.change(screen.getByLabelText(/^to$/i), { target: { value: '2024-12-31' } });
     expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ dateTo: '2024-12-31' }));
@@ -198,7 +246,9 @@ describe('AdvancedFilterPanel', () => {
 
   it('toggles account filter on click', () => {
     const onFiltersChange = vi.fn();
-    renderWithProviders(<AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />);
+    renderWithProviders(
+      <AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     fireEvent.click(screen.getByText('Checking'));
     expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ accountIds: [1] }));
@@ -213,7 +263,9 @@ describe('AdvancedFilterPanel', () => {
 
   it('toggles category filter on click', () => {
     const onFiltersChange = vi.fn();
-    renderWithProviders(<AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />);
+    renderWithProviders(
+      <AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     fireEvent.click(screen.getByText('Food'));
     expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ categoryIds: [10] }));
@@ -228,7 +280,9 @@ describe('AdvancedFilterPanel', () => {
 
   it('toggles tag filter on click', () => {
     const onFiltersChange = vi.fn();
-    renderWithProviders(<AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />);
+    renderWithProviders(
+      <AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     fireEvent.click(screen.getByText(/groceries/));
     expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ tags: ['groceries'] }));
@@ -236,16 +290,22 @@ describe('AdvancedFilterPanel', () => {
 
   it('changes transaction type select', () => {
     const onFiltersChange = vi.fn();
-    renderWithProviders(<AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />);
+    renderWithProviders(
+      <AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     const typeSelect = document.querySelector('#transactionType') as HTMLSelectElement;
     fireEvent.change(typeSelect, { target: { value: 'INCOME' } });
-    expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ transactionType: 'INCOME' }));
+    expect(onFiltersChange).toHaveBeenCalledWith(
+      expect.objectContaining({ transactionType: 'INCOME' })
+    );
   });
 
   it('changes reconciled status select', () => {
     const onFiltersChange = vi.fn();
-    renderWithProviders(<AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />);
+    renderWithProviders(
+      <AdvancedFilterPanel {...defaultProps} onFiltersChange={onFiltersChange} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     const reconciledSelect = document.querySelector('#isReconciled') as HTMLSelectElement;
     fireEvent.change(reconciledSelect, { target: { value: 'true' } });
@@ -255,19 +315,29 @@ describe('AdvancedFilterPanel', () => {
   it('clears reconciled status when set to empty', () => {
     const onFiltersChange = vi.fn();
     renderWithProviders(
-      <AdvancedFilterPanel {...defaultProps} filters={{ isReconciled: true }} onFiltersChange={onFiltersChange} />
+      <AdvancedFilterPanel
+        {...defaultProps}
+        filters={{ isReconciled: true }}
+        onFiltersChange={onFiltersChange}
+      />
     );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     const reconciledSelect = document.querySelector('#isReconciled') as HTMLSelectElement;
     fireEvent.change(reconciledSelect, { target: { value: '' } });
-    expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ isReconciled: undefined }));
+    expect(onFiltersChange).toHaveBeenCalledWith(
+      expect.objectContaining({ isReconciled: undefined })
+    );
   });
 
   it('calls onSaveSearch when save search button clicked', () => {
     const onSaveSearch = vi.fn();
     const filtersWithValues = { query: 'test', minAmount: 100 };
     renderWithProviders(
-      <AdvancedFilterPanel {...defaultProps} filters={filtersWithValues} onSaveSearch={onSaveSearch} />
+      <AdvancedFilterPanel
+        {...defaultProps}
+        filters={filtersWithValues}
+        onSaveSearch={onSaveSearch}
+      />
     );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     fireEvent.click(screen.getByText(/Save Search/i));

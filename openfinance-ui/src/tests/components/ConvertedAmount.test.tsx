@@ -10,12 +10,14 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 // Mock PrivateAmount to just render children
 vi.mock('@/components/ui/PrivateAmount', () => ({
   PrivateAmount: ({ children, className, inline }: any) => (
-    <span className={className} data-testid="private-amount" data-inline={inline}>{children}</span>
-  )
+    <span className={className} data-testid="private-amount" data-inline={inline}>
+      {children}
+    </span>
+  ),
 }));
 
 // Mock formatCurrency and formatExchangeRate
-vi.mock('@/utils/currency', async (importOriginal) => {
+vi.mock('@/utils/currency', async importOriginal => {
   const actual = await importOriginal<typeof import('@/utils/currency')>();
   return {
     ...actual,
@@ -26,7 +28,7 @@ vi.mock('@/utils/currency', async (importOriginal) => {
     formatExchangeRate: vi.fn((rate: number) => {
       if (!isFinite(rate) || rate === 0) return '0';
       return parseFloat(rate.toPrecision(6)).toString();
-    })
+    }),
   };
 });
 
@@ -36,7 +38,6 @@ vi.mock('@/context/CurrencyDisplayContext', () => ({
   useCurrencyDisplay: () => mockUseCurrencyDisplay(),
   CurrencyDisplayProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
-
 
 // Mock Tooltip
 vi.mock('@/components/ui/Tooltip', () => ({
@@ -49,7 +50,7 @@ vi.mock('@/components/ui/Tooltip', () => ({
     <div role="tooltip" id={id} className={className}>
       {children}
     </div>
-  )
+  ),
 }));
 
 describe('ConvertedAmount', () => {
@@ -100,7 +101,6 @@ describe('ConvertedAmount', () => {
             baseCurrency="USD"
             isConverted={true}
           />
-
         );
 
         expect(screen.getByText('USD 1.62')).toBeInTheDocument();
@@ -121,7 +121,6 @@ describe('ConvertedAmount', () => {
             secondaryAmount={1.45}
             secondaryCurrency="EUR"
           />
-
         );
 
         expect(screen.getByText('USD 1000')).toBeInTheDocument();
@@ -136,14 +135,7 @@ describe('ConvertedAmount', () => {
       });
 
       it('base | no conversion | no secondary → native (= base) | (none)', () => {
-        renderWithProviders(
-          <ConvertedAmount
-            amount={1000}
-            currency="USD"
-            isConverted={false}
-          />
-
-        );
+        renderWithProviders(<ConvertedAmount amount={1000} currency="USD" isConverted={false} />);
 
         expect(screen.getByText('USD 1000')).toBeInTheDocument();
         expect(screen.getByTestId('private-amount')).not.toHaveAttribute('tabIndex');
@@ -167,7 +159,6 @@ describe('ConvertedAmount', () => {
             secondaryAmount={1.45}
             secondaryCurrency="EUR"
           />
-
         );
 
         expect(screen.getByText('XOF 1000')).toBeInTheDocument();
@@ -190,7 +181,6 @@ describe('ConvertedAmount', () => {
             baseCurrency="USD"
             isConverted={true}
           />
-
         );
 
         expect(screen.getByText('XOF 1000')).toBeInTheDocument();
@@ -213,7 +203,6 @@ describe('ConvertedAmount', () => {
             secondaryAmount={1.45}
             secondaryCurrency="EUR"
           />
-
         );
 
         expect(screen.getByText('USD 1000')).toBeInTheDocument();
@@ -228,14 +217,7 @@ describe('ConvertedAmount', () => {
       });
 
       it('native | no conversion | no secondary → native (= base) | (none)', () => {
-        renderWithProviders(
-          <ConvertedAmount
-            amount={1000}
-            currency="USD"
-            isConverted={false}
-          />
-
-        );
+        renderWithProviders(<ConvertedAmount amount={1000} currency="USD" isConverted={false} />);
 
         expect(screen.getByText('USD 1000')).toBeInTheDocument();
         expect(screen.getByTestId('private-amount')).not.toHaveAttribute('tabIndex');
@@ -259,7 +241,6 @@ describe('ConvertedAmount', () => {
             secondaryAmount={1.45}
             secondaryCurrency="EUR"
           />
-
         );
 
         expect(screen.getByText('USD 1.62')).toBeInTheDocument();
@@ -285,7 +266,6 @@ describe('ConvertedAmount', () => {
             baseCurrency="USD"
             isConverted={true}
           />
-
         );
 
         expect(screen.getByText('USD 1.62')).toBeInTheDocument();
@@ -305,7 +285,6 @@ describe('ConvertedAmount', () => {
             secondaryAmount={1.45}
             secondaryCurrency="EUR"
           />
-
         );
 
         expect(screen.getByText('USD 1000')).toBeInTheDocument();
@@ -320,14 +299,7 @@ describe('ConvertedAmount', () => {
       });
 
       it('both | no conversion | no secondary → native (= base) once | (none)', () => {
-        renderWithProviders(
-          <ConvertedAmount
-            amount={1000}
-            currency="USD"
-            isConverted={false}
-          />
-
-        );
+        renderWithProviders(<ConvertedAmount amount={1000} currency="USD" isConverted={false} />);
 
         expect(screen.getByText('USD 1000')).toBeInTheDocument();
         expect(screen.queryByText('·')).not.toBeInTheDocument();
@@ -352,7 +324,6 @@ describe('ConvertedAmount', () => {
           secondaryAmount={1.45}
           secondaryCurrency="EUR"
         />
-
       );
 
       expect(screen.getByText('XOF 1000')).toBeInTheDocument();
@@ -376,7 +347,6 @@ describe('ConvertedAmount', () => {
           baseCurrency="USD"
           isConverted={true}
         />
-
       );
 
       expect(screen.queryByRole('img')).not.toBeInTheDocument();
@@ -394,7 +364,6 @@ describe('ConvertedAmount', () => {
           secondaryAmount={1.45}
           secondaryCurrency="EUR"
         />
-
       );
 
       expect(screen.getByRole('tooltip')).toBeInTheDocument();
@@ -402,14 +371,7 @@ describe('ConvertedAmount', () => {
 
     it('should have tabIndex={0} only when tooltip is present', () => {
       mockUseCurrencyDisplay.mockReturnValue({ displayMode: 'base', secondaryCurrency: null });
-      renderWithProviders(
-        <ConvertedAmount
-          amount={1000}
-          currency="USD"
-          isConverted={false}
-        />
-
-      );
+      renderWithProviders(<ConvertedAmount amount={1000} currency="USD" isConverted={false} />);
 
       expect(screen.getByTestId('private-amount')).not.toHaveAttribute('tabIndex');
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
@@ -428,7 +390,6 @@ describe('ConvertedAmount', () => {
           baseCurrency={undefined}
           isConverted={undefined}
         />
-
       );
 
       expect(screen.getByText('XOF 1000')).toBeInTheDocument();
@@ -437,14 +398,7 @@ describe('ConvertedAmount', () => {
     it('should apply compact formatting', () => {
       mockUseCurrencyDisplay.mockReturnValue({ displayMode: 'base' });
 
-      renderWithProviders(
-        <ConvertedAmount
-          amount={1000}
-          currency="XOF"
-          compact={true}
-        />
-
-      );
+      renderWithProviders(<ConvertedAmount amount={1000} currency="XOF" compact={true} />);
 
       expect(screen.getByText('XOF 1000K')).toBeInTheDocument();
     });
@@ -453,12 +407,7 @@ describe('ConvertedAmount', () => {
       mockUseCurrencyDisplay.mockReturnValue({ displayMode: 'base' });
 
       renderWithProviders(
-        <ConvertedAmount
-          amount={1000}
-          currency="XOF"
-          className="custom-class"
-        />
-
+        <ConvertedAmount amount={1000} currency="XOF" className="custom-class" />
       );
 
       expect(screen.getByTestId('converted-amount')).toHaveClass('custom-class');
@@ -467,14 +416,7 @@ describe('ConvertedAmount', () => {
     it('should handle inline prop', () => {
       mockUseCurrencyDisplay.mockReturnValue({ displayMode: 'base' });
 
-      renderWithProviders(
-        <ConvertedAmount
-          amount={1000}
-          currency="XOF"
-          inline={true}
-        />
-
-      );
+      renderWithProviders(<ConvertedAmount amount={1000} currency="XOF" inline={true} />);
 
       expect(screen.getByTestId('private-amount')).toHaveAttribute('data-inline', 'true');
     });
@@ -493,7 +435,6 @@ describe('ConvertedAmount', () => {
           exchangeRate={0.00162}
           isConverted={true}
         />
-
       );
 
       const tooltip = screen.getByRole('tooltip');
@@ -518,7 +459,6 @@ describe('ConvertedAmount', () => {
           secondaryCurrency="EUR"
           secondaryExchangeRate={0.00145}
         />
-
       );
 
       const tooltip = screen.getByRole('tooltip');
@@ -541,7 +481,6 @@ describe('ConvertedAmount', () => {
           exchangeRate={0.00162}
           isConverted={true}
         />
-
       );
 
       const tooltip = screen.getByRole('tooltip');
@@ -562,7 +501,6 @@ describe('ConvertedAmount', () => {
           // no exchangeRate prop
           isConverted={true}
         />
-
       );
 
       const tooltip = screen.getByRole('tooltip');
@@ -585,7 +523,6 @@ describe('ConvertedAmount', () => {
           secondaryCurrency="EUR"
           secondaryExchangeRate={0.00145}
         />
-
       );
 
       const tooltip = screen.getByRole('tooltip');
@@ -607,7 +544,6 @@ describe('ConvertedAmount', () => {
           secondaryCurrency="EUR"
           secondaryExchangeRate={0.00145}
         />
-
       );
 
       const tooltip = screen.getByRole('tooltip');
@@ -627,7 +563,6 @@ describe('ConvertedAmount', () => {
           // no exchangeRate prop
           isConverted={true}
         />
-
       );
 
       const tooltip = screen.getByRole('tooltip');

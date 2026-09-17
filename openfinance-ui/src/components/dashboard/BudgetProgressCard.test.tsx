@@ -15,7 +15,7 @@ vi.mock('@/hooks/useBudgets', () => ({
   useBudgetSummary: vi.fn(),
 }));
 
-vi.mock('react-router', async (importOriginal) => {
+vi.mock('react-router', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router')>();
   return { ...actual, useNavigate: () => mockNavigate };
 });
@@ -27,7 +27,7 @@ vi.mock('@/hooks/useFormatCurrency', () => ({
 }));
 
 // Mock useAuthContext directly instead of the Provider
-vi.mock('@/context/AuthContext', async (importOriginal) => {
+vi.mock('@/context/AuthContext', async importOriginal => {
   const actual = await importOriginal<any>();
   return {
     ...actual,
@@ -64,9 +64,7 @@ const renderWithProviders = (ui: React.ReactElement) => {
         <NumberFormatProvider>
           <CurrencyDisplayProvider>
             <I18nextProvider i18n={i18n}>
-              <MemoryRouter>
-                {ui}
-              </MemoryRouter>
+              <MemoryRouter>{ui}</MemoryRouter>
             </I18nextProvider>
           </CurrencyDisplayProvider>
         </NumberFormatProvider>
@@ -80,7 +78,7 @@ describe('BudgetProgressCard Smoke Test', () => {
     vi.clearAllMocks();
     Element.prototype.scrollIntoView = vi.fn();
     i18n.changeLanguage('en');
-    
+
     // Default auth mock
     (AuthContextModule.useAuthContext as any).mockReturnValue(mockAuthValue);
   });

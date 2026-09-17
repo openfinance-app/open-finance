@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -70,14 +70,11 @@ export default defineConfig({
             return 'vendor-forms';
           }
           // vendor-i18n: internationalisation
-          if (
-            id.includes('node_modules/i18next') ||
-            id.includes('node_modules/react-i18next')
-          ) {
+          if (id.includes('node_modules/i18next') || id.includes('node_modules/react-i18next')) {
             return 'vendor-i18n';
           }
         },
       },
     },
   },
-})
+});

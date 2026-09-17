@@ -54,13 +54,13 @@ export function CountrySelector({
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const visibleCountries = normalizedQuery
     ? ALL_COUNTRIES.filter(
-        (c) =>
+        c =>
           c.name.toLowerCase().includes(normalizedQuery) ||
           c.code.toLowerCase().includes(normalizedQuery)
       )
     : ALL_COUNTRIES;
 
-  const selectedCountry = ALL_COUNTRIES.find((c) => c.code === value);
+  const selectedCountry = ALL_COUNTRIES.find(c => c.code === value);
 
   const handleSelect = (code: string) => {
     onValueChange(code);
@@ -112,7 +112,7 @@ export function CountrySelector({
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
             'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
           )}
-          onOpenAutoFocus={(e) => e.preventDefault()}
+          onOpenAutoFocus={e => e.preventDefault()}
         >
           {/* Search */}
           <div className="shrink-0 border-b border-border p-2">
@@ -122,8 +122,8 @@ export function CountrySelector({
                 ref={searchRef}
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => {
                   if (e.key === 'Escape') setOpen(false);
                 }}
                 placeholder={resolvedSearchPlaceholder}
@@ -136,13 +136,13 @@ export function CountrySelector({
           {/* Options list */}
           <div
             className="flex-1 overflow-y-auto p-1 shrink min-h-0 max-h-72"
-            onWheel={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
+            onWheel={e => e.stopPropagation()}
+            onTouchMove={e => e.stopPropagation()}
           >
             {visibleCountries.length === 0 ? (
               <div className="p-3 text-center text-sm text-text-muted">{resolvedNoMatch}</div>
             ) : (
-              visibleCountries.map((country) => (
+              visibleCountries.map(country => (
                 <button
                   key={country.code}
                   type="button"

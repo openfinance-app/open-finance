@@ -1,6 +1,6 @@
 /**
  * EvolutionChart Component
- * 
+ *
  * Line chart showing net worth evolution over time
  * Requirements: REQ-1.6.5
  */
@@ -42,8 +42,10 @@ export interface EvolutionChartProps {
 export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
   const { baseCurrency } = useAuthContext();
   const locale = (i18n.language ?? 'en').startsWith('fr') ? 'fr-FR' : 'en-US';
-  const years = results.years.map(y => i18n.t('realEstate:evolutionChart.yearLabel', { year: y.year }));
-  
+  const years = results.years.map(y =>
+    i18n.t('realEstate:evolutionChart.yearLabel', { year: y.year })
+  );
+
   const buyNetWorth = results.years.map(y => y.buy.propertyValue - y.buy.remainingCapital);
   const rentNetWorth = results.years.map(y => y.rent.savings);
 

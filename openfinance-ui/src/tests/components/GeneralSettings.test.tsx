@@ -18,7 +18,7 @@ import { GeneralSettings } from '@/components/settings/GeneralSettings';
 // ---------------------------------------------------------------------------
 
 const mockUseAuthContext = vi.fn();
-vi.mock('@/context/AuthContext', async (importOriginal) => {
+vi.mock('@/context/AuthContext', async importOriginal => {
   const actual = await importOriginal<typeof import('@/context/AuthContext')>();
   return {
     ...actual,
@@ -37,7 +37,7 @@ vi.mock('@/hooks/useUserSettings', () => ({
 }));
 
 const mockUseCurrencyDisplay = vi.fn();
-vi.mock('@/context/CurrencyDisplayContext', async (importOriginal) => {
+vi.mock('@/context/CurrencyDisplayContext', async importOriginal => {
   const actual = await importOriginal<typeof import('@/context/CurrencyDisplayContext')>();
   return {
     ...actual,
@@ -52,7 +52,7 @@ vi.mock('@/components/ui/CurrencySelector', () => ({
       aria-label={placeholder ?? 'Select base currency'}
       value={value}
       className={className}
-      onChange={(e) => onValueChange(e.target.value)}
+      onChange={e => onValueChange(e.target.value)}
       data-testid="currency-selector"
     >
       <option value="USD">USD</option>
@@ -81,13 +81,21 @@ vi.mock('@/components/ui/Select', () => ({
         {value && value !== '__none__' ? value : 'None'}
       </button>
       {/* Simulate items as buttons for testing */}
-      <button type="button" data-option="__none__" onClick={() => onValueChange('__none__')}>None</button>
-      <button type="button" data-option="EUR" onClick={() => onValueChange('EUR')}>EUR</button>
-      <button type="button" data-option="GBP" onClick={() => onValueChange('GBP')}>GBP</button>
+      <button type="button" data-option="__none__" onClick={() => onValueChange('__none__')}>
+        None
+      </button>
+      <button type="button" data-option="EUR" onClick={() => onValueChange('EUR')}>
+        EUR
+      </button>
+      <button type="button" data-option="GBP" onClick={() => onValueChange('GBP')}>
+        GBP
+      </button>
     </div>
   ),
   SelectTrigger: ({ children, className, 'aria-label': ariaLabel }: any) => (
-    <div className={className} aria-label={ariaLabel}>{children}</div>
+    <div className={className} aria-label={ariaLabel}>
+      {children}
+    </div>
   ),
   SelectValue: ({ children, placeholder }: any) => <span>{children || placeholder}</span>,
   SelectContent: ({ children }: any) => <div>{children}</div>,
@@ -334,10 +342,7 @@ describe('GeneralSettings', () => {
       const eurOption = screen.getByRole('button', { name: 'EUR' });
       await user.click(eurOption);
 
-      expect(mockMutate).toHaveBeenCalledWith(
-        { secondaryCurrency: 'EUR' },
-        expect.any(Object)
-      );
+      expect(mockMutate).toHaveBeenCalledWith({ secondaryCurrency: 'EUR' }, expect.any(Object));
     });
 
     it('should call updateSettings.mutate with empty string when "None" is selected', async () => {
@@ -356,10 +361,7 @@ describe('GeneralSettings', () => {
       const noneOption = screen.getAllByRole('button', { name: 'None' })[0];
       await user.click(noneOption);
 
-      expect(mockMutate).toHaveBeenCalledWith(
-        { secondaryCurrency: '' },
-        expect.any(Object)
-      );
+      expect(mockMutate).toHaveBeenCalledWith({ secondaryCurrency: '' }, expect.any(Object));
     });
 
     it('should show a hint when a secondary currency is active', () => {
@@ -521,7 +523,10 @@ describe('GeneralSettings', () => {
       await user.click(screen.getByRole('button', { name: /save changes/i }));
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith('Failed to update base currency:', expect.any(Error));
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Failed to update base currency:',
+          expect.any(Error)
+        );
       });
       consoleSpy.mockRestore();
     });

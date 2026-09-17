@@ -2,7 +2,7 @@
  * SearchResultsPage Component
  * Task 12.4.7: Create SearchResultsPage component
  * Task 12.4.8: Add saved searches UI
- * 
+ *
  * Display search results with advanced filters and result grouping
  */
 import { useState, useEffect } from 'react';
@@ -78,7 +78,7 @@ export default function SearchResultsPage() {
   useEffect(() => {
     const q = searchParams.get('q') || '';
     setQuery(q);
-    setFilters((prev) => ({ ...prev, query: q }));
+    setFilters(prev => ({ ...prev, query: q }));
   }, [searchParams]);
 
   // Set initial results from simple search
@@ -110,7 +110,7 @@ export default function SearchResultsPage() {
     e.preventDefault();
     if (query.trim().length >= 2) {
       setSearchParams({ q: query.trim() });
-      setFilters((prev) => ({ ...prev, query: query.trim() }));
+      setFilters(prev => ({ ...prev, query: query.trim() }));
     }
   };
 
@@ -188,9 +188,9 @@ export default function SearchResultsPage() {
           description={
             searchResults
               ? t('errors:search.foundWithTime', {
-                count: searchResults.totalResults,
-                ms: searchResults.executionTimeMs,
-              })
+                  count: searchResults.totalResults,
+                  ms: searchResults.executionTimeMs,
+                })
               : t('errors:search.placeholder')
           }
         />
@@ -214,13 +214,13 @@ export default function SearchResultsPage() {
               type="text"
               placeholder={t('errors:search.placeholder')}
               value={query}
-              onChange={(e) => handleQueryChange(e.target.value)}
+              onChange={e => handleQueryChange(e.target.value)}
               className="pl-10 pr-10"
               autoFocus
             />
             <RegexToggle
               enabled={!!filters.regex}
-              onChange={(val) => setFilters((prev) => ({ ...prev, regex: val || undefined }))}
+              onChange={val => setFilters(prev => ({ ...prev, regex: val || undefined }))}
               className="absolute right-2 top-1/2 -translate-y-1/2"
             />
           </div>
@@ -288,7 +288,7 @@ export default function SearchResultsPage() {
 
             const isExpanded = expandedTypes.has(type);
             const Icon = getIcon(getResultTypeIcon(type as any));
-            const displayName = getResultTypeDisplayName(type as any, (key) => t(`errors:${key}`));
+            const displayName = getResultTypeDisplayName(type as any, key => t(`errors:${key}`));
             const count = searchResults.countsPerType[type] || results.length;
 
             return (
@@ -319,7 +319,7 @@ export default function SearchResultsPage() {
                 {/* Results List */}
                 {isExpanded && (
                   <div className="divide-y divide-border">
-                    {results.map((result) => (
+                    {results.map(result => (
                       <ResultCard
                         key={`${result.resultType}-${result.id}`}
                         result={result}
@@ -377,10 +377,7 @@ function ResultCard({ result, query, onClick, localizeSubtitle }: ResultCardProp
           backgroundColor: result.color ? `${result.color}20` : 'rgba(59, 130, 246, 0.1)',
         }}
       >
-        <Icon
-          className="h-6 w-6"
-          style={{ color: result.color || '#3b82f6' }}
-        />
+        <Icon className="h-6 w-6" style={{ color: result.color || '#3b82f6' }} />
       </div>
 
       {/* Content */}
@@ -415,12 +412,15 @@ function ResultCard({ result, query, onClick, localizeSubtitle }: ResultCardProp
         <div className="flex items-center gap-2 flex-wrap">
           {result.date && (
             <span className="text-xs text-text-tertiary">
-              {formatDistanceToNow(new Date(result.date), { addSuffix: true, locale: dateFnsLocale })}
+              {formatDistanceToNow(new Date(result.date), {
+                addSuffix: true,
+                locale: dateFnsLocale,
+              })}
             </span>
           )}
           {result.tags && result.tags.length > 0 && (
             <div className="flex gap-1 flex-wrap">
-              {result.tags.slice(0, 3).map((tag) => (
+              {result.tags.slice(0, 3).map(tag => (
                 <Badge key={tag} variant="default" className="text-xs">
                   {tag}
                 </Badge>

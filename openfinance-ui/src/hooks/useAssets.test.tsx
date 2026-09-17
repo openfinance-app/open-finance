@@ -71,10 +71,7 @@ describe('useAssets hooks', () => {
     it('should fetch assets with filters', async () => {
       mockedApiClient.get.mockResolvedValue({ data: [mockAsset] });
 
-      const { result } = renderHook(
-        () => useAssets({ type: 'STOCK', accountId: 1 }),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useAssets({ type: 'STOCK', accountId: 1 }), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 

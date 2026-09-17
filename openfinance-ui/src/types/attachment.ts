@@ -1,7 +1,7 @@
 /**
  * Attachment types
  * Task 12.1.10-12.1.13: Frontend attachment implementation
- * 
+ *
  * Type definitions for file attachments
  */
 
@@ -17,7 +17,7 @@ export const AttachmentEntityType = {
   RECURRING_TRANSACTION: 'RECURRING_TRANSACTION',
 } as const;
 
-export type AttachmentEntityType = typeof AttachmentEntityType[keyof typeof AttachmentEntityType];
+export type AttachmentEntityType = (typeof AttachmentEntityType)[keyof typeof AttachmentEntityType];
 
 /**
  * Attachment model (from backend)
@@ -136,7 +136,8 @@ export const getFileIcon = (attachment: Attachment): string => {
   if (attachment.image) return 'Image';
   if (attachment.pdf) return 'FileText';
   if (attachment.fileType.includes('word')) return 'FileText';
-  if (attachment.fileType.includes('excel') || attachment.fileType.includes('spreadsheet')) return 'Table';
+  if (attachment.fileType.includes('excel') || attachment.fileType.includes('spreadsheet'))
+    return 'Table';
   if (attachment.fileType.includes('csv')) return 'Table';
   return 'File';
 };

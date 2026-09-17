@@ -1,7 +1,7 @@
 /**
  * Insight types and interfaces
  * TASK-11.4.5: Display AI-Powered Insights in Dashboard
- * 
+ *
  * Matches backend DTOs from org.openfinance.dto.InsightDto
  */
 
@@ -32,7 +32,7 @@ export const InsightType = {
   RECURRING_BILLING: 'RECURRING_BILLING',
 } as const;
 
-export type InsightType = typeof InsightType[keyof typeof InsightType];
+export type InsightType = (typeof InsightType)[keyof typeof InsightType];
 
 export const InsightPriority = {
   HIGH: 'HIGH',
@@ -40,4 +40,4 @@ export const InsightPriority = {
   LOW: 'LOW',
 } as const;
 
-export type InsightPriority = typeof InsightPriority[keyof typeof InsightPriority];
+export type InsightPriority = (typeof InsightPriority)[keyof typeof InsightPriority];

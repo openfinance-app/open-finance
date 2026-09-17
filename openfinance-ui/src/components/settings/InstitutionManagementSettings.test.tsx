@@ -1,10 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, fireEvent } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent } from '@/test/test-utils';
+import {
+  renderWithProviders,
+  mockAuthentication,
+  clearAuthentication,
+  userEvent,
+} from '@/test/test-utils';
 
 const mockInstitutions = [
-  { id: 1, name: 'Chase Bank', bic: 'CHASUS33', country: 'US', logo: '', isSystem: false, accountCount: 2 },
-  { id: 2, name: 'BNP Paribas', bic: 'BNPAFRPP', country: 'FR', logo: '', isSystem: true, accountCount: 1 },
+  {
+    id: 1,
+    name: 'Chase Bank',
+    bic: 'CHASUS33',
+    country: 'US',
+    logo: '',
+    isSystem: false,
+    accountCount: 2,
+  },
+  {
+    id: 2,
+    name: 'BNP Paribas',
+    bic: 'BNPAFRPP',
+    country: 'FR',
+    logo: '',
+    isSystem: true,
+    accountCount: 1,
+  },
 ];
 
 let mockData: any[] = mockInstitutions;
@@ -25,12 +46,19 @@ vi.mock('@/hooks/useDocumentTitle', () => ({
 }));
 vi.mock('@/components/common/CountrySelector', () => ({
   CountrySelector: ({ value, onChange }: any) => (
-    <select data-testid="country-selector" value={value} onChange={(e: any) => onChange(e.target.value)}>
+    <select
+      data-testid="country-selector"
+      value={value}
+      onChange={(e: any) => onChange(e.target.value)}
+    >
       <option value="US">US</option>
       <option value="FR">FR</option>
     </select>
   ),
-  ALL_COUNTRIES: [{ code: 'US', name: 'United States' }, { code: 'FR', name: 'France' }],
+  ALL_COUNTRIES: [
+    { code: 'US', name: 'United States' },
+    { code: 'FR', name: 'France' },
+  ],
 }));
 vi.mock('@/components/ui/Dialog', () => ({
   Dialog: ({ children, open }: any) => (open ? <div role="dialog">{children}</div> : null),
@@ -138,9 +166,14 @@ describe('InstitutionManagementSettings', () => {
     const user = userEvent.setup();
     renderWithProviders(<InstitutionManagementSettings />);
     // Click edit button on Chase Bank (custom institution)
-    const pencilButtons = screen.getAllByRole('button').filter(
-      (btn) => btn.classList.contains('h-8') && btn.classList.contains('w-8') && !btn.classList.contains('text-error')
-    );
+    const pencilButtons = screen
+      .getAllByRole('button')
+      .filter(
+        btn =>
+          btn.classList.contains('h-8') &&
+          btn.classList.contains('w-8') &&
+          !btn.classList.contains('text-error')
+      );
     if (pencilButtons.length > 0) {
       await user.click(pencilButtons[0]);
       await waitFor(() => {
@@ -155,9 +188,9 @@ describe('InstitutionManagementSettings', () => {
     const user = userEvent.setup();
     renderWithProviders(<InstitutionManagementSettings />);
     // Find delete button (has text-error class)
-    const deleteButtons = screen.getAllByRole('button').filter(
-      (btn) => btn.classList.contains('text-error')
-    );
+    const deleteButtons = screen
+      .getAllByRole('button')
+      .filter(btn => btn.classList.contains('text-error'));
     if (deleteButtons.length > 0) {
       await user.click(deleteButtons[0]);
       await waitFor(() => {
@@ -170,9 +203,9 @@ describe('InstitutionManagementSettings', () => {
     const user = userEvent.setup();
     mockDeleteMutateAsync.mockResolvedValue({});
     renderWithProviders(<InstitutionManagementSettings />);
-    const deleteButtons = screen.getAllByRole('button').filter(
-      (btn) => btn.classList.contains('text-error')
-    );
+    const deleteButtons = screen
+      .getAllByRole('button')
+      .filter(btn => btn.classList.contains('text-error'));
     if (deleteButtons.length > 0) {
       await user.click(deleteButtons[0]);
       await waitFor(() => expect(screen.getByText(/are you sure/i)).toBeInTheDocument());
@@ -185,9 +218,9 @@ describe('InstitutionManagementSettings', () => {
   it('cancels delete dialog', async () => {
     const user = userEvent.setup();
     renderWithProviders(<InstitutionManagementSettings />);
-    const deleteButtons = screen.getAllByRole('button').filter(
-      (btn) => btn.classList.contains('text-error')
-    );
+    const deleteButtons = screen
+      .getAllByRole('button')
+      .filter(btn => btn.classList.contains('text-error'));
     if (deleteButtons.length > 0) {
       await user.click(deleteButtons[0]);
       await waitFor(() => expect(screen.getByText(/are you sure/i)).toBeInTheDocument());
@@ -207,7 +240,15 @@ describe('InstitutionManagementSettings', () => {
 
   it('shows institution with logo', () => {
     mockData = [
-      { id: 1, name: 'Logo Bank', bic: 'LOGOTEST', country: 'US', logo: 'data:image/png;base64,abc', isSystem: false, accountCount: 0 },
+      {
+        id: 1,
+        name: 'Logo Bank',
+        bic: 'LOGOTEST',
+        country: 'US',
+        logo: 'data:image/png;base64,abc',
+        isSystem: false,
+        accountCount: 0,
+      },
     ];
     renderWithProviders(<InstitutionManagementSettings />);
     const img = document.querySelector('img[src="data:image/png;base64,abc"]');
@@ -239,7 +280,7 @@ describe('InstitutionManagementSettings', () => {
     // Type invalid BIC (5 chars, not 8 or 11)
     await user.type(bicInput!, 'ABCDE');
     await user.tab(); // blur to trigger validation
-    
+
     await waitFor(() => {
       expect(screen.getByText(/8 or 11 characters/i)).toBeInTheDocument();
     });
@@ -254,7 +295,7 @@ describe('InstitutionManagementSettings', () => {
     const bicInput = document.querySelector('input[maxlength="11"]') as HTMLInputElement;
     await user.type(bicInput!, 'AB');
     await user.tab();
-    
+
     await waitFor(() => {
       expect(screen.getByText(/8 or 11 characters/i)).toBeInTheDocument();
     });
@@ -280,7 +321,9 @@ describe('InstitutionManagementSettings', () => {
     const nameInput = document.querySelector('input[placeholder*="e.g"]') as HTMLElement;
     await user.type(nameInput!, 'Existing Bank');
 
-    const submitButton = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Create');
+    const submitButton = Array.from(document.querySelectorAll('button')).find(
+      b => b.textContent?.trim() === 'Create'
+    );
     await user.click(submitButton!);
 
     await waitFor(() => {
@@ -300,7 +343,9 @@ describe('InstitutionManagementSettings', () => {
     const nameInput = document.querySelector('input[placeholder*="e.g"]') as HTMLElement;
     await user.type(nameInput!, 'Some Bank');
 
-    const submitButton = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Create');
+    const submitButton = Array.from(document.querySelectorAll('button')).find(
+      b => b.textContent?.trim() === 'Create'
+    );
     await user.click(submitButton!);
 
     await waitFor(() => {
@@ -312,11 +357,16 @@ describe('InstitutionManagementSettings', () => {
     const user = userEvent.setup();
     mockUpdateMutateAsync.mockResolvedValue({});
     renderWithProviders(<InstitutionManagementSettings />);
-    
+
     // Click edit button on Chase Bank
-    const pencilButtons = screen.getAllByRole('button').filter(
-      (btn) => btn.classList.contains('h-8') && btn.classList.contains('w-8') && !btn.classList.contains('text-error')
-    );
+    const pencilButtons = screen
+      .getAllByRole('button')
+      .filter(
+        btn =>
+          btn.classList.contains('h-8') &&
+          btn.classList.contains('w-8') &&
+          !btn.classList.contains('text-error')
+      );
     await user.click(pencilButtons[0]);
     await waitFor(() => {
       expect(screen.getByDisplayValue('Chase Bank')).toBeInTheDocument();
@@ -328,7 +378,9 @@ describe('InstitutionManagementSettings', () => {
     await user.type(nameInput, 'Chase Updated');
 
     // Find Update button
-    const submitButton = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Update');
+    const submitButton = Array.from(document.querySelectorAll('button')).find(
+      b => b.textContent?.trim() === 'Update'
+    );
     await user.click(submitButton!);
 
     await waitFor(() => {
@@ -374,14 +426,14 @@ describe('InstitutionManagementSettings', () => {
     }));
     mockData = manySystem;
     renderWithProviders(<InstitutionManagementSettings />);
-    
+
     // Click "show more" to expand
     const showMore = screen.getByText(/and \d+ more/i);
     await user.click(showMore);
-    
+
     // All 15 institutions should be visible now
     expect(screen.getByText('System Bank 14')).toBeInTheDocument();
-    
+
     // Should now show "show fewer"
     expect(screen.getByText(/show fewer/i)).toBeInTheDocument();
   });
@@ -434,9 +486,11 @@ describe('InstitutionManagementSettings', () => {
     // The submit button should be disabled because of BIC error
     // First trigger validation by blurring
     await user.tab();
-    
+
     await waitFor(() => {
-      const submitButton = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Create');
+      const submitButton = Array.from(document.querySelectorAll('button')).find(
+        b => b.textContent?.trim() === 'Create'
+      );
       expect(submitButton).toBeDisabled();
     });
   });
@@ -448,9 +502,9 @@ describe('InstitutionManagementSettings', () => {
       response: { data: { message: 'Cannot delete' } },
     });
     renderWithProviders(<InstitutionManagementSettings />);
-    const deleteButtons = screen.getAllByRole('button').filter(
-      (btn) => btn.classList.contains('text-error')
-    );
+    const deleteButtons = screen
+      .getAllByRole('button')
+      .filter(btn => btn.classList.contains('text-error'));
     await user.click(deleteButtons[0]);
     await waitFor(() => expect(screen.getByText(/are you sure/i)).toBeInTheDocument());
     const confirmBtn = screen.getByRole('button', { name: /^delete$/i });

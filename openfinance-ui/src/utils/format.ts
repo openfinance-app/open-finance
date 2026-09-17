@@ -80,11 +80,7 @@ export function getGainLossClass(value: number): string {
  * Format gain/loss with sign and percentage
  * Example: formatGainLoss(25385, 72.45, 'EUR') => "+25 385 € +72.45%"
  */
-export function formatGainLoss(
-  amount: number,
-  percentage: number,
-  currency: string
-): string {
+export function formatGainLoss(amount: number, percentage: number, currency: string): string {
   const sign = amount >= 0 ? '+' : '';
   const formattedAmount = formatCurrency(Math.abs(amount), currency);
   const formattedPercentage = formatPercentage(Math.abs(percentage), 2);

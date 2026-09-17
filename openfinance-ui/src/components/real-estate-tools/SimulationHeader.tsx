@@ -1,6 +1,6 @@
 /**
  * SimulationHeader Component
- * 
+ *
  * Header with save/load simulation functionality
  * Requirements: REQ-1.7.x
  */
@@ -56,15 +56,11 @@ export const SimulationHeader: React.FC<SimulationHeaderProps> = ({
           <Input
             placeholder={t('comparator.simulationName')}
             value={simulationName}
-            onChange={(e) => onNameChange(e.target.value)}
+            onChange={e => onNameChange(e.target.value)}
             className="flex-1"
             maxLength={100}
           />
-          <Button
-            onClick={onSave}
-            disabled={!canSave}
-            variant="default"
-          >
+          <Button onClick={onSave} disabled={!canSave} variant="default">
             <Save className="mr-2 h-4 w-4" />
             {t('comparator.save')}
           </Button>
@@ -82,7 +78,7 @@ export const SimulationHeader: React.FC<SimulationHeaderProps> = ({
                   {t('comparator.noSimulationsSaved')}
                 </div>
               ) : (
-                buyRentSimulations.map((sim) => (
+                buyRentSimulations.map(sim => (
                   <SelectItem key={sim.metadata.id} value={sim.metadata.id}>
                     <div className="flex items-center justify-between w-full">
                       <span>{sim.metadata.name}</span>
@@ -97,16 +93,18 @@ export const SimulationHeader: React.FC<SimulationHeaderProps> = ({
           </Select>
 
           {buyRentSimulations.length > 0 && (
-            <Select onValueChange={(id) => {
-              const sim = buyRentSimulations.find(s => s.metadata.id === id);
-              if (sim) handleDelete(id, sim.metadata.name);
-            }}>
+            <Select
+              onValueChange={id => {
+                const sim = buyRentSimulations.find(s => s.metadata.id === id);
+                if (sim) handleDelete(id, sim.metadata.name);
+              }}
+            >
               <SelectTrigger className="w-[120px]">
                 <Trash2 className="mr-2 h-4 w-4" />
                 {t('comparator.delete')}
               </SelectTrigger>
               <SelectContent>
-                {buyRentSimulations.map((sim) => (
+                {buyRentSimulations.map(sim => (
                   <SelectItem key={sim.metadata.id} value={sim.metadata.id}>
                     {sim.metadata.name}
                   </SelectItem>

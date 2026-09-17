@@ -44,7 +44,10 @@ interface BaseCurrencyTotals {
  *  - isConverted=false AND currency===baseCurrency → use native amount (same currency)
  *  - isConverted=false AND currency!==baseCurrency → SKIP (add to excludedCurrencies)
  */
-function aggregateToBaseCurrency(liabilities: Liability[], baseCurrency: string): BaseCurrencyTotals {
+function aggregateToBaseCurrency(
+  liabilities: Liability[],
+  baseCurrency: string
+): BaseCurrencyTotals {
   return liabilities.reduce<BaseCurrencyTotals>(
     (acc, liability) => {
       const rate = liability.exchangeRate ?? 1;
@@ -95,17 +98,25 @@ function weightedAvgRate(totals: BaseCurrencyTotals): string {
   if (totals.liabilitiesWithInterest.length === 0) return 'N/A';
 
   const totalWeightedRate = sum(
-    totals.liabilitiesWithInterest.map((item) => multiply(item.balance, item.rate))
+    totals.liabilitiesWithInterest.map(item => multiply(item.balance, item.rate))
   );
-  const totalBalance = sum(totals.liabilitiesWithInterest.map((item) => item.balance));
+  const totalBalance = sum(totals.liabilitiesWithInterest.map(item => item.balance));
 
   if (totalBalance === 0) return 'N/A';
   return `${divide(totalWeightedRate, totalBalance).toFixed(2)}%`;
 }
 
-export function LiabilitySummaryCards({ liabilities, filteredLiabilities, isActiveFilter }: LiabilitySummaryCardsProps) {
+export function LiabilitySummaryCards({
+  liabilities,
+  filteredLiabilities,
+  isActiveFilter,
+}: LiabilitySummaryCardsProps) {
   const { baseCurrency } = useAuthContext();
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(baseCurrency);
   const { t } = useTranslation('liabilities');
 
   const globalTotals = useMemo(
@@ -118,14 +129,16 @@ export function LiabilitySummaryCards({ liabilities, filteredLiabilities, isActi
   );
 
   /** Whether a meaningful filter is active */
-  const isFiltered = isActiveFilter !== undefined
-    ? isActiveFilter
-    : (filteredLiabilities !== undefined && filteredLiabilities.length !== liabilities.length);
+  const isFiltered =
+    isActiveFilter !== undefined
+      ? isActiveFilter
+      : filteredLiabilities !== undefined && filteredLiabilities.length !== liabilities.length;
 
   /** Comma-separated list of currencies excluded from the global total */
-  const excludedNote = globalTotals.excludedCurrencies.size > 0
-    ? `Excl. ${Array.from(globalTotals.excludedCurrencies).join(', ')} (no rate)`
-    : null;
+  const excludedNote =
+    globalTotals.excludedCurrencies.size > 0
+      ? `Excl. ${Array.from(globalTotals.excludedCurrencies).join(', ')} (no rate)`
+      : null;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -147,13 +160,17 @@ export function LiabilitySummaryCards({ liabilities, filteredLiabilities, isActi
           {t('summary.liabilityCount', { count: liabilities.length })}
         </div>
         {excludedNote && (
-          <div className="text-xs text-warning mt-1" title="These currencies could not be converted">
+          <div
+            className="text-xs text-warning mt-1"
+            title="These currencies could not be converted"
+          >
             ⚠ {excludedNote}
           </div>
         )}
         {isFiltered && filteredTotals && (
           <div className="text-xs text-text-tertiary mt-1">
-            {t('summary.filtered')}: <ConvertedAmount
+            {t('summary.filtered')}:{' '}
+            <ConvertedAmount
               amount={filteredTotals.totalBalance}
               currency={baseCurrency}
               isConverted={false}
@@ -185,7 +202,8 @@ export function LiabilitySummaryCards({ liabilities, filteredLiabilities, isActi
         </div>
         {isFiltered && filteredTotals && (
           <div className="text-xs text-text-tertiary">
-            {t('summary.filtered')}: <ConvertedAmount
+            {t('summary.filtered')}:{' '}
+            <ConvertedAmount
               amount={filteredTotals.totalPrincipal}
               currency={baseCurrency}
               isConverted={false}
@@ -195,7 +213,9 @@ export function LiabilitySummaryCards({ liabilities, filteredLiabilities, isActi
               inline
             />
             {filteredLiabilities && (
-              <span className="ml-1">{t('summary.shownCount', { count: filteredLiabilities.length })}</span>
+              <span className="ml-1">
+                {t('summary.shownCount', { count: filteredLiabilities.length })}
+              </span>
             )}
           </div>
         )}
@@ -204,9 +224,7 @@ export function LiabilitySummaryCards({ liabilities, filteredLiabilities, isActi
       {/* Card 3: Average Interest Rate */}
       <div className="p-4 bg-surface border border-border rounded-lg hover:border-primary/30 transition-colors">
         <div className="text-sm text-text-secondary mb-1">{t('summary.avgInterestRate')}</div>
-        <div className="text-2xl font-bold text-text-primary">
-          {weightedAvgRate(globalTotals)}
-        </div>
+        <div className="text-2xl font-bold text-text-primary">{weightedAvgRate(globalTotals)}</div>
         <div className="text-xs text-text-tertiary mt-1">
           {globalTotals.liabilitiesWithInterest.length > 0
             ? t('summary.withInterest', { count: globalTotals.liabilitiesWithInterest.length })
@@ -234,11 +252,14 @@ export function LiabilitySummaryCards({ liabilities, filteredLiabilities, isActi
           />
         </div>
         <div className="text-xs text-text-tertiary mt-1">
-          {globalTotals.totalMinimumPayment > 0 ? t('summary.minimumDue') : t('summary.noPaymentsSet')}
+          {globalTotals.totalMinimumPayment > 0
+            ? t('summary.minimumDue')
+            : t('summary.noPaymentsSet')}
         </div>
         {isFiltered && filteredTotals && (
           <div className="text-xs text-text-tertiary">
-            {t('summary.filteredLabel')}<ConvertedAmount
+            {t('summary.filteredLabel')}
+            <ConvertedAmount
               amount={filteredTotals.totalMinimumPayment}
               currency={baseCurrency}
               isConverted={false}
@@ -253,4 +274,3 @@ export function LiabilitySummaryCards({ liabilities, filteredLiabilities, isActi
     </div>
   );
 }
-

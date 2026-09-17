@@ -234,7 +234,9 @@ function buildPrimaryDisplay(
 
   if (displayMode === 'base') {
     return canShowBase ? (
-      <PrivateAmount inline={inline}>{formatCurrency(convertedAmount!, baseCurrency!, opts)}</PrivateAmount>
+      <PrivateAmount inline={inline}>
+        {formatCurrency(convertedAmount!, baseCurrency!, opts)}
+      </PrivateAmount>
     ) : (
       <PrivateAmount inline={inline}>{formatCurrency(amount, currency, opts)}</PrivateAmount>
     );
@@ -248,8 +250,12 @@ function buildPrimaryDisplay(
   if (canShowBase && currency !== baseCurrency) {
     return (
       <span className="inline-flex items-baseline gap-1">
-        <PrivateAmount inline>{formatCurrency(convertedAmount!, baseCurrency!, opts)}</PrivateAmount>
-        <span className="text-muted-foreground mx-0.5" aria-hidden="true">·</span>
+        <PrivateAmount inline>
+          {formatCurrency(convertedAmount!, baseCurrency!, opts)}
+        </PrivateAmount>
+        <span className="text-muted-foreground mx-0.5" aria-hidden="true">
+          ·
+        </span>
         <PrivateAmount inline className="text-muted-foreground text-sm">
           {formatCurrency(amount, currency, opts)}
         </PrivateAmount>
@@ -340,7 +346,17 @@ export function ConvertedAmount({
         inline,
         numberFormat
       ),
-    [amount, currency, convertedAmount, baseCurrency, isConverted, displayMode, compact, inline, numberFormat]
+    [
+      amount,
+      currency,
+      convertedAmount,
+      baseCurrency,
+      isConverted,
+      displayMode,
+      compact,
+      inline,
+      numberFormat,
+    ]
   );
 
   const hasTooltip = tooltipLines.length > 0;
@@ -363,16 +379,16 @@ export function ConvertedAmount({
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
-        <TooltipTrigger asChild>
-          {content}
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
         <TooltipContent
           id={tooltipId}
           className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
           sideOffset={4}
         >
           {tooltipLines.map((line, i) => (
-            <span key={i} className="block">{line}</span>
+            <span key={i} className="block">
+              {line}
+            </span>
           ))}
         </TooltipContent>
       </Tooltip>

@@ -205,11 +205,11 @@ class TransactionServiceTest {
 
         // Assert
         assertThat(resp).isNotNull();
-        verify(accountRepository, times(2))
-                .findByIdAndUserId(10L, 1L); // Once for validation, once for balance
+        verify(accountRepository, times(3))
+                .findByIdAndUserId(10L, 1L); // Validation, balance mutation, owner-scoped response
         // update
         verify(accountRepository).save(any(Account.class)); // Balance update
-        verify(categoryRepository).findByIdAndUserId(5L, 1L);
+        verify(categoryRepository, times(2)).findByIdAndUserId(5L, 1L);
         verify(transactionRepository).save(any(Transaction.class));
 
         // Verify balance was increased for INCOME
@@ -244,11 +244,11 @@ class TransactionServiceTest {
 
         // Assert
         assertThat(resp).isNotNull();
-        verify(accountRepository, times(2))
-                .findByIdAndUserId(10L, 2L); // Once for validation, once for balance
+        verify(accountRepository, times(3))
+                .findByIdAndUserId(10L, 2L); // Validation, balance mutation, owner-scoped response
         // update
         verify(accountRepository).save(any(Account.class)); // Balance update
-        verify(categoryRepository).findByIdAndUserId(7L, 2L);
+        verify(categoryRepository, times(2)).findByIdAndUserId(7L, 2L);
         verify(transactionRepository).save(any(Transaction.class));
 
         // Verify balance was decreased for EXPENSE
@@ -544,9 +544,9 @@ class TransactionServiceTest {
         Category cat = categoryFixture(5L, 12L, "Shopping", CategoryType.EXPENSE, false);
 
         when(transactionRepository.findByIdAndUserId(300L, 12L)).thenReturn(Optional.of(tx));
-        when(accountRepository.findById(10L)).thenReturn(Optional.of(acc));
-        when(accountRepository.findById(11L)).thenReturn(Optional.of(toAcc));
-        when(categoryRepository.findById(5L)).thenReturn(Optional.of(cat));
+        when(accountRepository.findByIdAndUserId(10L, 12L)).thenReturn(Optional.of(acc));
+        when(accountRepository.findByIdAndUserId(11L, 12L)).thenReturn(Optional.of(toAcc));
+        when(categoryRepository.findByIdAndUserId(5L, 12L)).thenReturn(Optional.of(cat));
         TransactionResponse mapped = new TransactionResponse();
         mapped.setId(300L);
         when(transactionMapper.toResponse(tx)).thenReturn(mapped);
@@ -557,8 +557,8 @@ class TransactionServiceTest {
         // Assert
         assertThat(resp).isNotNull();
         assertThat(resp.getId()).isEqualTo(300L);
-        verify(accountRepository).findById(10L);
-        verify(categoryRepository).findById(5L);
+        verify(accountRepository).findByIdAndUserId(10L, 12L);
+        verify(categoryRepository).findByIdAndUserId(5L, 12L);
     }
 
     @Test
@@ -770,8 +770,8 @@ class TransactionServiceTest {
         assertThat(response).isNotNull();
         verify(transactionRepository, times(2)).save(any(Transaction.class));
         // Validate and balance update for source, validate and balance update for dest
-        verify(accountRepository, times(2)).findByIdAndUserId(10L, userId);
-        verify(accountRepository, times(2)).findByIdAndUserId(20L, userId);
+        verify(accountRepository, times(3)).findByIdAndUserId(10L, userId);
+        verify(accountRepository, times(3)).findByIdAndUserId(20L, userId);
         verify(accountRepository, times(2)).save(any(Account.class)); // Both accounts updated
 
         // Verify balances updated correctly

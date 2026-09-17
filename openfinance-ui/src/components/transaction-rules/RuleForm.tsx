@@ -104,7 +104,15 @@ function formFromRule(rule: TransactionRule) {
  * Dialog form for creating or editing a transaction rule.
  * Requirement: REQ-TR-6.3, REQ-TR-6.4
  */
-export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submitError, existingRules = [] }: RuleFormProps) {
+export function RuleForm({
+  open,
+  onOpenChange,
+  rule,
+  onSubmit,
+  isLoading,
+  submitError,
+  existingRules = [],
+}: RuleFormProps) {
   const [formState, setFormState] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { t } = useTranslation('rules');
@@ -132,7 +140,7 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
     } else {
       // BUG #4: duplicate name check (skip current rule when editing)
       const isDuplicate = existingRules.some(
-        (r) => r.name.toLowerCase() === formState.name.trim().toLowerCase() && r.id !== rule?.id
+        r => r.name.toLowerCase() === formState.name.trim().toLowerCase() && r.id !== rule?.id
       );
       if (isDuplicate) {
         newErrors.name = t('form.errors.nameDuplicate');
@@ -148,7 +156,7 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
       newErrors.conditions = t('form.errors.conditionRequired');
     } else {
       // BUG #1: validate condition values
-      const hasEmptyConditionValue = formState.conditions.some((c) => !c.value.trim());
+      const hasEmptyConditionValue = formState.conditions.some(c => !c.value.trim());
       if (hasEmptyConditionValue) {
         newErrors.conditions = t('form.errors.conditionValueRequired');
       }
@@ -159,7 +167,7 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
     } else {
       // BUG #1: validate action values (SKIP_TRANSACTION needs no value)
       const hasEmptyActionValue = formState.actions.some(
-        (a) => a.actionType !== 'SKIP_TRANSACTION' && !a.actionValue?.trim()
+        a => a.actionType !== 'SKIP_TRANSACTION' && !a.actionValue?.trim()
       );
       if (hasEmptyActionValue) {
         newErrors.actions = t('form.errors.actionValueRequired');
@@ -216,15 +224,11 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
             <Input
               id="rule-name"
               value={formState.name}
-              onChange={(e) =>
-                setFormState((prev) => ({ ...prev, name: e.target.value }))
-              }
+              onChange={e => setFormState(prev => ({ ...prev, name: e.target.value }))}
               placeholder={t('form.namePlaceholder')}
               maxLength={100}
             />
-            {errors.name && (
-              <p className="text-xs text-red-500">{errors.name}</p>
-            )}
+            {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
           </div>
 
           {/* Priority & Enabled row */}
@@ -240,29 +244,25 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
                 id="rule-priority"
                 min={0}
                 value={formState.priority}
-                onChange={(value) =>
-                  setFormState((prev) => ({
+                onChange={value =>
+                  setFormState(prev => ({
                     ...prev,
                     priority: Number(value) || 0,
                   }))
                 }
               />
-              {errors.priority && (
-                <p className="text-xs text-red-500">{errors.priority}</p>
-              )}
+              {errors.priority && <p className="text-xs text-red-500">{errors.priority}</p>}
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium text-text-primary">
-                {t('form.enabled')}
-              </label>
+              <label className="text-sm font-medium text-text-primary">{t('form.enabled')}</label>
               <div className="flex items-center gap-2 pt-1">
                 <button
                   type="button"
                   role="switch"
                   aria-checked={formState.isEnabled}
                   onClick={() =>
-                    setFormState((prev) => ({
+                    setFormState(prev => ({
                       ...prev,
                       isEnabled: !prev.isEnabled,
                     }))
@@ -306,7 +306,7 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
               <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
                 <button
                   type="button"
-                  onClick={() => setFormState((prev) => ({ ...prev, conditionMatch: 'AND' }))}
+                  onClick={() => setFormState(prev => ({ ...prev, conditionMatch: 'AND' }))}
                   className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                     formState.conditionMatch === 'AND'
                       ? 'bg-primary text-white'
@@ -317,7 +317,7 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFormState((prev) => ({ ...prev, conditionMatch: 'OR' }))}
+                  onClick={() => setFormState(prev => ({ ...prev, conditionMatch: 'OR' }))}
                   className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                     formState.conditionMatch === 'OR'
                       ? 'bg-primary text-white'
@@ -330,13 +330,9 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
             </div>
             <RuleConditionBuilder
               conditions={formState.conditions}
-              onChange={(conditions) =>
-                setFormState((prev) => ({ ...prev, conditions }))
-              }
+              onChange={conditions => setFormState(prev => ({ ...prev, conditions }))}
             />
-            {errors.conditions && (
-              <p className="text-xs text-red-500">{errors.conditions}</p>
-            )}
+            {errors.conditions && <p className="text-xs text-red-500">{errors.conditions}</p>}
           </div>
 
           {/* Actions */}
@@ -349,13 +345,9 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
             </div>
             <RuleActionBuilder
               actions={formState.actions}
-              onChange={(actions) =>
-                setFormState((prev) => ({ ...prev, actions }))
-              }
+              onChange={actions => setFormState(prev => ({ ...prev, actions }))}
             />
-            {errors.actions && (
-              <p className="text-xs text-red-500">{errors.actions}</p>
-            )}
+            {errors.actions && <p className="text-xs text-red-500">{errors.actions}</p>}
           </div>
 
           {/* Form buttons */}
@@ -368,12 +360,7 @@ export function RuleForm({ open, onOpenChange, rule, onSubmit, isLoading, submit
               </Alert>
             )}
             <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                disabled={isLoading}
-              >
+              <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
                 {t('form.cancel')}
               </Button>
               <Button type="submit" isLoading={isLoading}>

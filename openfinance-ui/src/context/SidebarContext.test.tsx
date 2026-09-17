@@ -45,7 +45,7 @@ describe('SidebarContext', () => {
     const { result } = renderHook(() => useSidebar(), { wrapper });
 
     act(() => {
-      result.current.setIsCollapsed((prev) => !prev);
+      result.current.setIsCollapsed(prev => !prev);
     });
     expect(result.current.isCollapsed).toBe(true);
   });

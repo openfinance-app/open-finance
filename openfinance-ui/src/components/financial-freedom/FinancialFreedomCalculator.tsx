@@ -15,13 +15,7 @@ import { Progress } from '../ui/Progress';
 import { ProgressChart } from './ProgressChart';
 import { TimelineProjection } from './TimelineProjection';
 import { SensitivityAnalysis } from './SensitivityAnalysis';
-import {
-  Calculator,
-  AlertCircle,
-  CheckCircle,
-  RefreshCw,
-  Database,
-} from 'lucide-react';
+import { Calculator, AlertCircle, CheckCircle, RefreshCw, Database } from 'lucide-react';
 
 interface FinancialFreedomCalculatorProps {
   className?: string;
@@ -223,11 +217,13 @@ function CalculatorInputForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Current Savings */}
         <div className="space-y-2">
-          <Label htmlFor="currentSavings">{t('financialFreedom.calculator.fields.currentSavings.label')}</Label>
+          <Label htmlFor="currentSavings">
+            {t('financialFreedom.calculator.fields.currentSavings.label')}
+          </Label>
           <NumberInput
             id="currentSavings"
             value={String(input.currentSavings)}
-            onChange={(val) => onChange('currentSavings', parseFloat(val) || 0)}
+            onChange={val => onChange('currentSavings', parseFloat(val) || 0)}
             placeholder="50000"
           />
           <p className="text-xs text-muted-foreground">
@@ -237,11 +233,13 @@ function CalculatorInputForm({
 
         {/* Monthly Expenses */}
         <div className="space-y-2">
-          <Label htmlFor="monthlyExpenses">{t('financialFreedom.calculator.fields.monthlyExpenses.label')}</Label>
+          <Label htmlFor="monthlyExpenses">
+            {t('financialFreedom.calculator.fields.monthlyExpenses.label')}
+          </Label>
           <NumberInput
             id="monthlyExpenses"
             value={String(input.monthlyExpenses)}
-            onChange={(val) => onChange('monthlyExpenses', parseFloat(val) || 0)}
+            onChange={val => onChange('monthlyExpenses', parseFloat(val) || 0)}
             placeholder="2500"
           />
           <p className="text-xs text-muted-foreground">
@@ -251,11 +249,13 @@ function CalculatorInputForm({
 
         {/* Expected Return */}
         <div className="space-y-2">
-          <Label htmlFor="expectedReturn">{t('financialFreedom.calculator.fields.expectedReturn.label')}</Label>
+          <Label htmlFor="expectedReturn">
+            {t('financialFreedom.calculator.fields.expectedReturn.label')}
+          </Label>
           <NumberInput
             id="expectedReturn"
             value={String(input.expectedAnnualReturn)}
-            onChange={(val) => onChange('expectedAnnualReturn', parseFloat(val) || 0)}
+            onChange={val => onChange('expectedAnnualReturn', parseFloat(val) || 0)}
             placeholder="7"
           />
           <Slider
@@ -281,11 +281,13 @@ function CalculatorInputForm({
 
         {/* Monthly Contribution */}
         <div className="space-y-2">
-          <Label htmlFor="monthlyContribution">{t('financialFreedom.calculator.fields.monthlyContribution.label')}</Label>
+          <Label htmlFor="monthlyContribution">
+            {t('financialFreedom.calculator.fields.monthlyContribution.label')}
+          </Label>
           <NumberInput
             id="monthlyContribution"
             value={String(input.monthlyContribution ?? 0)}
-            onChange={(val) => onChange('monthlyContribution', parseFloat(val) || 0)}
+            onChange={val => onChange('monthlyContribution', parseFloat(val) || 0)}
             placeholder="500"
           />
           <p className="text-xs text-muted-foreground">
@@ -295,11 +297,13 @@ function CalculatorInputForm({
 
         {/* Withdrawal Rate */}
         <div className="space-y-2">
-          <Label htmlFor="withdrawalRate">{t('financialFreedom.calculator.fields.withdrawalRate.label')}</Label>
+          <Label htmlFor="withdrawalRate">
+            {t('financialFreedom.calculator.fields.withdrawalRate.label')}
+          </Label>
           <NumberInput
             id="withdrawalRate"
             value={String(input.withdrawalRate ?? 4)}
-            onChange={(val) => onChange('withdrawalRate', parseFloat(val) || 4)}
+            onChange={val => onChange('withdrawalRate', parseFloat(val) || 4)}
             placeholder="4"
           />
           <Slider
@@ -325,20 +329,24 @@ function CalculatorInputForm({
 
         {/* Inflation Adjustment */}
         <div className="space-y-2">
-          <Label htmlFor="inflationRate">{t('financialFreedom.calculator.fields.inflationRate.label')}</Label>
+          <Label htmlFor="inflationRate">
+            {t('financialFreedom.calculator.fields.inflationRate.label')}
+          </Label>
           <NumberInput
             id="inflationRate"
             value={String(input.inflationRate ?? 2.5)}
-            onChange={(val) => onChange('inflationRate', parseFloat(val) || 2.5)}
+            onChange={val => onChange('inflationRate', parseFloat(val) || 2.5)}
             placeholder="2.5"
           />
           <div className="flex items-center space-x-2 mt-2">
             <Switch
               id="adjustForInflation"
               checked={input.adjustForInflation ?? false}
-              onCheckedChange={(checked) => onChange('adjustForInflation', checked)}
+              onCheckedChange={checked => onChange('adjustForInflation', checked)}
             />
-            <Label htmlFor="adjustForInflation">{t('financialFreedom.calculator.fields.adjustForInflation')}</Label>
+            <Label htmlFor="adjustForInflation">
+              {t('financialFreedom.calculator.fields.adjustForInflation')}
+            </Label>
           </div>
           <p className="text-xs text-muted-foreground">
             {t('financialFreedom.calculator.fields.inflationRate.description')}{' '}
@@ -354,13 +362,10 @@ function CalculatorInputForm({
         </div>
       </div>
 
-      <Button
-        onClick={onCalculate}
-        disabled={isLoading}
-        className="w-full"
-        size="lg"
-      >
-        {isLoading ? t('financialFreedom.calculator.calculating') : t('financialFreedom.calculator.calculate')}
+      <Button onClick={onCalculate} disabled={isLoading} className="w-full" size="lg">
+        {isLoading
+          ? t('financialFreedom.calculator.calculating')
+          : t('financialFreedom.calculator.calculate')}
       </Button>
     </div>
   );
@@ -369,21 +374,34 @@ function CalculatorInputForm({
 /**
  * Freedom results display
  */
-function FreedomResults({ result, longevityResult, currency }: { result: any; longevityResult?: any; currency: string }) {
+function FreedomResults({
+  result,
+  longevityResult,
+  currency,
+}: {
+  result: any;
+  longevityResult?: any;
+  currency: string;
+}) {
   const { t } = useTranslation('tools');
   const yearsToFreedom = result.yearsToFreedom;
 
-  const yearsText = t('financialFreedom.results.timeToFreedom_years', { count: result.yearsToFreedom });
-  const monthsText = t('financialFreedom.results.timeToFreedom_months', { count: result.monthsToFreedom });
-  const timeToFreedomDisplay = result.yearsToFreedom === 0 
-    ? monthsText 
-    : result.monthsToFreedom === 0 
-      ? yearsText 
-      : t('financialFreedom.results.timeToFreedom_combined', { 
-          defaultValue: '{{years}}, {{months}}', 
-          years: yearsText, 
-          months: monthsText 
-        });
+  const yearsText = t('financialFreedom.results.timeToFreedom_years', {
+    count: result.yearsToFreedom,
+  });
+  const monthsText = t('financialFreedom.results.timeToFreedom_months', {
+    count: result.monthsToFreedom,
+  });
+  const timeToFreedomDisplay =
+    result.yearsToFreedom === 0
+      ? monthsText
+      : result.monthsToFreedom === 0
+        ? yearsText
+        : t('financialFreedom.results.timeToFreedom_combined', {
+            defaultValue: '{{years}}, {{months}}',
+            years: yearsText,
+            months: monthsText,
+          });
 
   return (
     <div className="mt-6 space-y-6">
@@ -395,9 +413,7 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
               <p className="text-sm text-muted-foreground mb-2">
                 {t('financialFreedom.results.timeToFreedom')}
               </p>
-              <p className="text-5xl font-bold text-primary">
-                {timeToFreedomDisplay}
-              </p>
+              <p className="text-5xl font-bold text-primary">{timeToFreedomDisplay}</p>
               {result.isAchievable ? (
                 <div className="flex items-center justify-center gap-2 mt-2 text-green-600">
                   <CheckCircle className="h-4 w-4" />
@@ -422,7 +438,9 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
                 </p>
                 {longevityResult.isInfinite ? (
                   <>
-                    <p className="text-5xl font-bold text-green-600">{t('financialFreedom.results.forever')}</p>
+                    <p className="text-5xl font-bold text-green-600">
+                      {t('financialFreedom.results.forever')}
+                    </p>
                     <p className="text-sm text-muted-foreground mt-2">
                       {t('financialFreedom.results.returnsExceedExpenses')}
                     </p>
@@ -430,7 +448,9 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
                 ) : (
                   <>
                     <p className="text-5xl font-bold text-primary">
-                      {t('financialFreedom.results.yearsPlural', { count: longevityResult.yearsUntilDepletion })}
+                      {t('financialFreedom.results.yearsPlural', {
+                        count: longevityResult.yearsUntilDepletion,
+                      })}
                     </p>
                     <p className="text-sm text-muted-foreground mt-2">
                       {t('financialFreedom.results.until', { year: longevityResult.depletionYear })}
@@ -485,9 +505,7 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
             <CardTitle className="text-lg">{t('financialFreedom.results.whatIf')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <SensitivityAnalysis
-              scenarios={result.sensitivityScenarios}
-            />
+            <SensitivityAnalysis scenarios={result.sensitivityScenarios} />
           </CardContent>
         </Card>
       )}
@@ -495,7 +513,7 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
       {/* Progress */}
       <Card>
         <CardHeader>
-            <CardTitle className="text-lg">{t('financialFreedom.results.progressToGoal')}</CardTitle>
+          <CardTitle className="text-lg">{t('financialFreedom.results.progressToGoal')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -509,7 +527,9 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
             </div>
             <Progress value={result.progressPercentage} className="h-3" />
             <p className="text-center text-sm text-muted-foreground">
-            {t('financialFreedom.results.percentOfGoal', { pct: result.progressPercentage.toFixed(1) })}
+              {t('financialFreedom.results.percentOfGoal', {
+                pct: result.progressPercentage.toFixed(1),
+              })}
             </p>
           </div>
         </CardContent>
@@ -519,7 +539,9 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
       <div className="grid grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{t('financialFreedom.results.targetAmount.title')}</CardTitle>
+            <CardTitle className="text-lg">
+              {t('financialFreedom.results.targetAmount.title')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
@@ -545,7 +567,9 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{t('financialFreedom.results.passiveIncome.title')}</CardTitle>
+            <CardTitle className="text-lg">
+              {t('financialFreedom.results.passiveIncome.title')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
@@ -553,7 +577,9 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
               /yr
             </p>
             <p className="text-xs text-muted-foreground">
-              {t('financialFreedom.results.passiveIncome.description', { rate: result.withdrawalRate ?? 4 })}
+              {t('financialFreedom.results.passiveIncome.description', {
+                rate: result.withdrawalRate ?? 4,
+              })}
             </p>
           </CardContent>
         </Card>
@@ -563,21 +589,20 @@ function FreedomResults({ result, longevityResult, currency }: { result: any; lo
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground text-center">
-            {result.isAchievable 
+            {result.isAchievable
               ? t('financialFreedom.results.achievableMessage', {
                   defaultValue: `Based on your inputs, you could achieve financial freedom in ${timeToFreedomDisplay}.`,
-                  time: timeToFreedomDisplay
+                  time: timeToFreedomDisplay,
                 })
               : t('financialFreedom.results.notAchievableMessage', {
-                  defaultValue: 'Financial freedom is not achievable within 50 years with current inputs.'
-                })
-            }
+                  defaultValue:
+                    'Financial freedom is not achievable within 50 years with current inputs.',
+                })}
           </p>
         </CardContent>
       </Card>
     </div>
   );
 }
-
 
 export default FinancialFreedomCalculator;

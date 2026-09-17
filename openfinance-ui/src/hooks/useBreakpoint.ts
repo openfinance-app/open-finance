@@ -20,7 +20,7 @@ const breakpoints = {
 /**
  * Hook to detect current responsive breakpoint
  * Returns the current breakpoint based on window width
- * 
+ *
  * @example
  * const breakpoint = useBreakpoint();
  * if (breakpoint === 'xs' || breakpoint === 'sm') {
@@ -37,9 +37,7 @@ export function useBreakpoint(): Breakpoint {
     return 'xs';
   };
 
-  const [breakpoint, setBreakpoint] = useState<Breakpoint>(() =>
-    getBreakpoint(window.innerWidth)
-  );
+  const [breakpoint, setBreakpoint] = useState<Breakpoint>(() => getBreakpoint(window.innerWidth));
 
   useEffect(() => {
     const handleResize = () => {
@@ -55,7 +53,7 @@ export function useBreakpoint(): Breakpoint {
 
 /**
  * Hook to check if current breakpoint matches a condition
- * 
+ *
  * @example
  * const isMobile = useBreakpointValue('xs', 'sm');
  * const isDesktop = useBreakpointValue('lg', 'xl', '2xl');

@@ -43,8 +43,8 @@ public class AccountSpecification {
      *
      * <p><strong>Balance filters are intentionally excluded here.</strong> The {@code balance}
      * column is AES-encrypted, so numeric comparisons ({@code balanceMin}, {@code balanceMax},
-     * {@code lowBalance}) against ciphertext are meaningless. Those filters are applied in-memory on
-     * decrypted values in {@link org.openfinance.service.AccountService#searchAccounts}.
+     * {@code lowBalance}) against ciphertext are meaningless. Those filters are applied in-memory
+     * on decrypted values in {@link org.openfinance.service.AccountService#searchAccounts}.
      *
      * @param userId the user ID (required for security)
      * @param criteria the search criteria

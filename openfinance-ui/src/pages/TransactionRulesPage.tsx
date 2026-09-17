@@ -52,10 +52,7 @@ export default function TransactionRulesPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const isMutating =
-    createRule.isPending ||
-    updateRule.isPending ||
-    deleteRule.isPending ||
-    toggleRule.isPending;
+    createRule.isPending || updateRule.isPending || deleteRule.isPending || toggleRule.isPending;
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -137,13 +134,13 @@ export default function TransactionRulesPage() {
         </div>
         <div className="bg-surface rounded-xl p-4 border border-border">
           <div className="text-2xl font-bold text-green-600">
-            {rules.filter((r) => r.isEnabled).length}
+            {rules.filter(r => r.isEnabled).length}
           </div>
           <div className="text-sm text-text-secondary">{t('summary.activeRules')}</div>
         </div>
         <div className="bg-surface rounded-xl p-4 border border-border">
           <div className="text-2xl font-bold text-text-secondary">
-            {rules.filter((r) => !r.isEnabled).length}
+            {rules.filter(r => !r.isEnabled).length}
           </div>
           <div className="text-sm text-text-secondary">{t('summary.inactiveRules')}</div>
         </div>
@@ -154,9 +151,7 @@ export default function TransactionRulesPage() {
         <LoadingSkeleton className="h-64" />
       ) : error ? (
         <div className="bg-surface rounded-xl border border-border p-8 text-center">
-          <p className="text-text-secondary">
-            {t('loadError')}
-          </p>
+          <p className="text-text-secondary">{t('loadError')}</p>
         </div>
       ) : (
         <RuleList
@@ -172,7 +167,7 @@ export default function TransactionRulesPage() {
       {/* Create / Edit dialog */}
       <RuleForm
         open={isFormOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setIsFormOpen(open);
           if (!open) {
             setEditingRule(null);
@@ -189,7 +184,7 @@ export default function TransactionRulesPage() {
       {/* Delete confirmation */}
       <ConfirmationDialog
         open={!!deletingRule}
-        onOpenChange={(open) => !open && setDeletingRule(null)}
+        onOpenChange={open => !open && setDeletingRule(null)}
         title={t('dialogs.delete.title')}
         description={t('dialogs.delete.description', { name: deletingRule?.name })}
         confirmText={t('dialogs.delete.confirmText')}

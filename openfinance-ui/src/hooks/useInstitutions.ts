@@ -1,6 +1,6 @@
 /**
  * Institution management hooks
- * 
+ *
  * Provides React Query hooks for institution CRUD operations
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

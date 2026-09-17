@@ -31,9 +31,7 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
               <>
                 <CheckCircle className="h-12 w-12 text-green-500" />
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600">
-                    {t('comparison.winnerBuy')}
-                  </p>
+                  <p className="text-2xl font-bold text-green-600">{t('comparison.winnerBuy')}</p>
                   <p className="text-muted-foreground">
                     <Trans
                       t={t}
@@ -56,9 +54,7 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
               <>
                 <CheckCircle className="h-12 w-12 text-yellow-500" />
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-yellow-600">
-                    {t('comparison.winnerRent')}
-                  </p>
+                  <p className="text-2xl font-bold text-yellow-600">{t('comparison.winnerRent')}</p>
                   <p className="text-muted-foreground">
                     <Trans
                       t={t}
@@ -114,9 +110,15 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
               </div>
               <div className="pt-2 border-t">
                 <p className="text-sm text-muted-foreground">{t('comparison.difference')}</p>
-                <p className={`text-xl font-bold ${comparison.netWorthDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <p
+                  className={`text-xl font-bold ${comparison.netWorthDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                >
                   {comparison.netWorthDifference >= 0 ? '+' : ''}
-                  <ConvertedAmount amount={comparison.netWorthDifference} currency={baseCurrency} inline />
+                  <ConvertedAmount
+                    amount={comparison.netWorthDifference}
+                    currency={baseCurrency}
+                    inline
+                  />
                 </p>
                 <p className="text-xs text-muted-foreground">
                   ({worthDifferencePercent.toFixed(1)}%)
@@ -138,21 +140,35 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm">{t('comparison.buy')}</span>
-                <Badge variant={buy.averageMonthlyCost < rent.averageMonthlyCost ? 'default' : 'secondary'}>
-                  <ConvertedAmount amount={buy.averageMonthlyCost} currency={baseCurrency} inline />/
-                  {t('comparison.perMonth')}
+                <Badge
+                  variant={
+                    buy.averageMonthlyCost < rent.averageMonthlyCost ? 'default' : 'secondary'
+                  }
+                >
+                  <ConvertedAmount amount={buy.averageMonthlyCost} currency={baseCurrency} inline />
+                  /{t('comparison.perMonth')}
                 </Badge>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm">{t('comparison.rent')}</span>
-                <Badge variant={rent.averageMonthlyCost < buy.averageMonthlyCost ? 'default' : 'secondary'}>
-                  <ConvertedAmount amount={rent.averageMonthlyCost} currency={baseCurrency} inline />/
-                  {t('comparison.perMonth')}
+                <Badge
+                  variant={
+                    rent.averageMonthlyCost < buy.averageMonthlyCost ? 'default' : 'secondary'
+                  }
+                >
+                  <ConvertedAmount
+                    amount={rent.averageMonthlyCost}
+                    currency={baseCurrency}
+                    inline
+                  />
+                  /{t('comparison.perMonth')}
                 </Badge>
               </div>
               <div className="pt-2 border-t">
                 <p className="text-sm text-muted-foreground">{t('comparison.monthlyGap')}</p>
-                <p className={`text-xl font-bold ${comparison.monthlyGap >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <p
+                  className={`text-xl font-bold ${comparison.monthlyGap >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                >
                   {comparison.monthlyGap >= 0 ? '+' : ''}
                   <ConvertedAmount amount={comparison.monthlyGap} currency={baseCurrency} inline />/
                   {t('comparison.perMonth')}

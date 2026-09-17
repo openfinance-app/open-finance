@@ -82,27 +82,20 @@ describe('NetWorthCard', () => {
   });
 
   it('renders "no comparison" message when periodChange is explicitly null', () => {
-    renderWithProviders(
-      <NetWorthCard netWorth={baseSummary} periodChange={null} />
-    );
+    renderWithProviders(<NetWorthCard netWorth={baseSummary} periodChange={null} />);
     // Should show the fallback text for no comparison data
     expect(screen.queryByText(/5\.26%/)).not.toBeInTheDocument();
   });
 
   it('uses periodChange override when provided', () => {
     renderWithProviders(
-      <NetWorthCard
-        netWorth={baseSummary}
-        periodChange={{ amount: 10000, percentage: 11.11 }}
-      />
+      <NetWorthCard netWorth={baseSummary} periodChange={{ amount: 10000, percentage: 11.11 }} />
     );
     expect(screen.getByText(/11\.11%/)).toBeInTheDocument();
   });
 
   it('shows custom periodLabel text', () => {
-    renderWithProviders(
-      <NetWorthCard netWorth={baseSummary} periodLabel="last 90d" />
-    );
+    renderWithProviders(<NetWorthCard netWorth={baseSummary} periodLabel="last 90d" />);
     // The period label should appear in the card
     expect(screen.getByText(/last 90d/)).toBeInTheDocument();
   });

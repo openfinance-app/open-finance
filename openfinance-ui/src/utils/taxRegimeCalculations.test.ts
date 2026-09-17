@@ -1,6 +1,6 @@
 /**
  * Unit Tests for Tax Regime Calculations
- * 
+ *
  * Tests for French tax regime calculations
  * Requirements: REQ-2.4.x, REQ-2.6.x
  */
@@ -21,7 +21,11 @@ import {
   getRegimeDescription,
   getFurnitureValue,
 } from './taxRegimeCalculations';
-import type { InvestmentInputs, RentalRevenueInputs, OwnerExpensesInputs } from '@/types/realEstateTools';
+import type {
+  InvestmentInputs,
+  RentalRevenueInputs,
+  OwnerExpensesInputs,
+} from '@/types/realEstateTools';
 
 // Test data factory
 const createTestInputs = (overrides: Partial<InvestmentInputs> = {}): InvestmentInputs => ({
@@ -68,7 +72,7 @@ describe('Tax Regime Calculations', () => {
       };
       const result = calculateGrossRevenue(revenue);
       // (1000 + 100) * 12 * 0.95 * 0.99 = 12,414.60
-      expect(result).toBeCloseTo(12414.60, 1);
+      expect(result).toBeCloseTo(12414.6, 1);
     });
 
     it('should handle 100% occupancy and 0% bad debt', () => {
@@ -116,13 +120,13 @@ describe('Tax Regime Calculations', () => {
     it('should calculate Micro-Foncier correctly for eligible income', () => {
       const inputs = createTestInputs();
       const result = calculateMicroFoncier(inputs);
-      
+
       expect(result.regime).toBe('micro_foncier');
       expect(result.eligible).toBe(true);
       // 30% abatement on gross revenue
-      const expectedDeduction = result.revenue.gross * 0.30;
+      const expectedDeduction = result.revenue.gross * 0.3;
       expect(result.revenue.deduction).toBeCloseTo(expectedDeduction, 1);
-      expect(result.revenue.taxable).toBeCloseTo(result.revenue.gross * 0.70, 1);
+      expect(result.revenue.taxable).toBeCloseTo(result.revenue.gross * 0.7, 1);
     });
 
     it('should mark as ineligible for revenue over 15000 EUR', () => {
@@ -135,23 +139,23 @@ describe('Tax Regime Calculations', () => {
         },
       });
       const result = calculateMicroFoncier(inputs);
-      
+
       expect(result.eligible).toBe(false);
-      expect(result.details.warnings).toContain("Revenus > 15 000€ - Régime réel conseillé");
+      expect(result.details.warnings).toContain('Revenus > 15 000€ - Régime réel conseillé');
     });
 
     it('should calculate income tax at 30%', () => {
       const inputs = createTestInputs();
       const result = calculateMicroFoncier(inputs);
-      
-      const expectedTax = result.revenue.taxable * 0.30;
+
+      const expectedTax = result.revenue.taxable * 0.3;
       expect(result.taxation.incomeTax).toBeCloseTo(expectedTax, 1);
     });
 
     it('should calculate social contributions at 17.2%', () => {
       const inputs = createTestInputs();
       const result = calculateMicroFoncier(inputs);
-      
+
       const expectedSocial = result.revenue.taxable * 0.172;
       expect(result.taxation.socialContributions).toBeCloseTo(expectedSocial, 1);
     });
@@ -166,7 +170,7 @@ describe('Tax Regime Calculations', () => {
         },
       });
       const result = calculateMicroFoncier(inputs);
-      
+
       // Should be eligible at exactly 15000
       expect(result.eligible).toBe(true);
     });
@@ -181,7 +185,7 @@ describe('Tax Regime Calculations', () => {
         },
       });
       const result = calculateMicroFoncier(inputs);
-      
+
       expect(result.revenue.gross).toBe(0);
       expect(result.taxation.totalTaxes).toBe(0);
     });
@@ -191,12 +195,12 @@ describe('Tax Regime Calculations', () => {
     it('should calculate Réel Foncier with actual expenses', () => {
       const inputs = createTestInputs();
       const result = calculateReelFoncier(inputs);
-      
+
       expect(result.regime).toBe('reel_foncier');
       expect(result.eligible).toBe(true);
-      
+
       // Deductible expenses should be the non-recoverable charges
-      const expectedExpenses = 
+      const expectedExpenses =
         inputs.expenses.propertyTax +
         inputs.expenses.nonRecoverableCharges +
         inputs.expenses.annualMaintenance +
@@ -204,7 +208,7 @@ describe('Tax Regime Calculations', () => {
         inputs.expenses.managementFees +
         inputs.expenses.pnoInsurance +
         inputs.expenses.accountingFees;
-      
+
       expect(result.revenue.deduction).toBe(expectedExpenses);
     });
 
@@ -224,7 +228,7 @@ describe('Tax Regime Calculations', () => {
     it('should calculate 17.2% social contributions', () => {
       const inputs = createTestInputs();
       const result = calculateReelFoncier(inputs);
-      
+
       const expectedSocial = result.revenue.taxable * 0.172;
       expect(result.taxation.socialContributions).toBeCloseTo(expectedSocial, 1);
     });
@@ -244,7 +248,7 @@ describe('Tax Regime Calculations', () => {
         },
       });
       const result = calculateReelFoncier(inputs);
-      
+
       // Taxable income should be 0 (not negative)
       expect(result.revenue.taxable).toBe(0);
       expect(result.taxation.totalTaxes).toBe(0);
@@ -255,11 +259,11 @@ describe('Tax Regime Calculations', () => {
     it('should calculate Micro-BIC correctly for eligible income', () => {
       const inputs = createTestInputs();
       const result = calculateMicroBIC(inputs);
-      
+
       expect(result.regime).toBe('micro_bic');
       expect(result.eligible).toBe(true);
       // 50% abatement on gross revenue
-      const expectedDeduction = result.revenue.gross * 0.50;
+      const expectedDeduction = result.revenue.gross * 0.5;
       expect(result.revenue.deduction).toBeCloseTo(expectedDeduction, 1);
     });
 
@@ -273,15 +277,17 @@ describe('Tax Regime Calculations', () => {
         },
       });
       const result = calculateMicroBIC(inputs);
-      
+
       expect(result.eligible).toBe(false);
-      expect(result.details.warnings).toContain("Chiffre d'affaires brut > 77 700€ - Régime réel conseillé");
+      expect(result.details.warnings).toContain(
+        "Chiffre d'affaires brut > 77 700€ - Régime réel conseillé"
+      );
     });
 
     it('should calculate 17.2% social contributions', () => {
       const inputs = createTestInputs();
       const result = calculateMicroBIC(inputs);
-      
+
       const expectedSocial = result.revenue.taxable * 0.172;
       expect(result.taxation.socialContributions).toBeCloseTo(expectedSocial, 1);
     });
@@ -296,7 +302,7 @@ describe('Tax Regime Calculations', () => {
         },
       });
       const result = calculateMicroBIC(inputs);
-      
+
       // Should be eligible at exactly 77700
       expect(result.eligible).toBe(true);
     });
@@ -312,10 +318,10 @@ describe('Tax Regime Calculations', () => {
         },
       });
       const result = calculateLMNPReel(inputs);
-      
+
       expect(result.regime).toBe('lmnp_reel');
       expect(result.eligible).toBe(true);
-      
+
       // Building depreciation: 300000 / 25 = 12,000
       // Furniture depreciation: 10000 / 5 = 2,000
       const expectedDepreciation = 12000 + 2000;
@@ -325,7 +331,7 @@ describe('Tax Regime Calculations', () => {
     it('should use standard social contributions (17.2%) under 23000 EUR', () => {
       const inputs = createTestInputs();
       const result = calculateLMNPReel(inputs);
-      
+
       const expectedSocial = result.revenue.taxable * 0.172;
       expect(result.taxation.socialContributions).toBeCloseTo(expectedSocial, 1);
     });
@@ -340,10 +346,12 @@ describe('Tax Regime Calculations', () => {
         },
       });
       const result = calculateLMNPReel(inputs);
-      
+
       // Should have warning about LMP status
-      expect(result.details.warnings).toContain("Revenus > 23 000€ - Cotisations sociales LMP applicables");
-      
+      expect(result.details.warnings).toContain(
+        'Revenus > 23 000€ - Cotisations sociales LMP applicables'
+      );
+
       // Social contributions at 45%
       const expectedSocial = result.revenue.taxable * 0.45;
       expect(result.taxation.socialContributions).toBeCloseTo(expectedSocial, 1);
@@ -358,8 +366,8 @@ describe('Tax Regime Calculations', () => {
         },
       });
       const result = calculateLMNPReel(inputs);
-      
-      const expectedExpenses = 
+
+      const expectedExpenses =
         inputs.expenses.propertyTax +
         inputs.expenses.nonRecoverableCharges +
         inputs.expenses.annualMaintenance +
@@ -367,9 +375,9 @@ describe('Tax Regime Calculations', () => {
         inputs.expenses.managementFees +
         inputs.expenses.pnoInsurance +
         inputs.expenses.accountingFees;
-      
+
       const expectedDepreciation = 12000 + 1000; // 300000/25 + 5000/5
-      
+
       expect(result.revenue.deduction).toBe(expectedExpenses + expectedDepreciation);
     });
 
@@ -383,11 +391,13 @@ describe('Tax Regime Calculations', () => {
         },
       });
       const result = calculateLMNPReel(inputs);
-      
+
       // Revenue of 23004 (1917*12) is just over 23000, so LMP rate applies
       // Check that social contributions are calculated (at 45% LMP rate)
       expect(result.taxation.socialContributions).toBeGreaterThan(0);
-      expect(result.details.warnings).toContain("Revenus > 23 000€ - Cotisations sociales LMP applicables");
+      expect(result.details.warnings).toContain(
+        'Revenus > 23 000€ - Cotisations sociales LMP applicables'
+      );
     });
 
     it('should handle zero furniture value', () => {
@@ -399,7 +409,7 @@ describe('Tax Regime Calculations', () => {
         },
       });
       const result = calculateLMNPReel(inputs);
-      
+
       // Only building depreciation
       const expectedDepreciation = 12000; // 300000/25
       expect(result.details.depreciation).toBe(expectedDepreciation);
@@ -410,7 +420,7 @@ describe('Tax Regime Calculations', () => {
     it('should calculate all four regimes', () => {
       const inputs = createTestInputs();
       const results = calculateAllRegimes(inputs);
-      
+
       expect(results.microFoncier).toBeDefined();
       expect(results.reelFoncier).toBeDefined();
       expect(results.lmnpReel).toBeDefined();
@@ -420,7 +430,7 @@ describe('Tax Regime Calculations', () => {
     it('should return different results for different regimes', () => {
       const inputs = createTestInputs();
       const results = calculateAllRegimes(inputs);
-      
+
       // All regimes should have different taxable income amounts
       const taxables = [
         results.microFoncier.revenue.taxable,
@@ -428,7 +438,7 @@ describe('Tax Regime Calculations', () => {
         results.lmnpReel.revenue.taxable,
         results.microBic.revenue.taxable,
       ];
-      
+
       // At least some should be different
       const uniqueTaxables = new Set(taxables);
       expect(uniqueTaxables.size).toBeGreaterThan(1);
@@ -495,7 +505,7 @@ describe('Tax Regime Calculations', () => {
       const inputs = createTestInputs();
       const results = calculateAllRegimes(inputs);
       const recommended = getRecommendedRegime(results);
-      
+
       expect(['micro_foncier', 'reel_foncier', 'lmnp_reel', 'micro_bic']).toContain(recommended);
     });
 
@@ -510,7 +520,7 @@ describe('Tax Regime Calculations', () => {
       });
       const results = calculateAllRegimes(highRevenueInputs);
       const recommended = getRecommendedRegime(results);
-      
+
       // Micro-Foncier should be ineligible at this revenue level
       expect(recommended).not.toBe('micro_foncier');
     });
@@ -557,7 +567,7 @@ describe('Tax Regime Calculations', () => {
           marginalTaxRate: 0, // 0% tax bracket
         },
       });
-      
+
       const microFoncier = calculateMicroFoncier(inputs);
       expect(microFoncier.taxation.incomeTax).toBe(0);
       expect(microFoncier.taxation.socialContributions).toBeGreaterThan(0);
@@ -577,7 +587,7 @@ describe('Tax Regime Calculations', () => {
           marginalTaxRate: 45,
         },
       });
-      
+
       const result = calculateReelFoncier(inputs);
       const expectedTax = result.revenue.taxable * 0.45;
       expect(result.taxation.incomeTax).toBeCloseTo(expectedTax, 1);
@@ -597,7 +607,7 @@ describe('Tax Regime Calculations', () => {
           badDebtRate: 0,
         },
       });
-      
+
       const withFurniture = createTestInputs({
         property: {
           totalPrice: 300000,
@@ -611,13 +621,13 @@ describe('Tax Regime Calculations', () => {
           badDebtRate: 0,
         },
       });
-      
+
       const result1 = calculateLMNPReel(withoutFurniture);
       const result2 = calculateLMNPReel(withFurniture);
-      
+
       // With furniture should have higher depreciation
       expect(result2.details.depreciation).toBeGreaterThan(result1.details.depreciation);
-      
+
       // With higher depreciation, deduction should be higher
       expect(result2.revenue.deduction).toBeGreaterThan(result1.revenue.deduction);
     });

@@ -1,7 +1,7 @@
 /**
  * AlertBanner Component
  * TASK-8.2.11: Add budget alerts for warnings and exceeded budgets
- * 
+ *
  * Displays warning notifications when budgets reach thresholds
  */
 
@@ -40,11 +40,7 @@ export function AlertBanner({
     >
       {/* Icon */}
       <div className="flex-shrink-0 mt-0.5">
-        {isError ? (
-          <TrendingDown className="h-5 w-5" />
-        ) : (
-          <AlertTriangle className="h-5 w-5" />
-        )}
+        {isError ? <TrendingDown className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
       </div>
 
       {/* Content */}

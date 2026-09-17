@@ -1349,23 +1349,35 @@ class DashboardServiceTest {
     }
 
     @Test
-    @DisplayName("getCashflowSankey populates categoryId on flow nodes; uncategorized nodes get null")
+    @DisplayName(
+            "getCashflowSankey populates categoryId on flow nodes; uncategorized nodes get null")
     void getCashflowSankeyPopulatesCategoryId() {
         Category salary = Category.builder().id(5L).name("Salary").isSystem(true).build();
         when(categoryRepository.findById(5L)).thenReturn(Optional.of(salary));
         when(defaultCurrencyProvider.resolve("EUR")).thenReturn("EUR");
 
-        Transaction income = Transaction.builder()
-                .userId(userId).type(TransactionType.INCOME).amount(new BigDecimal("1000"))
-                .currency("EUR").categoryId(5L).isDeleted(false)
-                .date(LocalDate.now()).build();
-        Transaction expense = Transaction.builder()
-                .userId(userId).type(TransactionType.EXPENSE).amount(new BigDecimal("400"))
-                .currency("EUR").isDeleted(false)
-                .date(LocalDate.now()).build();
+        Transaction income =
+                Transaction.builder()
+                        .userId(userId)
+                        .type(TransactionType.INCOME)
+                        .amount(new BigDecimal("1000"))
+                        .currency("EUR")
+                        .categoryId(5L)
+                        .isDeleted(false)
+                        .date(LocalDate.now())
+                        .build();
+        Transaction expense =
+                Transaction.builder()
+                        .userId(userId)
+                        .type(TransactionType.EXPENSE)
+                        .amount(new BigDecimal("400"))
+                        .currency("EUR")
+                        .isDeleted(false)
+                        .date(LocalDate.now())
+                        .build();
 
         when(transactionRepository.findByUserIdAndDateBetween(
-                eq(userId), any(LocalDate.class), any(LocalDate.class)))
+                        eq(userId), any(LocalDate.class), any(LocalDate.class)))
                 .thenReturn(List.of(income, expense));
 
         CashflowSankeyDto dto = dashboardService.getCashflowSankey(userId, 30);

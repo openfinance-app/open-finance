@@ -92,9 +92,13 @@ describe('PayeeSelector', () => {
   });
 
   it('applies custom className', () => {
-    renderWithProviders(<PayeeSelector value="" onValueChange={vi.fn()} className="custom-class" />);
-    expect(screen.getByRole('combobox').closest('.custom-class, [class*="custom-class"]') || 
-           document.querySelector('.custom-class')).toBeTruthy();
+    renderWithProviders(
+      <PayeeSelector value="" onValueChange={vi.fn()} className="custom-class" />
+    );
+    expect(
+      screen.getByRole('combobox').closest('.custom-class, [class*="custom-class"]') ||
+        document.querySelector('.custom-class')
+    ).toBeTruthy();
   });
 
   it('opens popover on click', () => {

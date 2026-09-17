@@ -24,7 +24,10 @@ import CommunityPage from '@/pages/CommunityPage';
 import PremiumPage from '@/pages/PremiumPage';
 
 describe('CompoundInterestPage', () => {
-  beforeEach(() => { clearAuthentication(); mockAuthentication(); });
+  beforeEach(() => {
+    clearAuthentication();
+    mockAuthentication();
+  });
 
   it('renders the calculator', () => {
     renderWithProviders(<CompoundInterestPage />);
@@ -33,7 +36,10 @@ describe('CompoundInterestPage', () => {
 });
 
 describe('LoanCalculatorPage', () => {
-  beforeEach(() => { clearAuthentication(); mockAuthentication(); });
+  beforeEach(() => {
+    clearAuthentication();
+    mockAuthentication();
+  });
 
   it('renders the loan calculator', () => {
     renderWithProviders(<LoanCalculatorPage />);
@@ -42,7 +48,10 @@ describe('LoanCalculatorPage', () => {
 });
 
 describe('EarlyPayoffPage', () => {
-  beforeEach(() => { clearAuthentication(); mockAuthentication(); });
+  beforeEach(() => {
+    clearAuthentication();
+    mockAuthentication();
+  });
 
   it('renders the early payoff calculator', () => {
     renderWithProviders(<EarlyPayoffPage />);
@@ -51,7 +60,10 @@ describe('EarlyPayoffPage', () => {
 });
 
 describe('FinancialFreedomPage', () => {
-  beforeEach(() => { clearAuthentication(); mockAuthentication(); });
+  beforeEach(() => {
+    clearAuthentication();
+    mockAuthentication();
+  });
 
   it('renders the financial freedom calculator', () => {
     renderWithProviders(<FinancialFreedomPage />);
@@ -60,7 +72,10 @@ describe('FinancialFreedomPage', () => {
 });
 
 describe('CommunityPage', () => {
-  beforeEach(() => { clearAuthentication(); mockAuthentication(); });
+  beforeEach(() => {
+    clearAuthentication();
+    mockAuthentication();
+  });
 
   it('renders without crashing', () => {
     renderWithProviders(<CommunityPage />);
@@ -69,7 +84,10 @@ describe('CommunityPage', () => {
 });
 
 describe('PremiumPage', () => {
-  beforeEach(() => { clearAuthentication(); mockAuthentication(); });
+  beforeEach(() => {
+    clearAuthentication();
+    mockAuthentication();
+  });
 
   it('renders without crashing', () => {
     renderWithProviders(<PremiumPage />);

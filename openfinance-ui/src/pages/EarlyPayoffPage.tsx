@@ -10,10 +10,7 @@ export default function EarlyPayoffPage() {
 
   return (
     <div className="p-8">
-      <PageHeader
-        title={t('earlyPayoff.title')}
-        description={t('earlyPayoff.description')}
-      />
+      <PageHeader title={t('earlyPayoff.title')} description={t('earlyPayoff.description')} />
       <div className="mt-8">
         <EarlyPayoffCalculator />
       </div>

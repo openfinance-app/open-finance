@@ -1,6 +1,6 @@
 /**
  * RevenueSection Component
- * 
+ *
  * Rental revenue parameters
  * Requirements: REQ-2.2.x
  */
@@ -35,18 +35,17 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('realEstate');
 
-  const getFieldError = (field: string) => errors.find(e => e.field === `revenue.${field}`)?.message;
+  const getFieldError = (field: string) =>
+    errors.find(e => e.field === `revenue.${field}`)?.message;
 
   // Calculate gross annual revenue
   const annualRent = (inputs.monthlyRent + inputs.recoverableCharges) * 12;
-  const effectiveRevenue = annualRent * (inputs.occupancyRate / 100) * (1 - inputs.badDebtRate / 100);
+  const effectiveRevenue =
+    annualRent * (inputs.occupancyRate / 100) * (1 - inputs.badDebtRate / 100);
 
   return (
     <Card className="h-full">
-      <CardHeader
-        className="bg-success/10 cursor-pointer select-none pb-4"
-        onClick={onToggle}
-      >
+      <CardHeader className="bg-success/10 cursor-pointer select-none pb-4" onClick={onToggle}>
         <CardTitle className="flex items-center justify-between text-lg">
           <span className="flex items-center gap-2">
             <Euro className="h-5 w-5" />
@@ -58,8 +57,9 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
         </CardTitle>
       </CardHeader>
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
-          }`}
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
       >
         <CardContent className="p-4 space-y-4">
           {/* Monthly Rent */}
@@ -68,12 +68,14 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
             <NumberInput
               id="monthlyRent"
               value={String(inputs.monthlyRent)}
-              onChange={(value) => onUpdate('monthlyRent', parseFloat(value) || 0)}
+              onChange={value => onUpdate('monthlyRent', parseFloat(value) || 0)}
               min={0}
             />
             {getFieldError('monthlyRent') && (
               <Alert variant="error" className="py-2">
-                <AlertDescription className="text-xs">{getFieldError('monthlyRent')}</AlertDescription>
+                <AlertDescription className="text-xs">
+                  {getFieldError('monthlyRent')}
+                </AlertDescription>
               </Alert>
             )}
           </div>
@@ -84,7 +86,7 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
             <NumberInput
               id="recoverableCharges"
               value={String(inputs.recoverableCharges)}
-              onChange={(value) => onUpdate('recoverableCharges', parseFloat(value) || 0)}
+              onChange={value => onUpdate('recoverableCharges', parseFloat(value) || 0)}
               min={0}
             />
           </div>
@@ -98,14 +100,16 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
             <NumberInput
               id="occupancyRate"
               value={String(inputs.occupancyRate)}
-              onChange={(value) => onUpdate('occupancyRate', parseFloat(value) || 0)}
+              onChange={value => onUpdate('occupancyRate', parseFloat(value) || 0)}
               min={0}
               max={100}
             />
             <Progress value={inputs.occupancyRate} className="h-2" />
             {getFieldError('occupancyRate') && (
               <Alert variant="error" className="py-2">
-                <AlertDescription className="text-xs">{getFieldError('occupancyRate')}</AlertDescription>
+                <AlertDescription className="text-xs">
+                  {getFieldError('occupancyRate')}
+                </AlertDescription>
               </Alert>
             )}
           </div>
@@ -119,14 +123,16 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
             <NumberInput
               id="badDebtRate"
               value={String(inputs.badDebtRate)}
-              onChange={(value) => onUpdate('badDebtRate', parseFloat(value) || 0)}
+              onChange={value => onUpdate('badDebtRate', parseFloat(value) || 0)}
               min={0}
               max={100}
             />
             <Progress value={inputs.badDebtRate} className="h-2" />
             {getFieldError('badDebtRate') && (
               <Alert variant="error" className="py-2">
-                <AlertDescription className="text-xs">{getFieldError('badDebtRate')}</AlertDescription>
+                <AlertDescription className="text-xs">
+                  {getFieldError('badDebtRate')}
+                </AlertDescription>
               </Alert>
             )}
           </div>

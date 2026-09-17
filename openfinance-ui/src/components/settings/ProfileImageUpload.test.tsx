@@ -39,10 +39,9 @@ describe('ProfileImageUpload', () => {
   });
 
   it('renders profile image when provided', () => {
-    render(
-      <ProfileImageUpload username="John" currentImage="data:image/png;base64,abc" />,
-      { wrapper: Wrapper }
-    );
+    render(<ProfileImageUpload username="John" currentImage="data:image/png;base64,abc" />, {
+      wrapper: Wrapper,
+    });
     const img = screen.getByAltText(/profile/i);
     expect(img).toHaveAttribute('src', 'data:image/png;base64,abc');
   });
@@ -55,10 +54,9 @@ describe('ProfileImageUpload', () => {
   });
 
   it('shows delete button when image exists', () => {
-    render(
-      <ProfileImageUpload username="John" currentImage="data:image/png;base64,abc" />,
-      { wrapper: Wrapper }
-    );
+    render(<ProfileImageUpload username="John" currentImage="data:image/png;base64,abc" />, {
+      wrapper: Wrapper,
+    });
     // Look for delete/remove button
     const deleteButton = screen.getByRole('button', { name: /delete|remove/i });
     expect(deleteButton).toBeInTheDocument();
@@ -99,10 +97,9 @@ describe('ProfileImageUpload', () => {
   });
 
   it('calls delete mutation on delete click', () => {
-    render(
-      <ProfileImageUpload username="John" currentImage="data:image/png;base64,abc" />,
-      { wrapper: Wrapper }
-    );
+    render(<ProfileImageUpload username="John" currentImage="data:image/png;base64,abc" />, {
+      wrapper: Wrapper,
+    });
     const deleteButton = screen.getByRole('button', { name: /delete|remove/i });
     fireEvent.click(deleteButton);
     expect(mockDeleteMutate).toHaveBeenCalled();

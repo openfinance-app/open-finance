@@ -1,6 +1,6 @@
 /**
  * Financial Freedom Calculator Type Definitions
- * 
+ *
  * TypeScript interfaces for Financial Freedom and Savings Longevity calculations
  */
 

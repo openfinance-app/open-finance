@@ -296,11 +296,15 @@ describe('FloatingAIChat', () => {
     renderWithProviders(<FloatingAIChat />);
     fireEvent.click(screen.getByRole('button', { name: /open ai assistant/i }));
 
-    const promptBtns = screen.getAllByRole('button').filter(
-      (btn) => btn.textContent && /analyze my spending|budget advice|financial summary|savings tips/i.test(btn.textContent)
-    );
+    const promptBtns = screen
+      .getAllByRole('button')
+      .filter(
+        btn =>
+          btn.textContent &&
+          /analyze my spending|budget advice|financial summary|savings tips/i.test(btn.textContent)
+      );
 
-    promptBtns.forEach((btn) => {
+    promptBtns.forEach(btn => {
       expect(btn).toBeDisabled();
     });
   });

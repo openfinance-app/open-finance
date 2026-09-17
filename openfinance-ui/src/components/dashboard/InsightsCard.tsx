@@ -1,7 +1,7 @@
 /**
  * InsightsCard component
  * TASK-11.4.5: Display AI-Powered Insights in Dashboard
- * 
+ *
  * Displays top 3 AI-powered insights with:
  * - Priority badges (HIGH/MEDIUM/LOW)
  * - Insight icons based on type
@@ -139,9 +139,7 @@ function InsightItem({ insight, onDismiss, onClick, isDismissing, t }: InsightIt
 
       <div className="flex items-start gap-3 pr-6">
         {/* Icon */}
-        <div className="flex-shrink-0 mt-0.5">
-          {getInsightIcon(insight.type)}
-        </div>
+        <div className="flex-shrink-0 mt-0.5">{getInsightIcon(insight.type)}</div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
@@ -150,14 +148,23 @@ function InsightItem({ insight, onDismiss, onClick, isDismissing, t }: InsightIt
             <h4 className="text-sm font-semibold text-text-primary leading-tight flex-1">
               {insight.title}
             </h4>
-            <Badge variant={getPriorityVariant(insight.priority)} size="sm" className="shrink-0 uppercase">
-              {insight.priority ? t(`insightsCard.priority.${insight.priority.toLowerCase()}`) : insight.priority}
+            <Badge
+              variant={getPriorityVariant(insight.priority)}
+              size="sm"
+              className="shrink-0 uppercase"
+            >
+              {insight.priority
+                ? t(`insightsCard.priority.${insight.priority.toLowerCase()}`)
+                : insight.priority}
             </Badge>
           </div>
 
           {/* Timestamp */}
           <p className="text-xs text-text-muted">
-            {formatDistanceToNow(new Date(insight.createdAt), { addSuffix: true, locale: dateLocale })}
+            {formatDistanceToNow(new Date(insight.createdAt), {
+              addSuffix: true,
+              locale: dateLocale,
+            })}
           </p>
         </div>
       </div>
@@ -210,7 +217,7 @@ export default function InsightsCard() {
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3].map(i => (
               <div key={i} className="animate-pulse">
                 <div className="h-24 bg-surface-elevated rounded-lg"></div>
               </div>
@@ -275,9 +282,7 @@ export default function InsightsCard() {
           <div className="text-center py-8">
             <Lightbulb className="h-12 w-12 text-text-muted mx-auto mb-3" />
             <p className="text-text-secondary text-sm mb-2">{t('insightsCard.noInsights')}</p>
-            <p className="text-text-muted text-xs">
-              {t('insightsCard.generatePrompt')}
-            </p>
+            <p className="text-text-muted text-xs">{t('insightsCard.generatePrompt')}</p>
           </div>
         </CardContent>
       </Card>
@@ -292,10 +297,7 @@ export default function InsightsCard() {
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             <CardTitle>{t('insightsCard.title')}</CardTitle>
-            <HelpTooltip
-              text={t('insightsCard.tooltip')}
-              side="right"
-            />
+            <HelpTooltip text={t('insightsCard.tooltip')} side="right" />
             <span className="text-xs text-text-secondary">
               {t('insightsCard.active', { count: insights.length })}
             </span>
@@ -313,7 +315,7 @@ export default function InsightsCard() {
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
         <div className="space-y-3">
-          {insights.map((insight) => (
+          {insights.map(insight => (
             <InsightItem
               key={insight.id}
               insight={insight}
@@ -326,16 +328,14 @@ export default function InsightsCard() {
         </div>
       </CardContent>
 
-      <Dialog open={!!selectedInsight} onOpenChange={(open) => !open && setSelectedInsight(null)}>
+      <Dialog open={!!selectedInsight} onOpenChange={open => !open && setSelectedInsight(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex flex-row items-start gap-3 pr-6">
               <div className="flex-shrink-0 mt-0.5">
                 {selectedInsight && getInsightIcon(selectedInsight.type)}
               </div>
-              <div className="flex-1 leading-tight mt-0.5">
-                {selectedInsight?.title}
-              </div>
+              <div className="flex-1 leading-tight mt-0.5">{selectedInsight?.title}</div>
             </DialogTitle>
           </DialogHeader>
           <div className="py-2">
@@ -345,10 +345,18 @@ export default function InsightsCard() {
           </div>
           <div className="flex items-center justify-between mt-1">
             <span className="text-xs text-text-muted">
-              {selectedInsight && formatDistanceToNow(new Date(selectedInsight.createdAt), { addSuffix: true, locale: dateLocale })}
+              {selectedInsight &&
+                formatDistanceToNow(new Date(selectedInsight.createdAt), {
+                  addSuffix: true,
+                  locale: dateLocale,
+                })}
             </span>
             {selectedInsight?.priority && (
-              <Badge variant={getPriorityVariant(selectedInsight.priority)} size="sm" className="uppercase">
+              <Badge
+                variant={getPriorityVariant(selectedInsight.priority)}
+                size="sm"
+                className="uppercase"
+              >
                 {t(`insightsCard.priority.${selectedInsight.priority.toLowerCase()}`)}
               </Badge>
             )}

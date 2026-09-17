@@ -87,7 +87,7 @@ export function RecurringTransactionDetailModal({
   const isSameCurrency = recurringTransaction.currency === baseCurrency;
   const { data: exchangeRateData } = useLatestExchangeRate(
     recurringTransaction.currency,
-    baseCurrency,
+    baseCurrency
   );
   const exchangeRate = isSameCurrency ? 1 : (exchangeRateData?.rate ?? undefined);
   const convertedAmount =
@@ -109,7 +109,8 @@ export function RecurringTransactionDetailModal({
     if (recurringTransaction.isEnded) return tr('status.ended');
     if (!recurringTransaction.isActive) return tr('status.paused');
     if (recurringTransaction.isDue) return tr('status.dueNow');
-    if (recurringTransaction.daysUntilNext <= 7 && recurringTransaction.daysUntilNext >= 0) return tr('status.dueSoon');
+    if (recurringTransaction.daysUntilNext <= 7 && recurringTransaction.daysUntilNext >= 0)
+      return tr('status.dueSoon');
     return tr('status.active');
   })();
 
@@ -130,10 +131,7 @@ export function RecurringTransactionDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal panel */}
       <div className="relative bg-surface border border-border rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto m-4">
@@ -144,7 +142,7 @@ export function RecurringTransactionDetailModal({
               className={cn(
                 'flex h-10 w-10 items-center justify-center rounded-xl shrink-0',
                 typeConfig.bg,
-                typeConfig.color,
+                typeConfig.color
               )}
             >
               {typeConfig.icon}
@@ -154,7 +152,8 @@ export function RecurringTransactionDetailModal({
                 {recurringTransaction.description}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {tr('types.' + recurringTransaction.type)} · {tr('filters.' + recurringTransaction.frequency.toLowerCase())}
+                {tr('types.' + recurringTransaction.type)} ·{' '}
+                {tr('filters.' + recurringTransaction.frequency.toLowerCase())}
                 {recurringTransaction.payee && ` · ${recurringTransaction.payee}`}
               </p>
             </div>
@@ -221,7 +220,7 @@ export function RecurringTransactionDetailModal({
           {/* Tabs */}
           <div className="border-b border-border mb-6">
             <div className="flex gap-4">
-              {tabs.map((tab) => (
+              {tabs.map(tab => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
@@ -229,7 +228,7 @@ export function RecurringTransactionDetailModal({
                     'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
                     activeTab === tab.key
                       ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground',
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
                   )}
                 >
                   {tab.key === 'attachments' ? (
@@ -276,10 +275,14 @@ export function RecurringTransactionDetailModal({
                   {recurringTransaction.endDate && (
                     <div>
                       <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                        {recurringTransaction.isEnded ? tr('detail.fields.endedOn') : tr('detail.fields.endDate')}
+                        {recurringTransaction.isEnded
+                          ? tr('detail.fields.endedOn')
+                          : tr('detail.fields.endDate')}
                       </dt>
                       <dd className="text-sm font-medium text-foreground">
-                        {format(new Date(recurringTransaction.endDate), 'PP', { locale: dateFnsLocale })}
+                        {format(new Date(recurringTransaction.endDate), 'PP', {
+                          locale: dateFnsLocale,
+                        })}
                       </dd>
                     </div>
                   )}
@@ -288,7 +291,9 @@ export function RecurringTransactionDetailModal({
                       {tr('detail.fields.created')}
                     </dt>
                     <dd className="text-sm font-medium text-foreground">
-                      {format(new Date(recurringTransaction.createdAt), 'PP', { locale: dateFnsLocale })}
+                      {format(new Date(recurringTransaction.createdAt), 'PP', {
+                        locale: dateFnsLocale,
+                      })}
                     </dd>
                   </div>
                 </dl>
@@ -296,7 +301,9 @@ export function RecurringTransactionDetailModal({
 
               {/* Details section */}
               <div className="bg-background border border-border rounded-lg p-6">
-                <h3 className="text-base font-semibold text-foreground mb-4">{tr('detail.sections.details')}</h3>
+                <h3 className="text-base font-semibold text-foreground mb-4">
+                  {tr('detail.sections.details')}
+                </h3>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
@@ -362,7 +369,9 @@ export function RecurringTransactionDetailModal({
               {/* Notes */}
               {recurringTransaction.notes && (
                 <div className="bg-background border border-border rounded-lg p-6">
-                  <h3 className="text-base font-semibold text-foreground mb-3">{tr('detail.sections.notes')}</h3>
+                  <h3 className="text-base font-semibold text-foreground mb-3">
+                    {tr('detail.sections.notes')}
+                  </h3>
                   <p className="text-sm text-foreground whitespace-pre-wrap">
                     {recurringTransaction.notes}
                   </p>

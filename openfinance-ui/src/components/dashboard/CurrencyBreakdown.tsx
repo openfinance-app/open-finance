@@ -1,7 +1,7 @@
 /**
  * CurrencyBreakdown - Shows asset distribution across multiple currencies
  * Sprint 6 - Task 6.2.16: Multi-currency dashboard summary
- * 
+ *
  * Features:
  * - Groups accounts by currency
  * - Shows balance in each currency
@@ -38,11 +38,13 @@ interface CurrencyBreakdownProps {
 
 /**
  * CurrencyBreakdown Component
- * 
+ *
  * Displays a breakdown of account balances grouped by currency,
  * with conversion to base currency and percentage visualization.
  */
-export default function CurrencyBreakdown({ baseCurrency = DEFAULT_CURRENCY }: CurrencyBreakdownProps) {
+export default function CurrencyBreakdown({
+  baseCurrency = DEFAULT_CURRENCY,
+}: CurrencyBreakdownProps) {
   const { t } = useTranslation('dashboard');
   const [refreshKey] = useState(0);
   const { data: accounts, isLoading, error } = useAccounts();
@@ -98,28 +100,34 @@ export default function CurrencyBreakdown({ baseCurrency = DEFAULT_CURRENCY }: C
   }
 
   // Group accounts by currency and calculate balances
-  const currencyGroups = accounts.reduce((acc, account) => {
-    // Only include positive balances (assets) — negative balances are liabilities and
-    // should not inflate the currency breakdown total (matches Net Worth Card totalAssets)
-    if (account.balance <= 0) return acc;
-    if (!acc[account.currency]) {
-      acc[account.currency] = { balance: 0, accountCount: 0 };
-    }
-    acc[account.currency].balance = add(acc[account.currency].balance, account.balance);
-    acc[account.currency].accountCount += 1;
-    return acc;
-  }, {} as Record<string, { balance: number; accountCount: number }>);
+  const currencyGroups = accounts.reduce(
+    (acc, account) => {
+      // Only include positive balances (assets) — negative balances are liabilities and
+      // should not inflate the currency breakdown total (matches Net Worth Card totalAssets)
+      if (account.balance <= 0) return acc;
+      if (!acc[account.currency]) {
+        acc[account.currency] = { balance: 0, accountCount: 0 };
+      }
+      acc[account.currency].balance = add(acc[account.currency].balance, account.balance);
+      acc[account.currency].accountCount += 1;
+      return acc;
+    },
+    {} as Record<string, { balance: number; accountCount: number }>
+  );
 
   // Also include financial asset totalValue grouped by currency
   // Only include assets NOT linked to an account (linked asset values are already
   // added to the account balance by AccountService.toResponseWithDecryption)
   if (assets) {
-    assets.forEach((asset) => {
+    assets.forEach(asset => {
       if (asset.accountId != null) return; // Skip: already counted in account balance
       if (!currencyGroups[asset.currency]) {
         currencyGroups[asset.currency] = { balance: 0, accountCount: 0 };
       }
-      currencyGroups[asset.currency].balance = add(currencyGroups[asset.currency].balance, asset.totalValue);
+      currencyGroups[asset.currency].balance = add(
+        currencyGroups[asset.currency].balance,
+        asset.totalValue
+      );
       currencyGroups[asset.currency].accountCount += 1;
     });
   }
@@ -166,10 +174,14 @@ function CurrencyBreakdownContent({
   refreshKey,
 }: CurrencyBreakdownContentProps) {
   const { t } = useTranslation('dashboard');
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(baseCurrency);
   const navigate = useNavigate();
   // Fetch exchange rates for all foreign currencies
-  const balancesWithRates = currencyBalances.map((currencyBalance) => {
+  const balancesWithRates = currencyBalances.map(currencyBalance => {
     const isForeignCurrency = currencyBalance.currency !== baseCurrency;
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -191,19 +203,16 @@ function CurrencyBreakdownContent({
   });
 
   // Calculate grand total
-  const grandTotal = sum(balancesWithRates.map((cb) => cb.balanceInBase));
+  const grandTotal = sum(balancesWithRates.map(cb => cb.balanceInBase));
 
   // Calculate percentages
-  const balancesWithPercentages = balancesWithRates.map((cb) => {
+  const balancesWithPercentages = balancesWithRates.map(cb => {
     const pct = grandTotal > 0 ? percentage(cb.balanceInBase, grandTotal) : 0;
     return { ...cb, percentage: pct };
   });
 
   // Sort by balance in base currency (descending)
-  const sortedBalances = balancesWithPercentages.sort(
-    (a, b) => b.balanceInBase - a.balanceInBase
-  );
-
+  const sortedBalances = balancesWithPercentages.sort((a, b) => b.balanceInBase - a.balanceInBase);
 
   return (
     <div className="bg-surface rounded-lg p-6 border border-border hover:border-border/70 transition-colors h-full flex flex-col">
@@ -233,22 +242,22 @@ function CurrencyBreakdownContent({
 
       {/* Currency List */}
       <div className="space-y-3 flex-1 overflow-y-auto scrollbar-thin pr-2 min-h-0">
-        {sortedBalances.map((currencyBalance) => (
+        {sortedBalances.map(currencyBalance => (
           <CurrencyBalanceRow
             key={currencyBalance.currency}
             currencyBalance={currencyBalance}
             baseCurrency={baseCurrency}
-            onOpen={() => navigate(`/assets?currency=${encodeURIComponent(currencyBalance.currency)}`)}
+            onOpen={() =>
+              navigate(`/assets?currency=${encodeURIComponent(currencyBalance.currency)}`)
+            }
           />
         ))}
       </div>
 
       {/* Footer Note */}
-      {sortedBalances.some((cb) => cb.rate !== undefined) && (
+      {sortedBalances.some(cb => cb.rate !== undefined) && (
         <div className="mt-4 pt-4 border-t border-border">
-          <p className="text-xs text-text-secondary">
-            {t('currencyBreakdown.footer')}
-          </p>
+          <p className="text-xs text-text-secondary">{t('currencyBreakdown.footer')}</p>
         </div>
       )}
     </div>
@@ -268,7 +277,11 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency, onOpen }: CurrencyB
   const { t } = useTranslation('dashboard');
   const isForeignCurrency = currencyBalance.currency !== baseCurrency;
   const isLoading = currencyBalance.isLoading;
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(baseCurrency);
 
   return (
     <button
@@ -284,7 +297,8 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency, onOpen }: CurrencyB
             {currencyBalance.currency}
           </span>
           <span className="text-xs text-text-secondary">
-            ({currencyBalance.accountCount} {t('currencyBreakdown.item', { count: currencyBalance.accountCount })})
+            ({currencyBalance.accountCount}{' '}
+            {t('currencyBreakdown.item', { count: currencyBalance.accountCount })})
           </span>
         </div>
         <div className="text-right">
@@ -292,7 +306,9 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency, onOpen }: CurrencyB
             <>
               {/* REQ-8.2: Show base-currency total as primary; native amount as secondary */}
               {isLoading ? (
-                <div className="text-sm font-mono text-text-secondary">{t('currencyBreakdown.converting')}</div>
+                <div className="text-sm font-mono text-text-secondary">
+                  {t('currencyBreakdown.converting')}
+                </div>
               ) : (
                 <div className="text-sm font-mono text-text-primary">
                   <ConvertedAmount
@@ -341,7 +357,9 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency, onOpen }: CurrencyB
       {/* Percentage */}
       <div className="flex items-center justify-between mt-1">
         <span className="text-xs text-text-secondary">
-          {t('currencyBreakdown.percentOfTotal', { percent: currencyBalance.percentage.toFixed(1) })}
+          {t('currencyBreakdown.percentOfTotal', {
+            percent: currencyBalance.percentage.toFixed(1),
+          })}
         </span>
         {isForeignCurrency && currencyBalance.rate && (
           <span className="text-xs text-text-muted">

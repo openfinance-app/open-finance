@@ -11,7 +11,9 @@ import { LocaleProvider } from '@/context/LocaleContext';
 // Mock heavy children
 vi.mock('./Sidebar', () => ({ Sidebar: () => <nav data-testid="sidebar">Sidebar</nav> }));
 vi.mock('./TopBar', () => ({ TopBar: () => <header data-testid="topbar">TopBar</header> }));
-vi.mock('@/components/ai/FloatingAIChat', () => ({ FloatingAIChat: () => <div data-testid="floating-chat" /> }));
+vi.mock('@/components/ai/FloatingAIChat', () => ({
+  FloatingAIChat: () => <div data-testid="floating-chat" />,
+}));
 vi.mock('@/hooks/useBreakpoint', () => ({ useIsMobile: () => false }));
 vi.mock('@/hooks/useKeyboardShortcuts', () => ({ useKeyboardShortcuts: vi.fn() }));
 

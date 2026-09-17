@@ -120,7 +120,9 @@ describe('useAlerts hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['budgetAlerts', updatedAlert.budgetId] });
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['budgetAlerts', updatedAlert.budgetId],
+      });
     });
   });
 

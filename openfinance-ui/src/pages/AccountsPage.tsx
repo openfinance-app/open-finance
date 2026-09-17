@@ -3,7 +3,7 @@
  * Task 2.2.9: Create AccountsPage component with list, cards, and add button
  * Task 4.4.6: Document title management
  * BUG-019-001: Account deletion prevention and filtering
- * 
+ *
  * Main page for managing user accounts with filters and pagination
  */
 import { useState, useMemo, useEffect } from 'react';
@@ -49,13 +49,14 @@ function hasActiveFilters(filters: Filters): boolean {
   );
 }
 
-
 export default function AccountsPage() {
   const { t } = useTranslation('accounts');
   useDocumentTitle(t('title'));
   const [searchParams, setSearchParams] = useSearchParams();
   const lowBalanceParam = searchParams.get('lowBalance') === '1';
-  const highlightId = searchParams.get('highlight') ? parseInt(searchParams.get('highlight')!) : null;
+  const highlightId = searchParams.get('highlight')
+    ? parseInt(searchParams.get('highlight')!)
+    : null;
   const institutionParam = searchParams.get('institution');
   const validInstitution = institutionParam?.trim() || undefined;
 
@@ -97,17 +98,26 @@ export default function AccountsPage() {
     return () => window.removeEventListener('keydown', handler);
   }, [showFilters]);
 
-
   // Dialog state for close/reopen/delete actions
   const [actionAccount, setActionAccount] = useState<Account | null>(null);
-  const [actionType, setActionType] = useState<'close' | 'reopen' | 'permanent-delete' | null>(null);
+  const [actionType, setActionType] = useState<'close' | 'reopen' | 'permanent-delete' | null>(
+    null
+  );
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { data: accountsPage, isLoading: isSearchLoading, error } = useAccountsSearch(filters);
   // Fetch all accounts (unfiltered) for global totals in the summary card
-  const { data: allAccountsPage } = useAccountsSearch({ page: 0, size: FETCH_ALL_PAGE_SIZE, sort: 'name,asc' });
+  const { data: allAccountsPage } = useAccountsSearch({
+    page: 0,
+    size: FETCH_ALL_PAGE_SIZE,
+    sort: 'name,asc',
+  });
   // Fetch all filtered accounts for correct totals
-  const { data: allFilteredAccountsPage, isLoading: isFilteredLoading } = useAccountsSearch({ ...filters, page: 0, size: FETCH_ALL_PAGE_SIZE });
+  const { data: allFilteredAccountsPage, isLoading: isFilteredLoading } = useAccountsSearch({
+    ...filters,
+    page: 0,
+    size: FETCH_ALL_PAGE_SIZE,
+  });
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
   const closeAccount = useCloseAccount();
@@ -202,7 +212,8 @@ export default function AccountsPage() {
       setActionType(null);
     } catch (error: any) {
       console.error(`Failed to ${actionType} account:`, error);
-      const errorMessage = error?.response?.data?.message ||
+      const errorMessage =
+        error?.response?.data?.message ||
         error?.message ||
         `Failed to ${actionType === 'close' ? 'close' : actionType === 'reopen' ? 'reopen' : 'delete'} account. Please try again.`;
       setActionError(errorMessage);
@@ -217,7 +228,8 @@ export default function AccountsPage() {
   };
 
   // Check if error is a decryption failure (wrong master password)
-  const isDecryptionError = error &&
+  const isDecryptionError =
+    error &&
     (error as any).response?.status === 400 &&
     (error as any).response?.data?.message?.includes('Decryption failed');
 
@@ -228,47 +240,83 @@ export default function AccountsPage() {
    * Per-currency summary: native total + converted (base-currency) total.
    * Used so ConvertedAmount can show base vs native according to user display preference.
    */
-  const allTotalsByCurrency = useMemo(() => allAccounts.reduce((acc, account) => {
-    const currency = account.currency;
-    if (!acc[currency]) {
-      acc[currency] = {
-        nativeTotal: 0,
-        baseCurrencyTotal: 0,
-        baseCurrency: account.baseCurrency,
-        hasConversion: false,
-      };
-    }
-    acc[currency].nativeTotal = add(acc[currency].nativeTotal, account.balance);
-    if (account.isConverted && account.balanceInBaseCurrency != null) {
-      acc[currency].baseCurrencyTotal = add(acc[currency].baseCurrencyTotal, account.balanceInBaseCurrency);
-      acc[currency].hasConversion = true;
-      if (account.baseCurrency) acc[currency].baseCurrency = account.baseCurrency;
-    }
-    return acc;
-  }, {} as Record<string, { nativeTotal: number; baseCurrencyTotal: number; baseCurrency?: string; hasConversion: boolean }>), [allAccounts]);
+  const allTotalsByCurrency = useMemo(
+    () =>
+      allAccounts.reduce(
+        (acc, account) => {
+          const currency = account.currency;
+          if (!acc[currency]) {
+            acc[currency] = {
+              nativeTotal: 0,
+              baseCurrencyTotal: 0,
+              baseCurrency: account.baseCurrency,
+              hasConversion: false,
+            };
+          }
+          acc[currency].nativeTotal = add(acc[currency].nativeTotal, account.balance);
+          if (account.isConverted && account.balanceInBaseCurrency != null) {
+            acc[currency].baseCurrencyTotal = add(
+              acc[currency].baseCurrencyTotal,
+              account.balanceInBaseCurrency
+            );
+            acc[currency].hasConversion = true;
+            if (account.baseCurrency) acc[currency].baseCurrency = account.baseCurrency;
+          }
+          return acc;
+        },
+        {} as Record<
+          string,
+          {
+            nativeTotal: number;
+            baseCurrencyTotal: number;
+            baseCurrency?: string;
+            hasConversion: boolean;
+          }
+        >
+      ),
+    [allAccounts]
+  );
 
   /**
    * Filtered-page per-currency native totals (shown as secondary when filters are active).
    * Now calculated from allFilteredAccounts instead of just the current page.
    */
-  const filteredTotalsByCurrency = useMemo(() => allFilteredAccounts.reduce((acc, account) => {
-    const currency = account.currency;
-    if (!acc[currency]) {
-      acc[currency] = {
-        nativeTotal: 0,
-        baseCurrencyTotal: 0,
-        baseCurrency: account.baseCurrency,
-        hasConversion: false,
-      };
-    }
-    acc[currency].nativeTotal = add(acc[currency].nativeTotal, account.balance);
-    if (account.isConverted && account.balanceInBaseCurrency != null) {
-      acc[currency].baseCurrencyTotal = add(acc[currency].baseCurrencyTotal, account.balanceInBaseCurrency);
-      acc[currency].hasConversion = true;
-      if (account.baseCurrency) acc[currency].baseCurrency = account.baseCurrency;
-    }
-    return acc;
-  }, {} as Record<string, { nativeTotal: number; baseCurrencyTotal: number; baseCurrency?: string; hasConversion: boolean }>), [allFilteredAccounts]);
+  const filteredTotalsByCurrency = useMemo(
+    () =>
+      allFilteredAccounts.reduce(
+        (acc, account) => {
+          const currency = account.currency;
+          if (!acc[currency]) {
+            acc[currency] = {
+              nativeTotal: 0,
+              baseCurrencyTotal: 0,
+              baseCurrency: account.baseCurrency,
+              hasConversion: false,
+            };
+          }
+          acc[currency].nativeTotal = add(acc[currency].nativeTotal, account.balance);
+          if (account.isConverted && account.balanceInBaseCurrency != null) {
+            acc[currency].baseCurrencyTotal = add(
+              acc[currency].baseCurrencyTotal,
+              account.balanceInBaseCurrency
+            );
+            acc[currency].hasConversion = true;
+            if (account.baseCurrency) acc[currency].baseCurrency = account.baseCurrency;
+          }
+          return acc;
+        },
+        {} as Record<
+          string,
+          {
+            nativeTotal: number;
+            baseCurrencyTotal: number;
+            baseCurrency?: string;
+            hasConversion: boolean;
+          }
+        >
+      ),
+    [allFilteredAccounts]
+  );
 
   const isFiltered = hasActiveFilters(filters);
 
@@ -279,12 +327,8 @@ export default function AccountsPage() {
         <PageHeader title={t('title')} />
         {isDecryptionError ? (
           <div className="mt-6 p-6 bg-error/10 border border-error/20 rounded-lg">
-            <h3 className="text-lg font-semibold text-error mb-2">
-              {t('decryptError.title')}
-            </h3>
-            <p className="text-text-secondary mb-4">
-              {t('decryptError.description')}
-            </p>
+            <h3 className="text-lg font-semibold text-error mb-2">{t('decryptError.title')}</h3>
+            <p className="text-text-secondary mb-4">{t('decryptError.description')}</p>
             <div className="flex gap-3">
               <Button
                 variant="destructive"
@@ -311,7 +355,8 @@ export default function AccountsPage() {
   const getDialogContent = () => {
     if (!actionAccount || !actionType) return null;
 
-    const isLoading = closeAccount.isPending || reopenAccount.isPending || permanentDeleteAccount.isPending;
+    const isLoading =
+      closeAccount.isPending || reopenAccount.isPending || permanentDeleteAccount.isPending;
 
     switch (actionType) {
       case 'close':
@@ -410,7 +455,10 @@ export default function AccountsPage() {
                       />
                       {allFilteredAccountsPage && allAccounts && (
                         <span className="ml-1">
-                          {t('filteredCount', { filtered: allFilteredAccountsPage.totalElements, total: allAccounts.length })}
+                          {t('filteredCount', {
+                            filtered: allFilteredAccountsPage.totalElements,
+                            total: allAccounts.length,
+                          })}
                         </span>
                       )}
                     </div>
@@ -435,9 +483,11 @@ export default function AccountsPage() {
       {!isLoading && accounts && accounts.length === 0 && (
         <EmptyState
           title={t('empty.noResults')}
-          description={filters.keyword || filters.type || filters.currency || filters.institution
-            ? t('empty.noMatch')
-            : t('empty.noAccounts')}
+          description={
+            filters.keyword || filters.type || filters.currency || filters.institution
+              ? t('empty.noMatch')
+              : t('empty.noAccounts')
+          }
           action={{
             label: t('addAccount'),
             onClick: handleCreate,
@@ -449,7 +499,7 @@ export default function AccountsPage() {
       {!isLoading && accounts && accounts.length > 0 && (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-            {accounts.map((account) => (
+            {accounts.map(account => (
               <AccountCard
                 key={account.id}
                 account={account}
@@ -457,7 +507,7 @@ export default function AccountsPage() {
                 onDelete={handleDelete}
                 onClose={handleClose}
                 onReopen={handleReopen}
-                onViewDetail={(a) => setDetailAccountId(a.id)}
+                onViewDetail={a => setDetailAccountId(a.id)}
               />
             ))}
           </div>
@@ -490,8 +540,8 @@ export default function AccountsPage() {
             onCancel={handleFormCancel}
             isLoading={createAccount.isPending || updateAccount.isPending}
             existingAccountNames={allAccounts
-              .filter((a) => a.id !== editingAccount?.id)
-              .map((a) => a.name)}
+              .filter(a => a.id !== editingAccount?.id)
+              .map(a => a.name)}
           />
         </DialogContent>
       </Dialog>
@@ -500,7 +550,7 @@ export default function AccountsPage() {
       {dialogContent && (
         <ConfirmationDialog
           open={!!actionAccount && !!actionType}
-          onOpenChange={(open) => {
+          onOpenChange={open => {
             if (!open) {
               handleCloseActionDialog();
             }

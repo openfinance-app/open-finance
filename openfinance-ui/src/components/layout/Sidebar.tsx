@@ -166,10 +166,7 @@ export function Sidebar() {
         sidebarWidth
       )}
     >
-      <SidebarContent
-        isCollapsed={isCollapsed}
-        onToggle={toggleCollapsed}
-      />
+      <SidebarContent isCollapsed={isCollapsed} onToggle={toggleCollapsed} />
     </aside>
   );
 }
@@ -187,8 +184,8 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
 
   const getInitialExpanded = () => {
     const expanded: Record<string, boolean> = { institutions: true, transactions: false };
-    BASE_NAV_ITEMS.forEach((item) => {
-      if (item.children?.some((child) => child.href && pathname.startsWith(child.href))) {
+    BASE_NAV_ITEMS.forEach(item => {
+      if (item.children?.some(child => child.href && pathname.startsWith(child.href))) {
         expanded[item.labelKey] = true;
       }
     });
@@ -198,9 +195,9 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(getInitialExpanded);
 
   useEffect(() => {
-    BASE_NAV_ITEMS.forEach((item) => {
-      if (item.children?.some((child) => child.href && pathname.startsWith(child.href))) {
-        setExpandedItems((prev) => ({ ...prev, [item.labelKey]: true }));
+    BASE_NAV_ITEMS.forEach(item => {
+      if (item.children?.some(child => child.href && pathname.startsWith(child.href))) {
+        setExpandedItems(prev => ({ ...prev, [item.labelKey]: true }));
       }
     });
   }, [pathname]);
@@ -208,22 +205,22 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
   const { isPropertyRentalAvailable } = useCountryToolConfig();
   const hasSessionHistory = useHasSessionHistory();
 
-  const navItems = BASE_NAV_ITEMS
-    .filter((item) => item.labelKey !== 'history' || hasSessionHistory)
-    .map((item) => {
-      if (item.labelKey === 'tools' && item.children) {
-        return {
-          ...item,
-          children: item.children.filter(
-            (child) => child.labelKey !== 'propertyRental' || isPropertyRentalAvailable
-          ),
-        };
-      }
-      return item;
-    });
+  const navItems = BASE_NAV_ITEMS.filter(
+    item => item.labelKey !== 'history' || hasSessionHistory
+  ).map(item => {
+    if (item.labelKey === 'tools' && item.children) {
+      return {
+        ...item,
+        children: item.children.filter(
+          child => child.labelKey !== 'propertyRental' || isPropertyRentalAvailable
+        ),
+      };
+    }
+    return item;
+  });
 
   const toggleExpanded = (labelKey: string) => {
-    setExpandedItems((prev) => ({
+    setExpandedItems(prev => ({
       ...prev,
       [labelKey]: !prev[labelKey],
     }));
@@ -252,7 +249,7 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
         {!isCollapsed && hasChildren && (
           <button
             type="button"
-            onClick={(event) => {
+            onClick={event => {
               event.preventDefault();
               event.stopPropagation();
               toggleExpanded(item.labelKey);
@@ -311,7 +308,7 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
   };
 
   const renderNavItems = (items: NavItem[], isSubItem = false) =>
-    items.map((item) => {
+    items.map(item => {
       const hasChildren = Boolean(item.children?.length);
       const isExpanded = expandedItems[item.labelKey];
 
@@ -355,7 +352,12 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
       </div>
 
       {/* Navigation */}
-      <nav className={cn('flex-1 px-3 space-y-1 scrollbar-hide overflow-y-auto min-h-0', isCollapsed && 'overflow-x-visible')}>
+      <nav
+        className={cn(
+          'flex-1 px-3 space-y-1 scrollbar-hide overflow-y-auto min-h-0',
+          isCollapsed && 'overflow-x-visible'
+        )}
+      >
         {renderNavItems(navItems)}
       </nav>
 

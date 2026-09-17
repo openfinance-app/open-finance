@@ -28,7 +28,8 @@ export function clearEncryptionKey(): void {
 export function getStoredEncryptionEnabled(): boolean {
   if (typeof window === 'undefined') return true;
   const storedMode =
-    sessionStorage.getItem(STORAGE_KEYS.ENCRYPTION_ENABLED) ?? localStorage.getItem(STORAGE_KEYS.ENCRYPTION_ENABLED);
+    sessionStorage.getItem(STORAGE_KEYS.ENCRYPTION_ENABLED) ??
+    localStorage.getItem(STORAGE_KEYS.ENCRYPTION_ENABLED);
   return storedMode === 'false' ? false : true;
 }
 

@@ -1,6 +1,12 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { useBreakpoint, useBreakpointValue, useIsMobile, useIsTablet, useIsDesktop } from './useBreakpoint';
+import {
+  useBreakpoint,
+  useBreakpointValue,
+  useIsMobile,
+  useIsTablet,
+  useIsDesktop,
+} from './useBreakpoint';
 
 // Helper to set window.innerWidth and trigger resize
 function setWindowWidth(width: number) {

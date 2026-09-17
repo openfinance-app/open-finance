@@ -12,12 +12,12 @@ vi.mock('@/utils/format', () => ({
   formatCurrency: vi.fn((amount: number, currency?: string) => {
     // Return formatted currency using Intl to match actual rendering
     // Use de-DE locale for EUR to get € symbol
-    const locale = (currency === 'EUR') ? 'de-DE' : 'en-US';
+    const locale = currency === 'EUR' ? 'de-DE' : 'en-US';
     const formatted = new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency || 'EUR',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(amount);
     return formatted;
   }),
@@ -83,7 +83,9 @@ describe('BudgetCard', () => {
   const mockOnDelete = vi.fn();
   const mockOnViewDetail = vi.fn();
 
-  const createMockBudget = (overrides: Partial<BudgetProgressResponse> = {}): BudgetProgressResponse => ({
+  const createMockBudget = (
+    overrides: Partial<BudgetProgressResponse> = {}
+  ): BudgetProgressResponse => ({
     budgetId: 1,
     categoryName: 'Groceries',
     budgeted: 500,
@@ -130,11 +132,7 @@ describe('BudgetCard', () => {
     it('should render budget card with WARNING status', () => {
       const budget = createMockBudget({ status: 'WARNING', percentageSpent: 85 });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       expect(screen.getByText('Warning')).toBeInTheDocument();
@@ -144,11 +142,7 @@ describe('BudgetCard', () => {
     it('should render budget card with EXCEEDED status', () => {
       const budget = createMockBudget({ status: 'EXCEEDED', percentageSpent: 120 });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       expect(screen.getByText('Exceeded')).toBeInTheDocument();
@@ -158,19 +152,20 @@ describe('BudgetCard', () => {
     it('should render different budget periods correctly', () => {
       const periods = ['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY'] as const;
 
-      periods.forEach((period) => {
+      periods.forEach(period => {
         const budget = createMockBudget({ period });
         const { rerender } = renderWithProviders(
-          <BudgetCard
-            budget={budget}
-            onEdit={mockOnEdit}
-            onDelete={mockOnDelete}
-          />
+          <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
         );
 
-        const expectedText = period === 'WEEKLY' ? 'Weekly Budget' :
-                           period === 'MONTHLY' ? 'Monthly Budget' :
-                           period === 'QUARTERLY' ? 'Quarterly Budget' : 'Yearly Budget';
+        const expectedText =
+          period === 'WEEKLY'
+            ? 'Weekly Budget'
+            : period === 'MONTHLY'
+              ? 'Monthly Budget'
+              : period === 'QUARTERLY'
+                ? 'Quarterly Budget'
+                : 'Yearly Budget';
 
         expect(screen.getByText(expectedText)).toBeInTheDocument();
 
@@ -203,11 +198,7 @@ describe('BudgetCard', () => {
     it('should not render chevron when onViewDetail is not provided', () => {
       const budget = createMockBudget();
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       expect(screen.queryByTestId('chevron-right-icon')).not.toBeInTheDocument();
@@ -220,14 +211,10 @@ describe('BudgetCard', () => {
         spent: 600,
         remaining: -100,
         percentageSpent: 120,
-        status: 'EXCEEDED'
+        status: 'EXCEEDED',
       });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       expect(screen.getByText(/Over budget by/)).toBeInTheDocument();
@@ -240,11 +227,7 @@ describe('BudgetCard', () => {
     it('should handle expired budget (daysRemaining = 0)', () => {
       const budget = createMockBudget({ daysRemaining: 0 });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       expect(screen.getByText('Expired')).toBeInTheDocument();
@@ -253,11 +236,7 @@ describe('BudgetCard', () => {
     it('should handle negative daysRemaining', () => {
       const budget = createMockBudget({ daysRemaining: -5 });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       expect(screen.getByText('Expired')).toBeInTheDocument();
@@ -266,11 +245,7 @@ describe('BudgetCard', () => {
     it('should handle zero spent amount', () => {
       const budget = createMockBudget({ spent: 0, percentageSpent: 0 });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       // Check that zero amount appears
@@ -283,11 +258,7 @@ describe('BudgetCard', () => {
       const longName = 'This is a very long category name that should be truncated in the UI';
       const budget = createMockBudget({ categoryName: longName });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       const heading = screen.getByRole('heading');
@@ -298,11 +269,7 @@ describe('BudgetCard', () => {
     it('should handle percentage spent exactly at 100%', () => {
       const budget = createMockBudget({ percentageSpent: 100, spent: 500, remaining: 0 });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       expect(screen.getByText('100.0%')).toBeInTheDocument();
@@ -312,11 +279,7 @@ describe('BudgetCard', () => {
     it('should handle percentage spent over 100% with progress bar capped at 100%', () => {
       const budget = createMockBudget({ percentageSpent: 150 });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       // Progress bar should be capped at 100% width
@@ -327,11 +290,7 @@ describe('BudgetCard', () => {
     it('should handle unknown status gracefully', () => {
       const budget = createMockBudget({ status: 'UNKNOWN' as any });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       expect(screen.getByTestId('badge-default-sm')).toBeInTheDocument();
@@ -342,11 +301,7 @@ describe('BudgetCard', () => {
     it('should handle unknown period gracefully', () => {
       const budget = createMockBudget({ period: 'UNKNOWN' as any });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       expect(screen.getByText('Unknown Budget')).toBeInTheDocument();
@@ -357,11 +312,7 @@ describe('BudgetCard', () => {
     it('should render amounts when privacy is enabled (visible)', () => {
       const budget = createMockBudget();
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       const privateAmounts = screen.getAllByTestId('private-amount');
@@ -383,11 +334,7 @@ describe('BudgetCard', () => {
     it('should apply inline class to PrivateAmount components', () => {
       const budget = createMockBudget();
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       const privateAmounts = screen.getAllByTestId('private-amount');
@@ -455,11 +402,7 @@ describe('BudgetCard', () => {
     it('should not call onViewDetail when card is clicked and onViewDetail is not provided', () => {
       const budget = createMockBudget();
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       const card = screen.getByTestId('budget-card');
@@ -510,11 +453,7 @@ describe('BudgetCard', () => {
     it('should not have button role when onViewDetail is not provided', () => {
       const budget = createMockBudget();
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       const card = screen.getByTestId('budget-card');
@@ -527,11 +466,7 @@ describe('BudgetCard', () => {
     it('should apply correct color for ON_TRACK status', () => {
       const budget = createMockBudget({ status: 'ON_TRACK' });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       const progressBar = screen.getByTestId('budget-card').querySelector('.h-full.bg-success');
@@ -541,11 +476,7 @@ describe('BudgetCard', () => {
     it('should apply correct color for WARNING status', () => {
       const budget = createMockBudget({ status: 'WARNING' });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       const progressBar = screen.getByTestId('budget-card').querySelector('.h-full.bg-warning');
@@ -555,11 +486,7 @@ describe('BudgetCard', () => {
     it('should apply correct color for EXCEEDED status', () => {
       const budget = createMockBudget({ status: 'EXCEEDED' });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       const progressBar = screen.getByTestId('budget-card').querySelector('.h-full.bg-error');
@@ -569,14 +496,12 @@ describe('BudgetCard', () => {
     it('should apply default color for unknown status', () => {
       const budget = createMockBudget({ status: 'UNKNOWN' as any });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
-      const progressBar = screen.getByTestId('budget-card').querySelector('.h-full.bg-text-tertiary');
+      const progressBar = screen
+        .getByTestId('budget-card')
+        .querySelector('.h-full.bg-text-tertiary');
       expect(progressBar).toBeInTheDocument();
     });
   });
@@ -585,11 +510,7 @@ describe('BudgetCard', () => {
     it('should handle invalid percentage values gracefully', () => {
       const budget = createMockBudget({ percentageSpent: NaN });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       // Should still render without crashing
@@ -599,11 +520,7 @@ describe('BudgetCard', () => {
     it('should handle negative percentage values', () => {
       const budget = createMockBudget({ percentageSpent: -10 });
       renderWithProviders(
-        <BudgetCard
-          budget={budget}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
       expect(screen.getByText('-10.0%')).toBeInTheDocument();

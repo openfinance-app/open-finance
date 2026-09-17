@@ -20,9 +20,23 @@ vi.mock('react-router', async () => {
 });
 
 const accounts: IAccountSummary[] = [
-  { id: 1, name: 'Main Checking', type: 'CHECKING', balance: 5000, currency: 'EUR', isActive: true },
+  {
+    id: 1,
+    name: 'Main Checking',
+    type: 'CHECKING',
+    balance: 5000,
+    currency: 'EUR',
+    isActive: true,
+  },
   { id: 2, name: 'Savings', type: 'SAVINGS', balance: 20000, currency: 'EUR', isActive: true },
-  { id: 3, name: 'Credit Card', type: 'CREDIT_CARD', balance: -1500, currency: 'EUR', isActive: true },
+  {
+    id: 3,
+    name: 'Credit Card',
+    type: 'CREDIT_CARD',
+    balance: -1500,
+    currency: 'EUR',
+    isActive: true,
+  },
   { id: 4, name: 'Brokerage', type: 'INVESTMENT', balance: 50000, currency: 'USD', isActive: true },
   { id: 5, name: 'Cash Reserve', type: 'CASH', balance: 300, currency: 'EUR', isActive: true },
 ];

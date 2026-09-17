@@ -2,11 +2,20 @@
  * AttachmentList Component
  * Task 12.1.11: Create AttachmentList component
  * Task 12.1.14: Add image preview modal
- * 
+ *
  * Display list of attachments with download/delete functionality and image preview
  */
 import { useState } from 'react';
-import { Download, Trash2, FileText, Image as ImageIcon, File, Table, Loader2, Eye } from 'lucide-react';
+import {
+  Download,
+  Trash2,
+  FileText,
+  Image as ImageIcon,
+  File,
+  Table,
+  Loader2,
+  Eye,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -41,13 +50,14 @@ export function AttachmentList({
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
 
   // Filter only image attachments for preview modal
-  const imageAttachments = attachments?.filter((a) => a.image) || [];
+  const imageAttachments = attachments?.filter(a => a.image) || [];
 
   const getFileIcon = (attachment: Attachment) => {
     if (attachment.image) return ImageIcon;
     if (attachment.pdf) return FileText;
     if (attachment.fileType.includes('word')) return FileText;
-    if (attachment.fileType.includes('excel') || attachment.fileType.includes('spreadsheet')) return Table;
+    if (attachment.fileType.includes('excel') || attachment.fileType.includes('spreadsheet'))
+      return Table;
     if (attachment.fileType.includes('csv')) return Table;
     return File;
   };
@@ -79,7 +89,7 @@ export function AttachmentList({
   const handleImageClick = (attachment: Attachment) => {
     if (!attachment.image) return;
 
-    const imageIndex = imageAttachments.findIndex((img) => img.id === attachment.id);
+    const imageIndex = imageAttachments.findIndex(img => img.id === attachment.id);
     if (imageIndex !== -1) {
       setPreviewImageIndex(imageIndex);
       setImagePreviewOpen(true);
@@ -105,13 +115,11 @@ export function AttachmentList({
       <Card className={cn('p-6', className)}>
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium">
-              Attachments ({attachments.length})
-            </h3>
+            <h3 className="text-sm font-medium">Attachments ({attachments.length})</h3>
           </div>
 
           <div className="space-y-2">
-            {attachments.map((attachment) => {
+            {attachments.map(attachment => {
               const Icon = getFileIcon(attachment);
               const isDownloadingThis = downloadingId === attachment.id;
 
@@ -123,11 +131,11 @@ export function AttachmentList({
                   {/* File icon */}
                   <div
                     className={cn(
-                      "flex-shrink-0",
-                      attachment.image && "cursor-pointer hover:opacity-70 transition-opacity"
+                      'flex-shrink-0',
+                      attachment.image && 'cursor-pointer hover:opacity-70 transition-opacity'
                     )}
                     onClick={() => handleImageClick(attachment)}
-                    title={attachment.image ? "Click to preview" : undefined}
+                    title={attachment.image ? 'Click to preview' : undefined}
                   >
                     <Icon className="h-8 w-8 text-text-muted" />
                   </div>
@@ -137,11 +145,11 @@ export function AttachmentList({
                     <div className="flex items-center gap-2">
                       <p
                         className={cn(
-                          "text-sm font-medium truncate",
-                          attachment.image && "cursor-pointer hover:text-primary"
+                          'text-sm font-medium truncate',
+                          attachment.image && 'cursor-pointer hover:text-primary'
                         )}
                         onClick={() => handleImageClick(attachment)}
-                        title={attachment.image ? "Click to preview" : undefined}
+                        title={attachment.image ? 'Click to preview' : undefined}
                       >
                         {attachment.fileName}
                       </p>

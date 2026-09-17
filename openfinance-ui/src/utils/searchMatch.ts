@@ -9,21 +9,21 @@
  * regex simply yields an empty result set.
  */
 export function matchesQuery(
-    text: string | null | undefined,
-    query: string | null | undefined,
-    isRegex: boolean
+  text: string | null | undefined,
+  query: string | null | undefined,
+  isRegex: boolean
 ): boolean {
-    if (!text || !query) return false;
+  if (!text || !query) return false;
 
-    if (isRegex) {
-        try {
-            return new RegExp(query, 'i').test(text);
-        } catch {
-            return false;
-        }
+  if (isRegex) {
+    try {
+      return new RegExp(query, 'i').test(text);
+    } catch {
+      return false;
     }
+  }
 
-    return text.toLowerCase().includes(query.toLowerCase());
+  return text.toLowerCase().includes(query.toLowerCase());
 }
 
 /**
@@ -31,10 +31,10 @@ export function matchesQuery(
  * Useful for showing inline validation feedback on a regex-enabled search input.
  */
 export function isValidRegex(pattern: string): boolean {
-    try {
-        new RegExp(pattern);
-        return true;
-    } catch {
-        return false;
-    }
+  try {
+    new RegExp(pattern);
+    return true;
+  } catch {
+    return false;
+  }
 }

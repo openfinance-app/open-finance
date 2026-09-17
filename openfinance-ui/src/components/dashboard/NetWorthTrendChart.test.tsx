@@ -59,7 +59,9 @@ describe('NetWorthTrendChart', () => {
   it('shows trend indicator for positive growth', () => {
     const { container } = renderWithProviders(<NetWorthTrendChart data={data} currency="EUR" />);
     // Net worth increased from 30000 to 42000 = +40% — should show positive trend
-    expect(container.querySelector('.text-green-500, .text-emerald-500') || container.innerHTML).toBeTruthy();
+    expect(
+      container.querySelector('.text-green-500, .text-emerald-500') || container.innerHTML
+    ).toBeTruthy();
   });
 
   it('shows negative trend indicator for decline', () => {
@@ -68,7 +70,9 @@ describe('NetWorthTrendChart', () => {
       { date: '2024-02-01', totalAssets: 55000, totalLiabilities: 19000, netWorth: 36000 },
       { date: '2024-03-01', totalAssets: 50000, totalLiabilities: 20000, netWorth: 30000 },
     ];
-    const { container } = renderWithProviders(<NetWorthTrendChart data={decliningData} currency="EUR" />);
+    const { container } = renderWithProviders(
+      <NetWorthTrendChart data={decliningData} currency="EUR" />
+    );
     // Should show red/negative indicator
     expect(container.innerHTML).toContain('text-red');
   });
@@ -78,12 +82,16 @@ describe('NetWorthTrendChart', () => {
       { date: '2024-01-01', totalAssets: 50000, totalLiabilities: 20000, netWorth: 30000 },
       { date: '2024-02-01', totalAssets: 50000, totalLiabilities: 20000, netWorth: 30000 },
     ];
-    const { container } = renderWithProviders(<NetWorthTrendChart data={flatData} currency="EUR" />);
+    const { container } = renderWithProviders(
+      <NetWorthTrendChart data={flatData} currency="EUR" />
+    );
     expect(container.innerHTML).not.toBe('');
   });
 
   it('renders with periodLabel prop', () => {
-    renderWithProviders(<NetWorthTrendChart data={data} currency="EUR" periodLabel="Last 90 days" />);
+    renderWithProviders(
+      <NetWorthTrendChart data={data} currency="EUR" periodLabel="Last 90 days" />
+    );
     expect(screen.getByText(/Last 90 days/)).toBeInTheDocument();
   });
 
@@ -97,7 +105,9 @@ describe('NetWorthTrendChart', () => {
     const singlePoint = [
       { date: '2024-01-01', totalAssets: 50000, totalLiabilities: 20000, netWorth: 30000 },
     ];
-    const { container } = renderWithProviders(<NetWorthTrendChart data={singlePoint} currency="EUR" />);
+    const { container } = renderWithProviders(
+      <NetWorthTrendChart data={singlePoint} currency="EUR" />
+    );
     expect(container.innerHTML).not.toBe('');
   });
 
@@ -106,7 +116,9 @@ describe('NetWorthTrendChart', () => {
       { date: '2024-01-01', totalAssets: 0, totalLiabilities: 0, netWorth: 0 },
       { date: '2024-02-01', totalAssets: 10000, totalLiabilities: 0, netWorth: 10000 },
     ];
-    const { container } = renderWithProviders(<NetWorthTrendChart data={zeroStart} currency="EUR" />);
+    const { container } = renderWithProviders(
+      <NetWorthTrendChart data={zeroStart} currency="EUR" />
+    );
     // Should not divide by zero
     expect(container.innerHTML).not.toBe('');
   });

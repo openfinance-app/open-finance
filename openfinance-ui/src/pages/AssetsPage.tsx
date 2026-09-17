@@ -1,12 +1,20 @@
 /**
  * AssetsPage Component
  * Task 5.2.7: Create AssetsPage component
- * 
+ *
  * Main page for managing user investment assets with filters and pagination
  */
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
-import { Plus, Filter, DollarSign, PieChart, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import {
+  Plus,
+  Filter,
+  DollarSign,
+  PieChart,
+  TrendingUp,
+  TrendingDown,
+  RefreshCw,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
@@ -45,26 +53,40 @@ import type { Asset, AssetRequest, AssetFilters as Filters } from '@/types/asset
 import { DEFAULT_PAGE_SIZE, FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
 
 const ASSET_TYPE_VALUES = [
-  'STOCK', 'ETF', 'CRYPTO', 'BOND', 'MUTUAL_FUND', 'REAL_ESTATE', 'COMMODITY',
-  'VEHICLE', 'JEWELRY', 'COLLECTIBLE', 'ELECTRONICS', 'FURNITURE', 'OTHER',
+  'STOCK',
+  'ETF',
+  'CRYPTO',
+  'BOND',
+  'MUTUAL_FUND',
+  'REAL_ESTATE',
+  'COMMODITY',
+  'VEHICLE',
+  'JEWELRY',
+  'COLLECTIBLE',
+  'ELECTRONICS',
+  'FURNITURE',
+  'OTHER',
 ] as const;
-
 
 export default function AssetsPage() {
   const { t } = useTranslation('assets');
   useDocumentTitle(t('title'));
   const [searchParams, setSearchParams] = useSearchParams();
-  const highlightId = searchParams.get('highlight') ? parseInt(searchParams.get('highlight')!) : null;
+  const highlightId = searchParams.get('highlight')
+    ? parseInt(searchParams.get('highlight')!)
+    : null;
 
   // Deep-link support: seed currency/type filters from URL params (validated)
   const currencyParam = searchParams.get('currency');
   const typeParam = searchParams.get('type');
-  const validType = typeParam && (ASSET_TYPE_VALUES as readonly string[]).includes(typeParam)
-    ? (typeParam as Filters['type'])
-    : undefined;
-  const validCurrency = currencyParam && /^[A-Za-z]{3,4}$/.test(currencyParam)
-    ? currencyParam.toUpperCase()
-    : undefined;
+  const validType =
+    typeParam && (ASSET_TYPE_VALUES as readonly string[]).includes(typeParam)
+      ? (typeParam as Filters['type'])
+      : undefined;
+  const validCurrency =
+    currencyParam && /^[A-Za-z]{3,4}$/.test(currencyParam)
+      ? currencyParam.toUpperCase()
+      : undefined;
 
   const { baseCurrency } = useAuthContext();
 
@@ -105,7 +127,11 @@ export default function AssetsPage() {
 
   const { data: assetsPage, isLoading, error } = useAssetsSearch(filters);
   // Fetch all assets (unfiltered) for global totals in summary cards
-  const { data: allAssetsPage } = useAssetsSearch({ page: 0, size: FETCH_ALL_PAGE_SIZE, sort: 'name,asc' });
+  const { data: allAssetsPage } = useAssetsSearch({
+    page: 0,
+    size: FETCH_ALL_PAGE_SIZE,
+    sort: 'name,asc',
+  });
   // Also use the flat assets list for portfolio metrics
   const { data: allAssetsList } = useAssets();
   const createAsset = useCreateAsset();
@@ -135,39 +161,56 @@ export default function AssetsPage() {
   const computeAssetSummary = (assetList: Asset[]) => {
     // Use the user-entered current value (totalValue) for every asset, including physical ones.
     // Auto-depreciation is only a fallback for physical assets that lack an entered current price.
-    const totalValue = sum(assetList.map((a) => {
-      // Coerce to Number first: keeps NaN-propagation semantics (instead of throwing) if a
-      // field is unexpectedly missing, matching the previous `sum + effectiveNative` behavior.
-      const effectiveNative = Number(
-        a.isPhysical
-          ? (a.totalValue ?? a.conditionAdjustedValue ?? a.depreciatedValue)
-          : a.totalValue
-      );
-      if (a.valueInBaseCurrency !== undefined && a.valueInBaseCurrency !== null && a.totalValue > 0) {
-        const rate = divide(a.valueInBaseCurrency, a.totalValue);
-        return multiply(effectiveNative, rate);
-      }
-      return effectiveNative;
-    }));
-    const totalCost = sum(assetList.map((a) => {
-      const cost = Number(a.totalCost);
-      if (a.valueInBaseCurrency !== undefined && a.valueInBaseCurrency !== null && a.totalValue > 0) {
-        const rate = divide(a.valueInBaseCurrency, a.totalValue);
-        return multiply(cost, rate);
-      }
-      return cost;
-    }));
+    const totalValue = sum(
+      assetList.map(a => {
+        // Coerce to Number first: keeps NaN-propagation semantics (instead of throwing) if a
+        // field is unexpectedly missing, matching the previous `sum + effectiveNative` behavior.
+        const effectiveNative = Number(
+          a.isPhysical
+            ? (a.totalValue ?? a.conditionAdjustedValue ?? a.depreciatedValue)
+            : a.totalValue
+        );
+        if (
+          a.valueInBaseCurrency !== undefined &&
+          a.valueInBaseCurrency !== null &&
+          a.totalValue > 0
+        ) {
+          const rate = divide(a.valueInBaseCurrency, a.totalValue);
+          return multiply(effectiveNative, rate);
+        }
+        return effectiveNative;
+      })
+    );
+    const totalCost = sum(
+      assetList.map(a => {
+        const cost = Number(a.totalCost);
+        if (
+          a.valueInBaseCurrency !== undefined &&
+          a.valueInBaseCurrency !== null &&
+          a.totalValue > 0
+        ) {
+          const rate = divide(a.valueInBaseCurrency, a.totalValue);
+          return multiply(cost, rate);
+        }
+        return cost;
+      })
+    );
     const totalGain = subtract(totalValue, totalCost);
     const gainPct = totalCost > 0 ? percentage(totalGain, totalCost) : 0;
     // Prefer the base currency from the server response; fall back to auth context baseCurrency
-    const currency = assetList[0]?.baseCurrency ?? baseCurrency ?? assetList[0]?.currency ?? DEFAULT_CURRENCY;
+    const currency =
+      assetList[0]?.baseCurrency ?? baseCurrency ?? assetList[0]?.currency ?? DEFAULT_CURRENCY;
     return { totalValue, totalCost, totalGain, gainPct, currency };
   };
 
   const globalSummary = useMemo(() => computeAssetSummary(allAssets), [allAssets]);
   const filteredSummary = useMemo(() => computeAssetSummary(assets), [assets]);
 
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(globalSummary.currency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(globalSummary.currency);
 
   // Portfolio metrics from the flat all-assets list
   const metrics = useMemo(
@@ -176,13 +219,10 @@ export default function AssetsPage() {
   );
 
   // Best performer — use filtered assets when filters are active, otherwise global
-  const { best } = useMemo(
-    () => {
-      const sourceList = isFiltered ? assets : (allAssetsList ?? []);
-      return sourceList.length > 0 ? getTopPerformers(sourceList) : { best: [] };
-    },
-    [isFiltered, assets, allAssetsList]
-  );
+  const { best } = useMemo(() => {
+    const sourceList = isFiltered ? assets : (allAssetsList ?? []);
+    return sourceList.length > 0 ? getTopPerformers(sourceList) : { best: [] };
+  }, [isFiltered, assets, allAssetsList]);
 
   const handleRefreshPrices = async () => {
     if (assetsWithSymbols.length === 0) return;
@@ -266,10 +306,7 @@ export default function AssetsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex items-center justify-between">
-          <PageHeader
-            title={t('title')}
-            description={t('description')}
-          />
+          <PageHeader title={t('title')} description={t('description')} />
           <div className="flex items-center gap-3">
             {/* Refresh Prices button */}
             <Button
@@ -314,7 +351,9 @@ export default function AssetsPage() {
           {/* Total Portfolio Value */}
           <div className="bg-surface border border-border rounded-lg p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">{t('summary.totalPortfolioValue')}</span>
+              <span className="text-sm text-muted-foreground">
+                {t('summary.totalPortfolioValue')}
+              </span>
               <DollarSign className="h-5 w-5 text-primary" />
             </div>
             <ConvertedAmount
@@ -440,9 +479,7 @@ export default function AssetsPage() {
       {!isLoading && assets && assets.length === 0 && (
         <EmptyState
           title={t('empty.noResults')}
-          description={isFiltered
-            ? t('empty.noMatch')
-            : t('empty.noAssets')}
+          description={isFiltered ? t('empty.noMatch') : t('empty.noAssets')}
           action={{
             label: t('addAsset'),
             onClick: handleCreate,

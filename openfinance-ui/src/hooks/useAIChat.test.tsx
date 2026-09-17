@@ -309,5 +309,4 @@ describe('useAIChat hooks', () => {
       await waitFor(() => expect(result.current.conversation).toEqual(mockConversation));
     });
   });
-
 });

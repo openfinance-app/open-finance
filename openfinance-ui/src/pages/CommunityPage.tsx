@@ -10,10 +10,7 @@ export default function CommunityPage() {
 
   return (
     <div className="p-8">
-      <PageHeader
-        title={t('community.title')}
-        description={t('community.description')}
-      />
+      <PageHeader title={t('community.title')} description={t('community.description')} />
       <EmptyState
         icon={Users}
         title={t('community.comingSoon')}

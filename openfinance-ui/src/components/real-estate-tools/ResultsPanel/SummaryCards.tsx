@@ -1,6 +1,6 @@
 /**
  * SummaryCards Component
- * 
+ *
  * Summary cards for Buy and Rent scenarios
  * Requirements: REQ-1.6.1, REQ-1.6.2
  */
@@ -139,34 +139,51 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">{t('results.netWorthDifference')}</p>
-              <p className={`text-2xl font-bold ${comparison.netWorthDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {comparison.netWorthDifference >= 0 ? '+' : ''}
-                  <ConvertedAmount amount={comparison.netWorthDifference} currency={baseCurrency} inline />
+              <p className="text-sm text-muted-foreground mb-2">
+                {t('results.netWorthDifference')}
+              </p>
+              <p
+                className={`text-2xl font-bold ${comparison.netWorthDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              >
+                {comparison.netWorthDifference >= 0 ? '+' : ''}
+                <ConvertedAmount
+                  amount={comparison.netWorthDifference}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {t('results.inFavorOf', { winner: comparison.winner === 'buy' ? t('results.buyGenitive') : t('results.rentGenitive') })}
+                {t('results.inFavorOf', {
+                  winner:
+                    comparison.winner === 'buy'
+                      ? t('results.buyGenitive')
+                      : t('results.rentGenitive'),
+                })}
               </p>
             </div>
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">{t('results.expenseDifference')}</p>
-              <p className={`text-2xl font-bold ${comparison.netExpenseDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {comparison.netExpenseDifference >= 0 ? '+' : ''}
-                  <ConvertedAmount amount={comparison.netExpenseDifference} currency={baseCurrency} inline />
+              <p
+                className={`text-2xl font-bold ${comparison.netExpenseDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              >
+                {comparison.netExpenseDifference >= 0 ? '+' : ''}
+                <ConvertedAmount
+                  amount={comparison.netExpenseDifference}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t('results.netSavings')}
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">{t('results.netSavings')}</p>
             </div>
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">{t('results.monthlyGap')}</p>
-              <p className={`text-2xl font-bold ${comparison.monthlyGap >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {comparison.monthlyGap >= 0 ? '+' : ''}
-                  <ConvertedAmount amount={comparison.monthlyGap} currency={baseCurrency} inline />
+              <p
+                className={`text-2xl font-bold ${comparison.monthlyGap >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              >
+                {comparison.monthlyGap >= 0 ? '+' : ''}
+                <ConvertedAmount amount={comparison.monthlyGap} currency={baseCurrency} inline />
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t('results.perMonth')}
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">{t('results.perMonth')}</p>
             </div>
           </div>
         </CardContent>

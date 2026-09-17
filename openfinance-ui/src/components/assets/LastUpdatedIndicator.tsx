@@ -1,7 +1,7 @@
 /**
  * LastUpdatedIndicator Component
  * Task 5.4.6: Display last updated timestamp
- * 
+ *
  * Shows when asset prices were last updated with visual indicators for stale data
  */
 import { Clock, AlertTriangle } from 'lucide-react';
@@ -14,10 +14,10 @@ interface LastUpdatedIndicatorProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function LastUpdatedIndicator({ 
-  lastUpdated, 
+export function LastUpdatedIndicator({
+  lastUpdated,
   showWarning = true,
-  size = 'sm' 
+  size = 'sm',
 }: LastUpdatedIndicatorProps) {
   const { t } = useTranslation('common');
   const isStale = isStalePrice(lastUpdated);
@@ -72,7 +72,10 @@ export function BatchUpdateIndicator({ assets, size = 'md' }: BatchUpdateIndicat
       <LastUpdatedIndicator lastUpdated={mostRecent} size={size} showWarning={false} />
       {staleCount > 0 && (
         <div className="flex items-center gap-1.5">
-          <AlertTriangle className="flex-shrink-0 text-yellow-500" size={size === 'sm' ? 12 : size === 'md' ? 14 : 16} />
+          <AlertTriangle
+            className="flex-shrink-0 text-yellow-500"
+            size={size === 'sm' ? 12 : size === 'md' ? 14 : 16}
+          />
           <span className={`${textSize} text-yellow-500`}>
             {t('lastUpdated.stalePrice', { count: staleCount })}
           </span>

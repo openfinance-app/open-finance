@@ -52,16 +52,15 @@ export function LanguageSelector() {
       ) : (
         <Globe size={16} className="text-text-secondary flex-shrink-0" />
       )}
-      <Select 
-        value={locale} 
-        onValueChange={handleLanguageChange}
-        disabled={isChangingLocale}
-      >
+      <Select value={locale} onValueChange={handleLanguageChange} disabled={isChangingLocale}>
         <SelectTrigger className="w-48" aria-label={t('display.language.label')}>
           <SelectValue>
             {currentLanguage && (
               <span className="flex items-center gap-2">
-                <span className={`${countryFlagClass(currentLanguage.flagCode)} text-base`} style={{ width: '1.33em', lineHeight: 1 }} />
+                <span
+                  className={`${countryFlagClass(currentLanguage.flagCode)} text-base`}
+                  style={{ width: '1.33em', lineHeight: 1 }}
+                />
                 {t(currentLanguage.labelKey)}
               </span>
             )}
@@ -71,7 +70,10 @@ export function LanguageSelector() {
           {SUPPORTED_LANGUAGES.map(lang => (
             <SelectItem key={lang.code} value={lang.code}>
               <span className="flex items-center gap-2">
-                <span className={`${countryFlagClass(lang.flagCode)} text-base`} style={{ width: '1.33em', lineHeight: 1 }} />
+                <span
+                  className={`${countryFlagClass(lang.flagCode)} text-base`}
+                  style={{ width: '1.33em', lineHeight: 1 }}
+                />
                 {t(lang.labelKey)}
               </span>
             </SelectItem>

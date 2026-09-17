@@ -1,13 +1,27 @@
 /**
  * PayeeManagementSettings component
- * 
+ *
  * Settings section for managing payees.
  * Users can view, add, edit, delete, and toggle visibility of payees.
  */
 
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Plus, Pencil, Trash2, Upload, X, Eye, EyeOff, FolderOpen, ArrowUpDown, ChevronDown, Check, Search } from 'lucide-react';
+import {
+  User,
+  Plus,
+  Pencil,
+  Trash2,
+  Upload,
+  X,
+  Eye,
+  EyeOff,
+  FolderOpen,
+  ArrowUpDown,
+  ChevronDown,
+  Check,
+  Search,
+} from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -44,7 +58,11 @@ export function PayeeManagementSettings() {
   const { t } = useTranslation('payees');
   useDocumentTitle(t('title'));
   const { baseCurrency } = useAuthContext();
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(baseCurrency);
   const { data: payees, isLoading, error } = usePayees();
   const createPayee = useCreatePayee();
   const updatePayee = useUpdatePayee();
@@ -70,24 +88,26 @@ export function PayeeManagementSettings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter payees by search query
-  const filteredPayees = payees?.filter((p) => {
-    const matchesSearch =
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.categoryName?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesActive = showInactive || p.isActive;
-    return matchesSearch && matchesActive;
-  })?.sort((a, b) => {
-    switch (sortBy) {
-      case 'transactions':
-        return (b.transactionCount || 0) - (a.transactionCount || 0);
-      case 'amount':
-        return (b.totalAmount || 0) - (a.totalAmount || 0);
-      case 'name':
-      default:
-        return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
-    }
-  });
+  const filteredPayees = payees
+    ?.filter(p => {
+      const matchesSearch =
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.categoryName?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesActive = showInactive || p.isActive;
+      return matchesSearch && matchesActive;
+    })
+    ?.sort((a, b) => {
+      switch (sortBy) {
+        case 'transactions':
+          return (b.transactionCount || 0) - (a.transactionCount || 0);
+        case 'amount':
+          return (b.totalAmount || 0) - (a.totalAmount || 0);
+        case 'name':
+        default:
+          return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+      }
+    });
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -217,8 +237,8 @@ export function PayeeManagementSettings() {
     );
   }
 
-  const systemPayees = filteredPayees?.filter((p) => p.isSystem) || [];
-  const customPayees = filteredPayees?.filter((p) => !p.isSystem) || [];
+  const systemPayees = filteredPayees?.filter(p => p.isSystem) || [];
+  const customPayees = filteredPayees?.filter(p => !p.isSystem) || [];
 
   return (
     <div className="space-y-6">
@@ -226,9 +246,7 @@ export function PayeeManagementSettings() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-text-primary">{t('title')}</h2>
-          <p className="text-sm text-text-secondary mt-1">
-            {t('description')}
-          </p>
+          <p className="text-sm text-text-secondary mt-1">{t('description')}</p>
         </div>
         <Button variant="primary" onClick={openCreateForm}>
           <Plus className="h-4 w-4 mr-2" />
@@ -243,7 +261,7 @@ export function PayeeManagementSettings() {
             type="text"
             placeholder={t('searchPlaceholder')}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             className="pl-10"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
@@ -261,20 +279,39 @@ export function PayeeManagementSettings() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2">
               <ArrowUpDown className="h-4 w-4" />
-              <span>{t('sortBy', { field: t(sortBy === 'name' ? 'sortName' : sortBy === 'transactions' ? 'sortTransactions' : 'sortAmount') })}</span>
+              <span>
+                {t('sortBy', {
+                  field: t(
+                    sortBy === 'name'
+                      ? 'sortName'
+                      : sortBy === 'transactions'
+                        ? 'sortTransactions'
+                        : 'sortAmount'
+                  ),
+                })}
+              </span>
               <ChevronDown className="h-4 w-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-[180px]">
-            <DropdownMenuItem onClick={() => setSortBy('name')} className="flex items-center justify-between">
+            <DropdownMenuItem
+              onClick={() => setSortBy('name')}
+              className="flex items-center justify-between"
+            >
               {t('sortName')}
               {sortBy === 'name' && <Check className="h-4 w-4" />}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setSortBy('transactions')} className="flex items-center justify-between">
+            <DropdownMenuItem
+              onClick={() => setSortBy('transactions')}
+              className="flex items-center justify-between"
+            >
               {t('transactionCount')}
               {sortBy === 'transactions' && <Check className="h-4 w-4" />}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setSortBy('amount')} className="flex items-center justify-between">
+            <DropdownMenuItem
+              onClick={() => setSortBy('amount')}
+              className="flex items-center justify-between"
+            >
               {t('totalAmount')}
               {sortBy === 'amount' && <Check className="h-4 w-4" />}
             </DropdownMenuItem>
@@ -289,7 +326,9 @@ export function PayeeManagementSettings() {
           <Card className="p-6 text-center">
             <User className="h-12 w-12 mx-auto text-text-muted mb-3" />
             {searchQuery ? (
-              <p className="text-text-secondary">{t('custom.noSearchResults', { query: searchQuery })}</p>
+              <p className="text-text-secondary">
+                {t('custom.noSearchResults', { query: searchQuery })}
+              </p>
             ) : (
               <>
                 <p className="text-text-secondary">{t('custom.empty')}</p>
@@ -303,83 +342,83 @@ export function PayeeManagementSettings() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {customPayees.slice(0, showAllCustom ? undefined : 12).map((payee) => (
-              <Card key={payee.id} className={cn('p-4', !payee.isActive && 'opacity-50')}>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      {payee.logo ? (
-                        <img
-                          src={payee.logo}
-                          alt=""
-                          className="h-8 w-8 rounded object-contain bg-white"
-                        />
-                      ) : (
-                        <User className="h-5 w-5 text-primary" />
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-text-primary">{payee.name}</h4>
-                      {payee.categoryName ? (
-                        <p className="text-xs text-text-muted flex items-center gap-1">
-                          <FolderOpen className="h-3 w-3" />
-                          {payee.categoryName}
-                        </p>
-                      ) : null}
-
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-elevated text-text-secondary border border-border">
-                          {t('transactions', { count: payee.transactionCount || 0 })}
-                        </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/5 text-primary border border-primary/10">
-                          <ConvertedAmount
-                            amount={payee.totalAmount || 0}
-                            currency={baseCurrency}
-                            isConverted={false}
-                            secondaryAmount={convert(payee.totalAmount || 0)}
-                            secondaryCurrency={secCurrency}
-                            secondaryExchangeRate={secondaryExchangeRate}
-                            inline
+              {customPayees.slice(0, showAllCustom ? undefined : 12).map(payee => (
+                <Card key={payee.id} className={cn('p-4', !payee.isActive && 'opacity-50')}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        {payee.logo ? (
+                          <img
+                            src={payee.logo}
+                            alt=""
+                            className="h-8 w-8 rounded object-contain bg-white"
                           />
-                        </span>
+                        ) : (
+                          <User className="h-5 w-5 text-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-text-primary">{payee.name}</h4>
+                        {payee.categoryName ? (
+                          <p className="text-xs text-text-muted flex items-center gap-1">
+                            <FolderOpen className="h-3 w-3" />
+                            {payee.categoryName}
+                          </p>
+                        ) : null}
+
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-elevated text-text-secondary border border-border">
+                            {t('transactions', { count: payee.transactionCount || 0 })}
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/5 text-primary border border-primary/10">
+                            <ConvertedAmount
+                              amount={payee.totalAmount || 0}
+                              currency={baseCurrency}
+                              isConverted={false}
+                              secondaryAmount={convert(payee.totalAmount || 0)}
+                              secondaryCurrency={secCurrency}
+                              secondaryExchangeRate={secondaryExchangeRate}
+                              inline
+                            />
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditForm(payee)}
+                        className="h-8 w-8 p-0"
+                        aria-label={t('form.editPayee', { name: payee.name })}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeletingPayee(payee)}
+                        className="h-8 w-8 p-0 text-error hover:text-error hover:bg-error/10"
+                        aria-label={t('form.deletePayee', { name: payee.name })}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditForm(payee)}
-                      className="h-8 w-8 p-0"
-                      aria-label={t('form.editPayee', { name: payee.name })}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeletingPayee(payee)}
-                      className="h-8 w-8 p-0 text-error hover:text-error hover:bg-error/10"
-                      aria-label={t('form.deletePayee', { name: payee.name })}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-          {customPayees.length > 12 && (
-            <button
-              type="button"
-              onClick={() => setShowAllCustom((prev) => !prev)}
-              className="w-full text-sm text-primary hover:text-primary/80 text-center py-2 transition-colors"
-            >
-              {showAllCustom
-                ? t('custom.showFewer')
-                : t('custom.andMore', { count: customPayees.length - 12 })}
-            </button>
-          )}
+                </Card>
+              ))}
+            </div>
+            {customPayees.length > 12 && (
+              <button
+                type="button"
+                onClick={() => setShowAllCustom(prev => !prev)}
+                className="w-full text-sm text-primary hover:text-primary/80 text-center py-2 transition-colors"
+              >
+                {showAllCustom
+                  ? t('custom.showFewer')
+                  : t('custom.andMore', { count: customPayees.length - 12 })}
+              </button>
+            )}
           </>
         )}
       </div>
@@ -389,11 +428,9 @@ export function PayeeManagementSettings() {
         <h3 className="text-lg font-medium text-text-primary">
           {t('system.title', { count: systemPayees.length })}
         </h3>
-        <p className="text-sm text-text-secondary">
-          {t('system.description')}
-        </p>
+        <p className="text-sm text-text-secondary">{t('system.description')}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {systemPayees.slice(0, showAllSystem ? undefined : 12).map((payee) => (
+          {systemPayees.slice(0, showAllSystem ? undefined : 12).map(payee => (
             <Card key={payee.id} className={cn('p-4', !payee.isActive && 'opacity-50')}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -411,9 +448,7 @@ export function PayeeManagementSettings() {
                   <div>
                     <h4 className="font-medium text-text-primary">{payee.name}</h4>
                     {payee.categoryName && (
-                      <p className="text-xs text-text-muted">
-                        {payee.categoryName}
-                      </p>
+                      <p className="text-xs text-text-muted">{payee.categoryName}</p>
                     )}
                     <div className="mt-1.5 flex gap-2">
                       <span className="text-[10px] text-text-muted">
@@ -453,7 +488,7 @@ export function PayeeManagementSettings() {
         {systemPayees.length > 12 && (
           <button
             type="button"
-            onClick={() => setShowAllSystem((prev) => !prev)}
+            onClick={() => setShowAllSystem(prev => !prev)}
             className="w-full text-sm text-primary hover:text-primary/80 text-center py-2 transition-colors"
           >
             {showAllSystem
@@ -464,12 +499,16 @@ export function PayeeManagementSettings() {
       </div>
 
       {/* Create/Edit Form Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setFormError(null); }}>
+      <Dialog
+        open={isFormOpen}
+        onOpenChange={open => {
+          setIsFormOpen(open);
+          if (!open) setFormError(null);
+        }}
+      >
         <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
-            <DialogTitle>
-              {editingPayee ? t('form.editTitle') : t('form.addTitle')}
-            </DialogTitle>
+            <DialogTitle>{editingPayee ? t('form.editTitle') : t('form.addTitle')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -478,7 +517,7 @@ export function PayeeManagementSettings() {
               </label>
               <Input
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
                 placeholder={t('form.namePlaceholder')}
                 maxLength={100}
                 required
@@ -494,7 +533,7 @@ export function PayeeManagementSettings() {
               </div>
               <CategorySelect
                 value={formData.categoryId}
-                onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                onValueChange={value => setFormData({ ...formData, categoryId: value })}
                 placeholder={t('form.categoryPlaceholder')}
                 allowNone={true}
               />
@@ -559,23 +598,15 @@ export function PayeeManagementSettings() {
                 </div>
 
                 {/* Error Message */}
-                {logoError && (
-                  <p className="text-xs text-error">{logoError}</p>
-                )}
+                {logoError && <p className="text-xs text-error">{logoError}</p>}
 
                 {/* Help Text */}
-                {!logoPreview && (
-                  <p className="text-xs text-text-muted">
-                    {t('form.logoHelp')}
-                  </p>
-                )}
+                {!logoPreview && <p className="text-xs text-text-muted">{t('form.logoHelp')}</p>}
               </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              {formError && (
-                <p className="flex-1 text-sm text-error self-center">{formError}</p>
-              )}
+              {formError && <p className="flex-1 text-sm text-error self-center">{formError}</p>}
               <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>
                 {t('form.cancel')}
               </Button>
@@ -593,7 +624,7 @@ export function PayeeManagementSettings() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deletingPayee} onOpenChange={(open) => !open && setDeletingPayee(null)}>
+      <Dialog open={!!deletingPayee} onOpenChange={open => !open && setDeletingPayee(null)}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle>{t('deleteDialog.title')}</DialogTitle>
@@ -605,11 +636,7 @@ export function PayeeManagementSettings() {
             <Button variant="ghost" onClick={() => setDeletingPayee(null)}>
               {t('deleteDialog.cancel')}
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              isLoading={deletePayee.isPending}
-            >
+            <Button variant="destructive" onClick={handleDelete} isLoading={deletePayee.isPending}>
               {t('deleteDialog.confirm')}
             </Button>
           </div>

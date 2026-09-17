@@ -23,7 +23,7 @@ export type Period = '1D' | '7D' | '1M' | 'YTD' | '1Y' | 'ALL' | 'CUSTOM';
 
 export interface DateRange {
   from: string; // ISO date string YYYY-MM-DD
-  to: string;   // ISO date string YYYY-MM-DD
+  to: string; // ISO date string YYYY-MM-DD
 }
 
 interface PeriodOption {
@@ -54,18 +54,18 @@ function defaultCustomRange(): DateRange {
 /** Number of days between two ISO date strings (inclusive) */
 export function dateRangeToDays(range: DateRange): number {
   const from = new Date(range.from).getTime();
-  const to   = new Date(range.to).getTime();
+  const to = new Date(range.to).getTime();
   return Math.max(1, Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1);
 }
 
 // ─── Preset options ───────────────────────────────────────────────────────────
 
 const PRESET_OPTIONS: PeriodOption[] = [
-  { label: '1D',  value: '1D',  days: 1   },
-  { label: '7D',  value: '7D',  days: 7   },
-  { label: '1M',  value: '1M',  days: 30  },
+  { label: '1D', value: '1D', days: 1 },
+  { label: '7D', value: '7D', days: 7 },
+  { label: '1M', value: '1M', days: 30 },
   { label: 'YTD', value: 'YTD', days: getYTDDays() },
-  { label: '1Y',  value: '1Y',  days: 365 },
+  { label: '1Y', value: '1Y', days: 365 },
   { label: 'ALL', value: 'ALL', days: null },
 ];
 
@@ -84,9 +84,16 @@ export interface PeriodSelectorProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function PeriodSelector({ selectedPeriod, activeDateRange, onPeriodChange, className }: PeriodSelectorProps) {
+export function PeriodSelector({
+  selectedPeriod,
+  activeDateRange,
+  onPeriodChange,
+  className,
+}: PeriodSelectorProps) {
   const { t, i18n } = useTranslation('common');
-  const [customRange, setCustomRange] = useState<DateRange>(() => activeDateRange ?? defaultCustomRange());
+  const [customRange, setCustomRange] = useState<DateRange>(
+    () => activeDateRange ?? defaultCustomRange()
+  );
   const [customOpen, setCustomOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -141,7 +148,10 @@ export function PeriodSelector({ selectedPeriod, activeDateRange, onPeriodChange
 
   const handleToChange = (value: string) => {
     if (!value) return;
-    const next: DateRange = { from: customRange.from > value ? value : customRange.from, to: value };
+    const next: DateRange = {
+      from: customRange.from > value ? value : customRange.from,
+      to: value,
+    };
     setCustomRange(next);
     onPeriodChange('CUSTOM', dateRangeToDays(next), next);
   };
@@ -153,12 +163,13 @@ export function PeriodSelector({ selectedPeriod, activeDateRange, onPeriodChange
 
   return (
     <div className={cn('flex items-center gap-1 bg-surface rounded-lg p-1 flex-wrap', className)}>
-
       {/* ── Preset buttons ── */}
-      {PRESET_OPTIONS.map((opt) => {
+      {PRESET_OPTIONS.map(opt => {
         const isActive = opt.value === selectedPeriod;
-        const translatedLabel = t(`periodSelector.presets.${opt.value}`, { defaultValue: opt.label });
-        
+        const translatedLabel = t(`periodSelector.presets.${opt.value}`, {
+          defaultValue: opt.label,
+        });
+
         return (
           <button
             key={opt.value}
@@ -169,7 +180,7 @@ export function PeriodSelector({ selectedPeriod, activeDateRange, onPeriodChange
               'hover:bg-surface-elevated',
               isActive
                 ? 'bg-primary text-background font-semibold shadow-sm'
-                : 'text-text-secondary hover:text-text-primary',
+                : 'text-text-secondary hover:text-text-primary'
             )}
           >
             {translatedLabel}
@@ -190,7 +201,7 @@ export function PeriodSelector({ selectedPeriod, activeDateRange, onPeriodChange
             'hover:bg-surface-elevated',
             isCustomActive
               ? 'bg-primary text-background font-semibold shadow-sm'
-              : 'text-text-secondary hover:text-text-primary',
+              : 'text-text-secondary hover:text-text-primary'
           )}
         >
           <Calendar className="h-3.5 w-3.5 shrink-0" />
@@ -209,7 +220,7 @@ export function PeriodSelector({ selectedPeriod, activeDateRange, onPeriodChange
               'animate-in fade-in slide-in-from-top-2 duration-150',
               // Align right on large screens, left on small
               'right-0 sm:right-auto sm:left-0',
-              'min-w-[280px]',
+              'min-w-[280px]'
             )}
           >
             <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">
@@ -219,7 +230,9 @@ export function PeriodSelector({ selectedPeriod, activeDateRange, onPeriodChange
             <div className="flex flex-col gap-3">
               {/* From */}
               <div className="flex flex-col gap-1">
-                <label htmlFor="period-from" className="text-xs text-text-secondary font-medium">{t('dateRange.from')}</label>
+                <label htmlFor="period-from" className="text-xs text-text-secondary font-medium">
+                  {t('dateRange.from')}
+                </label>
                 <DateInput
                   id="period-from"
                   value={customRange.from}
@@ -230,7 +243,9 @@ export function PeriodSelector({ selectedPeriod, activeDateRange, onPeriodChange
 
               {/* To */}
               <div className="flex flex-col gap-1">
-                <label htmlFor="period-to" className="text-xs text-text-secondary font-medium">{t('dateRange.to')}</label>
+                <label htmlFor="period-to" className="text-xs text-text-secondary font-medium">
+                  {t('dateRange.to')}
+                </label>
                 <DateInput
                   id="period-to"
                   value={customRange.to}

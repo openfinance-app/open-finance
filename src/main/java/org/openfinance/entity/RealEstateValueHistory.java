@@ -42,6 +42,10 @@ public class RealEstateValueHistory {
     @Column(name = "source_tranche_id")
     private Long sourceTrancheId;
 
+    /** An improvement/reversal stores a signed delta rather than an absolute valuation. */
+    @Column(name = "is_adjustment", nullable = false)
+    private boolean adjustment;
+
     /** Reference to the property entity (lazy-loaded). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", insertable = false, updatable = false)

@@ -46,9 +46,7 @@ describe('Liability Hooks', () => {
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
   describe('useLiabilityBreakdown', () => {
@@ -81,14 +79,11 @@ describe('Liability Hooks', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockedApiClient.get).toHaveBeenCalledWith(
-        '/liabilities/1/breakdown',
-        {
-          headers: {
-            'X-Encryption-Session': 'test-encryption-key',
-          },
-        }
-      );
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/liabilities/1/breakdown', {
+        headers: {
+          'X-Encryption-Session': 'test-encryption-key',
+        },
+      });
     });
 
     it('returns correct breakdown data', async () => {
@@ -183,14 +178,11 @@ describe('Liability Hooks', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockedApiClient.get).toHaveBeenCalledWith(
-        '/liabilities/1/transactions',
-        {
-          headers: {
-            'X-Encryption-Session': 'test-encryption-key',
-          },
-        }
-      );
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/liabilities/1/transactions', {
+        headers: {
+          'X-Encryption-Session': 'test-encryption-key',
+        },
+      });
     });
 
     it('returns correct transactions data', async () => {

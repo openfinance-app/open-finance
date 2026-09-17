@@ -1,6 +1,6 @@
 /**
  * GlobalSearch - Search bar component for top navigation with autocomplete
- * 
+ *
  * Features:
  * - Real-time search with debounce (300ms)
  * - Dropdown with grouped results (max 5 per type)
@@ -20,10 +20,7 @@ import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import type { SearchResult } from '../../types/search';
-import {
-  getResultTypeDisplayName,
-  getResultRoute,
-} from '../../types/search';
+import { getResultTypeDisplayName, getResultRoute } from '../../types/search';
 import { Icon } from '../icons/Icon';
 
 export interface GlobalSearchHandle {
@@ -70,8 +67,8 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
       updateQuery(q);
       setIsOpen(false);
     }
-  // Only run on searchParams change, not on every query change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Only run on searchParams change, not on every query change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   // Localize raw enum subtitles returned by the backend for categories and budgets
@@ -123,13 +120,11 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < navigableLength - 1 ? prev + 1 : prev
-        );
+        setSelectedIndex(prev => (prev < navigableLength - 1 ? prev + 1 : prev));
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+        setSelectedIndex(prev => (prev > 0 ? prev - 1 : -1));
         break;
       case 'Enter':
         e.preventDefault();
@@ -206,8 +201,11 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
           type="text"
           placeholder={t('search.placeholder')}
           value={query}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          onFocus={() => { setIsOpen(true); setIsFocused(true); }}
+          onChange={e => handleSearchChange(e.target.value)}
+          onFocus={() => {
+            setIsOpen(true);
+            setIsFocused(true);
+          }}
           onBlur={() => {
             // Need a slight delay to allow clicks to register inside the dropdown
             setTimeout(() => setIsFocused(false), SEARCH_BLUR_DELAY_MS);
@@ -266,9 +264,7 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
                   }`}
                 >
                   <Clock className="h-4 w-4 text-text-muted flex-shrink-0" />
-                  <span className="text-sm text-text-secondary truncate">
-                    {recentQuery}
-                  </span>
+                  <span className="text-sm text-text-secondary truncate">{recentQuery}</span>
                 </button>
               ))}
             </div>
@@ -277,70 +273,64 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
           {/* Search Results */}
           {!searchResult.isLoading && flatResults.length > 0 && (
             <>
-              {Object.entries(searchResult.data?.resultsByType || {}).map(
-                ([type, results]) => (
-                  <div key={type} className="p-2">
-                    <div className="px-3 py-2 text-xs font-semibold text-text-secondary uppercase flex items-center gap-2">
-                      <Icon name={results[0]?.icon || 'Search'} className="h-4 w-4" />
-                      {getResultTypeDisplayName(type as any, (key) => t(`errors:${key}`))}
-                      <span className="text-text-muted">
-                        ({searchResult.data?.countsPerType[type] || 0})
-                      </span>
-                    </div>
-                    {results.slice(0, 5).map((result, _index) => {
-                      const globalIndex = flatResults.indexOf(result);
-                      const isSelected = globalIndex === selectedIndex;
-                      return (
-                        <button
-                          key={`${result.resultType}-${result.id}`}
-                          onClick={() => handleResultClick(result)}
-                          className={`w-full flex items-start gap-3 px-3 py-2 rounded-md text-left transition-colors group ${isSelected
-                            ? 'bg-blue-50'
-                            : 'hover:bg-surface-elevated'
-                            }`}
-                        >
-                          <div
-                            className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center`}
-                            style={{ backgroundColor: result.color || '#6b7280' }}
-                          >
-                            <Icon
-                              name={result.icon || 'Search'}
-                              className="h-4 w-4 text-white"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="text-sm font-medium text-text-primary truncate">
-                                {result.title}
-                              </div>
-                              {result.amount !== undefined && (
-                                <span className="text-sm font-semibold text-text-primary whitespace-nowrap">
-                                  <ConvertedAmount
-                                    amount={result.amount}
-                                    currency={result.currency || DEFAULT_CURRENCY}
-                                    inline
-                                  />
-                                </span>
-                              )}
-                            </div>
-                            {result.subtitle && (
-                              <div className="text-xs text-text-secondary truncate">
-                                {localizeSubtitle(result)}
-                              </div>
-                            )}
-                            {result.snippet && (
-                              <div className="text-xs text-text-muted mt-1 line-clamp-1">
-                                {result.snippet}
-                              </div>
-                            )}
-                          </div>
-                          <ArrowRight className="h-4 w-4 text-text-muted group-hover:text-blue-500 flex-shrink-0 self-center opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </button>
-                      );
-                    })}
+              {Object.entries(searchResult.data?.resultsByType || {}).map(([type, results]) => (
+                <div key={type} className="p-2">
+                  <div className="px-3 py-2 text-xs font-semibold text-text-secondary uppercase flex items-center gap-2">
+                    <Icon name={results[0]?.icon || 'Search'} className="h-4 w-4" />
+                    {getResultTypeDisplayName(type as any, key => t(`errors:${key}`))}
+                    <span className="text-text-muted">
+                      ({searchResult.data?.countsPerType[type] || 0})
+                    </span>
                   </div>
-                )
-              )}
+                  {results.slice(0, 5).map((result, _index) => {
+                    const globalIndex = flatResults.indexOf(result);
+                    const isSelected = globalIndex === selectedIndex;
+                    return (
+                      <button
+                        key={`${result.resultType}-${result.id}`}
+                        onClick={() => handleResultClick(result)}
+                        className={`w-full flex items-start gap-3 px-3 py-2 rounded-md text-left transition-colors group ${
+                          isSelected ? 'bg-blue-50' : 'hover:bg-surface-elevated'
+                        }`}
+                      >
+                        <div
+                          className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center`}
+                          style={{ backgroundColor: result.color || '#6b7280' }}
+                        >
+                          <Icon name={result.icon || 'Search'} className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="text-sm font-medium text-text-primary truncate">
+                              {result.title}
+                            </div>
+                            {result.amount !== undefined && (
+                              <span className="text-sm font-semibold text-text-primary whitespace-nowrap">
+                                <ConvertedAmount
+                                  amount={result.amount}
+                                  currency={result.currency || DEFAULT_CURRENCY}
+                                  inline
+                                />
+                              </span>
+                            )}
+                          </div>
+                          {result.subtitle && (
+                            <div className="text-xs text-text-secondary truncate">
+                              {localizeSubtitle(result)}
+                            </div>
+                          )}
+                          {result.snippet && (
+                            <div className="text-xs text-text-muted mt-1 line-clamp-1">
+                              {result.snippet}
+                            </div>
+                          )}
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-text-muted group-hover:text-blue-500 flex-shrink-0 self-center opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
 
               {/* View All Results Button */}
               <div className="p-2 border-t border-border">
@@ -356,19 +346,13 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
           )}
 
           {/* No Results Fallback */}
-          {!searchResult.isLoading &&
-            query.length >= 2 &&
-            flatResults.length === 0 && (
-              <div className="p-8 text-center" aria-live="polite">
-                <Search className="h-12 w-12 text-text-muted mx-auto mb-3" />
-                <p className="text-text-secondary font-medium">
-                  {t('search.noResults', { query })}
-                </p>
-                <p className="text-sm text-text-muted mt-1">
-                  {t('search.tryDifferent')}
-                </p>
-              </div>
-            )}
+          {!searchResult.isLoading && query.length >= 2 && flatResults.length === 0 && (
+            <div className="p-8 text-center" aria-live="polite">
+              <Search className="h-12 w-12 text-text-muted mx-auto mb-3" />
+              <p className="text-text-secondary font-medium">{t('search.noResults', { query })}</p>
+              <p className="text-sm text-text-muted mt-1">{t('search.tryDifferent')}</p>
+            </div>
+          )}
         </div>
       )}
     </div>

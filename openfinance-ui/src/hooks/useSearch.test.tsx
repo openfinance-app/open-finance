@@ -27,9 +27,15 @@ Object.defineProperty(window, 'sessionStorage', { value: mockSessionStorage });
 const localStorageData: Record<string, string> = {};
 const mockLocalStorage = {
   getItem: vi.fn((key: string) => localStorageData[key] ?? null),
-  setItem: vi.fn((key: string, value: string) => { localStorageData[key] = value; }),
-  removeItem: vi.fn((key: string) => { delete localStorageData[key]; }),
-  clear: vi.fn(() => { Object.keys(localStorageData).forEach(k => delete localStorageData[k]); }),
+  setItem: vi.fn((key: string, value: string) => {
+    localStorageData[key] = value;
+  }),
+  removeItem: vi.fn((key: string) => {
+    delete localStorageData[key];
+  }),
+  clear: vi.fn(() => {
+    Object.keys(localStorageData).forEach(k => delete localStorageData[k]);
+  }),
   key: vi.fn(),
   length: 0,
 };
@@ -58,7 +64,9 @@ describe('useSearch hooks', () => {
       query: 'test',
       totalResults: 2,
       resultsByType: {
-        TRANSACTION: [{ id: 1, title: 'Test Transaction', resultType: 'TRANSACTION', createdAt: '2024-01-01' }],
+        TRANSACTION: [
+          { id: 1, title: 'Test Transaction', resultType: 'TRANSACTION', createdAt: '2024-01-01' },
+        ],
         ACCOUNT: [{ id: 2, title: 'Test Account', resultType: 'ACCOUNT', createdAt: '2024-01-01' }],
       },
       countsPerType: { TRANSACTION: 1, ACCOUNT: 1 },
@@ -119,7 +127,11 @@ describe('useSearch hooks', () => {
       const mockResponse = {
         query: 'rent',
         totalResults: 1,
-        resultsByType: { TRANSACTION: [{ id: 1, title: 'Rent', resultType: 'TRANSACTION', createdAt: '2024-01-01' }] },
+        resultsByType: {
+          TRANSACTION: [
+            { id: 1, title: 'Rent', resultType: 'TRANSACTION', createdAt: '2024-01-01' },
+          ],
+        },
         countsPerType: { TRANSACTION: 1 },
         executionTimeMs: 30,
         hasMore: false,
@@ -142,7 +154,7 @@ describe('useSearch hooks', () => {
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/search/advanced',
         { query: 'rent', entityTypes: ['TRANSACTION'], minAmount: 500 },
-        { headers: { 'X-Encryption-Session': 'test-encryption-key' } },
+        { headers: { 'X-Encryption-Session': 'test-encryption-key' } }
       );
     });
 
@@ -168,7 +180,9 @@ describe('useSearch hooks', () => {
     });
 
     it('should load saved searches from localStorage', () => {
-      const existing = [{ id: '1', name: 'My Search', filters: { query: 'test' }, createdAt: '2024-01-01' }];
+      const existing = [
+        { id: '1', name: 'My Search', filters: { query: 'test' }, createdAt: '2024-01-01' },
+      ];
       localStorageData['saved-searches'] = JSON.stringify(existing);
 
       const { result } = renderHook(() => useSavedSearches(), { wrapper });
@@ -185,10 +199,7 @@ describe('useSearch hooks', () => {
       expect(result.current.savedSearches).toHaveLength(1);
       expect(result.current.savedSearches[0].name).toBe('My Filter');
       expect(result.current.savedSearches[0].filters).toEqual({ query: 'rent', minAmount: 100 });
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        'saved-searches',
-        expect.any(String),
-      );
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('saved-searches', expect.any(String));
     });
 
     it('should delete a saved search', () => {
@@ -209,7 +220,9 @@ describe('useSearch hooks', () => {
     });
 
     it('should update lastUsed timestamp', () => {
-      const existing = [{ id: '1', name: 'Search 1', filters: { query: 'a' }, createdAt: '2024-01-01' }];
+      const existing = [
+        { id: '1', name: 'Search 1', filters: { query: 'a' }, createdAt: '2024-01-01' },
+      ];
       localStorageData['saved-searches'] = JSON.stringify(existing);
 
       const { result } = renderHook(() => useSavedSearches(), { wrapper });
@@ -287,7 +300,7 @@ describe('useSearch hooks', () => {
 
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         'recent-searches',
-        expect.stringContaining('my search'),
+        expect.stringContaining('my search')
       );
     });
 
@@ -300,7 +313,7 @@ describe('useSearch hooks', () => {
 
       expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith(
         'recent-searches',
-        expect.any(String),
+        expect.any(String)
       );
     });
 

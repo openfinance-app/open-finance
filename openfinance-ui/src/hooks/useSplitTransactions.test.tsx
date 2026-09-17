@@ -44,9 +44,7 @@ describe('useSplitTransactions', () => {
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
   describe('Encryption Key Validation', () => {
@@ -116,7 +114,7 @@ describe('useSplitTransactions', () => {
             categoryName: 'Shopping',
             categoryColor: '#ff0000',
             categoryIcon: '🛒',
-            amount: 50.00,
+            amount: 50.0,
             description: 'Groceries',
           },
         ],
@@ -129,14 +127,11 @@ describe('useSplitTransactions', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockedApiClient.get).toHaveBeenCalledWith(
-        '/transactions/123/splits',
-        {
-          headers: {
-            'X-Encryption-Session': 'test-encryption-key',
-          },
-        }
-      );
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/transactions/123/splits', {
+        headers: {
+          'X-Encryption-Session': 'test-encryption-key',
+        },
+      });
     });
 
     it('includes X-Encryption-Session header in request', async () => {
@@ -149,14 +144,11 @@ describe('useSplitTransactions', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockedApiClient.get).toHaveBeenCalledWith(
-        '/transactions/456/splits',
-        {
-          headers: {
-            'X-Encryption-Session': 'test-encryption-key',
-          },
-        }
-      );
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/transactions/456/splits', {
+        headers: {
+          'X-Encryption-Session': 'test-encryption-key',
+        },
+      });
     });
 
     it('returns the correct data structure', async () => {
@@ -168,7 +160,7 @@ describe('useSplitTransactions', () => {
           categoryName: 'Shopping',
           categoryColor: '#ff0000',
           categoryIcon: '🛒',
-          amount: 50.00,
+          amount: 50.0,
           description: 'Groceries',
         },
         {
@@ -178,7 +170,7 @@ describe('useSplitTransactions', () => {
           categoryName: 'Entertainment',
           categoryColor: '#00ff00',
           categoryIcon: undefined,
-          amount: 25.50,
+          amount: 25.5,
           description: undefined,
         },
       ];
@@ -293,9 +285,7 @@ describe('useSplitTransactions', () => {
       const mockResponse1 = { data: [{ id: 1, transactionId: 100, amount: 50 }] };
       const mockResponse2 = { data: [{ id: 2, transactionId: 200, amount: 75 }] };
 
-      mockedApiClient.get
-        .mockResolvedValueOnce(mockResponse1)
-        .mockResolvedValueOnce(mockResponse2);
+      mockedApiClient.get.mockResolvedValueOnce(mockResponse1).mockResolvedValueOnce(mockResponse2);
 
       const { result: result1 } = renderHook(() => useSplitTransactions(100), { wrapper });
       const { result: result2 } = renderHook(() => useSplitTransactions(200), { wrapper });

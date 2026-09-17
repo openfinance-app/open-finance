@@ -6,14 +6,16 @@ import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import type { Transaction } from '@/types/transaction';
 
 const mockNavigate = vi.fn();
-vi.mock('react-router', async (importOriginal) => {
+vi.mock('react-router', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router')>();
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
 vi.mock('@/components/ui/ConvertedAmount', () => ({
   ConvertedAmount: ({ amount, currency }: any) => (
-    <span data-testid="converted-amount">{amount} {currency}</span>
+    <span data-testid="converted-amount">
+      {amount} {currency}
+    </span>
   ),
 }));
 
@@ -81,25 +83,19 @@ describe('RecentTransactionsCard', () => {
   });
 
   it('renders loading state', () => {
-    renderWithProviders(
-      <RecentTransactionsCard transactions={[]} isLoading={true} />
-    );
+    renderWithProviders(<RecentTransactionsCard transactions={[]} isLoading={true} />);
     expect(screen.getByText('Transactions')).toBeInTheDocument();
   });
 
   it('renders transaction descriptions', () => {
-    renderWithProviders(
-      <RecentTransactionsCard transactions={transactions} />
-    );
+    renderWithProviders(<RecentTransactionsCard transactions={transactions} />);
     expect(screen.getAllByText('Salary').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Grocery Store')).toBeInTheDocument();
     expect(screen.getByText('Transfer to Savings')).toBeInTheDocument();
   });
 
   it('renders "View all" link', () => {
-    renderWithProviders(
-      <RecentTransactionsCard transactions={transactions} />
-    );
+    renderWithProviders(<RecentTransactionsCard transactions={transactions} />);
     expect(screen.getByText(/View all/)).toBeInTheDocument();
   });
 
@@ -111,9 +107,7 @@ describe('RecentTransactionsCard', () => {
   });
 
   it('renders period label in empty state', () => {
-    renderWithProviders(
-      <RecentTransactionsCard transactions={[]} periodLabel="Last 7 days" />
-    );
+    renderWithProviders(<RecentTransactionsCard transactions={[]} periodLabel="Last 7 days" />);
     expect(screen.getByText('Last 7 days')).toBeInTheDocument();
   });
 });
@@ -140,7 +134,9 @@ describe('RecentTransactionsCard navigation', () => {
 
   it('navigates to the transaction detail on row click', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<RecentTransactionsCard transactions={[tx]} periodLabel="" isLoading={false} />);
+    renderWithProviders(
+      <RecentTransactionsCard transactions={[tx]} periodLabel="" isLoading={false} />
+    );
     await user.click(screen.getByRole('button', { name: 'View transaction details' }));
     expect(mockNavigate).toHaveBeenCalledWith('/transactions?highlight=11');
   });

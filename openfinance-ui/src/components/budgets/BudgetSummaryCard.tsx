@@ -1,7 +1,7 @@
 /**
  * BudgetSummaryCard Component
  * TASK-8.2.7: Create budget summary card for BudgetsPage
- * 
+ *
  * Displays aggregate budget statistics at the top of the budgets page.
  * Shows global totals prominently and, when a filter is active, also shows
  * filtered sub-totals in a smaller secondary line below each metric.
@@ -29,7 +29,11 @@ interface BudgetSummaryCardProps {
 export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCardProps) {
   const { t } = useTranslation('budgets');
   const { baseCurrency } = useAuthContext();
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(baseCurrency);
   const isOverBudget = summary.totalSpent > summary.totalBudgeted;
   // Actual spent % for the "Total Spent" card (aggregate ratio)
   const spentPercentage = percentage(summary.totalSpent, summary.totalBudgeted);
@@ -38,13 +42,12 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
 
   // Derive filtered totals when a subset is provided and differs from the full set
   const isFiltered =
-    filteredBudgets !== undefined &&
-    filteredBudgets.length !== summary.budgets.length;
+    filteredBudgets !== undefined && filteredBudgets.length !== summary.budgets.length;
 
   const filteredTotals = useMemo(() => {
     if (!filteredBudgets) return null;
-    const filteredTotalBudgeted = sum(filteredBudgets.map((b) => b.budgeted));
-    const filteredTotalSpent = sum(filteredBudgets.map((b) => b.spent));
+    const filteredTotalBudgeted = sum(filteredBudgets.map(b => b.budgeted));
+    const filteredTotalSpent = sum(filteredBudgets.map(b => b.spent));
     const filteredTotalRemaining = subtract(filteredTotalBudgeted, filteredTotalSpent);
     const filteredSpentPct = percentage(filteredTotalSpent, filteredTotalBudgeted);
     return { filteredTotalBudgeted, filteredTotalSpent, filteredTotalRemaining, filteredSpentPct };
@@ -75,11 +78,15 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
               />
             </p>
             <p className="text-xs text-text-tertiary">
-              {t('summary.activeCount', { active: summary.activeBudgets, total: summary.totalBudgets })}
+              {t('summary.activeCount', {
+                active: summary.activeBudgets,
+                total: summary.totalBudgets,
+              })}
             </p>
             {isFiltered && filteredTotals && (
               <p className="text-xs font-mono text-text-tertiary">
-                 {t('summary.filtered')} <ConvertedAmount
+                {t('summary.filtered')}{' '}
+                <ConvertedAmount
                   amount={filteredTotals.filteredTotalBudgeted}
                   currency={baseCurrency}
                   isConverted={false}
@@ -88,7 +95,9 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
                 />
-                <span className="ml-1">{t('summary.budgetsCount', { count: filteredBudgets!.length })}</span>
+                <span className="ml-1">
+                  {t('summary.budgetsCount', { count: filteredBudgets!.length })}
+                </span>
               </p>
             )}
           </div>
@@ -115,7 +124,8 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
             </p>
             {isFiltered && filteredTotals && (
               <p className="text-xs font-mono text-text-tertiary">
-                 {t('summary.filtered')} <ConvertedAmount
+                {t('summary.filtered')}{' '}
+                <ConvertedAmount
                   amount={filteredTotals.filteredTotalSpent}
                   currency={baseCurrency}
                   isConverted={false}
@@ -123,8 +133,8 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
-                />
-                {' '}({formatPercentage(filteredTotals.filteredSpentPct, 1)})
+                />{' '}
+                ({formatPercentage(filteredTotals.filteredSpentPct, 1)})
               </p>
             )}
           </div>
@@ -161,10 +171,9 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
               {isOverBudget ? t('summary.exceededBudget') : t('summary.availableToSpend')}
             </p>
             {isFiltered && filteredTotals && (
-              <p className={cn(
-                'text-xs font-mono text-text-tertiary'
-              )}>
-                 {t('summary.filtered')} <ConvertedAmount
+              <p className={cn('text-xs font-mono text-text-tertiary')}>
+                {t('summary.filtered')}{' '}
+                <ConvertedAmount
                   amount={Math.abs(filteredTotals.filteredTotalRemaining)}
                   currency={baseCurrency}
                   isConverted={false}
@@ -173,7 +182,9 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
                 />
-                {filteredTotals.filteredTotalRemaining < 0 ? ` ${t('summary.over')}` : ` ${t('summary.remainingLabel')}`}
+                {filteredTotals.filteredTotalRemaining < 0
+                  ? ` ${t('summary.over')}`
+                  : ` ${t('summary.remainingLabel')}`}
               </p>
             )}
           </div>

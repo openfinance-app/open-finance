@@ -1,6 +1,6 @@
 /**
  * Financial Calculation Utilities
- * 
+ *
  * Pure TypeScript functions for financial freedom calculations
  * Used for client-side calculations and validation
  */
@@ -11,7 +11,7 @@ import { add, divide, multiply, percentage, pow, subtract } from '@/utils/money'
 /**
  * Calculate future value with monthly contributions
  * FV = PV × (1 + r)^n + PMT × ((1 + r)^n - 1) / r
- * 
+ *
  * @param presentValue Current savings amount
  * @param monthlyContribution Monthly contribution to savings
  * @param annualRate Annual interest rate as percentage
@@ -25,29 +25,29 @@ export function calculateFutureValue(
   months: number
 ): number {
   const monthlyRate = divide(divide(annualRate, 100), 12);
-  
+
   if (months === 0) {
     return presentValue;
   }
-  
+
   if (monthlyRate === 0) {
     return add(presentValue, multiply(monthlyContribution, months));
   }
-  
+
   const compoundFactor = pow(add(1, monthlyRate), months);
   const futureValueFromSavings = multiply(presentValue, compoundFactor);
   const futureValueFromContributions = multiply(
     monthlyContribution,
     divide(subtract(compoundFactor, 1), monthlyRate)
   );
-  
+
   return add(futureValueFromSavings, futureValueFromContributions);
 }
 
 /**
  * Calculate months needed to reach target savings
  * Uses iterative approach for accuracy with contributions
- * 
+ *
  * @param currentSavings Current savings balance
  * @param monthlyContribution Monthly contribution amount
  * @param annualRate Annual return rate as percentage
@@ -65,32 +65,29 @@ export function calculateMonthsToTarget(
   const monthlyRate = divide(divide(annualRate, 100), 12);
   let balance = currentSavings;
   let months = 0;
-  
+
   // Safety check for impossible scenarios
   if (monthlyRate <= 0 && monthlyContribution <= 0 && balance < targetAmount) {
     return maxMonths;
   }
-  
+
   while (balance < targetAmount && months < maxMonths) {
     balance = add(multiply(balance, add(1, monthlyRate)), monthlyContribution);
     months++;
   }
-  
+
   return months;
 }
 
 /**
  * Calculate target savings amount based on withdrawal rate
  * Target = Annual Expenses / Withdrawal Rate
- * 
+ *
  * @param annualExpenses Expected annual expenses
  * @param withdrawalRate Safe withdrawal rate as percentage
  * @returns Target savings amount needed
  */
-export function calculateTargetAmount(
-  annualExpenses: number,
-  withdrawalRate: number
-): number {
+export function calculateTargetAmount(annualExpenses: number, withdrawalRate: number): number {
   if (withdrawalRate <= 0) {
     return Infinity;
   }
@@ -99,7 +96,7 @@ export function calculateTargetAmount(
 
 /**
  * Calculate savings longevity (how long savings will last)
- * 
+ *
  * @param currentSavings Current savings balance
  * @param monthlyExpenses Monthly expenses
  * @param annualReturnRate Annual return rate as percentage
@@ -119,7 +116,7 @@ export function calculateSavingsLongevity(
   const monthlyRate = divide(divide(annualReturnRate, 100), 12);
   let balance = currentSavings;
   let months = 0;
-  
+
   // Check for infinite sustainability
   // If returns on current savings exceed monthly expenses
   if (monthlyRate > 0) {
@@ -132,19 +129,19 @@ export function calculateSavingsLongevity(
       };
     }
   }
-  
+
   // Calculate month by month depletion
   while (balance > 0 && months < maxMonths) {
     // Add investment returns
     balance = multiply(balance, add(1, monthlyRate));
     // Subtract monthly expenses
     balance = subtract(balance, monthlyExpenses);
-    
+
     if (balance > 0) {
       months++;
     }
   }
-  
+
   return {
     monthsUntilDepletion: months,
     isInfinite: false,
@@ -155,33 +152,27 @@ export function calculateSavingsLongevity(
 /**
  * Calculate real return rate after inflation
  * Real Return = (1 + Nominal) / (1 + Inflation) - 1
- * 
+ *
  * @param nominalReturnRate Nominal annual return as percentage
  * @param inflationRate Annual inflation as percentage
  * @returns Real return rate as percentage
  */
-export function calculateRealReturn(
-  nominalReturnRate: number,
-  inflationRate: number
-): number {
+export function calculateRealReturn(nominalReturnRate: number, inflationRate: number): number {
   const onePlusNominal = add(1, divide(nominalReturnRate, 100));
   const onePlusInflation = add(1, divide(inflationRate, 100));
-  
+
   const realReturn = subtract(divide(onePlusNominal, onePlusInflation), 1);
   return multiply(realReturn, 100);
 }
 
 /**
  * Calculate progress percentage toward goal
- * 
+ *
  * @param currentSavings Current savings balance
  * @param targetAmount Savings goal
  * @returns Progress as percentage (0-100)
  */
-export function calculateProgressPercentage(
-  currentSavings: number,
-  targetAmount: number
-): number {
+export function calculateProgressPercentage(currentSavings: number, targetAmount: number): number {
   if (targetAmount <= 0) {
     return 100;
   }
@@ -191,21 +182,18 @@ export function calculateProgressPercentage(
 
 /**
  * Calculate annual passive income at target based on withdrawal rate
- * 
+ *
  * @param targetAmount Target savings amount
  * @param withdrawalRate Safe withdrawal rate as percentage
  * @returns Annual passive income
  */
-export function calculatePassiveIncome(
-  targetAmount: number,
-  withdrawalRate: number
-): number {
+export function calculatePassiveIncome(targetAmount: number, withdrawalRate: number): number {
   return multiply(targetAmount, divide(withdrawalRate, 100));
 }
 
 /**
  * Format currency value for display
- * 
+ *
  * @param value Value to format
  * @param locale Currency locale (default 'en-US')
  * @param currency Currency code (default: app DEFAULT_CURRENCY)
@@ -226,7 +214,7 @@ export function formatCurrency(
 
 /**
  * Format percentage for display
- * 
+ *
  * @param value Value to format as percentage
  * @param decimals Number of decimal places
  * @returns Formatted percentage string
@@ -237,28 +225,28 @@ export function formatPercentage(value: number, decimals: number = 1): string {
 
 /**
  * Format years and months for display
- * 
+ *
  * @param months Total months
  * @returns Formatted string like "5 years, 3 months"
  */
 export function formatTimeToFreedom(months: number): string {
   const years = Math.floor(months / 12);
   const remainingMonths = Math.round(months % 12);
-  
+
   if (years === 0) {
     return `${remainingMonths} month${remainingMonths !== 1 ? 's' : ''}`;
   }
-  
+
   if (remainingMonths === 0) {
     return `${years} year${years !== 1 ? 's' : ''}`;
   }
-  
+
   return `${years} year${years !== 1 ? 's' : ''}, ${remainingMonths} month${remainingMonths !== 1 ? 's' : ''}`;
 }
 
 /**
  * Validate calculator inputs
- * 
+ *
  * @param input Calculator input parameters
  * @returns Validation result with isValid flag and errors
  */
@@ -270,29 +258,29 @@ export function validateCalculatorInput(input: {
   withdrawalRate?: number;
 }): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
-  
+
   if (input.currentSavings < 0) {
     errors.push('Current savings cannot be negative');
   }
-  
+
   if (input.monthlyExpenses < 0) {
     errors.push('Monthly expenses cannot be negative');
   }
-  
+
   if (input.expectedAnnualReturn < -10 || input.expectedAnnualReturn > 30) {
     errors.push('Return rate must be between -10% and 30%');
   }
-  
+
   if (input.monthlyContribution !== undefined && input.monthlyContribution < 0) {
     errors.push('Monthly contribution cannot be negative');
   }
-  
+
   if (input.withdrawalRate !== undefined) {
     if (input.withdrawalRate < 0.5 || input.withdrawalRate > 10) {
       errors.push('Withdrawal rate must be between 0.5% and 10%');
     }
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,

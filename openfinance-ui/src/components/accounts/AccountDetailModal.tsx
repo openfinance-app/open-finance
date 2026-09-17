@@ -40,11 +40,7 @@ import { AttachmentEntityType } from '@/types/attachment';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { InterestRateVariationsSection } from './InterestRateVariationsSection';
 import { AccountForm } from './AccountForm';
-import {
-  useAccount,
-  useAccountBalanceHistory,
-  useUpdateAccount,
-} from '@/hooks/useAccounts';
+import { useAccount, useAccountBalanceHistory, useUpdateAccount } from '@/hooks/useAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
@@ -82,11 +78,7 @@ interface AccountDetailModalProps {
 
 type Tab = 'overview' | 'interest' | 'attachments';
 
-export function AccountDetailModal({
-  accountId,
-  onClose,
-  onEdit,
-}: AccountDetailModalProps) {
+export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetailModalProps) {
   const navigate = useNavigate();
   const [period, setPeriod] = useState('3M');
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -97,10 +89,15 @@ export function AccountDetailModal({
 
   const { data: account, isLoading: isLoadingAccount } = useAccount(accountId);
   const updateAccount = useUpdateAccount();
-  const { data: balanceHistory, isLoading: isLoadingHistory } =
-    useAccountBalanceHistory(accountId, period);
-  const { data: transactionsData, isLoading: isLoadingTransactions } =
-    useTransactions({ accountId, size: 10, sort: 'date,desc' });
+  const { data: balanceHistory, isLoading: isLoadingHistory } = useAccountBalanceHistory(
+    accountId,
+    period
+  );
+  const { data: transactionsData, isLoading: isLoadingTransactions } = useTransactions({
+    accountId,
+    size: 10,
+    sort: 'date,desc',
+  });
 
   // Close on Escape
   useEffect(() => {
@@ -125,24 +122,23 @@ export function AccountDetailModal({
   const chartCurrency =
     account?.isConverted && account?.baseCurrency
       ? account.baseCurrency
-      : account?.currency ?? DEFAULT_CURRENCY;
+      : (account?.currency ?? DEFAULT_CURRENCY);
 
   const transactions = transactionsData?.content ?? [];
 
   // Determine which tabs to show
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: t('detail.overview') },
-    ...(account?.isInterestEnabled ? [{ key: 'interest' as Tab, label: t('detail.interest') }] : []),
+    ...(account?.isInterestEnabled
+      ? [{ key: 'interest' as Tab, label: t('detail.interest') }]
+      : []),
     { key: 'attachments', label: t('detail.attachments') },
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal panel */}
       <div className="relative bg-surface border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
@@ -239,7 +235,7 @@ export function AccountDetailModal({
               {/* Tabs */}
               <div className="border-b border-border mb-6">
                 <div className="flex gap-4">
-                  {tabs.map((tab) => (
+                  {tabs.map(tab => (
                     <button
                       key={tab.key}
                       onClick={() => setActiveTab(tab.key)}
@@ -264,7 +260,7 @@ export function AccountDetailModal({
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-base font-semibold text-foreground">Balance History</h3>
                       <div className="flex gap-2">
-                        {periodOptions.map((opt) => (
+                        {periodOptions.map(opt => (
                           <button
                             key={opt.value}
                             onClick={() => setPeriod(opt.value)}
@@ -295,12 +291,12 @@ export function AccountDetailModal({
                               dataKey="date"
                               stroke="#666"
                               tick={{ fill: '#666', fontSize: 11 }}
-                              tickFormatter={(v) => format(new Date(v), 'MMM d')}
+                              tickFormatter={v => format(new Date(v), 'MMM d')}
                             />
                             <YAxis
                               stroke="#666"
                               tick={{ fill: '#666', fontSize: 11 }}
-                              tickFormatter={(v) =>
+                              tickFormatter={v =>
                                 formatCurrency(v, chartCurrency, { compact: true })
                               }
                             />
@@ -311,7 +307,7 @@ export function AccountDetailModal({
                                 borderRadius: '8px',
                                 color: '#fff',
                               }}
-                              labelFormatter={(v) => format(new Date(v), 'MMMM d, yyyy')}
+                              labelFormatter={v => format(new Date(v), 'MMMM d, yyyy')}
                               formatter={(v: number | undefined) => [
                                 v !== undefined ? formatCurrency(v, chartCurrency) : '',
                                 t('detail.balance'),
@@ -345,7 +341,7 @@ export function AccountDetailModal({
                       <LoadingSkeleton className="h-40 w-full" />
                     ) : transactions.length > 0 ? (
                       <div className="space-y-2">
-                        {transactions.map((tx) => {
+                        {transactions.map(tx => {
                           const txConverted =
                             account.isConverted && account.exchangeRate && account.baseCurrency
                               ? tx.amount * account.exchangeRate
@@ -420,7 +416,9 @@ export function AccountDetailModal({
 
                   {/* Account Details */}
                   <div className="bg-background border border-border rounded-lg p-6">
-                    <h3 className="text-base font-semibold text-foreground mb-4">{t('detail.details')}</h3>
+                    <h3 className="text-base font-semibold text-foreground mb-4">
+                      {t('detail.details')}
+                    </h3>
                     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
@@ -480,10 +478,7 @@ export function AccountDetailModal({
               {/* ── Attachments Tab ── */}
               {activeTab === 'attachments' && (
                 <div className="space-y-4">
-                  <AttachmentList
-                    entityType={AttachmentEntityType.ACCOUNT}
-                    entityId={account.id}
-                  />
+                  <AttachmentList entityType={AttachmentEntityType.ACCOUNT} entityId={account.id} />
                   <AttachmentUpload
                     entityType={AttachmentEntityType.ACCOUNT}
                     entityId={account.id}

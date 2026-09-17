@@ -75,13 +75,13 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
   switch (action.actionType) {
     case 'SET_CATEGORY': {
       // CategorySelect uses numeric IDs; actionValue stores category name
-      const selectedId = categories.find((c) => c.name === action.actionValue)?.id;
+      const selectedId = categories.find(c => c.name === action.actionValue)?.id;
       return (
         <div className="flex-1">
           <CategorySelect
             value={selectedId}
-            onValueChange={(id) => {
-              const cat = categories.find((c) => c.id === id);
+            onValueChange={id => {
+              const cat = categories.find(c => c.id === id);
               onChange(index, { actionValue: cat?.name ?? '' });
             }}
             placeholder={t('form.actions.placeholders.category')}
@@ -96,7 +96,7 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
         <div className="flex-1">
           <PayeeSelector
             value={action.actionValue || undefined}
-            onValueChange={(val) => onChange(index, { actionValue: val ?? '' })}
+            onValueChange={val => onChange(index, { actionValue: val ?? '' })}
             placeholder={t('form.actions.placeholders.payee')}
             allowNewPayee
             className="w-full"
@@ -106,13 +106,16 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
 
     case 'ADD_TAG': {
       const tags = action.actionValue
-        ? action.actionValue.split(',').map((s) => s.trim()).filter(Boolean)
+        ? action.actionValue
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean)
         : [];
       return (
         <div className="flex-1">
           <TagInput
             value={tags}
-            onChange={(newTags) => onChange(index, { actionValue: newTags.join(',') })}
+            onChange={newTags => onChange(index, { actionValue: newTags.join(',') })}
             suggestions={popularTags}
             placeholder={t('form.actions.placeholders.tag')}
             maxTags={10}
@@ -126,7 +129,7 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
         <Input
           placeholder={t('form.actions.placeholders.description')}
           value={action.actionValue ?? ''}
-          onChange={(e) => onChange(index, { actionValue: e.target.value })}
+          onChange={e => onChange(index, { actionValue: e.target.value })}
           className="flex-1"
           aria-label="Description"
         />
@@ -137,7 +140,7 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
         <NumberInput
           placeholder="0.00"
           value={action.actionValue ?? ''}
-          onChange={(value) => onChange(index, { actionValue: value })}
+          onChange={value => onChange(index, { actionValue: value })}
           className="flex-1"
           aria-label="Amount"
         />
@@ -145,13 +148,13 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
 
     case 'ADD_SPLIT': {
       // Same name<->id resolution as SET_CATEGORY — actionValue stores the category name
-      const splitCategoryId = categories.find((c) => c.name === action.actionValue)?.id;
+      const splitCategoryId = categories.find(c => c.name === action.actionValue)?.id;
       return (
         <div className="flex-1 flex flex-col gap-2">
           <CategorySelect
             value={splitCategoryId}
-            onValueChange={(id) => {
-              const cat = categories.find((c) => c.id === id);
+            onValueChange={id => {
+              const cat = categories.find(c => c.id === id);
               onChange(index, { actionValue: cat?.name ?? '' });
             }}
             placeholder={t('form.actions.placeholders.splitCategory')}
@@ -160,13 +163,13 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
           <NumberInput
             placeholder={t('form.actions.placeholders.splitAmount')}
             value={action.actionValue2 ?? ''}
-            onChange={(value) => onChange(index, { actionValue2: value })}
+            onChange={value => onChange(index, { actionValue2: value })}
             aria-label="Split amount"
           />
           <Input
             placeholder={t('form.actions.placeholders.splitDescription')}
             value={action.actionValue3 ?? ''}
-            onChange={(e) => onChange(index, { actionValue3: e.target.value })}
+            onChange={e => onChange(index, { actionValue3: e.target.value })}
             aria-label="Split description"
           />
         </div>
@@ -175,11 +178,7 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
 
     case 'SKIP_TRANSACTION':
       return (
-        <HelpTooltip
-          text={t('form.actions.skipTransactionHint')}
-          side="right"
-          className="mt-2"
-        />
+        <HelpTooltip text={t('form.actions.skipTransactionHint')} side="right" className="mt-2" />
       );
 
     default:
@@ -220,9 +219,7 @@ export function RuleActionBuilder({ actions, onChange }: RuleActionBuilderProps)
   };
 
   const handleRemove = (index: number) => {
-    const updated = actions
-      .filter((_, i) => i !== index)
-      .map((a, i) => ({ ...a, sortOrder: i }));
+    const updated = actions.filter((_, i) => i !== index).map((a, i) => ({ ...a, sortOrder: i }));
     onChange(updated);
   };
 
@@ -242,18 +239,14 @@ export function RuleActionBuilder({ actions, onChange }: RuleActionBuilderProps)
   };
 
   const handleParamChange = (index: number, patch: Partial<ActionDraft>) => {
-    const updated = actions.map((a, i) =>
-      i === index ? { ...a, ...patch } : a
-    );
+    const updated = actions.map((a, i) => (i === index ? { ...a, ...patch } : a));
     onChange(updated);
   };
 
   return (
     <div className="space-y-3">
       {actions.length === 0 && (
-        <p className="text-sm text-text-secondary italic">
-          {t('form.actions.empty')}
-        </p>
+        <p className="text-sm text-text-secondary italic">{t('form.actions.empty')}</p>
       )}
 
       {actions.map((action, index) => (
@@ -264,11 +257,11 @@ export function RuleActionBuilder({ actions, onChange }: RuleActionBuilderProps)
           {/* Action type selector */}
           <select
             value={action.actionType}
-            onChange={(e) => handleTypeChange(index, e.target.value as RuleActionType)}
+            onChange={e => handleTypeChange(index, e.target.value as RuleActionType)}
             className="min-w-[160px] h-9 rounded-md border border-border bg-background px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary shrink-0"
             aria-label="Action type"
           >
-            {ALL_ACTION_TYPES.map((type) => (
+            {ALL_ACTION_TYPES.map(type => (
               <option key={type} value={type}>
                 {ACTION_TYPE_LABELS[type]}
               </option>

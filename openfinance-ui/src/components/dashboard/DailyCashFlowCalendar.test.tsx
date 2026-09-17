@@ -19,7 +19,7 @@ vi.mock('@/components/ui/PrivateAmount', () => ({
 }));
 
 const mockNavigate = vi.fn();
-vi.mock('react-router', async (importOriginal) => {
+vi.mock('react-router', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router')>();
   return { ...actual, useNavigate: () => mockNavigate };
 });

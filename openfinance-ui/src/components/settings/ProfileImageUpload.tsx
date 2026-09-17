@@ -25,7 +25,10 @@ interface ProfileImageUploadProps {
 
 /** Returns 1-2 character initials extracted from the username. */
 function getInitials(username: string): string {
-  const parts = username.trim().split(/[\s._-]+/).filter(Boolean);
+  const parts = username
+    .trim()
+    .split(/[\s._-]+/)
+    .filter(Boolean);
   if (parts.length === 0) return '?';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -59,7 +62,9 @@ function FilePickerButton({
         disabled={disabled}
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
         // Reset value so the same file can be re-selected after an error
-        onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
+        onClick={e => {
+          (e.target as HTMLInputElement).value = '';
+        }}
         aria-label={ariaLabel}
       />
     </div>
@@ -105,7 +110,7 @@ export function ProfileImageUpload({ currentImage, username }: ProfileImageUploa
 
     // Show preview immediately while uploading
     const reader = new FileReader();
-    reader.onload = (e) => setPreview(e.target?.result as string);
+    reader.onload = e => setPreview(e.target?.result as string);
     reader.readAsDataURL(file);
 
     uploadMutation.mutate(file, {
@@ -114,11 +119,10 @@ export function ProfileImageUpload({ currentImage, username }: ProfileImageUploa
         setSuccessMessage(t('profile.uploadSuccess'));
         setTimeout(() => setSuccessMessage(null), PROFILE_IMAGE_SUCCESS_MESSAGE_DURATION_MS);
       },
-      onError: (err) => {
+      onError: err => {
         setPreview(null);
         const msg =
-          (err.response?.data as { message?: string })?.message ||
-          t('profile.uploadError');
+          (err.response?.data as { message?: string })?.message || t('profile.uploadError');
         setValidationError(msg);
       },
     });
@@ -140,10 +144,9 @@ export function ProfileImageUpload({ currentImage, username }: ProfileImageUploa
         setSuccessMessage(t('profile.removeSuccess'));
         setTimeout(() => setSuccessMessage(null), PROFILE_IMAGE_SUCCESS_MESSAGE_DURATION_MS);
       },
-      onError: (err) => {
+      onError: err => {
         const msg =
-          (err.response?.data as { message?: string })?.message ||
-          t('profile.removeError');
+          (err.response?.data as { message?: string })?.message || t('profile.removeError');
         setValidationError(msg);
       },
     });

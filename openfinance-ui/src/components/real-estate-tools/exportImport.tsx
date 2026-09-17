@@ -1,6 +1,6 @@
 /**
  * Export/Import Utilities for Real Estate Tools
- * 
+ *
  * Export and import simulation data in various formats
  * Requirements: REQ-6.5
  */
@@ -41,10 +41,7 @@ export function exportToJSON(
 /**
  * Export Buy/Rent results to CSV
  */
-export function exportBuyRentToCSV(
-  _inputs: BuyRentInputs,
-  results: BuyRentResults
-): string {
+export function exportBuyRentToCSV(_inputs: BuyRentInputs, results: BuyRentResults): string {
   const headers = [
     i18n.t('realEstate.exportImport.year'),
     i18n.t('realEstate.exportImport.annualBuyCost'),
@@ -59,7 +56,7 @@ export function exportBuyRentToCSV(
     i18n.t('realEstate.exportImport.netWorthRent'),
   ];
 
-  const rows = results.years.map((year) => [
+  const rows = results.years.map(year => [
     year.year,
     year.buy.annualCost.toFixed(2),
     year.buy.cumulativeCost.toFixed(2),
@@ -88,11 +85,7 @@ export function exportBuyRentToCSV(
     results.summary.rent.netWorth.toFixed(2),
   ];
 
-  return [
-    headers.join(';'),
-    ...rows.map((row) => row.join(';')),
-    summaryRow.join(';'),
-  ].join('\n');
+  return [headers.join(';'), ...rows.map(row => row.join(';')), summaryRow.join(';')].join('\n');
 }
 
 /**
@@ -127,7 +120,9 @@ export function exportInvestmentToCSV(
     const result = results[key];
     return [
       name,
-      result.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no'),
+      result.eligible
+        ? i18n.t('realEstate.exportImport.yes')
+        : i18n.t('realEstate.exportImport.no'),
       result.revenue.gross.toFixed(2),
       result.revenue.deduction.toFixed(2),
       result.revenue.taxable.toFixed(2),
@@ -140,7 +135,7 @@ export function exportInvestmentToCSV(
     ];
   });
 
-  return [headers.join(';'), ...rows.map((row) => row.join(';'))].join('\n');
+  return [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n');
 }
 
 /**
@@ -198,14 +193,18 @@ export function generatePDFContent(
           </tr>
         </thead>
         <tbody>
-          ${brResults.years.map(y => `
+          ${brResults.years
+            .map(
+              y => `
             <tr>
               <td>${y.year}</td>
               <td>${formatCurrency(y.buy.propertyValue - y.buy.remainingCapital, baseCurrency)}</td>
               <td>${formatCurrency(y.rent.savings, baseCurrency)}</td>
-              <td>${(y.buy.propertyValue - y.buy.remainingCapital) > y.rent.savings ? i18n.t('realEstate.exportImport.winnerBuy') : i18n.t('realEstate.exportImport.winnerRent')}</td>
+              <td>${y.buy.propertyValue - y.buy.remainingCapital > y.rent.savings ? i18n.t('realEstate.exportImport.winnerBuy') : i18n.t('realEstate.exportImport.winnerRent')}</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
     `;

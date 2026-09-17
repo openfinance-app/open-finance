@@ -11,15 +11,11 @@ describe('PageHeader', () => {
 
   it('renders title', () => {
     renderWithProviders(<PageHeader title="Transactions" />);
-    expect(
-      screen.getByRole('heading', { name: 'Transactions' })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Transactions' })).toBeInTheDocument();
   });
 
   it('renders description when provided', () => {
-    renderWithProviders(
-      <PageHeader title="Budget" description="Manage your monthly budgets" />
-    );
+    renderWithProviders(<PageHeader title="Budget" description="Manage your monthly budgets" />);
     expect(screen.getByText('Manage your monthly budgets')).toBeInTheDocument();
   });
 
@@ -32,19 +28,12 @@ describe('PageHeader', () => {
   });
 
   it('renders action buttons when provided', () => {
-    renderWithProviders(
-      <PageHeader
-        title="Assets"
-        actions={<button>Add Asset</button>}
-      />
-    );
+    renderWithProviders(<PageHeader title="Assets" actions={<button>Add Asset</button>} />);
     expect(screen.getByRole('button', { name: 'Add Asset' })).toBeInTheDocument();
   });
 
   it('applies custom className', () => {
-    const { container } = renderWithProviders(
-      <PageHeader title="Test" className="my-class" />
-    );
+    const { container } = renderWithProviders(<PageHeader title="Test" className="my-class" />);
     expect(container.querySelector('.my-class')).not.toBeNull();
   });
 

@@ -10,35 +10,41 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Calculator, RefreshCw, AlertCircle, TrendingUp, PiggyBank, Percent, DollarSign } from 'lucide-react';
+import {
+  Calculator,
+  RefreshCw,
+  AlertCircle,
+  TrendingUp,
+  PiggyBank,
+  Percent,
+  DollarSign,
+} from 'lucide-react';
 import { subtract, roundToDecimals } from '@/utils/money';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '../ui/Label';
 import { Button } from '../ui/Button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/Select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
 import { Switch } from '../ui/Switch';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useCompoundInterest } from '../../hooks/useCompoundInterest';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useAuthContext } from '@/context/AuthContext';
-import type { CompoundingFrequency, CompoundInterestResult, CompoundInterestYearlyBreakdown } from '../../types/calculator';
+import type {
+  CompoundingFrequency,
+  CompoundInterestResult,
+  CompoundInterestYearlyBreakdown,
+} from '../../types/calculator';
 
 // ---------------------------------------------------------------------------
 // Compounding frequency options
 // ---------------------------------------------------------------------------
 const FREQUENCY_OPTIONS: { value: CompoundingFrequency; labelKey: string }[] = [
-  { value: 1,   labelKey: 'annually' },
-  { value: 2,   labelKey: 'semiAnnually' },
-  { value: 4,   labelKey: 'quarterly' },
-  { value: 12,  labelKey: 'monthly' },
-  { value: 52,  labelKey: 'weekly' },
+  { value: 1, labelKey: 'annually' },
+  { value: 2, labelKey: 'semiAnnually' },
+  { value: 4, labelKey: 'quarterly' },
+  { value: 12, labelKey: 'monthly' },
+  { value: 52, labelKey: 'weekly' },
   { value: 365, labelKey: 'daily' },
 ];
 
@@ -52,7 +58,8 @@ interface CompoundInterestCalculatorProps {
 export function CompoundInterestCalculator({ className }: CompoundInterestCalculatorProps) {
   const { t } = useTranslation('tools');
   const { baseCurrency } = useAuthContext();
-  const { input, result, isLoading, error, updateInput, resetInputs, calculate } = useCompoundInterest();
+  const { input, result, isLoading, error, updateInput, resetInputs, calculate } =
+    useCompoundInterest();
   const { format: formatCurrency } = useFormatCurrency();
 
   const handleCalculate = useCallback(() => {
@@ -79,128 +86,138 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
             )}
 
             {/* ---- Input form ---- */}
-            <form onSubmit={(e) => { e.preventDefault(); handleCalculate(); }} className="space-y-6">
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                handleCalculate();
+              }}
+              className="space-y-6"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Principal */}
-              <div className="space-y-1">
-                <Label htmlFor="ci-principal">
-                  {t('compoundInterest.calculator.fields.principal.label')}
-                </Label>
-                <NumberInput
-                  id="ci-principal"
-                  min={0}
-                  value={String(input.principal)}
-                  onChange={(val) => updateInput('principal', Number(val))}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t('compoundInterest.calculator.fields.principal.description')}
-                </p>
-              </div>
-
-              {/* Annual rate */}
-              <div className="space-y-1">
-                <Label htmlFor="ci-rate">
-                  {t('compoundInterest.calculator.fields.annualRate.label')}
-                </Label>
-                <NumberInput
-                  id="ci-rate"
-                  min={0.01}
-                  max={100}
-                  value={String(input.annualRate)}
-                  onChange={(val) => updateInput('annualRate', Number(val))}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t('compoundInterest.calculator.fields.annualRate.description')}
-                </p>
-              </div>
-
-              {/* Compounding frequency */}
-              <div className="space-y-1">
-                <Label htmlFor="ci-frequency">
-                  {t('compoundInterest.calculator.fields.frequency.label')}
-                </Label>
-                <Select
-                  value={String(input.compoundingFrequency)}
-                  onValueChange={(v) => updateInput('compoundingFrequency', Number(v) as CompoundingFrequency)}
-                >
-                  <SelectTrigger id="ci-frequency">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FREQUENCY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={String(opt.value)}>
-                        {t(`compoundInterest.calculator.fields.frequency.options.${opt.labelKey}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {t('compoundInterest.calculator.fields.frequency.description')}
-                </p>
-              </div>
-
-              {/* Duration */}
-              <div className="space-y-1">
-                <Label htmlFor="ci-years">
-                  {t('compoundInterest.calculator.fields.years.label')}
-                </Label>
-                <NumberInput
-                  id="ci-years"
-                  min={1}
-                  max={100}
-                  value={String(input.years)}
-                  onChange={(val) => updateInput('years', Number(val))}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t('compoundInterest.calculator.fields.years.description')}
-                </p>
-              </div>
-
-              {/* Regular contribution */}
-              <div className="space-y-1">
-                <Label htmlFor="ci-contribution">
-                  {t('compoundInterest.calculator.fields.contribution.label')}
-                </Label>
-                <NumberInput
-                  id="ci-contribution"
-                  min={0}
-                  value={String(input.regularContribution)}
-                  onChange={(val) => updateInput('regularContribution', Number(val))}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t('compoundInterest.calculator.fields.contribution.description')}
-                </p>
-              </div>
-
-              {/* Contribution timing */}
-              <div className="flex flex-col justify-center space-y-3 pt-4">
-                <div className="flex items-center gap-3">
-                  <Switch
-                    id="ci-timing"
-                    checked={input.contributionAtBeginning}
-                    onCheckedChange={(v) => updateInput('contributionAtBeginning', v)}
-                  />
-                  <Label htmlFor="ci-timing" className="cursor-pointer">
-                    {t('compoundInterest.calculator.fields.contributionTiming')}
+                {/* Principal */}
+                <div className="space-y-1">
+                  <Label htmlFor="ci-principal">
+                    {t('compoundInterest.calculator.fields.principal.label')}
                   </Label>
+                  <NumberInput
+                    id="ci-principal"
+                    min={0}
+                    value={String(input.principal)}
+                    onChange={val => updateInput('principal', Number(val))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t('compoundInterest.calculator.fields.principal.description')}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {t('compoundInterest.calculator.fields.contributionTimingDescription')}
-                </p>
-              </div>
+
+                {/* Annual rate */}
+                <div className="space-y-1">
+                  <Label htmlFor="ci-rate">
+                    {t('compoundInterest.calculator.fields.annualRate.label')}
+                  </Label>
+                  <NumberInput
+                    id="ci-rate"
+                    min={0.01}
+                    max={100}
+                    value={String(input.annualRate)}
+                    onChange={val => updateInput('annualRate', Number(val))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t('compoundInterest.calculator.fields.annualRate.description')}
+                  </p>
+                </div>
+
+                {/* Compounding frequency */}
+                <div className="space-y-1">
+                  <Label htmlFor="ci-frequency">
+                    {t('compoundInterest.calculator.fields.frequency.label')}
+                  </Label>
+                  <Select
+                    value={String(input.compoundingFrequency)}
+                    onValueChange={v =>
+                      updateInput('compoundingFrequency', Number(v) as CompoundingFrequency)
+                    }
+                  >
+                    <SelectTrigger id="ci-frequency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FREQUENCY_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={String(opt.value)}>
+                          {t(
+                            `compoundInterest.calculator.fields.frequency.options.${opt.labelKey}`
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {t('compoundInterest.calculator.fields.frequency.description')}
+                  </p>
+                </div>
+
+                {/* Duration */}
+                <div className="space-y-1">
+                  <Label htmlFor="ci-years">
+                    {t('compoundInterest.calculator.fields.years.label')}
+                  </Label>
+                  <NumberInput
+                    id="ci-years"
+                    min={1}
+                    max={100}
+                    value={String(input.years)}
+                    onChange={val => updateInput('years', Number(val))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t('compoundInterest.calculator.fields.years.description')}
+                  </p>
+                </div>
+
+                {/* Regular contribution */}
+                <div className="space-y-1">
+                  <Label htmlFor="ci-contribution">
+                    {t('compoundInterest.calculator.fields.contribution.label')}
+                  </Label>
+                  <NumberInput
+                    id="ci-contribution"
+                    min={0}
+                    value={String(input.regularContribution)}
+                    onChange={val => updateInput('regularContribution', Number(val))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t('compoundInterest.calculator.fields.contribution.description')}
+                  </p>
+                </div>
+
+                {/* Contribution timing */}
+                <div className="flex flex-col justify-center space-y-3 pt-4">
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      id="ci-timing"
+                      checked={input.contributionAtBeginning}
+                      onCheckedChange={v => updateInput('contributionAtBeginning', v)}
+                    />
+                    <Label htmlFor="ci-timing" className="cursor-pointer">
+                      {t('compoundInterest.calculator.fields.contributionTiming')}
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {t('compoundInterest.calculator.fields.contributionTimingDescription')}
+                  </p>
+                </div>
               </div>
 
               {/* ---- Action buttons ---- */}
               <div className="flex items-center gap-3">
                 <Button type="submit" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    {t('compoundInterest.calculator.calculating')}
-                  </>
-                ) : (
-                  t('compoundInterest.calculator.calculate')
-                )}
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      {t('compoundInterest.calculator.calculating')}
+                    </>
+                  ) : (
+                    t('compoundInterest.calculator.calculate')
+                  )}
                 </Button>
                 <Button type="button" variant="outline" onClick={resetInputs} disabled={isLoading}>
                   <RefreshCw className="mr-2 h-4 w-4" />
@@ -214,7 +231,7 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
               <ResultsSection
                 result={result}
                 currency={baseCurrency}
-                formatCurrency={(val) => formatCurrency(val, baseCurrency)}
+                formatCurrency={val => formatCurrency(val, baseCurrency)}
                 t={t}
               />
             )}
@@ -316,7 +333,7 @@ function GrowthChart({
   t: (key: string) => string;
 }) {
   // Build chart data suitable for a stacked area
-  const chartData = breakdown.map((row) => {
+  const chartData = breakdown.map(row => {
     const initPrincipal = breakdown[0].startingBalance;
     const totalContribs = subtract(row.cumulativePrincipal, initPrincipal);
     return {
@@ -355,8 +372,16 @@ function GrowthChart({
             </defs>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-            <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fontSize: 11 }} width={90} />
-            <Tooltip formatter={(value: number | undefined) => (value != null ? formatCurrency(value) : '')} />
+            <YAxis
+              tickFormatter={(v: number) => formatCurrency(v)}
+              tick={{ fontSize: 11 }}
+              width={90}
+            />
+            <Tooltip
+              formatter={(value: number | undefined) =>
+                value != null ? formatCurrency(value) : ''
+              }
+            />
             <Legend />
             <Area
               type="monotone"
@@ -408,16 +433,28 @@ function BreakdownTable({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-text-muted text-left">
-                <th className="pb-2 pr-4 font-medium">{t('compoundInterest.results.table.year')}</th>
-                <th className="pb-2 pr-4 font-medium">{t('compoundInterest.results.table.startBalance')}</th>
-                <th className="pb-2 pr-4 font-medium">{t('compoundInterest.results.table.contributions')}</th>
-                <th className="pb-2 pr-4 font-medium">{t('compoundInterest.results.table.interest')}</th>
-                <th className="pb-2 pr-4 font-medium">{t('compoundInterest.results.table.endBalance')}</th>
-                <th className="pb-2 font-medium">{t('compoundInterest.results.table.totalInterest')}</th>
+                <th className="pb-2 pr-4 font-medium">
+                  {t('compoundInterest.results.table.year')}
+                </th>
+                <th className="pb-2 pr-4 font-medium">
+                  {t('compoundInterest.results.table.startBalance')}
+                </th>
+                <th className="pb-2 pr-4 font-medium">
+                  {t('compoundInterest.results.table.contributions')}
+                </th>
+                <th className="pb-2 pr-4 font-medium">
+                  {t('compoundInterest.results.table.interest')}
+                </th>
+                <th className="pb-2 pr-4 font-medium">
+                  {t('compoundInterest.results.table.endBalance')}
+                </th>
+                <th className="pb-2 font-medium">
+                  {t('compoundInterest.results.table.totalInterest')}
+                </th>
               </tr>
             </thead>
             <tbody>
-              {breakdown.map((row) => (
+              {breakdown.map(row => (
                 <tr key={row.year} className="border-b border-border/50 hover:bg-surface/50">
                   <td className="py-2 pr-4 font-medium">{row.year}</td>
                   <td className="py-2 pr-4">

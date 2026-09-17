@@ -1,6 +1,6 @@
 /**
  * Performance Optimization Utilities
- * 
+ *
  * Memoization and performance hooks for real estate calculations
  * Requirements: REQ-3.1.1, REQ-3.1.2, REQ-6.4
  */
@@ -70,73 +70,79 @@ export function useThrottle<T extends (...args: unknown[]) => unknown>(
  * Only returns true if relevant calculation inputs changed
  */
 export function useMemoizedBuyRentInputs(inputs: BuyRentInputs): BuyRentInputs {
-  return useMemo(() => inputs, [
-    // Purchase inputs that affect calculations
-    inputs.purchase.propertyPrice,
-    inputs.purchase.renovationAmount,
-    inputs.purchase.isNewProperty,
-    inputs.purchase.notaryFeesPercent,
-    inputs.purchase.agencyFees,
-    inputs.purchase.downPayment,
-    inputs.purchase.loanDuration,
-    inputs.purchase.interestRate,
-    inputs.purchase.totalInsurance,
-    inputs.purchase.applicationFees,
-    inputs.purchase.guaranteeFees,
-    inputs.purchase.accountFees,
-    inputs.purchase.propertyTax,
-    inputs.purchase.coOwnershipCharges,
-    inputs.purchase.maintenancePercent,
-    inputs.purchase.homeInsurance,
-    inputs.purchase.bankFees,
-    inputs.purchase.garbageTax,
-    // Rental inputs
-    inputs.rental.monthlyRent,
-    inputs.rental.monthlyCharges,
-    inputs.rental.securityDeposit,
-    inputs.rental.rentalInsurance,
-    inputs.rental.garbageTax,
-    inputs.rental.initialSavings,
-    inputs.rental.monthlySavings,
-    // Market inputs
-    inputs.market.priceEvolution,
-    inputs.market.rentEvolution,
-    inputs.market.investmentReturn,
-    inputs.market.inflation,
-    // Resale inputs
-    inputs.resale.targetYear,
-    inputs.resale.desiredProfit,
-    inputs.resale.resaleFeesPercent,
-  ]);
+  return useMemo(
+    () => inputs,
+    [
+      // Purchase inputs that affect calculations
+      inputs.purchase.propertyPrice,
+      inputs.purchase.renovationAmount,
+      inputs.purchase.isNewProperty,
+      inputs.purchase.notaryFeesPercent,
+      inputs.purchase.agencyFees,
+      inputs.purchase.downPayment,
+      inputs.purchase.loanDuration,
+      inputs.purchase.interestRate,
+      inputs.purchase.totalInsurance,
+      inputs.purchase.applicationFees,
+      inputs.purchase.guaranteeFees,
+      inputs.purchase.accountFees,
+      inputs.purchase.propertyTax,
+      inputs.purchase.coOwnershipCharges,
+      inputs.purchase.maintenancePercent,
+      inputs.purchase.homeInsurance,
+      inputs.purchase.bankFees,
+      inputs.purchase.garbageTax,
+      // Rental inputs
+      inputs.rental.monthlyRent,
+      inputs.rental.monthlyCharges,
+      inputs.rental.securityDeposit,
+      inputs.rental.rentalInsurance,
+      inputs.rental.garbageTax,
+      inputs.rental.initialSavings,
+      inputs.rental.monthlySavings,
+      // Market inputs
+      inputs.market.priceEvolution,
+      inputs.market.rentEvolution,
+      inputs.market.investmentReturn,
+      inputs.market.inflation,
+      // Resale inputs
+      inputs.resale.targetYear,
+      inputs.resale.desiredProfit,
+      inputs.resale.resaleFeesPercent,
+    ]
+  );
 }
 
 /**
  * Memoized comparison for InvestmentInputs
  */
 export function useMemoizedInvestmentInputs(inputs: InvestmentInputs): InvestmentInputs {
-  return useMemo(() => inputs, [
-    inputs.credit.monthlyPayment,
-    inputs.credit.annualCost,
-    inputs.credit.totalCost,
-    inputs.credit.assurance,
-    inputs.credit.bankFees,
-    inputs.property.totalPrice,
-    inputs.property.furnishingType,
-    inputs.property.furnitureValue,
-    inputs.revenue.monthlyRent,
-    inputs.revenue.recoverableCharges,
-    inputs.revenue.occupancyRate,
-    inputs.revenue.badDebtRate,
-    inputs.expenses.propertyTax,
-    inputs.expenses.nonRecoverableCharges,
-    inputs.expenses.annualMaintenance,
-    inputs.expenses.cfe,
-    inputs.expenses.cvae,
-    inputs.expenses.managementFees,
-    inputs.expenses.pnoInsurance,
-    inputs.expenses.accountingFees,
-    inputs.expenses.marginalTaxRate,
-  ]);
+  return useMemo(
+    () => inputs,
+    [
+      inputs.credit.monthlyPayment,
+      inputs.credit.annualCost,
+      inputs.credit.totalCost,
+      inputs.credit.assurance,
+      inputs.credit.bankFees,
+      inputs.property.totalPrice,
+      inputs.property.furnishingType,
+      inputs.property.furnitureValue,
+      inputs.revenue.monthlyRent,
+      inputs.revenue.recoverableCharges,
+      inputs.revenue.occupancyRate,
+      inputs.revenue.badDebtRate,
+      inputs.expenses.propertyTax,
+      inputs.expenses.nonRecoverableCharges,
+      inputs.expenses.annualMaintenance,
+      inputs.expenses.cfe,
+      inputs.expenses.cvae,
+      inputs.expenses.managementFees,
+      inputs.expenses.pnoInsurance,
+      inputs.expenses.accountingFees,
+      inputs.expenses.marginalTaxRate,
+    ]
+  );
 }
 
 /**
@@ -151,8 +157,10 @@ export function useRenderPerformance(componentName: string) {
       renderCount.current += 1;
       const endTime = performance.now();
       const duration = startTime.current ? endTime - startTime.current : 0;
-      
-      console.log(`[Performance] ${componentName} rendered #${renderCount.current} in ${duration.toFixed(2)}ms`);
+
+      console.log(
+        `[Performance] ${componentName} rendered #${renderCount.current} in ${duration.toFixed(2)}ms`
+      );
       startTime.current = performance.now();
     }
   });
@@ -173,10 +181,10 @@ export function useCalculationPerformance() {
   });
 
   const trackCalculation = useCallback((duration: number) => {
-    setPerformance((prev) => ({
+    setPerformance(prev => ({
       lastCalculationTime: duration,
-      averageCalculationTime: 
-        (prev.averageCalculationTime * prev.totalCalculations + duration) / 
+      averageCalculationTime:
+        (prev.averageCalculationTime * prev.totalCalculations + duration) /
         (prev.totalCalculations + 1),
       totalCalculations: prev.totalCalculations + 1,
     }));
@@ -194,7 +202,7 @@ export function useLazyChart() {
 
   const loadChart = useCallback(async () => {
     if (ChartComponent || isLoading) return;
-    
+
     setIsLoading(true);
     try {
       const { Line } = await import('react-chartjs-2');
@@ -269,10 +277,7 @@ export function useSlowCalculationWarning(threshold: number = 500) {
 /**
  * Hook to prefetch calculations in background
  */
-export function usePrefetchCalculations(
-  inputs: BuyRentInputs,
-  calculateFn: () => void
-) {
+export function usePrefetchCalculations(inputs: BuyRentInputs, calculateFn: () => void) {
   const [isPrefetched, setIsPrefetched] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 

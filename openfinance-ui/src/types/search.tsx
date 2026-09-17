@@ -95,7 +95,10 @@ export interface SavedSearch {
 /**
  * Helper function to get display name for result type
  */
-export const getResultTypeDisplayName = (type: SearchResultType, t?: (key: string) => string): string => {
+export const getResultTypeDisplayName = (
+  type: SearchResultType,
+  t?: (key: string) => string
+): string => {
   if (t) {
     return t(`search.types.${type}`) || t('search.types.DEFAULT');
   }

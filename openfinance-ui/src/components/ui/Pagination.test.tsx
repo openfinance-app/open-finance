@@ -58,7 +58,9 @@ describe('Pagination', () => {
     });
 
     it('displays correct showing range when last page has fewer items', () => {
-      const { container } = renderWithProviders(<Pagination {...defaultProps} totalElements={45} />);
+      const { container } = renderWithProviders(
+        <Pagination {...defaultProps} totalElements={45} />
+      );
       const showingDiv = container.querySelector('.text-text-secondary');
       expect(showingDiv?.textContent).toContain('1');
       expect(showingDiv?.textContent).toContain('10');

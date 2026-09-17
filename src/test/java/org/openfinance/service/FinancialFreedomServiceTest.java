@@ -16,6 +16,33 @@ class FinancialFreedomServiceTest {
 
     private FinancialFreedomService service;
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+        "600000,10,true",
+        "300000,4,true",
+        "299999,4,false",
+        "600000,0,false",
+        "600000,-1,false"
+    })
+    void timelineSustainabilityAgreesWithSavingsLongevity(
+            String savings, String rate, boolean expected) {
+        BigDecimal current = new BigDecimal(savings);
+        BigDecimal expenses = new BigDecimal("1000");
+        BigDecimal returns = new BigDecimal(rate);
+        FreedomCalculatorRequest request =
+                FreedomCalculatorRequest.builder()
+                        .currentSavings(current)
+                        .monthlyExpenses(expenses)
+                        .expectedAnnualReturn(returns)
+                        .monthlyContribution(BigDecimal.ZERO)
+                        .adjustForInflation(false)
+                        .build();
+        assertEquals(expected, service.calculateTimeToFreedom(request).isSustainableIndefinitely());
+        assertEquals(
+                expected,
+                service.calculateSavingsLongevity(current, expenses, returns).isInfinite());
+    }
+
     @BeforeEach
     void setUp() {
         BusinessRulesProperties businessRules = new BusinessRulesProperties();

@@ -1,7 +1,7 @@
 /**
  * ImagePreviewModal Component
  * Task 12.1.14: Add image preview modal
- * 
+ *
  * Lightbox-style modal for previewing image attachments with navigation
  */
 import { useState, useEffect, useCallback } from 'react';
@@ -32,12 +32,7 @@ interface ImagePreviewModalProps {
   onClose: () => void;
 }
 
-export function ImagePreviewModal({
-  images,
-  initialIndex,
-  open,
-  onClose,
-}: ImagePreviewModalProps) {
+export function ImagePreviewModal({ images, initialIndex, open, onClose }: ImagePreviewModalProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -99,7 +94,7 @@ export function ImagePreviewModal({
    * Navigate to previous image
    */
   const handlePrevious = useCallback(() => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    setCurrentIndex(prev => (prev > 0 ? prev - 1 : images.length - 1));
     setZoom(1);
     setRotation(0);
   }, [images.length]);
@@ -108,7 +103,7 @@ export function ImagePreviewModal({
    * Navigate to next image
    */
   const handleNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    setCurrentIndex(prev => (prev < images.length - 1 ? prev + 1 : 0));
     setZoom(1);
     setRotation(0);
   }, [images.length]);
@@ -132,15 +127,15 @@ export function ImagePreviewModal({
           break;
         case '+':
         case '=':
-          setZoom((prev) => Math.min(prev + 0.25, 3));
+          setZoom(prev => Math.min(prev + 0.25, 3));
           break;
         case '-':
         case '_':
-          setZoom((prev) => Math.max(prev - 0.25, 0.5));
+          setZoom(prev => Math.max(prev - 0.25, 0.5));
           break;
         case 'r':
         case 'R':
-          setRotation((prev) => (prev + 90) % 360);
+          setRotation(prev => (prev + 90) % 360);
           break;
         default:
           break;
@@ -155,21 +150,21 @@ export function ImagePreviewModal({
    * Handle zoom in
    */
   const handleZoomIn = () => {
-    setZoom((prev) => Math.min(prev + 0.25, 3));
+    setZoom(prev => Math.min(prev + 0.25, 3));
   };
 
   /**
    * Handle zoom out
    */
   const handleZoomOut = () => {
-    setZoom((prev) => Math.max(prev - 0.25, 0.5));
+    setZoom(prev => Math.max(prev - 0.25, 0.5));
   };
 
   /**
    * Handle rotate
    */
   const handleRotate = () => {
-    setRotation((prev) => (prev + 90) % 360);
+    setRotation(prev => (prev + 90) % 360);
   };
 
   /**
@@ -207,9 +202,7 @@ export function ImagePreviewModal({
           {/* Header */}
           <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
             <div className="flex-1">
-              <h2 className="text-white text-lg font-semibold truncate">
-                {currentImage.fileName}
-              </h2>
+              <h2 className="text-white text-lg font-semibold truncate">{currentImage.fileName}</h2>
               <p className="text-white/70 text-sm">
                 {currentIndex + 1} of {images.length}
               </p>

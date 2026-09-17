@@ -1,6 +1,6 @@
 /**
  * PayeeSelector component
- * 
+ *
  * A dropdown component for selecting payees with search functionality.
  * Supports grouping by category and allows custom payee entry.
  *
@@ -12,11 +12,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { DROPDOWN_CLOSE_DELAY_MS } from '@/constants/timing';
 import { useTranslation } from 'react-i18next';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/Popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/Popover';
 import { markSelectInteraction } from '@/utils/selectClickGuard';
 import { useActivePayees, useFindOrCreatePayee } from '@/hooks/usePayees';
 import { Loader2, Search, User, ChevronDown, Check } from 'lucide-react';
@@ -97,12 +93,12 @@ export function PayeeSelector({
 
     const normalizedQuery = searchQuery.trim().toLowerCase();
     const filtered = normalizedQuery
-      ? payees.filter((p) => p.name.toLowerCase().includes(normalizedQuery))
+      ? payees.filter(p => p.name.toLowerCase().includes(normalizedQuery))
       : payees;
 
     // Group by category
     const groups: Record<string, Payee[]> = {};
-    filtered.forEach((payee) => {
+    filtered.forEach(payee => {
       const category = payee.category || 'other';
       if (!groups[category]) {
         groups[category] = [];
@@ -111,7 +107,7 @@ export function PayeeSelector({
     });
 
     // Sort each group by name
-    Object.keys(groups).forEach((category) => {
+    Object.keys(groups).forEach(category => {
       groups[category].sort((a, b) => a.name.localeCompare(b.name));
     });
 
@@ -127,9 +123,7 @@ export function PayeeSelector({
     });
   }, [groupedPayees, t]);
 
-  const selectedPayee = value
-    ? payees?.find((p) => p.name === value)
-    : undefined;
+  const selectedPayee = value ? payees?.find(p => p.name === value) : undefined;
 
   const selectItem = (val: string | undefined) => {
     onValueChange(val);
@@ -157,20 +151,11 @@ export function PayeeSelector({
     const sizeClasses = size === 'sm' ? 'h-5 w-5' : 'h-6 w-6';
     if (logo) {
       return (
-        <img
-          src={logo}
-          alt=""
-          className={cn('rounded object-contain bg-white', sizeClasses)}
-        />
+        <img src={logo} alt="" className={cn('rounded object-contain bg-white', sizeClasses)} />
       );
     }
     return (
-      <div
-        className={cn(
-          'flex items-center justify-center rounded bg-primary/10',
-          sizeClasses
-        )}
-      >
+      <div className={cn('flex items-center justify-center rounded bg-primary/10', sizeClasses)}>
         <User className="h-3 w-3 text-primary" />
       </div>
     );
@@ -199,7 +184,7 @@ export function PayeeSelector({
   return (
     <Popover
       open={isOpen}
-      onOpenChange={(open) => {
+      onOpenChange={open => {
         setIsOpen(open);
         if (!open) {
           markSelectInteraction();
@@ -244,9 +229,7 @@ export function PayeeSelector({
           </button>
         </PopoverTrigger>
         {/* Pointer-blocking overlay while creating */}
-        {isCreating && (
-          <div className="absolute inset-0 z-10 cursor-wait" aria-hidden="true" />
-        )}
+        {isCreating && <div className="absolute inset-0 z-10 cursor-wait" aria-hidden="true" />}
         {/* sr-only test trigger */}
         {allowNewPayee && (
           <button
@@ -261,7 +244,7 @@ export function PayeeSelector({
       </div>
       <PopoverContent
         className="p-0 flex flex-col w-(--radix-popover-trigger-width)"
-        onOpenAutoFocus={(e) => e.preventDefault()}
+        onOpenAutoFocus={e => e.preventDefault()}
       >
         {/* Search header */}
         <div className="shrink-0 border-b border-border bg-surface p-2">
@@ -270,8 +253,8 @@ export function PayeeSelector({
             <input
               type="text"
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              onKeyDown={(event) => {
+              onChange={event => setSearchQuery(event.target.value)}
+              onKeyDown={event => {
                 if (event.key === 'Escape') setIsOpen(false);
               }}
               placeholder={t('payees:searchPayee')}
@@ -286,16 +269,12 @@ export function PayeeSelector({
             lock doesn't cancel scrolling inside this portaled popover. */}
         <div
           className="max-h-72 overflow-y-auto p-1"
-          onWheel={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
+          onWheel={e => e.stopPropagation()}
+          onTouchMove={e => e.stopPropagation()}
         >
           {/* "None" option */}
           {allowNone && (
-            <button
-              type="button"
-              className={itemClass}
-              onClick={() => selectItem(undefined)}
-            >
+            <button type="button" className={itemClass} onClick={() => selectItem(undefined)}>
               {value === undefined && (
                 <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
                   <Check className="h-4 w-4 text-primary" />
@@ -311,7 +290,7 @@ export function PayeeSelector({
           )}
 
           {/* Grouped payees */}
-          {sortedCategories.map((category) => (
+          {sortedCategories.map(category => (
             <div key={category} className="mt-2">
               {/* Category header */}
               <div className="px-2 py-1 text-xs font-semibold text-text-muted">
@@ -319,7 +298,7 @@ export function PayeeSelector({
               </div>
 
               {/* Payees in this category */}
-              {groupedPayees[category].map((payee) => (
+              {groupedPayees[category].map(payee => (
                 <button
                   key={payee.id}
                   type="button"
@@ -343,11 +322,10 @@ export function PayeeSelector({
           ))}
 
           {/* Empty state */}
-          {sortedCategories.length === 0 && !shouldShowUseNew(searchQuery, payees, allowNewPayee) && (
-            <div className="p-2 text-center text-sm text-text-muted">
-              {t('payees:noMatch')}
-            </div>
-          )}
+          {sortedCategories.length === 0 &&
+            !shouldShowUseNew(searchQuery, payees, allowNewPayee) && (
+              <div className="p-2 text-center text-sm text-text-muted">{t('payees:noMatch')}</div>
+            )}
 
           {/* Inline "use new" item */}
           {shouldShowUseNew(searchQuery, payees, allowNewPayee) && (
@@ -358,7 +336,9 @@ export function PayeeSelector({
             >
               <div className="flex items-center gap-2 text-primary">
                 <span>✨</span>
-                <span>{t('payees:useNew')} &ldquo;{searchQuery.trim()}&rdquo;</span>
+                <span>
+                  {t('payees:useNew')} &ldquo;{searchQuery.trim()}&rdquo;
+                </span>
               </div>
             </button>
           )}

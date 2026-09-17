@@ -315,8 +315,8 @@ class DatabaseConfigIntegrationTest {
 
     /**
      * Returns whether the configured datasource is SQLite. The Postgres CI job overrides {@code
-     * spring.datasource.url} via environment variables, so this class's SQLite-only assertions
-     * must be skipped there.
+     * spring.datasource.url} via environment variables, so this class's SQLite-only assertions must
+     * be skipped there.
      *
      * @return true when the datasource URL points at SQLite
      */
@@ -326,7 +326,11 @@ class DatabaseConfigIntegrationTest {
 
     private boolean dataSourceUrlIsSqlite() {
         try (Connection connection = dataSource.getConnection()) {
-            return connection.getMetaData().getDatabaseProductName().toLowerCase().contains("sqlite");
+            return connection
+                    .getMetaData()
+                    .getDatabaseProductName()
+                    .toLowerCase()
+                    .contains("sqlite");
         } catch (SQLException e) {
             return false;
         }

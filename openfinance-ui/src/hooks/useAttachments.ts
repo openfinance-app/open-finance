@@ -1,7 +1,7 @@
 /**
  * Attachment management hooks
  * Task 12.1.13: Create useAttachments hook
- * 
+ *
  * Provides React Query hooks for attachment CRUD operations
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -12,7 +12,7 @@ import type {
   AttachmentUploadRequest,
   AttachmentFilters,
   StorageStats,
-  UploadProgress
+  UploadProgress,
 } from '@/types/attachment';
 import { useState } from 'react';
 
@@ -88,7 +88,7 @@ export function useUploadAttachment() {
           'Content-Type': 'multipart/form-data',
           ...buildEncryptionHeaders(),
         },
-        onUploadProgress: (progressEvent) => {
+        onUploadProgress: progressEvent => {
           if (progressEvent.total) {
             const percentage = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             setUploadProgress({
@@ -105,10 +105,13 @@ export function useUploadAttachment() {
     onSuccess: (_data, variables) => {
       // Invalidate attachments list for this entity
       queryClient.invalidateQueries({
-        queryKey: ['attachments', {
-          entityType: variables.entityType,
-          entityId: variables.entityId
-        }]
+        queryKey: [
+          'attachments',
+          {
+            entityType: variables.entityType,
+            entityId: variables.entityId,
+          },
+        ],
       });
       // Also invalidate all attachments query
       queryClient.invalidateQueries({ queryKey: ['attachments'] });
@@ -145,7 +148,12 @@ export function useDownloadAttachment() {
       });
 
       // Create blob URL and trigger download
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const blob = new Blob([response.data], {
+        type:
+          typeof response.headers['content-type'] === 'string'
+            ? response.headers['content-type']
+            : undefined,
+      });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -181,7 +189,12 @@ export function useFetchAttachmentBlob() {
         headers: buildEncryptionHeaders(),
       });
 
-      return new Blob([response.data], { type: response.headers['content-type'] });
+      return new Blob([response.data], {
+        type:
+          typeof response.headers['content-type'] === 'string'
+            ? response.headers['content-type']
+            : undefined,
+      });
     },
   });
 }

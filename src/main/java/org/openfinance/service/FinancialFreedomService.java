@@ -199,7 +199,10 @@ public class FinancialFreedomService {
                 .currentProgress(request.getCurrentSavings())
                 .annualPassiveIncome(annualPassiveIncome)
                 .sustainableIndefinitely(
-                        achievable && monthsToFreedom >= MAX_PROJECTION_YEARS * MONTHS_PER_YEAR)
+                        isSustainable(
+                                request.getCurrentSavings(),
+                                request.getMonthlyExpenses(),
+                                effectiveReturnRate))
                 .achievable(achievable)
                 .yearlyProjections(projections)
                 .sensitivityScenarios(scenarios)
@@ -257,12 +260,7 @@ public class FinancialFreedomService {
                         .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
                         .divide(BigDecimal.valueOf(12), 10, RoundingMode.HALF_UP);
 
-        // Check for infinite sustainability
-        // If monthly returns on current savings exceed monthly expenses
-        BigDecimal monthlyReturn = currentSavings.multiply(monthlyRate);
-        boolean infinite =
-                monthlyReturn.compareTo(monthlyExpenses) >= 0
-                        && monthlyRate.compareTo(BigDecimal.ZERO) > 0;
+        boolean infinite = isSustainable(currentSavings, monthlyExpenses, annualReturnRate);
 
         List<ProjectionResult> depletionProjections = new ArrayList<>();
         BigDecimal balance = currentSavings;
@@ -342,6 +340,15 @@ public class FinancialFreedomService {
                 .annualReturnRate(annualReturnRate)
                 .message(message)
                 .build();
+    }
+
+    private static boolean isSustainable(
+            BigDecimal savings, BigDecimal monthlyExpenses, BigDecimal annualReturnRate) {
+        // Compare annual amounts before rounding a monthly rate, including the exact boundary.
+        return annualReturnRate.signum() > 0
+                && savings.multiply(annualReturnRate)
+                                .compareTo(monthlyExpenses.multiply(BigDecimal.valueOf(1200)))
+                        >= 0;
     }
 
     /**

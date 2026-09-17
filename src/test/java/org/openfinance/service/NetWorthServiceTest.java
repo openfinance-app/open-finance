@@ -53,6 +53,10 @@ class NetWorthServiceTest {
 
     @Mock private AccountRepository accountRepository;
 
+    @Mock
+    private org.openfinance.repository.AccountStatusHistoryRepository
+            accountStatusHistoryRepository;
+
     @Mock private org.openfinance.repository.AssetRepository assetRepository;
 
     @Mock private org.openfinance.repository.LiabilityRepository liabilityRepository;
@@ -81,6 +85,50 @@ class NetWorthServiceTest {
 
     private Long testUserId;
     private LocalDate testDate;
+
+    @Test
+    void missingRateCannotWriteACurrentOrHistoricalSnapshot() {
+        Account foreign = createAccount(100L, AccountType.CHECKING, new BigDecimal("100000"));
+        foreign.setCurrency("JPY");
+        foreign.setOpeningDate(testDate.minusMonths(1));
+        when(accountRepository.findByUserIdAndIsActive(testUserId, true))
+                .thenReturn(List.of(foreign));
+        when(accountRepository.findByUserId(testUserId)).thenReturn(List.of(foreign));
+        doThrow(new IllegalStateException("Unavailable provider"))
+                .when(exchangeRateService)
+                .convert(any(BigDecimal.class), eq("JPY"), eq("EUR"));
+        doThrow(new IllegalStateException("Unavailable provider"))
+                .when(exchangeRateService)
+                .convert(any(BigDecimal.class), eq("JPY"), eq("EUR"), any(LocalDate.class));
+
+        assertThatThrownBy(() -> netWorthService.saveNetWorthSnapshot(testUserId, testDate, "EUR"))
+                .isInstanceOf(org.openfinance.exception.ExchangeRateUnavailableException.class);
+        assertThatThrownBy(
+                        () ->
+                                netWorthService.backfillNetWorthHistory(
+                                        testUserId, testDate, testDate, "EUR", true))
+                .isInstanceOf(org.openfinance.exception.ExchangeRateUnavailableException.class);
+        verify(snapshotWriter, never()).upsert(any(), any(), any(), any(), any(), any(), any());
+        verify(netWorthRepository, never()).save(any());
+    }
+
+    @Test
+    void missingPropertyRateCannotBeSwallowedAsZeroValue() {
+        when(realEstateRepository.findByUserIdAndIsActive(testUserId, true))
+                .thenReturn(
+                        List.of(
+                                org.openfinance.entity.RealEstateProperty.builder()
+                                        .id(1L)
+                                        .userId(testUserId)
+                                        .currentValue("100000")
+                                        .currency("JPY")
+                                        .build()));
+        doThrow(new IllegalStateException("Unavailable provider"))
+                .when(exchangeRateService)
+                .convert(any(BigDecimal.class), eq("JPY"), eq("EUR"));
+        assertThatThrownBy(() -> netWorthService.calculateTotalAssets(testUserId, "EUR"))
+                .isInstanceOf(org.openfinance.exception.ExchangeRateUnavailableException.class);
+    }
 
     @BeforeEach
     void setUp() {

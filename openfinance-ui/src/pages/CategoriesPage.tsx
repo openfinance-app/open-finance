@@ -1,12 +1,24 @@
 /**
  * CategoriesPage Component
  * Task CAT-2.2: Create CategoryManagementPage
- * 
+ *
  * Main page for viewing and managing transaction categories in hierarchical tree view
  */
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, ChevronRight, ChevronDown, FolderOpen, Edit2, Trash2, Tag, Search, ArrowUpDown, ChevronDown as ChevronDownIcon, Check } from 'lucide-react';
+import {
+  Plus,
+  ChevronRight,
+  ChevronDown,
+  FolderOpen,
+  Edit2,
+  Trash2,
+  Tag,
+  Search,
+  ArrowUpDown,
+  ChevronDown as ChevronDownIcon,
+  Check,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
@@ -24,7 +36,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/DropdownMenu';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useCategoryTree, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/hooks/useTransactions';
+import {
+  useCategoryTree,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory,
+} from '@/hooks/useTransactions';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { matchesQuery } from '@/utils/searchMatch';
@@ -44,13 +61,8 @@ interface CategoryTreeProps {
 function CategoryTree({ categories, onEdit, onDelete }: CategoryTreeProps) {
   return (
     <div className="space-y-2">
-      {categories.map((category) => (
-        <TreeNode
-          key={category.id}
-          node={category}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
+      {categories.map(category => (
+        <TreeNode key={category.id} node={category} onEdit={onEdit} onDelete={onDelete} />
       ))}
     </div>
   );
@@ -71,17 +83,20 @@ function TreeNode({ node, depth = 0, onEdit, onDelete }: TreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(depth < 1); // Expand first level by default
   const hasChildren = Array.isArray(node?.subcategories) && node.subcategories.length > 0;
   const { baseCurrency } = useAuthContext();
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(baseCurrency);
 
   if (!node) return null;
 
-  const typeColor = node.type === 'INCOME' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500';
+  const typeColor =
+    node.type === 'INCOME' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500';
 
   return (
     <div className="select-none">
-      <div
-        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface transition-colors group"
-      >
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface transition-colors group">
         {/* Depth Spacer */}
         {depth > 0 && <div style={{ width: depth * 24 }} className="shrink-0" />}
 
@@ -94,7 +109,8 @@ function TreeNode({ node, depth = 0, onEdit, onDelete }: TreeNodeProps) {
               p-0.5 rounded hover:bg-surface-elevated
               ${!hasChildren && 'invisible'}
             `}
-            aria-label={isExpanded ? t('badges.collapse') : t('badges.expand')}          >
+            aria-label={isExpanded ? t('badges.collapse') : t('badges.expand')}
+          >
             {isExpanded ? (
               <ChevronDown size={16} className="text-text-secondary" />
             ) : (
@@ -108,24 +124,22 @@ function TreeNode({ node, depth = 0, onEdit, onDelete }: TreeNodeProps) {
           className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-white text-sm font-medium"
           style={{ backgroundColor: node.color || CATEGORY_COLOR_FALLBACK }}
         >
-          {node.icon ? (
-            <span className="text-xs">{node.icon}</span>
-          ) : (
-            <FolderOpen size={16} />
-          )}
+          {node.icon ? <span className="text-xs">{node.icon}</span> : <FolderOpen size={16} />}
         </div>
 
         {/* Name */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-text-primary truncate">{node.name || t('unknownCategory')}</span>
+            <span className="font-medium text-text-primary truncate">
+              {node.name || t('unknownCategory')}
+            </span>
             {node.isSystem && (
-              <Badge variant="outline" className="text-xs">{t('badges.system')}</Badge>
+              <Badge variant="outline" className="text-xs">
+                {t('badges.system')}
+              </Badge>
             )}
           </div>
-          {node.mccCode && (
-            <span className="text-xs text-text-secondary">MCC: {node.mccCode}</span>
-          )}
+          {node.mccCode && <span className="text-xs text-text-secondary">MCC: {node.mccCode}</span>}
         </div>
 
         {/* Type Badge */}
@@ -141,7 +155,9 @@ function TreeNode({ node, depth = 0, onEdit, onDelete }: TreeNodeProps) {
         </div>
 
         {/* Total Amount */}
-        <div className={`w-[110px] shrink-0 text-sm text-right font-medium ${node.type === 'INCOME' ? 'text-green-600' : 'text-red-600'}`}>
+        <div
+          className={`w-[110px] shrink-0 text-sm text-right font-medium ${node.type === 'INCOME' ? 'text-green-600' : 'text-red-600'}`}
+        >
           <ConvertedAmount
             amount={Math.abs(node.totalAmount ?? 0)}
             currency={baseCurrency}
@@ -179,7 +195,7 @@ function TreeNode({ node, depth = 0, onEdit, onDelete }: TreeNodeProps) {
       {/* Children */}
       {hasChildren && isExpanded && (
         <div className="border-l border-border ml-4">
-          {node.subcategories.map((child) => (
+          {node.subcategories.map(child => (
             <TreeNode
               key={child.id}
               node={child}
@@ -215,8 +231,26 @@ interface CategoryFormData {
 }
 
 const ICONS = [
-  '🍔', '🚗', '🏠', '💊', '🛒', '📺', '✈️', '💰', '🎁', '💳',
-  '🏥', '📱', '🎮', '👕', '🏋️', '📚', '🎵', '☕', '🚿', '💼'
+  '🍔',
+  '🚗',
+  '🏠',
+  '💊',
+  '🛒',
+  '📺',
+  '✈️',
+  '💰',
+  '🎁',
+  '💳',
+  '🏥',
+  '📱',
+  '🎮',
+  '👕',
+  '🏋️',
+  '📚',
+  '🎵',
+  '☕',
+  '🚿',
+  '💼',
 ];
 
 export function CategoryFormDialog({
@@ -267,7 +301,7 @@ export function CategoryFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-        <DialogTitle>{category ? t('form.editTitle') : t('form.addTitle')}</DialogTitle>
+          <DialogTitle>{category ? t('form.editTitle') : t('form.addTitle')}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -283,13 +317,15 @@ export function CategoryFormDialog({
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-text-primary">{t('form.name')}</label>
               {/* Bug #6 fix: character counter */}
-              <span className={`text-xs ${formData.name.length > 90 ? 'text-red-500' : 'text-text-secondary'}`}>
+              <span
+                className={`text-xs ${formData.name.length > 90 ? 'text-red-500' : 'text-text-secondary'}`}
+              >
                 {formData.name.length}/100
               </span>
             </div>
             <Input
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
               placeholder={t('form.name')}
               maxLength={100}
               required
@@ -305,9 +341,11 @@ export function CategoryFormDialog({
                 onClick={() => setFormData({ ...formData, type: 'EXPENSE', parentId: undefined })}
                 className={`
                   flex-1 py-2 px-4 rounded-lg border transition-colors
-                  ${formData.type === 'EXPENSE'
-                    ? 'bg-red-500/10 border-red-500 text-red-600'
-                    : 'border-border text-text-secondary hover:bg-surface'}
+                  ${
+                    formData.type === 'EXPENSE'
+                      ? 'bg-red-500/10 border-red-500 text-red-600'
+                      : 'border-border text-text-secondary hover:bg-surface'
+                  }
                 `}
               >
                 {t('form.expense')}
@@ -317,9 +355,11 @@ export function CategoryFormDialog({
                 onClick={() => setFormData({ ...formData, type: 'INCOME', parentId: undefined })}
                 className={`
                   flex-1 py-2 px-4 rounded-lg border transition-colors
-                  ${formData.type === 'INCOME'
-                    ? 'bg-green-500/10 border-green-500 text-green-600'
-                    : 'border-border text-text-secondary hover:bg-surface'}
+                  ${
+                    formData.type === 'INCOME'
+                      ? 'bg-green-500/10 border-green-500 text-green-600'
+                      : 'border-border text-text-secondary hover:bg-surface'
+                  }
                 `}
               >
                 {t('form.income')}
@@ -329,10 +369,12 @@ export function CategoryFormDialog({
 
           {/* Parent Category */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-text-primary">{t('form.parentCategory')}</label>
+            <label className="text-sm font-medium text-text-primary">
+              {t('form.parentCategory')}
+            </label>
             <CategorySelect
               value={formData.parentId}
-              onValueChange={(value) => setFormData({ ...formData, parentId: value })}
+              onValueChange={value => setFormData({ ...formData, parentId: value })}
               placeholder={t('form.selectParentCategory')}
               type={formData.type}
               allowNone={true}
@@ -343,7 +385,7 @@ export function CategoryFormDialog({
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-primary">{t('form.color')}</label>
             <div className="flex flex-wrap gap-2">
-              {CATEGORY_COLOR_SWATCHES.map((color) => (
+              {CATEGORY_COLOR_SWATCHES.map(color => (
                 <button
                   key={color}
                   type="button"
@@ -362,7 +404,7 @@ export function CategoryFormDialog({
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-primary">{t('form.icon')}</label>
             <div className="flex flex-wrap gap-2">
-              {ICONS.map((icon) => (
+              {ICONS.map(icon => (
                 <button
                   key={icon}
                   type="button"
@@ -370,9 +412,11 @@ export function CategoryFormDialog({
                   className={`
                     w-10 h-10 rounded-lg border flex items-center justify-center text-lg
                     transition-colors
-                    ${formData.icon === icon
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:bg-surface'}
+                    ${
+                      formData.icon === icon
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:bg-surface'
+                    }
                   `}
                 >
                   {icon}
@@ -383,11 +427,7 @@ export function CategoryFormDialog({
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t('form.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
@@ -444,10 +484,12 @@ export default function CategoriesPage() {
     // 1. Filter by active tab (keep tree structure)
     const filterTree = (nodes: CategoryTreeNode[]): CategoryTreeNode[] => {
       if (activeTab === 'ALL') return nodes;
-      return nodes.filter(c => c.type === activeTab).map(c => ({
-        ...c,
-        subcategories: c.subcategories ? filterTree(c.subcategories) : []
-      }));
+      return nodes
+        .filter(c => c.type === activeTab)
+        .map(c => ({
+          ...c,
+          subcategories: c.subcategories ? filterTree(c.subcategories) : [],
+        }));
     };
 
     const result = filterTree(categories);
@@ -461,9 +503,13 @@ export default function CategoriesPage() {
 
       return filtered.sort((a, b) => {
         switch (sortBy) {
-          case 'transactions': return (b.transactionCount || 0) - (a.transactionCount || 0);
-          case 'amount': return (b.totalAmount || 0) - (a.totalAmount || 0);
-          case 'name': default: return (a.name || '').localeCompare(b.name || '');
+          case 'transactions':
+            return (b.transactionCount || 0) - (a.transactionCount || 0);
+          case 'amount':
+            return (b.totalAmount || 0) - (a.totalAmount || 0);
+          case 'name':
+          default:
+            return (a.name || '').localeCompare(b.name || '');
         }
       });
     } else {
@@ -471,14 +517,18 @@ export default function CategoriesPage() {
       const sortTree = (nodes: CategoryTreeNode[]): CategoryTreeNode[] => {
         const sorted = [...nodes].sort((a, b) => {
           switch (sortBy) {
-            case 'transactions': return (b.transactionCount || 0) - (a.transactionCount || 0);
-            case 'amount': return (b.totalAmount || 0) - (a.totalAmount || 0);
-            case 'name': default: return (a.name || '').localeCompare(b.name || '');
+            case 'transactions':
+              return (b.transactionCount || 0) - (a.transactionCount || 0);
+            case 'amount':
+              return (b.totalAmount || 0) - (a.totalAmount || 0);
+            case 'name':
+            default:
+              return (a.name || '').localeCompare(b.name || '');
           }
         });
         return sorted.map(node => ({
           ...node,
-          subcategories: node.subcategories ? sortTree(node.subcategories) : []
+          subcategories: node.subcategories ? sortTree(node.subcategories) : [],
         }));
       };
       return sortTree(result);
@@ -560,10 +610,7 @@ export default function CategoriesPage() {
     let expense = 0;
     const visit = (node: CategoryTreeNode) => {
       const children = node.subcategories ?? [];
-      const childrenRollup = children.reduce(
-        (sum, c) => sum + (c.transactionCount || 0),
-        0,
-      );
+      const childrenRollup = children.reduce((sum, c) => sum + (c.transactionCount || 0), 0);
       const directCount = (node.transactionCount || 0) - childrenRollup;
       if (node.type === 'INCOME') income += directCount;
       else if (node.type === 'EXPENSE') expense += directCount;
@@ -606,28 +653,31 @@ export default function CategoriesPage() {
       <div className="flex gap-2 border-b border-border">
         <button
           onClick={() => setActiveTab('ALL')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'ALL'
-            ? 'text-primary border-b-2 border-primary'
-            : 'text-text-secondary hover:text-text-primary'
-            }`}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'ALL'
+              ? 'text-primary border-b-2 border-primary'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
         >
           {t('tabs.all')}
         </button>
         <button
           onClick={() => setActiveTab('EXPENSE')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'EXPENSE'
-            ? 'text-red-600 border-b-2 border-red-500'
-            : 'text-text-secondary hover:text-text-primary'
-            }`}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'EXPENSE'
+              ? 'text-red-600 border-b-2 border-red-500'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
         >
           {t('tabs.expenses')}
         </button>
         <button
           onClick={() => setActiveTab('INCOME')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'INCOME'
-            ? 'text-green-600 border-b-2 border-green-500'
-            : 'text-text-secondary hover:text-text-primary'
-            }`}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'INCOME'
+              ? 'text-green-600 border-b-2 border-green-500'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
         >
           {t('tabs.income')}
         </button>
@@ -640,7 +690,7 @@ export default function CategoriesPage() {
             type="text"
             placeholder={t('search.placeholder')}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             className="pl-10 pr-10"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
@@ -655,20 +705,35 @@ export default function CategoriesPage() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2">
               <ArrowUpDown className="h-4 w-4" />
-              <span>{sortBy === 'name' ? t('sort.byName') : sortBy === 'transactions' ? t('sort.byTransactions') : t('sort.byAmount')}</span>
+              <span>
+                {sortBy === 'name'
+                  ? t('sort.byName')
+                  : sortBy === 'transactions'
+                    ? t('sort.byTransactions')
+                    : t('sort.byAmount')}
+              </span>
               <ChevronDownIcon className="h-4 w-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-[180px]">
-            <DropdownMenuItem onClick={() => setSortBy('name')} className="flex items-center justify-between">
+            <DropdownMenuItem
+              onClick={() => setSortBy('name')}
+              className="flex items-center justify-between"
+            >
               {t('table.name')}
               {sortBy === 'name' && <Check className="h-4 w-4" />}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setSortBy('transactions')} className="flex items-center justify-between">
+            <DropdownMenuItem
+              onClick={() => setSortBy('transactions')}
+              className="flex items-center justify-between"
+            >
               {t('table.transactionCount')}
               {sortBy === 'transactions' && <Check className="h-4 w-4" />}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setSortBy('amount')} className="flex items-center justify-between">
+            <DropdownMenuItem
+              onClick={() => setSortBy('amount')}
+              className="flex items-center justify-between"
+            >
               {t('table.totalAmount')}
               {sortBy === 'amount' && <Check className="h-4 w-4" />}
             </DropdownMenuItem>
@@ -703,16 +768,20 @@ export default function CategoriesPage() {
             icon={FolderOpen}
             title={searchQuery ? t('empty.noMatch') : t('empty.noCategories')}
             description={searchQuery ? t('empty.adjustSearch') : t('empty.addFirst')}
-            action={!searchQuery ? {
-              label: t('addCategory'),
-              onClick: handleCreate,
-            } : undefined}
+            action={
+              !searchQuery
+                ? {
+                    label: t('addCategory'),
+                    onClick: handleCreate,
+                  }
+                : undefined
+            }
           />
         ) : (
           <div className="divide-y divide-border">
             {searchQuery ? (
               // Flat list when searching
-              displayCategories.map((category) => (
+              displayCategories.map(category => (
                 <TreeNode
                   key={category.id}
                   node={category}
@@ -735,7 +804,7 @@ export default function CategoriesPage() {
       {/* Add/Edit Form Dialog */}
       <CategoryFormDialog
         open={isFormOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setIsFormOpen(open);
           if (!open) setFormError(null);
         }}
@@ -748,7 +817,7 @@ export default function CategoriesPage() {
       {/* Delete Confirmation */}
       <ConfirmationDialog
         open={!!deletingCategory}
-        onOpenChange={(open) => !open && setDeletingCategory(null)}
+        onOpenChange={open => !open && setDeletingCategory(null)}
         title={t('dialogs.delete.title')}
         description={t('dialogs.delete.description', { name: deletingCategory?.name })}
         confirmText={t('dialogs.delete.confirmText')}

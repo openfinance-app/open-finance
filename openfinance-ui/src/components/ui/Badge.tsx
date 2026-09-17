@@ -2,7 +2,15 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'success' | 'error' | 'warning' | 'info' | 'secondary' | 'destructive' | 'outline';
+  variant?:
+    | 'default'
+    | 'success'
+    | 'error'
+    | 'warning'
+    | 'info'
+    | 'secondary'
+    | 'destructive'
+    | 'outline';
   size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
 }
@@ -13,8 +21,9 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
  */
 export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
   ({ className, variant = 'default', size = 'md', children, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-full whitespace-nowrap transition-colors';
-    
+    const baseStyles =
+      'inline-flex items-center justify-center font-medium rounded-full whitespace-nowrap transition-colors';
+
     const variants = {
       default: 'bg-surface-elevated text-text-primary border border-border',
       success: 'bg-success/10 text-success border border-success/20',
@@ -25,22 +34,17 @@ export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
       destructive: 'bg-destructive/10 text-destructive border border-destructive/20',
       outline: 'border border-border bg-transparent text-text-primary',
     };
-    
+
     const sizes = {
       sm: 'px-2 py-0.5 text-xs',
       md: 'px-2.5 py-1 text-sm',
       lg: 'px-3 py-1.5 text-base',
     };
-    
+
     return (
       <div
         ref={ref}
-        className={cn(
-          baseStyles,
-          variants[variant],
-          sizes[size],
-          className
-        )}
+        className={cn(baseStyles, variants[variant], sizes[size], className)}
         {...props}
       >
         {children}

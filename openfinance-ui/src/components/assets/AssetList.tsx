@@ -2,7 +2,7 @@
  * AssetList Component
  * Task 5.2.9: Create AssetList component
  * Task 9.2.6: Integrated PhysicalAssetCard for physical asset types
- * 
+ *
  * Responsive table/grid displaying assets with calculations and color-coded gains/losses
  * Supports sortable columns on desktop view.
  */
@@ -12,22 +12,13 @@ import { useTranslation } from 'react-i18next';
 import { Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/Tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { PhysicalAssetCard } from './PhysicalAssetCard';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { cn } from '@/lib/utils';
 import { multiply } from '@/utils/money';
-import {
-  getAssetTypeName,
-  getAssetTypeBadgeVariant,
-  formatGainLoss
-} from '@/hooks/useAssets';
+import { getAssetTypeName, getAssetTypeBadgeVariant, formatGainLoss } from '@/hooks/useAssets';
 import type { Asset } from '@/types/asset';
 
 // Helper to check if asset is physical
@@ -54,13 +45,21 @@ interface AssetListProps {
   highlightedId?: number | null;
 }
 
-function SortIcon({ columnKey, sortConfig }: { columnKey: SortKey; sortConfig: SortConfig | null }) {
+function SortIcon({
+  columnKey,
+  sortConfig,
+}: {
+  columnKey: SortKey;
+  sortConfig: SortConfig | null;
+}) {
   if (!sortConfig || sortConfig.key !== columnKey) {
     return <ChevronsUpDown className="inline h-3.5 w-3.5 ml-1 text-text-tertiary" />;
   }
-  return sortConfig.direction === 'asc'
-    ? <ChevronUp className="inline h-3.5 w-3.5 ml-1 text-primary" />
-    : <ChevronDown className="inline h-3.5 w-3.5 ml-1 text-primary" />;
+  return sortConfig.direction === 'asc' ? (
+    <ChevronUp className="inline h-3.5 w-3.5 ml-1 text-primary" />
+  ) : (
+    <ChevronDown className="inline h-3.5 w-3.5 ml-1 text-primary" />
+  );
 }
 
 export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: AssetListProps) {
@@ -68,7 +67,6 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
   const { t: tc } = useTranslation('common');
   const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
-
 
   useEffect(() => {
     if (highlightedId && assets.length > 0) {
@@ -160,21 +158,21 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
       {/* Physical Assets Grid (Task 9.2.6) */}
       {physicalAssets.length > 0 && (
         <div className="mb-8">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">{t('table.physicalAssets')}</h3>
+          <h3 className="text-lg font-semibold text-text-primary mb-4">
+            {t('table.physicalAssets')}
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {physicalAssets.map((asset) => (
+            {physicalAssets.map(asset => (
               <div
                 key={asset.id}
                 id={`asset-${asset.id}`}
                 className={cn(
-                  "transition-all duration-300 rounded-lg",
-                  highlightedId === asset.id && "ring-2 ring-primary ring-offset-2 bg-primary/5 shadow-lg scale-[1.02] z-30"
+                  'transition-all duration-300 rounded-lg',
+                  highlightedId === asset.id &&
+                    'ring-2 ring-primary ring-offset-2 bg-primary/5 shadow-lg scale-[1.02] z-30'
                 )}
               >
-                <PhysicalAssetCard
-                  asset={asset}
-                  onClick={() => onView?.(asset)}
-                />
+                <PhysicalAssetCard asset={asset} onClick={() => onView?.(asset)} />
               </div>
             ))}
           </div>
@@ -185,7 +183,9 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
       {financialAssets.length > 0 && (
         <>
           {physicalAssets.length > 0 && (
-            <h3 className="text-lg font-semibold text-text-primary mb-4 mt-8">{t('table.financialAssets')}</h3>
+            <h3 className="text-lg font-semibold text-text-primary mb-4 mt-8">
+              {t('table.financialAssets')}
+            </h3>
           )}
 
           {/* Desktop Table View */}
@@ -199,36 +199,47 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                   <th className={thClass()} onClick={() => handleSort('type')}>
                     {t('table.type')} <SortIcon columnKey="type" sortConfig={sortConfig} />
                   </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-text-secondary">{t('table.symbol')}</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-text-secondary">{t('table.quantity')}</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-text-secondary">
+                    {t('table.symbol')}
+                  </th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-text-secondary">
+                    {t('table.quantity')}
+                  </th>
                   <th className={thClass('right')} onClick={() => handleSort('totalValue')}>
-                    {t('table.currentValue')} <SortIcon columnKey="totalValue" sortConfig={sortConfig} />
+                    {t('table.currentValue')}{' '}
+                    <SortIcon columnKey="totalValue" sortConfig={sortConfig} />
                   </th>
                   <th className={thClass('right')} onClick={() => handleSort('totalCost')}>
-                    {t('table.costBasis')} <SortIcon columnKey="totalCost" sortConfig={sortConfig} />
+                    {t('table.costBasis')}{' '}
+                    <SortIcon columnKey="totalCost" sortConfig={sortConfig} />
                   </th>
                   <th className={thClass('right')} onClick={() => handleSort('gainPercentage')}>
-                    {t('table.gainLoss')} <SortIcon columnKey="gainPercentage" sortConfig={sortConfig} />
+                    {t('table.gainLoss')}{' '}
+                    <SortIcon columnKey="gainPercentage" sortConfig={sortConfig} />
                   </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-text-secondary">{t('table.account')}</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-text-secondary">{t('table.actions')}</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-text-secondary">
+                    {t('table.account')}
+                  </th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-text-secondary">
+                    {t('table.actions')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {financialAssets.map((asset) => {
-                   const { color } = formatGainLoss(
-                     asset.unrealizedGain,
-                     asset.gainPercentage * 100,
-                     asset.baseCurrency ?? asset.currency
-                   );
+                {financialAssets.map(asset => {
+                  const { color } = formatGainLoss(
+                    asset.unrealizedGain,
+                    asset.gainPercentage * 100,
+                    asset.baseCurrency ?? asset.currency
+                  );
 
-                   return (
-                     <tr
-                       key={asset.id}
-                       id={`asset-${asset.id}`}
+                  return (
+                    <tr
+                      key={asset.id}
+                      id={`asset-${asset.id}`}
                       className={cn(
-                        "border-b border-border hover:bg-surface-elevated transition-all duration-300 cursor-pointer",
-                        highlightedId === asset.id && "bg-primary/10 border-primary shadow-sm"
+                        'border-b border-border hover:bg-surface-elevated transition-all duration-300 cursor-pointer',
+                        highlightedId === asset.id && 'bg-primary/10 border-primary shadow-sm'
                       )}
                       onClick={() => onView?.(asset)}
                     >
@@ -236,10 +247,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                         {asset.name}
                       </td>
                       <td className="py-3 px-4">
-                        <Badge
-                          variant={getAssetTypeBadgeVariant(asset.type)}
-                          size="sm"
-                        >
+                        <Badge variant={getAssetTypeBadgeVariant(asset.type)} size="sm">
                           {getAssetTypeName(asset.type)}
                         </Badge>
                       </td>
@@ -249,22 +257,22 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                       <td className="py-3 px-4 text-sm text-text-primary text-right font-mono">
                         {asset.quantity.toLocaleString('en-US', {
                           minimumFractionDigits: 2,
-                          maximumFractionDigits: 8
+                          maximumFractionDigits: 8,
                         })}
                       </td>
-                       <td className="py-3 px-4 text-sm text-text-primary text-right font-mono">
-                         {/* REQ-2.2: Show converted base-currency value when available */}
-                         <ConvertedAmount
-                           amount={asset.totalValue}
-                           currency={asset.currency}
-                           convertedAmount={asset.valueInBaseCurrency}
-                           baseCurrency={asset.baseCurrency}
-                           exchangeRate={asset.exchangeRate}
-                           isConverted={asset.isConverted}
-                           secondaryAmount={asset.valueInSecondaryCurrency}
-                           secondaryCurrency={asset.secondaryCurrency}
-                           inline
-                         />
+                      <td className="py-3 px-4 text-sm text-text-primary text-right font-mono">
+                        {/* REQ-2.2: Show converted base-currency value when available */}
+                        <ConvertedAmount
+                          amount={asset.totalValue}
+                          currency={asset.currency}
+                          convertedAmount={asset.valueInBaseCurrency}
+                          baseCurrency={asset.baseCurrency}
+                          exchangeRate={asset.exchangeRate}
+                          isConverted={asset.isConverted}
+                          secondaryAmount={asset.valueInSecondaryCurrency}
+                          secondaryCurrency={asset.secondaryCurrency}
+                          inline
+                        />
                       </td>
                       <td className="py-3 px-4 text-sm text-text-secondary text-right font-mono">
                         {/* Show totalCost in base currency when conversion is available */}
@@ -272,30 +280,34 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                           inline
                           amount={asset.totalCost}
                           currency={asset.currency}
-                          convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.totalCost, asset.exchangeRate) : undefined}
+                          convertedAmount={
+                            asset.isConverted && asset.exchangeRate
+                              ? multiply(asset.totalCost, asset.exchangeRate)
+                              : undefined
+                          }
                           baseCurrency={asset.baseCurrency}
                           exchangeRate={asset.exchangeRate}
                           isConverted={asset.isConverted}
                         />
                       </td>
-                        <td className={`py-3 px-4 text-sm text-right font-mono font-medium ${color}`}>
-                          {asset.unrealizedGain >= 0 ? '+' : '-'}
-                          <ConvertedAmount
-                            inline
-                            amount={Math.abs(asset.unrealizedGain)}
-                           currency={asset.currency}
-                           convertedAmount={
-                             asset.isConverted && asset.exchangeRate
-                               ? multiply(Math.abs(asset.unrealizedGain), asset.exchangeRate)
-                               : undefined
-                           }
-                           baseCurrency={asset.baseCurrency}
-                           exchangeRate={asset.exchangeRate}
-                           isConverted={asset.isConverted}
-                         />{' '}
-                          ({asset.unrealizedGain >= 0 ? '+' : '-'}
-                          {(asset.gainPercentage * 100).toFixed(2)}%)
-                        </td>
+                      <td className={`py-3 px-4 text-sm text-right font-mono font-medium ${color}`}>
+                        {asset.unrealizedGain >= 0 ? '+' : '-'}
+                        <ConvertedAmount
+                          inline
+                          amount={Math.abs(asset.unrealizedGain)}
+                          currency={asset.currency}
+                          convertedAmount={
+                            asset.isConverted && asset.exchangeRate
+                              ? multiply(Math.abs(asset.unrealizedGain), asset.exchangeRate)
+                              : undefined
+                          }
+                          baseCurrency={asset.baseCurrency}
+                          exchangeRate={asset.exchangeRate}
+                          isConverted={asset.isConverted}
+                        />{' '}
+                        ({asset.unrealizedGain >= 0 ? '+' : '-'}
+                        {(asset.gainPercentage * 100).toFixed(2)}%)
+                      </td>
                       <td className="py-3 px-4 text-sm text-text-secondary">
                         {asset.accountName || '—'}
                       </td>
@@ -305,10 +317,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span
-                                    className="inline-flex"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
+                                  <span className="inline-flex" onClick={e => e.stopPropagation()}>
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -326,7 +335,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={(e) => {
+                              onClick={e => {
                                 e.stopPropagation();
                                 onEdit(asset);
                               }}
@@ -338,7 +347,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => {
+                            onClick={e => {
                               e.stopPropagation();
                               handleDeleteClick(asset);
                             }}
@@ -357,19 +366,17 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
 
           {/* Mobile Card View */}
           <div className="md:hidden space-y-4">
-            {financialAssets.map((asset) => {
-              const { color } = formatGainLoss(
-                asset.unrealizedGain,
-                asset.gainPercentage * 100
-              );
+            {financialAssets.map(asset => {
+              const { color } = formatGainLoss(asset.unrealizedGain, asset.gainPercentage * 100);
 
               return (
                 <div
                   key={asset.id}
                   id={`asset-${asset.id}`}
                   className={cn(
-                    "bg-surface border border-border rounded-lg p-4 space-y-3 cursor-pointer hover:bg-surface-elevated transition-all duration-300",
-                    highlightedId === asset.id && "ring-2 ring-primary ring-offset-2 bg-primary/5 shadow-lg scale-[1.02] z-30"
+                    'bg-surface border border-border rounded-lg p-4 space-y-3 cursor-pointer hover:bg-surface-elevated transition-all duration-300',
+                    highlightedId === asset.id &&
+                      'ring-2 ring-primary ring-offset-2 bg-primary/5 shadow-lg scale-[1.02] z-30'
                   )}
                   onClick={() => onView?.(asset)}
                 >
@@ -381,75 +388,76 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                         <p className="text-sm text-text-secondary font-mono">{asset.symbol}</p>
                       )}
                     </div>
-                    <Badge
-                      variant={getAssetTypeBadgeVariant(asset.type)}
-                      size="sm"
-                    >
+                    <Badge variant={getAssetTypeBadgeVariant(asset.type)} size="sm">
                       {getAssetTypeName(asset.type)}
                     </Badge>
                   </div>
 
                   {/* Values */}
                   <div className="space-y-2">
-                     <div className="flex justify-between text-sm">
-                       <span className="text-text-secondary">{t('table.currentValue')}:</span>
-                       <span className="text-text-primary font-mono font-medium">
-                         {/* REQ-2.2: Show converted base-currency value when available */}
-                         <ConvertedAmount
-                           amount={asset.totalValue}
-                           currency={asset.currency}
-                           convertedAmount={asset.valueInBaseCurrency}
-                           baseCurrency={asset.baseCurrency}
-                           exchangeRate={asset.exchangeRate}
-                           isConverted={asset.isConverted}
-                           secondaryAmount={asset.valueInSecondaryCurrency}
-                           secondaryCurrency={asset.secondaryCurrency}
-                           inline
-                         />
-                       </span>
-                     </div>
-                     <div className="flex justify-between text-sm">
-                       <span className="text-text-secondary">{t('table.costBasis')}:</span>
-                       <span className="text-text-secondary font-mono">
-                         {/* Show totalCost in base currency when conversion is available */}
-                         <ConvertedAmount
-                           inline
-                           amount={asset.totalCost}
-                           currency={asset.currency}
-                           convertedAmount={asset.isConverted && asset.exchangeRate ? multiply(asset.totalCost, asset.exchangeRate) : undefined}
-                           baseCurrency={asset.baseCurrency}
-                           exchangeRate={asset.exchangeRate}
-                           isConverted={asset.isConverted}
-                         />
-                       </span>
-                     </div>
-                     <div className="flex justify-between text-sm">
-                       <span className="text-text-secondary">{t('table.gainLoss')}:</span>
-                        <span className={`font-mono font-medium ${color}`}>
-                          {asset.unrealizedGain >= 0 ? '+' : '-'}
-                          <ConvertedAmount
-                            inline
-                            amount={Math.abs(asset.unrealizedGain)}
-                            currency={asset.currency}
-                            convertedAmount={
-                              asset.isConverted && asset.exchangeRate
-                                ? multiply(Math.abs(asset.unrealizedGain), asset.exchangeRate)
-                                : undefined
-                            }
-                            baseCurrency={asset.baseCurrency}
-                            exchangeRate={asset.exchangeRate}
-                            isConverted={asset.isConverted}
-                          />{' '}
-                          ({asset.unrealizedGain >= 0 ? '+' : '-'}
-                          {(asset.gainPercentage * 100).toFixed(2)}%)
-                        </span>
-                     </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-text-secondary">{t('table.currentValue')}:</span>
+                      <span className="text-text-primary font-mono font-medium">
+                        {/* REQ-2.2: Show converted base-currency value when available */}
+                        <ConvertedAmount
+                          amount={asset.totalValue}
+                          currency={asset.currency}
+                          convertedAmount={asset.valueInBaseCurrency}
+                          baseCurrency={asset.baseCurrency}
+                          exchangeRate={asset.exchangeRate}
+                          isConverted={asset.isConverted}
+                          secondaryAmount={asset.valueInSecondaryCurrency}
+                          secondaryCurrency={asset.secondaryCurrency}
+                          inline
+                        />
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-text-secondary">{t('table.costBasis')}:</span>
+                      <span className="text-text-secondary font-mono">
+                        {/* Show totalCost in base currency when conversion is available */}
+                        <ConvertedAmount
+                          inline
+                          amount={asset.totalCost}
+                          currency={asset.currency}
+                          convertedAmount={
+                            asset.isConverted && asset.exchangeRate
+                              ? multiply(asset.totalCost, asset.exchangeRate)
+                              : undefined
+                          }
+                          baseCurrency={asset.baseCurrency}
+                          exchangeRate={asset.exchangeRate}
+                          isConverted={asset.isConverted}
+                        />
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-text-secondary">{t('table.gainLoss')}:</span>
+                      <span className={`font-mono font-medium ${color}`}>
+                        {asset.unrealizedGain >= 0 ? '+' : '-'}
+                        <ConvertedAmount
+                          inline
+                          amount={Math.abs(asset.unrealizedGain)}
+                          currency={asset.currency}
+                          convertedAmount={
+                            asset.isConverted && asset.exchangeRate
+                              ? multiply(Math.abs(asset.unrealizedGain), asset.exchangeRate)
+                              : undefined
+                          }
+                          baseCurrency={asset.baseCurrency}
+                          exchangeRate={asset.exchangeRate}
+                          isConverted={asset.isConverted}
+                        />{' '}
+                        ({asset.unrealizedGain >= 0 ? '+' : '-'}
+                        {(asset.gainPercentage * 100).toFixed(2)}%)
+                      </span>
+                    </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-text-secondary">{t('table.quantity')}:</span>
                       <span className="text-text-primary font-mono">
                         {asset.quantity.toLocaleString('en-US', {
                           minimumFractionDigits: 2,
-                          maximumFractionDigits: 8
+                          maximumFractionDigits: 8,
                         })}
                       </span>
                     </div>
@@ -467,16 +475,8 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span
-                              className="flex-1 inline-flex"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled
-                                className="flex-1"
-                              >
+                            <span className="flex-1 inline-flex" onClick={e => e.stopPropagation()}>
+                              <Button variant="ghost" size="sm" disabled className="flex-1">
                                 <Pencil className="h-4 w-4 mr-2" />
                                 {tc('edit')}
                               </Button>
@@ -489,7 +489,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           onEdit(asset);
                         }}
@@ -502,7 +502,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation();
                         handleDeleteClick(asset);
                       }}
@@ -522,7 +522,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
         open={!!deletingAsset}
-        onOpenChange={(open) => !open && setDeletingAsset(null)}
+        onOpenChange={open => !open && setDeletingAsset(null)}
         onConfirm={handleConfirmDelete}
         title={t('detail.deleteConfirm.title')}
         description={t('detail.deleteConfirm.message', { name: deletingAsset?.name ?? '' })}

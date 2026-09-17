@@ -40,8 +40,14 @@ vi.mock('@/hooks/useSearch', () => ({
 vi.mock('@/components/search/AdvancedFilterPanel', () => ({
   AdvancedFilterPanel: ({ onApply, onSaveSearch, filters, onFiltersChange }: any) => (
     <div data-testid="filter-panel">
-      <button data-testid="apply-filters" onClick={() => onApply()}>Apply</button>
-      {onSaveSearch && <button data-testid="save-search" onClick={onSaveSearch}>Save</button>}
+      <button data-testid="apply-filters" onClick={() => onApply()}>
+        Apply
+      </button>
+      {onSaveSearch && (
+        <button data-testid="save-search" onClick={onSaveSearch}>
+          Save
+        </button>
+      )}
     </div>
   ),
 }));
@@ -50,22 +56,29 @@ vi.mock('@/components/search/SavedSearchesDropdown', () => ({
     <div data-testid="saved-searches">
       {savedSearches.map((s: any) => (
         <div key={s.id}>
-          <button data-testid={`load-${s.id}`} onClick={() => onLoad(s)}>Load</button>
-          <button data-testid={`delete-${s.id}`} onClick={() => onDelete(s.id)}>Delete</button>
+          <button data-testid={`load-${s.id}`} onClick={() => onLoad(s)}>
+            Load
+          </button>
+          <button data-testid={`delete-${s.id}`} onClick={() => onDelete(s.id)}>
+            Delete
+          </button>
         </div>
       ))}
     </div>
   ),
 }));
 vi.mock('@/components/search/SaveSearchDialog', () => ({
-  SaveSearchDialog: ({ isOpen, onSave, onClose }: any) => (
+  SaveSearchDialog: ({ isOpen, onSave, onClose }: any) =>
     isOpen ? (
       <div data-testid="save-dialog">
-        <button data-testid="confirm-save" onClick={() => onSave('My Search')}>Save</button>
-        <button data-testid="close-dialog" onClick={onClose}>Close</button>
+        <button data-testid="confirm-save" onClick={() => onSave('My Search')}>
+          Save
+        </button>
+        <button data-testid="close-dialog" onClick={onClose}>
+          Close
+        </button>
       </div>
-    ) : null
-  ),
+    ) : null,
 }));
 
 import SearchResultsPage from './SearchResultsPage';
@@ -141,8 +154,26 @@ describe('SearchResultsPage', () => {
       executionTimeMs: 10,
       resultsByType: {
         ACCOUNT: [
-          { id: 1, resultType: 'ACCOUNT', title: 'Checking Account', subtitle: null, snippet: null, date: null, tags: [], icon: 'Wallet' },
-          { id: 2, resultType: 'ACCOUNT', title: 'Savings Account', subtitle: null, snippet: null, date: null, tags: [], icon: 'Wallet' },
+          {
+            id: 1,
+            resultType: 'ACCOUNT',
+            title: 'Checking Account',
+            subtitle: null,
+            snippet: null,
+            date: null,
+            tags: [],
+            icon: 'Wallet',
+          },
+          {
+            id: 2,
+            resultType: 'ACCOUNT',
+            title: 'Savings Account',
+            subtitle: null,
+            snippet: null,
+            date: null,
+            tags: [],
+            icon: 'Wallet',
+          },
         ],
       },
       countsPerType: { ACCOUNT: 2 },
@@ -159,7 +190,16 @@ describe('SearchResultsPage', () => {
       executionTimeMs: 5,
       resultsByType: {
         ACCOUNT: [
-          { id: 1, resultType: 'ACCOUNT', title: 'Test Account', subtitle: null, snippet: null, date: null, tags: [], icon: 'Wallet' },
+          {
+            id: 1,
+            resultType: 'ACCOUNT',
+            title: 'Test Account',
+            subtitle: null,
+            snippet: null,
+            date: null,
+            tags: [],
+            icon: 'Wallet',
+          },
         ],
       },
       countsPerType: { ACCOUNT: 1 },
@@ -178,7 +218,18 @@ describe('SearchResultsPage', () => {
       executionTimeMs: 5,
       resultsByType: {
         TRANSACTION: [
-          { id: 1, resultType: 'TRANSACTION', title: 'Grocery Store', amount: 50.00, currency: 'USD', subtitle: null, snippet: null, date: null, tags: [], icon: 'ArrowRightLeft' },
+          {
+            id: 1,
+            resultType: 'TRANSACTION',
+            title: 'Grocery Store',
+            amount: 50.0,
+            currency: 'USD',
+            subtitle: null,
+            snippet: null,
+            date: null,
+            tags: [],
+            icon: 'ArrowRightLeft',
+          },
         ],
       },
       countsPerType: { TRANSACTION: 1 },
@@ -193,7 +244,16 @@ describe('SearchResultsPage', () => {
       executionTimeMs: 5,
       resultsByType: {
         CATEGORY: [
-          { id: 1, resultType: 'CATEGORY', title: 'Food', subtitle: 'EXPENSE', snippet: 'food and drink', date: '2024-01-01', tags: ['monthly'], icon: 'Tag' },
+          {
+            id: 1,
+            resultType: 'CATEGORY',
+            title: 'Food',
+            subtitle: 'EXPENSE',
+            snippet: 'food and drink',
+            date: '2024-01-01',
+            tags: ['monthly'],
+            icon: 'Tag',
+          },
         ],
       },
       countsPerType: { CATEGORY: 1 },
@@ -204,7 +264,15 @@ describe('SearchResultsPage', () => {
   });
 
   it('shows saved searches dropdown when saved searches exist', () => {
-    mockSavedSearches = [{ id: '1', name: 'My Search', filters: { query: 'test', limit: 100 }, createdAt: Date.now(), lastUsedAt: Date.now() }];
+    mockSavedSearches = [
+      {
+        id: '1',
+        name: 'My Search',
+        filters: { query: 'test', limit: 100 },
+        createdAt: Date.now(),
+        lastUsedAt: Date.now(),
+      },
+    ];
     renderWithProviders(<SearchResultsPage />, { route: '/search?q=test' });
     expect(screen.getByTestId('saved-searches')).toBeInTheDocument();
   });
@@ -216,7 +284,15 @@ describe('SearchResultsPage', () => {
 
   it('loads a saved search', async () => {
     const user = userEvent.setup();
-    mockSavedSearches = [{ id: 's1', name: 'My Search', filters: { query: 'saved', limit: 100 }, createdAt: Date.now(), lastUsedAt: Date.now() }];
+    mockSavedSearches = [
+      {
+        id: 's1',
+        name: 'My Search',
+        filters: { query: 'saved', limit: 100 },
+        createdAt: Date.now(),
+        lastUsedAt: Date.now(),
+      },
+    ];
     renderWithProviders(<SearchResultsPage />, { route: '/search?q=test' });
     await user.click(screen.getByTestId('load-s1'));
     expect(mockUpdateLastUsed).toHaveBeenCalledWith('s1');
@@ -225,7 +301,15 @@ describe('SearchResultsPage', () => {
 
   it('deletes a saved search', async () => {
     const user = userEvent.setup();
-    mockSavedSearches = [{ id: 's1', name: 'My Search', filters: { query: 'saved', limit: 100 }, createdAt: Date.now(), lastUsedAt: Date.now() }];
+    mockSavedSearches = [
+      {
+        id: 's1',
+        name: 'My Search',
+        filters: { query: 'saved', limit: 100 },
+        createdAt: Date.now(),
+        lastUsedAt: Date.now(),
+      },
+    ];
     renderWithProviders(<SearchResultsPage />, { route: '/search?q=test' });
     await user.click(screen.getByTestId('delete-s1'));
     expect(mockDeleteSearch).toHaveBeenCalledWith('s1');
@@ -261,7 +345,16 @@ describe('SearchResultsPage', () => {
       executionTimeMs: 5,
       resultsByType: {
         BUDGET: [
-          { id: 1, resultType: 'BUDGET', title: 'Groceries Budget', subtitle: 'MONTHLY', snippet: null, date: null, tags: [], icon: 'PiggyBank' },
+          {
+            id: 1,
+            resultType: 'BUDGET',
+            title: 'Groceries Budget',
+            subtitle: 'MONTHLY',
+            snippet: null,
+            date: null,
+            tags: [],
+            icon: 'PiggyBank',
+          },
         ],
       },
       countsPerType: { BUDGET: 1 },

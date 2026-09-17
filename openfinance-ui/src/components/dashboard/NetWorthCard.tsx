@@ -26,14 +26,24 @@ interface NetWorthCardProps {
  * - Up/down arrow icon
  * - "vs {periodLabel}" suffix driven by the global period selector
  */
-export default function NetWorthCard({ netWorth, periodLabel = 'last month', periodChange }: NetWorthCardProps) {
+export default function NetWorthCard({
+  netWorth,
+  periodLabel = 'last month',
+  periodChange,
+}: NetWorthCardProps) {
   const { t } = useTranslation('dashboard');
   const { data: settings } = useUserSettings();
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(netWorth.currency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(netWorth.currency);
   // When periodChange is explicitly null, no comparison data exists for this period — don't fall back to monthly.
   // Only use monthly fallback when periodChange is undefined (prop not passed).
-  const changeAmount = periodChange === null ? null : (periodChange?.amount ?? netWorth.monthlyChangeAmount);
-  const changePercentage = periodChange === null ? null : (periodChange?.percentage ?? netWorth.monthlyChangePercentage);
+  const changeAmount =
+    periodChange === null ? null : (periodChange?.amount ?? netWorth.monthlyChangeAmount);
+  const changePercentage =
+    periodChange === null ? null : (periodChange?.percentage ?? netWorth.monthlyChangePercentage);
   const hasComparison = changeAmount != null && changePercentage != null;
   const isPositiveChange = hasComparison && (changeAmount ?? 0) >= 0;
   const changeColor = isPositiveChange ? 'text-green-500' : 'text-red-500';
@@ -59,10 +69,7 @@ export default function NetWorthCard({ netWorth, periodLabel = 'last month', per
         />
         <div className="flex items-center gap-1 text-sm text-text-secondary mt-1">
           {t('metrics.netWorth')}
-          <HelpTooltip
-            text={t('metrics.netWorthTooltip')}
-            side="right"
-          />
+          <HelpTooltip text={t('metrics.netWorthTooltip')} side="right" />
         </div>
       </div>
 
@@ -86,7 +93,9 @@ export default function NetWorthCard({ netWorth, periodLabel = 'last month', per
             ({isPositiveChange ? '+' : ''}
             {changePercentage!.toFixed(2)}%)
           </PrivateAmount>
-          <span className="text-text-secondary text-sm ml-auto">{t('metrics.vsPeriod', { period: periodLabel })}</span>
+          <span className="text-text-secondary text-sm ml-auto">
+            {t('metrics.vsPeriod', { period: periodLabel })}
+          </span>
         </div>
       ) : (
         <div className="flex items-center gap-2 text-text-muted text-sm">

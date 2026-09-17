@@ -1,7 +1,7 @@
 /**
  * RecurringTransactionsPage Component
  * Task 12.2.8: Create RecurringTransactionsPage component
- * 
+ *
  * Main page for viewing and managing recurring transactions
  */
 import { useState } from 'react';
@@ -42,8 +42,12 @@ import { FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
 export default function RecurringTransactionsPage() {
   const { t } = useTranslation('recurring');
   useDocumentTitle(t('title'));
-  
-  const [filters, setFilters] = useState<RecurringTransactionFilters>({ page: 0, size: 20, sort: 'nextOccurrence,asc' });
+
+  const [filters, setFilters] = useState<RecurringTransactionFilters>({
+    page: 0,
+    size: 20,
+    sort: 'nextOccurrence,asc',
+  });
   const [showFilters, setShowFilters] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<RecurringTransaction | null>(null);
@@ -51,11 +55,23 @@ export default function RecurringTransactionsPage() {
   const [detailTransaction, setDetailTransaction] = useState<RecurringTransaction | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const { data: recurringTransactionsPage, isLoading, error } = useRecurringTransactionsPaged(filters);
+  const {
+    data: recurringTransactionsPage,
+    isLoading,
+    error,
+  } = useRecurringTransactionsPaged(filters);
   // Fetch all (unfiltered) for global stat totals
-  const { data: allRecurringPage } = useRecurringTransactionsPaged({ page: 0, size: FETCH_ALL_PAGE_SIZE, sort: 'nextOccurrence,asc' });
+  const { data: allRecurringPage } = useRecurringTransactionsPaged({
+    page: 0,
+    size: FETCH_ALL_PAGE_SIZE,
+    sort: 'nextOccurrence,asc',
+  });
   // Fetch all matching current filters (no pagination) for filtered stats
-  const { data: allFilteredPage } = useRecurringTransactionsPaged({ ...filters, page: 0, size: FETCH_ALL_PAGE_SIZE });
+  const { data: allFilteredPage } = useRecurringTransactionsPaged({
+    ...filters,
+    page: 0,
+    size: FETCH_ALL_PAGE_SIZE,
+  });
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
   const createMutation = useCreateRecurringTransaction();
@@ -101,12 +117,12 @@ export default function RecurringTransactionsPage() {
       setEditingTransaction(null);
     } catch (error: any) {
       // Extract user-friendly error message
-      const errorMessage = 
-        error?.response?.data?.message || 
+      const errorMessage =
+        error?.response?.data?.message ||
         error?.response?.data?.error ||
-        error?.message || 
+        error?.message ||
         t('saveError');
-      
+
       setFormError(errorMessage);
       console.error('Failed to save recurring transaction:', error);
     }
@@ -146,7 +162,7 @@ export default function RecurringTransactionsPage() {
   };
 
   const handleFilterChange = (key: keyof RecurringTransactionFilters, value: any) => {
-    setFilters((prev) => ({
+    setFilters(prev => ({
       ...prev,
       [key]: value === 'all' ? undefined : value,
     }));
@@ -169,27 +185,30 @@ export default function RecurringTransactionsPage() {
   };
 
   /** True when any meaningful filter (beyond pagination/sort) is active */
-  const isFiltered = !!(filters.search || filters.type || filters.frequency ||
-    filters.isActive !== undefined || filters.accountId);
+  const isFiltered = !!(
+    filters.search ||
+    filters.type ||
+    filters.frequency ||
+    filters.isActive !== undefined ||
+    filters.accountId
+  );
 
   // Global stats — always across the full unfiltered dataset
-  const activeCount = allRecurring.filter((rt) => rt.isActive && !rt.isEnded).length;
-  const pausedCount = allRecurring.filter((rt) => !rt.isActive && !rt.isEnded).length;
-  const endedCount = allRecurring.filter((rt) => rt.isEnded).length;
-  const dueCount = allRecurring.filter((rt) => rt.isDue).length;
+  const activeCount = allRecurring.filter(rt => rt.isActive && !rt.isEnded).length;
+  const pausedCount = allRecurring.filter(rt => !rt.isActive && !rt.isEnded).length;
+  const endedCount = allRecurring.filter(rt => rt.isEnded).length;
+  const dueCount = allRecurring.filter(rt => rt.isDue).length;
 
   // Filtered stats — counts within the current filter selection
-  const filteredActiveCount = allFiltered.filter((rt) => rt.isActive && !rt.isEnded).length;
-  const filteredPausedCount = allFiltered.filter((rt) => !rt.isActive && !rt.isEnded).length;
-  const filteredEndedCount = allFiltered.filter((rt) => rt.isEnded).length;
-  const filteredDueCount = allFiltered.filter((rt) => rt.isDue).length;
+  const filteredActiveCount = allFiltered.filter(rt => rt.isActive && !rt.isEnded).length;
+  const filteredPausedCount = allFiltered.filter(rt => !rt.isActive && !rt.isEnded).length;
+  const filteredEndedCount = allFiltered.filter(rt => rt.isEnded).length;
+  const filteredDueCount = allFiltered.filter(rt => rt.isDue).length;
 
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center text-red-500">
-          {t('loadError', { message: error.message })}
-        </div>
+        <div className="text-center text-red-500">{t('loadError', { message: error.message })}</div>
       </div>
     );
   }
@@ -197,10 +216,7 @@ export default function RecurringTransactionsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Page Header */}
-      <PageHeader
-        title={t('title')}
-        description={t('description')}
-      />
+      <PageHeader title={t('title')} description={t('description')} />
 
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -248,7 +264,9 @@ export default function RecurringTransactionsPage() {
         <div className="mb-6 p-4 bg-surface rounded-lg border border-border">
           {/* Search */}
           <div className="mb-4">
-            <label htmlFor="search" className="block text-sm font-medium mb-2">{t('filters.search')}</label>
+            <label htmlFor="search" className="block text-sm font-medium mb-2">
+              {t('filters.search')}
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
               <Input
@@ -256,12 +274,14 @@ export default function RecurringTransactionsPage() {
                 type="text"
                 placeholder={t('filters.searchPlaceholder')}
                 value={filters.search || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFiltersChange({ ...filters, search: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleFiltersChange({ ...filters, search: e.target.value })
+                }
                 className="pl-10 pr-10"
               />
               <RegexToggle
                 enabled={!!filters.searchRegex}
-                onChange={(val) => handleFiltersChange({ ...filters, searchRegex: val || undefined })}
+                onChange={val => handleFiltersChange({ ...filters, searchRegex: val || undefined })}
                 className="absolute right-2 top-1/2 -translate-y-1/2"
               />
             </div>
@@ -273,7 +293,7 @@ export default function RecurringTransactionsPage() {
               <label className="block text-sm font-medium mb-2">{t('filters.account')}</label>
               <AccountSelector
                 value={filters.accountId}
-                onValueChange={(val) => handleFiltersChange({ ...filters, accountId: val })}
+                onValueChange={val => handleFiltersChange({ ...filters, accountId: val })}
                 placeholder={t('filters.allAccounts')}
                 allowNone={true}
               />
@@ -285,7 +305,7 @@ export default function RecurringTransactionsPage() {
               <select
                 className="w-full px-3 py-2 bg-background border border-border rounded-md"
                 value={filters.type || 'all'}
-                onChange={(e) => handleFilterChange('type', e.target.value)}
+                onChange={e => handleFilterChange('type', e.target.value)}
               >
                 <option value="all">{t('filters.allTypes')}</option>
                 <option value="INCOME">{t('filters.income')}</option>
@@ -300,7 +320,7 @@ export default function RecurringTransactionsPage() {
               <select
                 className="w-full px-3 py-2 bg-background border border-border rounded-md"
                 value={filters.frequency || 'all'}
-                onChange={(e) => handleFilterChange('frequency', e.target.value)}
+                onChange={e => handleFilterChange('frequency', e.target.value)}
               >
                 <option value="all">{t('filters.allFrequencies')}</option>
                 <option value="DAILY">{t('filters.daily')}</option>
@@ -317,9 +337,14 @@ export default function RecurringTransactionsPage() {
               <label className="block text-sm font-medium mb-2">{t('filters.status')}</label>
               <select
                 className="w-full px-3 py-2 bg-background border border-border rounded-md"
-                value={filters.isActive === undefined ? 'all' : filters.isActive ? 'active' : 'paused'}
-                onChange={(e) =>
-                  handleFilterChange('isActive', e.target.value === 'all' ? undefined : e.target.value === 'active')
+                value={
+                  filters.isActive === undefined ? 'all' : filters.isActive ? 'active' : 'paused'
+                }
+                onChange={e =>
+                  handleFilterChange(
+                    'isActive',
+                    e.target.value === 'all' ? undefined : e.target.value === 'active'
+                  )
                 }
               >
                 <option value="all">{t('filters.allStatus')}</option>
@@ -372,7 +397,7 @@ export default function RecurringTransactionsPage() {
       ) : (
         <>
           <div className="space-y-4">
-            {recurringTransactions.map((recurringTransaction) => (
+            {recurringTransactions.map(recurringTransaction => (
               <RecurringTransactionCard
                 key={recurringTransaction.id}
                 recurringTransaction={recurringTransaction}
@@ -424,9 +449,11 @@ export default function RecurringTransactionsPage() {
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
         open={!!deletingTransaction}
-        onOpenChange={(open) => !open && setDeletingTransaction(null)}
+        onOpenChange={open => !open && setDeletingTransaction(null)}
         title={t('dialogs.delete.title')}
-        description={t('dialogs.delete.description', { description: deletingTransaction?.description })}
+        description={t('dialogs.delete.description', {
+          description: deletingTransaction?.description,
+        })}
         confirmText={t('dialogs.delete.confirmText')}
         onConfirm={handleConfirmDelete}
         variant="danger"
@@ -438,7 +465,7 @@ export default function RecurringTransactionsPage() {
         <RecurringTransactionDetailModal
           recurringTransaction={detailTransaction}
           onClose={() => setDetailTransaction(null)}
-          onEdit={(rt) => handleEdit(rt)}
+          onEdit={rt => handleEdit(rt)}
         />
       )}
     </div>

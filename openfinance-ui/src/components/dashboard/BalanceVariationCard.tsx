@@ -30,8 +30,6 @@ interface BalanceVariationCardProps {
   currency?: string;
 }
 
-
-
 const CustomTooltip = ({
   active,
   payload,
@@ -65,7 +63,9 @@ const CustomTooltip = ({
   return null;
 };
 
-export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: BalanceVariationCardProps) {
+export default function BalanceVariationCard({
+  currency = DEFAULT_CURRENCY,
+}: BalanceVariationCardProps) {
   const { t } = useTranslation('dashboard');
   const { isAmountsVisible } = useVisibility();
   const { data: yearlyData, isLoading, error } = useYearlyBalance();
@@ -143,9 +143,7 @@ export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: Ba
       {/* Header */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-1">
-          <h3 className="text-lg font-semibold text-text-primary">
-            {t('balanceVariation.title')}
-          </h3>
+          <h3 className="text-lg font-semibold text-text-primary">{t('balanceVariation.title')}</h3>
           <HelpTooltip text={t('balanceVariation.tooltip')} side="right" />
         </div>
       </div>
@@ -207,8 +205,7 @@ export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: Ba
             }`}
           >
             {averageIncrease >= 0 ? '+' : ''}
-            {averageIncrease.toFixed(2)}%{' '}
-            {t('balanceVariation.perYear')}
+            {averageIncrease.toFixed(2)}% {t('balanceVariation.perYear')}
           </span>
         </div>
       )}
@@ -230,8 +227,7 @@ export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: Ba
                 tick={{ fill: '#9ca3af', fontSize: 12 }}
                 tickFormatter={(value: number) => {
                   if (!isAmountsVisible) return '••••';
-                  if (Math.abs(value) >= 1_000_000)
-                    return `${(value / 1_000_000).toFixed(1)}M`;
+                  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
                   if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(0)}k`;
                   return value.toString();
                 }}
@@ -274,8 +270,7 @@ export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: Ba
                 tick={{ fill: '#9ca3af', fontSize: 12 }}
                 tickFormatter={(value: number) => {
                   if (!isAmountsVisible) return '••••';
-                  if (Math.abs(value) >= 1_000_000)
-                    return `${(value / 1_000_000).toFixed(1)}M`;
+                  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
                   if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(0)}k`;
                   return value.toString();
                 }}
@@ -301,10 +296,7 @@ export default function BalanceVariationCard({ currency = DEFAULT_CURRENCY }: Ba
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">
         {chartData.map(
           (d: { year: number; amount: number; variationPercentage: number | null }) => (
-            <div
-              key={d.year}
-              className="bg-surface-elevated rounded-md p-2 text-center"
-            >
+            <div key={d.year} className="bg-surface-elevated rounded-md p-2 text-center">
               <div className="text-text-secondary font-medium">{d.year}</div>
               <div className="text-text-primary font-mono font-semibold truncate">
                 <ConvertedAmount amount={d.amount} currency={effectiveCurrency} inline />

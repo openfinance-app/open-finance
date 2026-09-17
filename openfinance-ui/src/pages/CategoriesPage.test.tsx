@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent } from '@/test/test-utils';
+import {
+  renderWithProviders,
+  mockAuthentication,
+  clearAuthentication,
+  userEvent,
+} from '@/test/test-utils';
 import CategoriesPage from '@/pages/CategoriesPage';
 
 let mockCategoryData: any[] = [
@@ -13,7 +18,16 @@ let mockCategoryData: any[] = [
     currency: 'USD',
     isSystem: false,
     subcategories: [
-      { id: 2, name: 'Groceries', type: 'EXPENSE', transactionCount: 5, totalAmount: 300, currency: 'USD', isSystem: false, subcategories: [] },
+      {
+        id: 2,
+        name: 'Groceries',
+        type: 'EXPENSE',
+        transactionCount: 5,
+        totalAmount: 300,
+        currency: 'USD',
+        isSystem: false,
+        subcategories: [],
+      },
     ],
   },
   {
@@ -45,11 +59,19 @@ vi.mock('@/hooks/useTransactions', () => ({
 }));
 
 vi.mock('@/hooks/useSecondaryConversion', () => ({
-  useSecondaryConversion: () => ({ convert: (a: number) => a, secondaryCurrency: null, secondaryExchangeRate: null }),
+  useSecondaryConversion: () => ({
+    convert: (a: number) => a,
+    secondaryCurrency: null,
+    secondaryExchangeRate: null,
+  }),
 }));
 
 vi.mock('@/components/ui/CategorySelect', () => ({
-  CategorySelect: () => <select data-testid="category-select"><option>None</option></select>,
+  CategorySelect: () => (
+    <select data-testid="category-select">
+      <option>None</option>
+    </select>
+  ),
 }));
 
 vi.mock('@/components/ConfirmationDialog', () => ({
@@ -79,7 +101,16 @@ describe('CategoriesPage', () => {
         currency: 'USD',
         isSystem: false,
         subcategories: [
-          { id: 2, name: 'Groceries', type: 'EXPENSE', transactionCount: 5, totalAmount: 300, currency: 'USD', isSystem: false, subcategories: [] },
+          {
+            id: 2,
+            name: 'Groceries',
+            type: 'EXPENSE',
+            transactionCount: 5,
+            totalAmount: 300,
+            currency: 'USD',
+            isSystem: false,
+            subcategories: [],
+          },
         ],
       },
       {

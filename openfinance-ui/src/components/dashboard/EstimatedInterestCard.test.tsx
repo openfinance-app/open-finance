@@ -8,7 +8,9 @@ import type { IEstimatedInterestSummary } from '@/types/dashboard';
 // Mock ConvertedAmount
 vi.mock('../ui/ConvertedAmount', () => ({
   ConvertedAmount: ({ amount, currency }: any) => (
-    <span data-testid="converted-amount">{amount} {currency}</span>
+    <span data-testid="converted-amount">
+      {amount} {currency}
+    </span>
   ),
 }));
 
@@ -31,7 +33,7 @@ vi.mock('../ui/SimpleSelect', () => ({
 }));
 
 const mockNavigate = vi.fn();
-vi.mock('react-router', async (importOriginal) => {
+vi.mock('react-router', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router')>();
   return { ...actual, useNavigate: () => mockNavigate };
 });
@@ -71,16 +73,12 @@ describe('EstimatedInterestCard', () => {
   });
 
   it('renders title and subtitle', () => {
-    renderWithProviders(
-      <EstimatedInterestCard summary={baseSummary} period="MONTHLY" />
-    );
+    renderWithProviders(<EstimatedInterestCard summary={baseSummary} period="MONTHLY" />);
     expect(screen.getByText('Estimated Interest')).toBeInTheDocument();
   });
 
   it('renders total earned amount', () => {
-    renderWithProviders(
-      <EstimatedInterestCard summary={baseSummary} period="MONTHLY" />
-    );
+    renderWithProviders(<EstimatedInterestCard summary={baseSummary} period="MONTHLY" />);
     expect(screen.getByText('Total Earned')).toBeInTheDocument();
     // Total earned should show as converted amount
     const amounts = screen.getAllByTestId('converted-amount');
@@ -88,33 +86,25 @@ describe('EstimatedInterestCard', () => {
   });
 
   it('renders account breakdown', () => {
-    renderWithProviders(
-      <EstimatedInterestCard summary={baseSummary} period="MONTHLY" />
-    );
+    renderWithProviders(<EstimatedInterestCard summary={baseSummary} period="MONTHLY" />);
     expect(screen.getByText('Savings Account')).toBeInTheDocument();
     expect(screen.getByText('Loan Account')).toBeInTheDocument();
   });
 
   it('renders no data message when accounts are empty', () => {
-    renderWithProviders(
-      <EstimatedInterestCard summary={emptySummary} period="MONTHLY" />
-    );
+    renderWithProviders(<EstimatedInterestCard summary={emptySummary} period="MONTHLY" />);
     expect(screen.getByText('No interest data available for this period.')).toBeInTheDocument();
   });
 
   it('renders filter select with options', () => {
-    renderWithProviders(
-      <EstimatedInterestCard summary={baseSummary} period="MONTHLY" />
-    );
+    renderWithProviders(<EstimatedInterestCard summary={baseSummary} period="MONTHLY" />);
     const select = screen.getByTestId('filter-select');
     expect(select).toBeInTheDocument();
   });
 
   it('filters accounts when filter type changes', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <EstimatedInterestCard summary={baseSummary} period="MONTHLY" />
-    );
+    renderWithProviders(<EstimatedInterestCard summary={baseSummary} period="MONTHLY" />);
     const select = screen.getByTestId('filter-select');
     await user.selectOptions(select, 'LIABILITIES');
     // After filtering to liabilities, only negative projectedInterest accounts show

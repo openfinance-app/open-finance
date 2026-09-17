@@ -3,6 +3,7 @@ import { Plus, ChevronDown, GripVertical, SlidersHorizontal } from 'lucide-react
 import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import { isAxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 import { GRID_LAYOUT_BREAKPOINTS, GRID_LAYOUT_COLS } from '@/constants/breakpoints';
 import { RESIZE_EVENT_DELAY_MS } from '@/constants/timing';
@@ -159,6 +160,14 @@ const DEFAULT_LAYOUT_BY_ID: Record<string, any> = generateDefaultLayouts().lg.re
   },
   {}
 );
+
+function requestErrorMessage(error: unknown, fallback: string): string {
+  if (isAxiosError<{ message?: unknown }>(error)) {
+    const message = error.response?.data?.message;
+    if (typeof message === 'string') return message;
+  }
+  return error instanceof Error ? error.message : fallback;
+}
 
 export default function DashboardPage() {
   const { t } = useTranslation('dashboard');
@@ -367,10 +376,11 @@ export default function DashboardPage() {
     secondaryExchangeRate,
   } = useSecondaryConversion(summary?.baseCurrency);
   const { data: cashFlow, isLoading: cashFlowLoading } = useCashFlow(periodDays, activeDateRange);
-  const { data: netWorthHistory, isLoading: historyLoading } = useNetWorthHistory(
-    historyPeriod,
-    activeDateRange
-  );
+  const {
+    data: netWorthHistory,
+    isLoading: historyLoading,
+    error: historyError,
+  } = useNetWorthHistory(historyPeriod, activeDateRange);
   const { data: assetAllocations, isLoading: allocationLoading } = useAssetAllocation();
   const { data: portfolioPerformances, isLoading: performanceLoading } = usePortfolioPerformance(
     periodDays,
@@ -392,7 +402,12 @@ export default function DashboardPage() {
 
   // ── Period change computed from history chart (BUG-D1) ─────────────────────
   const periodChange = useMemo(() => {
-    if (!netWorthHistory || netWorthHistory.length < 2 || summary?.netWorth?.netWorth == null)
+    if (
+      historyError ||
+      !netWorthHistory ||
+      netWorthHistory.length < 2 ||
+      summary?.netWorth?.netWorth == null
+    )
       return null;
     // Find the data point closest to periodDays ago (not just the first point
     // in the history, which may span a wider window for chart context).
@@ -411,7 +426,7 @@ export default function DashboardPage() {
     const changeAmount = subtract(summary.netWorth.netWorth ?? 0, closest.netWorth);
     const changePercent = percentage(changeAmount, Math.abs(closest.netWorth));
     return { amount: changeAmount, percentage: changePercent };
-  }, [netWorthHistory, summary?.netWorth?.netWorth, periodDays]);
+  }, [netWorthHistory, historyError, summary?.netWorth?.netWorth, periodDays]);
 
   // ── Close card menu on outside click ───────────────────────────────────────
   useEffect(() => {
@@ -531,9 +546,13 @@ export default function DashboardPage() {
         id: 'netWorthTrend',
         label: t('cards.netWorthTrend.label'),
         description: t('cards.netWorthTrend.description'),
-        isAvailable: Boolean(netWorthHistory && netWorthHistory.length > 0),
+        isAvailable: Boolean(historyError || (netWorthHistory && netWorthHistory.length > 0)),
         render: () =>
-          netWorthHistory && netWorthHistory.length > 0 ? (
+          historyError ? (
+            <p role="alert" className="text-red-500 p-4">
+              {requestErrorMessage(historyError, t('errors.loadFailed'))}
+            </p>
+          ) : netWorthHistory && netWorthHistory.length > 0 ? (
             <NetWorthTrendChart data={netWorthHistory} currency={summary.baseCurrency} />
           ) : null,
       },
@@ -615,6 +634,7 @@ export default function DashboardPage() {
     periodDays,
     activeDateRange,
     netWorthHistory,
+    historyError,
     portfolioPerformances,
     assetAllocations,
     borrowingCapacity,
@@ -694,6 +714,7 @@ export default function DashboardPage() {
   // ── Loading skeleton ────────────────────────────────────────────────────────
   if (
     !summary &&
+    !summaryError &&
     (summaryLoading ||
       cashFlowLoading ||
       historyLoading ||
@@ -718,11 +739,11 @@ export default function DashboardPage() {
 
   // ── Error states ────────────────────────────────────────────────────────────
   if (summaryError) {
+    const message = requestErrorMessage(summaryError, t('errors.unexpected'));
     const isDecryptionError =
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (summaryError as any).response?.status === 400 &&
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (summaryError as any).response?.data?.message?.includes('Decryption failed');
+      isAxiosError(summaryError) &&
+      summaryError.response?.status === 400 &&
+      message.includes('Decryption failed');
 
     if (isDecryptionError) {
       return (
@@ -747,9 +768,7 @@ export default function DashboardPage() {
     return (
       <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-6 text-center">
         <p className="text-red-500 font-semibold mb-2">{t('errors.loadFailed')}</p>
-        <p className="text-text-secondary text-sm mb-4">
-          {summaryError instanceof Error ? summaryError.message : t('errors.unexpected')}
-        </p>
+        <p className="text-text-secondary text-sm mb-4">{message}</p>
       </div>
     );
   }

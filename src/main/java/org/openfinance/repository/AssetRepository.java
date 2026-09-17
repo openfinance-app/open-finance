@@ -22,6 +22,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface AssetRepository
         extends JpaRepository<Asset, Long>, JpaSpecificationExecutor<Asset> {
+    boolean existsByIdAndUserId(Long id, Long userId);
 
     /**
      * Finds all assets belonging to a specific user.

@@ -60,25 +60,37 @@ describe('useLiabilities hooks', () => {
 
       const { result } = renderHook(() => useLiabilities({ type: 'MORTGAGE' }), { wrapper });
       await waitFor(() => !result.current.isLoading);
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/liabilities?type=MORTGAGE', expect.any(Object));
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/liabilities?type=MORTGAGE',
+        expect.any(Object)
+      );
     });
   });
 
   describe('useLiabilitiesPaged', () => {
     it('fetches paged liabilities', async () => {
       mockSessionStorage.getItem.mockReturnValue('test-key');
-      mockedApiClient.get.mockResolvedValue({ data: { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 } });
+      mockedApiClient.get.mockResolvedValue({
+        data: { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 },
+      });
 
       const { result } = renderHook(() => useLiabilitiesPaged(), { wrapper });
       await waitFor(() => expect(result.current.data).toBeDefined());
-      expect(mockedApiClient.get).toHaveBeenCalledWith(expect.stringContaining('/liabilities/paged'), expect.any(Object));
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        expect.stringContaining('/liabilities/paged'),
+        expect.any(Object)
+      );
     });
 
     it('includes search and type params', async () => {
       mockSessionStorage.getItem.mockReturnValue('test-key');
-      mockedApiClient.get.mockResolvedValue({ data: { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 } });
+      mockedApiClient.get.mockResolvedValue({
+        data: { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 },
+      });
 
-      const { result } = renderHook(() => useLiabilitiesPaged({ type: 'LOAN', search: 'car' }), { wrapper });
+      const { result } = renderHook(() => useLiabilitiesPaged({ type: 'LOAN', search: 'car' }), {
+        wrapper,
+      });
       await waitFor(() => expect(result.current.data).toBeDefined());
       const url = mockedApiClient.get.mock.calls[0][0];
       expect(url).toContain('type=LOAN');
@@ -92,15 +104,26 @@ describe('useLiabilities hooks', () => {
       mockedApiClient.post.mockResolvedValue({ data: { id: 1, name: 'New Loan' } });
 
       const { result } = renderHook(() => useCreateLiability(), { wrapper });
-      await result.current.mutateAsync({ name: 'New Loan', type: 'LOAN', currentBalance: 10000, currency: 'USD' } as any);
+      await result.current.mutateAsync({
+        name: 'New Loan',
+        type: 'LOAN',
+        currentBalance: 10000,
+        currency: 'USD',
+      } as any);
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/liabilities', expect.any(Object), expect.objectContaining({ headers: { 'X-Encryption-Session': 'test-key' } }));
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/liabilities',
+        expect.any(Object),
+        expect.objectContaining({ headers: { 'X-Encryption-Session': 'test-key' } })
+      );
     });
 
     it('throws when encryption key missing', async () => {
       mockSessionStorage.getItem.mockReturnValue(null);
       const { result } = renderHook(() => useCreateLiability(), { wrapper });
-      await expect(result.current.mutateAsync({ name: 'x' } as any)).rejects.toThrow('Encryption key not found');
+      await expect(result.current.mutateAsync({ name: 'x' } as any)).rejects.toThrow(
+        'Encryption key not found'
+      );
     });
   });
 
@@ -112,7 +135,11 @@ describe('useLiabilities hooks', () => {
       const { result } = renderHook(() => useUpdateLiability(), { wrapper });
       await result.current.mutateAsync({ id: 1, data: { name: 'Updated' } as any });
 
-      expect(mockedApiClient.put).toHaveBeenCalledWith('/liabilities/1', expect.any(Object), expect.any(Object));
+      expect(mockedApiClient.put).toHaveBeenCalledWith(
+        '/liabilities/1',
+        expect.any(Object),
+        expect.any(Object)
+      );
     });
   });
 
@@ -137,7 +164,9 @@ describe('useLiabilities hooks', () => {
   describe('useLiabilityTotals', () => {
     it('fetches liability totals', async () => {
       mockSessionStorage.getItem.mockReturnValue('test-key');
-      mockedApiClient.get.mockResolvedValue({ data: { totalBalance: 50000, totalMinPayment: 1000 } });
+      mockedApiClient.get.mockResolvedValue({
+        data: { totalBalance: 50000, totalMinPayment: 1000 },
+      });
 
       const { result } = renderHook(() => useLiabilityTotals(), { wrapper });
       await waitFor(() => expect(result.current.data).toBeDefined());
@@ -152,7 +181,10 @@ describe('useLiabilities hooks', () => {
 
       const { result } = renderHook(() => useLiabilityTransactions(10), { wrapper });
       await waitFor(() => expect(result.current.data).toBeDefined());
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/liabilities/10/transactions', expect.any(Object));
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/liabilities/10/transactions',
+        expect.any(Object)
+      );
     });
 
     it('does not fetch when id is null', () => {

@@ -1,6 +1,6 @@
 /**
  * Real Estate Input Validation Functions
- * 
+ *
  * Input validation logic for real estate tools
  * Requirements: REQ-5.1, REQ-5.2
  */
@@ -37,9 +37,10 @@ export const buyRentValidationRules = {
     required: true,
     message: "L'apport personnel doit être positif",
     getCrossFieldError: (inputs: BuyRentInputs) => {
-      const totalPrice = inputs.purchase.propertyPrice +
+      const totalPrice =
+        inputs.purchase.propertyPrice +
         inputs.purchase.renovationAmount +
-        (inputs.purchase.propertyPrice * inputs.purchase.notaryFeesPercent / 100) +
+        (inputs.purchase.propertyPrice * inputs.purchase.notaryFeesPercent) / 100 +
         inputs.purchase.agencyFees;
       if (inputs.purchase.downPayment > totalPrice) {
         return "L'apport ne peut pas dépasser le prix total du bien";
@@ -237,7 +238,7 @@ export const resaleValidationRules = {
 
 /**
  * Validate a single numeric value against rules
- * 
+ *
  * @param value - Value to validate
  * @param fieldName - Field name for error message
  * @param rules - Validation rules
@@ -278,7 +279,7 @@ function validateNumericValue(
 /**
  * Validate Buy/Rent inputs
  * REQ-5.1, REQ-5.2
- * 
+ *
  * @param inputs - Buy/Rent input data
  * @returns Array of validation errors
  */
@@ -309,10 +310,7 @@ export function validateBuyRentInputs(inputs: BuyRentInputs): ValidationError[] 
   for (const field of purchaseFields) {
     const rules = buyRentValidationRules[field as keyof typeof buyRentValidationRules];
     if (rules) {
-      const error = validateNumericValue(
-        inputs.purchase[field] as number,
-        rules
-      );
+      const error = validateNumericValue(inputs.purchase[field] as number, rules);
       if (error) {
         errors.push({ field: `purchase.${field}`, message: error });
       }
@@ -340,10 +338,7 @@ export function validateBuyRentInputs(inputs: BuyRentInputs): ValidationError[] 
   for (const field of rentalFields) {
     const rules = rentalValidationRules[field as keyof typeof rentalValidationRules];
     if (rules) {
-      const error = validateNumericValue(
-        inputs.rental[field] as number,
-        rules
-      );
+      const error = validateNumericValue(inputs.rental[field] as number, rules);
       if (error) {
         errors.push({ field: `rental.${field}`, message: error });
       }
@@ -361,10 +356,7 @@ export function validateBuyRentInputs(inputs: BuyRentInputs): ValidationError[] 
   for (const field of marketFields) {
     const rules = marketValidationRules[field as keyof typeof marketValidationRules];
     if (rules) {
-      const error = validateNumericValue(
-        inputs.market[field] as number,
-        rules
-      );
+      const error = validateNumericValue(inputs.market[field] as number, rules);
       if (error) {
         errors.push({ field: `market.${field}`, message: error });
       }
@@ -372,19 +364,12 @@ export function validateBuyRentInputs(inputs: BuyRentInputs): ValidationError[] 
   }
 
   // Validate resale inputs
-  const resaleFields: (keyof ResaleInputs)[] = [
-    'targetYear',
-    'desiredProfit',
-    'resaleFeesPercent',
-  ];
+  const resaleFields: (keyof ResaleInputs)[] = ['targetYear', 'desiredProfit', 'resaleFeesPercent'];
 
   for (const field of resaleFields) {
     const rules = resaleValidationRules[field as keyof typeof resaleValidationRules];
     if (rules) {
-      const error = validateNumericValue(
-        inputs.resale[field] as number,
-        rules
-      );
+      const error = validateNumericValue(inputs.resale[field] as number, rules);
       if (error) {
         errors.push({ field: `resale.${field}`, message: error });
       }
@@ -404,7 +389,7 @@ export function validateBuyRentInputs(inputs: BuyRentInputs): ValidationError[] 
 
 /**
  * Validate Investment inputs
- * 
+ *
  * @param inputs - Investment input data
  * @returns Array of validation errors
  */
@@ -417,15 +402,24 @@ export function validateInvestmentInputs(inputs: InvestmentInputs): ValidationEr
   }
 
   if (inputs.revenue.monthlyRent > 50000) {
-    errors.push({ field: 'revenue.monthlyRent', message: 'Le loyer mensuel maximum est de 50 000€' });
+    errors.push({
+      field: 'revenue.monthlyRent',
+      message: 'Le loyer mensuel maximum est de 50 000€',
+    });
   }
 
   if (inputs.revenue.occupancyRate < 0 || inputs.revenue.occupancyRate > 100) {
-    errors.push({ field: 'revenue.occupancyRate', message: 'Le taux occupation doit être entre 0% et 100%' });
+    errors.push({
+      field: 'revenue.occupancyRate',
+      message: 'Le taux occupation doit être entre 0% et 100%',
+    });
   }
 
   if (inputs.revenue.badDebtRate < 0 || inputs.revenue.badDebtRate > 100) {
-    errors.push({ field: 'revenue.badDebtRate', message: "Le taux d'impayés doit être entre 0% et 100%" });
+    errors.push({
+      field: 'revenue.badDebtRate',
+      message: "Le taux d'impayés doit être entre 0% et 100%",
+    });
   }
 
   // Validate expense inputs
@@ -439,7 +433,10 @@ export function validateInvestmentInputs(inputs: InvestmentInputs): ValidationEr
   }
 
   if (inputs.property.furnitureValue < 0) {
-    errors.push({ field: 'property.furnitureValue', message: 'La valeur du mobilier doit être positive' });
+    errors.push({
+      field: 'property.furnitureValue',
+      message: 'La valeur du mobilier doit être positive',
+    });
   }
 
   return errors;
@@ -447,7 +444,7 @@ export function validateInvestmentInputs(inputs: InvestmentInputs): ValidationEr
 
 /**
  * Check if inputs are valid (no errors)
- * 
+ *
  * @param errors - Array of validation errors
  * @returns True if valid (no errors)
  */
@@ -457,7 +454,7 @@ export function isValid(errors: ValidationError[]): boolean {
 
 /**
  * Get first error message for a field
- * 
+ *
  * @param errors - Array of validation errors
  * @param field - Field name
  * @returns Error message or null
@@ -469,7 +466,7 @@ export function getFieldError(errors: ValidationError[], field: string): string 
 
 /**
  * Get all error messages for a field
- * 
+ *
  * @param errors - Array of validation errors
  * @param field - Field name (can include wildcard like 'purchase.*')
  * @returns Array of error messages
@@ -477,18 +474,14 @@ export function getFieldError(errors: ValidationError[], field: string): string 
 export function getFieldErrors(errors: ValidationError[], field: string): string[] {
   if (field.includes('*')) {
     const prefix = field.replace('.*', '');
-    return errors
-      .filter(e => e.field.startsWith(prefix))
-      .map(e => e.message);
+    return errors.filter(e => e.field.startsWith(prefix)).map(e => e.message);
   }
-  return errors
-    .filter(e => e.field === field)
-    .map(e => e.message);
+  return errors.filter(e => e.field === field).map(e => e.message);
 }
 
 /**
  * Format validation errors for display
- * 
+ *
  * @param errors - Array of validation errors
  * @returns Formatted error message
  */
@@ -504,7 +497,7 @@ export function formatValidationErrors(errors: ValidationError[]): string {
 
 /**
  * Validate a percentage value
- * 
+ *
  * @param value - Percentage value
  * @param fieldName - Field name for error
  * @returns Error message or null
@@ -524,7 +517,7 @@ export function validatePercentage(value: number, fieldName: string): string | n
 
 /**
  * Validate a positive amount
- * 
+ *
  * @param value - Amount value
  * @param fieldName - Field name for error
  * @returns Error message or null
@@ -541,7 +534,7 @@ export function validatePositiveAmount(value: number, fieldName: string): string
 
 /**
  * Check if value is within range
- * 
+ *
  * @param value - Value to check
  * @param min - Minimum value
  * @param max - Maximum value
@@ -553,7 +546,7 @@ export function isInRange(value: number, min: number, max: number): boolean {
 
 /**
  * Validate loan parameters compatibility
- * 
+ *
  * @param principal - Borrowed amount
  * @param annualRate - Annual interest rate
  * @param years - Loan duration
@@ -581,7 +574,7 @@ export function validateLoanParameters(
 
 /**
  * Validate investment revenue thresholds for regime eligibility
- * 
+ *
  * @param grossRevenue - Gross annual revenue
  * @returns Object with eligibility info for each regime
  */

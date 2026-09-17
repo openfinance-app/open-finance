@@ -74,7 +74,12 @@ vi.mock('@/hooks/useTransactions', () => ({
   useUpdateTransaction: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
   useUpdateTransfer: () => ({ mutateAsync: mockUpdateTransferMutateAsync, isPending: false }),
   useDeleteTransaction: () => ({ mutateAsync: mockDeleteMutateAsync, isPending: false }),
-  useCategories: () => ({ data: [{ id: 1, name: 'Groceries' }, { id: 2, name: 'Salary' }] }),
+  useCategories: () => ({
+    data: [
+      { id: 1, name: 'Groceries' },
+      { id: 2, name: 'Salary' },
+    ],
+  }),
 }));
 
 vi.mock('@/hooks/useAccounts', () => ({
@@ -107,7 +112,20 @@ vi.mock('@/components/transactions/TransactionForm', () => ({
   TransactionForm: ({ transaction, onSubmit, onCancel }: any) => (
     <div data-testid="transaction-form">
       {transaction && <span data-testid="editing-desc">{transaction.description}</span>}
-      <button onClick={() => onSubmit({ type: 'EXPENSE', accountId: 1, amount: 100, currency: 'USD', date: '2026-01-01', description: 'Test' })}>Submit</button>
+      <button
+        onClick={() =>
+          onSubmit({
+            type: 'EXPENSE',
+            accountId: 1,
+            amount: 100,
+            currency: 'USD',
+            date: '2026-01-01',
+            description: 'Test',
+          })
+        }
+      >
+        Submit
+      </button>
       <button onClick={onCancel}>Cancel</button>
     </div>
   ),
@@ -221,7 +239,9 @@ describe('TransactionsPage', () => {
     renderWithProviders(<TransactionsPage />);
     const editButtons = screen.getAllByRole('button', { name: /^edit$/i });
     await user.click(editButtons[0]);
-    await waitFor(() => expect(screen.getByTestId('editing-desc')).toHaveTextContent('Weekly groceries'));
+    await waitFor(() =>
+      expect(screen.getByTestId('editing-desc')).toHaveTextContent('Weekly groceries')
+    );
     expect(screen.getByText('Edit Transaction')).toBeInTheDocument();
   });
 
@@ -302,7 +322,13 @@ describe('TransactionsPage', () => {
 
   it('submits update for transfer transaction', async () => {
     const transferTx = { ...mockTransaction, transferId: 99 };
-    mockPagedResponse = { content: [transferTx], totalElements: 1, totalPages: 1, number: 0, size: 20 };
+    mockPagedResponse = {
+      content: [transferTx],
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 20,
+    };
     mockUpdateTransferMutateAsync.mockResolvedValue({});
     const user = userEvent.setup();
     renderWithProviders(<TransactionsPage />);

@@ -76,6 +76,9 @@ class ApiResponseTimeSlaTest {
 
     @Autowired private MockMvc mockMvc;
 
+    @Autowired private org.openfinance.repository.ExchangeRateRepository exchangeRateRepository;
+    @Autowired private org.openfinance.repository.CurrencyRepository currencyRepository;
+
     @Autowired private ObjectMapper objectMapper;
 
     @Autowired private UserService userService;
@@ -97,8 +100,34 @@ class ApiResponseTimeSlaTest {
     @BeforeEach
     void setUp() throws Exception {
         databaseCleanupService.execute();
+        for (String code : new String[] {"EUR", "USD", "GBP"}) {
+            if (!currencyRepository.existsByCode(code)) {
+                currencyRepository.save(
+                        org.openfinance.entity.Currency.builder()
+                                .code(code)
+                                .name(code)
+                                .symbol(code)
+                                .build());
+            }
+        }
+        exchangeRateRepository.save(
+                org.openfinance.entity.ExchangeRate.builder()
+                        .baseCurrency("USD")
+                        .targetCurrency("EUR")
+                        .rate(new BigDecimal("0.9"))
+                        .rateDate(java.time.LocalDate.now().minusYears(20))
+                        .source("performance-fixture")
+                        .build());
 
         // Register test user
+        exchangeRateRepository.save(
+                org.openfinance.entity.ExchangeRate.builder()
+                        .baseCurrency("GBP")
+                        .targetCurrency("EUR")
+                        .rate(new BigDecimal("1.2"))
+                        .rateDate(java.time.LocalDate.now().minusYears(20))
+                        .source("performance-fixture")
+                        .build());
         userService.registerUser(
                 UserRegistrationRequest.builder()
                         .username("perf_user")

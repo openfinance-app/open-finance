@@ -16,22 +16,18 @@ import type { RecurringTransaction } from '@/types/recurringTransaction';
 // ─── Context mocks ────────────────────────────────────────────────────────────
 
 vi.mock('@/context/VisibilityContext', () => ({
-  VisibilityProvider: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
+  VisibilityProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   useVisibility: vi.fn(() => ({ isAmountsVisible: true })),
 }));
 
 vi.mock('@/context/AuthContext', () => ({
-  AuthProvider: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   useAuthContext: vi.fn(() => ({ baseCurrency: 'USD' })),
 }));
 
 // ─── Hook mocks ───────────────────────────────────────────────────────────────
 
-vi.mock('@/hooks/useCurrency', async (importOriginal) => {
+vi.mock('@/hooks/useCurrency', async importOriginal => {
   const actual = await importOriginal<typeof useCurrencyModule>();
   return {
     ...actual,
@@ -166,20 +162,14 @@ describe('RecurringTransactionDetailModal', () => {
   describe('Rendering', () => {
     it('renders the description in the header', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.getByText('Monthly Electricity Bill')).toBeInTheDocument();
     });
 
     it('renders type label and frequency in the subtitle', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       // "Expense" and "Monthly" appear in both the subtitle and the Details section
       expect(screen.getAllByText(/Expense/).length).toBeGreaterThan(0);
@@ -188,10 +178,7 @@ describe('RecurringTransactionDetailModal', () => {
 
     it('renders payee in subtitle when payee is set', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       // Payee appears in both the header subtitle and the Details section
       expect(screen.getAllByText(/Electric Company/).length).toBeGreaterThan(0);
@@ -199,10 +186,7 @@ describe('RecurringTransactionDetailModal', () => {
 
     it('renders the amount hero with ConvertedAmount', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.getByText('Amount per occurrence')).toBeInTheDocument();
       expect(screen.getByTestId('converted-amount')).toBeInTheDocument();
@@ -210,20 +194,14 @@ describe('RecurringTransactionDetailModal', () => {
 
     it('renders account name in the Details section', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.getByText('My Checking')).toBeInTheDocument();
     });
 
     it('renders category name in the Details section when set', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.getByText('Utilities')).toBeInTheDocument();
     });
@@ -244,40 +222,28 @@ describe('RecurringTransactionDetailModal', () => {
   describe('Status badges', () => {
     it('shows "Active" status for an active, not-due transaction', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.getByText('Active')).toBeInTheDocument();
     });
 
     it('shows "Paused" status for an inactive transaction', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={pausedExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={pausedExpense} onClose={onClose} />
       );
       expect(screen.getByText('Paused')).toBeInTheDocument();
     });
 
     it('shows "Ended" status for an ended transaction', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={endedExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={endedExpense} onClose={onClose} />
       );
       expect(screen.getByText('Ended')).toBeInTheDocument();
     });
 
     it('shows "Due Now" badge when isDue and not ended', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={dueExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={dueExpense} onClose={onClose} />
       );
       // "Due Now" appears in both the header badge and the schedule section badge
       expect(screen.getAllByText('Due Now').length).toBeGreaterThan(0);
@@ -285,10 +251,7 @@ describe('RecurringTransactionDetailModal', () => {
 
     it('does NOT show "Due Now" badge when isEnded', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={endedExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={endedExpense} onClose={onClose} />
       );
       expect(screen.queryByText('Due Now')).not.toBeInTheDocument();
     });
@@ -299,20 +262,14 @@ describe('RecurringTransactionDetailModal', () => {
   describe('Schedule section', () => {
     it('renders Schedule heading in the Overview tab', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.getByText('Schedule')).toBeInTheDocument();
     });
 
     it('renders Frequency label in schedule section', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.getByText('Frequency')).toBeInTheDocument();
       expect(screen.getAllByText('Monthly').length).toBeGreaterThan(0);
@@ -320,40 +277,28 @@ describe('RecurringTransactionDetailModal', () => {
 
     it('renders Next Occurrence when not ended', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.getByText('Next Occurrence')).toBeInTheDocument();
     });
 
     it('does NOT render Next Occurrence when ended', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={endedExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={endedExpense} onClose={onClose} />
       );
       expect(screen.queryByText('Next Occurrence')).not.toBeInTheDocument();
     });
 
     it('renders "Ended On" when endDate is set and isEnded', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={endedExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={endedExpense} onClose={onClose} />
       );
       expect(screen.getByText('Ended On')).toBeInTheDocument();
     });
 
     it('renders Created date in schedule section', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.getByText('Created')).toBeInTheDocument();
       expect(screen.getByText('Jan 1, 2023')).toBeInTheDocument();
@@ -365,10 +310,7 @@ describe('RecurringTransactionDetailModal', () => {
   describe('Tabs', () => {
     it('renders Overview and Attachments tabs', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.getByRole('button', { name: 'Overview' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Attachments/i })).toBeInTheDocument();
@@ -376,10 +318,7 @@ describe('RecurringTransactionDetailModal', () => {
 
     it('switches to Attachments tab and renders attachment components', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       act(() => {
         fireEvent.click(screen.getByRole('button', { name: /Attachments/i }));
@@ -390,10 +329,7 @@ describe('RecurringTransactionDetailModal', () => {
 
     it('hides Overview content when Attachments tab is active', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       act(() => {
         fireEvent.click(screen.getByRole('button', { name: /Attachments/i }));
@@ -418,10 +354,7 @@ describe('RecurringTransactionDetailModal', () => {
 
     it('does not render notes section when notes are null', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.queryByText('Notes')).not.toBeInTheDocument();
     });
@@ -432,10 +365,7 @@ describe('RecurringTransactionDetailModal', () => {
   describe('Close behaviour', () => {
     it('calls onClose when the X button is clicked', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       fireEvent.click(screen.getByLabelText('Close modal'));
       expect(onClose).toHaveBeenCalledTimes(1);
@@ -443,10 +373,7 @@ describe('RecurringTransactionDetailModal', () => {
 
     it('calls onClose when backdrop is clicked', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       const backdrop = document.querySelector('.absolute.inset-0');
       act(() => {
@@ -457,10 +384,7 @@ describe('RecurringTransactionDetailModal', () => {
 
     it('calls onClose when Escape key is pressed', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       act(() => {
         fireEvent.keyDown(window, { key: 'Escape' });
@@ -485,10 +409,7 @@ describe('RecurringTransactionDetailModal', () => {
 
     it('does NOT render Edit button when onEdit prop is absent', () => {
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={activeExpense}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.queryByRole('button', { name: /Edit/i })).not.toBeInTheDocument();
     });
@@ -525,10 +446,7 @@ describe('RecurringTransactionDetailModal', () => {
       };
 
       renderWithProviders(
-        <RecurringTransactionDetailModal
-          recurringTransaction={eurTransaction}
-          onClose={onClose}
-        />
+        <RecurringTransactionDetailModal recurringTransaction={eurTransaction} onClose={onClose} />
       );
 
       // ConvertedAmount should receive the EUR amount

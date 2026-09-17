@@ -23,21 +23,26 @@ import org.openfinance.entity.TrancheStatus;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.exception.AccountNotFoundException;
+import org.openfinance.exception.AssetNotFoundException;
 import org.openfinance.exception.CategoryNotFoundException;
 import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.exception.LiabilityNotFoundException;
+import org.openfinance.exception.RealEstatePropertyNotFoundException;
 import org.openfinance.exception.TransactionNotFoundException;
 import org.openfinance.mapper.TransactionMapper;
 import org.openfinance.repository.AccountRepository;
+import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.LiabilityTrancheRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.PayeeRepository;
+import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.util.LoanPostingPolicy;
 import org.openfinance.util.PrincipalLegs;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
@@ -119,6 +124,8 @@ public class TransactionService {
     private final LiabilityTrancheService liabilityTrancheService;
     private final RealEstateService realEstateService;
     private final AssetService assetService;
+    private final AssetRepository assetRepository;
+    private final RealEstateRepository realEstateRepository;
 
     /**
      * Creates a new transaction for the specified user.
@@ -766,7 +773,7 @@ public class TransactionService {
         LocalDate newTransferDate = request.getDate();
         invalidateSnapshotsFor(
                 userId,
-                oldTransferDate != null && oldTransferDate.isAfter(newTransferDate)
+                oldTransferDate != null && oldTransferDate.isBefore(newTransferDate)
                         ? oldTransferDate
                         : newTransferDate);
 
@@ -1060,7 +1067,7 @@ public class TransactionService {
         LocalDate newDate =
                 updatedTransaction.getDate() != null ? updatedTransaction.getDate() : oldDate;
         invalidateSnapshotsFor(
-                userId, oldDate != null && oldDate.isAfter(newDate) ? oldDate : newDate);
+                userId, oldDate != null && oldDate.isBefore(newDate) ? oldDate : newDate);
 
         // Decrypt and return response with denormalized data
         TransactionResponse updateTxResponse = toResponseWithDecryption(updatedTransaction);
@@ -1538,6 +1545,16 @@ public class TransactionService {
      * @throws CategoryNotFoundException if category doesn't exist or doesn't belong to user
      */
     private void validateTransactionRequest(Long userId, TransactionRequest request) {
+        if (request.getType() != TransactionType.TRANSFER && request.getToAccountId() != null) {
+            throw new InvalidTransactionException(
+                    "Only transfers may specify a destination account");
+        }
+        if ((request.getMovementType() == MovementType.CAPITAL_IMPROVEMENT
+                        || request.getMovementType() == MovementType.MAINTENANCE)
+                && request.getType() != TransactionType.EXPENSE) {
+            throw new InvalidTransactionException(
+                    "Property and asset cost movements must be expenses");
+        }
         if (request.getLiabilityId() != null) {
             if (request.getMovementType() == null) {
                 request.setMovementType(
@@ -1662,6 +1679,8 @@ public class TransactionService {
                             + " assetId — split the movement into separate transactions instead.");
         }
 
+        validateInstrumentReferences(userId, request);
+
         // Validate currency matches source account currency. For all transaction types
         // the
         // amount is expressed in the source account's currency (for TRANSFER it's the
@@ -1689,10 +1708,56 @@ public class TransactionService {
                             && request.getConversionRate() != null
                             && request.getOriginalAmount().compareTo(BigDecimal.ZERO) > 0
                             && request.getConversionRate().compareTo(BigDecimal.ZERO) > 0
-                            && request.getOriginalCurrency().length() == 3;
+                            && request.getOriginalCurrency().matches("(?i)[a-z]{3}");
             if (!valid) {
                 throw InvalidTransactionException.incompleteConversionDetails();
             }
+            validateConversionAmounts(request);
+        }
+    }
+
+    private void validateInstrumentReferences(Long userId, TransactionRequest request) {
+        if (request.getRealEstateId() != null
+                && !realEstateRepository.existsByIdAndUserId(request.getRealEstateId(), userId)) {
+            throw RealEstatePropertyNotFoundException.byIdAndUser(
+                    request.getRealEstateId(), userId);
+        }
+        if (request.getAssetId() != null
+                && !assetRepository.existsByIdAndUserId(request.getAssetId(), userId)) {
+            throw AssetNotFoundException.byIdAndUser(request.getAssetId(), userId);
+        }
+        if (request.getLiabilityId() != null) {
+            Liability liability =
+                    liabilityRepository
+                            .findByIdAndUserId(request.getLiabilityId(), userId)
+                            .orElseThrow(
+                                    () ->
+                                            LiabilityNotFoundException.byIdAndUser(
+                                                    request.getLiabilityId(), userId));
+            LoanPostingPolicy.validateDate(liability, request.getDate());
+        }
+    }
+
+    private void validateConversionAmounts(TransactionRequest request) {
+        BigDecimal original = request.getOriginalAmount();
+        BigDecimal rate = request.getConversionRate();
+        if (request.getOriginalCurrency().equalsIgnoreCase(request.getCurrency())) {
+            if (rate.compareTo(BigDecimal.ONE) != 0
+                    || original.compareTo(request.getAmount()) != 0) {
+                throw new InvalidTransactionException(
+                        "Same-currency amounts require a rate of one and equal amounts");
+            }
+            return;
+        }
+        // The form rounds the original loan amount to cents, and an inverse rate to 8 places.
+        BigDecimal tolerance =
+                new BigDecimal("0.005")
+                        .multiply(rate)
+                        .add(original.multiply(new BigDecimal("0.000000005")))
+                        .add(new BigDecimal("0.005"));
+        if (original.multiply(rate).subtract(request.getAmount()).abs().compareTo(tolerance) > 0) {
+            throw new InvalidTransactionException(
+                    "Original amount and conversion rate do not reconcile with the transaction amount");
         }
     }
 
@@ -1860,7 +1925,7 @@ public class TransactionService {
 
         // Populate denormalized account name (already decrypted by JPA converter)
         accountRepository
-                .findById(transaction.getAccountId())
+                .findByIdAndUserId(transaction.getAccountId(), transaction.getUserId())
                 .ifPresent(
                         account -> {
                             response.setAccountName(account.getName());
@@ -1869,7 +1934,7 @@ public class TransactionService {
         // Populate denormalized destination account name for transfers
         if (transaction.getToAccountId() != null) {
             accountRepository
-                    .findById(transaction.getToAccountId())
+                    .findByIdAndUserId(transaction.getToAccountId(), transaction.getUserId())
                     .ifPresent(
                             toAccount -> {
                                 response.setToAccountName(toAccount.getName());
@@ -1879,7 +1944,7 @@ public class TransactionService {
         // Populate denormalized category fields
         if (transaction.getCategoryId() != null) {
             categoryRepository
-                    .findById(transaction.getCategoryId())
+                    .findByIdAndUserId(transaction.getCategoryId(), transaction.getUserId())
                     .ifPresent(
                             category -> {
                                 // Category name already decrypted by JPA converter
@@ -2224,24 +2289,9 @@ public class TransactionService {
      * request — completely transparent to the user.
      */
     private void invalidateSnapshotsFor(Long userId, LocalDate transactionDate) {
-        if (transactionDate == null) return;
-        try {
-            int deleted =
-                    netWorthRepository.deleteByUserIdAndSnapshotDateBefore(userId, transactionDate);
-            if (deleted > 0) {
-                log.debug(
-                        "Invalidated {} net worth snapshots for user {} (transaction at {})",
-                        deleted,
-                        userId,
-                        transactionDate);
-            }
-        } catch (Exception e) {
-            log.warn(
-                    "Could not invalidate net worth snapshots for user {} after transaction at {}: {}",
-                    userId,
-                    transactionDate,
-                    e.getMessage());
-        }
+        if (transactionDate == null || transactionDate.isAfter(LocalDate.now())) return;
+        netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
+                userId, transactionDate.withDayOfMonth(1), LocalDate.now());
     }
 
     // ========== Linked liability / property balance sync (Task 3) ==========

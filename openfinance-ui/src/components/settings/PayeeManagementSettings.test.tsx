@@ -1,11 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication, clearAuthentication, userEvent } from '@/test/test-utils';
+import {
+  renderWithProviders,
+  mockAuthentication,
+  clearAuthentication,
+  userEvent,
+} from '@/test/test-utils';
 
 const mockPayees = [
-  { id: 1, name: 'Amazon', logo: '', isActive: true, isSystem: false, transactionCount: 5, totalAmount: 500, categoryId: 1, categoryName: 'Shopping' },
-  { id: 2, name: 'Netflix', logo: '', isActive: true, isSystem: true, transactionCount: 12, totalAmount: 200, categoryId: 2, categoryName: 'Entertainment' },
-  { id: 3, name: 'Old Payee', logo: '', isActive: false, isSystem: false, transactionCount: 0, totalAmount: 0 },
+  {
+    id: 1,
+    name: 'Amazon',
+    logo: '',
+    isActive: true,
+    isSystem: false,
+    transactionCount: 5,
+    totalAmount: 500,
+    categoryId: 1,
+    categoryName: 'Shopping',
+  },
+  {
+    id: 2,
+    name: 'Netflix',
+    logo: '',
+    isActive: true,
+    isSystem: true,
+    transactionCount: 12,
+    totalAmount: 200,
+    categoryId: 2,
+    categoryName: 'Entertainment',
+  },
+  {
+    id: 3,
+    name: 'Old Payee',
+    logo: '',
+    isActive: false,
+    isSystem: false,
+    transactionCount: 0,
+    totalAmount: 0,
+  },
 ];
 
 let mockPayeeData: any[] = mockPayees;
@@ -34,7 +67,11 @@ vi.mock('@/hooks/useSecondaryConversion', () => ({
   }),
 }));
 vi.mock('@/components/ui/CategorySelect', () => ({
-  CategorySelect: () => <select data-testid="category-select"><option>Cat</option></select>,
+  CategorySelect: () => (
+    <select data-testid="category-select">
+      <option>Cat</option>
+    </select>
+  ),
 }));
 
 import { PayeeManagementSettings } from './PayeeManagementSettings';
@@ -164,7 +201,15 @@ describe('PayeeManagementSettings', () => {
 
   it('shows payee with logo', () => {
     mockPayeeData = [
-      { id: 10, name: 'Logo Payee', logo: 'data:image/png;base64,abc', isActive: true, isSystem: false, transactionCount: 1, totalAmount: 100 },
+      {
+        id: 10,
+        name: 'Logo Payee',
+        logo: 'data:image/png;base64,abc',
+        isActive: true,
+        isSystem: false,
+        transactionCount: 1,
+        totalAmount: 100,
+      },
     ];
     renderWithProviders(<PayeeManagementSettings />);
     const img = document.querySelector('img');
@@ -173,7 +218,9 @@ describe('PayeeManagementSettings', () => {
 
   it('handles 409 conflict error on create', async () => {
     const user = userEvent.setup();
-    mockCreateMutateAsync.mockRejectedValue({ response: { status: 409, data: { message: 'Duplicate' } } });
+    mockCreateMutateAsync.mockRejectedValue({
+      response: { status: 409, data: { message: 'Duplicate' } },
+    });
     renderWithProviders(<PayeeManagementSettings />);
     await user.click(screen.getByText(/add payee/i));
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());

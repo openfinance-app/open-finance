@@ -2,7 +2,7 @@
  * TransactionFilters Component
  * Task 3.2.16: Create TransactionFilters component
  * Task 12.3.6: Add tag filtering to TransactionsPage
- * 
+ *
  * Filter controls for transactions (date range, account, category, type, tags, payee)
  */
 import { Search, X } from 'lucide-react';
@@ -23,10 +23,7 @@ interface TransactionFiltersProps {
   onFiltersChange: (filters: Filters) => void;
 }
 
-export function TransactionFilters({
-  filters,
-  onFiltersChange,
-}: TransactionFiltersProps) {
+export function TransactionFilters({ filters, onFiltersChange }: TransactionFiltersProps) {
   const { t } = useTranslation('transactions');
 
   const transactionTypes: { value: TransactionType; label: string }[] = [
@@ -38,9 +35,18 @@ export function TransactionFilters({
   const datePresets = [
     { label: t('filterKeys.today'), getValue: () => ({ from: getToday(), to: getToday() }) },
     { label: t('filterKeys.last7Days'), getValue: () => ({ from: getDaysAgo(7), to: getToday() }) },
-    { label: t('filterKeys.last30Days'), getValue: () => ({ from: getDaysAgo(30), to: getToday() }) },
-    { label: t('filterKeys.thisMonth'), getValue: () => ({ from: getStartOfMonth(), to: getToday() }) },
-    { label: t('filterKeys.thisYear'), getValue: () => ({ from: getStartOfYear(), to: getToday() }) },
+    {
+      label: t('filterKeys.last30Days'),
+      getValue: () => ({ from: getDaysAgo(30), to: getToday() }),
+    },
+    {
+      label: t('filterKeys.thisMonth'),
+      getValue: () => ({ from: getStartOfMonth(), to: getToday() }),
+    },
+    {
+      label: t('filterKeys.thisYear'),
+      getValue: () => ({ from: getStartOfYear(), to: getToday() }),
+    },
   ];
 
   const sortOptions = [
@@ -89,12 +95,14 @@ export function TransactionFilters({
             type="text"
             placeholder={t('filterKeys.searchPlaceholder')}
             value={filters.keyword || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('keyword', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleChange('keyword', e.target.value)
+            }
             className="pl-10 pr-10"
           />
           <RegexToggle
             enabled={!!filters.keywordRegex}
-            onChange={(val) => handleChange('keywordRegex', val || undefined)}
+            onChange={val => handleChange('keywordRegex', val || undefined)}
             className="absolute right-2 top-1/2 -translate-y-1/2"
           />
         </div>
@@ -109,7 +117,7 @@ export function TransactionFilters({
           </label>
           <AccountSelector
             value={filters.accountId}
-            onValueChange={(val) => handleChange('accountId', val)}
+            onValueChange={val => handleChange('accountId', val)}
             placeholder={t('filterKeys.allAccounts')}
             allowNone={true}
           />
@@ -123,11 +131,11 @@ export function TransactionFilters({
           <select
             id="type"
             value={filters.type || ''}
-            onChange={(e) => handleChange('type', e.target.value || undefined)}
+            onChange={e => handleChange('type', e.target.value || undefined)}
             className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           >
             <option value="">{t('filterKeys.allTypes')}</option>
-            {transactionTypes.map((type) => (
+            {transactionTypes.map(type => (
               <option key={type.value} value={type.value}>
                 {type.label}
               </option>
@@ -142,7 +150,7 @@ export function TransactionFilters({
           </label>
           <CategorySelect
             value={filters.categoryId}
-            onValueChange={(val) => handleChange('categoryId', val)}
+            onValueChange={val => handleChange('categoryId', val)}
             placeholder={t('filterKeys.allCategories')}
             allowNone={true}
           />
@@ -155,7 +163,7 @@ export function TransactionFilters({
           </label>
           <PayeeSelector
             value={filters.payee}
-            onValueChange={(val) => handleChange('payee', val)}
+            onValueChange={val => handleChange('payee', val)}
             placeholder={t('filterKeys.allPayees')}
             allowNone={true}
             allowNewPayee={false}
@@ -171,10 +179,10 @@ export function TransactionFilters({
             id="sort"
             data-testid="filter-sort"
             value={filters.sort || 'date,desc'}
-            onChange={(e) => handleChange('sort', e.target.value || undefined)}
+            onChange={e => handleChange('sort', e.target.value || undefined)}
             className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           >
-            {sortOptions.map((option) => (
+            {sortOptions.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -185,27 +193,33 @@ export function TransactionFilters({
         {/* Amount Range */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="minAmount" className="block text-sm font-medium text-text-primary mb-1.5">
+            <label
+              htmlFor="minAmount"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
               {t('filterKeys.minAmount')}
             </label>
             <NumberInput
               id="minAmount"
               data-testid="filter-min-amount"
               value={filters.minAmount !== undefined ? String(filters.minAmount) : ''}
-              onChange={(val) => handleChange('minAmount', val ? parseFloat(val) : undefined)}
+              onChange={val => handleChange('minAmount', val ? parseFloat(val) : undefined)}
               placeholder="0.00"
               min="0"
             />
           </div>
           <div>
-            <label htmlFor="maxAmount" className="block text-sm font-medium text-text-primary mb-1.5">
+            <label
+              htmlFor="maxAmount"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
               {t('filterKeys.maxAmount')}
             </label>
             <NumberInput
               id="maxAmount"
               data-testid="filter-max-amount"
               value={filters.maxAmount !== undefined ? String(filters.maxAmount) : ''}
-              onChange={(val) => handleChange('maxAmount', val ? parseFloat(val) : undefined)}
+              onChange={val => handleChange('maxAmount', val ? parseFloat(val) : undefined)}
               placeholder="0.00"
               min="0"
             />
@@ -259,12 +273,14 @@ export function TransactionFilters({
             {t('filterKeys.filterByTag')}
           </label>
           <div className="flex flex-wrap gap-2">
-            {allTags.slice(0, 15).map((tagInfo) => (
+            {allTags.slice(0, 15).map(tagInfo => (
               <Badge
                 key={tagInfo.tag}
                 variant={filters.tag === tagInfo.tag ? 'info' : 'default'}
                 className="cursor-pointer hover:bg-primary/20 transition-colors"
-                onClick={() => handleChange('tag', filters.tag === tagInfo.tag ? undefined : tagInfo.tag)}
+                onClick={() =>
+                  handleChange('tag', filters.tag === tagInfo.tag ? undefined : tagInfo.tag)
+                }
               >
                 {tagInfo.tag} ({tagInfo.count})
               </Badge>
@@ -277,7 +293,9 @@ export function TransactionFilters({
           </div>
           {filters.tag && (
             <div className="mt-2 flex items-center gap-2 text-sm text-text-secondary">
-              <span>{t('filterKeys.filteredByTag')} <strong>{filters.tag}</strong></span>
+              <span>
+                {t('filterKeys.filteredByTag')} <strong>{filters.tag}</strong>
+              </span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -299,7 +317,7 @@ export function TransactionFilters({
 
         {/* Date presets */}
         <div className="flex flex-wrap gap-2">
-          {datePresets.map((preset) => (
+          {datePresets.map(preset => (
             <Button
               key={preset.label}
               variant="ghost"
@@ -320,7 +338,7 @@ export function TransactionFilters({
             <DateInput
               id="dateFrom"
               value={filters.dateFrom || ''}
-              onChange={(val) => handleChange('dateFrom', val || undefined)}
+              onChange={val => handleChange('dateFrom', val || undefined)}
             />
           </div>
           <div>
@@ -330,7 +348,7 @@ export function TransactionFilters({
             <DateInput
               id="dateTo"
               value={filters.dateTo || ''}
-              onChange={(val) => handleChange('dateTo', val || undefined)}
+              onChange={val => handleChange('dateTo', val || undefined)}
             />
           </div>
         </div>

@@ -40,7 +40,9 @@ export function DateInput({
   const dateFormat = settings?.dateFormat ?? 'MM/DD/YYYY';
   const nativeRef = useRef<HTMLInputElement>(null);
 
-  const [display, setDisplay] = useState(() => (value ? formatIsoToDisplay(value, dateFormat) : ''));
+  const [display, setDisplay] = useState(() =>
+    value ? formatIsoToDisplay(value, dateFormat) : ''
+  );
 
   // Keep the visible text in sync when the ISO value or format changes externally.
   useEffect(() => {
@@ -49,11 +51,7 @@ export function DateInput({
 
   const commit = (text: string) => {
     const iso = parseDisplayDate(text, dateFormat);
-    if (
-      iso &&
-      (!max || iso <= max) &&
-      (!min || iso >= min)
-    ) {
+    if (iso && (!max || iso <= max) && (!min || iso >= min)) {
       onChange(iso);
     } else if (text.trim() === '') {
       onChange('');
@@ -84,7 +82,7 @@ export function DateInput({
         value={display}
         placeholder={dateFormat}
         aria-invalid={error ? 'true' : 'false'}
-        onChange={(e) => {
+        onChange={e => {
           setDisplay(e.target.value);
           commit(e.target.value);
         }}
@@ -116,7 +114,7 @@ export function DateInput({
         min={min}
         max={max}
         value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={e => onChange(e.target.value)}
         className="sr-only absolute right-2 bottom-0 h-0 w-0"
       />
       {error && <p className="mt-1 text-sm text-error">{error}</p>}

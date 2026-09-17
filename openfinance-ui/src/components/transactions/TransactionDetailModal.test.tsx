@@ -17,22 +17,18 @@ import type { Transaction } from '@/types/transaction';
 // ─── Context mocks ────────────────────────────────────────────────────────────
 
 const mockNavigate = vi.fn();
-vi.mock('react-router', async (importOriginal) => {
+vi.mock('react-router', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router')>();
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
 vi.mock('@/context/VisibilityContext', () => ({
-  VisibilityProvider: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
+  VisibilityProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   useVisibility: vi.fn(() => ({ isAmountsVisible: true })),
 }));
 
 vi.mock('@/context/AuthContext', () => ({
-  AuthProvider: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   useAuthContext: vi.fn(() => ({ baseCurrency: 'USD' })),
 }));
 
@@ -45,13 +41,7 @@ vi.mock('@/components/ui/ConvertedAmount', () => ({
 }));
 
 vi.mock('./SplitDetail', () => ({
-  SplitDetail: ({
-    splits,
-    currency,
-  }: {
-    splits: any[];
-    currency: string;
-  }) => (
+  SplitDetail: ({ splits, currency }: { splits: any[]; currency: string }) => (
     <div data-testid="split-detail" data-currency={currency}>
       {splits.map((s, i) => (
         <div key={i} data-testid="split-line">
@@ -147,7 +137,7 @@ describe('TransactionDetailModal', () => {
   describe('Rendering', () => {
     it('renders the transaction description in the header', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       // Description appears in both the modal title and the body description field
       expect(screen.getAllByText('Coffee Shop').length).toBeGreaterThan(0);
@@ -155,7 +145,7 @@ describe('TransactionDetailModal', () => {
 
     it('renders type label and payee in the subtitle', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       // "Expense" and "Starbucks" appear in both the subtitle and the Details section
       expect(screen.getAllByText(/Expense/).length).toBeGreaterThan(0);
@@ -164,7 +154,7 @@ describe('TransactionDetailModal', () => {
 
     it('renders formatted date in the subtitle', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       // Date appears in both the subtitle and the Details section Date field
       expect(screen.getAllByText(/March 15, 2024/).length).toBeGreaterThan(0);
@@ -172,7 +162,7 @@ describe('TransactionDetailModal', () => {
 
     it('renders the amount hero with ConvertedAmount', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       expect(screen.getByText('Amount')).toBeInTheDocument();
       expect(screen.getByTestId('converted-amount')).toBeInTheDocument();
@@ -180,35 +170,35 @@ describe('TransactionDetailModal', () => {
 
     it('renders account name in details section', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       expect(screen.getByText('My Checking')).toBeInTheDocument();
     });
 
     it('renders type "Income" for income transactions', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={incomeTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={incomeTransaction} onClose={onClose} />
       );
       expect(screen.getAllByText('Income').length).toBeGreaterThan(0);
     });
 
     it('renders To Account field for transfer transactions', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={transferTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={transferTransaction} onClose={onClose} />
       );
       expect(screen.getByText('Savings Account')).toBeInTheDocument();
     });
 
     it('renders Reconciled badge when isReconciled is true', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={reconciledTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={reconciledTransaction} onClose={onClose} />
       );
       expect(screen.getByText('Reconciled')).toBeInTheDocument();
     });
 
     it('does not render Reconciled badge when isReconciled is false', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       expect(screen.queryByText('Reconciled')).not.toBeInTheDocument();
     });
@@ -219,7 +209,7 @@ describe('TransactionDetailModal', () => {
   describe('Tabs', () => {
     it('renders Overview and Attachments tabs by default (no splits)', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       expect(screen.getByRole('button', { name: 'Overview' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Attachments/i })).toBeInTheDocument();
@@ -227,28 +217,28 @@ describe('TransactionDetailModal', () => {
 
     it('does NOT render Splits tab when hasSplits is false', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       expect(screen.queryByRole('button', { name: 'Splits' })).not.toBeInTheDocument();
     });
 
     it('renders Splits tab when hasSplits is true', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={splitTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={splitTransaction} onClose={onClose} />
       );
       expect(screen.getByRole('button', { name: 'Splits' })).toBeInTheDocument();
     });
 
     it('renders Split badge in amount hero when hasSplits is true', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={splitTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={splitTransaction} onClose={onClose} />
       );
       expect(screen.getByText('Split')).toBeInTheDocument();
     });
 
     it('switches to Attachments tab and renders attachment components', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       act(() => {
         fireEvent.click(screen.getByRole('button', { name: /Attachments/i }));
@@ -259,7 +249,7 @@ describe('TransactionDetailModal', () => {
 
     it('switches to Splits tab and renders SplitDetail', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={splitTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={splitTransaction} onClose={onClose} />
       );
       act(() => {
         fireEvent.click(screen.getByRole('button', { name: 'Splits' }));
@@ -275,7 +265,7 @@ describe('TransactionDetailModal', () => {
   describe('Notes and tags', () => {
     it('renders notes section when notes are present', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={transactionWithNotes} onClose={onClose} />,
+        <TransactionDetailModal transaction={transactionWithNotes} onClose={onClose} />
       );
       expect(screen.getByText('Notes')).toBeInTheDocument();
       expect(screen.getByText('Business expense — reimbursable')).toBeInTheDocument();
@@ -283,14 +273,14 @@ describe('TransactionDetailModal', () => {
 
     it('does not render notes section when notes are absent', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       expect(screen.queryByText('Notes')).not.toBeInTheDocument();
     });
 
     it('renders tags when present', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={transactionWithTags} onClose={onClose} />,
+        <TransactionDetailModal transaction={transactionWithTags} onClose={onClose} />
       );
       expect(screen.getByText('Tags')).toBeInTheDocument();
       expect(screen.getByText('food')).toBeInTheDocument();
@@ -299,7 +289,7 @@ describe('TransactionDetailModal', () => {
 
     it('does not render tags section when tags are empty', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       expect(screen.queryByText('Tags')).not.toBeInTheDocument();
     });
@@ -310,7 +300,7 @@ describe('TransactionDetailModal', () => {
   describe('Close behaviour', () => {
     it('calls onClose when the X button is clicked', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       fireEvent.click(screen.getByLabelText('Close modal'));
       expect(onClose).toHaveBeenCalledTimes(1);
@@ -318,7 +308,7 @@ describe('TransactionDetailModal', () => {
 
     it('calls onClose when backdrop is clicked', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       const backdrop = document.querySelector('.absolute.inset-0');
       act(() => {
@@ -329,7 +319,7 @@ describe('TransactionDetailModal', () => {
 
     it('calls onClose when Escape key is pressed', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       act(() => {
         fireEvent.keyDown(window, { key: 'Escape' });
@@ -343,29 +333,21 @@ describe('TransactionDetailModal', () => {
   describe('Edit button', () => {
     it('renders Edit button when onEdit prop is provided', () => {
       renderWithProviders(
-        <TransactionDetailModal
-          transaction={baseTransaction}
-          onClose={onClose}
-          onEdit={onEdit}
-        />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} onEdit={onEdit} />
       );
       expect(screen.getByRole('button', { name: /Edit/i })).toBeInTheDocument();
     });
 
     it('does NOT render Edit button when onEdit prop is absent', () => {
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       expect(screen.queryByRole('button', { name: /Edit/i })).not.toBeInTheDocument();
     });
 
     it('calls onClose and onEdit with the transaction when Edit is clicked', () => {
       renderWithProviders(
-        <TransactionDetailModal
-          transaction={baseTransaction}
-          onClose={onClose}
-          onEdit={onEdit}
-        />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} onEdit={onEdit} />
       );
       act(() => {
         fireEvent.click(screen.getByRole('button', { name: /Edit/i }));
@@ -382,7 +364,7 @@ describe('TransactionDetailModal', () => {
     it('renders the account name as a link that navigates to the account details', async () => {
       const user = userEvent.setup();
       renderWithProviders(
-        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />,
+        <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       const link = screen.getByRole('button', { name: 'Open account details' });
       await user.click(link);
@@ -393,9 +375,7 @@ describe('TransactionDetailModal', () => {
     it('does not navigate when accountId is missing', async () => {
       const user = userEvent.setup();
       const noAccount = { ...baseTransaction, accountId: undefined };
-      renderWithProviders(
-        <TransactionDetailModal transaction={noAccount} onClose={onClose} />,
-      );
+      renderWithProviders(<TransactionDetailModal transaction={noAccount} onClose={onClose} />);
       const link = screen.getByRole('button', { name: 'Open account details' });
       await user.click(link);
       expect(onClose).not.toHaveBeenCalled();

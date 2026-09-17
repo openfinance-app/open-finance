@@ -1,6 +1,6 @@
 /**
  * ResultsPanel Component
- * 
+ *
  * Main results display container for Buy/Rent comparison
  * Requirements: REQ-1.6.x
  */
@@ -22,7 +22,13 @@ import { YearlyTable } from './YearlyTable';
 import { ComparisonAnalysis } from './ComparisonAnalysis';
 import { YearNAnalysisCard } from './YearNAnalysisCard';
 import { CalculationErrorBoundary } from '../CalculationErrorBoundary';
-import { exportBuyRentToCSV, exportToJSON, generatePDFContent, downloadFile, printToPDF } from '../exportImport';
+import {
+  exportBuyRentToCSV,
+  exportToJSON,
+  generatePDFContent,
+  downloadFile,
+  printToPDF,
+} from '../exportImport';
 import type { BuyRentResults, BuyRentInputs, YearNAnalysis } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
 
@@ -73,13 +79,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
   const handleExportPDF = () => {
     const pdfTitle = t('comparator.title');
-    const html = generatePDFContent(
-      pdfTitle,
-      inputs,
-      results,
-      'buy_rent',
-      baseCurrency
-    );
+    const html = generatePDFContent(pdfTitle, inputs, results, 'buy_rent', baseCurrency);
     printToPDF(html, pdfTitle);
   };
 
@@ -112,7 +112,6 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
 
       {/* Summary Cards */}
       <SummaryCards results={results} />

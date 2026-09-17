@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/test/test-utils';
 
 const mockNavigate = vi.fn();
-vi.mock('react-router', async (importOriginal) => {
+vi.mock('react-router', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router')>();
   return { ...actual, useNavigate: () => mockNavigate };
 });
@@ -79,9 +79,36 @@ import AssetAllocationChart from './AssetAllocationChart';
 
 describe('AssetAllocationChart', () => {
   const allocations = [
-    { type: 'STOCK', typeName: 'Stocks', totalValue: 5000, percentage: 50, count: 3, assetCount: 3, currency: 'USD', items: [] },
-    { type: 'ETF', typeName: 'ETFs', totalValue: 3000, percentage: 30, count: 2, assetCount: 2, currency: 'USD', items: [] },
-    { type: 'CRYPTO', typeName: 'Crypto', totalValue: 2000, percentage: 20, count: 1, assetCount: 1, currency: 'USD', items: [] },
+    {
+      type: 'STOCK',
+      typeName: 'Stocks',
+      totalValue: 5000,
+      percentage: 50,
+      count: 3,
+      assetCount: 3,
+      currency: 'USD',
+      items: [],
+    },
+    {
+      type: 'ETF',
+      typeName: 'ETFs',
+      totalValue: 3000,
+      percentage: 30,
+      count: 2,
+      assetCount: 2,
+      currency: 'USD',
+      items: [],
+    },
+    {
+      type: 'CRYPTO',
+      typeName: 'Crypto',
+      totalValue: 2000,
+      percentage: 20,
+      count: 1,
+      assetCount: 1,
+      currency: 'USD',
+      items: [],
+    },
   ];
 
   it('renders treemap with allocation data', () => {
@@ -132,7 +159,16 @@ describe('AssetAllocationChart', () => {
 
   it('renders tooltip with single asset text', () => {
     const singleAsset = [
-      { type: 'BOND', typeName: 'Bonds', totalValue: 1000, percentage: 100, count: 1, assetCount: 1, currency: 'USD', items: [] },
+      {
+        type: 'BOND',
+        typeName: 'Bonds',
+        totalValue: 1000,
+        percentage: 100,
+        count: 1,
+        assetCount: 1,
+        currency: 'USD',
+        items: [],
+      },
     ];
     renderWithProviders(<AssetAllocationChart allocations={singleAsset} currency="USD" />);
     // Tooltip for single asset renders "1 asset"
@@ -141,7 +177,16 @@ describe('AssetAllocationChart', () => {
 
   it('handles unknown asset type with default color', () => {
     const unknown = [
-      { type: 'UNKNOWN_TYPE', typeName: 'Unknown', totalValue: 500, percentage: 100, count: 1, assetCount: 1, currency: 'USD', items: [] },
+      {
+        type: 'UNKNOWN_TYPE',
+        typeName: 'Unknown',
+        totalValue: 500,
+        percentage: 100,
+        count: 1,
+        assetCount: 1,
+        currency: 'USD',
+        items: [],
+      },
     ];
     renderWithProviders(<AssetAllocationChart allocations={unknown} currency="USD" />);
     expect(screen.getByText('100.0%')).toBeInTheDocument();

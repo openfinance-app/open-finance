@@ -14,7 +14,7 @@ import * as useLiabilitiesModule from '@/hooks/useLiabilities';
 import type { Liability } from '@/types/liability';
 
 // Mock the hooks
-vi.mock('@/hooks/useLiabilities', async (importOriginal) => {
+vi.mock('@/hooks/useLiabilities', async importOriginal => {
   const actual = await importOriginal<typeof useLiabilitiesModule>();
   return {
     ...actual,
@@ -35,7 +35,7 @@ vi.mock('lucide-react', () => ({
 }));
 
 // Mock VisibilityContext
-vi.mock('@/context/VisibilityContext', async (importOriginal) => {
+vi.mock('@/context/VisibilityContext', async importOriginal => {
   const actual = await importOriginal<typeof import('@/context/VisibilityContext')>();
   return {
     ...actual,
@@ -77,11 +77,11 @@ const mockBreakdown = {
   principalPaid: 20000,
   interestPaid: 35000,
   insurancePaid: 5000,
-  feesPaid: 600,       // one-time fee
+  feesPaid: 600, // one-time fee
   totalPaid: 60600,
   projectedInterest: 150000,
   projectedInsurance: 40000,
-  projectedFees: 0,    // always 0 now (one-time fee)
+  projectedFees: 0, // always 0 now (one-time fee)
   totalProjectedCost: 470000,
   linkedTransactionCount: 3,
   linkedTransactionsTotalAmount: 4500,
@@ -100,9 +100,7 @@ describe('LiabilityBreakdownPanel', () => {
         error: null,
       } as any);
 
-      renderWithProviders(
-        <LiabilityBreakdownPanel liability={mockLiability} />
-      );
+      renderWithProviders(<LiabilityBreakdownPanel liability={mockLiability} />);
 
       // Should show loading skeleton (3 animated divs)
       const skeletonContainer = document.querySelector('.animate-pulse');
@@ -120,9 +118,7 @@ describe('LiabilityBreakdownPanel', () => {
         error: new Error('Failed to load breakdown'),
       } as any);
 
-      renderWithProviders(
-        <LiabilityBreakdownPanel liability={mockLiability} />
-      );
+      renderWithProviders(<LiabilityBreakdownPanel liability={mockLiability} />);
 
       expect(screen.getByText('Failed to load breakdown. Please try again.')).toBeInTheDocument();
       expect(screen.getByTestId('alert-circle-icon')).toBeInTheDocument();
@@ -139,18 +135,14 @@ describe('LiabilityBreakdownPanel', () => {
     });
 
     it('renders progress bar with correct percentage', () => {
-      renderWithProviders(
-        <LiabilityBreakdownPanel liability={mockLiability} />
-      );
+      renderWithProviders(<LiabilityBreakdownPanel liability={mockLiability} />);
 
       expect(screen.getByText('Principal Paid Off')).toBeInTheDocument();
       expect(screen.getByText('6.7%')).toBeInTheDocument();
     });
 
     it('renders amounts paid to date section', () => {
-      renderWithProviders(
-        <LiabilityBreakdownPanel liability={mockLiability} />
-      );
+      renderWithProviders(<LiabilityBreakdownPanel liability={mockLiability} />);
 
       expect(screen.getByText('Amounts Paid to Date')).toBeInTheDocument();
       expect(screen.getByTestId('dollar-sign-icon')).toBeInTheDocument();
@@ -163,9 +155,7 @@ describe('LiabilityBreakdownPanel', () => {
     });
 
     it('renders projected remaining costs section', () => {
-      renderWithProviders(
-        <LiabilityBreakdownPanel liability={mockLiability} />
-      );
+      renderWithProviders(<LiabilityBreakdownPanel liability={mockLiability} />);
 
       expect(screen.getByText('Projected Remaining Costs')).toBeInTheDocument();
       expect(screen.getByTestId('trending-down-icon')).toBeInTheDocument();
@@ -177,9 +167,7 @@ describe('LiabilityBreakdownPanel', () => {
     });
 
     it('renders insurance & fees configuration when present', () => {
-      renderWithProviders(
-        <LiabilityBreakdownPanel liability={mockLiability} />
-      );
+      renderWithProviders(<LiabilityBreakdownPanel liability={mockLiability} />);
 
       expect(screen.getByText('Insurance & Fee Configuration')).toBeInTheDocument();
       expect(screen.getByTestId('shield-icon')).toBeInTheDocument();
@@ -189,11 +177,13 @@ describe('LiabilityBreakdownPanel', () => {
     });
 
     it('does not render insurance & fees section when not configured', () => {
-      const liabilityWithoutInsurance = { ...mockLiability, insurancePercentage: undefined, additionalFees: undefined };
+      const liabilityWithoutInsurance = {
+        ...mockLiability,
+        insurancePercentage: undefined,
+        additionalFees: undefined,
+      };
 
-      renderWithProviders(
-        <LiabilityBreakdownPanel liability={liabilityWithoutInsurance} />
-      );
+      renderWithProviders(<LiabilityBreakdownPanel liability={liabilityWithoutInsurance} />);
 
       expect(screen.queryByText('Insurance & Fee Configuration')).not.toBeInTheDocument();
     });
@@ -211,9 +201,7 @@ describe('LiabilityBreakdownPanel', () => {
         error: null,
       } as any);
 
-      renderWithProviders(
-        <LiabilityBreakdownPanel liability={mockLiability} />
-      );
+      renderWithProviders(<LiabilityBreakdownPanel liability={mockLiability} />);
 
       // Insurance should not appear in paid section when 0
       expect(screen.queryByText('Insurance Paid')).not.toBeInTheDocument();
@@ -226,9 +214,7 @@ describe('LiabilityBreakdownPanel', () => {
     it('should wrap currency displays with PrivateAmount when amounts are visible', () => {
       (useVisibility as any).mockReturnValue({ isAmountsVisible: true });
 
-      renderWithProviders(
-        <LiabilityBreakdownPanel liability={mockLiability} />
-      );
+      renderWithProviders(<LiabilityBreakdownPanel liability={mockLiability} />);
 
       // Check that PrivateAmount components are present
       const privateAmounts = document.querySelectorAll('.transition-all.duration-300');
@@ -238,9 +224,7 @@ describe('LiabilityBreakdownPanel', () => {
     it('should apply blur effect to currency displays when amounts are hidden', () => {
       (useVisibility as any).mockReturnValue({ isAmountsVisible: false });
 
-      renderWithProviders(
-        <LiabilityBreakdownPanel liability={mockLiability} />
-      );
+      renderWithProviders(<LiabilityBreakdownPanel liability={mockLiability} />);
 
       // Check that PrivateAmount components have blur classes
       const blurredAmounts = document.querySelectorAll('.blur-md.select-none');
@@ -250,9 +234,7 @@ describe('LiabilityBreakdownPanel', () => {
     it('should set aria-hidden when amounts are hidden', () => {
       (useVisibility as any).mockReturnValue({ isAmountsVisible: false });
 
-      renderWithProviders(
-        <LiabilityBreakdownPanel liability={mockLiability} />
-      );
+      renderWithProviders(<LiabilityBreakdownPanel liability={mockLiability} />);
 
       // Check that PrivateAmount spans have aria-hidden=true
       const hiddenSpans = document.querySelectorAll('span[aria-hidden="true"]');

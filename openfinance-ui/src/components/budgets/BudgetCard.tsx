@@ -2,7 +2,7 @@
  * BudgetCard Component
  * TASK-8.2.9: Create BudgetCard component with progress bar
  * TASK-8.4.3: Add click-to-detail navigation support
- * 
+ *
  * Displays budget information with progress tracking and color coding
  */
 
@@ -58,11 +58,13 @@ function getStatusVariant(status: string): 'success' | 'warning' | 'error' | 'de
   }
 }
 
-
-
 export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCardProps) {
   const { baseCurrency } = useAuthContext();
-  const { convert, secondaryCurrency: secCurrency, secondaryExchangeRate } = useSecondaryConversion(baseCurrency);
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(baseCurrency);
   const { t } = useTranslation('budgets');
   const { t: tc } = useTranslation('common');
   const isOverBudget = budget.percentageSpent > 100;
@@ -76,7 +78,9 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
       )}
       onClick={onViewDetail ? () => onViewDetail(budget.budgetId) : undefined}
       role={onViewDetail ? 'button' : undefined}
-      aria-label={onViewDetail ? t('card.viewHistory', { category: budget.categoryName }) : undefined}
+      aria-label={
+        onViewDetail ? t('card.viewHistory', { category: budget.categoryName }) : undefined
+      }
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
@@ -95,7 +99,10 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => { e.stopPropagation(); onEdit(budget.budgetId); }}
+              onClick={e => {
+                e.stopPropagation();
+                onEdit(budget.budgetId);
+              }}
               className="h-8 w-8 p-0"
               aria-label={tc('aria.editBudget')}
             >
@@ -104,7 +111,10 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => { e.stopPropagation(); onDelete(budget.budgetId); }}
+              onClick={e => {
+                e.stopPropagation();
+                onDelete(budget.budgetId);
+              }}
               className="h-8 w-8 p-0 text-error hover:text-error hover:bg-error/10"
               aria-label={tc('aria.deleteBudget')}
             >
@@ -189,7 +199,8 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
           <div className="flex items-center gap-1.5 mt-2 text-error">
             <TrendingDown className="h-3.5 w-3.5" />
             <span className="text-xs font-medium">
-              {t('card.overBudgetBy')} <ConvertedAmount
+              {t('card.overBudgetBy')}{' '}
+              <ConvertedAmount
                 amount={Math.abs(budget.remaining)}
                 currency={baseCurrency}
                 isConverted={false}
@@ -206,7 +217,9 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
       {/* Footer with Status and Days Remaining */}
       <div className="flex items-center justify-between pt-4 border-t border-border">
         <Badge variant={getStatusVariant(budget.status)} size="sm">
-          {t(`card.status.${budget.status === 'ON_TRACK' ? 'onTrack' : budget.status.toLowerCase()}`)}
+          {t(
+            `card.status.${budget.status === 'ON_TRACK' ? 'onTrack' : budget.status.toLowerCase()}`
+          )}
         </Badge>
         <div className="flex items-center gap-1.5 text-text-secondary">
           <Calendar className="h-3.5 w-3.5" />

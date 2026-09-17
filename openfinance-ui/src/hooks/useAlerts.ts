@@ -79,7 +79,7 @@ export function useUpdateAlert() {
       const response = await apiClient.put<BudgetAlert>(`${API_BASE}/${alertId}`, data);
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ['budgetAlerts', data.budgetId] });
       queryClient.invalidateQueries({ queryKey: ['budgetAlerts', 'unread'] });

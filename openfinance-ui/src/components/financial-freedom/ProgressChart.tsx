@@ -24,7 +24,7 @@ interface ProgressChartProps {
 
 /**
  * ProgressChart Component
- * 
+ *
  * Visualizes the path to financial freedom showing:
  * - Projected savings growth over time
  * - Target amount reference line
@@ -39,7 +39,7 @@ export function ProgressChart({
   yearsToFreedom,
 }: ProgressChartProps) {
   // Prepare chart data
-  const chartData = data.map((item) => ({
+  const chartData = data.map(item => ({
     year: item.year,
     savings: item.endingBalance,
     contributions: item.contributions,
@@ -47,10 +47,12 @@ export function ProgressChart({
     isFreedomYear: yearsToFreedom && item.year <= yearsToFreedom,
   }));
 
-
-
   // Custom tooltip component
-  const CustomTooltip = ({ active, payload, label }: {
+  const CustomTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
     active?: boolean;
     payload?: Array<{ value: number; dataKey: string; color: string }>;
     label?: string;
@@ -74,10 +76,7 @@ export function ProgressChart({
   return (
     <div className="h-[400px] w-full">
       <ResponsiveContainer width="100%" height={400} minWidth={0}>
-        <ComposedChart
-          data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-        >
+        <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
           <XAxis
             dataKey="year"
@@ -98,7 +97,7 @@ export function ProgressChart({
             fontSize={12}
             tickLine={false}
             axisLine={{ stroke: 'var(--color-border)' }}
-            tickFormatter={(value) => {
+            tickFormatter={value => {
               const sym = getCurrencySymbol(currency);
               if (value >= 1000000) {
                 return `${sym}${(value / 1000000).toFixed(1)}M`;
@@ -112,10 +111,8 @@ export function ProgressChart({
           <Tooltip content={<CustomTooltip />} />
           <Legend
             wrapperStyle={{ paddingTop: '20px' }}
-            formatter={(value) => (
-              <span style={{ color: 'var(--color-text-primary)', fontSize: 12 }}>
-                {value}
-              </span>
+            formatter={value => (
+              <span style={{ color: 'var(--color-text-primary)', fontSize: 12 }}>{value}</span>
             )}
           />
 
