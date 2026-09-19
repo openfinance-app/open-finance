@@ -24,6 +24,7 @@ import { AccountDetailModal } from '@/components/accounts/AccountDetailModal';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import { add } from '@/utils/money';
 import {
   useAccountsSearch,
@@ -51,6 +52,7 @@ function hasActiveFilters(filters: Filters): boolean {
 
 export default function AccountsPage() {
   const { t } = useTranslation('accounts');
+  const { displayMode } = useCurrencyDisplay();
   useDocumentTitle(t('title'));
   const [searchParams, setSearchParams] = useSearchParams();
   const lowBalanceParam = searchParams.get('lowBalance') === '1';
@@ -420,16 +422,16 @@ export default function AccountsPage() {
 
       {/* Total Balance Summary */}
       {!isLoading && allAccounts && allAccounts.length > 0 && (
-        <div className="mb-6 p-6 rounded-lg bg-surface border border-border">
-          <h3 className="text-sm font-medium uppercase tracking-wide text-text-secondary mb-4">
-            {t('totalBalance')}
-          </h3>
+        <div className="mb-6 p-6 rounded-[var(--radius-card)] bg-surface border border-border shadow-plate">
+          <h3 className="plate-label mb-4">{t('totalBalance')}</h3>
           <div className="flex flex-wrap gap-x-10 gap-y-3">
             {Object.entries(allTotalsByCurrency).map(([currency, totals]) => (
               <div key={currency}>
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-                    {currency}
+                  <span className="plate-label">
+                    {totals.hasConversion && displayMode === 'base'
+                      ? `${currency} → ${totals.baseCurrency}`
+                      : currency}
                   </span>
                 </div>
                 <div>

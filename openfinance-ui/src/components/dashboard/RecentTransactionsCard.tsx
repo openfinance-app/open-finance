@@ -114,7 +114,7 @@ export default function RecentTransactionsCard({
   if (isLoading) {
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
-        <h3 className="text-lg font-semibold text-text-primary mb-1">{t('transactions.title')}</h3>
+        <h3 className="plate-label  mb-1">{t('transactions.title')}</h3>
         {periodLabel && <p className="text-xs text-text-secondary mb-4">{periodLabel}</p>}
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-6 w-6 text-text-muted animate-spin" />
@@ -126,7 +126,7 @@ export default function RecentTransactionsCard({
   if (transactions.length === 0) {
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
-        <h3 className="text-lg font-semibold text-text-primary mb-1">{t('transactions.title')}</h3>
+        <h3 className="plate-label  mb-1">{t('transactions.title')}</h3>
         {periodLabel && <p className="text-xs text-text-secondary mb-4">{periodLabel}</p>}
         <div className="text-center py-8">
           <ArrowUpRight className="h-12 w-12 text-text-muted mx-auto mb-3" />
@@ -145,9 +145,7 @@ export default function RecentTransactionsCard({
     <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-text-primary leading-tight">
-            {t('transactions.title')}
-          </h3>
+          <h3 className="plate-label  leading-tight">{t('transactions.title')}</h3>
           {periodLabel && <p className="text-xs text-text-secondary mt-0.5">{periodLabel}</p>}
         </div>
         <a

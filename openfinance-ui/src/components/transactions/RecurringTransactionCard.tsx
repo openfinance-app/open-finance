@@ -112,7 +112,9 @@ export function RecurringTransactionCard({
 
           <div className="flex-1 min-w-0">
             {/* Description */}
-            <h3 className="font-semibold text-base truncate">{recurringTransaction.description}</h3>
+            <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate">
+              {recurringTransaction.description}
+            </h3>
 
             {/* Account and Category Info */}
             <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">

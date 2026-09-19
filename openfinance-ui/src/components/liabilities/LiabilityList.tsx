@@ -120,7 +120,7 @@ export function LiabilityList({
                   )}
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-lg text-text-primary">
+                      <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary">
                         {liability.name}{' '}
                         {liability.fundingStatus && (
                           <span className="text-xs text-text-secondary">

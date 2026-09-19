@@ -68,15 +68,15 @@ const getTransactionIcon = (type: Transaction['type']) => {
   }
 };
 
-// Color classes for transaction type
+// Color classes for transaction type — machined indicator slots, rimmed
 const getTransactionColor = (type: Transaction['type']) => {
   switch (type) {
     case 'INCOME':
-      return 'text-success bg-success/10';
+      return 'text-success bg-success/10 border border-success/25';
     case 'EXPENSE':
-      return 'text-error bg-error/10';
+      return 'text-error bg-error/10 border border-error/25';
     case 'TRANSFER':
-      return 'text-primary bg-primary/10';
+      return 'text-primary bg-primary/10 border border-primary/30';
   }
 };
 
@@ -197,8 +197,8 @@ function CategoryPill({
       <span
         className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium leading-none"
         style={{
-          backgroundColor: `color-mix(in srgb, ${dotColor} 14%, transparent)`,
-          color: dotColor,
+          backgroundColor: `color-mix(in srgb, ${dotColor} 10%, transparent)`,
+          color: `color-mix(in srgb, ${dotColor} 72%, var(--color-text-secondary))`,
         }}
       >
         {content}
@@ -213,8 +213,8 @@ function CategoryPill({
       aria-label={ariaLabel}
       className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium leading-none cursor-pointer transition-opacity hover:opacity-80"
       style={{
-        backgroundColor: `color-mix(in srgb, ${dotColor} 14%, transparent)`,
-        color: dotColor,
+        backgroundColor: `color-mix(in srgb, ${dotColor} 10%, transparent)`,
+        color: `color-mix(in srgb, ${dotColor} 72%, var(--color-text-secondary))`,
       }}
     >
       {content}
@@ -305,9 +305,9 @@ function TransactionItem({
     <div
       id={`transaction-${transaction.id}`}
       className={cn(
-        'flex items-center gap-3 p-4 bg-surface rounded-lg hover:bg-surface-elevated transition-all duration-300 group relative',
+        'flex items-center gap-3 p-4 bg-surface rounded-[10px] border border-border hover:bg-surface-elevated hover:border-border-strong transition-all duration-300 group relative',
         isHighlighted &&
-          'ring-2 ring-primary ring-offset-2 ring-offset-background bg-primary/5 shadow-lg scale-[1.02] z-30',
+          'ring-2 ring-primary ring-offset-2 ring-offset-background bg-primary/5 shadow-plate-lift scale-[1.02] z-30',
         onViewDetail && 'cursor-pointer'
       )}
       onClick={e => {
@@ -345,10 +345,10 @@ function TransactionItem({
             )}
           </>
         ) : (
-          /* No payee — show the classic type-icon circle */
+          /* No payee — show the classic type-indicator slot */
           <div
             className={cn(
-              'flex h-10 w-10 shrink-0 items-center justify-center rounded-full z-10',
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg z-10',
               getTransactionColor(transaction.type)
             )}
           >
@@ -625,8 +625,8 @@ export function TransactionList({
 
         return (
           <div key={dateKey}>
-            {/* Date group header */}
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-3 sticky top-0 bg-background py-2 z-10 border-b border-border/60">
+            {/* Date group header — engraved register date over a brass hairline */}
+            <h3 className="plate-label mb-3 sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10 border-b border-border">
               {dateKey}
             </h3>
 

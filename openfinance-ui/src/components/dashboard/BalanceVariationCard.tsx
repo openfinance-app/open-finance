@@ -19,6 +19,7 @@ import { divide, sum } from '@/utils/money';
 import { useVisibility } from '@/context/VisibilityContext';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
+import { formatPercentage } from '@/utils/format';
 
 type ViewMode = 'netWorth' | 'account' | 'institution';
 type ChartType = 'bar' | 'line';
@@ -54,7 +55,7 @@ const CustomTooltip = ({
             }`}
           >
             {data.variationPercentage >= 0 ? '+' : ''}
-            {data.variationPercentage.toFixed(2)}%
+            {formatPercentage(data.variationPercentage)}
           </p>
         )}
       </div>
@@ -143,7 +144,7 @@ export default function BalanceVariationCard({
       {/* Header */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-1">
-          <h3 className="text-lg font-semibold text-text-primary">{t('balanceVariation.title')}</h3>
+          <h3 className="plate-label ">{t('balanceVariation.title')}</h3>
           <HelpTooltip text={t('balanceVariation.tooltip')} side="right" />
         </div>
       </div>
@@ -205,7 +206,7 @@ export default function BalanceVariationCard({
             }`}
           >
             {averageIncrease >= 0 ? '+' : ''}
-            {averageIncrease.toFixed(2)}% {t('balanceVariation.perYear')}
+            {formatPercentage(averageIncrease)} {t('balanceVariation.perYear')}
           </span>
         </div>
       )}

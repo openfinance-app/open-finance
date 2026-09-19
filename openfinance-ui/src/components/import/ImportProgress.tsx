@@ -92,7 +92,7 @@ export function ImportProgress({ session, onViewTransactions, onClose }: ImportP
         )}
 
         <div className="text-center">
-          <h3 className="text-xl font-semibold text-text-primary mb-2">{getStatusMessage()}</h3>
+          <h3 className="plate-label  mb-2">{getStatusMessage()}</h3>
           <p className="text-sm text-text-secondary">{session.fileName}</p>
         </div>
       </div>
@@ -115,22 +115,22 @@ export function ImportProgress({ session, onViewTransactions, onClose }: ImportP
 
       {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-surface border border-border rounded-lg p-4 text-center">
+        <div className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-4 text-center">
           <div className="text-2xl font-bold text-text-primary">{session.totalTransactions}</div>
           <div className="text-xs text-text-secondary mt-1">{t('progress.stats.total')}</div>
         </div>
 
-        <div className="bg-surface border border-border rounded-lg p-4 text-center">
+        <div className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-4 text-center">
           <div className="text-2xl font-bold text-green-500">{session.importedCount}</div>
           <div className="text-xs text-text-secondary mt-1">{t('progress.stats.imported')}</div>
         </div>
 
-        <div className="bg-surface border border-border rounded-lg p-4 text-center">
+        <div className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-4 text-center">
           <div className="text-2xl font-bold text-amber-500">{session.duplicateCount}</div>
           <div className="text-xs text-text-secondary mt-1">{t('progress.stats.duplicates')}</div>
         </div>
 
-        <div className="bg-surface border border-border rounded-lg p-4 text-center">
+        <div className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-4 text-center">
           <div className="text-2xl font-bold text-red-500">{session.errorCount}</div>
           <div className="text-xs text-text-secondary mt-1">{t('progress.stats.errors')}</div>
         </div>

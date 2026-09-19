@@ -316,10 +316,10 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                             <Line
                               type="monotone"
                               dataKey="balance"
-                              stroke="#f5a623"
+                              stroke="#c5a254"
                               strokeWidth={2}
                               dot={false}
-                              activeDot={{ r: 4, fill: '#f5a623' }}
+                              activeDot={{ r: 4, fill: '#c5a254' }}
                             />
                           </LineChart>
                         </ResponsiveContainer>

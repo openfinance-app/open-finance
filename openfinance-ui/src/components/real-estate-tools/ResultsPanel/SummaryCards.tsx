@@ -25,7 +25,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Buy Scenario Card */}
-      <Card className="border-l-4 border-l-primary">
+      <Card x->
         <CardHeader className="bg-primary/10">
           <CardTitle className="flex items-center gap-2">
             <Home className="h-5 w-5" />
@@ -75,7 +75,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
       </Card>
 
       {/* Rent Scenario Card */}
-      <Card className="border-l-4 border-l-warning">
+      <Card x->
         <CardHeader className="bg-warning/10">
           <CardTitle className="flex items-center gap-2">
             <Key className="h-5 w-5" />
@@ -129,7 +129,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
       </Card>
 
       {/* Comparison Card */}
-      <Card className="md:col-span-2 border-l-4 border-l-info">
+      <Card className="md:col-span-2">
         <CardHeader className="bg-info/10">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />

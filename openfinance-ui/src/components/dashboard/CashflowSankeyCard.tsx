@@ -333,7 +333,7 @@ export default function CashflowSankeyCard({
     <div className="bg-surface rounded-lg p-4 border border-border h-full flex flex-col">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-3 flex-shrink-0">
-        <h3 className="text-base font-semibold text-text-primary">{t('cashflowSankey.title')}</h3>
+        <h3 className="plate-label ">{t('cashflowSankey.title')}</h3>
         {/* Period label — read-only, driven by global selector */}
         {dateRange ? (
           <span className="text-xs text-text-secondary bg-surface-elevated px-2 py-1 rounded border border-border">

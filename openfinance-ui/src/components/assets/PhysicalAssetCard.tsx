@@ -49,7 +49,9 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
               {asset.type.charAt(0) + asset.type.slice(1).toLowerCase()}
             </Badge>
           </div>
-          <h3 className="text-lg font-semibold text-text-primary line-clamp-2">{asset.name}</h3>
+          <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary line-clamp-2">
+            {asset.name}
+          </h3>
         </div>
         {asset.condition && (
           <Badge variant={getConditionBadgeVariant(asset.condition)} size="md" className="ml-2">

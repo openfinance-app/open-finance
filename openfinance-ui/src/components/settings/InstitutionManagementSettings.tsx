@@ -231,7 +231,7 @@ export function InstitutionManagementSettings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-text-primary">{t('title')}</h2>
+          <h2 className="plate-label ">{t('title')}</h2>
           <p className="text-sm text-text-secondary mt-1">{t('description')}</p>
         </div>
         <Button variant="primary" onClick={openCreateForm}>
@@ -289,7 +289,9 @@ export function InstitutionManagementSettings() {
                       )}
                     </div>
                     <div>
-                      <h4 className="font-medium text-text-primary">{inst.name}</h4>
+                      <h4 className="font-display text-base uppercase tracking-[0.06em] text-text-primary">
+                        {inst.name}
+                      </h4>
                       {inst.bic && <p className="text-xs text-text-muted">{inst.bic}</p>}
                       {inst.country && (
                         <p className="text-xs text-text-muted">

@@ -10,7 +10,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 /**
  * Button component with multiple variants and sizes
- * Follows Finary design style with gold primary color
+ * The Vault: machined plates — brass for the primary action, steel for the rest
  */
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -18,17 +18,20 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50';
+      'inline-flex items-center justify-center whitespace-nowrap rounded-lg font-medium transition-all duration-150 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50';
 
     const variants = {
-      primary: 'bg-primary text-background hover:bg-primary/90 active:bg-primary/80',
-      secondary: 'bg-surface hover:bg-surface-elevated text-text-primary border border-border',
+      primary:
+        'bg-gradient-to-b from-brass-bright to-primary text-primary-foreground font-semibold shadow-[inset_0_1px_0_0_rgb(255_255_255/0.28),0_1px_2px_0_rgb(0_0_0/0.45)] hover:brightness-[1.07] active:brightness-95 active:translate-y-px',
+      secondary:
+        'bg-surface-elevated hover:bg-border text-text-primary border border-border-strong shadow-slot',
       ghost: 'bg-transparent hover:bg-surface text-text-primary',
       danger: 'bg-error text-white hover:bg-error/90 active:bg-error/80',
       destructive: 'bg-destructive text-white hover:bg-destructive/90 active:bg-destructive/80',
       outline:
-        'border border-border bg-transparent hover:bg-surface hover:text-text-primary text-text-primary',
-      default: 'bg-primary text-background hover:bg-primary/90 active:bg-primary/80',
+        'border border-border-strong bg-transparent hover:bg-surface hover:text-text-primary text-text-primary',
+      default:
+        'bg-gradient-to-b from-brass-bright to-primary text-primary-foreground font-semibold shadow-[inset_0_1px_0_0_rgb(255_255_255/0.28),0_1px_2px_0_rgb(0_0_0/0.45)] hover:brightness-[1.07] active:brightness-95 active:translate-y-px',
     };
 
     const sizes = {

@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-19T00:00:00Z",
+  "title": "Design System: Open Finance — The Vault",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Blackened Steel",
+        "canonical": "#0c0e10",
+        "tonalRamp": ["#0c0e10", "#14171b", "#1b1f24", "#262c33", "#39414b", "#565f6b", "#8d97a3", "#cfd5dc"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Charcoal Plate",
+        "canonical": "#14171b",
+        "tonalRamp": ["#0c0e10", "#14171b", "#1b1f24", "#262c33", "#39414b", "#565f6b", "#8d97a3", "#cfd5dc"]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Aged Brass",
+        "canonical": "#c5a254",
+        "tonalRamp": ["#1a1408", "#3a2f14", "#5c4c22", "#7d6118", "#a98a3e", "#c5a254", "#e3c06a", "#f4e3ae"]
+      },
+      "secondary": {
+        "role": "secondary",
+        "displayName": "Aged Leather",
+        "canonical": "#8f7a5e",
+        "tonalRamp": ["#1c1712", "#33291d", "#4d3f2d", "#68553f", "#8f7a5e", "#ab9678", "#c6b49a", "#e0d3bf"]
+      },
+      "accent-blue": {
+        "role": "tertiary",
+        "displayName": "Steel Blue",
+        "canonical": "#5e84b0",
+        "tonalRamp": ["#141e2b", "#22364e", "#2f4b6b", "#3b5b80", "#4a6c94", "#5e84b0", "#7ba3cc", "#d8e4f0"]
+      },
+      "accent-purple": {
+        "role": "tertiary",
+        "displayName": "Muted Violet",
+        "canonical": "#8a80cc",
+        "tonalRamp": ["#1c1a33", "#2f2b52", "#413c73", "#544e94", "#6e66b0", "#8a80cc", "#aaa2dd", "#d5d1ef"]
+      },
+      "accent-teal": {
+        "role": "tertiary",
+        "displayName": "Deep Teal",
+        "canonical": "#45a191",
+        "tonalRamp": ["#0e2420", "#163a34", "#1f544c", "#1f6f5c", "#32897a", "#45a191", "#6cb8ab", "#c4e2dc"]
+      },
+      "accent-pink": {
+        "role": "tertiary",
+        "displayName": "Mineral Pink",
+        "canonical": "#c96f7d",
+        "tonalRamp": ["#2b1418", "#4a2129", "#6b2f3a", "#8c3d4b", "#a04c5b", "#c96f7d", "#da97a1", "#efc9ce"]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Etched Silver",
+        "canonical": "#eceff2",
+        "tonalRamp": ["#191d23", "#3f4650", "#565f6b", "#7d8691", "#a5aeb8", "#cfd5dc", "#eceff2", "#f7f8fa"]
+      },
+      "success": {
+        "role": "primary",
+        "displayName": "Verdigris",
+        "canonical": "#3db28e",
+        "tonalRamp": ["#0d2b22", "#1c624c", "#237a60", "#2e9d7c", "#3db28e", "#4cc39a", "#8fdcc3", "#e7f5f0"]
+      },
+      "error": {
+        "role": "primary",
+        "displayName": "Oxblood",
+        "canonical": "#e07368",
+        "tonalRamp": ["#33120d", "#5f261e", "#8c3b32", "#b04a3f", "#d36055", "#e07368", "#f0a99f", "#fbecea"]
+      },
+      "warning": {
+        "role": "primary",
+        "displayName": "Aged Amber",
+        "canonical": "#d29a40",
+        "tonalRamp": ["#2a1e08", "#4d360f", "#6f4f17", "#8a5f0e", "#b07f2a", "#d29a40", "#ebcb85", "#f7ead0"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display (Marcellus caps)", "purpose": "Engraved plate headings — page titles, auth door, wordmark. Always uppercase, 0.08em tracking." },
+      "headline": { "displayName": "Headline (Marcellus caps)", "purpose": "Fixed identity plates — account names, dialog titles. Uppercase, 0.06em tracking." },
+      "title": { "displayName": "Plate Label", "purpose": "The .plate-label engraving — card titles, field markings, date-group headers. Inter 600, 11px, 0.18em, uppercase, debossed." },
+      "body": { "displayName": "Body (Inter)", "purpose": "Descriptions, metadata, form values." },
+      "label": { "displayName": "Label (Inter)", "purpose": "Form labels, badges, nav items." },
+      "instrument": { "displayName": "Instrument (JetBrains Mono)", "purpose": "Every monetary amount — tabular-nums, 44px/700 master readout down to 14px/600 rows." }
+    },
+    "shadows": [
+      {
+        "name": "plate",
+        "value": "inset 0 1px 0 0 rgb(255 255 255 / 0.045), 0 1px 2px 0 rgb(0 0 0 / 0.45), 0 12px 28px -20px rgb(0 0 0 / 0.7)",
+        "purpose": "Plate at rest — default cards, the master plate. Bevel highlight + tight contact shadow."
+      },
+      {
+        "name": "plate-lift",
+        "value": "inset 0 1px 0 0 rgb(255 255 255 / 0.06), 0 2px 4px 0 rgb(0 0 0 / 0.45), 0 20px 44px -20px rgb(0 0 0 / 0.75)",
+        "purpose": "Lifted plate — hover states, dialogs, the vault-door login plate, highlighted rows."
+      },
+      {
+        "name": "slot",
+        "value": "inset 0 1px 3px 0 rgb(0 0 0 / 0.5), inset 0 -1px 0 0 rgb(255 255 255 / 0.03)",
+        "purpose": "Machined slot — recessed inputs, progress tracks, active nav wells, icon tiles."
+      },
+      {
+        "name": "lock-halo",
+        "value": "0 0 12px -2px rgb(197 162 84 / 0.4)",
+        "purpose": "The One Halo — engaged privacy-lock glow. The only glow in the system."
+      },
+      {
+        "name": "drag-state",
+        "value": "0 0 0 1px color-mix(in srgb, #c5a254 45%, transparent), 0 24px 48px -16px rgba(0, 0, 0, 0.65)",
+        "purpose": "Dashboard card in the pointer's grip — brass state ring plus deep contact shadow."
+      }
+    ],
+    "motion": [
+      { "name": "ease-out-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default arrival easing — pages, staggers, bolt-slide, progress." },
+      { "name": "ease-out-quart", "value": "cubic-bezier(0.25, 1, 0.5, 1)", "purpose": "Softer easing — shimmer sweep." },
+      { "name": "duration-fast", "value": "150ms", "purpose": "Hover/focus feedback, popover entrances." },
+      { "name": "duration-normal", "value": "240ms", "purpose": "Page entrances, staggered rows, grid reflow." },
+      { "name": "duration-slow", "value": "420ms", "purpose": "The bolt-slide privacy lock — the world's one authored motion." },
+      { "name": "bolt-slide", "value": "clip-path inset(0 100% 0 0) → inset(0 0 0 0) with translateX(-4px → 0); 420ms expo; stagger min(index × 35ms, 280ms)", "purpose": "Masking slides shut like a bolt across every PrivateAmount on the page." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ],
+    "themes": {
+      "light-overrides": {
+        "background": "#e7e9ec",
+        "surface": "#f6f7f9",
+        "surface-elevated": "#ffffff",
+        "border": "#c9ced6",
+        "border-strong": "#a8b0bc",
+        "primary": "#7d6118",
+        "brass-bright": "#97792a",
+        "text-primary": "#191d23",
+        "text-secondary": "#49525d",
+        "text-tertiary": "#5d6773",
+        "text-muted": "#5f6975",
+        "success": "#187a52",
+        "error": "#b0382c",
+        "warning": "#8a5f0e",
+        "shadow-plate": "inset 0 1px 0 0 rgb(255 255 255 / 0.7), 0 1px 2px 0 rgb(20 24 29 / 0.08), 0 10px 24px -18px rgb(20 24 29 / 0.25)",
+        "shadow-plate-lift": "inset 0 1px 0 0 rgb(255 255 255 / 0.8), 0 2px 4px 0 rgb(20 24 29 / 0.08), 0 18px 40px -18px rgb(20 24 29 / 0.3)",
+        "shadow-slot": "inset 0 1px 3px 0 rgb(20 24 29 / 0.12), inset 0 -1px 0 0 rgb(255 255 255 / 0.6)"
+      }
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one brass action — machined gradient with inset bevel; presses down on active.",
+      "html": "<button class=\"ds-btn-primary\">Sign In</button>",
+      "css": ".ds-btn-primary { background: linear-gradient(to bottom, #e3c06a, #c5a254); color: #1a1408; font-family: Inter, sans-serif; font-size: 16px; font-weight: 600; padding: 10px 16px; border: none; border-radius: 8px; box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.28), 0 1px 2px 0 rgb(0 0 0 / 0.45); transition: all 150ms ease-in-out; cursor: pointer; } .ds-btn-primary:hover { filter: brightness(1.07); } .ds-btn-primary:active { filter: brightness(0.95); transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 2px solid rgb(197 162 84 / 0.7); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Lifted steel plate with a strong hairline rim — the everyday action.",
+      "html": "<button class=\"ds-btn-secondary\">Edit</button>",
+      "css": ".ds-btn-secondary { background: #1b1f24; color: #eceff2; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; padding: 10px 16px; border: 1px solid #39414b; border-radius: 8px; box-shadow: inset 0 1px 3px 0 rgb(0 0 0 / 0.5), inset 0 -1px 0 0 rgb(255 255 255 / 0.03); transition: all 150ms ease-in-out; cursor: pointer; } .ds-btn-secondary:hover { background: #262c33; } .ds-btn-secondary:focus-visible { outline: 2px solid rgb(197 162 84 / 0.7); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Transparent until hovered — used for row actions and icon buttons.",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: #eceff2; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; padding: 10px 16px; border: none; border-radius: 8px; transition: all 150ms ease-in-out; cursor: pointer; } .ds-btn-ghost:hover { background: #14171b; } .ds-btn-ghost:focus-visible { outline: 2px solid rgb(197 162 84 / 0.7); outline-offset: 2px; }"
+    },
+    {
+      "name": "Plate Card",
+      "kind": "card",
+      "refersTo": "card-plate",
+      "description": "A machined steel plate — hairline bevel, tight contact shadow, engraved caps title.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Total Assets</div><div class=\"ds-card-amount\">€128,450.00</div><p class=\"ds-card-desc\">Across 6 accounts</p></div>",
+      "css": ".ds-card { background: #14171b; border: 1px solid #262c33; border-radius: 12px; padding: 24px; box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.045), 0 1px 2px 0 rgb(0 0 0 / 0.45), 0 12px 28px -20px rgb(0 0 0 / 0.7); transition: all 200ms ease-out; max-width: 320px; } .ds-card:hover { background: #1b1f24; border-color: #39414b; box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.06), 0 2px 4px 0 rgb(0 0 0 / 0.45), 0 20px 44px -20px rgb(0 0 0 / 0.75); transform: translateY(-2px); } .ds-card-title { font-family: Inter, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #89929d; text-shadow: 0 -1px 0 rgb(0 0 0 / 0.5); margin-bottom: 10px; } .ds-card-amount { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; font-size: 24px; font-weight: 700; color: #eceff2; letter-spacing: -0.02em; } .ds-card-desc { font-family: Inter, sans-serif; font-size: 14px; color: #a5aeb8; margin: 8px 0 0; }"
+    },
+    {
+      "name": "Slot Input",
+      "kind": "input",
+      "refersTo": "input-slot",
+      "description": "Recessed machined groove; brass ring on focus, oxblood on error.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Account name\" />",
+      "css": ".ds-input { background: rgb(12 14 16 / 0.6); color: #eceff2; font-family: Inter, sans-serif; font-size: 14px; height: 40px; padding: 8px 12px; border: 1px solid #262c33; border-radius: 8px; box-shadow: inset 0 1px 3px 0 rgb(0 0 0 / 0.5), inset 0 -1px 0 0 rgb(255 255 255 / 0.03); transition: all 150ms; width: 260px; } .ds-input::placeholder { color: #7d8691; } .ds-input:hover { border-color: #39414b; } .ds-input:focus { outline: none; border-color: #262c33; box-shadow: inset 0 1px 3px 0 rgb(0 0 0 / 0.5), inset 0 -1px 0 0 rgb(255 255 255 / 0.03), 0 0 0 2px #0c0e10, 0 0 0 4px #c5a254; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-status",
+      "description": "Tint-and-rim status plate — bg/10 fill, status text, /30 hairline.",
+      "html": "<span class=\"ds-badge ds-badge-success\">Cleared</span> <span class=\"ds-badge ds-badge-error\">Overdraft</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.025em; padding: 4px 10px; border-radius: 6px; } .ds-badge-success { background: rgb(61 178 142 / 0.1); color: #3db28e; border: 1px solid rgb(61 178 142 / 0.3); } .ds-badge-error { background: rgb(224 115 104 / 0.1); color: #e07368; border: 1px solid rgb(224 115 104 / 0.3); }"
+    },
+    {
+      "name": "Nav Item (Active)",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "The machined well with a brass index pin — the vault index's active mark.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-nav-active\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/></svg>Dashboard</a><a class=\"ds-nav-item\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M21 12V7H5a2 2 0 0 1 0-4h14v4\"/><path d=\"M3 5v14a2 2 0 0 0 2 2h16v-5\"/><path d=\"M18 12a2 2 0 0 0 0 4h4v-4Z\"/></svg>Accounts</a></nav>",
+      "css": ".ds-nav { background: #0c0e10; padding: 12px; width: 240px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid #262c33; } .ds-nav-item { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; color: #a5aeb8; text-decoration: none; transition: all 150ms; } .ds-nav-item:hover { color: #eceff2; background: #14171b; } .ds-nav-active { color: #eceff2; background: #14171b; box-shadow: inset 0 1px 3px 0 rgb(0 0 0 / 0.5), inset 0 -1px 0 0 rgb(255 255 255 / 0.03); } .ds-nav-active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 60%; width: 3px; border-radius: 9999px; background: linear-gradient(to bottom, #e3c06a, #c5a254); }"
+    },
+    {
+      "name": "Period Selector",
+      "kind": "custom",
+      "description": "Recessed well of preset pills; the active preset is the brass hardware chip.",
+      "html": "<div class=\"ds-period\"><button class=\"ds-period-btn\">1D</button><button class=\"ds-period-btn\">7D</button><button class=\"ds-period-btn ds-period-on\">1M</button><button class=\"ds-period-btn\">YTD</button><button class=\"ds-period-btn\">1Y</button><button class=\"ds-period-btn\">ALL</button></div>",
+      "css": ".ds-period { display: flex; align-items: center; gap: 4px; background: #14171b; border: 1px solid #262c33; border-radius: 8px; padding: 4px; box-shadow: inset 0 1px 3px 0 rgb(0 0 0 / 0.5), inset 0 -1px 0 0 rgb(255 255 255 / 0.03); } .ds-period-btn { padding: 6px 12px; min-height: 36px; min-width: 40px; border: none; border-radius: 6px; background: transparent; color: #a5aeb8; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 150ms; } .ds-period-btn:hover { background: #1b1f24; color: #eceff2; } .ds-period-on { background: linear-gradient(to bottom, #e3c06a, #c5a254); color: #1a1408; font-weight: 600; box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.28); } .ds-period-on:hover { background: linear-gradient(to bottom, #e3c06a, #c5a254); color: #1a1408; }"
+    },
+    {
+      "name": "Progress Groove",
+      "kind": "custom",
+      "description": "Machined slot track with a brass fill scaling on transform.",
+      "html": "<div class=\"ds-progress\"><div class=\"ds-progress-fill\"></div></div>",
+      "css": ".ds-progress { position: relative; height: 8px; width: 260px; overflow: hidden; border-radius: 9999px; background: #0c0e10; border: 1px solid #262c33; box-shadow: inset 0 1px 3px 0 rgb(0 0 0 / 0.5), inset 0 -1px 0 0 rgb(255 255 255 / 0.03); } .ds-progress-fill { height: 100%; width: 100%; border-radius: 9999px; background: #c5a254; transform-origin: left center; transform: scaleX(0.62); transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1); }"
+    },
+    {
+      "name": "Vault Lock (Privacy Toggle)",
+      "kind": "custom",
+      "description": "The one mechanical master lock — engaged state carries the system's only halo.",
+      "html": "<button class=\"ds-lock\" aria-pressed=\"true\" title=\"Show amounts\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9.88 9.88a3 3 0 1 0 4.24 4.24\"/><path d=\"M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68\"/><path d=\"M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61\"/><line x1=\"2\" x2=\"22\" y1=\"2\" y2=\"22\"/></svg></button>",
+      "css": ".ds-lock { display: inline-flex; align-items: center; justify-content: center; padding: 8px; border-radius: 8px; border: 1px solid rgb(197 162 84 / 0.4); background: rgb(197 162 84 / 0.15); color: #c5a254; box-shadow: 0 0 12px -2px rgb(197 162 84 / 0.4); cursor: pointer; transition: all 200ms; } .ds-lock:hover { background: rgb(197 162 84 / 0.2); } .ds-lock:focus-visible { outline: 2px solid rgb(197 162 84 / 0.7); outline-offset: 2px; }"
+    },
+    {
+      "name": "Vault-Wheel Logomark",
+      "kind": "custom",
+      "description": "The identity glyph — machined brass dial with index ticks, three spokes, and a hub. Never recolor or restyle.",
+      "html": "<span class=\"ds-logo\"><svg width=\"32\" height=\"32\" viewBox=\"0 0 32 32\" fill=\"none\"><defs><linearGradient id=\"ds-brass\" x1=\"6\" y1=\"4\" x2=\"26\" y2=\"28\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0%\" stop-color=\"#e3c06a\"/><stop offset=\"100%\" stop-color=\"#a98a3e\"/></linearGradient></defs><circle cx=\"16\" cy=\"16\" r=\"13.2\" stroke=\"url(#ds-brass)\" stroke-width=\"1.6\"/><line x1=\"16\" y1=\"2.8\" x2=\"16\" y2=\"4.8\" stroke=\"url(#ds-brass)\" stroke-width=\"1.4\" stroke-linecap=\"round\"/><line x1=\"27.4\" y1=\"9.4\" x2=\"25.7\" y2=\"10.4\" stroke=\"url(#ds-brass)\" stroke-width=\"0.9\" stroke-linecap=\"round\"/><line x1=\"27.4\" y1=\"22.6\" x2=\"25.7\" y2=\"21.6\" stroke=\"url(#ds-brass)\" stroke-width=\"0.9\" stroke-linecap=\"round\"/><line x1=\"16\" y1=\"29.2\" x2=\"16\" y2=\"27.2\" stroke=\"url(#ds-brass)\" stroke-width=\"1.4\" stroke-linecap=\"round\"/><line x1=\"4.6\" y1=\"22.6\" x2=\"6.3\" y2=\"21.6\" stroke=\"url(#ds-brass)\" stroke-width=\"0.9\" stroke-linecap=\"round\"/><line x1=\"4.6\" y1=\"9.4\" x2=\"6.3\" y2=\"10.4\" stroke=\"url(#ds-brass)\" stroke-width=\"0.9\" stroke-linecap=\"round\"/><line x1=\"16\" y1=\"16\" x2=\"16\" y2=\"7.4\" stroke=\"url(#ds-brass)\" stroke-width=\"1.8\" stroke-linecap=\"round\"/><line x1=\"16\" y1=\"16\" x2=\"8.6\" y2=\"20.3\" stroke=\"url(#ds-brass)\" stroke-width=\"1.8\" stroke-linecap=\"round\"/><line x1=\"16\" y1=\"16\" x2=\"23.4\" y2=\"20.3\" stroke=\"url(#ds-brass)\" stroke-width=\"1.8\" stroke-linecap=\"round\"/><circle cx=\"16\" cy=\"16\" r=\"2.6\" fill=\"url(#ds-brass)\"/></svg><span class=\"ds-wordmark\">Open Finance</span></span>",
+      "css": ".ds-logo { display: inline-flex; align-items: center; gap: 10px; } .ds-wordmark { font-family: Marcellus, 'Times New Roman', serif; font-size: 15px; text-transform: uppercase; letter-spacing: 0.14em; color: #eceff2; padding-top: 1px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Private Safe-Deposit Room",
+    "overview": "Opening the app is opening the vault. The interface is the user's own safe-deposit room: cool charcoal-steel grounds, machined plates with hairline bevels, engraved labels, aged-brass hardware, and instrument numerals calibrated like a bank gauge. It refuses the flat-black fintech card grid where every card shouts the same neon accent — here, one warm metal speaks, and only when it matters.\n\nDensity is instrument-grade: compact rows, tabular numerals, engraved caps for plate titles, and a single authored motion (the bolt-slide) reserved for the one mechanical master lock — the amounts privacy toggle. The master plate carries the net-worth readout behind a guilloché security rosette; every account is a labeled deposit box; the sidebar is the vault index. Dark is the world's own scene — the safe-deposit room under its lamp — and the light theme is the same room with the lamp switched on (brushed aluminum daylight), with full token parity including the shadow vocabulary.",
+    "keyCharacteristics": [
+      "One warm metal rule: aged brass (#c5a254 dark / #7d6118 light) is hardware only — primary actions, locks, active marks, focus rings",
+      "Machined elevation: bevel-edge highlight + tight contact shadow (shadow-plate), never a wide diffuse halo; inset shadow-slot for grooves",
+      "Engraved voices: Marcellus roman caps for plate titles/wordmark, 11px debossed plate-label caps for field markings",
+      "Instrument numerals: JetBrains Mono tabular-nums for every amount on the page",
+      "Palette re-voicing: legacy Tailwind green/red/yellow/blue/gray steps are remapped into the mineral family at the token level, so every gain/loss/info surface speaks steel-and-brass",
+      "The bolt-slide: the world's one authored motion, masking/unmasking amounts with a staggered clip-path sweep",
+      "Browser-surface theming: theme-color #0c0e10, color-scheme dark — the vault extends past the viewport edge"
+    ],
+    "rules": [
+      { "name": "The One Metal Rule", "body": "Brass is hardware: primary actions, locks, active marks, focus rings, the logomark. It never appears as decorative fill, chart series dominance, or large background tint. Its rarity is the point — on any given screen brass should touch ≤10% of the pixels.", "section": "colors" },
+      { "name": "The Palette Re-Voicing Rule", "body": "Never introduce raw Tailwind green/red/yellow/blue/gray hex values. The legacy scale steps themselves are remapped into the mineral family in @theme, so text-green-600, bg-red-500/10, ring-blue-500 all resolve to vault pigments automatically. New code uses the semantic tokens (success, error, warning, accent-blue).", "section": "colors" },
+      { "name": "The Daylight Parity Rule", "body": "Every token overridden in :root.light must stay a complete set — surfaces, text, status, shadcn aliases, and all three shadows. A token that only exists in dark is a bug; the light theme is the same room with the lamp on, not a second design.", "section": "colors" },
+      { "name": "The Instrument Numerals Rule", "body": "Every monetary amount on the page renders in JetBrains Mono with tabular-nums — no exceptions, including deltas, projections, and converted-currency tooltips. Proportional digits in an amount is a defect.", "section": "typography" },
+      { "name": "The Engraved Caps Rule", "body": "Plate titles and identity plates are uppercase with wide tracking (0.06–0.18em) — Marcellus for named things (pages, accounts, dialogs), Inter 600 for anonymous markings (field labels, card titles). Sentence-case titles on a plate break the world.", "section": "typography" },
+      { "name": "The Machined Depth Rule", "body": "Every elevated surface uses shadow-plate/shadow-plate-lift; every recessed surface uses shadow-slot. Do not introduce ad-hoc shadow-lg/shadow-xl diffusion — depth comes from bevel + contact, not blur radius.", "section": "elevation" },
+      { "name": "The One Halo Rule", "body": "The only glow in the system is the engaged privacy lock's brass halo. Status, focus, and hover states use brightness shifts, bevel changes, or hairline color — not box-shadow glows.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do render every amount in JetBrains Mono tabular-nums (font-mono / .number-display) — the Instrument Numerals Rule.",
+      "Do use shadow-plate / shadow-plate-lift / shadow-slot for all depth; reach for the tokens, not ad-hoc shadows.",
+      "Do title plates and named entities in uppercase Marcellus (font-display uppercase tracking-[0.06em]) and anonymous markings in .plate-label.",
+      "Do express status with the tint-and-rim formula (bg-{status}/10 text-{status} border-{status}/30).",
+      "Do keep brass on hardware only — primary actions, active marks, the lock, focus rings (One Metal Rule).",
+      "Do override the full token set when touching :root.light, including all three shadows (Daylight Parity Rule).",
+      "Do use the motion tokens (--ease-out-expo, --duration-fast/normal/slow) and respect the prefers-reduced-motion block, which collapses travel to 1ms while keeping state changes.",
+      "Do reuse the engraving kit (.bg-guilloche, .plate-label, .hairline-brass) instead of new ornament."
+    ],
+    "donts": [
+      "Don't introduce raw Tailwind palette hexes (green-500, red-600, blue-400…) — the scale steps are re-voiced to mineral pigments at the token level; use semantic tokens.",
+      "Don't add diffuse halo shadows or glow states (except the one lock halo); depth is bevel + contact, never blur.",
+      "Don't use Marcellus for body copy, lowercase text, or numerals — it is engraved caps only.",
+      "Don't give charts a dominant neon accent; series come from the desaturated mineral set in src/constants/colors.ts.",
+      "Don't add a second authored motion or animation signature; the bolt-slide is the world's one mechanical moment, and standard entrances already exist (.page-enter, .stagger-item, .pop-enter).",
+      "Don't round cards to pill shape or sharpen controls to 0 — 12px plates, ~8–10px controls/rows.",
+      "Don't recolor, restyle, or replace the vault-wheel logomark."
+    ]
+  }
+}

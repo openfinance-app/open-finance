@@ -350,7 +350,7 @@ export default function AssetsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Total Portfolio Value */}
           <div
-            className="bg-surface border border-border rounded-lg p-6 stagger-item"
+            className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-6 stagger-item"
             style={{ '--stagger-index': 0 } as React.CSSProperties}
           >
             <div className="flex items-center justify-between mb-2">
@@ -374,7 +374,7 @@ export default function AssetsPage() {
               animate
               className="text-2xl font-bold text-foreground"
             />
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="plate-label mt-1">
               {t('assetCount', { count: metrics?.assetCount ?? allAssets.length })}
             </p>
             {isFiltered && (
@@ -395,7 +395,7 @@ export default function AssetsPage() {
 
           {/* Total Cost Basis */}
           <div
-            className="bg-surface border border-border rounded-lg p-6 stagger-item"
+            className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-6 stagger-item"
             style={{ '--stagger-index': 1 } as React.CSSProperties}
           >
             <div className="flex items-center justify-between mb-2">
@@ -416,7 +416,7 @@ export default function AssetsPage() {
               secondaryExchangeRate={secondaryExchangeRate}
               className="text-2xl font-bold text-foreground"
             />
-            <p className="text-xs text-muted-foreground mt-1">{t('summary.initialInvestment')}</p>
+            <p className="plate-label mt-1">{t('summary.initialInvestment')}</p>
             {isFiltered && (
               <p className="text-xs font-mono text-text-tertiary mt-1">
                 {t('filtered')}{' '}
@@ -435,7 +435,7 @@ export default function AssetsPage() {
 
           {/* Merged Unrealized Gain/Loss + Overall Return */}
           <div
-            className="bg-surface border border-border rounded-lg p-6 stagger-item"
+            className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-6 stagger-item"
             style={{ '--stagger-index': 2 } as React.CSSProperties}
           >
             <div className="flex items-center justify-between mb-2">
@@ -474,7 +474,7 @@ export default function AssetsPage() {
 
           {/* Best Performer */}
           <div
-            className="bg-surface border border-border rounded-lg p-6 stagger-item"
+            className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-6 stagger-item"
             style={{ '--stagger-index': 3 } as React.CSSProperties}
           >
             <div className="flex items-center justify-between mb-2">

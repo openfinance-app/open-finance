@@ -84,12 +84,11 @@ const BASE_NAV_ITEMS: NavItem[] = [
 ];
 
 /**
- * Sidebar component with navigation
- * Follows Finary design:
+ * Sidebar component with navigation — the vault index:
  * - 240px width on desktop, 72px when collapsed
- * - Gold logo at top
+ * - Vault-dial logo at top
  * - Icon + label navigation items
- * - Active state: lighter background + gold left border
+ * - Active state: pressed steel plate + brass index pin
  * - Collapsible with smooth transition
  * - Mobile: overlay with slide-in animation
  */
@@ -162,6 +161,7 @@ export function Sidebar() {
     <aside
       className={cn(
         'relative h-full bg-background border-r border-border',
+        'shadow-[inset_-1px_0_0_rgb(0_0_0/0.35)]',
         'transition-all duration-200',
         sidebarWidth
       )}
@@ -288,9 +288,9 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
             cn(
               baseClasses,
               isActive && [
-                'bg-surface text-text-primary',
-                'before:absolute before:left-0 before:top-0 before:bottom-0',
-                'before:w-1 before:bg-primary before:rounded-r',
+                'bg-surface text-text-primary shadow-slot',
+                'before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2',
+                'before:h-[60%] before:w-[3px] before:bg-gradient-to-b before:from-brass-bright before:to-primary before:rounded-full',
               ]
             )
           }

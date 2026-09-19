@@ -85,10 +85,10 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold text-text-primary truncate">
+          <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate">
             {budget.categoryName}
           </h3>
-          <p className="text-sm text-text-secondary mt-0.5">
+          <p className="plate-label mt-1">
             {t('form.periods.' + budget.period)} {t('card.budget')}
           </p>
         </div>
@@ -186,7 +186,7 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
             {formatPercentage(budget.percentageSpent, 1)}
           </span>
         </div>
-        <div className="h-2 bg-surface-elevated rounded-full overflow-hidden">
+        <div className="h-2 bg-background rounded-full overflow-hidden shadow-slot border border-border">
           <div
             className={cn('h-full rounded-full progress-fill', getProgressColor(budget.status))}
             style={{ transform: `scaleX(${progressWidth / 100})` }}

@@ -9,7 +9,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 /**
  * Card component for content containers
- * Dark surface styling with optional hover effect
+ * The Vault: a machined steel plate — hairline bevel, tight contact shadow
  */
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, children, hover = false, padding = 'md', ...props }, ref) => {
@@ -24,10 +24,10 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={cn(
-          'rounded-[var(--radius-card)] bg-surface border border-border',
+          'rounded-[var(--radius-card)] bg-surface border border-border shadow-plate',
           'transition-[background-color,border-color,box-shadow,transform] duration-200 ease-out',
           hover &&
-            'hover:bg-surface-elevated hover:border-border/80 hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,0.6)] hover:-translate-y-0.5',
+            'hover:bg-surface-elevated hover:border-border-strong hover:shadow-plate-lift hover:-translate-y-0.5',
           paddingStyles[padding],
           className
         )}
@@ -67,10 +67,7 @@ export const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(
     return (
       <Component
         ref={ref as React.Ref<HTMLHeadingElement>}
-        className={cn(
-          'text-xl font-semibold leading-none tracking-tight text-text-primary',
-          className
-        )}
+        className={cn('plate-label leading-relaxed', className)}
         {...props}
       >
         {children}

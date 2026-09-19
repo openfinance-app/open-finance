@@ -181,7 +181,7 @@ export function DisplaySettings() {
     <div className="space-y-6">
       {/* Section Header */}
       <div>
-        <h2 className="text-xl font-semibold text-text-primary mb-2">{t('display.title')}</h2>
+        <h2 className="plate-label  mb-2">{t('display.title')}</h2>
         <p className="text-text-secondary text-sm">{t('display.description')}</p>
       </div>
 

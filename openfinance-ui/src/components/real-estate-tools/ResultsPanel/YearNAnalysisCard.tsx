@@ -50,7 +50,7 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Buy Scenario */}
-        <Card className="border-l-4 border-l-primary">
+        <Card x->
           <CardHeader className="bg-primary/10">
             <CardTitle className="flex items-center gap-2">
               <Home className="h-5 w-5" />
@@ -162,7 +162,7 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
         </Card>
 
         {/* Rent Scenario */}
-        <Card className="border-l-4 border-l-warning">
+        <Card x->
           <CardHeader className="bg-warning/10">
             <CardTitle className="flex items-center gap-2">
               <Key className="h-5 w-5" />

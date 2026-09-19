@@ -69,7 +69,7 @@ export default function CashFlowChart({
     <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1">
-          <h3 className="text-lg font-semibold text-text-primary">{t('cashFlowChart.title')}</h3>
+          <h3 className="plate-label ">{t('cashFlowChart.title')}</h3>
           <HelpTooltip text={t('cashFlowChart.tooltip')} side="right" />
         </div>
         <span className="text-xs text-text-secondary">

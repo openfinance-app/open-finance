@@ -106,9 +106,7 @@ export default function NetWorthAllocationChart({
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-text-primary">
-            {t('netWorthAllocation.title')}
-          </h3>
+          <h3 className="plate-label ">{t('netWorthAllocation.title')}</h3>
           <p className="text-sm text-text-secondary">{t('netWorthAllocation.noData')}</p>
         </div>
         <div className="h-[300px] flex items-center justify-center text-text-muted">
@@ -121,7 +119,7 @@ export default function NetWorthAllocationChart({
   return (
     <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
       <div className="flex items-center gap-1 mb-6">
-        <h3 className="text-lg font-semibold text-text-primary">{t('netWorthAllocation.title')}</h3>
+        <h3 className="plate-label ">{t('netWorthAllocation.title')}</h3>
         <HelpTooltip text={t('netWorthAllocation.tooltip')} side="right" />
       </div>
       <div className="w-full h-[300px]">

@@ -79,7 +79,7 @@ function MovementList({
 }) {
   return (
     <Card className="p-4">
-      <h4 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
+      <h4 className="plate-label text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
         {icon}
         {title}
       </h4>
@@ -148,7 +148,7 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-text-primary">{t('movements.costsTitle')}</h3>
+      <h3 className="plate-label ">{t('movements.costsTitle')}</h3>
       {isLoading ? (
         <div className="space-y-2 animate-pulse">
           {[...Array(2)].map((_, i) => (
@@ -174,7 +174,7 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
           />
           {funding.data?.length ? (
             <section className="space-y-2">
-              <h4 className="font-semibold">{t('movements.directFunding')}</h4>
+              <h4 className="plate-label font-semibold">{t('movements.directFunding')}</h4>
               {funding.data.map(draw => (
                 <div
                   key={draw.id}

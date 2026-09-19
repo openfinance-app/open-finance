@@ -279,7 +279,7 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
     <div className="space-y-6">
       {/* Section Header */}
       <div>
-        <h2 className="text-xl font-semibold text-text-primary mb-2">{t('general.title')}</h2>
+        <h2 className="plate-label  mb-2">{t('general.title')}</h2>
         <p className="text-text-secondary text-sm">{t('general.description')}</p>
       </div>
 
@@ -287,9 +287,7 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
       <div className="bg-surface rounded-lg p-6 border border-border">
         <div className="flex items-center gap-2 mb-1">
           <Globe className="h-5 w-5 text-text-secondary" />
-          <h3 className="text-base font-semibold text-text-primary">
-            {t('general.country.sectionTitle')}
-          </h3>
+          <h3 className="plate-label ">{t('general.country.sectionTitle')}</h3>
         </div>
         <p className="text-xs text-text-secondary mb-4">{t('general.country.description')}</p>
 
@@ -315,9 +313,7 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
       {/* Currencies Section — Base Currency + Secondary Currency */}
       <div className="bg-surface rounded-lg p-6 border border-border">
         {/* Section title */}
-        <h3 className="text-base font-semibold text-text-primary mb-5">
-          {t('general.currencies.sectionTitle')}
-        </h3>
+        <h3 className="plate-label  mb-5">{t('general.currencies.sectionTitle')}</h3>
 
         {/* Base Currency */}
         <div className="mb-6">

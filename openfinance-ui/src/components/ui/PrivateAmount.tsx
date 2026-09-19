@@ -25,8 +25,9 @@ export function PrivateAmount({ children, className, inline = false }: PrivateAm
 
   return (
     <span
+      key={isAmountsVisible ? 'visible' : 'hidden'}
       className={cn(
-        'transition-all duration-300 ease-in-out',
+        'bolt-in transition-all duration-300 ease-in-out',
         !isAmountsVisible && 'blur-md select-none',
         inline ? 'inline-block' : 'block',
         className

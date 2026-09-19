@@ -162,7 +162,12 @@ export function PeriodSelector({
     : t('dateRange.custom');
 
   return (
-    <div className={cn('flex items-center gap-1 bg-surface rounded-lg p-1 flex-wrap', className)}>
+    <div
+      className={cn(
+        'flex items-center gap-1 bg-surface border border-border shadow-slot rounded-lg p-1 flex-wrap',
+        className
+      )}
+    >
       {/* ── Preset buttons ── */}
       {PRESET_OPTIONS.map(opt => {
         const isActive = opt.value === selectedPeriod;
@@ -179,7 +184,7 @@ export function PeriodSelector({
               'px-3 min-h-[36px] min-w-[2.5rem] rounded-md text-sm font-medium transition-all duration-150 flex items-center justify-center whitespace-nowrap',
               'hover:bg-surface-elevated',
               isActive
-                ? 'bg-primary text-background font-semibold shadow-sm'
+                ? 'bg-gradient-to-b from-brass-bright to-primary text-primary-foreground font-semibold shadow-[inset_0_1px_0_0_rgb(255_255_255/0.28)]'
                 : 'text-text-secondary hover:text-text-primary'
             )}
           >
@@ -200,12 +205,12 @@ export function PeriodSelector({
             'px-3 min-h-[36px] rounded-md text-sm font-medium transition-all duration-150 flex items-center gap-1.5',
             'hover:bg-surface-elevated',
             isCustomActive
-              ? 'bg-primary text-background font-semibold shadow-sm'
+              ? 'bg-gradient-to-b from-brass-bright to-primary text-primary-foreground font-semibold shadow-[inset_0_1px_0_0_rgb(255_255_255/0.28)]'
               : 'text-text-secondary hover:text-text-primary'
           )}
         >
           <Calendar className="h-3.5 w-3.5 shrink-0" />
-          <span className="whitespace-nowrap">{customLabel}</span>
+          <span className="whitespace-nowrap hidden sm:inline">{customLabel}</span>
           <ChevronDown
             className={cn('h-3 w-3 shrink-0 transition-transform', customOpen && 'rotate-180')}
           />

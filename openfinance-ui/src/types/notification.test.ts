@@ -3,15 +3,15 @@ import { getNotificationColor, getNotificationIcon } from '@/types/notification'
 
 describe('getNotificationColor', () => {
   it('returns red for CRITICAL', () => {
-    expect(getNotificationColor('CRITICAL')).toBe('#ef4444');
+    expect(getNotificationColor('CRITICAL')).toBe('#e07368');
   });
 
   it('returns amber for WARNING', () => {
-    expect(getNotificationColor('WARNING')).toBe('#f59e0b');
+    expect(getNotificationColor('WARNING')).toBe('#d29a40');
   });
 
   it('returns blue for INFO', () => {
-    expect(getNotificationColor('INFO')).toBe('#3b82f6');
+    expect(getNotificationColor('INFO')).toBe('#5e84b0');
   });
 });
 

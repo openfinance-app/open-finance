@@ -46,7 +46,7 @@ export default function AccountsSummaryCard({ accounts }: AccountsSummaryCardPro
   if (accounts.length === 0) {
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">{t('accountsCard.title')}</h3>
+        <h3 className="plate-label  mb-4">{t('accountsCard.title')}</h3>
         <div className="text-center py-8">
           <Wallet className="h-12 w-12 text-text-muted mx-auto mb-3" />
           <p className="text-text-secondary text-sm">{t('accountsCard.empty')}</p>
@@ -59,7 +59,7 @@ export default function AccountsSummaryCard({ accounts }: AccountsSummaryCardPro
   return (
     <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-text-primary">{t('accountsCard.title')}</h3>
+        <h3 className="plate-label ">{t('accountsCard.title')}</h3>
         <span className="text-xs text-text-secondary">
           {t('accountsCard.count', { count: accounts.length })}
         </span>

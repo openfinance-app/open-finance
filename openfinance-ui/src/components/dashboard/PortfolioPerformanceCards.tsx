@@ -12,6 +12,7 @@ import { ConvertedAmount } from '../ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { SPARKLINE_COLORS } from '@/constants/colors';
 import { useTranslation } from 'react-i18next';
+import { formatPercentage } from '@/utils/format';
 
 interface PortfolioPerformanceCardsProps {
   performances: IPortfolioPerformance[];
@@ -99,7 +100,7 @@ function PerformanceCard({ performance, t }: { performance: IPortfolioPerformanc
           }`}
         >
           ({isPositive && '+'}
-          {changePercentage.toFixed(2)}%)
+          {formatPercentage(changePercentage)})
         </span>
       </div>
 
@@ -135,9 +136,7 @@ export default function PortfolioPerformanceCards({
   if (performances.length === 0) {
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">
-          {t('portfolioPerformance.title')}
-        </h3>
+        <h3 className="plate-label  mb-4">{t('portfolioPerformance.title')}</h3>
         <div className="flex items-center justify-center h-32 text-text-secondary">
           <div className="text-center">
             <p>{t('portfolioPerformance.empty')}</p>
@@ -152,9 +151,7 @@ export default function PortfolioPerformanceCards({
     <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col space-y-4 overflow-y-auto scrollbar-thin">
       {/* Header */}
       <div>
-        <h3 className="text-lg font-semibold text-text-primary mb-1">
-          {t('portfolioPerformance.title')}
-        </h3>
+        <h3 className="plate-label  mb-1">{t('portfolioPerformance.title')}</h3>
         <p className="text-sm text-text-secondary">
           {periodLabel
             ? t('portfolioPerformance.metricsForPeriod', { period: periodLabel })

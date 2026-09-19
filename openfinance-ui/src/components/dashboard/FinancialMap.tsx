@@ -217,7 +217,7 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
       <div className="bg-surface rounded-lg p-6 border border-red-500/50 h-full">
         <div className="flex items-center gap-2 mb-4">
           <Globe2 className="h-5 w-5 text-red-500" />
-          <h3 className="text-lg font-semibold text-text-primary">{t('financialMap.title')}</h3>
+          <h3 className="plate-label ">{t('financialMap.title')}</h3>
         </div>
         <p className="text-sm text-red-500">
           {error instanceof Error ? error.message : t('financialMap.loadError')}
@@ -261,7 +261,7 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
         <div className="flex items-center gap-2 mb-4">
           <Globe2 className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold text-text-primary">{t('financialMap.title')}</h3>
+          <h3 className="plate-label ">{t('financialMap.title')}</h3>
         </div>
         <p className="text-sm text-text-secondary">{t('financialMap.empty')}</p>
       </div>
@@ -274,7 +274,7 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <Globe2 className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold text-text-primary">{t('financialMap.title')}</h3>
+        <h3 className="plate-label ">{t('financialMap.title')}</h3>
         {hasData && (
           <button
             type="button"

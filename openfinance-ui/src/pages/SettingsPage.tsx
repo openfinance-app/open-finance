@@ -48,7 +48,9 @@ export default function SettingsPage() {
       <div className="max-w-4xl mx-auto">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-text-primary">{t('title')}</h1>
+          <h1 className="font-display text-[22px] leading-7 lg:text-[26px] lg:leading-8 uppercase tracking-[0.08em] text-text-primary [text-wrap:balance]">
+            {t('title')}
+          </h1>
           <p className="text-text-secondary mt-2">{t('description')}</p>
         </div>
 
@@ -57,7 +59,7 @@ export default function SettingsPage() {
           <div className="flex space-x-8">
             <button
               onClick={() => handleTabChange('general')}
-              className={`pb-4 px-2 text-sm font-medium transition-colors relative ${
+              className={`pb-4 px-2 text-xs font-semibold uppercase tracking-[0.12em] transition-colors relative ${
                 activeTab === 'general'
                   ? 'text-primary'
                   : 'text-text-secondary hover:text-text-primary'
@@ -71,7 +73,7 @@ export default function SettingsPage() {
 
             <button
               onClick={() => handleTabChange('security')}
-              className={`pb-4 px-2 text-sm font-medium transition-colors relative ${
+              className={`pb-4 px-2 text-xs font-semibold uppercase tracking-[0.12em] transition-colors relative ${
                 activeTab === 'security'
                   ? 'text-primary'
                   : 'text-text-secondary hover:text-text-primary'
@@ -85,7 +87,7 @@ export default function SettingsPage() {
 
             <button
               onClick={() => handleTabChange('display')}
-              className={`pb-4 px-2 text-sm font-medium transition-colors relative ${
+              className={`pb-4 px-2 text-xs font-semibold uppercase tracking-[0.12em] transition-colors relative ${
                 activeTab === 'display'
                   ? 'text-primary'
                   : 'text-text-secondary hover:text-text-primary'
@@ -99,7 +101,7 @@ export default function SettingsPage() {
 
             <button
               onClick={() => handleTabChange('backup')}
-              className={`pb-4 px-2 text-sm font-medium transition-colors relative ${
+              className={`pb-4 px-2 text-xs font-semibold uppercase tracking-[0.12em] transition-colors relative ${
                 activeTab === 'backup'
                   ? 'text-primary'
                   : 'text-text-secondary hover:text-text-primary'

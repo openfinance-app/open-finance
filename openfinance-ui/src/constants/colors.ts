@@ -13,14 +13,19 @@
 
 /** Asset-type → color map used by portfolio charts (dashboard pie chart, allocation chart). */
 export const ASSET_TYPE_COLORS: Record<string, string> = {
-  STOCK: '#3b82f6', // blue
-  ETF: '#8b5cf6', // purple
-  CRYPTO: '#f59e0b', // amber
-  BOND: '#10b981', // green
-  MUTUAL_FUND: '#ec4899', // pink
-  REAL_ESTATE: '#06b6d4', // cyan
-  COMMODITY: '#f97316', // orange
-  OTHER: '#6b7280', // gray
+  STOCK: '#5e84b0', // steel blue
+  ETF: '#8a80cc', // muted violet
+  CRYPTO: '#c5a254', // aged brass
+  BOND: '#3db28e', // verdigris
+  MUTUAL_FUND: '#c96f7d', // mineral pink
+  REAL_ESTATE: '#7d8fa3', // slate
+  COMMODITY: '#c07a45', // burnt sienna
+  VEHICLE: '#7ba3cc', // light steel blue
+  JEWELRY: '#ddb15e', // pale brass
+  COLLECTIBLE: '#9d94d6', // pale violet
+  ELECTRONICS: '#5f97a5', // steel cyan
+  FURNITURE: '#7ba88a', // sage
+  OTHER: '#6f7884', // steel gray
 };
 
 /** Fallback color cycle for asset types not present in {@link ASSET_TYPE_COLORS}. */
@@ -28,16 +33,16 @@ export const ASSET_TYPE_COLOR_FALLBACKS: string[] = Object.values(ASSET_TYPE_COL
 
 /** Colors for {@link import('@/types/alert').AlertSeverity} (budget-alert severity). */
 export const ALERT_SEVERITY_COLORS = {
-  exceeded: '#ef4444', // red-500
-  critical: '#f59e0b', // amber-500
-  warning: '#eab308', // yellow-500
+  exceeded: '#e07368', // oxblood signal
+  critical: '#d29a40', // aged amber
+  warning: '#c5a254', // brass
 } as const;
 
 /** Colors for {@link import('@/types/notification').NotificationSeverity}. */
 export const NOTIFICATION_SEVERITY_COLORS = {
-  CRITICAL: '#ef4444', // red-500
-  WARNING: '#f59e0b', // amber-500
-  INFO: '#3b82f6', // blue-500
+  CRITICAL: '#e07368', // oxblood signal
+  WARNING: '#d29a40', // aged amber
+  INFO: '#5e84b0', // steel blue
 } as const;
 
 /** Swatch palette offered in the category color picker. */
@@ -64,41 +69,41 @@ export const CATEGORY_COLOR_FALLBACK = '#6B7280';
 
 /** Cashflow Sankey diagram — income-side ribbon color cycle. */
 export const CASHFLOW_INCOME_COLORS: string[] = [
-  '#10b981',
-  '#34d399',
-  '#6ee7b7',
-  '#a7f3d0',
-  '#059669',
+  '#3db28e',
+  '#5cc2a3',
+  '#7dd3b8',
+  '#a3e0cd',
+  '#2e9d7c',
 ];
 
 /** Cashflow Sankey diagram — expense-side ribbon color cycle. */
 export const CASHFLOW_EXPENSE_COLORS: string[] = [
-  '#ec4899',
-  '#14b8a6',
-  '#3b82f6',
-  '#f59e0b',
-  '#8b5cf6',
-  '#ef4444',
-  '#6b7280',
-  '#f97316',
-  '#60a5fa',
-  '#a78bfa',
+  '#c96f7d',
+  '#45a191',
+  '#5e84b0',
+  '#c5a254',
+  '#8a80cc',
+  '#e07368',
+  '#6f7884',
+  '#c07a45',
+  '#7ba3cc',
+  '#9d94d6',
 ];
 
 /** Cashflow Sankey diagram — net surplus/deficit bar colors. */
-export const CASHFLOW_SURPLUS_COLOR = '#10b981';
-export const CASHFLOW_DEFICIT_COLOR = '#ef4444';
+export const CASHFLOW_SURPLUS_COLOR = '#3db28e';
+export const CASHFLOW_DEFICIT_COLOR = '#e07368';
 
 /** Net-worth treemap — liability cell shades (darkest-to-lightest red). */
-export const NET_WORTH_TREEMAP_LIABILITY_COLORS: string[] = ['#EF4444', '#DC2626', '#B91C1C'];
+export const NET_WORTH_TREEMAP_LIABILITY_COLORS: string[] = ['#E07368', '#C75A4F', '#A84438'];
 
 /** Net-worth treemap — asset cell colors (diverse palette). */
 export const NET_WORTH_TREEMAP_ASSET_COLORS: string[] = [
-  '#10B981',
-  '#3B82F6',
-  '#8B5CF6',
-  '#F59E0B',
-  '#EC4899',
+  '#3DB28E',
+  '#5E84B0',
+  '#8A80CC',
+  '#C5A254',
+  '#C96F7D',
 ];
 
 /**

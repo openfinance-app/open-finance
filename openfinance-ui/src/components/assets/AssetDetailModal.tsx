@@ -397,7 +397,7 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                             <Line
                               type="monotone"
                               dataKey="price"
-                              stroke="#f5a623"
+                              stroke="#c5a254"
                               strokeWidth={2}
                               dot={false}
                               activeDot={{ r: 6 }}

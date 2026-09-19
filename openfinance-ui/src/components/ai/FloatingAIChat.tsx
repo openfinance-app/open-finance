@@ -159,10 +159,10 @@ export const FloatingAIChat: React.FC = () => {
           aria-label={t('title', 'AI Financial Assistant')}
         >
           {/* Header */}
-          <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-border rounded-t-2xl bg-gradient-to-r from-blue-600 to-emerald-600">
+          <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-border rounded-t-2xl bg-surface shadow-slot">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-white" />
-              <span className="text-sm font-semibold text-white">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <span className="text-sm font-semibold text-text-primary">
                 {t('title', 'AI Financial Assistant')}
               </span>
             </div>
@@ -171,16 +171,16 @@ export const FloatingAIChat: React.FC = () => {
               {messages.length > 0 && (
                 <button
                   onClick={handleNewConversation}
-                  className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-surface-elevated transition-colors"
                   title={t('newConversation', 'New conversation')}
                   aria-label={t('newConversation', 'New conversation')}
                 >
-                  <Trash2 className="w-4 h-4 text-white" />
+                  <Trash2 className="w-4 h-4 text-text-secondary" />
                 </button>
               )}
               <button
                 onClick={toggleOpen}
-                className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-surface-elevated transition-colors"
                 title={t('minimize', 'Minimize')}
                 aria-label={t('minimize', 'Minimize chat')}
               >
@@ -194,12 +194,10 @@ export const FloatingAIChat: React.FC = () => {
             {messages.length === 0 ? (
               /* Empty state — welcome + prompts */
               <div className="flex flex-col items-center justify-center h-full text-center px-2">
-                <div className="w-14 h-14 mb-4 rounded-full bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center">
-                  <Sparkles className="w-7 h-7 text-white" />
+                <div className="w-14 h-14 mb-4 rounded-full bg-surface border border-border-strong shadow-slot flex items-center justify-center">
+                  <Sparkles className="w-7 h-7 text-primary" />
                 </div>
-                <h3 className="text-base font-semibold text-text-primary mb-1">
-                  {t('welcome.title', 'How can I help?')}
-                </h3>
+                <h3 className="plate-label  mb-1">{t('welcome.title', 'How can I help?')}</h3>
                 <p className="text-xs text-text-secondary mb-4 max-w-xs">
                   {t('welcome.description', 'Ask me anything about your finances.')}
                 </p>
@@ -282,7 +280,7 @@ export const FloatingAIChat: React.FC = () => {
           'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
           isOpen
             ? 'bg-surface-elevated text-text-primary hover:bg-surface border border-border'
-            : 'bg-gradient-to-br from-blue-600 to-emerald-600 text-white hover:shadow-xl hover:scale-105'
+            : 'bg-gradient-to-b from-brass-bright to-primary text-primary-foreground shadow-plate-lift hover:brightness-[1.07] hover:scale-105'
         )}
         aria-label={isOpen ? t('closeChat', 'Close chat') : t('openChat', 'Open AI Assistant')}
         aria-expanded={isOpen}

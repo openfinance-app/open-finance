@@ -116,8 +116,8 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
   return (
     <div className="space-y-6">
       {/* Summary Header */}
-      <div className="bg-surface border border-border rounded-lg p-6">
-        <h3 className="text-xl font-semibold text-text-primary mb-4">
+      <div className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-6">
+        <h3 className="plate-label  mb-4">
           {schedule.liabilityName} - {t('amortization.title')}
         </h3>
 
@@ -386,7 +386,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                   {phaseLabel.label}
                 </p>
               )}
-              <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
+              <div className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-4 space-y-3">
                 {/* Header */}
                 <div className="flex justify-between items-center pb-2 border-b border-border">
                   <div>

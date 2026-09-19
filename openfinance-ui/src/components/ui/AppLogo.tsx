@@ -7,19 +7,40 @@ interface AppLogoProps {
   showText?: boolean;
   className?: string;
 }
-
 /**
  * Open Finance brand logo.
  *
- * Logomark: a rounded gold square containing a stylised ascending stock-chart
- * line with a shaded area beneath it — a universally-understood symbol of
- * financial growth.
+ * Logomark: a vault-door wheel — a knurled brass dial ring (fine machined
+ * notches, never clock hours), three spokes around a hub.
  */
+
+// Knurled dial notches, computed once at module scope. 36 fine grips read as
+// machined knurling; 12 evenly-spaced ticks read as a clock, so never 12.
+const KNURL = Array.from({ length: 36 }, (_, i) => {
+  const angle = (i * 10 * Math.PI) / 180;
+  const r1 = 12.6;
+  const r2 = 14;
+  return {
+    x1: 16 + r1 * Math.cos(angle),
+    y1: 16 + r1 * Math.sin(angle),
+    x2: 16 + r2 * Math.cos(angle),
+    y2: 16 + r2 * Math.sin(angle),
+  };
+});
+
+const SPOKES = [90, 210, 330].map(deg => {
+  const angle = (deg * Math.PI) / 180;
+  return {
+    x2: 16 + 8.6 * Math.cos(angle),
+    y2: 16 + 8.6 * Math.sin(angle),
+  };
+});
+
 export function AppLogo({ size = 32, showText = true, className }: AppLogoProps) {
   const id = 'of-logo';
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
+    <div className={cn('flex items-center gap-2.5', className)}>
       {/* ── Logomark ── */}
       <svg
         width={size}
@@ -31,63 +52,59 @@ export function AppLogo({ size = 32, showText = true, className }: AppLogoProps)
         role="img"
       >
         <defs>
-          {/* Gold gradient background */}
+          {/* Machined brass gradient */}
           <linearGradient
-            id={`${id}-bg`}
-            x1="0"
-            y1="0"
-            x2="32"
-            y2="32"
+            id={`${id}-brass`}
+            x1="6"
+            y1="4"
+            x2="26"
+            y2="28"
             gradientUnits="userSpaceOnUse"
           >
-            <stop offset="0%" stopColor="#f7b733" />
-            <stop offset="100%" stopColor="#d4881a" />
+            <stop offset="0%" stopColor="#e3c06a" />
+            <stop offset="100%" stopColor="#a98a3e" />
           </linearGradient>
-
-          {/* Clip to the rounded square */}
-          <clipPath id={`${id}-clip`}>
-            <rect width="32" height="32" rx="7.5" />
-          </clipPath>
         </defs>
 
-        {/* Background */}
-        <rect width="32" height="32" rx="7.5" fill={`url(#${id}-bg)`} />
-
-        <g clipPath={`url(#${id}-clip)`}>
-          {/* Area fill under the trend line */}
-          <path
-            d="M4 23.5 L9.5 17.5 L15.5 20 L21.5 12.5 L28 7 L28 28 L4 28 Z"
-            fill="white"
-            fillOpacity="0.22"
-          />
-
-          {/* Trend line */}
-          <polyline
-            points="4,23.5 9.5,17.5 15.5,20 21.5,12.5 28,7"
-            stroke="white"
-            strokeWidth="2.5"
+        {/* Knurled dial ring */}
+        {KNURL.map((n, i) => (
+          <line
+            key={i}
+            x1={n.x1}
+            y1={n.y1}
+            x2={n.x2}
+            y2={n.y2}
+            stroke={`url(#${id}-brass)`}
+            strokeWidth="1.1"
             strokeLinecap="round"
-            strokeLinejoin="round"
           />
+        ))}
 
-          {/* Peak dot */}
-          <circle cx="28" cy="7" r="2.5" fill="white" />
+        {/* Dial face ring */}
+        <circle cx="16" cy="16" r="10.6" stroke={`url(#${id}-brass)`} strokeWidth="1.5" />
 
-          {/* Small upward arrow at the peak */}
-          <path
-            d="M25.5 5 L28 2.5 L30.5 5"
-            stroke="white"
+        {/* Wheel spokes */}
+        {SPOKES.map((spoke, i) => (
+          <line
+            key={i}
+            x1="16"
+            y1="16"
+            x2={spoke.x2}
+            y2={spoke.y2}
+            stroke={`url(#${id}-brass)`}
             strokeWidth="1.8"
             strokeLinecap="round"
-            strokeLinejoin="round"
           />
-        </g>
+        ))}
+
+        {/* Hub */}
+        <circle cx="16" cy="16" r="2.6" fill={`url(#${id}-brass)`} />
       </svg>
 
-      {/* ── Wordmark ── */}
+      {/* ── Wordmark — engraved bank-plate caps ── */}
       {showText && (
-        <span className="text-xl font-bold text-text-primary tracking-tight">
-          Open <span className="text-primary">Finance</span>
+        <span className="font-display text-[15px] uppercase tracking-[0.14em] text-text-primary pt-px">
+          Open&nbsp;Finance
         </span>
       )}
     </div>

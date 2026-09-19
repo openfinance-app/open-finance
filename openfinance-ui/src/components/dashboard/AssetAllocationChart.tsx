@@ -10,34 +10,18 @@ import type { IAssetAllocation } from '@/types/dashboard';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useVisibility } from '@/context/VisibilityContext';
+import { ASSET_TYPE_COLORS } from '@/constants/colors';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
+import { formatPercentage } from '@/utils/format';
 
 interface AssetAllocationChartProps {
   allocations: IAssetAllocation[];
   currency: string;
 }
 
-/**
- * Color map for different asset types
- * Based on design system chart colors (design.md Section 1.3.2)
- */
-const ASSET_TYPE_COLORS: Record<string, string> = {
-  STOCK: '#7b68ee', // Purple
-  ETF: '#9c27b0', // Deep Purple
-  CRYPTO: '#f5a623', // Gold
-  BOND: '#4a90e2', // Blue
-  MUTUAL_FUND: '#00c9a7', // Teal
-  REAL_ESTATE: '#ff6b7a', // Coral
-  COMMODITY: '#e91e63', // Pink
-  VEHICLE: '#ff9800', // Orange
-  JEWELRY: '#ffd700', // Gold
-  COLLECTIBLE: '#9575cd', // Light Purple
-  ELECTRONICS: '#64b5f6', // Light Blue
-  FURNITURE: '#81c784', // Light Green
-  OTHER: '#b0bec5', // Gray
-};
+// Palette lives in @/constants/colors (ASSET_TYPE_COLORS) — the vault's mineral family.
 
 /**
  * Custom tooltip for treemap
@@ -170,9 +154,7 @@ export default function AssetAllocationChart({
   if (treemapData.length === 0) {
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">
-          {t('assetAllocation.title')}
-        </h3>
+        <h3 className="plate-label  mb-4">{t('assetAllocation.title')}</h3>
         <div className="flex items-center justify-center flex-1 min-h-0 text-text-secondary">
           <p>
             {t('assetAllocation.empty')} {t('assetAllocation.emptySub')}
@@ -186,7 +168,7 @@ export default function AssetAllocationChart({
     <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-1 mb-6">
-        <h3 className="text-lg font-semibold text-text-primary">{t('assetAllocation.title')}</h3>
+        <h3 className="plate-label ">{t('assetAllocation.title')}</h3>
         <HelpTooltip text={t('assetAllocation.tooltip')} side="right" />
       </div>
 
@@ -235,7 +217,7 @@ export default function AssetAllocationChart({
                 {t(`assetTypes.${allocation.type}`, { defaultValue: allocation.typeName })}
               </p>
               <p className="text-sm font-semibold text-text-primary">
-                {allocation.percentage.toFixed(1)}%
+                {formatPercentage(allocation.percentage, 1)}
               </p>
             </div>
           </button>

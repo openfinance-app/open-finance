@@ -158,9 +158,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
       {/* Physical Assets Grid (Task 9.2.6) */}
       {physicalAssets.length > 0 && (
         <div className="mb-8">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">
-            {t('table.physicalAssets')}
-          </h3>
+          <h3 className="plate-label  mb-4">{t('table.physicalAssets')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {physicalAssets.map(asset => (
               <div
@@ -183,9 +181,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
       {financialAssets.length > 0 && (
         <>
           {physicalAssets.length > 0 && (
-            <h3 className="text-lg font-semibold text-text-primary mb-4 mt-8">
-              {t('table.financialAssets')}
-            </h3>
+            <h3 className="plate-label  mb-4 mt-8">{t('table.financialAssets')}</h3>
           )}
 
           {/* Desktop Table View */}
@@ -374,7 +370,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                   key={asset.id}
                   id={`asset-${asset.id}`}
                   className={cn(
-                    'bg-surface border border-border rounded-lg p-4 space-y-3 cursor-pointer hover:bg-surface-elevated transition-all duration-300',
+                    'bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-4 space-y-3 cursor-pointer hover:bg-surface-elevated transition-all duration-300',
                     highlightedId === asset.id &&
                       'ring-2 ring-primary ring-offset-2 bg-primary/5 shadow-lg scale-[1.02] z-30'
                   )}
@@ -383,7 +379,9 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                   {/* Header */}
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-medium text-text-primary">{asset.name}</h3>
+                      <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate">
+                        {asset.name}
+                      </h3>
                       {asset.symbol && (
                         <p className="text-sm text-text-secondary font-mono">{asset.symbol}</p>
                       )}

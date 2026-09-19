@@ -88,7 +88,7 @@ function BreakdownSection({
   children: ReactNode;
 }) {
   return (
-    <div className="bg-surface border border-border rounded-lg p-4">
+    <div className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-4">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-primary">{icon}</span>
         <h4 className="text-sm font-semibold text-text-primary">{title}</h4>

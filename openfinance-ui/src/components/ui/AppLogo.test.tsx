@@ -10,13 +10,12 @@ describe('AppLogo', () => {
 
   it('renders wordmark text by default', () => {
     render(<AppLogo />);
-    expect(screen.getByText('Open')).toBeInTheDocument();
-    expect(screen.getByText('Finance')).toBeInTheDocument();
+    expect(screen.getByText(/open\s*finance/i)).toBeInTheDocument();
   });
 
   it('hides wordmark when showText=false', () => {
     render(<AppLogo showText={false} />);
-    expect(screen.queryByText('Open')).not.toBeInTheDocument();
+    expect(screen.queryByText(/open\s*finance/i)).not.toBeInTheDocument();
   });
 
   it('applies custom className', () => {

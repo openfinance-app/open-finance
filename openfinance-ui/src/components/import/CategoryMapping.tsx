@@ -103,7 +103,7 @@ export function CategoryMapping({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-text-primary">{t('categoryMapping.title')}</h3>
+          <h3 className="plate-label ">{t('categoryMapping.title')}</h3>
           <p className="text-sm text-text-secondary mt-1">{t('categoryMapping.description')}</p>
         </div>
         {unmappedCount > 0 && (

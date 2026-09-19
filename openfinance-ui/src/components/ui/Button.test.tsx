@@ -18,13 +18,13 @@ describe('Button', () => {
   it('applies primary variant by default', () => {
     render(<Button>Primary</Button>);
     const btn = screen.getByRole('button');
-    expect(btn.className).toContain('bg-primary');
+    expect(btn.className).toContain('to-primary');
   });
 
   it('applies secondary variant', () => {
     render(<Button variant="secondary">Secondary</Button>);
     const btn = screen.getByRole('button');
-    expect(btn.className).toContain('bg-surface');
+    expect(btn.className).toContain('bg-surface-elevated');
   });
 
   it('applies ghost variant', () => {

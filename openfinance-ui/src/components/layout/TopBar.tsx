@@ -14,12 +14,10 @@ interface TopBarProps {
 
 /**
  * Top bar component
- * Follows Finary design:
- * - 64px height
- * - Dark background with subtle bottom border
- * - Left: page title/breadcrumb
- * - Center: Global search bar (TASK-12.4.5)
- * - Right: action badges, icon buttons, CTA, user menu (Task 4.3.13)
+ * The Vault:
+ * - 64px machined bar, engraved bottom hairline
+ * - Center: Global search slot (TASK-12.4.5)
+ * - Right: the vault lock (amounts privacy), notifications, user menu
  */
 export function TopBar({ searchRef }: TopBarProps) {
   const { isAmountsVisible, toggleAmountsVisibility } = useVisibility();
@@ -31,7 +29,8 @@ export function TopBar({ searchRef }: TopBarProps) {
         'sticky top-0 z-30',
         'h-16 flex items-center justify-between gap-4',
         'px-4 lg:px-6',
-        'bg-background border-b border-border'
+        'bg-background/95 backdrop-blur-sm border-b border-border',
+        'shadow-[0_1px_0_0_rgb(255_255_255/0.03),0_8px_24px_-16px_rgb(0_0_0/0.6)]'
       )}
     >
       {/* Left section - Page title placeholder */}
@@ -44,17 +43,18 @@ export function TopBar({ searchRef }: TopBarProps) {
 
       {/* Right section - Actions */}
       <div className="flex items-center gap-3 shrink-0">
-        {/* Icon buttons */}
+        {/* The vault lock — one mechanical control masks every amount */}
         <div className="hidden sm:flex items-center gap-1">
           <button
             onClick={toggleAmountsVisibility}
             className={cn(
-              'p-2 rounded-lg transition-all duration-200',
+              'p-2 rounded-lg border transition-all duration-200',
               isAmountsVisible
-                ? 'hover:bg-surface text-text-secondary'
-                : 'bg-primary/10 text-primary hover:bg-primary/20'
+                ? 'border-transparent hover:bg-surface hover:border-border-strong text-text-secondary'
+                : 'border-primary/40 bg-primary/15 text-primary shadow-[0_0_12px_-2px_rgb(197_162_84/0.4)] hover:bg-primary/20'
             )}
             aria-label={isAmountsVisible ? t('hideAmounts') : t('showAmounts')}
+            aria-pressed={!isAmountsVisible}
             title={isAmountsVisible ? t('hideAmounts') : t('showAmounts')}
           >
             {isAmountsVisible ? <Eye size={20} /> : <EyeOff size={20} />}

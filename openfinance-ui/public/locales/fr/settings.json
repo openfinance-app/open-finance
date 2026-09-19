@@ -158,7 +158,7 @@
       "description": "Mettez à jour le mot de passe utilisé pour chiffrer vos données financières",
       "change": "Modifier",
       "cancel": "Annuler",
-      "criticalWarningTitle": "⚠️ Opération critique",
+      "criticalWarningTitle": "Opération critique",
       "criticalWarningBody": "La modification de votre mot de passe maître entraînera le rechiffrement de toutes vos données financières (comptes, transactions, actifs et passifs). Ce processus peut prendre plusieurs minutes selon la quantité de données. Ne fermez pas cette fenêtre pendant l'opération.",
       "currentMasterPassword": "Mot de passe maître actuel",
       "currentMasterPasswordPlaceholder": "Entrez votre mot de passe maître actuel",

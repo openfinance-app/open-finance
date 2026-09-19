@@ -168,7 +168,7 @@ export function InterestRateVariationsSection({
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex-1">
-          <h2 className="text-lg font-semibold text-text-primary">{t('interest.historyTitle')}</h2>
+          <h2 className="plate-label ">{t('interest.historyTitle')}</h2>
           <p className="text-sm text-text-secondary mb-3">{t('interest.historyDescription')}</p>
           {/* Summary pills */}
           <div className="flex items-center gap-3 flex-wrap">

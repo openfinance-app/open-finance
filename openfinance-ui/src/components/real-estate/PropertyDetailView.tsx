@@ -279,9 +279,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
 
                     {/* Property Details */}
                     <Card className="p-6">
-                      <h3 className="text-lg font-semibold text-text-primary mb-4">
-                        {t('propertyDetail.title')}
-                      </h3>
+                      <h3 className="plate-label  mb-4">{t('propertyDetail.title')}</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm text-text-secondary mb-1">{t('form.address')}</p>
@@ -364,7 +362,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                     {/* Location */}
                     {(property.latitude || property.longitude) && (
                       <Card className="p-6">
-                        <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+                        <h3 className="plate-label  mb-4 flex items-center gap-2">
                           <MapPinIcon className="h-5 w-5" />
                           {t('propertyDetail.location')}
                         </h3>
@@ -399,9 +397,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                     {/* Notes */}
                     {property.notes && (
                       <Card className="p-6">
-                        <h3 className="text-lg font-semibold text-text-primary mb-3">
-                          {t('propertyDetail.notes')}
-                        </h3>
+                        <h3 className="plate-label  mb-3">{t('propertyDetail.notes')}</h3>
                         <p className="text-text-secondary whitespace-pre-wrap">{property.notes}</p>
                       </Card>
                     )}
@@ -428,7 +424,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                               : 'bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20'
                           )}
                         >
-                          <h3 className="text-xl font-semibold text-text-primary mb-4">
+                          <h3 className="plate-label  mb-4">
                             {t('propertyDetail.propertyEquity')}
                           </h3>
                           <p
@@ -459,7 +455,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
 
                         {/* Equity Calculation */}
                         <Card className="p-6">
-                          <h3 className="text-lg font-semibold text-text-primary mb-4">
+                          <h3 className="plate-label  mb-4">
                             {t('propertyDetail.equityCalculation')}
                           </h3>
 
@@ -592,9 +588,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                       <>
                         {/* Overall ROI Summary */}
                         <Card className="p-6 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-                          <h3 className="text-xl font-semibold text-text-primary mb-4">
-                            {t('propertyDetail.totalROI')}
-                          </h3>
+                          <h3 className="plate-label  mb-4">{t('propertyDetail.totalROI')}</h3>
                           <p className="text-4xl font-bold text-primary mb-2">
                             <PrivateAmount>
                               {roi.totalROI != null
@@ -619,9 +613,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
 
                         {/* Appreciation Section */}
                         <Card className="p-6">
-                          <h3 className="text-lg font-semibold text-text-primary mb-4">
-                            {t('card.appreciation')}
-                          </h3>
+                          <h3 className="plate-label  mb-4">{t('card.appreciation')}</h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <p className="text-sm text-text-secondary mb-1">
@@ -712,7 +704,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                         {/* Rental Income Section */}
                         {roi.isRentalProperty && roi.monthlyRentalIncome != null && (
                           <Card className="p-6">
-                            <h3 className="text-lg font-semibold text-text-primary mb-4">
+                            <h3 className="plate-label  mb-4">
                               {t('propertyDetail.rentalIncome')}
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

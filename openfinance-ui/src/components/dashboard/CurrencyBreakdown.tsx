@@ -72,7 +72,7 @@ export default function CurrencyBreakdown({
     return (
       <div className="bg-surface rounded-lg p-6 border border-red-500/50">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+          <h3 className="plate-label  flex items-center gap-2">
             <Wallet className="h-5 w-5" />
             {t('currencyBreakdown.title')}
           </h3>
@@ -89,7 +89,7 @@ export default function CurrencyBreakdown({
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+          <h3 className="plate-label  flex items-center gap-2">
             <Wallet className="h-5 w-5" />
             {t('currencyBreakdown.title')}
           </h3>
@@ -218,7 +218,7 @@ function CurrencyBreakdownContent({
     <div className="bg-surface rounded-lg p-6 border border-border hover:border-border/70 transition-colors h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+        <h3 className="plate-label  flex items-center gap-2">
           <Wallet className="h-5 w-5 text-primary" />
           {t('currencyBreakdown.title')}
         </h3>

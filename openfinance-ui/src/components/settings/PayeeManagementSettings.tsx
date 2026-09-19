@@ -245,7 +245,7 @@ export function PayeeManagementSettings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-text-primary">{t('title')}</h2>
+          <h2 className="plate-label ">{t('title')}</h2>
           <p className="text-sm text-text-secondary mt-1">{t('description')}</p>
         </div>
         <Button variant="primary" onClick={openCreateForm}>
@@ -358,7 +358,9 @@ export function PayeeManagementSettings() {
                         )}
                       </div>
                       <div>
-                        <h4 className="font-medium text-text-primary">{payee.name}</h4>
+                        <h4 className="font-display text-base uppercase tracking-[0.06em] text-text-primary">
+                          {payee.name}
+                        </h4>
                         {payee.categoryName ? (
                           <p className="text-xs text-text-muted flex items-center gap-1">
                             <FolderOpen className="h-3 w-3" />

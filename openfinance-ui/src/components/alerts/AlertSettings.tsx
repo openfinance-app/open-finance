@@ -107,7 +107,7 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-text-primary">Alert Settings</h3>
+        <h3 className="plate-label ">Alert Settings</h3>
         {!isAddingAlert && (
           <button
             onClick={() => setIsAddingAlert(true)}

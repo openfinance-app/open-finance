@@ -486,7 +486,7 @@ export function ImportWizard() {
             <div className="flex items-start gap-3 mb-4">
               <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
               <div>
-                <h3 id="cancel-confirm-title" className="text-base font-semibold text-text-primary">
+                <h3 id="cancel-confirm-title" className="plate-label ">
                   {t('wizard.cancelConfirm.title')}
                 </h3>
                 <p className="text-sm text-text-secondary mt-1">
@@ -576,7 +576,7 @@ export function ImportWizard() {
       </div>
 
       {/* ── Step content ───────────────────────────────────────────────── */}
-      <div className="bg-surface border border-border rounded-lg p-6 mb-6 min-h-[400px]">
+      <div className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-6 mb-6 min-h-[400px]">
         {/* Step 1 — Upload */}
         {currentStep === 'upload' && (
           <FileUpload
@@ -777,7 +777,7 @@ export function ImportWizard() {
         {/* Step 4 — Confirm Import */}
         {currentStep === 'confirm' && (
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-text-primary">{t('summary.title')}</h3>
+            <h3 className="plate-label ">{t('summary.title')}</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-app-bg border border-border rounded-lg p-4">

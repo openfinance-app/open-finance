@@ -128,9 +128,7 @@ export default function ProfilePage() {
 
       {/* ── Profile Image Card ─────────────────────────────────────────── */}
       <div className="mt-8 bg-surface rounded-lg shadow-lg border border-border p-6">
-        <h2 className="text-lg font-semibold text-text-primary mb-4">
-          {t('profile.photoSection')}
-        </h2>
+        <h2 className="plate-label  mb-4">{t('profile.photoSection')}</h2>
         <ProfileImageUpload currentImage={profile.profileImage} username={profile.username} />
       </div>
 
@@ -166,9 +164,7 @@ export default function ProfilePage() {
 
           {/* Read-only Information */}
           <div className="space-y-4 pb-6 border-b border-border">
-            <h2 className="text-lg font-semibold text-text-primary">
-              {t('profile.accountInfoSection')}
-            </h2>
+            <h2 className="plate-label ">{t('profile.accountInfoSection')}</h2>
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">
@@ -195,9 +191,7 @@ export default function ProfilePage() {
 
           {/* Editable Fields */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-text-primary">
-              {t('profile.updateSection')}
-            </h2>
+            <h2 className="plate-label ">{t('profile.updateSection')}</h2>
 
             {/* Email */}
             <div>

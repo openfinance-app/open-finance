@@ -86,8 +86,8 @@ export function AccountCard({
       onClick={handleCardClick}
     >
       <div className="flex items-start gap-4 pb-4">
-        {/* Icon */}
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors duration-200 group-hover:bg-primary/15">
+        {/* Box-door tile — machined slot with brass mechanism */}
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface-elevated shadow-slot text-primary transition-colors duration-200 group-hover:text-brass-bright">
           {account.institution?.logo ? (
             <img
               src={account.institution.logo}
@@ -103,10 +103,11 @@ export function AccountCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h3 className="text-lg font-semibold text-text-primary truncate">{account.name}</h3>
-              <p className="text-sm text-text-secondary mt-0.5">
-                {t(`form.types.${account.type}`)}
-              </p>
+              {/* Engraved nameplate */}
+              <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate">
+                {account.name}
+              </h3>
+              <p className="plate-label mt-1">{t(`form.types.${account.type}`)}</p>
             </div>
 
             {/* Actions */}
@@ -189,7 +190,7 @@ export function AccountCard({
       <div className="mt-auto pt-4 border-t border-border flex items-start justify-between gap-3">
         {/* Left: balance */}
         <div className="min-w-0">
-          <p className="text-sm text-text-secondary mb-1">{t('card.balance')}</p>
+          <p className="plate-label mb-1.5">{t('card.balance')}</p>
           <div
             className={cn(
               'text-2xl font-bold font-mono',

@@ -17,6 +17,7 @@ import { ROUTES } from '@/constants/routes';
 import { Lock, Mail, User, Shield, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { AppLogo } from '@/components/ui/AppLogo';
 import { Input } from '@/components/ui/Input';
 import { PasswordStrength } from '@/components/PasswordStrength';
 import { createRegisterSchema, type RegisterFormData } from '@/validators/authSchemas';
@@ -86,19 +87,27 @@ export default function RegisterPage() {
   const errorMessage = getErrorMessage();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 relative py-12">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 relative py-12 overflow-hidden">
+      {/* Guilloché medallion field behind the vault door */}
+      <div
+        aria-hidden="true"
+        className="bg-guilloche pointer-events-none absolute left-1/2 top-1/2 h-[880px] w-[880px] -translate-x-1/2 -translate-y-1/2 [mask-image:radial-gradient(closest-side,black_20%,transparent_72%)]"
+      />
       <div className="absolute top-4 right-4 z-10" role="region" aria-label="Language selection">
         <LanguageSelector />
       </div>
-      <div className="w-full max-w-lg">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-text-primary mb-2">{t('register.title')}</h1>
+      <div className="w-full max-w-lg relative">
+        {/* Header — the bank's engraved sign */}
+        <div className="text-center mb-8 flex flex-col items-center">
+          <AppLogo size={44} showText={false} className="mb-5" />
+          <h1 className="font-display text-[32px] leading-9 uppercase tracking-[0.08em] text-text-primary mb-2">
+            {t('register.title')}
+          </h1>
           <p className="text-text-secondary">{t('register.subtitle')}</p>
         </div>
 
         {/* Registration Form */}
-        <div className="bg-surface rounded-xl p-6 border border-border">
+        <div className="bg-surface rounded-[var(--radius-card)] p-6 border border-border shadow-plate-lift">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Global Error Message */}
             {errorMessage && (

@@ -431,7 +431,7 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                       />
                       <Bar
                         dataKey={chartSpentKey}
-                        fill="#f5a623"
+                        fill="#c5a254"
                         radius={[3, 3, 0, 0]}
                         maxBarSize={40}
                       />

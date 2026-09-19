@@ -148,6 +148,49 @@ const generateDefaultLayouts = (): Record<string, any> => ({
     // Row 9 (y=81 to y=91)
     { i: 'balanceVariation', x: 0, y: 81, w: 12, h: 10, minW: 6, minH: 7 },
   ],
+  // md (10 cols, containers 996–1200px — the common desktop width once the
+  // sidebar takes its 240px): two-column rack, full-width charts below
+  md: [
+    { i: 'netWorth', x: 0, y: 0, w: 5, h: 5, minW: 3, minH: 4 },
+    { i: 'insights', x: 5, y: 0, w: 5, h: 5, minW: 3, minH: 4 },
+    { i: 'currency', x: 0, y: 5, w: 5, h: 6, minW: 3, minH: 4 },
+    { i: 'institutionBreakdown', x: 5, y: 5, w: 5, h: 6, minW: 3, minH: 5 },
+    { i: 'budgetProgress', x: 0, y: 11, w: 10, h: 7, minW: 4, minH: 5 },
+    { i: 'financialMap', x: 0, y: 18, w: 10, h: 9, minW: 4, minH: 7 },
+    { i: 'cashFlow', x: 0, y: 27, w: 10, h: 7, minW: 6, minH: 6 },
+    { i: 'cashflowSankey', x: 0, y: 34, w: 10, h: 10, minW: 6, minH: 6 },
+    { i: 'dailyCashFlow', x: 0, y: 44, w: 10, h: 9, minW: 6, minH: 6 },
+    { i: 'recentTransactions', x: 0, y: 53, w: 5, h: 8, minW: 3, minH: 5 },
+    { i: 'netWorthTrend', x: 5, y: 53, w: 5, h: 8, minW: 4, minH: 5 },
+    { i: 'portfolioPerformance', x: 0, y: 61, w: 10, h: 8, minW: 6, minH: 6 },
+    { i: 'assetAllocation', x: 0, y: 69, w: 5, h: 9, minW: 3, minH: 6 },
+    { i: 'netWorthAllocation', x: 5, y: 69, w: 5, h: 9, minW: 3, minH: 6 },
+    { i: 'borrowingCapacity', x: 0, y: 78, w: 5, h: 9, minW: 3, minH: 6 },
+    { i: 'estimatedInterest', x: 5, y: 78, w: 5, h: 9, minW: 3, minH: 6 },
+    { i: 'financeNews', x: 0, y: 87, w: 10, h: 9, minW: 3, minH: 6 },
+    { i: 'balanceVariation', x: 0, y: 96, w: 10, h: 10, minW: 6, minH: 7 },
+  ],
+  // sm (6 cols): single rack, no side-by-side holes
+  sm: [
+    { i: 'netWorth', x: 0, y: 0, w: 6, h: 5, minW: 3, minH: 4 },
+    { i: 'insights', x: 0, y: 5, w: 6, h: 5, minW: 3, minH: 4 },
+    { i: 'currency', x: 0, y: 10, w: 6, h: 6, minW: 3, minH: 4 },
+    { i: 'institutionBreakdown', x: 0, y: 16, w: 6, h: 7, minW: 3, minH: 5 },
+    { i: 'budgetProgress', x: 0, y: 23, w: 6, h: 7, minW: 4, minH: 5 },
+    { i: 'financialMap', x: 0, y: 30, w: 6, h: 9, minW: 4, minH: 7 },
+    { i: 'cashFlow', x: 0, y: 39, w: 6, h: 7, minW: 6, minH: 6 },
+    { i: 'cashflowSankey', x: 0, y: 46, w: 6, h: 10, minW: 6, minH: 6 },
+    { i: 'dailyCashFlow', x: 0, y: 56, w: 6, h: 9, minW: 6, minH: 6 },
+    { i: 'recentTransactions', x: 0, y: 65, w: 6, h: 8, minW: 3, minH: 5 },
+    { i: 'netWorthTrend', x: 0, y: 73, w: 6, h: 8, minW: 4, minH: 5 },
+    { i: 'portfolioPerformance', x: 0, y: 81, w: 6, h: 8, minW: 6, minH: 6 },
+    { i: 'assetAllocation', x: 0, y: 89, w: 6, h: 9, minW: 3, minH: 6 },
+    { i: 'netWorthAllocation', x: 0, y: 98, w: 6, h: 9, minW: 3, minH: 6 },
+    { i: 'borrowingCapacity', x: 0, y: 107, w: 6, h: 9, minW: 3, minH: 6 },
+    { i: 'estimatedInterest', x: 0, y: 116, w: 6, h: 9, minW: 3, minH: 6 },
+    { i: 'financeNews', x: 0, y: 125, w: 6, h: 9, minW: 3, minH: 6 },
+    { i: 'balanceVariation', x: 0, y: 134, w: 6, h: 10, minW: 6, minH: 7 },
+  ],
 });
 
 // Default geometry per card, used as the react-grid-layout `data-grid` fallback so
@@ -783,7 +826,9 @@ export default function DashboardPage() {
       {/* ── Page header ──────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-text-primary mb-1">{t('title')}</h1>
+          <h1 className="font-display text-[22px] leading-7 lg:text-[26px] lg:leading-8 uppercase tracking-[0.08em] text-text-primary mb-1 [text-wrap:balance]">
+            {t('title')}
+          </h1>
           <p className="text-text-secondary text-sm">
             {t('subtitle', { date: summary.snapshotDate })}
           </p>
@@ -861,7 +906,7 @@ export default function DashboardPage() {
               which already owns the form/dialog/mutations (openForm deep-link) */}
           <button
             onClick={() => navigate('/transactions', { state: { openForm: true } })}
-            className="px-4 py-2 bg-primary text-black font-semibold rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-gradient-to-b from-brass-bright to-primary text-primary-foreground font-semibold rounded-lg shadow-[inset_0_1px_0_0_rgb(255_255_255/0.28),0_1px_2px_0_rgb(0_0_0/0.45)] hover:brightness-[1.07] active:brightness-95 active:translate-y-px transition-all flex items-center gap-2"
           >
             <Plus className="h-5 w-5" />
             <span className="hidden sm:inline">{t('addTransaction')}</span>
@@ -882,6 +927,7 @@ export default function DashboardPage() {
       <div className="-mx-2">
         <ResponsiveGridLayout
           className="layout"
+          compactType="vertical"
           layouts={layouts}
           breakpoints={GRID_LAYOUT_BREAKPOINTS}
           cols={GRID_LAYOUT_COLS}
@@ -910,7 +956,7 @@ export default function DashboardPage() {
               <div
                 key={card.id}
                 data-grid={savedPosition ?? DEFAULT_LAYOUT_BY_ID[card.id]}
-                className="relative group flex flex-col h-full rounded-lg overflow-hidden"
+                className="relative group flex flex-col h-full rounded-[var(--radius-card)] overflow-hidden"
               >
                 <div className="drag-handle absolute right-3 top-3 z-10 p-1 bg-surface/80 rounded cursor-grab active:cursor-grabbing text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary">
                   <GripVertical className="h-4 w-4" />
@@ -922,16 +968,16 @@ export default function DashboardPage() {
         </ResponsiveGridLayout>
       </div>
 
-      {/* ── Summary stats bar ────────────────────────────────────────────── */}
+      {/* ── Summary stats strip — engraved register of the vault's contents ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-        <div className="min-w-0 bg-surface rounded-lg p-4 border border-border">
-          <div className="text-xs text-text-secondary mb-1">{t('stats.totalAccounts')}</div>
+        <div className="min-w-0 bg-surface rounded-[var(--radius-card)] p-4 border border-border shadow-plate">
+          <div className="plate-label mb-1.5">{t('stats.totalAccounts')}</div>
           <div className="text-lg sm:text-xl xl:text-2xl font-bold text-text-primary font-mono">
             <AnimatedNumber value={summary.totalAccounts} format={v => Math.round(v).toString()} />
           </div>
         </div>
-        <div className="min-w-0 bg-surface rounded-lg p-4 border border-border">
-          <div className="text-xs text-text-secondary mb-1">{t('stats.totalTransactions')}</div>
+        <div className="min-w-0 bg-surface rounded-[var(--radius-card)] p-4 border border-border shadow-plate">
+          <div className="plate-label mb-1.5">{t('stats.totalTransactions')}</div>
           <div className="text-lg sm:text-xl xl:text-2xl font-bold text-text-primary font-mono">
             <AnimatedNumber
               value={summary.totalTransactions}
@@ -939,8 +985,8 @@ export default function DashboardPage() {
             />
           </div>
         </div>
-        <div className="min-w-0 bg-surface rounded-lg p-4 border border-border">
-          <div className="text-xs text-text-secondary mb-1">{t('stats.totalAssets')}</div>
+        <div className="min-w-0 bg-surface rounded-[var(--radius-card)] p-4 border border-border shadow-plate">
+          <div className="plate-label mb-1.5">{t('stats.totalAssets')}</div>
           <ConvertedAmount
             amount={summary.netWorth.totalAssets}
             currency={summary.baseCurrency}
@@ -949,11 +995,11 @@ export default function DashboardPage() {
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
             animate
-            className="text-lg sm:text-xl xl:text-2xl font-bold text-green-500 font-mono"
+            className="text-lg sm:text-xl xl:text-2xl font-bold gain-positive font-mono"
           />
         </div>
-        <div className="min-w-0 bg-surface rounded-lg p-4 border border-border">
-          <div className="text-xs text-text-secondary mb-1">{t('stats.totalLiabilities')}</div>
+        <div className="min-w-0 bg-surface rounded-[var(--radius-card)] p-4 border border-border shadow-plate">
+          <div className="plate-label mb-1.5">{t('stats.totalLiabilities')}</div>
           <ConvertedAmount
             amount={summary.netWorth.totalLiabilities}
             currency={summary.baseCurrency}
@@ -962,7 +1008,7 @@ export default function DashboardPage() {
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
             animate
-            className="text-lg sm:text-xl xl:text-2xl font-bold text-red-500 font-mono"
+            className="text-lg sm:text-xl xl:text-2xl font-bold gain-negative font-mono"
           />
         </div>
       </div>

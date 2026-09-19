@@ -197,7 +197,7 @@ export function SecuritySettings() {
     <div className="space-y-6">
       {/* Section Header */}
       <div>
-        <h2 className="text-xl font-semibold text-text-primary mb-2">{t('security.title')}</h2>
+        <h2 className="plate-label  mb-2">{t('security.title')}</h2>
         <p className="text-text-secondary text-sm">{t('security.description')}</p>
       </div>
 
@@ -225,7 +225,7 @@ export function SecuritySettings() {
       <div className="bg-surface rounded-lg p-6 border border-border">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+            <h3 className="plate-label  flex items-center gap-2">
               <Lock className="h-5 w-5 text-primary" />
               {t('security.loginPassword.title')}
             </h3>
@@ -362,7 +362,7 @@ export function SecuritySettings() {
       <div className="bg-surface rounded-lg p-6 border border-border">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+            <h3 className="plate-label  flex items-center gap-2">
               <Shield className="h-5 w-5 text-red-400" />
               {t('security.masterPassword.title')}
             </h3>
@@ -529,7 +529,7 @@ export function SecuritySettings() {
       <div className="bg-surface rounded-lg p-6 border border-border opacity-60">
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+            <h3 className="plate-label  flex items-center gap-2">
               <Smartphone className="h-5 w-5 text-text-muted" />
               {t('security.twoFactor.title')}
             </h3>

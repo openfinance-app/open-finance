@@ -108,7 +108,9 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
 
             {/* Name and Type */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-text-primary truncate">{property.name}</h3>
+              <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate">
+                {property.name}
+              </h3>
               {property.acquisitionType && property.acquisitionType !== 'PURCHASE' && (
                 <p className="text-xs text-text-secondary">
                   {t(`form.acquisitionTypes.${property.acquisitionType}`)}

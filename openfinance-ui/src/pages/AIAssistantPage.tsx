@@ -126,7 +126,9 @@ export const AIAssistantPage: React.FC = () => {
               <Bot className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-text-primary">{t('title')}</h1>
+              <h1 className="font-display text-xl uppercase tracking-[0.08em] text-text-primary">
+                {t('title')}
+              </h1>
               <p className="text-sm text-text-secondary">{t('subtitle')}</p>
             </div>
           </div>

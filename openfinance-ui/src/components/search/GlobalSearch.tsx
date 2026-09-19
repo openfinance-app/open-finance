@@ -212,8 +212,8 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
           }}
           onKeyDown={handleKeyDown}
           className="w-full pl-10 pr-16 py-2 border border-border rounded-lg 
-                     bg-surface text-text-primary
-                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                     bg-background/60 shadow-slot text-text-primary
+                     focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                      placeholder:text-text-muted"
         />
         <RegexToggle

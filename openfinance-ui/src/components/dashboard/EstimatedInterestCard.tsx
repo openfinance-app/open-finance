@@ -62,9 +62,7 @@ export default function EstimatedInterestCard({ summary, period }: EstimatedInte
     <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-text-primary">
-            {t('estimatedInterest.title')}
-          </h3>
+          <h3 className="plate-label ">{t('estimatedInterest.title')}</h3>
           <p className="text-sm text-text-secondary">
             {t('estimatedInterest.subtitle', { period: periodLabel })}
           </p>

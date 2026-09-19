@@ -300,7 +300,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
           <div
             key={asset.id}
             onClick={() => handleRowClick(asset.id)}
-            className="bg-surface border border-border rounded-lg p-4 cursor-pointer hover:bg-surface/50 transition-colors"
+            className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-4 cursor-pointer hover:bg-surface/50 transition-colors"
           >
             <div className="flex items-start justify-between mb-3">
               <div>

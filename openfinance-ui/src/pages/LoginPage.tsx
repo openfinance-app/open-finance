@@ -14,10 +14,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { ROUTES } from '@/constants/routes';
-import { Lock, User, Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Lock, User, Shield, Eye, EyeOff, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { AppLogo } from '@/components/ui/AppLogo';
 import { createLoginSchema, type LoginFormData } from '@/validators/authSchemas';
 import { useLogin } from '@/hooks/useAuth';
 import { resolveEncryptionEnabled, useSecurityConfig } from '@/hooks/useSecurityConfig';
@@ -170,19 +171,27 @@ export default function LoginPage() {
   const errorMessage = getErrorMessage();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 relative">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
+      {/* Guilloché medallion field behind the vault door */}
+      <div
+        aria-hidden="true"
+        className="bg-guilloche pointer-events-none absolute left-1/2 top-1/2 h-[880px] w-[880px] -translate-x-1/2 -translate-y-1/2 [mask-image:radial-gradient(closest-side,black_20%,transparent_72%)]"
+      />
       <div className="absolute top-4 right-4 z-10" role="region" aria-label="Language selection">
         <LanguageSelector />
       </div>
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-text-primary mb-2">{t('login.title')}</h1>
+      <div className="w-full max-w-md relative">
+        {/* Header — the bank's engraved sign */}
+        <div className="text-center mb-8 flex flex-col items-center">
+          <AppLogo size={44} showText={false} className="mb-5" />
+          <h1 className="font-display text-[32px] leading-9 uppercase tracking-[0.08em] text-text-primary mb-2">
+            {t('login.title')}
+          </h1>
           <p className="text-text-secondary">{t('login.subtitle')}</p>
         </div>
 
-        {/* Login Form */}
-        <div className="bg-surface rounded-xl p-6 border border-border">
+        {/* Login Form — the vault door plate */}
+        <div className="bg-surface rounded-[var(--radius-card)] p-6 border border-border shadow-plate-lift">
           <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
             {/* Success Message (e.g., after registration) */}
             {successMessage && (
@@ -304,8 +313,12 @@ export default function LoginPage() {
                 >
                   {t('login.rememberMe.label')}
                 </label>
-                <p className="text-xs text-text-secondary mt-0.5">
-                  {t('login.rememberMe.warning')}
+                <p className="text-xs text-text-secondary mt-0.5 flex items-start gap-1.5">
+                  <AlertTriangle
+                    className="h-3.5 w-3.5 mt-px shrink-0 text-warning"
+                    aria-hidden="true"
+                  />
+                  <span>{t('login.rememberMe.warning')}</span>
                 </p>
               </div>
             </div>

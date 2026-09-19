@@ -9,6 +9,7 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { cn } from '@/lib/utils';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { add, multiply, percentage, subtract, sum } from '@/utils/money';
+import { formatDecimal } from '@/utils/format';
 
 interface InstitutionGroup {
   id: number | null;
@@ -134,9 +135,7 @@ export default function InstitutionBreakdown({
       <div className="bg-surface rounded-lg p-6 border border-red-500/50">
         <div className="flex items-center gap-2 mb-4">
           <Building2 className="h-5 w-5 text-red-500" />
-          <h3 className="text-lg font-semibold text-text-primary">
-            {t('institutionBreakdown.title')}
-          </h3>
+          <h3 className="plate-label ">{t('institutionBreakdown.title')}</h3>
         </div>
         <p role="alert" className="text-sm text-red-500">
           {t('institutionBreakdown.loadError')}
@@ -149,9 +148,7 @@ export default function InstitutionBreakdown({
     <div className="bg-surface rounded-lg p-6 border border-border hover:border-border/70 transition-colors h-full flex flex-col">
       <div className="flex items-center gap-2 mb-4">
         <Building2 className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold text-text-primary">
-          {t('institutionBreakdown.title')}
-        </h3>
+        <h3 className="plate-label ">{t('institutionBreakdown.title')}</h3>
       </div>
       {unavailable && (
         <p role="alert" className="text-sm text-warning mb-3">
@@ -230,7 +227,9 @@ export default function InstitutionBreakdown({
                         />
                       </div>
                       <div className="mt-1 text-xs text-text-secondary">
-                        {t('institutionBreakdown.percentOfTotal', { percent: percent.toFixed(1) })}
+                        {t('institutionBreakdown.percentOfTotal', {
+                          percent: formatDecimal(percent, 1),
+                        })}
                       </div>
                     </>
                   )}

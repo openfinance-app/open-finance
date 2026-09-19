@@ -21,11 +21,11 @@ describe('getAlertSeverity', () => {
 
 describe('getAlertColor', () => {
   it('returns red for exceeded', () => {
-    expect(getAlertColor('exceeded')).toBe('#ef4444');
+    expect(getAlertColor('exceeded')).toBe('#e07368');
   });
 
   it('returns amber for critical', () => {
-    expect(getAlertColor('critical')).toMatch(/#f59e0b|#eab308/);
+    expect(getAlertColor('critical')).toBe('#d29a40');
   });
 
   it('returns yellow for warning', () => {

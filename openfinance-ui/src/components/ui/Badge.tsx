@@ -22,17 +22,17 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
   ({ className, variant = 'default', size = 'md', children, ...props }, ref) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium rounded-full whitespace-nowrap transition-colors';
+      'inline-flex items-center justify-center font-medium rounded-md whitespace-nowrap transition-colors tracking-wide';
 
     const variants = {
-      default: 'bg-surface-elevated text-text-primary border border-border',
-      success: 'bg-success/10 text-success border border-success/20',
-      error: 'bg-error/10 text-error border border-error/20',
-      warning: 'bg-warning/10 text-warning border border-warning/20',
-      info: 'bg-accent-blue/10 text-accent-blue border border-accent-blue/20',
-      secondary: 'bg-surface text-text-secondary border border-border/50',
-      destructive: 'bg-destructive/10 text-destructive border border-destructive/20',
-      outline: 'border border-border bg-transparent text-text-primary',
+      default: 'bg-surface-elevated text-text-primary border border-border-strong',
+      success: 'bg-success/10 text-success border border-success/30',
+      error: 'bg-error/10 text-error border border-error/30',
+      warning: 'bg-warning/10 text-warning border border-warning/30',
+      info: 'bg-accent-blue/10 text-accent-blue border border-accent-blue/30',
+      secondary: 'bg-surface text-text-secondary border border-border',
+      destructive: 'bg-destructive/10 text-destructive border border-destructive/30',
+      outline: 'border border-border-strong bg-transparent text-text-primary',
     };
 
     const sizes = {

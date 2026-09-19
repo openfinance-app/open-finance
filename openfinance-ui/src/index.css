@@ -19,54 +19,132 @@
   src: url('/fonts/JetBrainsMono-Variable.ttf') format('truetype');
 }
 
-@theme {
-  /* Base Colors — dark theme defaults */
-  --color-background: #0a0a0a;
-  --color-surface: #1a1a1a;
-  --color-surface-elevated: #2a2a2a;
-  --color-popover: #2a2a2a;
-  --color-popover-foreground: #ffffff;
-  --color-border: #333333;
+/* Marcellus — engraved roman capitals for plate titles and the wordmark.
+   The vault world's display voice: bank-plate lettering, not a UI sans. */
+@font-face {
+  font-family: 'Marcellus';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Marcellus-Regular.ttf') format('truetype');
+}
 
-  /* Accent Colors */
-  --color-primary: #f5a623;
-  --color-secondary: #8b7355;
-  --color-accent-pink: #ff6b7a;
-  --color-accent-purple: #7b68ee;
-  --color-accent-teal: #00c9a7;
-  --color-accent-blue: #4a90e2;
+@theme {
+  /* ─── The Vault: blackened-steel grounds, machined plates, brass hardware ──
+     Dark is the world's own scene: the safe-deposit room under its lamp.
+     Surfaces are cool charcoal steel; the one warm metal is aged brass,
+     reserved for hardware moments — primary actions, locks, active marks. */
+
+  /* Base Colors — dark theme defaults */
+  --color-background: #0c0e10;
+  --color-surface: #14171b;
+  --color-surface-elevated: #1b1f24;
+  --color-popover: #1b1f24;
+  --color-popover-foreground: #eceff2;
+  --color-border: #262c33;
+  --color-border-strong: #39414b;
+
+  /* Accent Colors — aged brass primary, mineral-pigment chart accents */
+  --color-primary: #c5a254;
+  --color-brass-bright: #e3c06a;
+  --color-secondary: #8f7a5e;
+  --color-accent-pink: #c96f7d;
+  --color-accent-purple: #8a80cc;
+  --color-accent-teal: #45a191;
+  --color-accent-blue: #5e84b0;
 
   /* Text Colors */
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #a0a0a0;
-  --color-text-tertiary: #8a8a8a;
-  --color-text-muted: #666666;
+  --color-text-primary: #eceff2;
+  --color-text-secondary: #a5aeb8;
+  --color-text-tertiary: #89929d;
+  --color-text-muted: #7d8691;
 
   /* Neutral fill for skeletons and subtle placeholders */
-  --color-muted: #2a2a2a;
+  --color-muted: #1b1f24;
 
-  /* Status Colors */
-  --color-success: #00c853;
-  --color-error: #ff5252;
-  --color-warning: #ffc107;
+  /* Status Colors — machinery indicators, desaturated mineral tones */
+  --color-success: #3db28e;
+  --color-error: #e07368;
+  --color-warning: #d29a40;
 
   /* shadcn-compat aliases — referenced across the codebase, must resolve */
-  --color-muted-foreground: #8a8a8a;
-  --color-foreground: #ffffff;
-  --color-destructive: #ff5252;
-  --color-primary-foreground: #0a0a0a;
-  --color-secondary-foreground: #ffffff;
-  --color-accent: #2a2a2a;
-  --color-accent-foreground: #ffffff;
-  --color-card: #1a1a1a;
-  --color-card-foreground: #ffffff;
-  --color-input: #333333;
-  --color-ring: #f5a623;
+  --color-muted-foreground: #89929d;
+  --color-foreground: #eceff2;
+  --color-destructive: #e07368;
+  --color-primary-foreground: #1a1408;
+  --color-secondary-foreground: #f4f6f8;
+  --color-accent: #1b1f24;
+  --color-accent-foreground: #eceff2;
+  --color-card: #14171b;
+  --color-card-foreground: #eceff2;
+  --color-input: #262c33;
+  --color-ring: #c5a254;
+
+  /* Legacy aliases — stale class names (bg-app-bg, border-border-subtle) resolve again */
+  --color-app-bg: #0c0e10;
+  --color-border-subtle: #262c33;
 
   /* Font Families */
   --font-family-sans:
     'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-display: 'Marcellus', 'Times New Roman', serif;
   --font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* ─── Palette re-voicing ──────────────────────────────────────────────────
+     Legacy literal classes (text-green-600, bg-red-500/10, ring-blue-500 …)
+     are spread across the app; remap the Tailwind steps themselves into the
+     vault's mineral pigments so every gain/loss/info surface speaks the same
+     steel-and-brass language without per-file rewrites. */
+  --color-green-300: #8fdcc3;
+  --color-green-400: #4cc39a;
+  --color-green-500: #3db28e;
+  --color-green-600: #2e9d7c;
+  --color-green-700: #237a60;
+  --color-green-800: #1c624c;
+  --color-green-50: #e7f5f0;
+  --color-green-100: #cdebe0;
+  --color-green-200: #a3ddc9;
+  --color-green-950: #0d2b22;
+
+  --color-red-300: #f0a99f;
+  --color-red-400: #e88a80;
+  --color-red-500: #e07368;
+  --color-red-600: #d36055;
+  --color-red-700: #b04a3f;
+  --color-red-800: #8c3b32;
+  --color-red-50: #fbecea;
+  --color-red-100: #f6d6d2;
+  --color-red-200: #edb6ae;
+  --color-red-900: #5f261e;
+  --color-red-950: #33120d;
+
+  --color-yellow-300: #ebcb85;
+  --color-yellow-400: #ddb15e;
+  --color-yellow-500: #d29a40;
+  --color-yellow-600: #b07f2a;
+
+  --color-blue-100: #d8e4f0;
+  --color-blue-400: #7ba3cc;
+  --color-blue-500: #5e84b0;
+  --color-blue-600: #4a6c94;
+  --color-blue-700: #3b5b80;
+  --color-blue-800: #2f4b6b;
+  --color-blue-900: #22364e;
+  --color-blue-50: #eef3f8;
+  --color-blue-950: #141e2b;
+
+  /* Neutral gray → cool steel */
+  --color-gray-50: #f2f4f6;
+  --color-gray-100: #e7eaee;
+  --color-gray-200: #cfd5dc;
+  --color-gray-300: #b0b8c2;
+  --color-gray-400: #8d97a3;
+  --color-gray-500: #6f7884;
+  --color-gray-600: #565f6b;
+  --color-gray-700: #3f4650;
+  --color-gray-800: #2a3038;
+  --color-gray-900: #171b20;
+  --color-gray-950: #0e1114;
 
   /* Spacing */
   --spacing-sidebar: 240px;
@@ -75,6 +153,16 @@
 
   /* Border Radius */
   --radius-card: 12px;
+
+  /* Elevation — machined plates: a bevel-edge highlight plus a tight contact
+     shadow, never a wide diffuse halo under a hairline border. */
+  --shadow-plate:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.045), 0 1px 2px 0 rgb(0 0 0 / 0.45),
+    0 12px 28px -20px rgb(0 0 0 / 0.7);
+  --shadow-plate-lift:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.06), 0 2px 4px 0 rgb(0 0 0 / 0.45),
+    0 20px 44px -20px rgb(0 0 0 / 0.75);
+  --shadow-slot: inset 0 1px 3px 0 rgb(0 0 0 / 0.5), inset 0 -1px 0 0 rgb(255 255 255 / 0.03);
 
   /* Motion tokens — confident arrivals, quick feedback */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -85,42 +173,61 @@
 }
 
 /* ─── Light theme overrides ───────────────────────────────────────────────── */
-/* Applied when <html class="light"> is set by ThemeContext */
+/* Brushed aluminum in daylight: the same metal world, lamp switched on.
+   Applied when <html class="light"> is set by ThemeContext */
 :root.light {
-  --color-background: #f5f5f5;
-  --color-surface: #ffffff;
-  --color-surface-elevated: #f0f0f0;
+  --color-background: #e7e9ec;
+  --color-surface: #f6f7f9;
+  --color-surface-elevated: #ffffff;
   --color-popover: #ffffff;
-  --color-popover-foreground: #111111;
-  --color-border: #e0e0e0;
+  --color-popover-foreground: #191d23;
+  --color-border: #c9ced6;
+  --color-border-strong: #a8b0bc;
 
-  /* Primary stays amber — reduce saturation slightly for light backgrounds */
-  --color-primary: #e0941a;
-  --color-secondary: #8b7355;
+  /* Dark brass keeps ≥4.5:1 with white label text on light grounds */
+  --color-primary: #7d6118;
+  --color-brass-bright: #97792a;
+  --color-secondary: #8f7a5e;
+  --color-accent-pink: #a04c5b;
+  --color-accent-purple: #5c53a6;
+  --color-accent-teal: #1f6f5c;
+  --color-accent-blue: #3b5b80;
 
-  --color-text-primary: #111111;
-  --color-text-secondary: #555555;
-  --color-text-tertiary: #6b6b6b;
-  --color-text-muted: #888888;
+  --color-text-primary: #191d23;
+  --color-text-secondary: #49525d;
+  --color-text-tertiary: #5d6773;
+  --color-text-muted: #5f6975;
 
-  --color-muted: #ececec;
+  --color-muted: #e2e5e9;
 
-  --color-success: #00a844;
-  --color-error: #e03030;
-  --color-warning: #d97706;
+  --color-success: #187a52;
+  --color-error: #b0382c;
+  --color-warning: #8a5f0e;
 
   /* shadcn-compat aliases — light theme */
-  --color-muted-foreground: #6b6b6b;
-  --color-foreground: #111111;
-  --color-destructive: #e03030;
-  --color-primary-foreground: #1a1a1a;
-  --color-secondary-foreground: #111111;
-  --color-accent: #f0f0f0;
-  --color-accent-foreground: #111111;
-  --color-card: #ffffff;
-  --color-card-foreground: #111111;
-  --color-input: #e0e0e0;
-  --color-ring: #e0941a;
+  --color-muted-foreground: #5d6773;
+  --color-foreground: #191d23;
+  --color-destructive: #b0382c;
+  --color-primary-foreground: #fdfaf2;
+  --color-secondary-foreground: #191d23;
+  --color-accent: #eef0f3;
+  --color-accent-foreground: #191d23;
+  --color-card: #f6f7f9;
+  --color-card-foreground: #191d23;
+  --color-input: #c9ced6;
+  --color-ring: #7d6118;
+
+  --color-app-bg: #e7e9ec;
+  --color-border-subtle: #c9ced6;
+
+  /* Plates in daylight: bevel highlight strengthens, ambient shadow softens */
+  --shadow-plate:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.7), 0 1px 2px 0 rgb(20 24 29 / 0.08),
+    0 10px 24px -18px rgb(20 24 29 / 0.25);
+  --shadow-plate-lift:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.8), 0 2px 4px 0 rgb(20 24 29 / 0.08),
+    0 18px 40px -18px rgb(20 24 29 / 0.3);
+  --shadow-slot: inset 0 1px 3px 0 rgb(20 24 29 / 0.12), inset 0 -1px 0 0 rgb(255 255 255 / 0.6);
 }
 
 * {
@@ -146,15 +253,52 @@ h6 {
   color: var(--color-text-primary);
 }
 
-/* Number formatting utility */
+/* Instrument numerals: calibrated, tabular, evenly tracked */
 .number-display {
   font-family: var(--font-family-mono);
   font-variant-numeric: tabular-nums;
 }
 
-/* Text selection matches the amber accent */
+@layer components {
+  /* Engraved plate label — the vault's small caps, debossed into steel */
+  .plate-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    text-shadow: 0 -1px 0 rgb(0 0 0 / 0.5);
+  }
+
+  :root.light .plate-label {
+    text-shadow: 0 1px 0 rgb(255 255 255 / 0.65);
+  }
+
+  /* Guilloché — the engraved security rosette of banknotes and vault doors.
+   Crisp vector linework from the world's own material, kept near-invisible. */
+  .bg-guilloche {
+    background-image: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22120%22%20height%3D%22120%22%20viewBox%3D%220%200%20120%20120%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%220.5%22%20opacity%3D%220.09%22%3E%3Cpath%20d%3D%22M108.00%2060.00L110.29%2062.93L112.01%2066.08L112.82%2069.31L112.53%2072.45L111.12%2075.30L108.73%2077.74L105.65%2079.69L102.27%2081.23L98.97%2082.50L96.08%2083.73L93.82%2085.18L92.24%2087.06L91.27%2089.50L90.68%2092.52L90.18%2095.97L89.49%2099.61L88.35%20103.10L86.60%20106.07L84.22%20108.22L81.29%20109.35L77.99%20109.42L74.54%20108.56L71.15%20107.05L67.98%20105.25L65.09%20103.59L62.47%20102.42L60.00%20102.00L57.53%20102.42L54.91%20103.59L52.02%20105.25L48.85%20107.05L45.46%20108.56L42.01%20109.42L38.71%20109.35L35.78%20108.22L33.40%20106.07L31.65%20103.10L30.51%2099.61L29.82%2095.97L29.32%2092.52L28.73%2089.50L27.76%2087.06L26.18%2085.18L23.92%2083.73L21.03%2082.50L17.73%2081.23L14.35%2079.69L11.27%2077.74L8.88%2075.30L7.47%2072.45L7.18%2069.31L7.99%2066.08L9.71%2062.93L12.00%2060.00L14.45%2057.35L16.66%2054.93L18.28%2052.64L19.12%2050.31L19.15%2047.77L18.52%2044.90L17.51%2041.67L16.48%2038.15L15.83%2034.50L15.88%2030.98L16.82%2027.85L18.70%2025.35L21.44%2023.62L24.80%2022.69L28.48%2022.43L32.16%2022.61L35.59%2022.89L38.60%2022.93L41.13%2022.43L43.26%2021.20L45.16%2019.21L47.01%2016.60L49.01%2013.63L51.31%2010.71L53.95%208.23L56.89%206.58L60.00%206.00L63.11%206.58L66.05%208.23L68.69%2010.71L70.99%2013.63L72.99%2016.60L74.84%2019.21L76.74%2021.20L78.87%2022.43L81.40%2022.93L84.41%2022.89L87.84%2022.61L91.52%2022.43L95.20%2022.69L98.56%2023.62L101.30%2025.35L103.18%2027.85L104.12%2030.98L104.17%2034.50L103.52%2038.15L102.49%2041.67L101.48%2044.90L100.85%2047.77L100.88%2050.31L101.72%2052.64L103.34%2054.93L105.55%2057.35L108.00%2060.00Z%20M94.00%2060.00L96.44%2062.12L98.07%2064.45L98.41%2066.77L97.30%2068.84L94.97%2070.47L91.95%2071.63L88.92%2072.48L86.51%2073.32L85.11%2074.50L84.79%2076.30L85.27%2078.81L86.05%2081.85L86.55%2085.05L86.30%2087.88L85.07%2089.88L82.89%2090.75L80.06%2090.50L77.00%2089.44L74.14%2088.15L71.75%2087.24L69.92%2087.25L68.51%2088.42L67.26%2090.65L65.90%2093.48L64.24%2096.25L62.23%2098.27L60.00%2099.00L57.77%2098.27L55.76%2096.25L54.10%2093.48L52.74%2090.65L51.49%2088.42L50.08%2087.25L48.25%2087.24L45.86%2088.15L43.00%2089.44L39.94%2090.50L37.11%2090.75L34.93%2089.88L33.70%2087.88L33.45%2085.05L33.95%2081.85L34.73%2078.81L35.21%2076.30L34.89%2074.50L33.49%2073.32L31.08%2072.48L28.05%2071.63L25.03%2070.47L22.70%2068.84L21.59%2066.77L21.93%2064.45L23.56%2062.12L26.00%2060.00L28.55%2058.17L30.53%2056.56L31.44%2054.96L31.13%2053.16L29.82%2050.97L28.05%2048.37L26.49%2045.54L25.75%2042.80L26.23%2040.50L27.98%2038.94L30.72%2038.20L33.95%2038.15L37.09%2038.38L39.64%2038.42L41.36%2037.78L42.28%2036.20L42.69%2033.68L43.00%2030.56L43.62%2027.38L44.82%2024.80L46.66%2023.35L49.01%2023.28L51.58%2024.48L54.10%2026.52L56.34%2028.71L58.27%2030.38L60.00%2031.00L61.73%2030.38L63.66%2028.71L65.90%2026.52L68.42%2024.48L70.99%2023.28L73.34%2023.35L75.18%2024.80L76.38%2027.38L77.00%2030.56L77.31%2033.68L77.72%2036.20L78.64%2037.78L80.36%2038.42L82.91%2038.38L86.05%2038.15L89.28%2038.20L92.02%2038.94L93.77%2040.50L94.25%2042.80L93.51%2045.54L91.95%2048.37L90.18%2050.97L88.87%2053.16L88.56%2054.96L89.47%2056.56L91.45%2058.17L94.00%2060.00Z%20M80.00%2060.00L82.35%2061.30L83.67%2062.77L83.40%2064.13L81.60%2065.12L78.94%2065.67L76.38%2065.96L74.79%2066.38L74.59%2067.33L75.59%2069.00L77.10%2071.25L78.24%2073.58L78.34%2075.39L77.15%2076.18L74.96%2075.85L72.41%2074.79L70.21%2073.71L68.81%2073.39L68.27%2074.32L68.26%2076.46L68.29%2079.21L67.89%2081.67L66.88%2082.99L65.38%2082.71L63.71%2081.04L62.19%2078.73L60.98%2076.76L60.00%2076.00L59.02%2076.76L57.81%2078.73L56.29%2081.04L54.62%2082.71L53.12%2082.99L52.11%2081.67L51.71%2079.21L51.74%2076.46L51.73%2074.32L51.19%2073.39L49.79%2073.71L47.59%2074.79L45.04%2075.85L42.85%2076.18L41.66%2075.39L41.76%2073.58L42.90%2071.25L44.41%2069.00L45.41%2067.33L45.21%2066.38L43.62%2065.96L41.06%2065.67L38.40%2065.12L36.60%2064.13L36.33%2062.77L37.65%2061.30L40.00%2060.00L42.42%2058.98L43.94%2058.12L44.01%2057.18L42.68%2055.89L40.62%2054.20L38.79%2052.28L38.06%2050.54L38.85%2049.38L40.95%2049.00L43.68%2049.26L46.16%2049.70L47.70%2049.68L48.05%2048.73L47.51%2046.76L46.70%2044.15L46.32%2041.62L46.83%2039.97L48.27%2039.68L50.31%2040.71L52.44%2042.48L54.21%2044.09L55.41%2044.67L56.16%2043.79L56.76%2041.65L57.54%2039.00L58.65%2036.83L60.00%2036.00L61.35%2036.83L62.46%2039.00L63.24%2041.65L63.84%2043.79L64.59%2044.67L65.79%2044.09L67.56%2042.48L69.69%2040.71L71.73%2039.68L73.17%2039.97L73.68%2041.62L73.30%2044.15L72.49%2046.76L71.95%2048.73L72.30%2049.68L73.84%2049.70L76.32%2049.26L79.05%2049.00L81.15%2049.38L81.94%2050.54L81.21%2052.28L79.38%2054.20L77.32%2055.89L75.99%2057.18L76.06%2058.12L77.58%2058.98L80.00%2060.00Z%20M112.00%2060.00L112.26%2063.04L112.33%2066.12L112.19%2069.20L111.85%2072.29L111.28%2075.35L110.49%2078.38L109.47%2081.34L108.23%2084.22L106.77%2087.00L105.09%2089.66L103.22%2092.17L101.16%2094.54L98.94%2096.74L96.57%2098.76L94.07%20100.60L91.46%20102.26L88.77%20103.74L86.00%20105.03L83.18%20106.16L80.33%20107.12L77.44%20107.92L74.55%20108.58L71.64%20109.11L68.73%20109.50L65.82%20109.78L62.91%20109.95L60.00%20110.00L57.09%20109.95L54.18%20109.78L51.27%20109.50L48.36%20109.11L45.45%20108.58L42.56%20107.92L39.67%20107.12L36.82%20106.16L34.00%20105.03L31.23%20103.74L28.54%20102.26L25.93%20100.60L23.43%2098.76L21.06%2096.74L18.84%2094.54L16.78%2092.17L14.91%2089.66L13.23%2087.00L11.77%2084.22L10.53%2081.34L9.51%2078.38L8.72%2075.35L8.15%2072.29L7.81%2069.20L7.67%2066.12L7.74%2063.04L8.00%2060.00L8.43%2057.00L9.03%2054.04L9.77%2051.14L10.65%2048.30L11.65%2045.53L12.76%2042.81L13.98%2040.15L15.29%2037.55L16.70%2035.00L18.20%2032.51L19.80%2030.07L21.49%2027.69L23.29%2025.37L25.20%2023.11L27.22%2020.93L29.36%2018.84L31.62%2016.84L34.00%2014.97L36.51%2013.22L39.13%2011.62L41.87%2010.20L44.72%208.95L47.65%207.91L50.67%207.08L53.74%206.48L56.86%206.12L60.00%206.00L63.14%206.12L66.26%206.48L69.33%207.08L72.35%207.91L75.28%208.95L78.13%2010.20L80.87%2011.62L83.49%2013.22L86.00%2014.97L88.38%2016.84L90.64%2018.84L92.78%2020.93L94.80%2023.11L96.71%2025.37L98.51%2027.69L100.20%2030.07L101.80%2032.51L103.30%2035.00L104.71%2037.55L106.02%2040.15L107.24%2042.81L108.35%2045.53L109.35%2048.30L110.23%2051.14L110.97%2054.04L111.57%2057.00L112.00%2060.00Z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E');
+    background-size: 120px 120px;
+    background-position: center;
+  }
+
+  /* Hairline brass rule — engraved separator between plate regions */
+  .hairline-brass {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--color-primary) 38%, transparent) 18%,
+      color-mix(in srgb, var(--color-primary) 38%, transparent) 82%,
+      transparent 100%
+    );
+    height: 1px;
+    border: none;
+  }
+}
+
+/* Text selection matches the brass accent */
 ::selection {
-  background-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  background-color: color-mix(in srgb, var(--color-primary) 32%, transparent);
   color: var(--color-text-primary);
 }
 
@@ -174,12 +318,12 @@ h6 {
   color: var(--color-error);
 }
 
-/* Shimmer loading effect — amber-tinted sweep used on skeletons */
+/* Shimmer loading effect — brass-tinted sweep used on skeletons */
 .shimmer {
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(245, 166, 35, 0.12) 50%,
+    color-mix(in srgb, var(--color-primary) 12%, transparent) 50%,
     rgba(255, 255, 255, 0) 100%
   );
   background-size: 200% 100%;
@@ -275,6 +419,28 @@ h6 {
   );
 }
 
+/* ─── The vault lock — the world's one authored motion ───────────────────── */
+/* Amounts privacy toggle: masking slides shut like a bolt, staggering across
+   the plate. PrivateAmount sets --bolt-index per amount on the page. */
+@keyframes bolt-slide {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    transform: translateX(-4px);
+  }
+  60% {
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    transform: translateX(0);
+  }
+}
+
+.bolt-in {
+  animation: bolt-slide var(--duration-slow) var(--ease-out-expo) both;
+  animation-delay: min(calc(var(--bolt-index, 0) * 35ms), 280ms);
+}
+
 /* ─── Entrance utilities ─────────────────────────────────────────────────── */
 /* Keyed page transition — applied by AppLayout on route change */
 .page-enter {
@@ -310,8 +476,8 @@ h6 {
 
 /* ─── Dashboard grid: drag & resize gestures ─────────────────────────────── */
 /* Overrides react-grid-layout defaults (red placeholder, invisible handles)
-   to speak this app's amber world and motion tokens. Scoped at higher
-   specificity than the library defaults so injection order can't flip them. */
+   to speak this app's brass-and-steel world and motion tokens. Scoped at
+   higher specificity so injection order can't flip them. */
 
 /* Cards glide into place with the app easing when siblings reflow */
 .react-grid-layout .react-grid-item {
@@ -327,7 +493,7 @@ h6 {
   transition: none;
 }
 
-/* Lifted card: real depth (offset + soft blur) plus an amber state ring */
+/* Lifted card: real depth (offset + soft blur) plus a brass state ring */
 .react-grid-layout .react-grid-item.react-draggable-dragging,
 .react-grid-layout .react-grid-item.resizing {
   z-index: 30;
@@ -338,7 +504,7 @@ h6 {
     0 24px 48px -16px rgba(0, 0, 0, 0.65);
 }
 
-/* Drop target: replaces RGL's red blob with a breathing amber outline */
+/* Drop target: replaces RGL's red blob with a breathing brass outline */
 .react-grid-layout .react-grid-item.react-grid-placeholder {
   background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   border: 1.5px dashed color-mix(in srgb, var(--color-primary) 55%, transparent);
@@ -358,7 +524,7 @@ h6 {
 }
 
 /* Resize grip: the library's black triangle is invisible on dark surfaces —
-   replace it with a diagonal-striped chip that tints amber on hover */
+   replace it with a diagonal-striped chip that tints brass on hover */
 .react-grid-layout .react-grid-item > .react-resizable-handle {
   background-image: none;
   padding: 0;
@@ -414,7 +580,8 @@ body.react-draggable-transparent-selection {
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
   .stagger-item,
-  .pop-enter {
+  .pop-enter,
+  .bolt-in {
     animation-duration: 1ms;
     animation-delay: 0ms;
   }
@@ -439,7 +606,7 @@ body.react-draggable-transparent-selection {
   }
 }
 
-/* Global scrollbar styling */
+/* Global scrollbar styling — machined track, steel thumb */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -450,7 +617,7 @@ body.react-draggable-transparent-selection {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: var(--color-border);
+  background-color: var(--color-border-strong);
   border-radius: 9999px;
 }
 
@@ -460,7 +627,7 @@ body.react-draggable-transparent-selection {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-border) var(--color-surface);
+  scrollbar-color: var(--color-border-strong) var(--color-surface);
 }
 
 /* Hide scrollbar */

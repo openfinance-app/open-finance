@@ -8,6 +8,7 @@
  */
 
 import { DEFAULT_CURRENCY, getCurrencyDecimals } from './currency';
+import i18n from '@/i18n';
 
 /**
  * Format currency with proper thousand separators.
@@ -33,11 +34,23 @@ export function formatCurrency(amount: number, currency?: string, options?: Form
 }
 
 /**
- * Format percentage with specified decimal places
- * Example: formatPercentage(72.45, 2) => "72.45%"
+ * Format percentage with specified decimal places, in the active UI locale.
+ * Example: formatPercentage(72.45, 2) => "72,45%" (fr), "72.45%" (en)
  */
 export function formatPercentage(value: number, decimals = 2): string {
-  return `${value.toFixed(decimals)}%`;
+  return `${formatDecimal(value, decimals)}%`;
+}
+
+/**
+ * Locale-aware decimal formatting without any unit suffix — for templates that
+ * supply their own (e.g. dashboard's "{{percent}}% of total").
+ * Example: formatDecimal(72.45, 1) => "72,45" (fr), "72.45" (en)
+ */
+export function formatDecimal(value: number, decimals = 2): string {
+  return new Intl.NumberFormat(i18n.language || undefined, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(value);
 }
 
 /**

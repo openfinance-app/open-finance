@@ -158,7 +158,7 @@
       "description": "Update the password used to encrypt your financial data",
       "change": "Change",
       "cancel": "Cancel",
-      "criticalWarningTitle": "⚠️ Critical Operation",
+      "criticalWarningTitle": "Critical Operation",
       "criticalWarningBody": "Changing your master password will re-encrypt all your financial data (accounts, transactions, assets, and liabilities). This process may take several minutes depending on the amount of data. Do not close this window during the operation.",
       "currentMasterPassword": "Current Master Password",
       "currentMasterPasswordPlaceholder": "Enter your current master password",

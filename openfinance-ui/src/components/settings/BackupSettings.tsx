@@ -66,9 +66,7 @@ export function BackupSettings() {
     <div className="space-y-6">
       {/* Section Header */}
       <div>
-        <h2 className="text-xl font-semibold text-text-primary mb-2">
-          {t('overview.sectionTitle')}
-        </h2>
+        <h2 className="plate-label  mb-2">{t('overview.sectionTitle')}</h2>
         <p className="text-text-secondary text-sm">{t('overview.sectionDescription')}</p>
       </div>
 
@@ -77,7 +75,9 @@ export function BackupSettings() {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
             <Database className="h-5 w-5 text-primary" />
-            <h3 className="text-base font-medium text-text-primary">{t('overview.cardTitle')}</h3>
+            <h3 className="plate-label text-base font-medium text-text-primary">
+              {t('overview.cardTitle')}
+            </h3>
           </div>
           <p className="text-xs text-text-secondary">{t('overview.cardDescription')}</p>
         </div>
@@ -164,7 +164,9 @@ export function BackupSettings() {
 
       {/* Additional Information */}
       <div className="bg-surface rounded-lg p-6 border border-border">
-        <h3 className="text-sm font-medium text-text-primary mb-3">{t('overview.aboutTitle')}</h3>
+        <h3 className="plate-label text-sm font-medium text-text-primary mb-3">
+          {t('overview.aboutTitle')}
+        </h3>
         <ul className="space-y-2 text-sm text-text-secondary">
           <li className="flex items-start gap-2">
             <span className="text-primary mt-1">•</span>

@@ -1,30 +1,52 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" rx="7" fill="#14171b"/>
+  <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" stroke="#39414b" stroke-width="1" fill="none"/>
+
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#f7b733"/>
-      <stop offset="100%" stop-color="#d4881a"/>
+    <linearGradient id="brass" x1="7.40" y1="5.68" x2="24.60" y2="26.32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#e3c06a"/>
+      <stop offset="100%" stop-color="#a98a3e"/>
     </linearGradient>
-    <clipPath id="clip">
-      <rect width="32" height="32" rx="7.5"/>
-    </clipPath>
   </defs>
-
-  <!-- Background -->
-  <rect width="32" height="32" rx="7.5" fill="url(#bg)"/>
-
-  <g clip-path="url(#clip)">
-    <!-- Area fill -->
-    <path d="M4 23.5 L9.5 17.5 L15.5 20 L21.5 12.5 L28 7 L28 28 L4 28 Z"
-          fill="white" fill-opacity="0.22"/>
-    <!-- Trend line -->
-    <polyline points="4,23.5 9.5,17.5 15.5,20 21.5,12.5 28,7"
-              stroke="white" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round"/>
-    <!-- Peak dot -->
-    <circle cx="28" cy="7" r="2.5" fill="white"/>
-    <!-- Upward arrow -->
-    <path d="M25.5 5 L28 2.5 L30.5 5"
-          stroke="white" stroke-width="1.8"
-          stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
+  <line x1="26.84" y1="16.00" x2="28.04" y2="16.00" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="26.67" y1="17.88" x2="27.86" y2="18.09" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="26.18" y1="19.71" x2="27.31" y2="20.12" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="25.38" y1="21.42" x2="26.43" y2="22.02" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="24.30" y1="22.97" x2="25.22" y2="23.74" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="22.97" y1="24.30" x2="23.74" y2="25.22" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="21.42" y1="25.38" x2="22.02" y2="26.43" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="19.71" y1="26.18" x2="20.12" y2="27.31" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="17.88" y1="26.67" x2="18.09" y2="27.86" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="16.00" y1="26.84" x2="16.00" y2="28.04" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="14.12" y1="26.67" x2="13.91" y2="27.86" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="12.29" y1="26.18" x2="11.88" y2="27.31" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="10.58" y1="25.38" x2="9.98" y2="26.43" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="9.03" y1="24.30" x2="8.26" y2="25.22" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="7.70" y1="22.97" x2="6.78" y2="23.74" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="6.62" y1="21.42" x2="5.57" y2="22.02" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="5.82" y1="19.71" x2="4.69" y2="20.12" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="5.33" y1="17.88" x2="4.14" y2="18.09" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="5.16" y1="16.00" x2="3.96" y2="16.00" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="5.33" y1="14.12" x2="4.14" y2="13.91" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="5.82" y1="12.29" x2="4.69" y2="11.88" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="6.62" y1="10.58" x2="5.57" y2="9.98" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="7.70" y1="9.03" x2="6.78" y2="8.26" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="9.03" y1="7.70" x2="8.26" y2="6.78" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="10.58" y1="6.62" x2="9.98" y2="5.57" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="12.29" y1="5.82" x2="11.88" y2="4.69" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="14.12" y1="5.33" x2="13.91" y2="4.14" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="16.00" y1="5.16" x2="16.00" y2="3.96" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="17.88" y1="5.33" x2="18.09" y2="4.14" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="19.71" y1="5.82" x2="20.12" y2="4.69" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="21.42" y1="6.62" x2="22.02" y2="5.57" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="22.97" y1="7.70" x2="23.74" y2="6.78" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="24.30" y1="9.03" x2="25.22" y2="8.26" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="25.38" y1="10.58" x2="26.43" y2="9.98" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="26.18" y1="12.29" x2="27.31" y2="11.88" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <line x1="26.67" y1="14.12" x2="27.86" y2="13.91" stroke="url(#brass)" stroke-width="0.95" stroke-linecap="round"/>
+  <circle cx="16.00" cy="16.00" r="9.12" stroke="url(#brass)" stroke-width="1.29" fill="none"/>
+  <line x1="16.00" y1="16.00" x2="16.00" y2="23.40" stroke="url(#brass)" stroke-width="1.55" stroke-linecap="round"/>
+  <line x1="16.00" y1="16.00" x2="9.59" y2="12.30" stroke="url(#brass)" stroke-width="1.55" stroke-linecap="round"/>
+  <line x1="16.00" y1="16.00" x2="22.41" y2="12.30" stroke="url(#brass)" stroke-width="1.55" stroke-linecap="round"/>
+  <circle cx="16.00" cy="16.00" r="2.24" fill="url(#brass)"/>
 </svg>

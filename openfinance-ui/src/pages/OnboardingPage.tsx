@@ -156,9 +156,7 @@ function RadioGroup<T extends string>({
 function GroupLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="pt-1" aria-hidden="true">
-      <p className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-        {children}
-      </p>
+      <p className="plate-label">{children}</p>
     </div>
   );
 }
@@ -256,17 +254,19 @@ export default function OnboardingPage() {
       </div>
 
       <div className="w-full max-w-3xl page-enter">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
-            <AppLogo size={30} showText={false} />
+        {/* Header — the vault's welcome plate */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface border border-border-strong shadow-plate mb-5">
+            <AppLogo size={34} showText={false} />
           </div>
-          <h1 className="text-2xl font-bold text-text-primary mb-1">{t('title')}</h1>
+          <h1 className="font-display text-[28px] leading-8 uppercase tracking-[0.08em] text-text-primary mb-2">
+            {t('title')}
+          </h1>
           <p className="text-text-secondary text-sm">{t('subtitle')}</p>
         </div>
 
         {/* Form card */}
-        <div className="bg-surface rounded-xl border border-border p-5 sm:p-8">
+        <div className="bg-surface rounded-[var(--radius-card)] border border-border shadow-plate-lift p-5 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Error banner */}
             {completeOnboarding.isError && (

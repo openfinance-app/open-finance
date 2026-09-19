@@ -45,7 +45,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             aria-invalid={error ? 'true' : 'false'}
             aria-describedby={errorId}
             className={cn(
-              'flex h-10 w-full rounded-lg border bg-surface py-2 text-sm text-text-primary',
+              'flex h-10 w-full rounded-lg border bg-background/60 py-2 text-sm text-text-primary shadow-slot',
               'placeholder:text-text-muted',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               'disabled:cursor-not-allowed disabled:opacity-50',
@@ -53,7 +53,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               icon ? 'pl-10 pr-3' : 'px-3',
               error
                 ? 'border-error focus-visible:ring-error'
-                : 'border-border hover:border-border/80',
+                : 'border-border hover:border-border-strong',
               className
             )}
             {...props}

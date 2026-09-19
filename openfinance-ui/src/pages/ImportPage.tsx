@@ -29,9 +29,7 @@ export default function ImportPage() {
           <div className="flex items-start space-x-3">
             <FileText className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
             <div className="flex-1 space-y-2">
-              <h3 className="text-lg font-semibold text-text-primary">
-                {t('supportedFormats.title')}
-              </h3>
+              <h3 className="plate-label ">{t('supportedFormats.title')}</h3>
               <ul className="text-sm text-text-secondary space-y-1">
                 <li>
                   <strong>{t('supportedFormats.qif.name')}</strong> -{' '}
@@ -61,7 +59,7 @@ export default function ImportPage() {
           <div className="flex items-start space-x-3">
             <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
             <div className="flex-1 space-y-2">
-              <h3 className="text-lg font-semibold text-text-primary">{t('howTo.title')}</h3>
+              <h3 className="plate-label ">{t('howTo.title')}</h3>
               <div className="text-sm text-text-secondary space-y-2">
                 <p>{t('howTo.intro')}</p>
                 <ol className="list-decimal list-inside space-y-1 ml-2">

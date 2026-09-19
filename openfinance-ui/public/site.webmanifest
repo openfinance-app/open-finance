@@ -4,8 +4,8 @@
   "description": "Personal wealth management — track accounts, assets, budgets and investments in one place.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#f5a623",
+  "background_color": "#0c0e10",
+  "theme_color": "#c5a254",
   "icons": [
     {
       "src": "/favicon.svg",

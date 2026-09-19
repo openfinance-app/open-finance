@@ -112,7 +112,7 @@ export default function NetWorthTrendChart({
   if (data.length === 0) {
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">{t('netWorthTrend.title')}</h3>
+        <h3 className="plate-label  mb-4">{t('netWorthTrend.title')}</h3>
         <div className="flex items-center justify-center flex-1 min-h-0 text-text-secondary">
           <p>No historical data available to show trend.</p>
         </div>
@@ -147,9 +147,7 @@ export default function NetWorthTrendChart({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-text-primary mb-1">
-            {t('netWorthTrend.title')}
-          </h3>
+          <h3 className="plate-label  mb-1">{t('netWorthTrend.title')}</h3>
           <p className="text-sm text-text-secondary">
             {periodLabel
               ? t('netWorthTrend.periodTrend', { period: periodLabel })
@@ -181,8 +179,8 @@ export default function NetWorthTrendChart({
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="colorNetWorth" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f5a623" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#f5a623" stopOpacity={0} />
+                <stop offset="5%" stopColor="#c5a254" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#c5a254" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
@@ -206,11 +204,11 @@ export default function NetWorthTrendChart({
             <Area
               type="monotone"
               dataKey="netWorth"
-              stroke="#f5a623"
+              stroke="#c5a254"
               strokeWidth={2}
               fill="url(#colorNetWorth)"
               dot={false}
-              activeDot={{ r: 6, fill: '#f5a623' }}
+              activeDot={{ r: 6, fill: '#c5a254' }}
             />
           </AreaChart>
         </ResponsiveContainer>

@@ -96,8 +96,7 @@ function AlertItem({ alert, onMarkRead, onDismiss, isMarkingRead }: AlertItemPro
 
   return (
     <div
-      className="flex items-start gap-3 p-3 rounded-lg bg-background border-l-4 transition-all hover:bg-surface"
-      style={{ borderLeftColor: severityColor }}
+      className="flex items-start gap-3 p-3 rounded-[10px] bg-surface border border-border shadow-plate transition-all hover:bg-surface-elevated"
     >
       {/* Icon */}
       <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: severityColor }} />
