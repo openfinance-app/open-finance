@@ -613,9 +613,9 @@ export function TransactionList({
   // Group transactions by date
   const grouped = groupByDate(transactions, settings?.dateFormat);
   const sortedDates = Array.from(grouped.keys()).sort((a, b) => {
-    const dateA = new Date(a).getTime();
-    const dateB = new Date(b).getTime();
-    return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+    // Display dates follow the user's locale and must never be parsed as dates.
+    const order = grouped.get(a)![0].date.localeCompare(grouped.get(b)![0].date);
+    return sortDirection === 'asc' ? order : -order;
   });
 
   if (transactions.length === 0) {

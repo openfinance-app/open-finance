@@ -11,7 +11,8 @@
  *  - Accessible: each button has aria-pressed; date inputs have visible labels
  *  - Dark-theme consistent with the rest of the dashboard
  */
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/Popover';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
@@ -95,7 +96,6 @@ export function PeriodSelector({
     () => activeDateRange ?? defaultCustomRange()
   );
   const [customOpen, setCustomOpen] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
 
   const formatCustomLabelDate = (isoDate: string): string => {
     const date = new Date(`${isoDate}T00:00:00`);
@@ -110,18 +110,6 @@ export function PeriodSelector({
     }).format(date);
   };
 
-  // Close popover on outside click
-  useEffect(() => {
-    if (!customOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setCustomOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [customOpen]);
-
   const isCustomActive = selectedPeriod === 'CUSTOM';
 
   const handlePreset = (opt: PeriodOption) => {
@@ -129,8 +117,7 @@ export function PeriodSelector({
     onPeriodChange(opt.value, opt.days);
   };
 
-  const handleCustomToggle = () => {
-    const next = !customOpen;
+  const handleCustomToggle = (next: boolean) => {
     setCustomOpen(next);
     if (next && !isCustomActive) {
       // Immediately activate custom with current range
@@ -197,79 +184,76 @@ export function PeriodSelector({
       <div className="w-px h-5 bg-border mx-1 self-center" />
 
       {/* ── Custom button + popover ── */}
-      <div className="relative" ref={popoverRef}>
-        <button
-          onClick={handleCustomToggle}
-          aria-pressed={isCustomActive}
-          className={cn(
-            'px-3 min-h-[36px] rounded-md text-sm font-medium transition-all duration-150 flex items-center gap-1.5',
-            'hover:bg-surface-elevated',
-            isCustomActive
-              ? 'bg-gradient-to-b from-brass-bright to-primary text-primary-foreground font-semibold shadow-[inset_0_1px_0_0_rgb(255_255_255/0.28)]'
-              : 'text-text-secondary hover:text-text-primary'
-          )}
-        >
-          <Calendar className="h-3.5 w-3.5 shrink-0" />
-          <span className="whitespace-nowrap hidden sm:inline">{customLabel}</span>
-          <ChevronDown
-            className={cn('h-3 w-3 shrink-0 transition-transform', customOpen && 'rotate-180')}
-          />
-        </button>
-
-        {/* ── Date range popover ── */}
-        {customOpen && (
-          <div
+      <Popover open={customOpen} onOpenChange={handleCustomToggle}>
+        <PopoverTrigger asChild>
+          <button
+            aria-label={customLabel}
+            aria-pressed={isCustomActive}
             className={cn(
-              'absolute top-full mt-2 z-50',
-              'bg-surface border border-border rounded-xl shadow-xl p-4',
-              'animate-in fade-in slide-in-from-top-2 duration-150',
-              // Align right on large screens, left on small
-              'right-0 sm:right-auto sm:left-0',
-              'min-w-[280px]'
+              'px-3 min-h-[36px] rounded-md text-sm font-medium transition-all duration-150 flex items-center gap-1.5',
+              'hover:bg-surface-elevated',
+              isCustomActive
+                ? 'bg-gradient-to-b from-brass-bright to-primary text-primary-foreground font-semibold shadow-[inset_0_1px_0_0_rgb(255_255_255/0.28)]'
+                : 'text-text-secondary hover:text-text-primary'
             )}
           >
-            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">
-              {t('dateRange.title')}
-            </p>
+            <Calendar className="h-3.5 w-3.5 shrink-0" />
+            <span className="whitespace-nowrap hidden sm:inline">{customLabel}</span>
+            <ChevronDown
+              className={cn('h-3 w-3 shrink-0 transition-transform', customOpen && 'rotate-180')}
+            />
+          </button>
+        </PopoverTrigger>
 
-            <div className="flex flex-col gap-3">
-              {/* From */}
-              <div className="flex flex-col gap-1">
-                <label htmlFor="period-from" className="text-xs text-text-secondary font-medium">
-                  {t('dateRange.from')}
-                </label>
-                <DateInput
-                  id="period-from"
-                  value={customRange.from}
-                  max={customRange.to}
-                  onChange={handleFromChange}
-                />
-              </div>
+        {/* ── Date range popover ── */}
+        <PopoverContent
+          align="start"
+          collisionPadding={12}
+          sideOffset={8}
+          aria-label={t('dateRange.title')}
+          className="w-[280px] max-w-[calc(100vw-24px)] rounded-xl p-4 shadow-xl"
+        >
+          <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">
+            {t('dateRange.title')}
+          </p>
 
-              {/* To */}
-              <div className="flex flex-col gap-1">
-                <label htmlFor="period-to" className="text-xs text-text-secondary font-medium">
-                  {t('dateRange.to')}
-                </label>
-                <DateInput
-                  id="period-to"
-                  value={customRange.to}
-                  min={customRange.from}
-                  max={toISODate(new Date())}
-                  onChange={handleToChange}
-                />
-              </div>
+          <div className="flex flex-col gap-3">
+            {/* From */}
+            <div className="flex flex-col gap-1">
+              <label htmlFor="period-from" className="text-xs text-text-secondary font-medium">
+                {t('dateRange.from')}
+              </label>
+              <DateInput
+                id="period-from"
+                value={customRange.from}
+                max={customRange.to}
+                onChange={handleFromChange}
+              />
             </div>
 
-            {/* Range summary */}
-            <div className="mt-3 pt-3 border-t border-border text-center">
-              <span className="text-xs text-text-secondary">
-                {t('dateRange.daysSelected', { count: dateRangeToDays(customRange) })}
-              </span>
+            {/* To */}
+            <div className="flex flex-col gap-1">
+              <label htmlFor="period-to" className="text-xs text-text-secondary font-medium">
+                {t('dateRange.to')}
+              </label>
+              <DateInput
+                id="period-to"
+                value={customRange.to}
+                min={customRange.from}
+                max={toISODate(new Date())}
+                onChange={handleToChange}
+              />
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Range summary */}
+          <div className="mt-3 pt-3 border-t border-border text-center">
+            <span className="text-xs text-text-secondary">
+              {t('dateRange.daysSelected', { count: dateRangeToDays(customRange) })}
+            </span>
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

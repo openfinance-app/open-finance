@@ -223,5 +223,24 @@
     "previous": "Previous",
     "next": "Next",
     "page": "Page {{page}} of {{total}}"
+  },
+  "physicalCard": {
+    "brand": "Brand:",
+    "model": "Model:",
+    "serial": "Serial:",
+    "valueChange": "Value Change",
+    "currentValue": "Current Value",
+    "loss": "Loss",
+    "purchaseCost": "Purchase Cost",
+    "warranty": "Warranty",
+    "active": "Active",
+    "expired": "Expired",
+    "expiresOn": "Expires:",
+    "expiredOn": "Expired:",
+    "usefulLife_one": "Useful life: {{count}} year",
+    "usefulLife_other": "Useful life: {{count}} years",
+    "yearsOwned_one": "({{count}} year owned)",
+    "yearsOwned_other": "({{count}} years owned)",
+    "noPhoto": "No photo"
   }
 }

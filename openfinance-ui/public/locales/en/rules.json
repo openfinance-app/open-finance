@@ -111,6 +111,9 @@
         "splitAmount": "Split amount...",
         "splitDescription": "Split description (optional)..."
       }
-    }
+    },
+    "conditionMatchAnd": "ALL (AND)",
+    "conditionMatchOr": "ANY (OR)",
+    "conditionsHintOr": "Transaction matches if any condition is met."
   }
 }

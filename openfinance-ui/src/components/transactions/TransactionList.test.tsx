@@ -13,6 +13,12 @@ import * as usePayeesModule from '@/hooks/usePayees';
 import { renderWithProviders } from '@/test/test-utils';
 import type { Transaction, TransactionSplitResponse } from '@/types/transaction';
 import type { Payee } from '@/types/payee';
+import { useUserSettings } from '@/hooks/useUserSettings';
+
+vi.mock('@/hooks/useUserSettings', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/hooks/useUserSettings')>()),
+  useUserSettings: vi.fn(() => ({ data: { dateFormat: 'DD/MM/YYYY' } })),
+}));
 
 // ── Polyfills ─────────────────────────────────────────────────────────────────
 
@@ -632,6 +638,28 @@ describe('TransactionList', () => {
   });
 
   describe('Sort Direction', () => {
+    it.each(['asc', 'desc'] as const)(
+      'sorts French date groups in %s calendar order',
+      direction => {
+        vi.mocked(useUserSettings).mockReturnValue({
+          data: { dateFormat: 'DD/MM/YYYY' },
+        } as ReturnType<typeof useUserSettings>);
+        const dates = ['2026-07-12', '2026-08-08', '2026-09-06', '2026-07-31'];
+        renderWithProviders(
+          <TransactionList
+            transactions={dates.map((date, id) => ({ ...mockRegularTransaction, id, date }))}
+            onEdit={vi.fn()}
+            onDelete={vi.fn()}
+            sortDirection={direction}
+          />
+        );
+        const ascending = ['12/07/2026', '31/07/2026', '08/08/2026', '06/09/2026'];
+        expect(screen.getAllByRole('heading', { level: 3 }).map(h => h.textContent)).toEqual(
+          direction === 'asc' ? ascending : ascending.toReversed()
+        );
+      }
+    );
+
     it('sorts date groups in descending order by default', () => {
       const tx1: Transaction = {
         ...mockRegularTransaction,

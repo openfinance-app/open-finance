@@ -34,6 +34,11 @@ public class CategoryResponse {
     private String name;
 
     /**
+     * Stored, decrypted name for matching import categories independently of the display locale.
+     */
+    private String canonicalName;
+
+    /**
      * Type of category: INCOME or EXPENSE.
      *
      * <p>Requirement REQ-2.4.1: Display category type

@@ -223,27 +223,42 @@ export function ImportReview({
   // Also auto-detect unknown categories (no DB match, no existing mapping) → add to newCategoryNames.
   useEffect(() => {
     const newMappings = { ...categoryMappings };
-    const newToCreate = [...newCategoryNames];
+    const newToCreate: string[] = [];
     let mappingChanged = false;
-    let createChanged = false;
 
     uniqueCategories.forEach(({ name }) => {
       if (!(name in newMappings)) {
-        const match = categories.find(c => c.name.toLowerCase() === name.toLowerCase());
+        const match = categories.find(
+          c =>
+            c.name.toLowerCase() === name.toLowerCase() ||
+            c.canonicalName?.toLowerCase() === name.toLowerCase()
+        );
         if (match) {
           newMappings[name] = match.id;
           mappingChanged = true;
-        } else if (!newToCreate.includes(name)) {
-          newToCreate.push(name);
-          createChanged = true;
         }
       }
+      if (!(name in newMappings)) newToCreate.push(name);
     });
 
     if (mappingChanged) onCategoryMappingsChange(newMappings);
-    if (createChanged) onNewCategoryNamesChange(newToCreate);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uniqueCategories.length, categories.length]);
+    if (JSON.stringify(newToCreate) !== JSON.stringify(newCategoryNames)) {
+      onNewCategoryNamesChange(newToCreate);
+    }
+  }, [
+    uniqueCategories,
+    categories,
+    categoryMappings,
+    newCategoryNames,
+    onCategoryMappingsChange,
+    onNewCategoryNamesChange,
+  ]);
+
+  const rememberCategorySelection = (name: string, categoryId?: number) => {
+    if (categoryId != null) {
+      onCategoryMappingsChange({ ...categoryMappings, [name]: categoryId });
+    }
+  };
 
   // -------------------------------------------------------------------------
   // Derived data
@@ -283,7 +298,11 @@ export function ImportReview({
         if (!t.category) return false;
         return (
           categoryMappings[t.category] != null ||
-          categories.some(c => c.name.toLowerCase() === t.category!.toLowerCase()) ||
+          categories.some(
+            c =>
+              c.name.toLowerCase() === t.category!.toLowerCase() ||
+              c.canonicalName?.toLowerCase() === t.category!.toLowerCase()
+          ) ||
           newCategoryNames.includes(t.category)
         );
       }).length,
@@ -387,6 +406,10 @@ export function ImportReview({
       return dateStr;
     }
   };
+
+  const categoryDisplayName = (name: string): string =>
+    categories.find(c => c.id === categoryMappings[name])?.name ??
+    translateCategoryName(tCategories, name);
 
   // -------------------------------------------------------------------------
   // Render
@@ -510,8 +533,7 @@ export function ImportReview({
               {newCategoryNames.filter(n => uniqueCategories.some(u => u.name === n)).length >
                 0 && (
                 <span className="ml-1.5 text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
-                  {newCategoryNames.filter(n => uniqueCategories.some(u => u.name === n)).length} to
-                  create
+                  {t('review.labels.toCreate', { count: newCategoryNames.length })}
                 </span>
               )}
             </span>
@@ -542,15 +564,15 @@ export function ImportReview({
                       {isToCreate && !showOverride ? (
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-primary italic flex items-center gap-1">
-                            <Sparkles className="h-3 w-3" /> Will be created
+                            <Sparkles className="h-3 w-3" /> {t('review.labels.willCreate')}
                           </span>
                           <button
                             type="button"
                             onClick={() => setMappingPanelOverride(p => ({ ...p, [name]: true }))}
                             className="text-xs text-text-tertiary hover:text-primary underline underline-offset-2"
-                            title="Map to existing category instead"
+                            title={t('review.actions.mapExisting')}
                           >
-                            Map to existing
+                            {t('review.labels.mapExisting')}
                           </button>
                         </div>
                       ) : (
@@ -598,7 +620,7 @@ export function ImportReview({
                           {showOverride && (
                             <button
                               type="button"
-                              title="Cancel — keep as will be created"
+                              title={t('review.actions.keepNew')}
                               onClick={() =>
                                 setMappingPanelOverride(p => {
                                   const n = { ...p };
@@ -644,7 +666,10 @@ export function ImportReview({
             <div className="flex-1 min-w-0">
               <CategoryCombobox
                 value={bulkCategory}
-                onValueChange={setBulkCategory}
+                onValueChange={(name, id) => {
+                  setBulkCategory(name);
+                  rememberCategorySelection(name, id);
+                }}
                 placeholder={t('review.bulkAction.setCategory')}
                 className="w-full h-10"
               />
@@ -679,7 +704,7 @@ export function ImportReview({
                 onTransactionsChange(transactions.filter((_, idx) => !selectedRows.has(idx)));
                 setSelectedRows(new Set());
               }}
-              title="Remove selected from import"
+              title={t('review.actions.removeSelected')}
               className="text-red-500 hover:text-red-600 hover:bg-red-50"
             >
               <Trash2 className="h-4 w-4" />
@@ -688,7 +713,7 @@ export function ImportReview({
               variant="ghost"
               size="sm"
               onClick={() => setSelectedRows(new Set())}
-              title="Clear selection"
+              title={t('review.actions.clearSelection')}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -786,7 +811,7 @@ export function ImportReview({
                             checked={isSelected}
                             onChange={() => toggleRowSelection(idx)}
                             className="rounded border-border text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                            aria-label={`Select transaction ${idx + 1}`}
+                            aria-label={t('review.actions.selectTransaction', { number: idx + 1 })}
                           />
                         </td>
 
@@ -807,9 +832,9 @@ export function ImportReview({
                           ) : (
                             <div
                               className="max-w-[180px] truncate"
-                              title={transaction.originalPayee || transaction.payee || undefined}
+                              title={transaction.payee || undefined}
                             >
-                              {transaction.originalPayee || transaction.payee || (
+                              {transaction.payee || (
                                 <span className="text-text-tertiary italic">—</span>
                               )}
                             </div>
@@ -834,7 +859,10 @@ export function ImportReview({
                           {isEditing ? (
                             <CategoryCombobox
                               value={editState.category}
-                              onValueChange={val => setEditState(s => ({ ...s, category: val }))}
+                              onValueChange={(name, id) => {
+                                setEditState(s => ({ ...s, category: name }));
+                                rememberCategorySelection(name, id);
+                              }}
                               placeholder={t('review.table.noCategory')}
                               className="w-full text-sm"
                             />
@@ -845,7 +873,7 @@ export function ImportReview({
                                 className="text-text-secondary truncate max-w-[200px]"
                                 title={transaction.category}
                               >
-                                {translateCategoryName(tCategories, transaction.category)}
+                                {categoryDisplayName(transaction.category)}
                               </span>
                             </span>
                           ) : (
@@ -853,7 +881,7 @@ export function ImportReview({
                               onClick={() => startEditing(idx)}
                               className="text-xs text-amber-600 hover:text-amber-700 underline underline-offset-2 whitespace-nowrap"
                             >
-                              + Assign
+                              {t('review.table.assign')}
                             </button>
                           )}
                         </td>
@@ -879,19 +907,23 @@ export function ImportReview({
                           <div className="flex items-center space-x-1.5">
                             {isDuplicate && (
                               <Badge variant="warning" size="sm">
-                                Duplicate
+                                {t('review.labels.duplicate')}
                               </Badge>
                             )}
                             {hasErrors && (
                               <button
                                 onClick={() => toggleRowExpansion(idx)}
                                 className="inline-flex items-center space-x-1 focus:outline-none group"
-                                title={isExpanded ? 'Hide errors' : 'Show errors'}
+                                title={t(
+                                  isExpanded
+                                    ? 'review.actions.hideErrors'
+                                    : 'review.actions.showErrors'
+                                )}
                               >
                                 <Badge variant="error" size="sm">
                                   <span className="flex items-center space-x-1">
                                     <AlertCircle className="h-3 w-3" />
-                                    <span>Error</span>
+                                    <span>{t('review.labels.error')}</span>
                                   </span>
                                 </Badge>
                               </button>
@@ -904,7 +936,7 @@ export function ImportReview({
                               >
                                 <span className="flex items-center space-x-1">
                                   <Sparkles className="h-3 w-3" />
-                                  <span>Matched</span>
+                                  <span>{t('review.labels.matched')}</span>
                                 </span>
                               </Badge>
                             )}
@@ -916,7 +948,7 @@ export function ImportReview({
                               >
                                 <span className="flex items-center space-x-1">
                                   <Sparkles className="h-3 w-3" />
-                                  <span>AI</span>
+                                  <span>{t('review.labels.ai')}</span>
                                 </span>
                               </Badge>
                             )}
@@ -926,12 +958,12 @@ export function ImportReview({
                                 size="sm"
                                 className="bg-gray-100 text-gray-500 border-gray-200"
                               >
-                                <span>Skipped</span>
+                                <span>{t('review.labels.skipped')}</span>
                               </Badge>
                             )}
                             {hasSplits && !isDuplicate && !hasErrors && (
                               <Badge variant="default" size="sm">
-                                Split
+                                {t('review.labels.split')}
                               </Badge>
                             )}
                           </div>
@@ -945,14 +977,14 @@ export function ImportReview({
                                 <button
                                   onClick={() => commitEdit(idx)}
                                   className="p-1 rounded text-green-600 hover:bg-green-50 transition-colors"
-                                  title="Save"
+                                  title={t('review.actions.save')}
                                 >
                                   <Check className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={cancelEdit}
                                   className="p-1 rounded text-text-tertiary hover:bg-surface-elevated transition-colors"
-                                  title="Cancel"
+                                  title={t('review.actions.cancel')}
                                 >
                                   <X className="h-4 w-4" />
                                 </button>
@@ -962,7 +994,7 @@ export function ImportReview({
                                 <button
                                   onClick={() => startEditing(idx)}
                                   className="p-1 rounded text-text-tertiary hover:text-primary hover:bg-primary/5 transition-colors"
-                                  title="Edit transaction"
+                                  title={t('review.actions.edit')}
                                 >
                                   <Edit2 className="h-3.5 w-3.5" />
                                 </button>
@@ -970,7 +1002,11 @@ export function ImportReview({
                                   <button
                                     onClick={() => toggleRowExpansion(idx)}
                                     className="p-1 rounded text-text-tertiary hover:text-primary hover:bg-primary/5 transition-colors"
-                                    title={isExpanded ? 'Collapse' : 'Expand splits'}
+                                    title={t(
+                                      isExpanded
+                                        ? 'review.actions.collapse'
+                                        : 'review.actions.expandSplits'
+                                    )}
                                   >
                                     {isExpanded ? (
                                       <ChevronDown className="h-4 w-4" />
@@ -1015,9 +1051,7 @@ export function ImportReview({
                                 className="flex items-center justify-between text-sm bg-app-bg rounded px-3 py-2 gap-4"
                               >
                                 <span className="text-text-secondary flex-1 truncate">
-                                  {split.category
-                                    ? translateCategoryName(tCategories, split.category)
-                                    : '—'}
+                                  {split.category ? categoryDisplayName(split.category) : '—'}
                                 </span>
                                 <span className="font-mono text-text-primary whitespace-nowrap">
                                   <ConvertedAmount

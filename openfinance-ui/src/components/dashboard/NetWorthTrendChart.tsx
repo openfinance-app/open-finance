@@ -114,7 +114,7 @@ export default function NetWorthTrendChart({
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
         <h3 className="plate-label  mb-4">{t('netWorthTrend.title')}</h3>
         <div className="flex items-center justify-center flex-1 min-h-0 text-text-secondary">
-          <p>No historical data available to show trend.</p>
+          <p>{t('netWorthTrend.noHistory')}</p>
         </div>
       </div>
     );
@@ -158,21 +158,25 @@ export default function NetWorthTrendChart({
         </div>
 
         {/* Overall Change */}
-        <div className="flex items-center gap-2">
-          {getTrendIcon()}
-          <div className="text-right">
-            <p
-              className={`text-sm font-semibold ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}
-            >
-              {overallChange >= 0 ? '+' : '-'}
-              <ConvertedAmount amount={Math.abs(overallChange)} currency={currency} inline />
-            </p>
-            <p className={`text-xs ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {overallChange >= 0 ? '+' : ''}
-              {overallChangePercent}%
-            </p>
+        {data.length > 1 ? (
+          <div className="flex items-center gap-2">
+            {getTrendIcon()}
+            <div className="text-right">
+              <p
+                className={`text-sm font-semibold ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}
+              >
+                {overallChange >= 0 ? '+' : '-'}
+                <ConvertedAmount amount={Math.abs(overallChange)} currency={currency} inline />
+              </p>
+              <p className={`text-xs ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {overallChange >= 0 ? '+' : ''}
+                {overallChangePercent}%
+              </p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <p className="text-sm text-text-secondary">{t('netWorthTrend.noComparison')}</p>
+        )}
       </div>
 
       {/* Chart */}

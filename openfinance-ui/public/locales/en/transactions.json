@@ -31,7 +31,8 @@
     "thisMonth": "This month",
     "thisYear": "This year",
     "from": "From",
-    "to": "To"
+    "to": "To",
+    "excludeTransfers": "Transfers excluded"
   },
   "loadError": "Failed to load transactions. Please try again later.",
   "empty": {

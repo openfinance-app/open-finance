@@ -196,7 +196,7 @@ describe('CashFlowChart navigation', () => {
     renderChart(navProps);
     await user.click(screen.getByRole('button', { name: 'View income transactions' }));
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/transactions?type=INCOME&dateFrom=2026-08-01&dateTo=2026-08-31'
+      '/transactions?type=INCOME&excludeTransfers=true&dateFrom=2026-08-01&dateTo=2026-08-31'
     );
   });
 
@@ -205,7 +205,7 @@ describe('CashFlowChart navigation', () => {
     renderChart(navProps);
     await user.click(screen.getByRole('button', { name: 'View expense transactions' }));
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/transactions?type=EXPENSE&dateFrom=2026-08-01&dateTo=2026-08-31'
+      '/transactions?type=EXPENSE&excludeTransfers=true&dateFrom=2026-08-01&dateTo=2026-08-31'
     );
   });
 });

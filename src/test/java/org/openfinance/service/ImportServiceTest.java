@@ -458,6 +458,40 @@ class ImportServiceTest {
     }
 
     @Test
+    @DisplayName("History suggests a category without replacing a different imported merchant")
+    void historyCategoryPredictionPreservesTheImportedMerchant() throws Exception {
+        ImportedTransaction merchant =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2026, 8, 20))
+                        .amount(new BigDecimal("-54.80"))
+                        .currency("EUR")
+                        .payee("Leclerc")
+                        .memo("Courses fin août")
+                        .build();
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
+        testSession.setStatus(ImportStatus.PARSED);
+        testSession.setMetadata("{\"transactions\":[]}");
+        when(objectMapper.readValue(
+                        anyString(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(new HashMap<>(Map.of("transactions", List.of(merchant))));
+        when(objectMapper.convertValue(
+                        any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(List.of(merchant));
+        when(autoCategorizationService.predictCategoryAndPayee(merchant, USER_ID))
+                .thenReturn(
+                        Optional.of(
+                                new AutoCategorizationService.Prediction(
+                                        "Groceries", "Carrefour", 0.9)));
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"transactions\":[]}");
+
+        importService.reviewTransactions(1L, USER_ID);
+
+        assertThat(merchant.getCategory()).isEqualTo("Groceries");
+        assertThat(merchant.getPayee()).isEqualTo("Leclerc");
+        assertThat(merchant.getOriginalPayee()).isEqualTo("Leclerc");
+    }
+
+    @Test
     @DisplayName("Should parse OFX file successfully")
     void shouldParseOfxFileSuccessfully() throws Exception {
         // Given

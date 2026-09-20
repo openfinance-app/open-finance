@@ -531,6 +531,26 @@ class TransactionServiceTest {
     // ---------- getTransactionById tests ----------
 
     @Test
+    void transferEditorLoadsTheSourceAndRejectsForeignOrDeletedPairs() {
+        Transaction source = transactionEntity(300L, 12L, baseRequest());
+        source.setType(TransactionType.EXPENSE);
+        source.setTransferId("pair");
+        Transaction incoming = transactionEntity(301L, 12L, baseRequest());
+        incoming.setType(TransactionType.INCOME);
+        incoming.setTransferId("pair");
+        when(transactionRepository.findByTransferId("pair")).thenReturn(List.of(incoming, source));
+        TransactionResponse response = new TransactionResponse();
+        response.setId(source.getId());
+        when(transactionMapper.toResponse(source)).thenReturn(response);
+        assertThat(transactionService.getTransferSource("pair", 12L).getId()).isEqualTo(300L);
+        assertThatThrownBy(() -> transactionService.getTransferSource("pair", 99L))
+                .isInstanceOf(TransactionNotFoundException.class);
+        incoming.setIsDeleted(true);
+        assertThatThrownBy(() -> transactionService.getTransferSource("pair", 12L))
+                .isInstanceOf(TransactionNotFoundException.class);
+    }
+
+    @Test
     @DisplayName("Should retrieve transaction by id with decryption and denormalized fields")
     void shouldGetTransactionByIdSuccessfully() {
         TransactionRequest req = baseRequest();

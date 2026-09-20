@@ -153,7 +153,7 @@
     "categoryAssignments": {
       "title": "Category Assignments ({{count}} unique categories)",
       "notMapped": "not mapped",
-      "footer": "Category mappings are applied automatically when you confirm the import. Unmapped categories will be left unassigned on the imported transactions.",
+      "footer": "Selected categories are reused. New categories are created only for transactions that are imported.",
       "title_one": "Category Assignments ({{count}} unique category)",
       "title_other": "Category Assignments ({{count}} unique categories)"
     },
@@ -187,7 +187,33 @@
     "autoAssignedCount_one": "{{count}} transaction automatically assigned.",
     "autoAssignedCount_other": "{{count}} transactions automatically assigned.",
     "categorizationHint_one": "{{count}} transaction still needs a category assignment.",
-    "categorizationHint_other": "{{count}} transactions still need a category assignment."
+    "categorizationHint_other": "{{count}} transactions still need a category assignment.",
+    "labels": {
+      "mapExisting": "Map to existing",
+      "willCreate": "Will be created",
+      "duplicate": "Duplicate",
+      "error": "Error",
+      "matched": "Matched",
+      "ai": "AI",
+      "skipped": "Skipped",
+      "split": "Split",
+      "toCreate_one": "{{count}} to create",
+      "toCreate_other": "{{count}} to create"
+    },
+    "actions": {
+      "mapExisting": "Map to existing category instead",
+      "keepNew": "Cancel — keep as will be created",
+      "removeSelected": "Remove selected from import",
+      "clearSelection": "Clear selection",
+      "save": "Save",
+      "cancel": "Cancel",
+      "edit": "Edit transaction",
+      "hideErrors": "Hide errors",
+      "showErrors": "Show errors",
+      "collapse": "Collapse",
+      "expandSplits": "Expand splits",
+      "selectTransaction": "Select transaction {{number}}"
+    }
   },
   "progress": {
     "preparing": "Preparing import...",

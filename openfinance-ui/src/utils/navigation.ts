@@ -11,6 +11,7 @@ export interface TransactionsLinkParams {
   categoryId?: number;
   noCategory?: boolean;
   type?: TransactionTypeFilter;
+  excludeTransfers?: boolean;
   dateRange?: DateRange;
 }
 
@@ -20,6 +21,7 @@ export function buildTransactionsLink(params: TransactionsLinkParams): string {
   if (params.categoryId != null) sp.set('categoryId', String(params.categoryId));
   if (params.noCategory) sp.set('noCategory', '1');
   if (params.type) sp.set('type', params.type);
+  if (params.excludeTransfers) sp.set('excludeTransfers', 'true');
   if (params.dateRange?.from) sp.set('dateFrom', params.dateRange.from);
   if (params.dateRange?.to) sp.set('dateTo', params.dateRange.to);
   const qs = sp.toString();

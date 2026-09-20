@@ -241,7 +241,7 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
       </div>
 
       {/* Tag Filter */}
-      {(filters.noCategory || filters.noPayee) && (
+      {(filters.noCategory || filters.noPayee || filters.excludeTransfers) && (
         <div className="flex flex-wrap gap-2">
           {filters.noCategory && (
             <Badge
@@ -262,6 +262,16 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
               <span>{t('filterKeys.noPayee')}</span>
               <X className="w-3 h-3 ml-0.5" />
             </Badge>
+          )}
+          {filters.excludeTransfers && (
+            <button
+              type="button"
+              onClick={() => handleChange('excludeTransfers', undefined)}
+              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs text-primary"
+            >
+              <span>{t('filterKeys.excludeTransfers')}</span>
+              <X className="h-3 w-3" />
+            </button>
           )}
         </div>
       )}

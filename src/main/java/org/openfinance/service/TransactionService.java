@@ -1286,6 +1286,29 @@ public class TransactionService {
         return toResponseWithDecryption(transaction);
     }
 
+    /** Loads the original source leg so either side can open the same transfer editor. */
+    @Transactional(readOnly = true)
+    public TransactionResponse getTransferSource(String transferId, Long userId) {
+        List<Transaction> pair = transactionRepository.findByTransferId(transferId);
+        if (pair.size() != 2
+                || pair.stream()
+                        .anyMatch(
+                                tx ->
+                                        !userId.equals(tx.getUserId())
+                                                || Boolean.TRUE.equals(tx.getIsDeleted()))) {
+            throw new TransactionNotFoundException("Transfer not found or access denied");
+        }
+        Transaction source =
+                pair.stream()
+                        .filter(tx -> tx.getType() == TransactionType.EXPENSE)
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new TransactionNotFoundException(
+                                                "Transfer source not found"));
+        return toResponseWithDecryption(source);
+    }
+
     /**
      * Retrieves all active transactions for a specific account.
      *

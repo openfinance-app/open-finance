@@ -244,6 +244,14 @@ public class TransactionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /** Returns the owned transfer's source entry for editing from either account. */
+    @GetMapping("/transfers/{transferId}")
+    public ResponseEntity<TransactionResponse> getTransferSource(
+            @PathVariable("transferId") String transferId, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(transactionService.getTransferSource(transferId, user.getId()));
+    }
+
     /**
      * Updates an existing transfer transaction atomically.
      *
@@ -673,6 +681,7 @@ public class TransactionController {
             @RequestParam(required = false) Long assetId,
             @RequestParam(required = false) Long liabilityId,
             @RequestParam(required = false, defaultValue = "false") boolean keywordRegex,
+            @RequestParam(required = false) Boolean excludeTransfers,
             Pageable pageable,
             Authentication authentication) {
 
@@ -689,6 +698,7 @@ public class TransactionController {
                 org.openfinance.dto.TransactionSearchCriteria.builder()
                         .keyword(keyword)
                         .keywordRegex(keywordRegex)
+                        .excludeTransfers(excludeTransfers)
                         .accountId(accountId)
                         .categoryId(categoryId)
                         .type(type)

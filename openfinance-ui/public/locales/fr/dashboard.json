@@ -316,7 +316,9 @@
     "periodTrend": "Évolution pour {{period}}",
     "dataPointsDays": "{{count}} points de données sur {{days}} jours",
     "dataPointsDays_one": "{{count}} point sur {{days}} jours",
-    "dataPointsDays_other": "{{count}} points sur {{days}} jours"
+    "dataPointsDays_other": "{{count}} points sur {{days}} jours",
+    "noComparison": "Un historique plus complet est nécessaire pour calculer la variation.",
+    "noHistory": "Aucun historique disponible pour afficher l’évolution."
   },
   "borrowingCapacity": {
     "title": "Capacité d'emprunt",
@@ -395,7 +397,8 @@
     "Credit_Cards": "Cartes de crédit",
     "Checking": "Compte courant",
     "Savings": "Épargne",
-    "Pension": "Retraite"
+    "Pension": "Retraite",
+    "Vehicles": "Véhicules"
   },
   "balanceVariation": {
     "title": "Variation annuelle du solde",

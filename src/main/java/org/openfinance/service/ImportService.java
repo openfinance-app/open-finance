@@ -1493,13 +1493,14 @@ public class ImportService {
                     AutoCategorizationService.Prediction prediction = predictionOpt.get();
                     tx.setCategory(prediction.suggestedCategoryName());
                     tx.setCategorizationConfidence(prediction.confidenceScore());
-                    if (prediction.suggestedPayee() != null) {
+                    if ((tx.getPayee() == null || tx.getPayee().isBlank())
+                            && prediction.suggestedPayee() != null) {
                         tx.setPayee(prediction.suggestedPayee());
                     }
 
                     tx.addValidationError(
                             String.format(
-                                    "AUTO-MATCH: Category and Payee assigned based on past"
+                                    "AUTO-MATCH: Category suggested based on past"
                                             + " transaction history (Confidence: %.0f%%)",
                                     prediction.confidenceScore() * 100));
                     log.debug(

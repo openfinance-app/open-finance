@@ -766,6 +766,7 @@ public class CategoryService {
      */
     private CategoryResponse toResponseWithDecryption(Category category, Locale locale) {
         CategoryResponse response = categoryMapper.toResponse(category);
+        response.setCanonicalName(category.getName());
 
         // Resolve name: system categories use MessageSource; user categories are
         // already decrypted by JPA converter

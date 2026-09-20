@@ -190,16 +190,28 @@ export default function CashflowSankeyCard({
 
   const navToType = useCallback(
     (type: 'INCOME' | 'EXPENSE') =>
-      navigate(buildTransactionsLink({ type, dateRange: navDateRange })),
+      navigate(buildTransactionsLink({ type, excludeTransfers: true, dateRange: navDateRange })),
     [navigate, navDateRange]
   );
 
   const navToFlow = useCallback(
     (node: ICashflowSankeyNode) => {
       if (node.categoryId != null) {
-        navigate(buildTransactionsLink({ categoryId: node.categoryId, dateRange: navDateRange }));
+        navigate(
+          buildTransactionsLink({
+            categoryId: node.categoryId,
+            excludeTransfers: true,
+            dateRange: navDateRange,
+          })
+        );
       } else {
-        navigate(buildTransactionsLink({ noCategory: true, dateRange: navDateRange }));
+        navigate(
+          buildTransactionsLink({
+            noCategory: true,
+            excludeTransfers: true,
+            dateRange: navDateRange,
+          })
+        );
       }
     },
     [navigate, navDateRange]

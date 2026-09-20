@@ -743,11 +743,12 @@ public class NetWorthService {
             String baseCurrency,
             boolean force) {
         LocalDate effectiveEnd = endDate.isAfter(LocalDate.now()) ? LocalDate.now() : endDate;
+        if (startDate.isAfter(effectiveEnd)) return 0;
 
         if (force) {
             int deleted =
                     netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
-                            userId, startDate.withDayOfMonth(1), effectiveEnd);
+                            userId, startDate, effectiveEnd);
             log.info(
                     "Force-recalculate: deleted {} existing net worth snapshots for user {} in range {} to {}",
                     deleted,
@@ -812,10 +813,18 @@ public class NetWorthService {
                         .collect(Collectors.groupingBy(Transaction::getLiabilityId));
 
         int savedCount = 0;
-        LocalDate current = startDate.withDayOfMonth(1);
+        // Monthly samples alone cannot describe a historical month or a custom range.
+        // Reconstruct both exact boundaries with the same dated ledger as every other point.
+        java.util.SortedSet<LocalDate> snapshotDates = new java.util.TreeSet<>();
+        snapshotDates.add(startDate);
+        snapshotDates.add(effectiveEnd);
+        LocalDate month = startDate.withDayOfMonth(1);
+        while (!month.isAfter(effectiveEnd)) {
+            if (!month.isBefore(startDate)) snapshotDates.add(month);
+            month = month.plusMonths(1);
+        }
 
-        while (!current.isAfter(effectiveEnd)) {
-            final LocalDate targetDate = current;
+        for (LocalDate targetDate : snapshotDates) {
 
             if (netWorthRepository.findByUserIdAndSnapshotDate(userId, targetDate).isEmpty()) {
                 BigDecimal totalAssets = BigDecimal.ZERO;
@@ -1025,8 +1034,6 @@ public class NetWorthService {
                             netWorthAtDate);
                 }
             }
-
-            current = current.plusMonths(1);
         }
 
         log.info(

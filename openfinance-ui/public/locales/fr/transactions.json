@@ -31,7 +31,8 @@
     "thisMonth": "Ce mois-ci",
     "thisYear": "Cette année",
     "from": "Du",
-    "to": "Au"
+    "to": "Au",
+    "excludeTransfers": "Virements exclus"
   },
   "loadError": "Impossible de charger les transactions. Veuillez réessayer ultérieurement.",
   "empty": {

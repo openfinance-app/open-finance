@@ -153,7 +153,7 @@
     "categoryAssignments": {
       "title": "Affectations de catégories ({{count}} catégories uniques)",
       "notMapped": "non mappé",
-      "footer": "Les mappages de catégories sont appliqués automatiquement lorsque vous confirmez l'importation. Les catégories non mappées resteront non assignées sur les transactions importées.",
+      "footer": "Les catégories sélectionnées sont réutilisées. Les nouvelles catégories sont créées uniquement pour les opérations importées.",
       "title_one": "Affectations de catégories ({{count}} catégorie unique)",
       "title_other": "Affectations de catégories ({{count}} catégories uniques)"
     },
@@ -187,7 +187,33 @@
     "autoAssignedCount_one": "{{count}} transaction automatiquement assignée.",
     "autoAssignedCount_other": "{{count}} transactions automatiquement assignées.",
     "categorizationHint_one": "{{count}} transaction nécessite encore une affectation de catégorie.",
-    "categorizationHint_other": "{{count}} transactions nécessitent encore une affectation de catégorie."
+    "categorizationHint_other": "{{count}} transactions nécessitent encore une affectation de catégorie.",
+    "labels": {
+      "mapExisting": "Associer à une catégorie existante",
+      "willCreate": "Sera créée",
+      "duplicate": "Doublon",
+      "error": "Erreur",
+      "matched": "Règle appliquée",
+      "ai": "IA",
+      "skipped": "Ignorée",
+      "split": "Ventilée",
+      "toCreate_one": "{{count}} à créer",
+      "toCreate_other": "{{count}} à créer"
+    },
+    "actions": {
+      "mapExisting": "Associer à une catégorie existante",
+      "keepNew": "Annuler et créer cette catégorie",
+      "removeSelected": "Retirer les opérations sélectionnées de l’import",
+      "clearSelection": "Effacer la sélection",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "edit": "Modifier l’opération",
+      "hideErrors": "Masquer les erreurs",
+      "showErrors": "Afficher les erreurs",
+      "collapse": "Réduire",
+      "expandSplits": "Afficher la ventilation",
+      "selectTransaction": "Sélectionner l’opération {{number}}"
+    }
   },
   "progress": {
     "preparing": "Préparation de l'importation...",

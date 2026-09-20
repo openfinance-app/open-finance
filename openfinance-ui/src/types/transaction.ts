@@ -217,6 +217,7 @@ export interface TransferUpdateRequest {
 }
 
 export interface TransactionFilters {
+  excludeTransfers?: boolean;
   accountId?: number;
   type?: TransactionType;
   categoryId?: number;

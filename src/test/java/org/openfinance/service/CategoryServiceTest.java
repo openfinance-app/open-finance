@@ -1106,6 +1106,7 @@ class CategoryServiceTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getName()).isEqualTo("Épicerie");
+        assertThat(result.getCanonicalName()).isEqualTo("Groceries");
         verify(messageSource)
                 .getMessage(eq("category.groceries"), any(), eq("Groceries"), eq(Locale.FRENCH));
         verify(encryptionService, never()).decrypt(anyString(), any());

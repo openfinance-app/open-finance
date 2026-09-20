@@ -68,7 +68,7 @@ export default function NetWorthCard({
           secondaryCurrency={secCurrency}
           secondaryExchangeRate={secondaryExchangeRate}
           animate
-          className="text-[44px] leading-none font-bold text-text-primary font-mono tracking-[-0.02em]"
+          className="text-[32px] sm:text-[44px] leading-none font-bold text-text-primary font-mono tracking-[-0.02em]"
         />
         <div className="flex items-center gap-1 text-sm text-text-secondary mt-2">
           {t('metrics.netWorth')}
@@ -78,8 +78,8 @@ export default function NetWorthCard({
 
       {/* Change Indicator */}
       {hasComparison ? (
-        <div className={`relative flex items-center gap-2 ${changeColor}`}>
-          <ChangeIcon className="h-5 w-5" />
+        <div className={`relative flex flex-wrap sm:flex-nowrap items-center gap-2 ${changeColor}`}>
+          <ChangeIcon className="h-5 w-5 shrink-0" />
           <span className="font-semibold font-mono inline-flex items-baseline gap-0">
             {isPositiveChange ? '+' : ''}
             <ConvertedAmount
@@ -96,7 +96,7 @@ export default function NetWorthCard({
             ({isPositiveChange ? '+' : ''}
             {formatPercentage(changePercentage!)})
           </PrivateAmount>
-          <span className="text-text-secondary text-sm ml-auto">
+          <span className="text-text-secondary text-sm basis-full sm:basis-auto sm:ml-auto">
             {t('metrics.vsPeriod', { period: periodLabel })}
           </span>
         </div>

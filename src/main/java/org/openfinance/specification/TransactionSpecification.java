@@ -112,6 +112,12 @@ public class TransactionSpecification {
             if (criteria.getType() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("type"), criteria.getType()));
             }
+            if (Boolean.TRUE.equals(criteria.getExcludeTransfers())) {
+                predicates.add(criteriaBuilder.isNull(root.get("transferId")));
+                predicates.add(
+                        criteriaBuilder.notEqual(
+                                root.get("type"), org.openfinance.entity.TransactionType.TRANSFER));
+            }
 
             // Filter by date range
             if (criteria.getDateFrom() != null) {

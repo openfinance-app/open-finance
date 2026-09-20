@@ -597,7 +597,7 @@ export function TransactionForm({
       ? {
           accountId: transaction.accountId,
           toAccountId: transaction.toAccountId,
-          type: transaction.type,
+          type: transaction.transferId ? 'TRANSFER' : transaction.type,
           amount: transaction.originalCurrency
             ? (transaction.originalAmount ?? transaction.amount)
             : transaction.amount,
@@ -863,15 +863,18 @@ export function TransactionForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Transaction Type */}
         <div>
-          <label htmlFor="type" className="block text-sm font-medium text-text-primary mb-1.5">
+          <label
+            htmlFor="transaction-type"
+            className="block text-sm font-medium text-text-primary mb-1.5"
+          >
             {t('form.type')} <span aria-label="required">*</span>
           </label>
           <select
-            id="type"
+            id="transaction-type"
             {...register('type')}
             aria-required="true"
             aria-invalid={errors.type ? 'true' : 'false'}
-            aria-describedby={errors.type ? 'type-error' : undefined}
+            aria-describedby={errors.type ? 'transaction-type-error' : undefined}
             className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
             {TRANSACTION_TYPES.filter(
@@ -884,7 +887,7 @@ export function TransactionForm({
             ))}
           </select>
           {errors.type && (
-            <p id="type-error" className="mt-1 text-sm text-error" role="alert">
+            <p id="transaction-type-error" className="mt-1 text-sm text-error" role="alert">
               {errors.type.message}
             </p>
           )}

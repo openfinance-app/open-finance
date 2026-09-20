@@ -159,7 +159,8 @@
     "daysSelected": "{{count}} jour sélectionné",
     "daysSelected_plural": "{{count}} jours sélectionnés",
     "daysSelected_one": "{{count}} jour sélectionné",
-    "daysSelected_other": "{{count}} jours sélectionnés"
+    "daysSelected_other": "{{count}} jours sélectionnés",
+    "openPicker": "Ouvrir le calendrier"
   },
   "errors": {
     "loadFailed": "Échec du chargement des données. Veuillez réessayer.",

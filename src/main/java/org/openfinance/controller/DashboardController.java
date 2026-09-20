@@ -519,6 +519,10 @@ public class DashboardController {
             effectiveStart = effectiveEnd.minusDays(period);
         }
 
+        if (effectiveStart.isAfter(effectiveEnd)) {
+            return ResponseEntity.badRequest().build();
+        }
+
         log.info(
                 "Fetching net worth history for user {} from {} to {} (recalculate={})",
                 userId,
@@ -547,6 +551,7 @@ public class DashboardController {
         // changes instead of a snapshot last written by the summary card (cached 15m)
         // or the midnight scheduler. saveNetWorthSnapshot is an idempotent upsert.
         java.time.LocalDate today = java.time.LocalDate.now();
+        effectiveEnd = effectiveEnd.isAfter(today) ? today : effectiveEnd;
         if (!today.isBefore(effectiveStart) && !today.isAfter(effectiveEnd)) {
             netWorthService.saveNetWorthSnapshot(userId, today, userCurrency);
         }
@@ -555,20 +560,17 @@ public class DashboardController {
         List<NetWorth> history =
                 netWorthService.getNetWorthHistory(userId, effectiveStart, effectiveEnd);
 
-        // Auto-backfill when the stored history doesn't cover the requested window.
-        // Two triggers: (1) sparse — fewer than 3 meaningful data points; or
-        // (2) the earliest snapshot starts well after effectiveStart, which happens
-        // when the user widens the period (e.g. 1M → 1Y) after an earlier, narrower
-        // backfill. Without (2) the chart stays stuck on the originally backfilled
-        // window and never reconstructs the earlier months. Backfill is idempotent
-        // (only creates missing month-start snapshots) and self-limits to each
-        // account's earliest activity, so re-running is safe and cheap.
+        // Include the requested boundaries as well as month starts. A completed
+        // month needs its closing observation to report the change across the period.
+        // Backfill only creates missing observations and respects dated activity.
         boolean sparse = history.size() < 3;
         // history is ordered ascending, so the first element is the earliest snapshot.
         boolean startUncovered =
+                history.isEmpty() || history.get(0).getSnapshotDate().isAfter(effectiveStart);
+        boolean endUncovered =
                 history.isEmpty()
-                        || history.get(0).getSnapshotDate().isAfter(effectiveStart.plusDays(35));
-        if (!recalculate && (sparse || startUncovered)) {
+                        || history.get(history.size() - 1).getSnapshotDate().isBefore(effectiveEnd);
+        if (!recalculate && (sparse || startUncovered || endUncovered)) {
             int backfilled =
                     netWorthService.backfillNetWorthHistory(
                             userId, effectiveStart, effectiveEnd, userCurrency);

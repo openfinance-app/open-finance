@@ -804,6 +804,40 @@ describe('TransactionForm', () => {
   // ── Transfer Type ─────────────────────────────────────────────────────────
 
   describe('Transfer Type', () => {
+    it('edits a stored outgoing leg as a transfer and submits both accounts', async () => {
+      const { onSubmit } = renderForm({
+        transaction: {
+          id: 214,
+          userId: 1,
+          accountId: 1,
+          toAccountId: 2,
+          type: 'EXPENSE',
+          amount: 400,
+          currency: 'EUR',
+          date: '2026-09-03',
+          transferId: 'household-transfer',
+          isReconciled: false,
+          createdAt: '2026-09-03',
+        },
+      });
+      expect(screen.getByLabelText(/type/i)).toHaveValue('TRANSFER');
+      expect(screen.getByText(/from account/i)).toBeInTheDocument();
+      expect(screen.getByText(/to account/i)).toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '450' } });
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'TRANSFER',
+            accountId: 1,
+            toAccountId: 2,
+            amount: 450,
+            currency: 'EUR',
+          })
+        )
+      );
+    });
+
     it('shows "To Account" field when type is TRANSFER', async () => {
       renderForm();
 

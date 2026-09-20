@@ -261,5 +261,27 @@
   "funding": {
     "funded": "Capital débloqué",
     "repaid": "Capital remboursé"
+  },
+  "detail": {
+    "paymentsHint": "Liez des dépenses pour suivre les paiements de cette dette.",
+    "paymentsError": "Impossible de charger les opérations liées. Veuillez réessayer.",
+    "noPayments": "Aucune opération liée à cette dette.",
+    "loadingSchedule": "Chargement du tableau d’amortissement…",
+    "insurancePaidTotal": "Assurance (payée / total)",
+    "interestPaidTotal": "Intérêts (payés / total)",
+    "schedule": "Tableau d’amortissement",
+    "totalLifetimeCost": "Coût total du crédit",
+    "insuranceTotal": "Assurance (total)",
+    "interestTotal": "Intérêts (total)",
+    "payments": "Paiements liés",
+    "oneTimeFee": "Frais ponctuels",
+    "attachments": "Pièces jointes",
+    "principal": "Capital",
+    "overview": "Vue d’ensemble",
+    "linkedCount_one": "{{count}} opération liée",
+    "linkedCount_other": "{{count}} opérations liées",
+    "total": "au total",
+    "transaction": "Opération n° {{id}}",
+    "title": "{{name}} — Détails"
   }
 }

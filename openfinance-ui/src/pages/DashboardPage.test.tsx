@@ -16,6 +16,7 @@ describe('DashboardPage Integration Tests', () => {
   beforeEach(() => {
     clearAuthentication();
     mockAuthentication();
+    sessionStorage.removeItem('dashboard_period');
   });
 
   it('shows the unavailable conversion instead of a mislabeled total', async () => {
@@ -51,6 +52,35 @@ describe('DashboardPage Integration Tests', () => {
   });
 
   describe('Data Fetching and Rendering', () => {
+    it('compares a custom historical month with its closing value rather than today', async () => {
+      sessionStorage.setItem(
+        'dashboard_period',
+        JSON.stringify({
+          selectedPeriod: 'CUSTOM',
+          periodDays: 31,
+          historyPeriod: 31,
+          activeDateRange: { from: '2026-07-01', to: '2026-07-31' },
+        })
+      );
+      server.use(
+        http.get('/api/v1/dashboard/networth-history', () =>
+          HttpResponse.json([
+            { date: '2026-07-01', netWorth: 17159.4, totalAssets: 25559.4, totalLiabilities: 8400 },
+            {
+              date: '2026-07-31',
+              netWorth: 19150.66,
+              totalAssets: 27328.66,
+              totalLiabilities: 8178,
+            },
+          ])
+        )
+      );
+      renderWithProviders(<DashboardPage />);
+      // The current summary is 20,000; both historical comparison displays must use July's delta.
+      await waitFor(() => expect(screen.getAllByText(/1,991\.26/)).toHaveLength(2));
+      expect(screen.queryByText(/2,840\.60/)).not.toBeInTheDocument();
+    });
+
     it('should fetch and display dashboard summary data', async () => {
       renderWithProviders(<DashboardPage />);
 

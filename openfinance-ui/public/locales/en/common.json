@@ -159,7 +159,8 @@
     "daysSelected": "{{count}} day selected",
     "daysSelected_plural": "{{count}} days selected",
     "daysSelected_one": "{{count}} day selected",
-    "daysSelected_other": "{{count}} days selected"
+    "daysSelected_other": "{{count}} days selected",
+    "openPicker": "Open date picker"
   },
   "errors": {
     "loadFailed": "Failed to load data. Please try again.",

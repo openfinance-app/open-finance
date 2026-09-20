@@ -75,6 +75,9 @@ public class TransactionSearchCriteria {
      */
     private TransactionType type;
 
+    /** Excludes both paired transfer legs and legacy single-row transfers from cash-flow views. */
+    private Boolean excludeTransfers;
+
     /**
      * Filter transactions on or after this date (inclusive).
      *
@@ -178,6 +181,7 @@ public class TransactionSearchCriteria {
                 || accountId != null
                 || categoryId != null
                 || type != null
+                || Boolean.TRUE.equals(excludeTransfers)
                 || dateFrom != null
                 || dateTo != null
                 || amountMin != null

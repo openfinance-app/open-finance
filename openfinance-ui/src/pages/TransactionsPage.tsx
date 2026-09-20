@@ -22,6 +22,7 @@ import { TransactionDetailModal } from '@/components/transactions/TransactionDet
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
+  getTransferSource,
   useTransactions,
   useCreateTransaction,
   useCreateTransfer,
@@ -77,6 +78,7 @@ export default function TransactionsPage() {
     noPayee: noPayeeParam || undefined,
     accountId: accountIdParam || undefined,
     type: typeFilter,
+    excludeTransfers: searchParams.get('excludeTransfers') === 'true' || undefined,
     dateFrom: dateFromFilter,
     dateTo: dateToFilter,
   });
@@ -93,6 +95,7 @@ export default function TransactionsPage() {
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editError, setEditError] = useState(false);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
   const [detailTransaction, setDetailTransaction] = useState<Transaction | null>(null);
   const { data: transactionsPage, isLoading, error } = useTransactions(filters);
@@ -125,7 +128,14 @@ export default function TransactionsPage() {
 
   // Consume deep-link params after mount so a refresh doesn't re-impose filters
   useEffect(() => {
-    const deepLinkKeys = ['accountId', 'type', 'dateFrom', 'dateTo', 'categoryId'];
+    const deepLinkKeys = [
+      'accountId',
+      'type',
+      'dateFrom',
+      'dateTo',
+      'categoryId',
+      'excludeTransfers',
+    ];
     if (deepLinkKeys.some(k => searchParams.get(k) !== null)) {
       const next = new URLSearchParams(searchParams);
       deepLinkKeys.forEach(k => next.delete(k));
@@ -154,9 +164,18 @@ export default function TransactionsPage() {
     setIsFormOpen(true);
   };
 
-  const handleEdit = (transaction: Transaction) => {
-    setEditingTransaction(transaction);
-    setIsFormOpen(true);
+  const handleEdit = async (transaction: Transaction) => {
+    setEditError(false);
+    try {
+      const source =
+        transaction.transferId && transaction.type === 'INCOME'
+          ? await getTransferSource(transaction.transferId)
+          : transaction;
+      setEditingTransaction(source);
+      setIsFormOpen(true);
+    } catch {
+      setEditError(true);
+    }
   };
 
   const handleDelete = (transaction: Transaction) => {
@@ -259,6 +278,12 @@ export default function TransactionsPage() {
           </Button>
         </div>
       </div>
+
+      {editError && (
+        <p role="alert" className="mb-4 text-error">
+          {t('loadError')}
+        </p>
+      )}
 
       {/* Filters */}
       {showFilters && (

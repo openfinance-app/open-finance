@@ -261,5 +261,27 @@
   "funding": {
     "funded": "Funded principal",
     "repaid": "Principal repaid"
+  },
+  "detail": {
+    "paymentsHint": "Link expense transactions to track payments against this liability.",
+    "paymentsError": "Failed to load linked transactions. Please try again.",
+    "noPayments": "No transactions linked to this liability yet.",
+    "loadingSchedule": "Loading amortization schedule…",
+    "insurancePaidTotal": "Insurance (paid / total)",
+    "interestPaidTotal": "Interest (paid / total)",
+    "schedule": "Amortization Schedule",
+    "totalLifetimeCost": "Total Lifetime Cost",
+    "insuranceTotal": "Insurance (total)",
+    "interestTotal": "Interest (total)",
+    "payments": "Linked Payments",
+    "oneTimeFee": "One-time Fee",
+    "attachments": "Attachments",
+    "principal": "Principal",
+    "overview": "Overview",
+    "linkedCount_one": "{{count}} transaction linked",
+    "linkedCount_other": "{{count}} transactions linked",
+    "total": "total",
+    "transaction": "Transaction #{{id}}",
+    "title": "{{name}} — Details"
   }
 }

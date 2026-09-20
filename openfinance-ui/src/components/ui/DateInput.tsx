@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -36,6 +37,7 @@ export function DateInput({
   className,
   disabled,
 }: DateInputProps) {
+  const { t } = useTranslation('common');
   const { data: settings } = useUserSettings();
   const dateFormat = settings?.dateFormat ?? 'MM/DD/YYYY';
   const nativeRef = useRef<HTMLInputElement>(null);
@@ -100,7 +102,7 @@ export function DateInput({
         type="button"
         onClick={openPicker}
         disabled={disabled}
-        aria-label="Open date picker"
+        aria-label={t('dateRange.openPicker')}
         className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors disabled:opacity-50"
       >
         <CalendarDays className="h-4 w-4" />

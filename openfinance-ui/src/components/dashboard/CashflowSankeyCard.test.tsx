@@ -50,7 +50,7 @@ describe('CashflowSankeyCard navigation', () => {
     );
     await user.click(screen.getByRole('button', { name: 'View income transactions' }));
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/transactions?type=INCOME&dateFrom=2026-08-01&dateTo=2026-08-31'
+      '/transactions?type=INCOME&excludeTransfers=true&dateFrom=2026-08-01&dateTo=2026-08-31'
     );
   });
 
@@ -61,7 +61,7 @@ describe('CashflowSankeyCard navigation', () => {
     );
     await user.click(screen.getByRole('button', { name: 'View expense transactions' }));
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/transactions?type=EXPENSE&dateFrom=2026-08-01&dateTo=2026-08-31'
+      '/transactions?type=EXPENSE&excludeTransfers=true&dateFrom=2026-08-01&dateTo=2026-08-31'
     );
   });
 
@@ -72,7 +72,7 @@ describe('CashflowSankeyCard navigation', () => {
     );
     await user.click(screen.getByRole('button', { name: 'View Salary transactions' }));
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/transactions?categoryId=5&dateFrom=2026-08-01&dateTo=2026-08-31'
+      '/transactions?categoryId=5&excludeTransfers=true&dateFrom=2026-08-01&dateTo=2026-08-31'
     );
   });
 
@@ -83,7 +83,7 @@ describe('CashflowSankeyCard navigation', () => {
     );
     await user.click(screen.getByRole('button', { name: 'View Uncategorized transactions' }));
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/transactions?noCategory=1&dateFrom=2026-08-01&dateTo=2026-08-31'
+      '/transactions?noCategory=1&excludeTransfers=true&dateFrom=2026-08-01&dateTo=2026-08-31'
     );
   });
 });

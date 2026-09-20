@@ -50,7 +50,7 @@ export default function CashFlowChart({
   const { isAmountsVisible } = useVisibility();
   const navigate = useNavigate();
   const navTo = (type: 'INCOME' | 'EXPENSE') =>
-    navigate(buildTransactionsLink({ type, dateRange: navDateRange }));
+    navigate(buildTransactionsLink({ type, excludeTransfers: true, dateRange: navDateRange }));
   // Prepare data for the chart
   const data = [
     {

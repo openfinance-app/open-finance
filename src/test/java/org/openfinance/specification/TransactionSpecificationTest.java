@@ -156,6 +156,52 @@ class TransactionSpecificationTest {
 
     @Test
     @DisplayName("realEstateId filter returns only transactions linked to that property")
+    void cashFlowDrilldownExcludesTransferLegsBeforePagination() {
+        Transaction purchase = transactionRepository.save(linkedTx(null, null, null));
+        Transaction source = linkedTx(null, null, null);
+        source.setTransferId("savings-transfer");
+        transactionRepository.save(source);
+        Transaction destination = linkedTx(null, null, null);
+        destination.setTransferId("savings-transfer");
+        destination.setType(TransactionType.INCOME);
+        transactionRepository.save(destination);
+        Transaction legacy = linkedTx(null, null, null);
+        legacy.setType(TransactionType.TRANSFER);
+        transactionRepository.save(legacy);
+        TransactionSearchCriteria criteria =
+                TransactionSearchCriteria.builder()
+                        .type(TransactionType.EXPENSE)
+                        .excludeTransfers(true)
+                        .dateFrom(LocalDate.now())
+                        .dateTo(LocalDate.now())
+                        .build();
+
+        org.springframework.data.domain.Page<Transaction> results =
+                transactionRepository.findAll(
+                        TransactionSpecification.buildSpecification(userId, criteria, null),
+                        org.springframework.data.domain.PageRequest.of(0, 1));
+
+        assertThat(results.getTotalElements()).isEqualTo(1);
+        assertThat(results.getContent())
+                .extracting(Transaction::getId)
+                .containsExactly(purchase.getId());
+        criteria.setType(null);
+        assertThat(
+                        transactionRepository.findAll(
+                                TransactionSpecification.buildSpecification(
+                                        userId, criteria, null)))
+                .extracting(Transaction::getId)
+                .containsExactly(purchase.getId());
+        criteria.setExcludeTransfers(false);
+        assertThat(
+                        transactionRepository.count(
+                                TransactionSpecification.buildSpecification(
+                                        userId, criteria, null)))
+                .isEqualTo(4);
+    }
+
+    @Test
+    @DisplayName("realEstateId filter returns only transactions linked to that property")
     void realEstateIdFilterReturnsOnlyLinkedTransactions() {
         transactionRepository.save(linkedTx(propertyId, null, MovementType.CAPITAL_IMPROVEMENT));
         transactionRepository.save(linkedTx(null, assetId, MovementType.MAINTENANCE));

@@ -44,6 +44,14 @@ const normalizeTransaction = (transaction: Transaction): Transaction => ({
   tags: normalizeTransactionTags(transaction.tags),
 });
 
+/** Retrieve the booked source amount, including for transfers between different currencies. */
+export async function getTransferSource(transferId: string): Promise<Transaction> {
+  const response = await apiClient.get<Transaction>(`/transactions/transfers/${transferId}`, {
+    headers: buildEncryptionHeaders(),
+  });
+  return normalizeTransaction(response.data);
+}
+
 const normalizeTransactionsResponse = (
   data: PaginatedResponse<Transaction> | Transaction[]
 ): PaginatedResponse<Transaction> => {
@@ -75,6 +83,7 @@ export function useTransactions(filters?: TransactionFilters) {
       const params = new URLSearchParams();
       if (filters?.accountId) params.append('accountId', filters.accountId.toString());
       if (filters?.type) params.append('type', filters.type);
+      if (filters?.excludeTransfers) params.append('excludeTransfers', 'true');
       if (filters?.categoryId) params.append('categoryId', filters.categoryId.toString());
       if (filters?.noCategory) params.append('noCategory', 'true');
       if (filters?.payee) params.append('payee', filters.payee);

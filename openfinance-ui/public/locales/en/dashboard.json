@@ -316,7 +316,9 @@
     "periodTrend": "Trend for {{period}}",
     "dataPointsDays": "{{count}} data points over {{days}} days",
     "dataPointsDays_one": "{{count}} data point over {{days}} days",
-    "dataPointsDays_other": "{{count}} data points over {{days}} days"
+    "dataPointsDays_other": "{{count}} data points over {{days}} days",
+    "noComparison": "More history is needed to calculate a change.",
+    "noHistory": "No historical data available to show trend."
   },
   "borrowingCapacity": {
     "title": "Borrowing Capacity",
@@ -395,7 +397,8 @@
     "Credit_Cards": "Credit Cards",
     "Checking": "Checking",
     "Savings": "Savings",
-    "Pension": "Pension"
+    "Pension": "Pension",
+    "Vehicles": "Vehicles"
   },
   "balanceVariation": {
     "title": "Yearly Balance Variation",

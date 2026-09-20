@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { formatDecimal } from '@/utils/format';
 /**
  * PhysicalAssetCard Component
@@ -21,6 +23,8 @@ interface PhysicalAssetCardProps {
 }
 
 export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
+  const { t } = useTranslation('assets');
+  const { date } = useDateFormatter();
   const {
     convert,
     secondaryCurrency: secCurrency,
@@ -47,7 +51,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           <div className="flex items-center gap-2 mb-2">
             <Package className="h-5 w-5 text-text-secondary" />
             <Badge variant={getAssetTypeBadgeVariant(asset.type)} size="sm">
-              {asset.type.charAt(0) + asset.type.slice(1).toLowerCase()}
+              {t(`types.${asset.type}`)}
             </Badge>
           </div>
           <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary line-clamp-2">
@@ -56,7 +60,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
         </div>
         {asset.condition && (
           <Badge variant={getConditionBadgeVariant(asset.condition)} size="md" className="ml-2">
-            {asset.condition.charAt(0) + asset.condition.slice(1).toLowerCase()}
+            {t(`form.conditions.${asset.condition}`)}
           </Badge>
         )}
       </div>
@@ -65,19 +69,19 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
       <div className="space-y-1.5">
         {asset.brand && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-text-secondary font-medium">Brand:</span>
+            <span className="text-text-secondary font-medium">{t('physicalCard.brand')}</span>
             <span className="text-text-primary">{asset.brand}</span>
           </div>
         )}
         {asset.model && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-text-secondary font-medium">Model:</span>
+            <span className="text-text-secondary font-medium">{t('physicalCard.model')}</span>
             <span className="text-text-primary">{asset.model}</span>
           </div>
         )}
         {asset.serialNumber && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-text-secondary font-medium">Serial:</span>
+            <span className="text-text-secondary font-medium">{t('physicalCard.serial')}</span>
             <span className="text-text-primary font-mono text-xs">
               {asset.serialNumber.length > 20
                 ? `${asset.serialNumber.substring(0, 20)}...`
@@ -93,7 +97,9 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-1.5">
               <TrendingDown className="h-4 w-4 text-text-secondary" />
-              <span className="text-text-secondary font-medium">Value Change</span>
+              <span className="text-text-secondary font-medium">
+                {t('physicalCard.valueChange')}
+              </span>
             </div>
             <span
               className={`text-xs font-medium ${valueLoss > 0 ? 'text-red-500' : 'text-green-500'}`}
@@ -151,11 +157,11 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
               <div
                 className={`w-3 h-3 rounded-full ${valueLoss > 0 ? 'bg-green-500' : 'bg-blue-500'}`}
               />
-              <span>Current Value</span>
+              <span>{t('physicalCard.currentValue')}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full bg-red-200 dark:bg-red-900" />
-              <span>Loss</span>
+              <span>{t('physicalCard.loss')}</span>
             </div>
           </div>
         </div>
@@ -164,7 +170,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
       {/* Value Summary */}
       <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
         <div>
-          <div className="text-xs text-text-secondary mb-1">Current Value</div>
+          <div className="text-xs text-text-secondary mb-1">{t('physicalCard.currentValue')}</div>
           <div className="text-lg font-bold text-text-primary">
             {/* Reference REQ-10.1: Show asset value with base-currency conversion hint */}
             <ConvertedAmount
@@ -181,7 +187,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           </div>
         </div>
         <div>
-          <div className="text-xs text-text-secondary mb-1">Purchase Cost</div>
+          <div className="text-xs text-text-secondary mb-1">{t('physicalCard.purchaseCost')}</div>
           <div className="text-lg font-semibold text-text-secondary">
             <ConvertedAmount
               amount={asset.totalCost}
@@ -202,20 +208,18 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           <Shield className={`h-4 w-4 ${isWarrantyValid ? 'text-success' : 'text-error'}`} />
           <div className="flex-1">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-text-primary">Warranty</span>
+              <span className="text-sm font-medium text-text-primary">
+                {t('physicalCard.warranty')}
+              </span>
               <Badge variant={isWarrantyValid ? 'success' : 'error'} size="sm">
-                {isWarrantyValid ? 'Active' : 'Expired'}
+                {t(isWarrantyValid ? 'physicalCard.active' : 'physicalCard.expired')}
               </Badge>
             </div>
             <div className="flex items-center gap-1 mt-0.5">
               <Calendar className="h-3 w-3 text-text-tertiary" />
               <span className="text-xs text-text-tertiary">
-                {isWarrantyValid ? 'Expires: ' : 'Expired: '}
-                {new Date(asset.warrantyExpiration).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
+                {t(isWarrantyValid ? 'physicalCard.expiresOn' : 'physicalCard.expiredOn')}{' '}
+                {date(asset.warrantyExpiration)}
               </span>
             </div>
           </div>
@@ -227,9 +231,11 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
         <div className="flex items-center gap-2 text-sm text-text-tertiary">
           <Info className="h-4 w-4" />
           <span>
-            Useful life: {asset.usefulLifeYears} years
+            {t('physicalCard.usefulLife', { count: asset.usefulLifeYears })}
             {!!asset.holdingDays && (
-              <span className="ml-1">({Math.floor(asset.holdingDays / 365)} years owned)</span>
+              <span className="ml-1">
+                {t('physicalCard.yearsOwned', { count: Math.floor(asset.holdingDays / 365) })}
+              </span>
             )}
           </span>
         </div>

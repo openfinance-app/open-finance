@@ -223,5 +223,24 @@
     "previous": "Précédent",
     "next": "Suivant",
     "page": "Page {{page}} sur {{total}}"
+  },
+  "physicalCard": {
+    "brand": "Marque :",
+    "model": "Modèle :",
+    "serial": "N° de série :",
+    "valueChange": "Variation de valeur",
+    "currentValue": "Valeur actuelle",
+    "loss": "Perte",
+    "purchaseCost": "Coût d’achat",
+    "warranty": "Garantie",
+    "active": "Active",
+    "expired": "Expirée",
+    "expiresOn": "Expire le :",
+    "expiredOn": "Expirée le :",
+    "usefulLife_one": "Durée de vie utile : {{count}} an",
+    "usefulLife_other": "Durée de vie utile : {{count}} ans",
+    "yearsOwned_one": "(détenu depuis {{count}} an)",
+    "yearsOwned_other": "(détenu depuis {{count}} ans)",
+    "noPhoto": "Aucune photo"
   }
 }

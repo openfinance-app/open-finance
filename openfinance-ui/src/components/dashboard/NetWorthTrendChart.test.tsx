@@ -51,6 +51,12 @@ describe('NetWorthTrendChart', () => {
     expect(screen.getByTestId('area-chart')).toBeInTheDocument();
   });
 
+  it('does not claim zero growth from a single historical snapshot', () => {
+    renderWithProviders(<NetWorthTrendChart data={[data[0]]} currency="EUR" />);
+    expect(screen.getByText('More history is needed to calculate a change.')).toBeInTheDocument();
+    expect(screen.queryByText(/0[.,]00%/)).not.toBeInTheDocument();
+  });
+
   it('renders empty state with no data', () => {
     renderWithProviders(<NetWorthTrendChart data={[]} currency="EUR" />);
     expect(screen.queryByTestId('area-chart')).not.toBeInTheDocument();

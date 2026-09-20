@@ -66,8 +66,10 @@ const mockUpdateMutateAsync = vi.fn();
 const mockUpdateTransferMutateAsync = vi.fn();
 const mockDeleteMutateAsync = vi.fn();
 const mockUseTransactions = vi.fn();
+const mockGetTransferSource = vi.fn();
 
 vi.mock('@/hooks/useTransactions', () => ({
+  getTransferSource: (id: string) => mockGetTransferSource(id),
   useTransactions: (filters?: TransactionFilters) => mockUseTransactions(filters),
   useCreateTransaction: () => ({ mutateAsync: mockCreateMutateAsync, isPending: false }),
   useCreateTransfer: () => ({ mutateAsync: mockCreateTransferMutateAsync, isPending: false }),
@@ -112,6 +114,12 @@ vi.mock('@/components/transactions/TransactionForm', () => ({
   TransactionForm: ({ transaction, onSubmit, onCancel }: any) => (
     <div data-testid="transaction-form">
       {transaction && <span data-testid="editing-desc">{transaction.description}</span>}
+      {transaction && (
+        <output aria-label="Transfer source">
+          {transaction.accountId} → {transaction.toAccountId}: {transaction.amount}{' '}
+          {transaction.currency}
+        </output>
+      )}
       <button
         onClick={() =>
           onSubmit({
@@ -337,6 +345,39 @@ describe('TransactionsPage', () => {
     await waitFor(() => expect(screen.getByTestId('transaction-form')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /submit/i }));
     expect(mockUpdateTransferMutateAsync).toHaveBeenCalled();
+  });
+
+  it('loads the source leg when editing an incoming foreign-currency transfer', async () => {
+    const source = {
+      ...mockTransaction,
+      accountId: 1,
+      toAccountId: 2,
+      currency: 'EUR',
+      amount: 400,
+      transferId: 'fx-pair',
+    };
+    const incoming = {
+      ...source,
+      id: 2,
+      accountId: 2,
+      toAccountId: 1,
+      type: 'INCOME',
+      currency: 'USD',
+      amount: 440,
+    };
+    mockPagedResponse = {
+      content: [incoming],
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 20,
+    };
+    mockGetTransferSource.mockResolvedValue(source);
+    renderWithProviders(<TransactionsPage />);
+    await userEvent.click(screen.getByRole('button', { name: /^edit$/i }));
+    await screen.findByTestId('transaction-form');
+    expect(mockGetTransferSource).toHaveBeenCalledWith('fx-pair');
+    expect(screen.getByLabelText('Transfer source')).toHaveTextContent('1 → 2: 400 EUR');
   });
 
   it('creates a transfer transaction', async () => {

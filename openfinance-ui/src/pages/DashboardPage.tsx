@@ -312,6 +312,39 @@ export default function DashboardPage() {
     return defaultLayouts;
   });
 
+  // Explicit phone layouts also repair saved layouts; generated RGL breakpoints otherwise
+  // inherit the desktop height and clip the wrapped net-worth values.
+  const gridLayouts = useMemo(() => {
+    const next = { ...layouts };
+    for (const breakpoint of ['xs', 'xxs'] as const) {
+      const cols = GRID_LAYOUT_COLS[breakpoint];
+      let y = 0;
+      const existing = layouts[breakpoint];
+      next[breakpoint] = (existing ?? layouts.sm ?? layouts.lg).map(
+        (item: {
+          i: string;
+          x: number;
+          y: number;
+          w: number;
+          h: number;
+          minW?: number;
+          minH?: number;
+        }) => {
+          const h = item.i === 'netWorth' ? Math.max(item.h, 7) : item.h;
+          const placed = {
+            ...item,
+            h,
+            minH: item.i === 'netWorth' ? 7 : item.minH,
+            ...(existing ? {} : { x: 0, y, w: cols, minW: Math.min(item.minW ?? 1, cols) }),
+          };
+          y += h;
+          return placed;
+        }
+      );
+    }
+    return next;
+  }, [layouts]);
+
   const [cardVisibility, setCardVisibility] = useState<Record<DashboardCardId, boolean>>(() => {
     const defaults = DEFAULT_CARD_ORDER.reduce(
       (acc, cardId) => {
@@ -463,7 +496,9 @@ export default function DashboardPage() {
     // Find the data point closest to periodDays ago (not just the first point
     // in the history, which may span a wider window for chart context).
     // eslint-disable-next-line react-hooks/rules-of-hooks -- Date.now() is intentionally used to find closest historical data point
-    const targetTime = Date.now() - periodDays * 86_400_000;
+    const targetTime = activeDateRange
+      ? new Date(activeDateRange.from).getTime()
+      : Date.now() - periodDays * 86_400_000;
     let closest = netWorthHistory[0];
     let closestDiff = Math.abs(new Date(closest.date).getTime() - targetTime);
     for (const point of netWorthHistory) {
@@ -474,10 +509,13 @@ export default function DashboardPage() {
       }
     }
     if (closest.netWorth === 0) return null;
-    const changeAmount = subtract(summary.netWorth.netWorth ?? 0, closest.netWorth);
+    const closingValue = activeDateRange
+      ? netWorthHistory[netWorthHistory.length - 1].netWorth
+      : summary.netWorth.netWorth;
+    const changeAmount = subtract(closingValue, closest.netWorth);
     const changePercent = percentage(changeAmount, Math.abs(closest.netWorth));
     return { amount: changeAmount, percentage: changePercent };
-  }, [netWorthHistory, historyError, summary?.netWorth?.netWorth, periodDays]);
+  }, [netWorthHistory, historyError, summary?.netWorth?.netWorth, periodDays, activeDateRange]);
 
   // ── Close card menu on outside click ───────────────────────────────────────
   useEffect(() => {
@@ -844,6 +882,8 @@ export default function DashboardPage() {
           <div className="relative" ref={cardMenuRef}>
             <button
               onClick={() => setIsCardMenuOpen(prev => !prev)}
+              aria-label={t('cardsButton')}
+              aria-expanded={isCardMenuOpen}
               className="px-3 py-2 bg-surface-elevated text-text-secondary rounded-lg hover:bg-surface-elevated/80 transition-colors flex items-center gap-2"
             >
               <SlidersHorizontal className="h-4 w-4" />
@@ -911,6 +951,7 @@ export default function DashboardPage() {
               which already owns the form/dialog/mutations (openForm deep-link) */}
           <button
             onClick={() => navigate('/transactions', { state: { openForm: true } })}
+            aria-label={t('addTransaction')}
             className="px-4 py-2 bg-gradient-to-b from-brass-bright to-primary text-primary-foreground font-semibold rounded-lg shadow-[inset_0_1px_0_0_rgb(255_255_255/0.28),0_1px_2px_0_rgb(0_0_0/0.45)] hover:brightness-[1.07] active:brightness-95 active:translate-y-px transition-all flex items-center gap-2"
           >
             <Plus className="h-5 w-5" />
@@ -933,7 +974,7 @@ export default function DashboardPage() {
         <ResponsiveGridLayout
           className="layout"
           compactType="vertical"
-          layouts={layouts}
+          layouts={gridLayouts}
           breakpoints={GRID_LAYOUT_BREAKPOINTS}
           cols={GRID_LAYOUT_COLS}
           rowHeight={40}
@@ -954,13 +995,18 @@ export default function DashboardPage() {
             return card && cardVisibility[cardId] && card.isAvailable;
           }).map(cardId => {
             const card = cardById[cardId];
-            const savedPosition = layouts[activeBreakpoint]?.find(
+            const savedPosition = gridLayouts[activeBreakpoint]?.find(
               (item: { i: string }) => item.i === card.id
             );
+            const position = savedPosition ?? DEFAULT_LAYOUT_BY_ID[card.id];
+            const mobileNetWorth =
+              card.id === 'netWorth' && ['xs', 'xxs'].includes(activeBreakpoint);
             return (
               <div
                 key={card.id}
-                data-grid={savedPosition ?? DEFAULT_LAYOUT_BY_ID[card.id]}
+                data-grid={
+                  mobileNetWorth ? { ...position, h: Math.max(position.h, 7), minH: 7 } : position
+                }
                 className="relative group flex flex-col h-full rounded-[var(--radius-card)] overflow-hidden"
               >
                 <div className="drag-handle absolute right-3 top-3 z-10 p-1 bg-surface/80 rounded cursor-grab active:cursor-grabbing text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary">

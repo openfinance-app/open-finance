@@ -73,6 +73,79 @@ class LoanPaymentTotalsTest {
     }
 
     @Test
+    void categorizedPrincipalDoesNotDiluteInterestAcrossThreeMonthlyRepayments() {
+        Liability loan = new Liability();
+        loan.setCurrency("EUR");
+        List<Transaction> repayments =
+                java.util.stream.IntStream.range(0, 3)
+                        .mapToObj(
+                                i ->
+                                        Transaction.builder()
+                                                .id((long) i + 1)
+                                                .type(TransactionType.EXPENSE)
+                                                .movementType(MovementType.REPAYMENT)
+                                                .currency("EUR")
+                                                .amount(new BigDecimal("250"))
+                                                .principalAmount(
+                                                        new BigDecimal(
+                                                                List.of("222", "222.74", "223.48")
+                                                                        .get(i)))
+                                                .build())
+                        .toList();
+        when(splits.findByTransactionIdIn(List.of(1L, 2L, 3L)))
+                .thenReturn(
+                        repayments.stream()
+                                .flatMap(
+                                        tx ->
+                                                List.of(
+                                                        TransactionSplit.builder()
+                                                                .transactionId(tx.getId())
+                                                                .categoryId(30L)
+                                                                .amount(tx.getPrincipalAmount())
+                                                                .build(),
+                                                        TransactionSplit.builder()
+                                                                .transactionId(tx.getId())
+                                                                .categoryId(10L)
+                                                                .amount(
+                                                                        tx.getAmount()
+                                                                                .subtract(
+                                                                                        tx
+                                                                                                .getPrincipalAmount()))
+                                                                .build())
+                                                        .stream())
+                                .toList());
+        when(categories.findById(30L))
+                .thenReturn(
+                        Optional.of(Category.builder().nameKey("category.loan.repayment").build()));
+        when(categories.findById(10L))
+                .thenReturn(
+                        Optional.of(
+                                Category.builder().nameKey("category.interest.expense").build()));
+
+        LoanPaymentTotals.Paid paid = totals.calculate(loan, repayments);
+
+        assertThat(paid.interest()).isEqualByComparingTo("81.78");
+        assertThat(paid.other()).isZero();
+        assertThat(paid.total()).isEqualByComparingTo("81.78");
+    }
+
+    @Test
+    void manualRepaymentWithoutChargeSplitsRetainsUnclassifiedCharges() {
+        Liability loan = new Liability();
+        loan.setCurrency("EUR");
+        Transaction repayment =
+                Transaction.builder()
+                        .id(1L)
+                        .type(TransactionType.EXPENSE)
+                        .movementType(MovementType.REPAYMENT)
+                        .currency("EUR")
+                        .amount(new BigDecimal("250"))
+                        .principalAmount(new BigDecimal("222"))
+                        .build();
+        assertThat(totals.calculate(loan, List.of(repayment)).other()).isEqualByComparingTo("28");
+    }
+
+    @Test
     void configuredFeesAndRatesAreNotEvidenceOfPayments() {
         Liability loan = new Liability();
         loan.setCurrency("EUR");

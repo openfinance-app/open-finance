@@ -75,7 +75,11 @@ public class LoanPaymentTotals {
             List<TransactionSplit> allocations,
             Map<String, BigDecimal> paid) {
         List<TransactionSplit> charges =
-                allocations.stream().filter(split -> split.getCategoryId() != null).toList();
+                allocations.stream()
+                        .filter(split -> split.getCategoryId() != null)
+                        .filter(split -> !"PRINCIPAL".equals(chargeBucket(split)))
+                        .filter(split -> split.getAmount().signum() > 0)
+                        .toList();
         BigDecimal splitTotal =
                 charges.stream()
                         .map(TransactionSplit::getAmount)
@@ -84,7 +88,12 @@ public class LoanPaymentTotals {
                 transaction.getPrincipalAmount() == null
                         ? amount(loan, transaction, splitTotal)
                         : amount(loan, transaction, transaction.getAmount())
-                                .subtract(transaction.getPrincipalAmount());
+                                .subtract(transaction.getPrincipalAmount())
+                                .max(BigDecimal.ZERO);
+        if (charges.isEmpty()) {
+            paid.merge("OTHER", chargeTotal, BigDecimal::add);
+            return;
+        }
         BigDecimal remaining = chargeTotal;
         for (int i = 0; i < charges.size(); i++) {
             TransactionSplit split = charges.get(i);
@@ -106,6 +115,7 @@ public class LoanPaymentTotals {
                         .map(category -> category.getNameKey() == null ? "" : category.getNameKey())
                         .orElse("");
         return switch (key) {
+            case "category.loan.repayment" -> "PRINCIPAL";
             case "category.interest.expense" -> "INTEREST";
             case "category.insurance" -> "INSURANCE";
             case "category.bank.fees" -> "FEE";

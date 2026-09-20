@@ -3,12 +3,14 @@
  * Priority: first image attachment → legacy `photoPath` → "No photo" placeholder.
  * Display only — uploads go through the Attachments tab in AssetDetailModal.
  */
+import { useTranslation } from 'react-i18next';
 import { Package } from 'lucide-react';
 import { useEntityImages, useAttachmentImageUrl } from '@/hooks/useEntityImages';
 import { AttachmentEntityType } from '@/types/attachment';
 import type { Asset } from '@/types/asset';
 
 export function AssetCoverImage({ asset }: { asset: Asset }) {
+  const { t } = useTranslation('assets');
   const { images } = useEntityImages(AttachmentEntityType.ASSET, asset.id);
   const cover = images.length > 0 ? images[0] : null;
   const url = useAttachmentImageUrl(cover?.id ?? null);
@@ -33,7 +35,7 @@ export function AssetCoverImage({ asset }: { asset: Asset }) {
     <div className="flex items-center justify-center h-32 rounded-lg bg-surface-elevated border border-dashed border-border">
       <div className="text-center text-text-tertiary">
         <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
-        <span className="text-xs">No photo</span>
+        <span className="text-xs">{t('physicalCard.noPhoto')}</span>
       </div>
     </div>
   );

@@ -56,6 +56,7 @@ interface LiabilityDetailDialogProps {
  * Requirement 2.1: Total cost = principal + total interest + total insurance + fees
  */
 function TotalCostHero({ liability }: { liability: Liability }) {
+  const { t } = useTranslation('liabilities');
   const { data: breakdown } = useLiabilityBreakdown(liability.id);
 
   if (!breakdown) return null;
@@ -82,7 +83,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
     <div className="bg-primary/10 border border-primary/20 rounded-lg p-5 mb-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wide">
-          Total Lifetime Cost
+          {t('detail.totalLifetimeCost')}
         </h3>
         <span className="text-2xl font-bold font-mono text-text-primary">
           <ConvertedAmount
@@ -110,7 +111,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
                 sideOffset={4}
               >
-                Principal:{' '}
+                {t('detail.principal')}:{' '}
                 <ConvertedAmount amount={totalPrincipal} currency={liability.currency} inline />
               </TooltipContent>
             </Tooltip>
@@ -129,7 +130,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
                 sideOffset={4}
               >
-                Interest (total):{' '}
+                {t('detail.interestTotal')}:{' '}
                 <ConvertedAmount amount={totalInterest} currency={liability.currency} inline />
               </TooltipContent>
             </Tooltip>
@@ -148,7 +149,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
                 sideOffset={4}
               >
-                Insurance (total):{' '}
+                {t('detail.insuranceTotal')}:{' '}
                 <ConvertedAmount amount={totalInsurance} currency={liability.currency} inline />
               </TooltipContent>
             </Tooltip>
@@ -167,7 +168,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 className="bg-surface-elevated text-xs whitespace-nowrap border-border shadow-md"
                 sideOffset={4}
               >
-                One-time Fee:{' '}
+                {t('detail.oneTimeFee')}:{' '}
                 <ConvertedAmount amount={totalFees} currency={liability.currency} inline />
               </TooltipContent>
             </Tooltip>
@@ -179,7 +180,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-text-secondary">
             <span className="h-2 w-2 rounded-full bg-primary inline-block" />
-            Principal
+            {t('detail.principal')}
           </span>
           <span className="font-mono text-text-primary">
             <ConvertedAmount
@@ -196,7 +197,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-text-secondary">
             <span className="h-2 w-2 rounded-full bg-warning inline-block" />
-            Interest (paid / total)
+            {t('detail.interestPaidTotal')}
           </span>
           <span className="font-mono text-text-primary">
             <ConvertedAmount
@@ -224,7 +225,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-text-secondary">
               <span className="h-2 w-2 rounded-full bg-info inline-block" />
-              Insurance (paid / total)
+              {t('detail.insurancePaidTotal')}
             </span>
             <span className="font-mono text-text-primary">
               <ConvertedAmount
@@ -253,7 +254,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-text-secondary">
               <span className="h-2 w-2 rounded-full bg-error inline-block" />
-              One-time Fee
+              {t('detail.oneTimeFee')}
             </span>
             <span className="font-mono text-text-primary">
               <ConvertedAmount
@@ -301,7 +302,7 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
     return (
       <div className="flex items-center gap-2 p-4 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
         <AlertCircle className="h-4 w-4 flex-shrink-0" />
-        <span>Failed to load linked transactions. Please try again.</span>
+        <span>{t('detail.paymentsError')}</span>
       </div>
     );
   }
@@ -310,10 +311,8 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
     return (
       <div className="text-center py-12">
         <CreditCard className="h-10 w-10 text-text-tertiary mx-auto mb-3" />
-        <p className="text-text-secondary text-sm">No transactions linked to this liability yet.</p>
-        <p className="text-text-tertiary text-xs mt-1">
-          Link expense transactions to track payments against this liability.
-        </p>
+        <p className="text-text-secondary text-sm">{t('detail.noPayments')}</p>
+        <p className="text-text-tertiary text-xs mt-1">{t('detail.paymentsHint')}</p>
       </div>
     );
   }
@@ -330,8 +329,7 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
       {breakdown && breakdown.linkedTransactionCount > 0 && (
         <div className="flex items-center justify-between bg-surface border border-border rounded-lg px-4 py-3 text-sm">
           <span className="text-text-secondary">
-            {breakdown.linkedTransactionCount}{' '}
-            {breakdown.linkedTransactionCount === 1 ? 'transaction' : 'transactions'} linked
+            {t('detail.linkedCount', { count: breakdown.linkedTransactionCount })}
           </span>
           <span className="font-semibold font-mono text-text-primary">
             <ConvertedAmount
@@ -343,7 +341,7 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
               isConverted={liability.isConverted}
               inline
             />{' '}
-            total
+            {t('detail.total')}
           </span>
         </div>
       )}
@@ -360,7 +358,7 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
               <div className="min-w-0">
                 <div className="text-sm text-text-primary truncate flex items-center gap-2">
                   <span className="truncate">
-                    {tx.description || tx.payee || `Transaction #${tx.id}`}
+                    {tx.description || tx.payee || t('detail.transaction', { id: tx.id })}
                   </span>
                   {tx.movementType && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-elevated text-text-secondary border border-border text-xs font-medium flex-shrink-0">
@@ -486,7 +484,7 @@ export function LiabilityDetailDialog({
     <Dialog open={!!liability} onOpenChange={open => !open && onClose()}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{liability.name} — Details</DialogTitle>
+          <DialogTitle>{t('detail.title', { name: liability.name })}</DialogTitle>
         </DialogHeader>
 
         <div className="w-full">
@@ -502,7 +500,7 @@ export function LiabilityDetailDialog({
                     : 'border-transparent text-text-secondary hover:text-text-primary'
                 )}
               >
-                Overview
+                {t('detail.overview')}
               </button>
               {hasSchedule && (
                 <button
@@ -514,7 +512,7 @@ export function LiabilityDetailDialog({
                       : 'border-transparent text-text-secondary hover:text-text-primary'
                   )}
                 >
-                  Amortization Schedule
+                  {t('detail.schedule')}
                 </button>
               )}
               <button
@@ -526,7 +524,7 @@ export function LiabilityDetailDialog({
                     : 'border-transparent text-text-secondary hover:text-text-primary'
                 )}
               >
-                Linked Payments
+                {t('detail.payments')}
               </button>
               <button
                 onClick={() => setActiveTab('drawdowns')}
@@ -548,7 +546,7 @@ export function LiabilityDetailDialog({
                     : 'border-transparent text-text-secondary hover:text-text-primary'
                 )}
               >
-                Attachments
+                {t('detail.attachments')}
               </button>
             </div>
           </div>
@@ -586,7 +584,7 @@ export function LiabilityDetailDialog({
                 )}
                 {isLoadingSchedule && (
                   <div className="py-12 text-center text-text-secondary text-sm">
-                    Loading amortization schedule…
+                    {t('detail.loadingSchedule')}
                   </div>
                 )}
                 {amortizationSchedule && (

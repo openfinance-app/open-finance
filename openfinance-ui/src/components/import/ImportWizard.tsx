@@ -21,7 +21,6 @@ import { ImportReview } from './ImportReview';
 import { ImportProgress } from './ImportProgress';
 import { Button } from '@/components/ui/Button';
 import { SimpleSelect } from '@/components/ui/SimpleSelect';
-import { STORAGE_KEYS } from '@/constants/storage';
 import {
   ChevronLeft,
   ChevronRight,
@@ -44,9 +43,6 @@ import {
   useUpdateAccount,
   useUpdateTransactions,
 } from '@/hooks/useImport';
-import { useCreateCategory } from '@/hooks/useTransactions';
-import { useCategories } from '@/hooks/useCategories';
-import apiClient from '@/services/apiClient';
 import type { FileUploadResponse, ImportWizardStep, ImportTransactionDTO } from '@/types/import';
 
 // ---------------------------------------------------------------------------
@@ -99,10 +95,10 @@ export function ImportWizard() {
   const queryClient = useQueryClient();
 
   // ── Wizard state ─────────────────────────────────────────────────────────
-  const [currentStep, setCurrentStep] = useState<ImportWizardStep>('upload');
+  const [selectedStep, setCurrentStep] = useState<ImportWizardStep>('upload');
   const [uploadId, setUploadId] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
-  const [accountId, setAccountId] = useState<number | null>(null);
+  const [accountOverride, setAccountId] = useState<number | null | undefined>(undefined);
   const [sessionId, setSessionId] = useState<number | null>(null);
 
   /** Controls the "leave and cancel?" confirmation dialog */
@@ -116,8 +112,7 @@ export function ImportWizard() {
   const [skipDuplicates, setSkipDuplicates] = useState(true);
 
   /** Local (editable) copy of parsed transactions */
-  const [localTransactions, setLocalTransactions] = useState<ImportTransactionDTO[]>([]);
-  const [hasInitializedTransactions, setHasInitializedTransactions] = useState(false);
+  const [editedTransactions, setLocalTransactions] = useState<ImportTransactionDTO[] | null>(null);
 
   // ── Remote data & mutations ───────────────────────────────────────────────
   const { data: accounts = [] } = useAccounts();
@@ -141,48 +136,13 @@ export function ImportWizard() {
   const cancelImport = useCancelImport();
   const updateAccount = useUpdateAccount();
   const updateTransactions = useUpdateTransactions();
-  const createCategory = useCreateCategory();
-  const { data: allCategories = [] } = useCategories();
 
-  // ── Sync remote transactions → local on first load ───────────────────────
-  useEffect(() => {
-    // Initialization: only once per session, and only if local state is empty
-    if (
-      sessionId &&
-      transactions.length > 0 &&
-      !hasInitializedTransactions &&
-      localTransactions.length === 0
-    ) {
-      setLocalTransactions([...transactions]);
-      setHasInitializedTransactions(true);
-    }
-  }, [sessionId, transactions, hasInitializedTransactions, localTransactions.length]);
-
-  // Reset local state when a new session starts
-  const lastSessionIdRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (sessionId && sessionId !== lastSessionIdRef.current) {
-      setHasInitializedTransactions(false);
-      setLocalTransactions([]);
-      setCategoryMappings({});
-      setNewCategoryNames([]);
-      lastSessionIdRef.current = sessionId;
-    }
-  }, [sessionId]);
-
-  // ── Auto-populate accountId from session if backend matched one ─────────
-  useEffect(() => {
-    if (sessionId && session?.accountId && accountId === null) {
-      setAccountId(session.accountId);
-    }
-  }, [sessionId, session?.accountId, accountId]);
-
-  // ── Auto-advance: confirm → progress when import kicks off ───────────────
-  useEffect(() => {
-    if (session && session.status === 'IMPORTING' && currentStep === 'confirm') {
-      setCurrentStep('progress');
-    }
-  }, [session, currentStep]);
+  // Keep untouched review data and backend account matching derived from the session.
+  // Once the user edits rows, even an empty draft takes precedence over subsequent refetches.
+  const localTransactions = editedTransactions ?? transactions;
+  const accountId = accountOverride === undefined ? (session?.accountId ?? null) : accountOverride;
+  const currentStep =
+    session?.status === 'IMPORTING' && selectedStep === 'confirm' ? 'progress' : selectedStep;
 
   // ── Refresh dependent data once the async import actually completes ───────
   // Confirmation runs asynchronously on the backend, so the imported rows only
@@ -226,6 +186,10 @@ export function ImportWizard() {
   const handleUploadSuccess = async (response: FileUploadResponse) => {
     if (!response.uploadId) return;
 
+    setLocalTransactions(null);
+    setCategoryMappings({});
+    setNewCategoryNames([]);
+    setAccountId(undefined);
     setUploadId(response.uploadId);
     setFileName(response.fileName);
     setCurrentStep('account');
@@ -261,114 +225,12 @@ export function ImportWizard() {
   const handleConfirmImport = async () => {
     if (!sessionId) return;
     try {
-      // Build final mappings: start with what the user already mapped, then create new categories.
-      const finalMappings: Record<string, number> = { ...categoryMappings };
-
-      // Helper: try to create a category; if it already exists, refetch and find it
-      const createOrFindCategory = async (
-        name: string,
-        type: 'EXPENSE' | 'INCOME',
-        parentId?: number
-      ): Promise<number> => {
-        try {
-          const created = await createCategory.mutateAsync({ name, type, parentId });
-          return created.id;
-        } catch (err: unknown) {
-          // Category already exists — refetch with English names to match QIF category names
-          const token =
-            localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ||
-            sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-          const { buildEncryptionHeaders } = await import('@/utils/encryption');
-          const resp = await fetch(`${apiClient.defaults.baseURL}/categories`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              ...buildEncryptionHeaders(),
-              'Accept-Language': 'en',
-            },
-          });
-          if (!resp.ok) throw err;
-          const cats: { id: number; name: string }[] = await resp.json();
-          const found = cats.find(c => c.name.toLowerCase() === name.toLowerCase());
-          if (found) return found.id;
-          throw err; // Re-throw if we still can't find it
-        }
-      };
-
-      // Determine the type (EXPENSE/INCOME) of transactions using each new category name.
-      // Default to EXPENSE; if only income transactions use it, use INCOME.
-      const getTypeForCategory = (catName: string): 'EXPENSE' | 'INCOME' => {
-        const txns = localTransactions.filter(t => t.category === catName);
-        if (txns.length > 0 && txns.every(t => t.amount > 0)) return 'INCOME';
-        return 'EXPENSE';
-      };
-
-      for (const sourceName of newCategoryNames) {
-        // Skip if already mapped by the user
-        if (finalMappings[sourceName] != null) continue;
-
-        // Check if it was created in a previous iteration (e.g., as a parent)
-        const existing = allCategories.find(c => c.name.toLowerCase() === sourceName.toLowerCase());
-        if (existing) {
-          finalMappings[sourceName] = existing.id;
-          continue;
-        }
-
-        let type = getTypeForCategory(sourceName);
-
-        // Detect hierarchical path (e.g. "Divers:Achat Divers" or "Divers/Achat Divers")
-        const parts = sourceName
-          .split(/[:/]/)
-          .map(p => p.trim())
-          .filter(Boolean);
-
-        if (parts.length > 1) {
-          // Hierarchical: find or create the parent first, then the leaf
-          const parentName = parts[0];
-          let parentId: number | undefined = undefined;
-
-          const existingParent =
-            allCategories.find(c => c.name.toLowerCase() === parentName.toLowerCase()) ??
-            // Also check already-created parents in finalMappings
-            null;
-
-          if (existingParent) {
-            parentId = existingParent.id;
-            // Inherit type from existing parent to avoid type mismatch
-            type = existingParent.type as 'EXPENSE' | 'INCOME';
-          } else {
-            // Check if we already have a mapping for the parent name
-            const parentMapping = finalMappings[parentName];
-            if (parentMapping != null) {
-              parentId = parentMapping;
-            } else {
-              // Create the parent
-              const parentCatId = await createOrFindCategory(parentName, type);
-              parentId = parentCatId;
-              finalMappings[parentName] = parentCatId;
-            }
-          }
-
-          const leafName = parts[parts.length - 1];
-          const existingLeaf = allCategories.find(
-            c => c.name.toLowerCase() === leafName.toLowerCase()
-          );
-          if (existingLeaf) {
-            finalMappings[sourceName] = existingLeaf.id;
-          } else {
-            const leafCatId = await createOrFindCategory(leafName, type, parentId);
-            finalMappings[sourceName] = leafCatId;
-          }
-        } else {
-          // Top-level category
-          const catId = await createOrFindCategory(sourceName, type);
-          finalMappings[sourceName] = catId;
-        }
-      }
-
+      // The backend resolves/creates categories inside the import transaction, after
+      // validation and duplicate filtering. Preserve selected category IDs from review.
       await confirmImport.mutateAsync({
         sessionId,
         accountId: accountId ?? null,
-        categoryMappings: finalMappings,
+        categoryMappings,
         skipDuplicates,
       });
       setCurrentStep('progress');
@@ -381,14 +243,12 @@ export function ImportWizard() {
     setCurrentStep('upload');
     setUploadId(null);
     setFileName('');
-    setAccountId(null);
+    setAccountId(undefined);
     setSessionId(null);
-    setLocalTransactions([]);
-    setHasInitializedTransactions(false);
+    setLocalTransactions(null);
     setCategoryMappings({});
     setNewCategoryNames([]);
     setSkipDuplicates(true);
-    lastSessionIdRef.current = null;
     importCompletedRef.current = false;
   };
 

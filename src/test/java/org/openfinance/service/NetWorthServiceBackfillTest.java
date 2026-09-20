@@ -157,6 +157,56 @@ class NetWorthServiceBackfillTest {
                 .build();
     }
 
+    @Test
+    void historicalMonthHasExactOpeningAndClosingSnapshotsIncludingEndDatePayments() {
+        Account account =
+                Account.builder()
+                        .id(1L)
+                        .userId(USER_ID)
+                        .currency("EUR")
+                        .openingDate(LocalDate.of(2026, 7, 1))
+                        .balance(new BigDecimal("6492.09"))
+                        .build();
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(List.of(account));
+        Transaction julyIncome =
+                Transaction.builder()
+                        .accountId(1L)
+                        .type(TransactionType.INCOME)
+                        .currency("EUR")
+                        .amount(new BigDecimal("3250"))
+                        .date(LocalDate.of(2026, 7, 2))
+                        .build();
+        Transaction julyExpense =
+                Transaction.builder()
+                        .accountId(1L)
+                        .type(TransactionType.EXPENSE)
+                        .currency("EUR")
+                        .amount(new BigDecimal("1480.74"))
+                        .date(LocalDate.of(2026, 7, 31))
+                        .build();
+        Transaction laterIncome =
+                Transaction.builder()
+                        .accountId(1L)
+                        .type(TransactionType.INCOME)
+                        .currency("EUR")
+                        .amount(new BigDecimal("1922.83"))
+                        .date(LocalDate.of(2026, 8, 1))
+                        .build();
+        when(transactionRepository.findByUserId(USER_ID))
+                .thenReturn(List.of(julyIncome, julyExpense, laterIncome));
+
+        netWorthService.backfillNetWorthHistory(
+                USER_ID, LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 31), "EUR");
+
+        ArgumentCaptor<NetWorth> snapshots = ArgumentCaptor.forClass(NetWorth.class);
+        verify(netWorthRepository, org.mockito.Mockito.times(2)).save(snapshots.capture());
+        assertThat(snapshots.getAllValues())
+                .extracting(NetWorth::getSnapshotDate)
+                .containsExactly(LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 31));
+        assertThat(snapshots.getAllValues().get(0).getNetWorth()).isEqualByComparingTo("2800");
+        assertThat(snapshots.getAllValues().get(1).getNetWorth()).isEqualByComparingTo("4569.26");
+    }
+
     private List<NetWorth> runBackfill(List<Transaction> transactions) {
         return runBackfill(transactions, mortgage());
     }
@@ -182,7 +232,7 @@ class NetWorthServiceBackfillTest {
         payment.setPrincipalAmount(new BigDecimal("800"));
         List<NetWorth> snapshots = runBackfill(List.of(payment));
 
-        assertThat(snapshots).hasSize(3);
+        assertThat(snapshots).hasSize(4);
         NetWorth january = snapshots.get(0);
         NetWorth february = snapshots.get(1);
         assertThat(snapshots.get(2).getSnapshotDate()).isEqualTo(LocalDate.of(2026, 3, 1));
@@ -205,7 +255,7 @@ class NetWorthServiceBackfillTest {
                                 repayment(
                                         100L, new BigDecimal("1200"), LocalDate.of(2026, 2, 15))));
 
-        assertThat(snapshots).hasSize(3);
+        assertThat(snapshots).hasSize(4);
         assertThat(snapshots.get(0).getTotalLiabilities()).isEqualByComparingTo("100400");
         assertThat(snapshots.get(1).getTotalLiabilities()).isEqualByComparingTo("100400");
         assertThat(snapshots.get(2).getTotalLiabilities()).isEqualByComparingTo("99200");
@@ -218,7 +268,7 @@ class NetWorthServiceBackfillTest {
         payment.setPrincipalAmount(BigDecimal.ZERO);
         List<NetWorth> snapshots = runBackfill(List.of(payment));
 
-        assertThat(snapshots).hasSize(3);
+        assertThat(snapshots).hasSize(4);
         // 300 − 300 categorized = 0 principal leg → historical balance equals current balance.
         assertThat(snapshots.get(0).getTotalLiabilities()).isEqualByComparingTo("99200");
         assertThat(snapshots.get(1).getTotalLiabilities()).isEqualByComparingTo("99200");
@@ -241,7 +291,7 @@ class NetWorthServiceBackfillTest {
                                         200L, new BigDecimal("50000"), LocalDate.of(2026, 2, 15))),
                         staged);
 
-        assertThat(snapshots).hasSize(3);
+        assertThat(snapshots).hasSize(4);
         // Before the drawdown the outstanding balance was 0 — NOT the current 50k.
         assertThat(snapshots.get(0).getTotalLiabilities()).isEqualByComparingTo("0");
         assertThat(snapshots.get(1).getTotalLiabilities()).isEqualByComparingTo("0");
@@ -265,7 +315,7 @@ class NetWorthServiceBackfillTest {
                                 repayment(100L, new BigDecimal("1200"), LocalDate.of(2026, 2, 20))),
                         staged);
 
-        assertThat(snapshots).hasSize(3);
+        assertThat(snapshots).hasSize(4);
         // At T0: 48800 − 50000 drawdown + 1200 repayment principal = 0.
         assertThat(snapshots.get(0).getTotalLiabilities()).isEqualByComparingTo("0");
         assertThat(snapshots.get(1).getTotalLiabilities()).isEqualByComparingTo("0");
@@ -285,7 +335,7 @@ class NetWorthServiceBackfillTest {
                                 repayment(
                                         100L, new BigDecimal("1200"), LocalDate.of(2026, 2, 15))));
 
-        assertThat(snapshots).hasSize(3);
+        assertThat(snapshots).hasSize(4);
         // The drawdown predates the targets → must stay in the balance; the repayment after the
         // targets adds back its full principal.
         assertThat(snapshots.get(0).getTotalLiabilities()).isEqualByComparingTo("100400");

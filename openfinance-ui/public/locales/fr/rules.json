@@ -111,6 +111,9 @@
         "splitAmount": "Montant de la division...",
         "splitDescription": "Description de la division (facultatif)..."
       }
-    }
+    },
+    "conditionMatchAnd": "TOUTES (ET)",
+    "conditionMatchOr": "AU MOINS UNE (OU)",
+    "conditionsHintOr": "La règle s’applique si au moins une condition est remplie."
   }
 }

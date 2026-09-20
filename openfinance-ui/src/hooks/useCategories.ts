@@ -4,6 +4,7 @@ import apiClient from '@/services/apiClient';
 interface Category {
   id: number;
   name: string;
+  canonicalName?: string;
   type: string;
   parentId?: number | null;
   parentName?: string | null;

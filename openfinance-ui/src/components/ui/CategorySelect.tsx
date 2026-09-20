@@ -437,7 +437,7 @@ export function CategorySelect({
 
 export interface CategoryComboboxProps {
   value: string;
-  onValueChange: (value: string) => void;
+  onValueChange: (value: string, categoryId?: number) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -503,7 +503,7 @@ export function CategoryCombobox({
               onMouseDown={e => {
                 e.preventDefault();
                 // Commit immediately on selection
-                onValueChange(category.name);
+                onValueChange(category.name, category.id);
                 setInputValue(category.name);
                 setIsOpen(false);
               }}
