@@ -1,14 +1,9 @@
-/**
- * Custom hook to fetch user's financial data for pre-populating calculator inputs
- * Task 4.4.2: Create useUserFinancialData hook
- * Task 6.2.2: Connect user's financial data
- */
-
-import { useState, useEffect } from 'react';
-import apiClient from '../services/apiClient';
-import type { Asset } from '../types/asset';
-import type { Transaction } from '../types/transaction';
-import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { format, subMonths } from 'date-fns';
+import apiClient from '@/services/apiClient';
+import { useAuthContext } from '@/context/AuthContext';
+import type { Asset } from '@/types/asset';
 import { sum, multiply, divide } from '@/utils/money';
 
 interface UserFinancialData {
@@ -17,103 +12,52 @@ interface UserFinancialData {
   currency: string;
 }
 
-interface UseUserFinancialDataReturn {
-  data: UserFinancialData | null;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-}
-
-/**
- * Hook to fetch and calculate user's financial data from their assets and transactions
- *
- * Calculates:
- * - Total savings: Sum of all asset values
- * - Average monthly expenses: Average of expense transactions over the last 6 months
- *
- * @returns Object containing financial data, loading state, error, and refetch function
- */
-export const useUserFinancialData = (): UseUserFinancialDataReturn => {
-  const [data, setData] = useState<UserFinancialData | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchFinancialData = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Fetch user's assets to calculate total savings
-      const assetsResponse = await apiClient.get<Asset[]>('/assets');
-      const assets = assetsResponse.data;
-
-      // Calculate total savings from all assets
-      const totalSavings = sum(
-        assets.map(asset => asset.totalValue || multiply(asset.quantity, asset.currentPrice))
-      );
-
-      // Fetch transactions from the last 6 months to calculate average expenses
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-      const dateFrom = sixMonthsAgo.toISOString().split('T')[0];
-
-      const transactionsResponse = await apiClient.get<Transaction[]>('/transactions', {
-        params: {
-          type: 'EXPENSE',
-          dateFrom,
-          dateTo: new Date().toISOString().split('T')[0],
-        },
-      });
-
-      const expenses = transactionsResponse.data.filter(
-        transaction => transaction.type === 'EXPENSE' && !transaction.transferId
-      );
-
-      // Calculate average monthly expenses
-      let averageMonthlyExpenses = 0;
-      if (expenses.length > 0) {
-        const totalExpenses = sum(expenses.map(transaction => Math.abs(transaction.amount)));
-
-        // Calculate number of months in the period
-        const oldestExpense = expenses.reduce((oldest, transaction) => {
-          const transactionDate = new Date(transaction.date);
-          return transactionDate < oldest ? transactionDate : oldest;
-        }, new Date());
-
-        const monthsDiff = Math.max(
-          1,
-          Math.ceil((new Date().getTime() - oldestExpense.getTime()) / (1000 * 60 * 60 * 24 * 30))
-        );
-
-        averageMonthlyExpenses = divide(totalExpenses, monthsDiff);
-      }
-
-      // Determine currency (use first asset's currency or the app default)
-      const currency = assets.length > 0 ? assets[0].currency : DEFAULT_CURRENCY;
-
-      setData({
-        totalSavings,
-        averageMonthlyExpenses,
-        currency,
-      });
-    } catch (err) {
-      console.error('Error fetching user financial data:', err);
-      setError(
-        err instanceof Error ? err.message : 'Failed to fetch financial data. Please try again.'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchFinancialData();
-  }, []);
-
+/** Holdings in the reporting currency and dated cash expenses over the last six months. */
+export const useUserFinancialData = () => {
+  const { baseCurrency, user } = useAuthContext();
+  const { t } = useTranslation('tools');
+  const query = useQuery<UserFinancialData>({
+    queryKey: ['userFinancialData', user?.id, baseCurrency],
+    enabled: user != null,
+    queryFn: async () => {
+      const today = new Date();
+      const [assetsResponse, cashFlowResponse] = await Promise.all([
+        apiClient.get<Asset[]>('/assets'),
+        apiClient.get<{ expenses: number }>('/dashboard/cashflow', {
+          params: {
+            startDate: format(subMonths(today, 6), 'yyyy-MM-dd'),
+            endDate: format(today, 'yyyy-MM-dd'),
+          },
+        }),
+      ]);
+      const values = assetsResponse.data
+        .filter(asset => asset.acquisitionType !== 'PLANNED')
+        .map(asset => {
+          if (asset.currency === baseCurrency) {
+            return asset.totalValue ?? multiply(asset.quantity, asset.currentPrice);
+          }
+          if (
+            asset.baseCurrency === baseCurrency &&
+            asset.isConverted &&
+            asset.valueInBaseCurrency != null
+          ) {
+            return asset.valueInBaseCurrency;
+          }
+          throw new Error(t('financialData.conversionUnavailable'));
+        });
+      return {
+        totalSavings: sum(values),
+        averageMonthlyExpenses: divide(cashFlowResponse.data.expenses, 6),
+        currency: baseCurrency,
+      };
+    },
+  });
   return {
-    data,
-    isLoading,
-    error,
-    refetch: fetchFinancialData,
+    data: query.isError ? null : (query.data ?? null),
+    isLoading: query.isPending || query.isFetching,
+    error: query.error?.message ?? null,
+    refetch: async () => {
+      await query.refetch();
+    },
   };
 };

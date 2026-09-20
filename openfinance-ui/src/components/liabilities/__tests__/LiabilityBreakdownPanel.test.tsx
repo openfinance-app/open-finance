@@ -150,7 +150,7 @@ describe('LiabilityBreakdownPanel', () => {
       expect(screen.getByText('Principal Paid')).toBeInTheDocument();
       expect(screen.getByText('Interest Paid')).toBeInTheDocument();
       expect(screen.getByText('Insurance Paid')).toBeInTheDocument();
-      expect(screen.getByText('One-time Fee (paid)')).toBeInTheDocument();
+      expect(screen.getByText('Recorded fees paid')).toBeInTheDocument();
       expect(screen.getByText('Total Paid')).toBeInTheDocument();
     });
 

@@ -160,6 +160,7 @@ export default function AssetsPage() {
 
   /** Compute summary stats for a set of assets, summing in base currency when available */
   const computeAssetSummary = (assetList: Asset[]) => {
+    assetList = assetList.filter(asset => asset.acquisitionType !== 'PLANNED');
     // Use the user-entered current value (totalValue) for every asset, including physical ones.
     // Auto-depreciation is only a fallback for physical assets that lack an entered current price.
     const totalValue = sum(

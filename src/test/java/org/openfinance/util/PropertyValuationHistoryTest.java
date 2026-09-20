@@ -65,4 +65,19 @@ class PropertyValuationHistoryTest {
         assertThat(PropertyValuationHistory.atDate(property, history, START.plusMonths(3)).amount())
                 .isEqualByComparingTo("1700");
     }
+
+    @Test
+    void currentAndHistoricalValuesChooseEffectiveDateBeforeEntryOrder() {
+        List<RealEstateValueHistory> history =
+                List.of(
+                        entry(1, 0, "1000", false),
+                        entry(2, 3, "200", false),
+                        entry(3, 1, "100", false));
+        assertThat(PropertyValuationHistory.atDate(property, history, START.plusMonths(1)).amount())
+                .isEqualByComparingTo("100");
+        assertThat(PropertyValuationHistory.atDate(property, history, START.plusMonths(3)).amount())
+                .isEqualByComparingTo("200");
+        assertThat(PropertyValuationHistory.current(property, history).amount())
+                .isEqualByComparingTo("200");
+    }
 }

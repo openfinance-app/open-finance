@@ -563,11 +563,7 @@ public class DashboardController {
         // window and never reconstructs the earlier months. Backfill is idempotent
         // (only creates missing month-start snapshots) and self-limits to each
         // account's earliest activity, so re-running is safe and cheap.
-        boolean sparse =
-                history.stream()
-                                .filter(nw -> nw.getNetWorth().compareTo(BigDecimal.ZERO) != 0)
-                                .count()
-                        < 3;
+        boolean sparse = history.size() < 3;
         // history is ordered ascending, so the first element is the earliest snapshot.
         boolean startUncovered =
                 history.isEmpty()
@@ -585,22 +581,6 @@ public class DashboardController {
                         effectiveEnd);
                 history = netWorthService.getNetWorthHistory(userId, effectiveStart, effectiveEnd);
             }
-        }
-
-        // Filter out zero-value snapshots if non-zero snapshots also exist (prevents
-        // stale $0 initialization snapshots from polluting the chart)
-        boolean hasNonZero =
-                history.stream().anyMatch(nw -> nw.getNetWorth().compareTo(BigDecimal.ZERO) != 0);
-        if (hasNonZero) {
-            history =
-                    history.stream()
-                            .filter(
-                                    nw ->
-                                            nw.getTotalAssets().compareTo(BigDecimal.ZERO) != 0
-                                                    || nw.getTotalLiabilities()
-                                                                    .compareTo(BigDecimal.ZERO)
-                                                            != 0)
-                            .collect(Collectors.toList());
         }
 
         // Convert to DTOs

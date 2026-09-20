@@ -176,7 +176,7 @@
     "principalPaid": "Principal Paid",
     "interestPaid": "Interest Paid",
     "insurancePaid": "Insurance Paid",
-    "feesPaid": "One-time Fee (paid)",
+    "feesPaid": "Recorded fees paid",
     "totalPaid": "Total Paid",
     "remainingBalance": "Remaining Balance",
     "projectedInterest": "Projected Interest",
@@ -184,7 +184,8 @@
     "totalProjectedCost": "Total Projected Cost",
     "annualInsuranceRate": "Annual Insurance Rate ({{rate}}%)",
     "oneTimeFee": "One-time Fee",
-    "institution": "Institution"
+    "institution": "Institution",
+    "otherChargesPaid": "Other recorded charges"
   },
   "drawdowns": {
     "tab": "Drawdowns",
@@ -222,6 +223,7 @@
       "route": "Route",
       "routeAccount": "To my account",
       "routeProperty": "Direct to the linked property",
+      "valuationPolicy": "The draw records a valuation on its date. A newer dated valuation remains current.",
       "account": "Account",
       "cancel": "Cancel",
       "submit": "Confirm disbursement",

@@ -124,7 +124,7 @@ describe('useNotifications', () => {
     await act(async () => {
       await result.current.refetch();
     });
-    expect(result.current.data).toBe(2);
+    await waitFor(() => expect(result.current.data).toBe(2));
     act(() => useNotificationReadState.getState().markRead('1', mockNotifications[1]));
     expect(result.current.data).toBe(1);
     mockedApiClient.get.mockResolvedValue({ data: [] });

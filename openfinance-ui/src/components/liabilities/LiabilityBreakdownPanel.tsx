@@ -255,6 +255,13 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
             liability={liability}
           />
         )}
+        {(breakdown.otherChargesPaid ?? 0) > 0 && (
+          <BreakdownRow
+            label={t('breakdown.otherChargesPaid')}
+            value={breakdown.otherChargesPaid ?? 0}
+            liability={liability}
+          />
+        )}
         {breakdown.feesPaid > 0 && (
           <BreakdownRow
             label={t('breakdown.feesPaid')}

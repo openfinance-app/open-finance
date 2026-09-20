@@ -46,7 +46,6 @@ class AuditRemediationIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private DataSource dataSource;
     @Autowired private EncryptionKeyCache keys;
-    @Autowired private TransactionArchiveService transactionArchiveService;
     @TempDir Path temporary;
     private Auth owner;
     private Auth other;
@@ -232,8 +231,12 @@ class AuditRemediationIntegrationTest {
                 "UPDATE accounts SET institution_id = ? WHERE id = ?", institution, sourceAccount);
         long category = category(owner, "Portable expenses");
         expense(owner, sourceAccount, category, LocalDate.now().minusYears(8), 50);
-        assertThat(transactionArchiveService.archiveOldTransactionsForUser(owner.id()))
-                .isEqualTo(1);
+        // Legacy archive fixture: backup/key rotation must still preserve historical backups.
+        jdbc.update(
+                "INSERT INTO transactions_archive (id, user_id, account_id, transaction_type, amount, currency, category_id, transaction_date, description, created_at, account_amount, account_currency) "
+                        + "SELECT id, user_id, account_id, transaction_type, amount, currency, category_id, transaction_date, description, created_at, account_amount, account_currency FROM transactions WHERE user_id = ?",
+                owner.id());
+        jdbc.update("DELETE FROM transactions WHERE user_id = ?", owner.id());
         jdbc.update(
                 "INSERT INTO import_sessions (upload_id, user_id, file_name, account_id, status, created_at, updated_at) VALUES (?, ?, 'pending.qif', ?, 'REVIEWING', ?, ?)",
                 UUID.randomUUID().toString(),

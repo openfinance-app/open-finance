@@ -326,7 +326,7 @@ class DashboardControllerTest {
                             .name("Real Estate")
                             .address("1 Test Street")
                             .propertyType(PropertyType.RESIDENTIAL)
-                            .currency("USD")
+                            .currency("EUR")
                             .purchasePrice(new BigDecimal("5000"))
                             .currentValue(new BigDecimal("5500"))
                             .purchaseDate(LocalDate.now())

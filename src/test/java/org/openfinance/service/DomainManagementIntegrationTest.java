@@ -525,8 +525,13 @@ class DomainManagementIntegrationTest {
         long loan = liability(1000, 0);
         JsonNode property = property("Home", 0);
         long propertyId = property.get("id").asLong();
-        json("GET", "/dashboard/summary", null, owner, 200);
         LocalDate drawDate = LocalDate.now().withDayOfMonth(1);
+        // This fixture's opening valuation predates the funding. A newer appraisal would win.
+        jdbc.update(
+                "UPDATE real_estate_value_history SET effective_date = ? WHERE property_id = ?",
+                drawDate.minusDays(1).toString(),
+                propertyId);
+        json("GET", "/dashboard/summary", null, owner, 200);
         json(
                 "POST",
                 "/liabilities/" + loan + "/disburse",

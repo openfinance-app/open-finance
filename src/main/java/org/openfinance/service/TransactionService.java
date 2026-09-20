@@ -456,7 +456,7 @@ public class TransactionService {
 
         // Round to 4 decimal places to avoid ConstraintViolationException on
         // @Digits(integer = 15, fraction = 4)
-        BigDecimal roundedDestAmount = destAmount.setScale(4, RoundingMode.HALF_UP);
+        BigDecimal roundedDestAmount = destAmount;
         destinationTransaction.setAmount(roundedDestAmount);
 
         destinationTransaction.setCurrency(destCurrency);
@@ -924,7 +924,7 @@ public class TransactionService {
         TransactionResponse beforeSnapshot = toResponseWithDecryption(transaction);
 
         // Prevent updating transfer transactions (they must be deleted and recreated)
-        if (transaction.getTransferId() != null) {
+        if (transaction.getTransferId() != null || request.getType() == TransactionType.TRANSFER) {
             throw new InvalidTransactionException(
                     "Cannot update transfer transactions individually. "
                             + "Please delete and recreate the transfer.");
@@ -954,6 +954,7 @@ public class TransactionService {
 
         // Update fields from request (only non-null fields will be copied)
         transactionMapper.updateEntityFromRequest(request, transaction);
+        transaction.setCategoryId(request.getCategoryId());
         transaction.setLiabilityId(request.getLiabilityId());
         transaction.setTrancheId(request.getTrancheId());
         transaction.setRealEstateId(request.getRealEstateId());

@@ -154,6 +154,7 @@ export interface LiabilityBreakdown {
   interestPaid: number;
   insurancePaid: number;
   feesPaid: number;
+  otherChargesPaid?: number;
   totalPaid: number;
   // Projections
   projectedInterest: number;

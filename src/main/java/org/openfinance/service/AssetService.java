@@ -1,7 +1,6 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -164,6 +163,7 @@ public class AssetService {
         if (asset.getAcquisitionType() == null)
             asset.setAcquisitionType(org.openfinance.entity.AcquisitionType.PURCHASE);
         asset.setUserId(userId);
+        asset.updateTotalValue(asset.getTotalValue());
         asset.setCurrencyId(resolveCurrencyId(asset.getCurrency()));
 
         // Default usefulLifeYears for depreciating physical assets
@@ -296,6 +296,7 @@ public class AssetService {
         // Store old price and purchase date to detect changes relevant to net worth
         // history
         BigDecimal oldPrice = asset.getCurrentPrice();
+        BigDecimal oldQuantity = asset.getQuantity();
         LocalDate oldPurchaseDate = asset.getPurchaseDate();
 
         // Validate account ownership if accountId is provided
@@ -305,6 +306,10 @@ public class AssetService {
 
         // Update fields from request (only non-null fields will be copied)
         assetMapper.updateEntityFromRequest(request, asset);
+        if (asset.getCurrentPrice().compareTo(oldPrice) != 0
+                || asset.getQuantity().compareTo(oldQuantity) != 0) {
+            asset.updateTotalValue(asset.getQuantity().multiply(asset.getCurrentPrice()));
+        }
         asset.setCurrencyId(resolveCurrencyId(asset.getCurrency()));
 
         // Default usefulLifeYears for depreciating physical assets
@@ -390,8 +395,8 @@ public class AssetService {
      * Applies a capitalized improvement to a physical asset's cost basis (spec §3.3).
      *
      * <p>Increases {@code currentPrice} by the improvement amount per owned unit (the full amount
-     * when {@code quantity} is 1, otherwise {@code amount / quantity} rounded to 2 decimals
-     * HALF_UP). Non-physical assets are rejected with {@link InvalidAssetStateException}.
+     * when {@code quantity} is 1), preserving the exact total using a valuation remainder.
+     * Non-physical assets are rejected with {@link InvalidAssetStateException}.
      *
      * <p>Currency guard (Task 6/9): {@code movementCurrency} — the currency the user actually
      * moved, i.e. {@code originalCurrency} when a conversion was applied, else the transaction
@@ -418,9 +423,11 @@ public class AssetService {
         }
         assertImprovementCurrencyMatches(
                 "asset", asset.getId(), asset.getCurrency(), movementCurrency);
-        BigDecimal updated =
-                asset.getCurrentPrice().add(improvementPerUnit(amount, asset.getQuantity()));
-        asset.setCurrentPrice(updated);
+        if (movementDate.isBefore(asset.getPurchaseDate())) {
+            throw new InvalidTransactionException("An improvement cannot precede acquisition");
+        }
+        asset.updateTotalValue(asset.getTotalValue().add(amount));
+        BigDecimal updated = asset.getCurrentPrice();
         asset.setLastUpdated(LocalDateTime.now());
         assetRepository.save(asset);
         invalidateSnapshotsFrom(userId, movementDate);
@@ -460,11 +467,8 @@ public class AssetService {
     public void reverseCapitalImprovement(
             Long assetId, Long userId, BigDecimal amount, LocalDate movementDate) {
         Asset asset = findPhysicalAsset(assetId, userId);
-        BigDecimal updated =
-                asset.getCurrentPrice()
-                        .subtract(improvementPerUnit(amount, asset.getQuantity()))
-                        .max(BigDecimal.ZERO);
-        asset.setCurrentPrice(updated);
+        asset.updateTotalValue(asset.getTotalValue().subtract(amount).max(BigDecimal.ZERO));
+        BigDecimal updated = asset.getCurrentPrice();
         asset.setLastUpdated(LocalDateTime.now());
         assetRepository.save(asset);
         invalidateSnapshotsFrom(userId, movementDate);
@@ -489,17 +493,6 @@ public class AssetService {
                     assetId, String.valueOf(asset.getType()));
         }
         return asset;
-    }
-
-    /**
-     * Spreads an improvement amount over the owned units: the full amount when the quantity is 1,
-     * otherwise {@code amount / quantity} rounded to 2 decimals HALF_UP.
-     */
-    private BigDecimal improvementPerUnit(BigDecimal amount, BigDecimal quantity) {
-        if (quantity == null || quantity.compareTo(BigDecimal.ONE) == 0) {
-            return amount;
-        }
-        return amount.divide(quantity, 2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -980,6 +973,10 @@ public class AssetService {
         // Group by currency and sum values
         Map<String, BigDecimal> valuesByCurrency =
                 assets.stream()
+                        .filter(
+                                asset ->
+                                        asset.getAcquisitionType()
+                                                != org.openfinance.entity.AcquisitionType.PLANNED)
                         .collect(
                                 Collectors.groupingBy(
                                         Asset::getCurrency,
@@ -1019,6 +1016,10 @@ public class AssetService {
         // Group by currency and sum costs
         Map<String, BigDecimal> costsByCurrency =
                 assets.stream()
+                        .filter(
+                                asset ->
+                                        asset.getAcquisitionType()
+                                                != org.openfinance.entity.AcquisitionType.PLANNED)
                         .collect(
                                 Collectors.groupingBy(
                                         Asset::getCurrency,
@@ -1065,7 +1066,7 @@ public class AssetService {
                             String decryptedName = asset.getName();
                             BigDecimal totalValue =
                                     (asset.getQuantity() != null && asset.getCurrentPrice() != null)
-                                            ? asset.getQuantity().multiply(asset.getCurrentPrice())
+                                            ? asset.getTotalValue()
                                             : null;
                             return AssetSummaryResponse.builder()
                                     .id(asset.getId())

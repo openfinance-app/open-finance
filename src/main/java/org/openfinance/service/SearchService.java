@@ -786,9 +786,7 @@ public class SearchService {
                                             || org.openfinance.util.RegexSearchUtil.matches(
                                                     asset.getSymbol(), query, regex)) {
 
-                                        BigDecimal value =
-                                                asset.getQuantity()
-                                                        .multiply(asset.getCurrentPrice());
+                                        BigDecimal value = asset.getTotalValue();
 
                                         return SearchResultDto.builder()
                                                 .resultType(SearchResultType.ASSET)

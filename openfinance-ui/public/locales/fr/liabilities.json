@@ -176,7 +176,7 @@
     "principalPaid": "Capital remboursé",
     "interestPaid": "Intérêts payés",
     "insurancePaid": "Assurance payée",
-    "feesPaid": "Frais uniques (payés)",
+    "feesPaid": "Frais payés enregistrés",
     "totalPaid": "Total payé",
     "remainingBalance": "Solde restant",
     "projectedInterest": "Intérêts projetés",
@@ -184,7 +184,8 @@
     "totalProjectedCost": "Coût total projeté",
     "annualInsuranceRate": "Taux d'assurance annuel ({{rate}}%)",
     "oneTimeFee": "Frais uniques",
-    "institution": "Établissement"
+    "institution": "Établissement",
+    "otherChargesPaid": "Autres charges enregistrées"
   },
   "drawdowns": {
     "tab": "Tirages",
@@ -222,6 +223,7 @@
       "route": "Destination",
       "routeAccount": "Vers mon compte",
       "routeProperty": "Directement vers le bien lié",
+      "valuationPolicy": "Le déblocage enregistre une valorisation à sa date. Une valorisation datée plus récente reste la valeur actuelle.",
       "account": "Compte",
       "cancel": "Annuler",
       "submit": "Confirmer le déblocage",

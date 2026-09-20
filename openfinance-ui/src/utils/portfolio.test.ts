@@ -186,3 +186,24 @@ describe('getAssetTypeLabel', () => {
     expect(getAssetTypeLabel('UNKNOWN')).toBe('UNKNOWN');
   });
 });
+
+describe('planned holdings', () => {
+  it('excludes estimated purchase costs from returns and rankings', () => {
+    const planned = {
+      id: 999,
+      acquisitionType: 'PLANNED',
+      totalValue: 0,
+      totalCost: 1000,
+      unrealizedGain: -1000,
+      gainPercentage: -100,
+    } as Asset;
+    expect(calculatePortfolioMetrics([planned])).toEqual({
+      totalValue: 0,
+      totalCost: 0,
+      unrealizedGain: 0,
+      gainPercentage: 0,
+      assetCount: 0,
+    });
+    expect(getTopPerformers([planned]).worst).toEqual([]);
+  });
+});

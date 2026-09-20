@@ -64,6 +64,13 @@ public class Account {
     private Long id;
 
     /**
+     * Reject stale persistence-context writes even when an outer caller read before the owner lock.
+     */
+    @jakarta.persistence.Version
+    @Column(name = "version", nullable = false)
+    private long version;
+
+    /**
      * The user who owns this account. Requirement REQ-2.2.1: Each account belongs to a single user
      */
     @NotNull(message = "{account.userId.notnull}")

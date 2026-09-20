@@ -21,21 +21,19 @@ public final class PropertyValuationHistory {
             RealEstateProperty property, List<RealEstateValueHistory> history, LocalDate date) {
         List<RealEstateValueHistory> eligible =
                 history.stream().filter(h -> !h.getEffectiveDate().isAfter(date)).toList();
-        return calculate(property, eligible, BY_DATE, true);
+        return calculate(property, eligible, BY_DATE);
     }
 
-    /** Current mutation order preserves the direct-draw convention and explicit revaluations. */
+    /** Current and historical views use the same effective-date policy. */
     public static Valuation current(
             RealEstateProperty property, List<RealEstateValueHistory> history) {
-        return calculate(
-                property, history, Comparator.comparing(RealEstateValueHistory::getId), false);
+        return atDate(property, history, LocalDate.now());
     }
 
     private static Valuation calculate(
             RealEstateProperty property,
             List<RealEstateValueHistory> history,
-            Comparator<RealEstateValueHistory> order,
-            boolean historical) {
+            Comparator<RealEstateValueHistory> order) {
         RealEstateValueHistory anchor =
                 history.stream().filter(h -> !h.isAdjustment()).max(order).orElse(null);
         BigDecimal amount =
@@ -50,8 +48,7 @@ public final class PropertyValuationHistory {
             boolean applies =
                     anchor == null
                             || entry.getId() > anchor.getId()
-                            || (historical
-                                    && entry.getEffectiveDate().isAfter(anchor.getEffectiveDate()));
+                            || entry.getEffectiveDate().isAfter(anchor.getEffectiveDate());
             if (!applies) continue;
             if (!currency.equalsIgnoreCase(entry.getCurrency())) {
                 throw new IllegalStateException(

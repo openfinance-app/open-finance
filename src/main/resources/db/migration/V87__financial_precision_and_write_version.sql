@@ -1,0 +1,2 @@
+ALTER TABLE accounts ADD COLUMN version BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE assets ADD COLUMN valuation_remainder VARCHAR(512);

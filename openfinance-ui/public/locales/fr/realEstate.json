@@ -637,6 +637,7 @@
     "buyProperty": "Acheter un bien",
     "confirm": "Confirmer l'achat",
     "disbursementRoute": "Mode de déblocage",
+    "valuationPolicy": "Le déblocage enregistre une valorisation à sa date. Une valorisation datée plus récente reste la valeur actuelle.",
     "downPaymentAccount": "Compte de l'apport",
     "downPaymentAmount": "Montant de l'apport",
     "downPaymentDescription": "Apport pour {{name}}",
@@ -663,7 +664,8 @@
       "property": "Bien",
       "funding": "Financement",
       "review": "Récapitulatif"
-    }
+    },
+    "fundingCurrency": "Choisissez un compte de financement et un prêt en {{currency}}."
   },
   "movementPaging": {
     "label": "Pages des mouvements",

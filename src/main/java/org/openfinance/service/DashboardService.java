@@ -86,6 +86,7 @@ public class DashboardService {
     private final AssetRepository assetRepository;
     private final LiabilityRepository liabilityRepository;
     private final TransactionRepository transactionRepository;
+    private final org.openfinance.repository.TransactionSplitRepository transactionSplitRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final TransactionMapper transactionMapper;
@@ -458,7 +459,13 @@ public class DashboardService {
                                         t.getType() == TransactionType.INCOME
                                                 && !t.getIsDeleted()
                                                 && t.getTransferId() == null)
-                        .map(t -> convertToBase(t.getAmount(), t.getCurrency(), cashFlowBase))
+                        .map(
+                                t ->
+                                        convertToBase(
+                                                t.getAmount(),
+                                                t.getCurrency(),
+                                                cashFlowBase,
+                                                t.getDate()))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal expenses =
@@ -468,7 +475,13 @@ public class DashboardService {
                                         t.getType() == TransactionType.EXPENSE
                                                 && !t.getIsDeleted()
                                                 && t.getTransferId() == null)
-                        .map(t -> convertToBase(t.getAmount(), t.getCurrency(), cashFlowBase))
+                        .map(
+                                t ->
+                                        convertToBase(
+                                                t.getAmount(),
+                                                t.getCurrency(),
+                                                cashFlowBase,
+                                                t.getDate()))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal netCashFlow = income.subtract(expenses);
@@ -522,7 +535,13 @@ public class DashboardService {
                                         t.getType() == TransactionType.INCOME
                                                 && !t.getIsDeleted()
                                                 && t.getTransferId() == null)
-                        .map(t -> convertToBase(t.getAmount(), t.getCurrency(), cfBase))
+                        .map(
+                                t ->
+                                        convertToBase(
+                                                t.getAmount(),
+                                                t.getCurrency(),
+                                                cfBase,
+                                                t.getDate()))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal expenses =
@@ -532,7 +551,13 @@ public class DashboardService {
                                         t.getType() == TransactionType.EXPENSE
                                                 && !t.getIsDeleted()
                                                 && t.getTransferId() == null)
-                        .map(t -> convertToBase(t.getAmount(), t.getCurrency(), cfBase))
+                        .map(
+                                t ->
+                                        convertToBase(
+                                                t.getAmount(),
+                                                t.getCurrency(),
+                                                cfBase,
+                                                t.getDate()))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         Map<String, BigDecimal> cashFlow = new HashMap<>();
@@ -604,7 +629,8 @@ public class DashboardService {
                 continue;
             }
             LocalDate date = t.getDate();
-            BigDecimal converted = convertToBase(t.getAmount(), t.getCurrency(), dailyBase);
+            BigDecimal converted =
+                    convertToBase(t.getAmount(), t.getCurrency(), dailyBase, t.getDate());
             if (t.getType() == TransactionType.INCOME) {
                 dailyIncome.put(date, dailyIncome.get(date).add(converted));
             } else if (t.getType() == TransactionType.EXPENSE) {
@@ -664,19 +690,7 @@ public class DashboardService {
                                                 && t.getTransferId() == null)
                         .collect(Collectors.toList());
 
-        // Group by category and sum amounts
-        Map<String, BigDecimal> spendingByCategory =
-                expenses.stream()
-                        .collect(
-                                Collectors.groupingBy(
-                                        t ->
-                                                t.getCategoryId() != null
-                                                        ? "Category_" + t.getCategoryId()
-                                                        : "Uncategorized",
-                                        Collectors.reducing(
-                                                BigDecimal.ZERO,
-                                                Transaction::getAmount,
-                                                BigDecimal::add)));
+        Map<String, BigDecimal> spendingByCategory = categoryTotals(userId, expenses);
 
         // Sort by amount descending
         Map<String, BigDecimal> sortedSpending =
@@ -730,18 +744,7 @@ public class DashboardService {
                                                 && t.getTransferId() == null)
                         .collect(Collectors.toList());
 
-        Map<String, BigDecimal> spendingByCategory =
-                expenses.stream()
-                        .collect(
-                                Collectors.groupingBy(
-                                        t ->
-                                                t.getCategoryId() != null
-                                                        ? "Category_" + t.getCategoryId()
-                                                        : "Uncategorized",
-                                        Collectors.reducing(
-                                                BigDecimal.ZERO,
-                                                Transaction::getAmount,
-                                                BigDecimal::add)));
+        Map<String, BigDecimal> spendingByCategory = categoryTotals(userId, expenses);
 
         return spendingByCategory.entrySet().stream()
                 .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
@@ -816,51 +819,19 @@ public class DashboardService {
                         .findById(userId)
                         .orElseThrow(
                                 () -> new IllegalArgumentException("User not found: " + userId));
-        final String sankeyBase = defaultCurrencyProvider.resolve(sankeyUser.getBaseCurrency());
 
-        // ── Income sources grouped by category (internal transfers excluded) ─────
         Map<String, BigDecimal> incomeByCategoryKey =
-                transactions.stream()
-                        .filter(
-                                t ->
-                                        t.getType() == TransactionType.INCOME
-                                                && t.getTransferId() == null)
-                        .collect(
-                                Collectors.groupingBy(
-                                        t ->
-                                                t.getCategoryId() != null
-                                                        ? "Category_" + t.getCategoryId()
-                                                        : "Uncategorized",
-                                        Collectors.reducing(
-                                                BigDecimal.ZERO,
-                                                t ->
-                                                        convertToBase(
-                                                                t.getAmount(),
-                                                                t.getCurrency(),
-                                                                sankeyBase),
-                                                BigDecimal::add)));
-
-        // ── Expense categories grouped by category (internal transfers excluded) ─
+                categoryTotals(
+                        userId,
+                        transactions.stream()
+                                .filter(t -> t.getType() == TransactionType.INCOME)
+                                .toList());
         Map<String, BigDecimal> expenseByCategoryKey =
-                transactions.stream()
-                        .filter(
-                                t ->
-                                        t.getType() == TransactionType.EXPENSE
-                                                && t.getTransferId() == null)
-                        .collect(
-                                Collectors.groupingBy(
-                                        t ->
-                                                t.getCategoryId() != null
-                                                        ? "Category_" + t.getCategoryId()
-                                                        : "Uncategorized",
-                                        Collectors.reducing(
-                                                BigDecimal.ZERO,
-                                                t ->
-                                                        convertToBase(
-                                                                t.getAmount(),
-                                                                t.getCurrency(),
-                                                                sankeyBase),
-                                                BigDecimal::add)));
+                categoryTotals(
+                        userId,
+                        transactions.stream()
+                                .filter(t -> t.getType() == TransactionType.EXPENSE)
+                                .toList());
 
         // ── Resolve category key → display name + color/icon ─────────────────
         java.util.function.Function<String, org.openfinance.entity.Category> resolveCategory =
@@ -1147,7 +1118,18 @@ public class DashboardService {
                 endDate);
 
         // Get all assets for the user
-        List<Asset> assets = assetRepository.findByUserId(userId);
+        List<Asset> assets =
+                assetRepository.findByUserId(userId).stream()
+                        .filter(
+                                asset ->
+                                        asset.getAcquisitionType()
+                                                != org.openfinance.entity.AcquisitionType.PLANNED)
+                        .filter(
+                                asset ->
+                                        asset.getPurchaseDate() == null
+                                                || !asset.getPurchaseDate()
+                                                        .isAfter(LocalDate.now()))
+                        .toList();
 
         if (assets.isEmpty()) {
             log.debug("No assets found for user {}", userId);
@@ -1320,9 +1302,18 @@ public class DashboardService {
                         .filter(
                                 t ->
                                         t.getType() == TransactionType.INCOME
+                                                && t.getMovementType()
+                                                        != org.openfinance.entity.MovementType
+                                                                .DISBURSEMENT
                                                 && !t.getIsDeleted()
                                                 && t.getTransferId() == null)
-                        .map(t -> convertToBase(t.getAmount(), t.getCurrency(), baseCurrency))
+                        .map(
+                                t ->
+                                        convertToBase(
+                                                t.getAmount(),
+                                                t.getCurrency(),
+                                                baseCurrency,
+                                                t.getDate()))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalExpenses =
@@ -1332,7 +1323,13 @@ public class DashboardService {
                                         t.getType() == TransactionType.EXPENSE
                                                 && !t.getIsDeleted()
                                                 && t.getTransferId() == null)
-                        .map(t -> convertToBase(t.getAmount(), t.getCurrency(), baseCurrency))
+                        .map(
+                                t ->
+                                        convertToBase(
+                                                t.getAmount(),
+                                                t.getCurrency(),
+                                                baseCurrency,
+                                                t.getDate()))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // Calculate average monthly income and expenses
@@ -1366,7 +1363,7 @@ public class DashboardService {
                                                 new BigDecimal(l.getMinimumPayment());
                                         return convertToBase(
                                                 rawPayment, l.getCurrency(), baseCurrency);
-                                    } catch (Exception e) {
+                                    } catch (NumberFormatException e) {
                                         log.warn(
                                                 "Failed to parse minimum payment for liability id={}",
                                                 l.getId(),
@@ -1483,9 +1480,18 @@ public class DashboardService {
                         .filter(
                                 t ->
                                         t.getType() == TransactionType.INCOME
+                                                && t.getMovementType()
+                                                        != org.openfinance.entity.MovementType
+                                                                .DISBURSEMENT
                                                 && !t.getIsDeleted()
                                                 && t.getTransferId() == null)
-                        .map(t -> convertToBase(t.getAmount(), t.getCurrency(), baseCurrency))
+                        .map(
+                                t ->
+                                        convertToBase(
+                                                t.getAmount(),
+                                                t.getCurrency(),
+                                                baseCurrency,
+                                                t.getDate()))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalExpenses =
@@ -1495,7 +1501,13 @@ public class DashboardService {
                                         t.getType() == TransactionType.EXPENSE
                                                 && !t.getIsDeleted()
                                                 && t.getTransferId() == null)
-                        .map(t -> convertToBase(t.getAmount(), t.getCurrency(), baseCurrency))
+                        .map(
+                                t ->
+                                        convertToBase(
+                                                t.getAmount(),
+                                                t.getCurrency(),
+                                                baseCurrency,
+                                                t.getDate()))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal monthsInPeriod =
@@ -1521,7 +1533,7 @@ public class DashboardService {
                                                 new BigDecimal(l.getMinimumPayment());
                                         return convertToBase(
                                                 rawPayment, l.getCurrency(), baseCurrency);
-                                    } catch (Exception e) {
+                                    } catch (NumberFormatException e) {
                                         log.warn(
                                                 "Failed to parse minimum payment for liability id={}",
                                                 l.getId(),
@@ -1822,25 +1834,95 @@ public class DashboardService {
         }
     }
 
-    /**
-     * Converts an amount from one currency to the user's base currency. Falls back to the original
-     * amount if conversion fails (to avoid breaking charts).
-     */
-    private BigDecimal convertToBase(BigDecimal amount, String fromCurrency, String baseCurrency) {
-        if (fromCurrency == null
-                || fromCurrency.isBlank()
-                || fromCurrency.equalsIgnoreCase(baseCurrency)) {
-            return amount;
+    /** Aggregates allocations, using the parent currency and effective date for every split. */
+    private Map<String, BigDecimal> categoryTotals(Long userId, List<Transaction> transactions) {
+        String base =
+                defaultCurrencyProvider.resolve(
+                        userRepository
+                                .findById(userId)
+                                .orElseThrow(
+                                        () ->
+                                                new IllegalArgumentException(
+                                                        "User not found: " + userId))
+                                .getBaseCurrency());
+        List<Transaction> eligible =
+                transactions.stream()
+                        .filter(
+                                t ->
+                                        !Boolean.TRUE.equals(t.getIsDeleted())
+                                                && t.getTransferId() == null)
+                        .toList();
+        Map<Long, List<org.openfinance.entity.TransactionSplit>> splits = new HashMap<>();
+        List<Long> ids = eligible.stream().map(Transaction::getId).toList();
+        for (int offset = 0; offset < ids.size(); offset += 500) {
+            for (org.openfinance.entity.TransactionSplit split :
+                    transactionSplitRepository.findByTransactionIdIn(
+                            ids.subList(offset, Math.min(ids.size(), offset + 500)))) {
+                splits.computeIfAbsent(split.getTransactionId(), ignored -> new ArrayList<>())
+                        .add(split);
+            }
         }
+        Map<String, BigDecimal> totals = new HashMap<>();
+        for (Transaction transaction : eligible) {
+            List<org.openfinance.entity.TransactionSplit> allocations =
+                    splits.getOrDefault(transaction.getId(), List.of());
+            if (allocations.isEmpty()) {
+                totals.merge(
+                        categoryKey(transaction.getCategoryId()),
+                        convertToBase(
+                                transaction.getAmount(),
+                                transaction.getCurrency(),
+                                base,
+                                transaction.getDate()),
+                        BigDecimal::add);
+            } else {
+                // Allocate the rounded parent total proportionally; assign the residual to the
+                // final split so category totals always reconcile with the cash-flow total.
+                BigDecimal parent =
+                        convertToBase(
+                                transaction.getAmount(),
+                                transaction.getCurrency(),
+                                base,
+                                transaction.getDate());
+                BigDecimal remaining = parent;
+                for (int i = 0; i < allocations.size(); i++) {
+                    org.openfinance.entity.TransactionSplit split = allocations.get(i);
+                    BigDecimal converted =
+                            i == allocations.size() - 1
+                                    ? remaining
+                                    : parent.multiply(split.getAmount())
+                                            .divide(
+                                                    transaction.getAmount(),
+                                                    Math.max(parent.scale(), 18),
+                                                    RoundingMode.HALF_UP);
+                    remaining = remaining.subtract(converted);
+                    totals.merge(categoryKey(split.getCategoryId()), converted, BigDecimal::add);
+                }
+            }
+        }
+        return totals;
+    }
+
+    private String categoryKey(Long categoryId) {
+        return categoryId == null ? "Uncategorized" : "Category_" + categoryId;
+    }
+
+    /** Current holdings use today's rates; historical flows use their effective dates. */
+    private BigDecimal convertToBase(BigDecimal amount, String fromCurrency, String baseCurrency) {
+        return convertToBase(amount, fromCurrency, baseCurrency, null);
+    }
+
+    private BigDecimal convertToBase(
+            BigDecimal amount, String fromCurrency, String baseCurrency, LocalDate date) {
+        if (amount != null && amount.signum() == 0) return BigDecimal.ZERO;
+        if (fromCurrency != null && fromCurrency.equalsIgnoreCase(baseCurrency)) return amount;
         try {
-            return exchangeRateService.convert(amount, fromCurrency, baseCurrency);
-        } catch (Exception e) {
-            log.warn(
-                    "Currency conversion failed ({} → {}), using original amount: {}",
-                    fromCurrency,
-                    baseCurrency,
-                    e.getMessage());
-            return amount;
+            return date == null
+                    ? exchangeRateService.convert(amount, fromCurrency, baseCurrency)
+                    : exchangeRateService.convert(amount, fromCurrency, baseCurrency, date);
+        } catch (Exception exception) {
+            throw new org.openfinance.exception.ExchangeRateUnavailableException(
+                    fromCurrency, baseCurrency, exception);
         }
     }
 

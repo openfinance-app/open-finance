@@ -194,7 +194,7 @@ public class MarketDataService {
 
             BigDecimal oldPrice = asset.getCurrentPrice();
             BigDecimal priceInAssetCcy = priceInAssetCurrency(quote, asset);
-            asset.setCurrentPrice(priceInAssetCcy);
+            asset.updateTotalValue(priceInAssetCcy.multiply(asset.getQuantity()));
             asset.setLastUpdated(LocalDateTime.now());
             assetRepository.save(asset);
 
@@ -293,7 +293,8 @@ public class MarketDataService {
                         && quote.getPrice() != null
                         && quote.getPrice().compareTo(BigDecimal.ZERO) > 0) {
 
-                    asset.setCurrentPrice(priceInAssetCurrency(quote, asset));
+                    asset.updateTotalValue(
+                            priceInAssetCurrency(quote, asset).multiply(asset.getQuantity()));
                     asset.setLastUpdated(now);
                     // Persist the normalized symbol so future lookups work correctly
                     if (!normalizedSymbol.equals(asset.getSymbol())) {

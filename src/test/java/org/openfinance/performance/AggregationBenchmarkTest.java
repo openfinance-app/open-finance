@@ -54,6 +54,7 @@ class AggregationBenchmarkTest {
     @Mock private NetWorthService netWorthService;
     @Mock private AccountRepository accountRepository;
     @Mock private TransactionRepository transactionRepository;
+    @Mock private org.openfinance.repository.TransactionSplitRepository transactionSplitRepository;
     @Mock private TransactionMapper transactionMapper;
     @Mock private EncryptionService encryptionService;
     @Mock private AssetRepository assetRepository;

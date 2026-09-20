@@ -835,6 +835,35 @@ public class NetWorthService {
                         continue;
                     }
                     BigDecimal costBasis = asset.getPurchasePrice().multiply(asset.getQuantity());
+                    // Capitalized movements carry their instrument-currency amount and date.
+                    // Reversals/edits are reflected by the active ledger, never by today's unit
+                    // price.
+                    costBasis =
+                            costBasis.add(
+                                    allTransactions.stream()
+                                            .filter(
+                                                    t ->
+                                                            asset.getId().equals(t.getAssetId())
+                                                                    && !Boolean.TRUE.equals(
+                                                                            t.getIsDeleted())
+                                                                    && t.getMovementType()
+                                                                            == org.openfinance
+                                                                                    .entity
+                                                                                    .MovementType
+                                                                                    .CAPITAL_IMPROVEMENT
+                                                                    && t.getType()
+                                                                            == TransactionType
+                                                                                    .EXPENSE
+                                                                    && !t.getDate()
+                                                                            .isAfter(targetDate))
+                                            .map(
+                                                    t ->
+                                                            t.getOriginalCurrency() != null
+                                                                            && t.getConversionRate()
+                                                                                    != null
+                                                                    ? t.getOriginalAmount()
+                                                                    : t.getAmount())
+                                            .reduce(BigDecimal.ZERO, BigDecimal::add));
                     BigDecimal convertedCostBasis =
                             convertToBaseCurrency(
                                     costBasis, asset.getCurrency(), baseCurrency, targetDate);
@@ -919,8 +948,30 @@ public class NetWorthService {
                     }
                 }
 
-                if (totalAssets.compareTo(BigDecimal.ZERO) > 0
-                        || totalLiabilities.compareTo(BigDecimal.ZERO) > 0) {
+                boolean existed =
+                        accountEarliestDate.values().stream()
+                                        .anyMatch(d -> d == null || !d.isAfter(targetDate))
+                                || assets.stream()
+                                        .anyMatch(
+                                                a ->
+                                                        a.getAcquisitionType()
+                                                                        != org.openfinance.entity
+                                                                                .AcquisitionType
+                                                                                .PLANNED
+                                                                && !a.getPurchaseDate()
+                                                                        .isAfter(targetDate))
+                                || realEstateProps.stream()
+                                        .anyMatch(
+                                                p ->
+                                                        p.getAcquisitionType()
+                                                                        != org.openfinance.entity
+                                                                                .AcquisitionType
+                                                                                .PLANNED
+                                                                && !p.getPurchaseDate()
+                                                                        .isAfter(targetDate))
+                                || liabilities.stream()
+                                        .anyMatch(l -> !l.getStartDate().isAfter(targetDate));
+                if (existed) {
                     BigDecimal netWorthAtDate = totalAssets.subtract(totalLiabilities);
                     NetWorth snapshot =
                             NetWorth.builder()

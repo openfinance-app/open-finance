@@ -104,13 +104,10 @@ final class ImportParseSupport {
                     cleaned = cleaned.replace(",", "");
                 }
             } else if (lastComma >= 0) {
-                // Lone comma: decimal ("1234,56") when 1-2 digits follow, else thousands ("1,234")
-                String afterComma = cleaned.substring(lastComma + 1);
-                if (afterComma.length() <= 2 && afterComma.chars().allMatch(Character::isDigit)) {
-                    cleaned = cleaned.replace(",", ".");
-                } else {
-                    cleaned = cleaned.replace(",", "");
-                }
+                // Only a well-formed group of three can be a thousands separator. Preserve
+                // arbitrary decimal precision (including sub-cent and crypto amounts).
+                boolean grouped = cleaned.matches("[+-]?[1-9][0-9]{0,2}(,[0-9]{3})+");
+                cleaned = grouped ? cleaned.replace(",", "") : cleaned.replace(",", ".");
             }
             return new BigDecimal(cleaned);
         } catch (NumberFormatException e) {

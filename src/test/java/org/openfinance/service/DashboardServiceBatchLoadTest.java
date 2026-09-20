@@ -71,6 +71,8 @@ class DashboardServiceBatchLoadTest {
                         assetRepository,
                         liabilityRepository,
                         transactionRepository,
+                        org.mockito.Mockito.mock(
+                                org.openfinance.repository.TransactionSplitRepository.class),
                         categoryRepository,
                         userRepository,
                         transactionMapper,

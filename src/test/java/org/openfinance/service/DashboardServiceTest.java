@@ -65,6 +65,7 @@ class DashboardServiceTest {
     @Mock private AccountRepository accountRepository;
 
     @Mock private TransactionRepository transactionRepository;
+    @Mock private org.openfinance.repository.TransactionSplitRepository transactionSplitRepository;
 
     @Mock private TransactionMapper transactionMapper;
 
@@ -858,6 +859,7 @@ class DashboardServiceTest {
                                 new BigDecimal("100"),
                                 new BigDecimal("110")));
 
+        assets.forEach(asset -> asset.setCurrency("USD"));
         when(assetRepository.findByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -891,6 +893,7 @@ class DashboardServiceTest {
                                 new BigDecimal("50"),
                                 new BigDecimal("60")));
 
+        assets.forEach(asset -> asset.setCurrency("USD"));
         when(assetRepository.findByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -1213,6 +1216,7 @@ class DashboardServiceTest {
                                 new BigDecimal("50"),
                                 new BigDecimal("60")));
 
+        assets.forEach(asset -> asset.setCurrency("USD"));
         when(assetRepository.findByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(netWorthService.getNetWorthHistory(
@@ -1492,6 +1496,7 @@ class DashboardServiceTest {
                 .accountId(100L)
                 .type(TransactionType.EXPENSE)
                 .amount(new BigDecimal("100"))
+                .currency("EUR")
                 .date(LocalDate.now())
                 .description(description)
                 .isDeleted(false)
@@ -1506,6 +1511,7 @@ class DashboardServiceTest {
                 .accountId(100L)
                 .type(type)
                 .amount(amount)
+                .currency("EUR")
                 .date(LocalDate.now())
                 .isDeleted(isDeleted)
                 .build();
@@ -1519,6 +1525,7 @@ class DashboardServiceTest {
                 .accountId(100L)
                 .type(type)
                 .amount(amount)
+                .currency("EUR")
                 .date(LocalDate.now())
                 .categoryId(categoryId)
                 .isDeleted(isDeleted)

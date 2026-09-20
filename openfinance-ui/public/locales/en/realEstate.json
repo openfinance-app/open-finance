@@ -637,6 +637,7 @@
     "buyProperty": "Buy property",
     "confirm": "Confirm purchase",
     "disbursementRoute": "Disbursement route",
+    "valuationPolicy": "The draw records a valuation on its date. A newer dated valuation remains current.",
     "downPaymentAccount": "Down payment account",
     "downPaymentAmount": "Down payment amount",
     "downPaymentDescription": "Down payment for {{name}}",
@@ -663,7 +664,8 @@
       "property": "Property",
       "funding": "Funding",
       "review": "Review"
-    }
+    },
+    "fundingCurrency": "Choose a funding account and mortgage in {{currency}}."
   },
   "movementPaging": {
     "label": "Movement history pages",

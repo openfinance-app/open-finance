@@ -44,7 +44,6 @@ class AuditFollowupIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private DataSource dataSource;
     @Autowired private EncryptionKeyCache keys;
-    @Autowired private TransactionArchiveService transactionArchiveService;
     @TempDir Path temporary;
     private Auth owner;
     private Auth other;
@@ -910,7 +909,7 @@ class AuditFollowupIntegrationTest {
     }
 
     @Test
-    void keepsPurchasePriceFixedAndUsesTheLatestDirectDrawAsCurrentValue() throws Exception {
+    void keepsPurchasePriceFixedAndRespectsTheLatestEffectiveValuation() throws Exception {
         long property =
                 json(
                                 "POST",
@@ -962,6 +961,8 @@ class AuditFollowupIntegrationTest {
                         "SELECT asset_id FROM real_estate_properties WHERE id = ?",
                         Long.class,
                         property);
+        // The property's initial appraisal is dated today, so a backdated draw does not
+        // overwrite it. A later entry effective today does update it; debt still accumulates.
         for (int amount : List.of(20000, 40000)) {
             json(
                     "POST",
@@ -978,12 +979,12 @@ class AuditFollowupIntegrationTest {
             JsonNode updated = json("GET", "/real-estate/" + property, null, owner, 200);
             assertThat(updated.get("purchasePrice").decimalValue()).isEqualByComparingTo("200000");
             assertThat(updated.get("currentValue").decimalValue())
-                    .isEqualByComparingTo(Integer.toString(amount));
+                    .isEqualByComparingTo(amount == 20000 ? "0" : "40000");
             assertThat(
                             json("GET", "/assets/" + asset, null, owner, 200)
                                     .get("currentPrice")
                                     .decimalValue())
-                    .isEqualByComparingTo(Integer.toString(amount));
+                    .isEqualByComparingTo(amount == 20000 ? "0" : "40000");
         }
         assertThat(
                         json("GET", "/liabilities/" + loan, null, owner, 200)

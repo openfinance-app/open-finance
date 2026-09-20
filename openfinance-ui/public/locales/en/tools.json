@@ -234,5 +234,8 @@
     "description": "Learn, share, and connect with other Open Finance users",
     "comingSoon": "Community features coming soon",
     "comingSoonDescription": "Discussion boards, tips, and shared insights will be available here soon."
+  },
+  "financialData": {
+    "conversionUnavailable": "Financial data cannot be converted to your reporting currency."
   }
 }

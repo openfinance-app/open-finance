@@ -42,6 +42,7 @@ export const calculatePortfolioMetrics = (assets: Asset[]): PortfolioMetrics => 
     };
   }
 
+  assets = assets.filter(asset => asset.acquisitionType !== 'PLANNED');
   const totalValue = sum(assets.map(asset => Number(asset.totalValue)));
   const totalCost = sum(assets.map(asset => Number(asset.totalCost)));
   const unrealizedGain = subtract(totalValue, totalCost);
@@ -64,6 +65,7 @@ export const calculateAssetAllocation = (assets: Asset[]): AssetAllocation[] => 
     return [];
   }
 
+  assets = assets.filter(asset => asset.acquisitionType !== 'PLANNED');
   const totalValue = sum(assets.map(asset => Number(asset.totalValue)));
 
   // Group by asset type
@@ -102,7 +104,9 @@ export const getTopPerformers = (
   }
 
   // Sort by gain percentage
-  const sorted = [...assets].sort((a, b) => b.gainPercentage - a.gainPercentage);
+  const sorted = assets
+    .filter(asset => asset.acquisitionType !== 'PLANNED')
+    .sort((a, b) => b.gainPercentage - a.gainPercentage);
 
   // Get top 3 best and worst
   const best = sorted

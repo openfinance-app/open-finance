@@ -159,6 +159,18 @@ public class Asset {
     private BigDecimal currentPrice;
 
     /**
+     * Exact remainder after distributing a total valuation over units at the stored price scale.
+     */
+    @Column(name = "valuation_remainder", length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    private BigDecimal valuationRemainder;
+
+    public void updateTotalValue(BigDecimal total) {
+        currentPrice = total.divide(quantity, 8, java.math.RoundingMode.HALF_UP);
+        valuationRemainder = total.subtract(quantity.multiply(currentPrice));
+    }
+
+    /**
      * Currency code in ISO 4217 format (e.g., USD, EUR, GBP). Requirement REQ-2.8: Multi-currency
      * support for assets
      */
@@ -303,7 +315,8 @@ public class Asset {
      * @return total current value
      */
     public BigDecimal getTotalValue() {
-        return quantity.multiply(currentPrice);
+        return quantity.multiply(currentPrice)
+                .add(valuationRemainder == null ? BigDecimal.ZERO : valuationRemainder);
     }
 
     /**
@@ -321,7 +334,8 @@ public class Asset {
      * @return (currentPrice - purchasePrice) * quantity
      */
     public BigDecimal getUnrealizedGain() {
-        return currentPrice.subtract(purchasePrice).multiply(quantity);
+        if (acquisitionType == AcquisitionType.PLANNED) return BigDecimal.ZERO;
+        return getTotalValue().subtract(getTotalCost());
     }
 
     /**
@@ -330,12 +344,11 @@ public class Asset {
      * @return percentage gain/loss (0.15 = 15% gain, -0.10 = 10% loss)
      */
     public BigDecimal getGainPercentage() {
-        if (purchasePrice.compareTo(BigDecimal.ZERO) == 0) {
+        if (acquisitionType == AcquisitionType.PLANNED) return BigDecimal.ZERO;
+        if (getTotalCost().compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;
         }
-        return currentPrice
-                .subtract(purchasePrice)
-                .divide(purchasePrice, 4, java.math.RoundingMode.HALF_UP);
+        return getUnrealizedGain().divide(getTotalCost(), 4, java.math.RoundingMode.HALF_UP);
     }
 
     /**

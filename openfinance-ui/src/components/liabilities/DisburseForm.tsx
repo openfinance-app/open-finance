@@ -132,6 +132,9 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
           </div>
         )}
       </div>
+      {route === 'property' && (
+        <p className="text-xs text-text-secondary">{t('drawdowns.disburseForm.valuationPolicy')}</p>
+      )}
       {disburse.isError && (
         <p role="alert" className="text-sm text-error">
           {t('drawdowns.disburseForm.error')}

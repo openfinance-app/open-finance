@@ -60,6 +60,23 @@ public class GlobalExceptionHandler {
 
     private final MessageSource messageSource;
 
+    @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleConcurrentUpdate(WebRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(
+                        ErrorResponse.builder()
+                                .timestamp(LocalDateTime.now())
+                                .status(409)
+                                .error("Conflict")
+                                .message(
+                                        messageSource.getMessage(
+                                                "error.concurrentUpdate",
+                                                null,
+                                                LocaleContextHolder.getLocale()))
+                                .path(getRequestPath(request))
+                                .build());
+    }
+
     /**
      * Handles duplicate user exceptions (username or email already exists).
      *

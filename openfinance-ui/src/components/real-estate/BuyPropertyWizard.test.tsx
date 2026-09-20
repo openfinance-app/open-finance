@@ -7,7 +7,7 @@
  */
 import { screen, act, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { renderWithProviders } from '@/test/test-utils';
+import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { BuyPropertyWizard } from './BuyPropertyWizard';
 import * as useLiabilitiesModule from '@/hooks/useLiabilities';
 import * as useRealEstateModule from '@/hooks/useRealEstate';
@@ -138,6 +138,7 @@ async function fillPropertyStep() {
 describe('BuyPropertyWizard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthentication();
 
     mockUseLiabilities.mockReturnValue({
       data: [
@@ -162,6 +163,26 @@ describe('BuyPropertyWizard', () => {
     mockUseDisburse.mockReturnValue(mockMutation().mock as any);
     mockUseCreateProperty.mockReturnValue(mockMutation().mock as any);
     mockUseCreateTransaction.mockReturnValue(mockMutation().mock as any);
+  });
+
+  it('rejects a funding account in a different currency before creating records', async () => {
+    renderWizard();
+    fireEvent.change(screen.getByLabelText(/property name/i), { target: { value: 'FX Villa' } });
+    fireEvent.change(screen.getByLabelText(/address/i), { target: { value: '1 Audit Rd' } });
+    fireEvent.change(screen.getByLabelText(/purchase price/i), { target: { value: '1000' } });
+    fireEvent.change(screen.getByLabelText(/current value/i), { target: { value: '1000' } });
+    fireEvent.change(screen.getByTestId('wizard-currency'), { target: { value: 'EUR' } });
+    await act(async () => {
+      screen.getByRole('button', { name: /next/i }).click();
+    });
+    fireEvent.change(screen.getByLabelText(/funding source/i), { target: { value: 'none' } });
+    fireEvent.change(screen.getByLabelText(/down payment amount/i), { target: { value: '100' } });
+    await act(async () => {
+      screen.getByRole('button', { name: 'Account' }).click();
+    });
+    expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
+    expect(mockUseCreateProperty().mutateAsync).not.toHaveBeenCalled();
+    expect(mockUseCreateTransaction().mutateAsync).not.toHaveBeenCalled();
   });
 
   it('renders the property step first with no funding fields', () => {

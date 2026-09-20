@@ -41,6 +41,8 @@ interface AccountSelectorProps {
    * transfer, so the same account cannot be chosen for both sides).
    */
   excludeAccountId?: number;
+  /** Restrict a funding selection to the amount currency. */
+  currency?: string;
 }
 
 export function AccountSelector({
@@ -52,6 +54,7 @@ export function AccountSelector({
   accountType = 'active',
   allowNone = true,
   excludeAccountId,
+  currency,
 }: AccountSelectorProps) {
   const { data: accounts, isLoading, isError } = useAccounts(accountType);
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,10 +67,9 @@ export function AccountSelector({
   const filteredAccounts = useMemo(() => {
     if (!accounts) return [];
 
-    const withoutExcluded =
-      excludeAccountId !== undefined
-        ? accounts.filter(account => account.id !== excludeAccountId)
-        : accounts;
+    const withoutExcluded = accounts.filter(
+      account => account.id !== excludeAccountId && (!currency || account.currency === currency)
+    );
 
     const normalizedQuery = searchQuery.trim().toLowerCase();
     if (!normalizedQuery) return withoutExcluded;
@@ -78,7 +80,7 @@ export function AccountSelector({
         (account.institution?.name &&
           account.institution.name.toLowerCase().includes(normalizedQuery))
     );
-  }, [accounts, searchQuery, excludeAccountId]);
+  }, [accounts, searchQuery, excludeAccountId, currency]);
 
   // Group accounts by type — uses uppercase keys to match API enum values
   const groupedAccounts = useMemo(() => {

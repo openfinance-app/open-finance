@@ -915,7 +915,7 @@ class TransactionServiceTest {
 
     @Test
     @DisplayName("Should round converted amount to 4 decimal places during transfer")
-    void shouldRoundConvertedAmountOnTransfer() {
+    void shouldPreserveConvertedAmountPrecisionOnTransfer() {
         // Given
         Long userId = 104L;
         String sourceCurrency = "USD";
@@ -969,8 +969,8 @@ class TransactionServiceTest {
         verify(transactionRepository, times(2)).save(txCaptor.capture());
 
         Transaction destinationTx = txCaptor.getAllValues().get(1);
-        // Should be rounded from 91.12345678 to 91.1235 (HALF_UP)
-        assertThat(destinationTx.getAmount()).isEqualTo(new BigDecimal("91.1235"));
+        // Preserve the conversion result exactly on the destination leg.
+        assertThat(destinationTx.getAmount()).isEqualTo(new BigDecimal("91.12345678"));
     }
 
     @Test

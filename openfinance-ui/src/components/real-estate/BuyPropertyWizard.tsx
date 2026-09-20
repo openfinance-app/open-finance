@@ -75,7 +75,7 @@ export function BuyPropertyWizard({
   // created, a retry must reuse them instead of creating duplicates.
   const [createdIds, setCreatedIds] = useState<CreatedIdsState>({});
 
-  useLiabilities();
+  const { data: liabilities = [] } = useLiabilities();
   const createLiability = useCreateLiability();
   const createProperty = useCreateProperty();
   const createTransaction = useCreateTransaction();
@@ -97,6 +97,13 @@ export function BuyPropertyWizard({
     funding.route === 'account' &&
     funding.downPaymentAccountId == null;
 
+  const selectedAccount = accounts.find(a => a.id === funding.downPaymentAccountId);
+  const needsAccount = down > 0 || (funding.source !== 'none' && funding.route === 'account');
+  const fundingCurrencyValid =
+    (!needsAccount || selectedAccount?.currency === property.currency) &&
+    (funding.source !== 'existing' ||
+      liabilities.find(l => l.id === funding.existingMortgageId)?.currency === property.currency);
+
   const fundingStepValid =
     funding.source === 'new'
       ? funding.mortgageName.trim() !== '' && loan > 0
@@ -111,7 +118,7 @@ export function BuyPropertyWizard({
         price > 0 &&
         Number(property.currentValue) >= 0
       : step === 1
-        ? fundingStepValid && !accountRouteMissingAccount
+        ? fundingStepValid && !accountRouteMissingAccount && fundingCurrencyValid
         : true;
 
   // Once a confirm attempt has created the property, its mortgage link is fixed: switching
@@ -192,12 +199,11 @@ export function BuyPropertyWizard({
     if (funding.downPaymentAccountId == null || down <= 0) {
       return;
     }
-    const account = accounts.find(a => a.id === funding.downPaymentAccountId);
     const request: TransactionRequest = {
       accountId: funding.downPaymentAccountId,
       type: 'EXPENSE',
       amount: down,
-      currency: account?.currency ?? property.currency,
+      currency: property.currency,
       date: property.purchaseDate,
       description: t('wizard.downPaymentDescription', { name: property.name }),
       realEstateId: propertyId,
@@ -209,6 +215,8 @@ export function BuyPropertyWizard({
     setIsSubmitting(true);
     setError(null);
     try {
+      if (!fundingCurrencyValid)
+        throw new Error(t('wizard.fundingCurrency', { currency: property.currency }));
       // Sequence (documented decision): liability → property (mortgageId) → disburse →
       // down-payment. Each step reuses what a previous failed attempt already created.
       const mortgageId = await ensureMortgageId();
@@ -254,6 +262,7 @@ export function BuyPropertyWizard({
       {/* Step 2: funding */}
       {step === 1 && (
         <FundingStep
+          currency={property.currency}
           funding={funding}
           onChange={updateFunding}
           locked={fundingLocked}

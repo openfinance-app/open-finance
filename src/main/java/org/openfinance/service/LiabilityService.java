@@ -118,6 +118,7 @@ public class LiabilityService {
     private final AccountRepository accountRepository;
     private final RealEstateValueHistoryRepository realEstateValueHistoryRepository;
     private final LiabilityTrancheService liabilityTrancheService;
+    private final LoanPaymentTotals loanPaymentTotals;
 
     // Constants for calculations
     private static final int MAX_AMORTIZATION_PERIODS = 360; // Max 30 years of monthly payments
@@ -354,6 +355,30 @@ public class LiabilityService {
 
         // Capture the old start date before overwriting, for net worth invalidation
         LocalDate oldStartDate = liability.getStartDate();
+
+        if (!request.getStartDate().equals(liability.getStartDate())) {
+            boolean beforeStart =
+                    transactionRepository.findByLiabilityIdAndUserId(liabilityId, userId).stream()
+                                    .anyMatch(
+                                            t ->
+                                                    !Boolean.TRUE.equals(t.getIsDeleted())
+                                                            && t.getDate()
+                                                                    .isBefore(
+                                                                            request.getStartDate()))
+                            || liabilityTrancheRepository
+                                    .findByLiabilityIdAndUserId(liabilityId, userId)
+                                    .stream()
+                                    .anyMatch(
+                                            t ->
+                                                    t.getDrawnDate() != null
+                                                            && t.getDrawnDate()
+                                                                    .isBefore(
+                                                                            request
+                                                                                    .getStartDate()));
+            if (beforeStart)
+                throw new InvalidTransactionException(
+                        "Loan origination cannot follow recorded movements");
+        }
 
         // Update basic fields
         liability.setType(request.getType());
@@ -1236,16 +1261,12 @@ public class LiabilityService {
         String decryptedName = liability.getName();
         BigDecimal principal = decryptAmount(liability.getPrincipal());
         BigDecimal currentBalance = currentDebt(liability);
-        BigDecimal interestRate = decryptAmount(liability.getInterestRate());
         BigDecimal insurancePercentage = decryptAmount(liability.getInsurancePercentage());
-        BigDecimal additionalFees = decryptAmount(liability.getAdditionalFees());
 
         // --- Principal paid ---
         BigDecimal principalPaid = recordedPrincipalPaid(liability);
 
-        // --- Months elapsed and remaining ---
-        long monthsElapsed = ChronoUnit.MONTHS.between(liability.getStartDate(), LocalDate.now());
-        if (monthsElapsed < 0) monthsElapsed = 0;
+        // --- Remaining term (projection only) ---
 
         Integer monthsRemaining = null;
         if (liability.getEndDate() != null) {
@@ -1263,14 +1284,13 @@ public class LiabilityService {
                             .divide(BigDecimal.valueOf(MONTHS_PER_YEAR), 2, RoundingMode.HALF_UP);
         }
 
-        // --- Insurance paid so far ---
-        BigDecimal insurancePaid = BigDecimal.ZERO;
-        if (monthlyInsuranceCost != null) {
-            insurancePaid =
-                    monthlyInsuranceCost
-                            .multiply(BigDecimal.valueOf(monthsElapsed))
-                            .setScale(2, RoundingMode.HALF_UP);
-        }
+        List<Transaction> linkedTransactions =
+                transactionRepository.findByLiabilityIdAndUserId(liabilityId, userId).stream()
+                        .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
+                        .toList();
+        LoanPaymentTotals.Paid paid = loanPaymentTotals.calculate(liability, linkedTransactions);
+        BigDecimal insurancePaid = paid.insurance();
+        BigDecimal feesPaid = paid.fees();
 
         // --- Projected remaining insurance ---
         BigDecimal projectedInsurance = BigDecimal.ZERO;
@@ -1281,11 +1301,6 @@ public class LiabilityService {
                             .setScale(2, RoundingMode.HALF_UP);
         }
 
-        // --- Fees paid / projected fees ---
-        // additionalFees is a one-time upfront fee: it has already been paid at loan
-        // inception,
-        // so it contributes entirely to feesPaid and nothing to projectedFees.
-        BigDecimal feesPaid = additionalFees != null ? additionalFees : BigDecimal.ZERO;
         BigDecimal projectedFees = BigDecimal.ZERO;
 
         // --- Projected remaining interest (from amortization) ---
@@ -1293,60 +1308,23 @@ public class LiabilityService {
                 calculateAmortizationSchedule(liabilityId, userId);
 
         BigDecimal projectedInterest = BigDecimal.ZERO;
-        BigDecimal estimatedInterestPaid = BigDecimal.ZERO;
-
         if (!schedule.isEmpty()) {
             projectedInterest =
                     schedule.stream()
                             .map(AmortizationScheduleEntry::getInterestPortion)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            // Estimate interest already paid: if we know principalPaid and have rate,
-            // approximate using simple interest paid = totalOriginalInterest -
-            // projectedInterest
-            // We calculate totalOriginalInterest by simulating from the original principal
-            // but that is expensive. Instead, use a simpler approximation:
-            // interestPaid ≈ (monthly rate) × average balance × months elapsed
-            if (interestRate != null && interestRate.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal monthlyRate =
-                        interestRate.divide(
-                                BigDecimal.valueOf(MONTHS_PER_YEAR * 100),
-                                SCALE,
-                                RoundingMode.HALF_UP);
-                // Use average of original principal and current balance as approximate average
-                // balance
-                BigDecimal avgBalance =
-                        principal
-                                .add(currentBalance)
-                                .divide(BigDecimal.valueOf(2), SCALE, RoundingMode.HALF_UP);
-                estimatedInterestPaid =
-                        avgBalance
-                                .multiply(monthlyRate)
-                                .multiply(BigDecimal.valueOf(monthsElapsed))
-                                .setScale(2, RoundingMode.HALF_UP);
-            }
         }
-
-        // --- Total paid so far ---
-        BigDecimal totalPaid =
-                principalPaid.add(estimatedInterestPaid).add(insurancePaid).add(feesPaid);
+        BigDecimal totalPaid = principalPaid.add(paid.total());
 
         // --- Total projected cost (from today to payoff) ---
         BigDecimal totalProjectedCost =
                 currentBalance.add(projectedInterest).add(projectedInsurance).add(projectedFees);
 
         // --- Linked transactions summary (Requirement REQ-LIA-4) ---
-        List<Transaction> linkedTransactions =
-                transactionRepository.findByLiabilityIdAndUserId(liabilityId, userId);
         int linkedTransactionCount = linkedTransactions.size();
         BigDecimal linkedTransactionsTotalAmount =
                 linkedTransactions.stream()
-                        .map(
-                                t ->
-                                        t.getOriginalCurrency() != null
-                                                        && t.getConversionRate() != null
-                                                ? t.getOriginalAmount()
-                                                : t.getAmount())
+                        .map(t -> loanPaymentTotals.amount(liability, t, t.getAmount()))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         log.info(
@@ -1363,7 +1341,8 @@ public class LiabilityService {
                 .principal(principal)
                 .currentBalance(currentBalance)
                 .principalPaid(principalPaid)
-                .interestPaid(estimatedInterestPaid)
+                .interestPaid(paid.interest())
+                .otherChargesPaid(paid.other())
                 .insurancePaid(insurancePaid)
                 .feesPaid(feesPaid)
                 .totalPaid(totalPaid)
@@ -1643,7 +1622,7 @@ public class LiabilityService {
                     backingAssetRepository
                             .findByIdAndUserId(savedProperty.getAssetId(), userId)
                             .orElseThrow();
-            asset.setCurrentPrice(updatedValue);
+            asset.updateTotalValue(updatedValue);
             asset.setAcquisitionType(savedProperty.getAcquisitionType());
             asset.setPurchaseDate(savedProperty.getPurchaseDate());
             asset.setPurchasePrice(updatedPurchase);
@@ -1660,6 +1639,7 @@ public class LiabilityService {
                         .currency(savedProperty.getCurrency())
                         .currencyId(savedProperty.getCurrencyId())
                         .build());
+        restoreDirectValuation(userId, tranche);
         log.info(
                 "Direct disbursement of {} applied to liability {} and property {}: liability "
                         + "balance {}, property value {}, purchase price {}",
@@ -2193,7 +2173,7 @@ public class LiabilityService {
                     backingAssetRepository
                             .findByIdAndUserId(property.getAssetId(), userId)
                             .orElseThrow();
-            backing.setCurrentPrice(value);
+            backing.updateTotalValue(value);
             backingAssetRepository.save(backing);
         }
     }

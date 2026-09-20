@@ -56,4 +56,30 @@ class AuditExchangeRateFailureIntegrationTest extends AuditApiTestSupport {
                                 owner.id()))
                 .isZero();
     }
+
+    @Test
+    void missingHistoricalRatesFailAllCashflowAndCategoryReports() throws Exception {
+        long cash = account(owner);
+        json("POST", "/transactions", movement(cash, 100, START.plusMonths(1)), owner, 201);
+        jdbc.update("UPDATE users SET base_currency = 'JPY' WHERE id = ?", owner.id());
+        doThrow(new IllegalStateException("Historical quote unavailable"))
+                .when(exchangeRateService)
+                .convert(any(BigDecimal.class), eq("EUR"), eq("JPY"), any(LocalDate.class));
+        for (String endpoint :
+                java.util.List.of(
+                        "/cashflow?period=365",
+                        "/spending?period=365",
+                        "/cashflow-sankey?period=365",
+                        "/borrowing-capacity?period=365",
+                        "/daily-cashflow?year="
+                                + START.plusMonths(1).getYear()
+                                + "&month="
+                                + START.plusMonths(1).getMonthValue())) {
+            assertThat(
+                            json("GET", "/dashboard" + endpoint, null, owner, 503)
+                                    .path("message")
+                                    .asText())
+                    .contains("EUR", "JPY");
+        }
+    }
 }

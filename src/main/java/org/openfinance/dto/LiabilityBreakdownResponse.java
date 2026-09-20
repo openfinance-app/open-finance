@@ -66,17 +66,16 @@ public class LiabilityBreakdownResponse {
     // ===========================
 
     /**
-     * Estimated interest already paid over the life of the loan so far.
+     * Recorded interest charges paid to date.
      *
-     * <p><strong>Calculated field</strong> — estimated from amortization analysis based on original
-     * principal, current balance, interest rate, and payment history.
+     * <p>Aggregated from interest movements and categorized repayment allocations.
      *
      * <p>Requirement REQ-LIA-3.4: Breakdown of interest paid
      */
     private BigDecimal interestPaid;
 
     /**
-     * Estimated insurance already paid (monthly insurance cost × months elapsed since start).
+     * Recorded insurance charges paid to date.
      *
      * <p><strong>Calculated field</strong>
      *
@@ -91,8 +90,11 @@ public class LiabilityBreakdownResponse {
      */
     private BigDecimal feesPaid;
 
+    /** Recorded repayment charges without a recognized interest, insurance or fee category. */
+    private BigDecimal otherChargesPaid;
+
     /**
-     * Total amount paid so far: principalPaid + interestPaid + insurancePaid + feesPaid.
+     * Total amount paid so far: recorded principal and all recorded charges.
      *
      * <p><strong>Calculated field</strong>
      */

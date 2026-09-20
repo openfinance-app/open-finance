@@ -11,6 +11,7 @@ import type { FundingStepState } from './types';
 
 interface FundingStepProps {
   funding: FundingStepState;
+  currency: string;
   onChange: (patch: Partial<FundingStepState>) => void;
   /** True once a previous confirm attempt created the property — its mortgage link is fixed. */
   locked: boolean;
@@ -19,6 +20,7 @@ interface FundingStepProps {
 
 export function FundingStep({
   funding,
+  currency,
   onChange,
   locked,
   accountRouteMissingAccount,
@@ -61,6 +63,9 @@ export function FundingStep({
             <option value="direct">{t('wizard.route.direct')}</option>
             <option value="account">{t('wizard.route.account')}</option>
           </select>
+          {funding.source !== 'none' && funding.route === 'direct' && (
+            <p className="text-xs text-text-secondary mt-1">{t('wizard.valuationPolicy')}</p>
+          )}
         </div>
       </div>
 
@@ -116,7 +121,7 @@ export function FundingStep({
             value={funding.existingMortgageId}
             onValueChange={v => onChange({ existingMortgageId: v })}
             placeholder={t('form.selectMortgage')}
-            liabilityFilter={l => l.type === 'MORTGAGE'}
+            liabilityFilter={l => l.type === 'MORTGAGE' && l.currency === currency}
             disabled={locked}
           />
         </div>
@@ -127,12 +132,14 @@ export function FundingStep({
           <label className="block text-sm font-medium mb-1.5">
             {t('wizard.downPaymentAccount')}
           </label>
-          {/* The backend improvement guard rejects a down-payment account whose currency
-              differs from the property's — users simply pick a matching account here. */}
+          <p className="text-xs text-text-secondary mb-1">
+            {t('wizard.fundingCurrency', { currency })}
+          </p>
           {/* Shared account field: it is the SOURCE of the down-payment expense and, when the
               disbursement route is "bank pays my account", also the TARGET account the loan
               funds are paid into (toAccountId of the disbursement). */}
           <AccountSelector
+            currency={currency}
             value={funding.downPaymentAccountId}
             onValueChange={v => onChange({ downPaymentAccountId: v })}
             placeholder={t('wizard.downPaymentAccount')}
