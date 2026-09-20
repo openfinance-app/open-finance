@@ -74,6 +74,8 @@ class QifImportFlowE2ETest {
     @MockBean private OperationHistoryService operationHistoryService;
 
     @Autowired private UserService userService;
+
+    @Autowired private org.openfinance.repository.CurrencyRepository currencyRepository;
     @Autowired private AuthService authService;
     @Autowired private EncryptionKeyCache encryptionKeyCache;
     @Autowired private FileStorageService fileStorageService;
@@ -88,6 +90,12 @@ class QifImportFlowE2ETest {
     @BeforeEach
     void setUp() {
         databaseCleanupService.execute();
+        currencyRepository.save(
+                org.openfinance.entity.Currency.builder()
+                        .code("EUR")
+                        .name("Euro")
+                        .symbol("€")
+                        .build());
 
         // Offline FX: account creation asks for a rate even for same-currency accounts.
         lenient()

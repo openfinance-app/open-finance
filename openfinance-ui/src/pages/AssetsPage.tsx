@@ -144,7 +144,8 @@ export default function AssetsPage() {
   const allAssets = allAssetsPage?.content || [];
 
   // Assets with symbols (for price refresh)
-  const assetsWithSymbols = allAssetsList?.filter(a => a.symbol) || [];
+  const assetsWithSymbols =
+    allAssetsList?.filter(a => a.symbol && a.acquisitionType !== 'PLANNED') || [];
 
   /** Check if any meaningful filter (beyond pagination/sort) is active */
   const isFiltered = !!(

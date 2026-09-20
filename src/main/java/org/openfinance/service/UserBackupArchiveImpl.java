@@ -260,7 +260,9 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
         try (Connection connection =
                 DriverManager.getConnection(
                         "jdbc:sqlite:file:" + source.toAbsolutePath() + "?mode=ro")) {
-            connection.createStatement().execute("PRAGMA trusted_schema = OFF");
+            try (java.sql.Statement statement = connection.createStatement()) {
+                statement.execute("PRAGMA trusted_schema = OFF");
+            }
             JdbcTemplate archive = template(connection);
             validateTables(archive);
             Long sourceUser =
@@ -282,7 +284,9 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
                 Connection connection =
                         DriverManager.getConnection(
                                 "jdbc:sqlite:file:" + source.toAbsolutePath() + "?mode=ro")) {
-            connection.createStatement().execute("PRAGMA trusted_schema = OFF");
+            try (java.sql.Statement statement = connection.createStatement()) {
+                statement.execute("PRAGMA trusted_schema = OFF");
+            }
             JdbcTemplate archive = template(connection);
             validateTables(archive);
             Map<String, Object> manifest = archive.queryForMap("SELECT * FROM backup_manifest");

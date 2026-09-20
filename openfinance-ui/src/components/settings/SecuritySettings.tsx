@@ -10,10 +10,7 @@
  */
 import { STORAGE_KEYS } from '@/constants/storage';
 import { useState } from 'react';
-import {
-  EXTENDED_MESSAGE_DURATION_MS,
-  SECURITY_EXTENDED_MESSAGE_DURATION_MS,
-} from '@/constants/timing';
+import { SECURITY_EXTENDED_MESSAGE_DURATION_MS } from '@/constants/timing';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,6 +18,7 @@ import { Lock, Shield, AlertTriangle, Smartphone, Eye, EyeOff } from 'lucide-rea
 import { useTranslation } from 'react-i18next';
 import apiClient from '@/services/apiClient';
 import { useAuthContext } from '@/context/AuthContext';
+import { useNavigate } from 'react-router';
 
 // Validation schemas
 const passwordChangeSchema = z
@@ -100,7 +98,8 @@ function PasswordStrengthBar({ password }: { password: string }) {
  * Security settings component with password management
  */
 export function SecuritySettings() {
-  useAuthContext();
+  const { clearAuth } = useAuthContext();
+  const navigate = useNavigate();
   const { t } = useTranslation('settings');
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showMasterPasswordForm, setShowMasterPasswordForm] = useState(false);
@@ -151,12 +150,13 @@ export function SecuritySettings() {
         newPassword: data.newPassword,
       });
 
-      setSuccessMessage(t('security.loginPassword.success'));
       resetPasswordForm();
       setShowPasswordForm(false);
-
-      // Auto-clear success message after 5 seconds
-      setTimeout(() => setSuccessMessage(null), EXTENDED_MESSAGE_DURATION_MS);
+      clearAuth();
+      navigate('/login', {
+        replace: true,
+        state: { messageKey: 'settings:security.loginPassword.success' },
+      });
     } catch (error: any) {
       setErrorMessage(error.response?.data?.message || t('security.masterPassword.failedPassword'));
     } finally {

@@ -1171,6 +1171,10 @@ public class AccountService {
                 assetRepository.findByAccountId(account.getId());
         java.math.BigDecimal assetsTotalValue =
                 linkedAssets.stream()
+                        .filter(
+                                asset ->
+                                        asset.getAcquisitionType()
+                                                != org.openfinance.entity.AcquisitionType.PLANNED)
                         .map(asset -> convertAssetValueToAccountCurrency(asset, account))
                         .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
@@ -1189,8 +1193,7 @@ public class AccountService {
     /**
      * Converts a linked asset's total value from its own currency into the account currency.
      *
-     * <p>Returns the unconverted value when currencies match, the asset currency is missing, or the
-     * conversion fails, so a temporary rate outage never zeroes out a linked asset.
+     * <p>A missing conversion makes the total unavailable; unlike currencies must never be added.
      *
      * @param asset the linked asset whose value should be converted
      * @param account the account providing the target currency
@@ -1204,21 +1207,19 @@ public class AccountService {
         }
         String assetCurrency = asset.getCurrency();
         String accountCurrency = account.getCurrency();
-        if (assetCurrency == null || assetCurrency.equalsIgnoreCase(accountCurrency)) {
+        if (value.signum() == 0) return value;
+        if (assetCurrency != null && assetCurrency.equalsIgnoreCase(accountCurrency)) {
             return value;
         }
         try {
-            return exchangeRateService.convert(value, assetCurrency, accountCurrency);
+            java.math.BigDecimal converted =
+                    exchangeRateService.convert(value, assetCurrency, accountCurrency);
+            if (converted == null)
+                throw new IllegalStateException("Converted value is unavailable");
+            return converted;
         } catch (Exception e) {
-            log.warn(
-                    "Failed to convert linked asset {} value {} {} to {} for account {}; using"
-                            + " unconverted value",
-                    asset.getId(),
-                    value,
-                    assetCurrency,
-                    accountCurrency,
-                    account.getId());
-            return value;
+            throw new org.openfinance.exception.ExchangeRateUnavailableException(
+                    assetCurrency, accountCurrency, e);
         }
     }
 

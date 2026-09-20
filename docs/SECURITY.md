@@ -6,9 +6,9 @@
 
 | Control                | Implementation                                             |
 | ---------------------- | ---------------------------------------------------------- |
-| **Authentication**     | Stateless JWT (HS256), 24 h expiry                         |
+| **Authentication**     | Signed JWT, 24 h expiry, persisted revocation checks                         |
 | **Password hashing**   | BCrypt (cost factor 10)                                    |
-| **Data encryption**    | AES-256-GCM; PBKDF2-HMAC-SHA-256, 100 000 iterations       |
+| **Data encryption**    | Optional AES-256-GCM; disabled by default via `application.encryption.enabled=false` |
 | **Password policy**    | ≥ 8 chars: uppercase, lowercase, digit, special character  |
 | **Account lockout**    | 5 failed attempts → 15-minute lockout                      |
 | **Rate limiting**      | 200 req/min general; 10 req/min on auth + upload endpoints |
@@ -22,12 +22,12 @@
 
 ## Security Philosophy
 
-Open-Finance operates on a **local-first, privacy-by-default** model:
+Open-Finance supports **local-first, self-hosted** deployments:
 
-- **No cloud storage** — data never leaves the device
-- **Encryption at rest** — sensitive fields and attachments encrypted with AES-256-GCM
-- **Zero-knowledge design** — the application cannot decrypt data without the master password
-- **Minimal external calls** — optional market-data and exchange-rate lookups only; all opt-in
+- **Operator-controlled storage** — data is stored on the machine running the backend
+- **Optional encryption at rest** — enable AES-256-GCM for supported fields and attachments before creating users/data
+- **Per-user keys** — encrypted mode derives keys on the backend from each user's master password
+- **Configurable external integrations** — review market-data, exchange-rate, news and AI provider settings for the deployment
 - **Open source** — the full source code is publicly auditable
 
 ---
@@ -36,7 +36,7 @@ Open-Finance operates on a **local-first, privacy-by-default** model:
 
 ### Field-Level Encryption
 
-Sensitive database fields (account numbers, notes, attachment content) are encrypted at the application layer before being written to SQLite.
+When encryption is enabled, supported sensitive fields (including account numbers and notes) are encrypted at the application layer before being written to the database. Attachment content uses the same configured mode.
 
 | Property       | Value                                          |
 | -------------- | ---------------------------------------------- |
@@ -51,15 +51,17 @@ AES-GCM provides both **confidentiality** and ciphertext **integrity** — any t
 
 ### Encryption Mode Configuration
 
-Field-level encryption is enabled by default:
+The supported control is `application.encryption.enabled`. The shipped configuration intentionally disables encryption:
 
 ```yaml
 application:
     encryption:
-        enabled: true
+        enabled: false
 ```
 
-Set `application.encryption.enabled=false` before first startup only if the deployment intentionally stores supported fields in plaintext and does not use the master-password/session-key flow.
+Set this property to `true` before creating users or data to use field and attachment encryption. For Docker Compose, set `APPLICATION_ENCRYPTION_ENABLED=true` in `.env`; this environment variable overrides the same Spring property. The default remains `false`.
+
+`MASTER_PASSWORD` is not an application configuration variable and does not enable encryption. In encrypted mode, each user supplies a separate master password through registration/login. `GET /api/v1/config/security` exposes the active mode as `encryptionEnabled`.
 
 When encryption is disabled:
 
@@ -72,13 +74,13 @@ When encryption is disabled:
 
 ### Attachment Encryption
 
-File attachments are encrypted with the same AES-256-GCM scheme before being written to `./attachments/`. The database stores only a reference (path/ID) and encrypted metadata.
+With encryption enabled, file attachments use AES-256-GCM before being written to `./attachments/`. With encryption disabled, attachment content is stored without application-layer encryption.
 
 ### Database-Level Security
 
-The SQLite file (`openfinance.db`) uses application-layer encryption by default. For full filesystem encryption:
+Field encryption does not encrypt the entire SQLite file (`openfinance.db`), and is disabled by default. For storage protection independent of the selected application mode:
 
-- **SQLCipher**: optional dependency for full database-file encryption
+- **Filesystem encryption**: configure encrypted storage on the host
 - **File permissions**: `chmod 600 openfinance.db` (restrict to the application user)
 
 ---
@@ -87,17 +89,17 @@ The SQLite file (`openfinance.db`) uses application-layer encryption by default.
 
 ### Purpose
 
-The master password is a **separate credential** from the login password. It derives the AES-256-GCM key for:
+In encrypted mode, the master password is a **separate credential** from the login password. It derives the AES-256-GCM key for:
 
 - Field-level encryption (account numbers, notes)
 - Attachment encryption
-- Backup archives
+- Protected field and attachment content preserved in backups
 
 ### How It Works
 
 - The login password authenticates you (verified via BCrypt hash in the database)
-- The master password **never leaves the device** and is **never stored** — only its derived key is held temporarily in memory during a session
-- An attacker who obtains the database file cannot decrypt sensitive fields without the master password
+- The browser sends the master password to the backend during registration/login. Use HTTPS for remote access. The password is not persisted; derived keys are cached temporarily on the backend
+- In encrypted mode, obtaining the database file alone does not reveal the protected field values
 
 ### Changing the Master Password
 
@@ -113,7 +115,7 @@ Navigate to **Settings → Security → Change Master Password**.
 
 > ⚠️ Encrypted data **cannot be recovered** without the master password. This is by design.
 
-Without the master password you can still log in, view and import unencrypted data (accounts, categories, budgets, reports), but you cannot view encrypted field values, open encrypted attachments, or restore encrypted backups.
+Encrypted-mode login requires the correct master password. Resetting the login password does not recover the encryption key or protected data. Plaintext mode does not use a master password.
 
 **Recommendation**: store the master password in a password manager or physical safe.
 
@@ -123,13 +125,13 @@ Without the master password you can still log in, view and import unencrypted da
 
 ### Password Hashing
 
-Login passwords are hashed with **BCrypt** (cost factor 10). Each hash includes a unique random salt, defeating rainbow-table and precomputation attacks.
+Login passwords up to 72 UTF-8 bytes are hashed with **BCrypt** (cost factor 10). Longer passwords use a tagged **PBKDF2-HMAC-SHA256** hash (310,000 iterations) so every character participates in verification. Both use random salts. Existing BCrypt hashes remain readable, including the historical 72-byte truncation behavior for old long passwords; changing such a password replaces it with the full-length scheme.
 
 ### JSON Web Tokens
 
 | Property     | Value                                        |
 | ------------ | -------------------------------------------- |
-| Algorithm    | HS256 (HMAC-SHA-256)                         |
+| Algorithm    | HMAC-SHA-256/384/512, selected by signing-key length                         |
 | Expiration   | 24 hours (configurable via `jwt.expiration`) |
 | Issuer claim | Included                                     |
 | Storage      | Browser `localStorage`                       |
@@ -143,7 +145,7 @@ openssl rand -base64 64
 
 ### Force-Logout
 
-There is no server-side token blocklist. To invalidate all active sessions, rotate the `jwt.secret` — all existing tokens become immediately invalid.
+Logout persists a one-way JWT fingerprint until expiration, so replay remains rejected after a backend restart. Changing the login password increments the user’s credential version and invalidates all encryption sessions after the database change commits. Existing JWTs from every login are then rejected; users sign in again with the new password. Rotating `jwt.secret` invalidates all users’ existing JWTs.
 
 ---
 
@@ -214,7 +216,7 @@ Responses when exceeded: `429 Too Many Requests` with a `Retry-After` header.
 
 ## Backup Security
 
-Backups are encrypted ZIP archives; the key is derived from the master password via PBKDF2.
+Application backups are gzip-compressed per-user SQLite archives (`.ofbak`). They preserve field and attachment encryption when that mode is enabled; the whole archive is not separately encrypted. Plaintext-mode backups contain plaintext financial data. Store backups on appropriately protected storage.
 
 - **Never share backup files** without first rotating the master password
 - **Store off-device**: external drive, USB, or separate encrypted cloud storage
@@ -273,7 +275,7 @@ No personal data is transmitted to or processed by the Open-Finance project main
 
 1. **Rotate the JWT secret** — never run the repository default in production
 2. **Use HTTPS** — place nginx or Caddy with TLS in front of the application
-3. **Enable SQLCipher** — for full database-file encryption
+3. **Choose the encryption mode before creating data** — use encrypted host storage for full database-file protection
 4. **Least-privilege user** — run as a dedicated non-root OS user; `chmod 700` the data directory
 5. **Monitor the audit log** — watch `security_audit_log` for suspicious patterns
 6. **Firewall** — restrict port 8080 to trusted IPs only
@@ -303,4 +305,4 @@ We credit researchers in the release notes following a responsible disclosure pe
 
 ---
 
-_Last updated: April 2026 | Open-Finance v0.1.0_
+_Last updated: September 2026 | Open-Finance v0.3.0-beta_

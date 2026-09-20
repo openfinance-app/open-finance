@@ -49,6 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final org.openfinance.service.SessionRevocationService sessionRevocationService;
 
     /**
      * Filters incoming HTTP requests to extract and validate JWT tokens.
@@ -140,7 +141,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      */
     private void authenticateUser(String token, HttpServletRequest request) {
         // Validate token signature and expiration
-        if (!jwtService.validateToken(token)) {
+        if (!jwtService.validateToken(token) || sessionRevocationService.isRevoked(token)) {
             log.debug("JWT token validation failed");
             return;
         }
@@ -171,6 +172,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     return new UsernameNotFoundException(
                                             "User not found: " + username);
                                 });
+
+        if (jwtService.extractTokenVersion(token) != user.getTokenVersion()) return;
 
         // Create authentication token with user details
         UsernamePasswordAuthenticationToken authToken =

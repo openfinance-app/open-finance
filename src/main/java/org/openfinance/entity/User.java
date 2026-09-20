@@ -85,6 +85,10 @@ public class User {
     @Column(name = "master_password_verifier", length = 512)
     private String masterPasswordVerifier;
 
+    /** Incremented when login credentials change to invalidate previously issued JWTs. */
+    @Column(name = "token_version", nullable = false)
+    private long tokenVersion;
+
     /**
      * User's preferred base currency for multi-currency conversion. ISO 4217 currency code (e.g.,
      * "USD", "EUR", "GBP"). Never defaulted in the entity: every creation path sets it explicitly

@@ -603,8 +603,9 @@ public class NetWorthService {
             return new NetWorthChange(current.get().getNetWorth(), null, false);
         }
 
-        BigDecimal change = current.get().calculateChangeFrom(previous.get());
-        BigDecimal percentageChange = current.get().calculatePercentageChangeFrom(previous.get());
+        NetWorth comparable = inReportingCurrency(previous.get(), current.get().getCurrency());
+        BigDecimal change = current.get().calculateChangeFrom(comparable);
+        BigDecimal percentageChange = current.get().calculatePercentageChangeFrom(comparable);
 
         log.debug(
                 "Monthly change calculated for user {}: amount={}, percentage={}%",
@@ -663,9 +664,39 @@ public class NetWorthService {
         if (previous.isEmpty()) {
             return new NetWorthChange(current.get().getNetWorth(), null, false);
         }
-        BigDecimal change = current.get().calculateChangeFrom(previous.get());
-        BigDecimal percentageChange = current.get().calculatePercentageChangeFrom(previous.get());
+        NetWorth comparable = inReportingCurrency(previous.get(), current.get().getCurrency());
+        BigDecimal change = current.get().calculateChangeFrom(comparable);
+        BigDecimal percentageChange = current.get().calculatePercentageChangeFrom(comparable);
         return new NetWorthChange(change, percentageChange, true);
+    }
+
+    /** Returns a presentation snapshot using dated FX without rewriting stored source values. */
+    @Transactional(readOnly = true)
+    public NetWorth inReportingCurrency(NetWorth snapshot, String currency) {
+        if (currency.equals(snapshot.getCurrency())) return snapshot;
+        return NetWorth.builder()
+                .userId(snapshot.getUserId())
+                .snapshotDate(snapshot.getSnapshotDate())
+                .currency(currency)
+                .totalAssets(
+                        convertToBaseCurrency(
+                                snapshot.getTotalAssets(),
+                                snapshot.getCurrency(),
+                                currency,
+                                snapshot.getSnapshotDate()))
+                .totalLiabilities(
+                        convertToBaseCurrency(
+                                snapshot.getTotalLiabilities(),
+                                snapshot.getCurrency(),
+                                currency,
+                                snapshot.getSnapshotDate()))
+                .netWorth(
+                        convertToBaseCurrency(
+                                snapshot.getNetWorth(),
+                                snapshot.getCurrency(),
+                                currency,
+                                snapshot.getSnapshotDate()))
+                .build();
     }
 
     /**

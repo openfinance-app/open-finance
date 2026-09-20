@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { registerWithRetry, signIn } from './helpers/auth';
 
 test.use({ timezoneId: 'Europe/Paris' });
 const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris' }).format(new Date());
@@ -27,19 +28,14 @@ async function api(page: Page, path: string, body?: unknown, method = 'GET') {
 test.beforeEach(async ({ page, request }, testInfo) => {
   const username = `ux_${Date.now()}`;
   const credentials = { username, password: 'Password123!', masterPassword: 'RealMaster123!' };
-  const registration = await request.post('/api/v1/auth/register', {
-    data: {
-      ...credentials,
-      email: `${username}@example.invalid`,
-      skipSeeding: !testInfo.title.includes('French seeded'),
-    },
+  testInfo.setTimeout(testInfo.timeout + 60_000);
+  const registration = await registerWithRetry(request, {
+    ...credentials,
+    email: `${username}@example.invalid`,
+    skipSeeding: !testInfo.title.includes('French seeded'),
   });
   expect(registration.status(), await registration.text()).toBe(201);
-  await page.goto('/login');
-  await page.getByLabel(/username/i).fill(username);
-  await page.locator('#password').fill(credentials.password);
-  await page.locator('#masterPassword').fill(credentials.masterPassword);
-  await page.getByRole('button', { name: /sign in|log in/i }).click();
+  await signIn(page, credentials);
   await page.waitForURL('**/onboarding');
 });
 

@@ -61,6 +61,9 @@ class UserServiceTest {
 
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
 
+    @Mock private org.openfinance.repository.CurrencyRepository currencyRepository;
+    @Mock private SessionRevocationService sessionRevocationService;
+
     @InjectMocks private UserService userService;
 
     private UserRegistrationRequest validRequest;

@@ -33,6 +33,15 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Separate logins issue distinct tokens even within the same second")
+    void distinctTokensForIndependentLogins() {
+        User user = createTestUser(1L, "john_doe");
+        assertThat(jwtService.generateToken(user)).isNotEqualTo(jwtService.generateToken(user));
+        user.setTokenVersion(7);
+        assertThat(jwtService.extractTokenVersion(jwtService.generateToken(user))).isEqualTo(7);
+    }
+
+    @Test
     @DisplayName("Should honor the configured jwt.expiration for token lifetime")
     void shouldHonorConfiguredExpiration() {
         // Given a service configured with a non-default expiration

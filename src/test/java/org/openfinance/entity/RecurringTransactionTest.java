@@ -658,4 +658,30 @@ class RecurringTransactionTest {
             assertThat(toString).contains("isActive=true");
         }
     }
+
+    @Test
+    @DisplayName("Quarterly recurrence returns to its original day after a short month")
+    void quarterlyAnchorSurvivesShortMonth() {
+        RecurringTransaction value =
+                RecurringTransaction.builder()
+                        .frequency(RecurringFrequency.QUARTERLY)
+                        .nextOccurrence(LocalDate.of(2025, 1, 31))
+                        .build();
+        value.setNextOccurrence(value.calculateNextOccurrence());
+        assertThat(value.getNextOccurrence()).isEqualTo(LocalDate.of(2025, 4, 30));
+        assertThat(value.calculateNextOccurrence()).isEqualTo(LocalDate.of(2025, 7, 31));
+    }
+
+    @Test
+    @DisplayName("Leap-day yearly recurrence returns to February 29 in the next leap year")
+    void yearlyAnchorSurvivesNonLeapYears() {
+        RecurringTransaction value =
+                RecurringTransaction.builder()
+                        .frequency(RecurringFrequency.YEARLY)
+                        .nextOccurrence(LocalDate.of(2024, 2, 29))
+                        .build();
+        for (int year = 2025; year <= 2028; year++)
+            value.setNextOccurrence(value.calculateNextOccurrence());
+        assertThat(value.getNextOccurrence()).isEqualTo(LocalDate.of(2028, 2, 29));
+    }
 }

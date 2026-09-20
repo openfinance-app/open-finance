@@ -187,9 +187,12 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
         String sessionToken = request.getHeader("X-Encryption-Session");
-        if (sessionToken != null && !sessionToken.isBlank()) {
-            authService.logout(sessionToken);
-        }
+        String authorization = request.getHeader("Authorization");
+        String token =
+                authorization != null && authorization.startsWith("Bearer ")
+                        ? authorization.substring(7).trim()
+                        : null;
+        authService.logout(sessionToken, token);
         log.info("User logged out");
         return ResponseEntity.noContent().build();
     }

@@ -42,6 +42,7 @@ public class DataExportService {
     private final BudgetRepository budgetRepository;
     private final CategoryRepository categoryRepository;
     private final RealEstateRepository realEstateRepository;
+    private final TransactionSplitRepository transactionSplitRepository;
 
     /**
      * Export all user data based on the provided request.
@@ -183,7 +184,7 @@ public class DataExportService {
     /** Build export metadata. */
     private Map<String, Object> buildExportMetadata(Long userId) {
         Map<String, Object> metadata = new LinkedHashMap<>();
-        metadata.put("exportVersion", "1.0");
+        metadata.put("exportVersion", "2.0");
         metadata.put("userId", userId);
         metadata.put(
                 "exportDate", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
@@ -254,6 +255,7 @@ public class DataExportService {
                                                 || !t.getDate().isAfter(request.getEndDate()))
                         .toList();
 
+        Map<Long, List<TransactionSplit>> splits = exportSplitsFor(transactions);
         return transactions.stream()
                 .map(
                         transaction -> {
@@ -270,6 +272,26 @@ public class DataExportService {
                             data.put("notes", transaction.getNotes());
                             data.put("tags", transaction.getTags());
                             data.put("transferId", transaction.getTransferId());
+                            data.put("movementType", transaction.getMovementType());
+                            data.put("principalAmount", transaction.getPrincipalAmount());
+                            data.put("liabilityId", transaction.getLiabilityId());
+                            data.put("trancheId", transaction.getTrancheId());
+                            data.put("assetId", transaction.getAssetId());
+                            data.put("realEstateId", transaction.getRealEstateId());
+                            data.put("payeeId", transaction.getPayeeId());
+                            data.put("payee", transaction.getPayee());
+                            data.put("paymentMethod", transaction.getPaymentMethod());
+                            data.put("externalReference", transaction.getExternalReference());
+                            data.put("originalAmount", transaction.getOriginalAmount());
+                            data.put("originalCurrency", transaction.getOriginalCurrency());
+                            data.put("conversionRate", transaction.getConversionRate());
+                            data.put("accountAmount", transaction.getAccountAmount());
+                            data.put("accountCurrency", transaction.getAccountCurrency());
+                            data.put(
+                                    "splits",
+                                    splits.getOrDefault(transaction.getId(), List.of()).stream()
+                                            .map(this::exportSplit)
+                                            .toList());
                             data.put("isReconciled", transaction.getIsReconciled());
                             data.put("isDeleted", transaction.getIsDeleted());
                             data.put("createdAt", formatDateTime(transaction.getCreatedAt()));
@@ -277,6 +299,30 @@ public class DataExportService {
                             return data;
                         })
                 .collect(Collectors.toList());
+    }
+
+    private Map<Long, List<TransactionSplit>> exportSplitsFor(List<Transaction> transactions) {
+        List<Long> ids = transactions.stream().map(Transaction::getId).toList();
+        List<TransactionSplit> splits = new ArrayList<>();
+        // Keep each query below SQLite and PostgreSQL parameter limits for large exports.
+        for (int start = 0; start < ids.size(); start += 500) {
+            splits.addAll(
+                    transactionSplitRepository.findByTransactionIdIn(
+                            ids.subList(start, Math.min(start + 500, ids.size()))));
+        }
+        return splits.stream()
+                .sorted(Comparator.comparing(TransactionSplit::getId))
+                .collect(Collectors.groupingBy(TransactionSplit::getTransactionId));
+    }
+
+    private Map<String, Object> exportSplit(TransactionSplit split) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("id", split.getId());
+        data.put("transactionId", split.getTransactionId());
+        data.put("categoryId", split.getCategoryId());
+        data.put("amount", split.getAmount());
+        data.put("description", split.getDescription());
+        return data;
     }
 
     /** Export assets. */
@@ -428,7 +474,7 @@ public class DataExportService {
         if (metadata != null) {
             writer.write("=== Export Metadata ===\n");
             for (Map.Entry<String, Object> entry : metadata.entrySet()) {
-                writer.write(entry.getKey() + "," + entry.getValue() + "\n");
+                writer.write(entry.getKey() + "," + escapeCsv(entry.getValue()) + "\n");
             }
             writer.write("\n");
         }
@@ -463,19 +509,38 @@ public class DataExportService {
         // Write data rows
         for (Object item : items) {
             Map<String, Object> map = (Map<String, Object>) item;
-            String row =
-                    map.values().stream()
-                            .map(v -> v != null ? escapeCsv(v.toString()) : "")
-                            .collect(Collectors.joining(","));
+            List<String> cells = new ArrayList<>();
+            for (Object value : map.values()) {
+                Object cell =
+                        value instanceof Collection<?> || value instanceof Map<?, ?>
+                                ? new ObjectMapper().writeValueAsString(value)
+                                : value;
+                cells.add(escapeCsv(cell));
+            }
+            String row = String.join(",", cells);
             writer.write(row + "\n");
         }
 
         writer.write("\n");
     }
 
-    /** Escape CSV values. */
-    private String escapeCsv(String value) {
-        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+    /** Neutralize formula-leading text while retaining true numeric cells as numbers. */
+    private String escapeCsv(Object input) {
+        if (input == null) return "";
+        String value = input.toString();
+        if (input instanceof CharSequence) {
+            int index = 0;
+            while (index < value.length()
+                    && (Character.isWhitespace(value.charAt(index))
+                            || Character.isSpaceChar(value.charAt(index))
+                            || value.charAt(index) == '\uFEFF')) index++;
+            if (index < value.length() && "=+-@".indexOf(value.charAt(index)) >= 0)
+                value = "'" + value;
+        }
+        if (value.contains(",")
+                || value.contains("\"")
+                || value.contains("\n")
+                || value.contains("\r")) {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;

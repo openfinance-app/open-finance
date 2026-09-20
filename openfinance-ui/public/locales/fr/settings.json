@@ -151,7 +151,7 @@
       "confirmPasswordPlaceholder": "Confirmez votre nouveau mot de passe",
       "submit": "Modifier le mot de passe",
       "submitting": "Modification en cours...",
-      "success": "Mot de passe modifié avec succès"
+      "success": "Mot de passe modifié. Reconnectez-vous sur chaque appareil."
     },
     "masterPassword": {
       "title": "Modifier le mot de passe maître",

@@ -243,6 +243,10 @@ public class RecurringTransactionService {
         recurringTransaction.setCurrency(request.getCurrency());
         recurringTransaction.setCurrencyId(resolveCurrencyId(request.getCurrency()));
         recurringTransaction.setCategoryId(request.getCategoryId());
+        if (recurringTransaction.getFrequency() != request.getFrequency()
+                || !recurringTransaction.getNextOccurrence().equals(request.getNextOccurrence())) {
+            recurringTransaction.setAnchorDay(request.getNextOccurrence().getDayOfMonth());
+        }
         recurringTransaction.setFrequency(request.getFrequency());
         recurringTransaction.setNextOccurrence(request.getNextOccurrence());
         recurringTransaction.setEndDate(request.getEndDate());

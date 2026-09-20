@@ -64,6 +64,8 @@ class InstitutionControllerTest {
 
     @MockBean private JwtService jwtService;
 
+    @MockBean private org.openfinance.service.SessionRevocationService sessionRevocationService;
+
     @MockBean private org.openfinance.repository.UserRepository userRepository;
 
     @MockBean private org.openfinance.security.EncryptionKeyCache encryptionKeyCache;

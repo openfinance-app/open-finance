@@ -342,11 +342,13 @@ public class MarketDataController {
                 return ResponseEntity.ok(
                         new UpdatePriceResponse("Asset price updated successfully", assetId, true));
             } else {
-                log.warn("Asset {} has no symbol, price not updated", assetId);
+                log.warn("Asset {} is not eligible for a price update", assetId);
                 return ResponseEntity.badRequest()
                         .body(
                                 new UpdatePriceResponse(
-                                        "Asset has no symbol defined", assetId, false));
+                                        "Asset is planned or has no valid symbol/quote",
+                                        assetId,
+                                        false));
             }
 
         } catch (IllegalArgumentException e) {

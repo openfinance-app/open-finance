@@ -586,6 +586,7 @@ public class DashboardController {
         // Convert to DTOs
         List<NetWorthSummary> summaries =
                 history.stream()
+                        .map(nw -> netWorthService.inReportingCurrency(nw, userCurrency))
                         .map(
                                 nw ->
                                         new NetWorthSummary(

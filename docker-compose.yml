@@ -5,7 +5,7 @@
 # Does NOT build from source.
 #
 # Quick start:
-#   1. cp .env.example .env   # then fill in JWT_SECRET and MASTER_PASSWORD
+#   1. cp .env.example .env   # set JWT_SECRET and choose APPLICATION_ENCRYPTION_ENABLED
 #   2. docker compose up -d
 #   3. Open http://localhost:8080
 #
@@ -28,7 +28,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: "jdbc:sqlite:/app/data/openfinance.db?foreign_keys=on&journal_mode=WAL&busy_timeout=10000"
       JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET in .env}"
-      MASTER_PASSWORD: "${MASTER_PASSWORD:-}"
+      APPLICATION_ENCRYPTION_ENABLED: "${APPLICATION_ENCRYPTION_ENABLED:-false}"
       APPLICATION_AI_OLLAMA_BASE_URL: "http://ollama:11434"
       APPLICATION_AI_OLLAMA_MODEL: "${APPLICATION_AI_OLLAMA_MODEL:-qwen2.5:0.5b}"
       APPLICATION_AI_PROVIDER: "${APPLICATION_AI_PROVIDER:-ollama}"

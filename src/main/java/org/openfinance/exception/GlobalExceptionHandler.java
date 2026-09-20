@@ -941,6 +941,13 @@ public class GlobalExceptionHandler {
                 request);
     }
 
+    @ExceptionHandler(MarketDataException.class)
+    public ResponseEntity<ErrorResponse> handleUnavailableMarketData(
+            MarketDataException ex, WebRequest request) {
+        log.warn("Market data is unavailable for symbol {}", ex.getSymbol());
+        return error(HttpStatus.SERVICE_UNAVAILABLE, "error.marketData.unavailable", null, request);
+    }
+
     private ResponseEntity<ErrorResponse> error(
             HttpStatus status, String key, Object[] arguments, WebRequest request) {
         return ResponseEntity.status(status)

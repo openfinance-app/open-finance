@@ -183,6 +183,23 @@ class PasswordServiceTest {
         // Then
         assertNotNull(hashedPassword);
         assertTrue(isValid, "Long password should hash and validate correctly");
+        assertFalse(passwordService.validatePassword("A".repeat(255) + "B", hashedPassword));
+    }
+
+    @Test
+    void shouldPreserveLongUnicodePasswordsWithoutByteTruncation() {
+        String password = "密".repeat(30);
+        String hash = passwordService.hashPassword(password);
+        assertTrue(passwordService.validatePassword(password, hash));
+        assertFalse(passwordService.validatePassword("密".repeat(29) + "碼", hash));
+    }
+
+    @Test
+    void shouldAllowLegacyLongBcryptPasswordToSignIn() {
+        String password = "A".repeat(90);
+        String legacyHash = passwordEncoder.encode(password.substring(0, 72));
+        assertTrue(passwordService.validatePassword(password, legacyHash));
+        assertFalse(passwordService.validatePassword("B" + password, legacyHash));
     }
 
     @Test

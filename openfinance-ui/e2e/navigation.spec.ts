@@ -51,7 +51,7 @@ test.describe('Navigation', () => {
   });
 
   test('core-060d: sidebar Budget link navigates to /budget', async ({ page }) => {
-    const budgetLink = page.getByRole('link', { name: /^budget$/i });
+    const budgetLink = page.getByRole('link', { name: /^budgets$/i });
     await expect(budgetLink).toBeVisible();
     await budgetLink.click();
 

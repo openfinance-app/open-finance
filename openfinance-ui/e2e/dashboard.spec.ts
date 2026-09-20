@@ -42,7 +42,10 @@ test.describe('Dashboard', () => {
   test('core-051: summary stats bar shows total accounts counter', async ({ page }) => {
     // The stats bar contains: Total Accounts, Total Transactions, Total Assets, Total Liabilities
     // Wait for the summary to load (it may start as a loading skeleton)
-    const statsBar = page.locator('.grid').filter({ hasText: /accounts/i }).first();
+    const statsBar = page
+      .locator('.grid')
+      .filter({ hasText: /accounts/i })
+      .first();
     await expect(statsBar).toBeVisible({ timeout: 20_000 });
   });
 
@@ -80,15 +83,26 @@ test.describe('Dashboard', () => {
   test('core-054: cards visibility dropdown opens and lists cards', async ({ page }) => {
     // The "Cards" button (SlidersHorizontal icon) opens a dropdown with checkboxes
     // The button may show only the icon on narrow screens; use aria or icon query
-    const cardsBtn = page.getByRole('button', { name: /cards/i })
-      .or(page.locator('button:has([data-lucide="sliders-horizontal"])')
-        .or(page.locator('button').filter({ has: page.locator('svg') }).filter({ hasText: /cards/i })));
+    const cardsBtn = page.getByRole('button', { name: /cards/i }).or(
+      page.locator('button:has([data-lucide="sliders-horizontal"])').or(
+        page
+          .locator('button')
+          .filter({ has: page.locator('svg') })
+          .filter({ hasText: /cards/i })
+      )
+    );
 
-    if (await cardsBtn.first().isVisible({ timeout: 10_000 }).catch(() => false)) {
+    if (
+      await cardsBtn
+        .first()
+        .isVisible({ timeout: 10_000 })
+        .catch(() => false)
+    ) {
       await cardsBtn.first().click();
 
       // Dropdown should open — look for the "Reset Layout" link and checkboxes
-      const resetBtn = page.getByRole('button', { name: /reset layout/i })
+      const resetBtn = page
+        .getByRole('button', { name: /reset layout/i })
         .or(page.getByText(/reset layout/i));
       await expect(resetBtn.first()).toBeVisible({ timeout: 5_000 });
 
@@ -105,10 +119,9 @@ test.describe('Dashboard', () => {
     await expect(addBtn).toBeVisible({ timeout: 15_000 });
     await addBtn.click();
 
-    // The button dispatches a custom event; since no modal listener exists on the
-    // dashboard, verify the page remains stable after clicking.
-    await page.waitForTimeout(1_000);
-    await expect(page.getByRole('main')).toBeVisible();
+    await expect(page).toHaveURL(/\/transactions/);
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /create transaction/i })).toBeVisible();
   });
 
   // ─── Error-free load ───────────────────────────────────────────────────────

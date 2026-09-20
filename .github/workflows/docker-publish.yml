@@ -9,7 +9,17 @@ env:
   IMAGE_NAME: ghcr.io/openfinance-app/open-finance
 
 jobs:
+  backend-sqlite:
+    uses: ./.github/workflows/backend-sqlite.yml
+    secrets: inherit
+  backend-postgres:
+    uses: ./.github/workflows/backend-postgres.yml
+  frontend:
+    uses: ./.github/workflows/frontend-ci.yml
+  browser:
+    uses: ./.github/workflows/browser-ci.yml
   build-and-push:
+    needs: [backend-sqlite, backend-postgres, frontend, browser]
     name: Build and Push to GHCR
     runs-on: ubuntu-latest
     permissions:

@@ -7,6 +7,7 @@ name: Backend CI (PostgreSQL)
 # db/postgresql-migration schema (see src/main/resources/db/postgresql-migration).
 
 on:
+    workflow_call:
     push:
         branches:
             - main
@@ -51,8 +52,6 @@ jobs:
             SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
             SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
             SPRING_FLYWAY_LOCATIONS: classpath:db/postgresql-migration
-            # Enable the Yahoo Finance network integration tests in this CI job.
-            YAHOO_NETWORK_TESTS: true
 
         steps:
             - name: Checkout code
@@ -69,7 +68,7 @@ jobs:
               run: command -v mvn || (apt-get update -qq && apt-get install -y maven)
 
             - name: Run tests against PostgreSQL
-              run: mvn test -B
+              run: mvn verify -B
 
             - name: Archive test results
               if: always()

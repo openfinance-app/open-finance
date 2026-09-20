@@ -127,7 +127,7 @@
     "noChanges": "No changes to save",
     "uploadHint": "Upload a JPEG, PNG, GIF, or WebP image. Maximum size: 2 MB.",
     "removePhoto": "Remove photo",
-    "removing": "Removing\u2026",
+    "removing": "Removing…",
     "uploadSuccess": "Profile image updated successfully!",
     "uploadError": "Failed to upload image. Please try again.",
     "removeSuccess": "Profile image removed.",
@@ -151,7 +151,7 @@
       "confirmPasswordPlaceholder": "Confirm your new password",
       "submit": "Change Password",
       "submitting": "Changing Password...",
-      "success": "Password changed successfully"
+      "success": "Password changed. Sign in again on each device."
     },
     "masterPassword": {
       "title": "Change Master Password",

@@ -2,9 +2,14 @@
 
 package org.openfinance.security;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -48,6 +53,10 @@ public class PasswordService {
 
     private final PasswordEncoder passwordEncoder;
 
+    private static final String LONG_PASSWORD_PREFIX = "{pbkdf2-sha256}";
+    private final PasswordEncoder longPasswordEncoder =
+            Pbkdf2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+
     /**
      * Constructs a PasswordService with the configured BCrypt password encoder.
      *
@@ -89,6 +98,12 @@ public class PasswordService {
         }
 
         try {
+            // BCrypt accepts at most 72 UTF-8 bytes. Preserve the full accepted password instead
+            // of silently truncating it; the prefix keeps existing BCrypt hashes readable.
+            if (passwordEncoder instanceof BCryptPasswordEncoder
+                    && plainPassword.getBytes(StandardCharsets.UTF_8).length > 72) {
+                return LONG_PASSWORD_PREFIX + longPasswordEncoder.encode(plainPassword);
+            }
             return passwordEncoder.encode(plainPassword);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to hash password", e);
@@ -118,6 +133,18 @@ public class PasswordService {
         }
 
         try {
+            if (hashedPassword.startsWith(LONG_PASSWORD_PREFIX)) {
+                return longPasswordEncoder.matches(
+                        plainPassword, hashedPassword.substring(LONG_PASSWORD_PREFIX.length()));
+            }
+            byte[] passwordBytes = plainPassword.getBytes(StandardCharsets.UTF_8);
+            if (passwordEncoder instanceof BCryptPasswordEncoder
+                    && hashedPassword.startsWith("$2")
+                    && passwordBytes.length > 72) {
+                // Old Spring BCrypt accepted these passwords and used only the first 72 bytes.
+                // Retain access to legacy accounts; every new long password uses PBKDF2 above.
+                return BCrypt.checkpw(Arrays.copyOf(passwordBytes, 72), hashedPassword);
+            }
             return passwordEncoder.matches(plainPassword, hashedPassword);
         } catch (Exception e) {
             // Log non-sensitive details for operational visibility; do not log secrets
@@ -155,6 +182,10 @@ public class PasswordService {
         }
 
         try {
+            if (hashedPassword.startsWith(LONG_PASSWORD_PREFIX)) {
+                return longPasswordEncoder.upgradeEncoding(
+                        hashedPassword.substring(LONG_PASSWORD_PREFIX.length()));
+            }
             // Prefer using the PasswordEncoder upgradeEncoding if available
             try {
                 return passwordEncoder.upgradeEncoding(hashedPassword);

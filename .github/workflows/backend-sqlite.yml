@@ -1,6 +1,7 @@
 name: Backend CI (SQLite)
 
 on:
+  workflow_call:
   push:
     branches:
       - main
@@ -8,6 +9,7 @@ on:
     paths:
       - 'src/**'
       - 'pom.xml'
+      - 'quality/**'
       - '.github/workflows/backend-sqlite.yml'
   pull_request:
     branches:
@@ -16,6 +18,7 @@ on:
     paths:
       - 'src/**'
       - 'pom.xml'
+      - 'quality/**'
       - '.github/workflows/backend-sqlite.yml'
 
 jobs:
@@ -38,7 +41,7 @@ jobs:
         run: command -v mvn || (apt-get update -qq && apt-get install -y maven)
 
       - name: Build, test and verify
-        run: mvn verify -B
+        run: mvn spotless:check verify -B
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -62,10 +65,6 @@ jobs:
         with:
           name: coverage-report
           path: target/site/jacoco/
-
-      - name: Check test coverage
-        run: mvn jacoco:check -B
-        continue-on-error: true
 
       - name: Archive JAR
         uses: actions/upload-artifact@v4
@@ -93,8 +92,7 @@ jobs:
         run: command -v mvn || (apt-get update -qq && apt-get install -y maven)
 
       - name: Run SpotBugs
-        run: mvn spotbugs:check -B || echo "SpotBugs check completed with warnings"
+        run: mvn compile spotbugs:check -B
 
       - name: Run dependency check
-        run: mvn dependency-check:check -B || echo "Dependency check completed"
-        continue-on-error: true
+        run: mvn dependency-check:check -B -DossIndexAnalyzerEnabled=false

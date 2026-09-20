@@ -85,6 +85,7 @@ public class AuthService {
     private final EncryptionKeyCache encryptionKeyCache;
     private final EncryptionProperties encryptionProperties;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
+    private final SessionRevocationService sessionRevocationService;
 
     /**
      * Maximum failed login attempts before the account is locked. Configurable via {@code
@@ -291,9 +292,11 @@ public class AuthService {
      *
      * @param sessionToken the opaque session token to invalidate
      */
-    public void logout(String sessionToken) {
-        encryptionKeyCache.invalidateSession(sessionToken);
-        log.info("Encryption session invalidated on logout");
+    public void logout(String sessionToken, String token) {
+        sessionRevocationService.revoke(token);
+        if (sessionToken != null && !sessionToken.isBlank())
+            encryptionKeyCache.invalidateSession(sessionToken);
+        log.info("Authentication session invalidated on logout");
     }
 
     /**

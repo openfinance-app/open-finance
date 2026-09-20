@@ -9,7 +9,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.2</version>
+        <version>3.5.16</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -32,12 +32,19 @@
         <lombok.version>1.18.30</lombok.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <sqlite-jdbc.version>3.44.1.0</sqlite-jdbc.version>
-        <hibernate-community-dialects.version>6.4.1.Final</hibernate-community-dialects.version>
+        <hibernate-community-dialects.version>${hibernate.version}</hibernate-community-dialects.version>
         <jjwt.version>0.12.3</jjwt.version>
+        <postgresql.version>42.7.13</postgresql.version>
+        <swagger-ui.version>5.32.15</swagger-ui.version>
+        <tomcat.version>10.1.60</tomcat.version>
+        <netty.version>4.1.138.Final</netty.version>
+        <jackson-bom.version>2.22.2</jackson-bom.version>
+        <kotlin.version>2.4.20</kotlin.version>
+        <log4j2.version>2.26.1</log4j2.version>
         <spotless.version>2.41.1</spotless.version>
         <rest-assured.version>5.4.0</rest-assured.version>
         <spotbugs.version>4.8.3.0</spotbugs.version>
-        <dependency-check.version>9.0.9</dependency-check.version>
+        <dependency-check.version>12.2.2</dependency-check.version>
         <langchain4j.version>1.0.0-beta2</langchain4j.version>
         <!--
             The check-line-counts.sh script requires a POSIX shell and only runs on Linux CI.
@@ -51,6 +58,70 @@
     <!-- Dependency Management -->
     <dependencyManagement>
         <dependencies>
+            <!-- Keep transitive AI/report dependencies on the same patched platform versions. -->
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio</artifactId>
+                <version>3.18.2</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio-jvm</artifactId>
+                <version>3.18.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.28.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.20.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>${netty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-bom</artifactId>
+                <version>${kotlin.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-bom</artifactId>
+                <version>${log4j2.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>1.11.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.opennlp</groupId>
+                <artifactId>opennlp-tools</artifactId>
+                <version>2.5.12</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>swagger-ui</artifactId>
+                <version>${swagger-ui.version}</version>
+            </dependency>
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-bom</artifactId>
@@ -114,6 +185,11 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
         <!-- Lombok for boilerplate code reduction -->
@@ -181,7 +257,7 @@
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
-            <version>5.2.5</version>
+            <version>5.5.1</version>
         </dependency>
 
         <!-- OpenPDF for PDF generation -->
@@ -279,7 +355,7 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.3.0</version>
+            <version>2.8.17</version>
         </dependency>
 
         <!-- Rome for RSS formatting -->
@@ -438,7 +514,7 @@
                     <effort>Max</effort>
                     <threshold>Low</threshold>
                     <failOnError>true</failOnError>
-                    <excludeBugsFile>${project.basedir}/config/quality/spotbugs-baseline.xml</excludeBugsFile>
+                    <excludeBugsFile>${project.basedir}/quality/spotbugs-baseline.xml</excludeBugsFile>
                     <xmlOutput>true</xmlOutput>
                 </configuration>
             </plugin>
@@ -450,7 +526,16 @@
                 <version>${dependency-check.version}</version>
                 <configuration>
                     <failBuildOnCVSS>7</failBuildOnCVSS>
+                    <!-- Official bulk feeds avoid API-key and rate-limit dependence in CI. -->
+                    <nvdDatafeedUrl>https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{0}.json.gz</nvdDatafeedUrl>
                     <skipTestScope>true</skipTestScope>
+                    <!-- This application ships Java/JavaScript, no .NET assemblies. -->
+                    <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+                    <ossIndexAnalyzerEnabled>false</ossIndexAnalyzerEnabled>
+                    <formats>HTML,JSON</formats>
+                    <suppressionFiles>
+                        <suppressionFile>${project.basedir}/quality/dependency-check-suppressions.xml</suppressionFile>
+                    </suppressionFiles>
                 </configuration>
             </plugin>
 

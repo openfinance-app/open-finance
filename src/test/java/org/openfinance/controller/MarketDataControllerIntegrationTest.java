@@ -356,7 +356,11 @@ class MarketDataControllerIntegrationTest {
     void shouldUpdateAssetPriceSuccessfully() throws Exception {
         // Given: Mock market quote
         MarketQuote mockQuote =
-                MarketQuote.builder().symbol("AAPL").price(new BigDecimal("175.50")).build();
+                MarketQuote.builder()
+                        .symbol("AAPL")
+                        .price(new BigDecimal("175.50"))
+                        .currency("USD")
+                        .build();
 
         when(marketDataProvider.getQuote("AAPL")).thenReturn(mockQuote);
 
@@ -428,7 +432,9 @@ class MarketDataControllerIntegrationTest {
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Asset has no symbol defined"))
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Asset is planned or has no valid symbol/quote"))
                 .andExpect(jsonPath("$.updated").value(false));
     }
 }

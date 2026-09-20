@@ -50,6 +50,7 @@ class MarketDataServiceTest {
         // Given: Mock quote from provider
         MarketQuote expectedQuote =
                 MarketQuote.builder()
+                        .currency("USD")
                         .symbol("AAPL")
                         .name("Apple Inc.")
                         .price(new BigDecimal("175.50"))
@@ -72,7 +73,11 @@ class MarketDataServiceTest {
     void shouldCacheGetQuote() {
         // Given: Mock quote
         MarketQuote quote =
-                MarketQuote.builder().symbol("AAPL").price(new BigDecimal("175.50")).build();
+                MarketQuote.builder()
+                        .currency("USD")
+                        .symbol("AAPL")
+                        .price(new BigDecimal("175.50"))
+                        .build();
 
         when(marketDataProvider.getQuote("AAPL")).thenReturn(quote);
 
@@ -90,10 +95,12 @@ class MarketDataServiceTest {
         List<MarketQuote> expectedQuotes =
                 List.of(
                         MarketQuote.builder()
+                                .currency("USD")
                                 .symbol("AAPL")
                                 .price(new BigDecimal("175.50"))
                                 .build(),
                         MarketQuote.builder()
+                                .currency("USD")
                                 .symbol("MSFT")
                                 .price(new BigDecimal("380.00"))
                                 .build());
@@ -113,7 +120,11 @@ class MarketDataServiceTest {
         // Given: Mock asset and quote
         Asset asset = createMockAsset(1L, 1L, "AAPL", new BigDecimal("100.00"));
         MarketQuote quote =
-                MarketQuote.builder().symbol("AAPL").price(new BigDecimal("175.50")).build();
+                MarketQuote.builder()
+                        .currency("USD")
+                        .symbol("AAPL")
+                        .price(new BigDecimal("175.50"))
+                        .build();
 
         when(assetRepository.findById(1L)).thenReturn(Optional.of(asset));
         when(marketDataProvider.getQuote("AAPL")).thenReturn(quote);
@@ -201,10 +212,12 @@ class MarketDataServiceTest {
         List<MarketQuote> quotes =
                 List.of(
                         MarketQuote.builder()
+                                .currency("USD")
                                 .symbol("AAPL")
                                 .price(new BigDecimal("175.50"))
                                 .build(),
                         MarketQuote.builder()
+                                .currency("USD")
                                 .symbol("MSFT")
                                 .price(new BigDecimal("380.00"))
                                 .build());
@@ -260,7 +273,12 @@ class MarketDataServiceTest {
         Asset asset = createMockAsset(1L, 10L, "INVALID", new BigDecimal("100.00"));
 
         List<MarketQuote> quotes =
-                List.of(MarketQuote.builder().symbol("INVALID").price(null).build());
+                List.of(
+                        MarketQuote.builder()
+                                .currency("USD")
+                                .symbol("INVALID")
+                                .price(null)
+                                .build());
 
         when(assetRepository.findByUserId(10L)).thenReturn(List.of(asset));
         when(marketDataProvider.getQuotes(List.of("INVALID"))).thenReturn(quotes);

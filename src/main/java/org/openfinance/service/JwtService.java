@@ -81,12 +81,14 @@ public class JwtService {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId());
+        claims.put("tokenVersion", user.getTokenVersion());
 
         Date now = new Date();
         Date expiration = new Date(now.getTime() + jwtExpirationMs);
 
         String token =
                 Jwts.builder()
+                        .id(java.util.UUID.randomUUID().toString())
                         .claims(claims)
                         .subject(user.getUsername())
                         .issuedAt(now)
@@ -167,6 +169,16 @@ public class JwtService {
                     } catch (NumberFormatException e) {
                         throw new IllegalArgumentException("Invalid userId claim type", e);
                     }
+                });
+    }
+
+    /** Tokens issued before versioning belong to the initial credential version. */
+    public long extractTokenVersion(String token) {
+        return extractClaim(
+                token,
+                claims -> {
+                    Number version = claims.get("tokenVersion", Number.class);
+                    return version == null ? 0L : version.longValue();
                 });
     }
 

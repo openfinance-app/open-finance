@@ -45,6 +45,8 @@ class UserControllerIntegrationTest {
 
     @Autowired private UserService userService;
 
+    @Autowired private org.openfinance.repository.CurrencyRepository currencyRepository;
+
     @Autowired private DatabaseCleanupService databaseCleanupService;
 
     private String token;
@@ -53,6 +55,14 @@ class UserControllerIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         databaseCleanupService.execute();
+        for (String code : new String[] {"EUR", "USD", "GBP", "JPY", "CHF", "BTC", "ETH", "USDT"}) {
+            currencyRepository.save(
+                    org.openfinance.entity.Currency.builder()
+                            .code(code)
+                            .name(code)
+                            .symbol(code)
+                            .build());
+        }
 
         // Register test user
         UserRegistrationRequest reg =
@@ -147,7 +157,7 @@ class UserControllerIntegrationTest {
     @Test
     @DisplayName("PUT /api/v1/users/me/base-currency - Should accept valid currency codes")
     void testUpdateBaseCurrencyWithVariousCodes() throws Exception {
-        String[] validCurrencies = {"USD", "EUR", "GBP", "JPY", "CHF", "BTC", "ETH"};
+        String[] validCurrencies = {"USD", "EUR", "GBP", "JPY", "CHF", "BTC", "ETH", "USDT"};
 
         for (String currency : validCurrencies) {
             Map<String, String> request = Map.of("baseCurrency", currency);

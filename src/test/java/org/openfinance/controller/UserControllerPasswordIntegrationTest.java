@@ -219,6 +219,26 @@ class UserControllerPasswordIntegrationTest {
                                 .content(objectMapper.writeValueAsString(firstChange)))
                 .andExpect(status().isOk());
 
+        // Password changes revoke every existing login. Authenticate again before changing it.
+        String loginResponse =
+                mockMvc.perform(
+                                post("/api/v1/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                objectMapper.writeValueAsString(
+                                                        LoginRequest.builder()
+                                                                .username(TEST_USERNAME)
+                                                                .password("SecondPassword123!")
+                                                                .masterPassword(
+                                                                        TEST_MASTER_PASSWORD)
+                                                                .build())))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        jwtToken = objectMapper.readTree(loginResponse).get("token").asText();
+        encryptionSession = objectMapper.readTree(loginResponse).get("encryptionKey").asText();
+
         // Arrange - Second password change
         PasswordUpdateRequest secondChange =
                 new PasswordUpdateRequest("SecondPassword123!", "ThirdPassword456!");

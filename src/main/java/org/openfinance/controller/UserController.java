@@ -199,7 +199,7 @@ public class UserController {
     public ResponseEntity<UserResponse> updateBaseCurrency(
             Authentication authentication,
             @RequestBody
-                    Map<String, @Size(min = 3, max = 3) @Pattern(regexp = "[A-Z]{3}") String>
+                    Map<String, @Size(min = 3, max = 10) @Pattern(regexp = "[A-Z]{3,10}") String>
                             request) {
 
         User user = (User) authentication.getPrincipal();

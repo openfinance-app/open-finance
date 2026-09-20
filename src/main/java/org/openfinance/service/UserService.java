@@ -62,6 +62,8 @@ public class UserService {
     private final CategorySeeder categorySeeder;
     private final PayeeSeeder payeeSeeder;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
+    private final org.openfinance.repository.CurrencyRepository currencyRepository;
+    private final SessionRevocationService sessionRevocationService;
 
     /**
      * Registers a new user account with login and master passwords.
@@ -273,6 +275,7 @@ public class UserService {
         if (request.getNewPassword() != null && !request.getNewPassword().isEmpty()) {
             String newPasswordHash = passwordService.hashPassword(request.getNewPassword());
             user.setPasswordHash(newPasswordHash);
+            sessionRevocationService.revokeAllSessions(user);
             updated = true;
             log.info("Updated password for user {}", user.getUsername());
         }
@@ -333,19 +336,19 @@ public class UserService {
      * Updates the user's preferred base currency.
      *
      * <p>The base currency is used for multi-currency conversion throughout the application. Must
-     * be a valid 3-letter ISO 4217 currency code (e.g., USD, EUR, GBP).
+     * be an active currency from the supported catalog (e.g., USD, EUR, USDT).
      *
      * <p><strong>Validation:</strong>
      *
      * <ul>
-     *   <li>Currency code must be exactly 3 uppercase letters
-     *   <li>Currency should exist in the currencies table (best practice)
+     *   <li>Currency code must contain 3–10 uppercase letters
+     *   <li>Currency must be active in the currencies table
      * </ul>
      *
      * <p>Requirement 6.2.13: Base currency setting for user preferences
      *
      * @param userId ID of the user to update
-     * @param baseCurrency 3-letter ISO 4217 currency code (e.g., "USD", "EUR", "GBP")
+     * @param baseCurrency supported currency code
      * @return UserResponse with updated base currency
      * @throws IllegalArgumentException if user not found or currency code invalid
      */
@@ -358,8 +361,6 @@ public class UserService {
                             "accountSummaries",
                             "netWorthSummary",
                             "assetAllocation",
-                            "portfolioPerformance",
-                            "borrowingCapacity",
                             "networthAllocation",
                             "insights"
                         },
@@ -369,6 +370,8 @@ public class UserService {
                             "cashFlow",
                             "spendingByCategory",
                             "cashflowSankey",
+                            "portfolioPerformance",
+                            "borrowingCapacity",
                             "exchangeRates"
                         },
                         allEntries = true)
@@ -378,14 +381,17 @@ public class UserService {
 
         // 1. Validate currency code format
         if (baseCurrency == null
-                || baseCurrency.length() != 3
-                || !baseCurrency.matches("[A-Z]{3}")) {
+                || !baseCurrency.matches("[A-Z]{3,10}")
+                || currencyRepository
+                        .findByCode(baseCurrency)
+                        .filter(currency -> Boolean.TRUE.equals(currency.getIsActive()))
+                        .isEmpty()) {
             log.warn(
                     "Base currency update failed: invalid format '{}' for user ID {}",
                     baseCurrency,
                     userId);
             throw new IllegalArgumentException(
-                    "Base currency must be a 3-letter ISO 4217 code (e.g., USD, EUR, GBP)");
+                    "Base currency must be an active supported currency code");
         }
 
         // 2. Find user
@@ -499,6 +505,7 @@ public class UserService {
 
         // 4. Update password
         user.setPasswordHash(newPasswordHash);
+        sessionRevocationService.revokeAllSessions(user);
         userRepository.save(user);
 
         log.info("Successfully updated password for user {}", user.getUsername());

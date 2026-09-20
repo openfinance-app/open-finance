@@ -212,14 +212,18 @@ export function useGetProfile() {
  */
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
-  const { setAuth, user: currentUser } = useAuthContext();
+  const { setAuth, clearAuth, user: currentUser } = useAuthContext();
 
   return useMutation<User, AxiosError, UpdateProfileRequest>({
     mutationFn: async (data: UpdateProfileRequest): Promise<User> => {
       const response = await apiClient.put<User>('/auth/profile', data);
       return response.data;
     },
-    onSuccess: (updatedUser: User) => {
+    onSuccess: (updatedUser: User, request: UpdateProfileRequest) => {
+      if (request.newPassword) {
+        clearAuth();
+        return;
+      }
       // Update the profile cache
       queryClient.setQueryData(['profile'], updatedUser);
 

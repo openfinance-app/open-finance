@@ -93,9 +93,9 @@ public class NetWorth {
      * Currency code for all monetary values in this snapshot. Typically the user's base currency
      * (e.g., "EUR").
      *
-     * <p>ISO 4217 currency code (3 characters)
+     * <p>Supported reporting currency code (3–10 characters, including crypto codes).
      */
-    @Column(name = "currency", nullable = false, length = 3)
+    @Column(name = "currency", nullable = false, length = 10)
     private String currency;
 
     /** FK to the currencies table for referential integrity. */
@@ -128,6 +128,9 @@ public class NetWorth {
     public BigDecimal calculateChangeFrom(NetWorth previousSnapshot) {
         if (previousSnapshot == null) {
             return BigDecimal.ZERO;
+        }
+        if (!java.util.Objects.equals(currency, previousSnapshot.getCurrency())) {
+            throw new IllegalArgumentException("Net worth comparisons require matching currencies");
         }
         return this.netWorth.subtract(previousSnapshot.getNetWorth());
     }

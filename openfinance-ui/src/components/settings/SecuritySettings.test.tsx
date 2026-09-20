@@ -101,7 +101,11 @@ describe('SecuritySettings', () => {
         newPassword: 'newpass1234',
       });
     });
-    expect(screen.getByText(/password changed successfully/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(localStorage.getItem('auth_token')).toBeNull();
+      expect(sessionStorage.getItem('auth_token')).toBeNull();
+      expect(sessionStorage.getItem('encryption_session')).toBeNull();
+    });
   });
 
   it('shows error on login password change failure', async () => {

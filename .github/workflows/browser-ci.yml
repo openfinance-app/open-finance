@@ -1,0 +1,39 @@
+name: Packaged Browser CI
+
+on:
+  workflow_call:
+  push:
+    branches: [main, develop]
+    paths: ['src/**', 'openfinance-ui/**', 'pom.xml', 'scripts/run-browser-tests.py', '.github/workflows/browser-ci.yml']
+  pull_request:
+    branches: [main, develop]
+    paths: ['src/**', 'openfinance-ui/**', 'pom.xml', 'scripts/run-browser-tests.py', '.github/workflows/browser-ci.yml']
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: openfinance-ui/package-lock.json
+      - run: npm ci
+        working-directory: openfinance-ui
+      - run: npx playwright install --with-deps chromium
+        working-directory: openfinance-ui
+      - name: Run browser tests against the packaged encrypted application
+        run: python3 scripts/run-browser-tests.py
+        env:
+          CI: 'true'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: packaged-browser-results
+          path: target/browser-tests/

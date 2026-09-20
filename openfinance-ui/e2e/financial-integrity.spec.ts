@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { loginAs } from './helpers/auth';
+import { loginAs, registerWithRetry } from './helpers/auth';
 
 const month = (offset: number) => {
   const now = new Date();
@@ -30,17 +30,11 @@ async function api(page: Page, path: string, body?: unknown, method = 'GET') {
 test.beforeEach(async ({ page, request }) => {
   const username = `audit_browser_${Date.now()}`;
   const credentials = { username, password: 'Password123!', masterPassword: 'RealMaster123!' };
-  let registration = await request.post('/api/v1/auth/register', {
-    data: { ...credentials, email: `${username}@example.invalid`, skipSeeding: true },
+  const registration = await registerWithRetry(request, {
+    ...credentials,
+    email: `${username}@example.invalid`,
+    skipSeeding: true,
   });
-  // Fixture provisioning respects the same auth rate limit as real clients.
-  for (let retry = 0; registration.status() === 429 && retry < 3; retry++) {
-    const seconds = Number(registration.headers()['retry-after'] || '6');
-    await new Promise(resolve => setTimeout(resolve, (seconds + 1) * 1000));
-    registration = await request.post('/api/v1/auth/register', {
-      data: { ...credentials, email: `${username}@example.invalid`, skipSeeding: true },
-    });
-  }
   expect(registration.status()).toBe(201);
   await loginAs(page, credentials);
   await api(page, '/users/me/base-currency', { baseCurrency: 'EUR' }, 'PUT');

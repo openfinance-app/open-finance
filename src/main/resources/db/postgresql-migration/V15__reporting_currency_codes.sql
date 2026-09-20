@@ -1,0 +1,1 @@
+ALTER TABLE net_worth ALTER COLUMN currency TYPE VARCHAR(10);

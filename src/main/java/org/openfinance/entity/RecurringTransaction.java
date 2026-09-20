@@ -314,14 +314,31 @@ public class RecurringTransaction {
      * @return the new next occurrence date
      */
     public LocalDate calculateNextOccurrence() {
+        initializeAnchor();
         return switch (frequency) {
             case DAILY -> nextOccurrence.plusDays(1);
             case WEEKLY -> nextOccurrence.plusWeeks(1);
             case BIWEEKLY -> nextOccurrence.plusWeeks(2);
-            case MONTHLY -> nextOccurrence.plusMonths(1);
-            case QUARTERLY -> nextOccurrence.plusMonths(3);
-            case YEARLY -> nextOccurrence.plusYears(1);
+            case MONTHLY -> anchoredDate(nextOccurrence.plusMonths(1));
+            case QUARTERLY -> anchoredDate(nextOccurrence.plusMonths(3));
+            case YEARLY -> anchoredDate(nextOccurrence.plusYears(1));
         };
+    }
+
+    /** Original day of month, retained when February or another short month clamps a date. */
+    @Min(1)
+    @Max(31)
+    @Column(name = "anchor_day", nullable = false)
+    private Integer anchorDay;
+
+    @PrePersist
+    @PreUpdate
+    private void initializeAnchor() {
+        if (anchorDay == null && nextOccurrence != null) anchorDay = nextOccurrence.getDayOfMonth();
+    }
+
+    private LocalDate anchoredDate(LocalDate candidate) {
+        return candidate.withDayOfMonth(Math.min(anchorDay, candidate.lengthOfMonth()));
     }
 
     /**

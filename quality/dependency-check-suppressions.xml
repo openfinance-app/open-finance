@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. The UI is static React and controllers return JSON/resources. No XsltView, UrlFileNameViewController, FreeMarker view resolution, or server-side HTML rendering of binding Errors is configured. Recheck before adding the affected feature. https://spring.io/security/cve-2026-47884/ https://spring.io/security/cve-2026-47887/ https://spring.io/security/cve-2026-59280/ https://spring.io/security/cve-2026-59281/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework/spring-(aop|aspects|beans|context|context-support|core|expression|jcl|jdbc|orm|oxm|tx|web|webflux|webmvc)@6\.2\.19$</packageUrl>
+    <cve>CVE-2026-47884</cve>
+    <cve>CVE-2026-47887</cve>
+    <cve>CVE-2026-59280</cve>
+    <cve>CVE-2026-59281</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. No UrlHandlerFilter is configured. WebConfig and SpaController handle static SPA routing without this filter. Recheck before adding the affected feature. https://spring.io/security/cve-2026-47883/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework/spring-(aop|aspects|beans|context|context-support|core|expression|jcl|jdbc|orm|oxm|tx|web|webflux|webmvc)@6\.2\.19$</packageUrl>
+    <cve>CVE-2026-47883</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. SecurityConfig and all controllers use Servlet MVC on embedded Tomcat. WebFlux is present only for outbound WebClient calls. No reactive server, Jetty adapter, functional reactive endpoint, Aalto XML decoder, or WebSocket endpoint is configured. Recheck before adding the affected feature. https://spring.io/security/cve-2026-47885/ https://spring.io/security/cve-2026-47889/ https://spring.io/security/cve-2026-47891/ https://spring.io/security/cve-2026-47892/ https://spring.io/security/cve-2026-47893/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework/spring-(aop|aspects|beans|context|context-support|core|expression|jcl|jdbc|orm|oxm|tx|web|webflux|webmvc)@6\.2\.19$</packageUrl>
+    <cve>CVE-2026-47885</cve>
+    <cve>CVE-2026-47889</cve>
+    <cve>CVE-2026-47891</cve>
+    <cve>CVE-2026-47892</cve>
+    <cve>CVE-2026-47893</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. No RSocket dependency or RSocket server/route is present. Recheck before adding the affected feature. https://spring.io/security/cve-2026-47888/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework/spring-(aop|aspects|beans|context|context-support|core|expression|jcl|jdbc|orm|oxm|tx|web|webflux|webmvc)@6\.2\.19$</packageUrl>
+    <cve>CVE-2026-47888</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. No fragment SSE or functional ServerResponse.sse endpoint is present. Authenticated AI endpoints use synchronous JSON POSTs. Recheck before adding the affected feature. https://spring.io/security/cve-2026-47890/ https://spring.io/security/cve-2026-59313/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework/spring-(aop|aspects|beans|context|context-support|core|expression|jcl|jdbc|orm|oxm|tx|web|webflux|webmvc)@6\.2\.19$</packageUrl>
+    <cve>CVE-2026-47890</cve>
+    <cve>CVE-2026-59313</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. No user-supplied SpEL evaluator or SimpleEvaluationContext is present. Cache/security annotation expressions are fixed source literals. Recheck before adding the affected feature. https://spring.io/security/cve-2026-47886/ https://spring.io/security/cve-2026-59283/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework/spring-(aop|aspects|beans|context|context-support|core|expression|jcl|jdbc|orm|oxm|tx|web|webflux|webmvc)@6\.2\.19$</packageUrl>
+    <cve>CVE-2026-47886</cve>
+    <cve>CVE-2026-59283</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. Request DTOs contain ordinary lists, not self-populating List implementations. No AutoPopulatingList, LazyList, custom List.get allocator, or nested property-path binder is present. The advisory requires a self-populating List. Recheck before adding the affected feature. https://spring.io/security/cve-2026-59282/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework/spring-(aop|aspects|beans|context|context-support|core|expression|jcl|jdbc|orm|oxm|tx|web|webflux|webmvc)@6\.2\.19$</packageUrl>
+    <cve>CVE-2026-59282</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. Embedded Tomcat rejects malicious response header characters. Export/backup filenames are server-generated; attachment filenames are URL encoded. No outbound multipart Content-Disposition is built from untrusted filenames. Recheck before adding the affected feature. https://spring.io/security/cve-2026-59314/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework/spring-(aop|aspects|beans|context|context-support|core|expression|jcl|jdbc|orm|oxm|tx|web|webflux|webmvc)@6\.2\.19$</packageUrl>
+    <cve>CVE-2026-59314</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. No spring-security-ldap dependency or UnboundIdContainer is present; authentication is local JWT/password based. Recheck before adding the affected feature. https://spring.io/security/cve-2026-59270/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-(core|config|crypto|web)@6\.5\.11$</packageUrl>
+    <cve>CVE-2026-59270</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. No WebAuthn dependency, passkey endpoint or distributed HTTP session store is present; SecurityConfig uses stateless JWT authentication. Recheck before adding the affected feature. https://spring.io/security/cve-2026-47841/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-(core|config|crypto|web)@6\.5\.11$</packageUrl>
+    <cve>CVE-2026-47841</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. EncryptionService uses AES/GCM with random IVs; no Spring AesBytesEncryptor is used. Recheck before adding the affected feature. https://spring.io/security/cve-2026-47842/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-(core|config|crypto|web)@6\.5\.11$</packageUrl>
+    <cve>CVE-2026-47842</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. No DigestAuthenticationFilter, KeyBasedPersistenceTokenService, Password4j encoder or OAuth2 authorization server is configured. PasswordService uses BCrypt and Spring Pbkdf2PasswordEncoder (not Pbkdf2Password4jPasswordEncoder). Recheck before adding the affected feature. https://spring.io/security/cve-2026-59276/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-(core|config|crypto|web)@6\.5\.11$</packageUrl>
+    <cve>CVE-2026-59276</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. The native repository queries in ImportSessionRepository and InsightRepository do not accept Sort/Pageable. Pageable queries use JPQL/derived queries; the advisory requires native SQL accepting untrusted Sort. Recheck before adding the affected feature. https://spring.io/security/cve-2026-47834/</notes>
+    <packageUrl>pkg:maven/org.springframework.data/spring-data-jpa@3.5.13</packageUrl>
+    <cve>CVE-2026-47834</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. Reactor Netty is used for outbound clients only. The HTTP server is Tomcat; no Reactor Netty HttpServer is bound. Recheck before adding the affected feature. https://spring.io/security/cve-2026-47874/</notes>
+    <packageUrl regex="true">^pkg:maven/io\.projectreactor\.netty/reactor-netty-(core|http)@1\.2\.3$</packageUrl>
+    <cve>CVE-2026-47874</cve>
+  </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-09-20. False product match: this CVE describes the Python langchain-openai _url_to_size helper, which is absent from the Java dev.langchain4j artifact. See https://nvd.nist.gov/vuln/detail/CVE-2026-41488 . Recheck before adding the affected feature. </notes>
+    <packageUrl>pkg:maven/dev.langchain4j/langchain4j-open-ai@1.0.0-beta2</packageUrl>
+    <cve>CVE-2026-41488</cve>
+  </suppress>
+</suppressions>

@@ -538,7 +538,7 @@ public interface TransactionRepository
      * @param accountId the account ID whose transactions should be removed
      * @return the number of transactions deleted
      */
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("DELETE FROM Transaction t WHERE t.accountId = :accountId OR t.toAccountId = :accountId")
     int deleteAllByAccountIdIncludingDeleted(@Param("accountId") Long accountId);
 

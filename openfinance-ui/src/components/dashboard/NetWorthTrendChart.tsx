@@ -40,8 +40,7 @@ interface CustomTooltipProps {
 
 /**
  * Custom tooltip for the net worth trend chart.
- * Uses the chart-level `currency` prop (= user's base currency) rather than
- * per-data-point `data.currency`, which may reflect the original native currency.
+ * The history API converts every point to the reporting currency using dated exchange rates.
  * Requirement REQ-5.1: amounts are always displayed in the user's base currency.
  */
 const CustomTooltip = ({

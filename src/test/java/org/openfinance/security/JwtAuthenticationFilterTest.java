@@ -41,6 +41,8 @@ class JwtAuthenticationFilterTest {
 
     @Mock private UserRepository userRepository;
 
+    @Mock private org.openfinance.service.SessionRevocationService sessionRevocationService;
+
     @Mock private HttpServletRequest request;
 
     @Mock private HttpServletResponse response;

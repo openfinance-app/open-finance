@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.HistoricalPrice;
 import org.openfinance.dto.MarketQuote;
 import org.openfinance.dto.SymbolSearchResult;
+import org.openfinance.entity.AcquisitionType;
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.AssetType;
 import org.openfinance.exception.MarketDataException;
@@ -56,8 +57,8 @@ public class MarketDataService {
      * Converts a quote's price into the asset's own currency.
      *
      * <p>Market quotes are denominated in the exchange's currency (e.g. BTC-USD is USD); the stored
-     * price must match the asset currency so displayed values are correct. Falls back to the raw
-     * price when currencies match, the quote currency is unknown, or conversion fails.
+     * price must match the asset currency. Missing currencies or unavailable conversion must
+     * preserve the last valid valuation.
      *
      * @param quote the market quote whose price should be converted
      * @param asset the asset providing the target currency
@@ -67,23 +68,24 @@ public class MarketDataService {
         BigDecimal price = quote.getPrice();
         String quoteCurrency = quote.getCurrency();
         String assetCurrency = asset.getCurrency();
-        if (price == null
-                || quoteCurrency == null
+        if (quoteCurrency == null
+                || quoteCurrency.isBlank()
                 || assetCurrency == null
-                || quoteCurrency.equalsIgnoreCase(assetCurrency)) {
+                || assetCurrency.isBlank()) {
+            throw new MarketDataException("Quote currency is unavailable", asset.getSymbol(), 503);
+        }
+        if (quoteCurrency.equalsIgnoreCase(assetCurrency)) {
             return price;
         }
         try {
-            return exchangeRateService.convert(price, quoteCurrency, assetCurrency);
+            BigDecimal converted = exchangeRateService.convert(price, quoteCurrency, assetCurrency);
+            if (converted == null || converted.signum() <= 0) {
+                throw new IllegalStateException("Converted price must be positive");
+            }
+            return converted;
         } catch (Exception e) {
-            log.warn(
-                    "Failed to convert quote price {} {} to {} for asset {}; storing unconverted"
-                            + " price",
-                    price,
-                    quoteCurrency,
-                    assetCurrency,
-                    asset.getId());
-            return price;
+            throw new MarketDataException(
+                    "Quote currency conversion is unavailable", asset.getSymbol(), 503, e);
         }
     }
 
@@ -178,6 +180,9 @@ public class MarketDataService {
                                 });
 
         String symbol = asset.getSymbol();
+        if (asset.getAcquisitionType() == AcquisitionType.PLANNED) {
+            return false;
+        }
         if (symbol == null || symbol.trim().isEmpty()) {
             log.warn("Asset {} has no symbol, skipping price update", assetId);
             return false;
@@ -255,6 +260,7 @@ public class MarketDataService {
         // Filter assets with symbols
         List<Asset> assetsWithSymbols =
                 assets.stream()
+                        .filter(asset -> asset.getAcquisitionType() != AcquisitionType.PLANNED)
                         .filter(
                                 asset ->
                                         asset.getSymbol() != null
@@ -293,8 +299,17 @@ public class MarketDataService {
                         && quote.getPrice() != null
                         && quote.getPrice().compareTo(BigDecimal.ZERO) > 0) {
 
-                    asset.updateTotalValue(
-                            priceInAssetCurrency(quote, asset).multiply(asset.getQuantity()));
+                    BigDecimal convertedPrice;
+                    try {
+                        convertedPrice = priceInAssetCurrency(quote, asset);
+                    } catch (MarketDataException ex) {
+                        log.warn(
+                                "Retaining last valid price for asset {}: {}",
+                                asset.getId(),
+                                ex.getMessage());
+                        continue;
+                    }
+                    asset.updateTotalValue(convertedPrice.multiply(asset.getQuantity()));
                     asset.setLastUpdated(now);
                     // Persist the normalized symbol so future lookups work correctly
                     if (!normalizedSymbol.equals(asset.getSymbol())) {

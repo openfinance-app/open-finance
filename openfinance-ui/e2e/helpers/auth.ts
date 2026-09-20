@@ -6,7 +6,7 @@
  *
  * Task 13.2.5: Add end-to-end tests with Playwright
  */
-import type { Page } from '@playwright/test';
+import type { APIRequestContext, APIResponse, Page } from '@playwright/test';
 
 /** Credentials for the pre-existing E2E test user */
 export const E2E_USER = {
@@ -23,53 +23,62 @@ export const E2E_REGISTER_USER = {
   masterPassword: 'E2eMaster123!',
 } as const;
 
-/**
- * Navigates to /login and fills + submits the login form.
- * Waits until the dashboard URL is reached.
- */
-export async function loginAs(
-  page: Page,
-  credentials: { username: string; password: string; masterPassword: string } = E2E_USER,
-): Promise<void> {
-  const maxRetries = 3;
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+/** Provision synthetic users while honoring the production authentication rate limit. */
+export async function registerWithRetry(
+  request: APIRequestContext,
+  data: Record<string, unknown>
+): Promise<APIResponse> {
+  for (let attempt = 0; ; attempt++) {
+    const response = await request.post('/api/v1/auth/register', { data });
+    if (response.status() !== 429 || attempt === 4) return response;
+    await new Promise(resolve =>
+      setTimeout(resolve, retryDelay(response.headers()['retry-after']))
+    );
+  }
+}
 
+function retryDelay(header: string | undefined): number {
+  const seconds = Number(header ?? '6');
+  return (Number.isFinite(seconds) ? Math.max(1, seconds) : 6) * 1000 + 250;
+}
+
+/** Sign in through the real form, retaining the onboarding screen for new users. */
+export async function signIn(
+  page: Page,
+  credentials: { username: string; password: string; masterPassword: string }
+): Promise<void> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await page.goto('/login');
     await page.getByLabel(/username/i).fill(credentials.username);
     await page.getByLabel(/^password$/i).fill(credentials.password);
-    await page.locator('#masterPassword').fill(credentials.masterPassword);
-
-    const submitBtn = page.getByRole('button', { name: /sign in|log in/i });
-    await submitBtn.click();
-
-    // Race: either we navigate to dashboard/onboarding, or an error message appears
-    const result = await Promise.race([
-      page.waitForURL(/\/(dashboard|onboarding)/, { timeout: 15_000 }).then(() => 'navigated' as const),
-      page.getByTestId('login-error-message').waitFor({ state: 'visible', timeout: 15_000 }).then(() => 'error' as const),
-    ]);
-
-    if (result === 'navigated') {
-      break; // success
+    const masterPassword = page.locator('#masterPassword');
+    if (await masterPassword.isVisible()) await masterPassword.fill(credentials.masterPassword);
+    const responsePromise = page.waitForResponse(
+      response =>
+        response.url().endsWith('/api/v1/auth/login') && response.request().method() === 'POST'
+    );
+    await page.getByRole('button', { name: /sign in|log in/i }).click();
+    const response = await responsePromise;
+    if (response.ok()) {
+      await page.waitForURL(/\/(dashboard|onboarding)/);
+      return;
     }
-
-    // Error appeared — check if it's rate limiting
-    const errorText = await page.getByTestId('login-error-message').innerText();
-    if (/too many requests/i.test(errorText) && attempt < maxRetries - 1) {
-      // Extract wait time from error message and wait
-      const match = errorText.match(/(\d+)\s*second/);
-      const waitSec = match ? parseInt(match[1], 10) : 2;
-      await page.waitForTimeout((waitSec + 1) * 1000);
-      continue;
+    if (response.status() !== 429 || attempt === 4) {
+      throw new Error(`Login failed: HTTP ${response.status()}`);
     }
-    throw new Error(`Login failed with error: ${errorText}`);
+    await page.waitForTimeout(retryDelay(response.headers()['retry-after']));
   }
+}
 
-  // First-time users land on /onboarding — complete it so tests can proceed
+/** Sign in and complete first-use onboarding when a test needs the dashboard. */
+export async function loginAs(
+  page: Page,
+  credentials: { username: string; password: string; masterPassword: string } = E2E_USER
+): Promise<void> {
+  await signIn(page, credentials);
   if (page.url().includes('/onboarding')) {
-    const submitBtn = page.getByRole('button', { name: /get started/i });
-    await submitBtn.click();
-    await page.waitForURL('**/dashboard', { timeout: 15_000 });
+    await page.getByRole('button', { name: /get started/i }).click();
+    await page.waitForURL('**/dashboard');
   }
 }
 
@@ -78,8 +87,15 @@ export async function loginAs(
  */
 export async function logout(page: Page): Promise<void> {
   // Open user menu — look for avatar / initials button in the sidebar/topbar
-  const userMenuButton = page.getByRole('button', { name: /user menu/i })
-    .or(page.locator('[aria-label*="user" i], [aria-label*="menu" i], button:has-text("TU"), button:has-text("RU")').first());
+  const userMenuButton = page
+    .getByRole('button', { name: /user menu/i })
+    .or(
+      page
+        .locator(
+          '[aria-label*="user" i], [aria-label*="menu" i], button:has-text("TU"), button:has-text("RU")'
+        )
+        .first()
+    );
   await userMenuButton.click();
 
   // Click the "Logout" or "Sign out" menu item
@@ -92,7 +108,7 @@ export async function logout(page: Page): Promise<void> {
  */
 export async function registerUser(
   page: Page,
-  user: { username: string; email: string; password: string; masterPassword: string },
+  user: { username: string; email: string; password: string; masterPassword: string }
 ): Promise<void> {
   await page.goto('/register');
   await page.waitForLoadState('networkidle');
