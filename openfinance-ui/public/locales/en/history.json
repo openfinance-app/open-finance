@@ -20,7 +20,11 @@
     "liability": "Liability",
     "realEstate": "Real Estate",
     "budget": "Budget",
-    "category": "Category"
+    "category": "Category",
+    "payee": "Payee",
+    "transaction_rule": "Rule",
+    "recurring_transaction": "Recurring transaction",
+    "import": "Import"
   },
   "operations": {
     "create": "Created",

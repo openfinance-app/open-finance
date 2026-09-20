@@ -5,6 +5,7 @@ import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 
 vi.mock('@/hooks/useDocumentTitle', () => ({ useDocumentTitle: vi.fn() }));
 
+const mockProcess = vi.fn();
 let mockData: any = undefined;
 let mockIsLoading = false;
 let mockError: Error | null = null;
@@ -19,6 +20,7 @@ vi.mock('@/hooks/useRecurringTransactions', () => ({
   useUpdateRecurringTransaction: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteRecurringTransaction: () => ({ mutateAsync: vi.fn(), isPending: false }),
   usePauseRecurringTransaction: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useProcessRecurringTransactions: () => ({ mutate: mockProcess, isPending: false }),
   useResumeRecurringTransaction: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 vi.mock('@/hooks/useAccounts', () => ({

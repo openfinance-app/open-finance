@@ -1,3 +1,5 @@
+import { formatDecimal } from '@/utils/format';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
  * AmortizationSchedule Component
  * Task 6.1.13: Display payment schedule table with filtering and export
@@ -13,12 +15,18 @@ import type { AmortizationSchedule as AmortizationScheduleType } from '@/types/l
 interface AmortizationScheduleProps {
   schedule: AmortizationScheduleType;
   onClose?: () => void;
+  contractualEndDate?: string;
 }
 
 type FilterOption = 'all' | '12' | '24';
 
-export function AmortizationSchedule({ schedule, onClose }: AmortizationScheduleProps) {
-  const { t, i18n } = useTranslation('liabilities');
+export function AmortizationSchedule({
+  schedule,
+  onClose,
+  contractualEndDate,
+}: AmortizationScheduleProps) {
+  const { t } = useTranslation('liabilities');
+  const { date: formatDate } = useDateFormatter();
   const { t: tc } = useTranslation('common');
   const [filterOption, setFilterOption] = useState<FilterOption>('all');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -30,6 +38,11 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
       </div>
     );
   }
+
+  const lastPayment = schedule.payments.at(-1);
+  const incomplete = !!lastPayment && lastPayment.remainingBalance > 0;
+  const pastContract =
+    !!contractualEndDate && !!lastPayment && lastPayment.paymentDate > contractualEndDate;
 
   // Filter payments based on selected option
   const getFilteredPayments = () => {
@@ -65,7 +78,9 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
       const label = phase
         ? j >= schedule.payments.length
           ? t('schedule.interestOnlyPhaseOpen')
-          : t('schedule.interestOnlyPhase', { date: schedule.payments[j - 1].paymentDate })
+          : t('schedule.interestOnlyPhase', {
+              date: formatDate(schedule.payments[j - 1].paymentDate),
+            })
         : t('amortization.phaseAmortizing');
       phaseLabelsByNumber.set(schedule.payments[i].paymentNumber, {
         testId: phase ? 'phase-interest-only' : 'phase-amortizing',
@@ -115,6 +130,19 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
 
   return (
     <div className="space-y-6">
+      {(pastContract || incomplete) && (
+        <p
+          role="alert"
+          className="p-3 rounded-lg border border-warning/30 bg-warning/10 text-sm text-text-primary"
+        >
+          {incomplete
+            ? t('amortization.incomplete')
+            : t('amortization.pastContract', {
+                contract: formatDate(contractualEndDate!),
+                payoff: formatDate(lastPayment!.paymentDate),
+              })}
+        </p>
+      )}
       {/* Summary Header */}
       <div className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-6">
         <h3 className="plate-label  mb-4">
@@ -131,7 +159,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
           <div>
             <div className="text-text-secondary mb-1">{t('amortization.interestRate')}</div>
             <div className="font-semibold text-text-primary">
-              {schedule.interestRate.toFixed(2)}%
+              {formatDecimal(schedule.interestRate, 2)}%
             </div>
           </div>
           <div>
@@ -175,7 +203,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
               {t('amortization.interestPrincipalRatio')}
             </div>
             <div className="font-semibold text-text-primary">
-              {((schedule.totalInterest / schedule.principal) * 100).toFixed(1)}%
+              {formatDecimal((schedule.totalInterest / schedule.principal) * 100, 1)}%
             </div>
           </div>
         </div>
@@ -287,11 +315,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                       {payment.paymentNumber}
                     </td>
                     <td className="py-3 px-4 text-sm text-text-secondary">
-                      {new Date(payment.paymentDate).toLocaleDateString(i18n.language, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                      {formatDate(payment.paymentDate)}
                     </td>
                     <td className="py-3 px-4 text-sm font-mono text-right text-text-primary">
                       <ConvertedAmount
@@ -309,7 +333,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                         />
                       </div>
                       <div className="text-xs text-text-tertiary">
-                        {principalPercent != null && `${principalPercent.toFixed(1)}%`}
+                        {principalPercent != null && `${formatDecimal(principalPercent, 1)}%`}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -321,7 +345,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                         />
                       </div>
                       <div className="text-xs text-text-tertiary">
-                        {interestPercent != null && `${interestPercent.toFixed(1)}%`}
+                        {interestPercent != null && `${formatDecimal(interestPercent, 1)}%`}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-sm font-mono text-right text-text-secondary">
@@ -394,11 +418,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                       {t('amortization.paymentNumber', { number: payment.paymentNumber })}
                     </div>
                     <div className="text-xs text-text-secondary">
-                      {new Date(payment.paymentDate).toLocaleDateString(i18n.language, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                      {formatDate(payment.paymentDate)}
                     </div>
                   </div>
                   <div className="text-right">
@@ -429,7 +449,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                       />
                     </div>
                     <div className="text-xs text-text-tertiary">
-                      {principalPercent != null && `${principalPercent.toFixed(1)}%`}
+                      {principalPercent != null && `${formatDecimal(principalPercent, 1)}%`}
                     </div>
                   </div>
                   <div>
@@ -444,7 +464,7 @@ export function AmortizationSchedule({ schedule, onClose }: AmortizationSchedule
                       />
                     </div>
                     <div className="text-xs text-text-tertiary">
-                      {interestPercent != null && `${interestPercent.toFixed(1)}%`}
+                      {interestPercent != null && `${formatDecimal(interestPercent, 1)}%`}
                     </div>
                   </div>
                 </div>

@@ -262,7 +262,11 @@ describe('DashboardPage Integration Tests', () => {
   describe('Empty States', () => {
     it('should display dashboard subtitle with snapshot date', async () => {
       renderWithProviders(<DashboardPage />);
-      const subtitle = await screen.findByText(/2026-02-04/i, {}, { timeout: 5000 });
+      const subtitle = await screen.findByText(
+        /overview as of 02\/04\/2026/i,
+        {},
+        { timeout: 5000 }
+      );
       expect(subtitle).toBeInTheDocument();
     });
   });

@@ -144,9 +144,9 @@ export function useCreateAccount() {
       });
       return response.data;
     },
-    onSuccess: () => {
-      // Invalidate accounts query to refetch the list
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    onSuccess: async () => {
+      // Wait for rows and totals to use the same refreshed account data.
+      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
       // Invalidate dashboard queries that depend on account data
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       for (const key of ['assets', 'realEstate', 'liabilities', 'assetFinancing']) {

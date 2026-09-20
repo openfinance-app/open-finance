@@ -143,6 +143,8 @@ export function useCreateRecurringTransaction() {
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['session-history-exists'] });
       // Invalidate all recurring transaction queries
       queryClient.invalidateQueries({ queryKey: ['recurringTransactions'] });
       // Also invalidate dashboard as it may show upcoming recurring transactions
@@ -245,7 +247,7 @@ export function useResumeRecurringTransaction() {
 }
 
 /**
- * Manually trigger recurring transaction processing (admin only)
+ * Process due recurring transactions for the authenticated user.
  */
 export function useProcessRecurringTransactions() {
   const queryClient = useQueryClient();
@@ -267,6 +269,9 @@ export function useProcessRecurringTransactions() {
       queryClient.invalidateQueries({ queryKey: ['recurringTransactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['session-history-exists'] });
     },
   });
 }

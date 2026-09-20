@@ -86,6 +86,8 @@ import org.springframework.context.MessageSource;
 @DisplayName("ImportService Unit Tests")
 class ImportServiceTest {
 
+    @Mock private OperationHistoryService operationHistoryService;
+
     @Mock private AccountCurrencyService accountCurrencyService;
 
     @Mock private ImportSessionRepository importSessionRepository;
@@ -115,8 +117,6 @@ class ImportServiceTest {
     @Mock private AccountService accountService;
 
     @Mock private TransactionRuleService transactionRuleService;
-
-    @Mock private OperationHistoryService operationHistoryService;
 
     @Mock private PayeeRepository payeeRepository;
 
@@ -201,7 +201,8 @@ class ImportServiceTest {
                         importProperties,
                         accountCurrencyService,
                         importConfirmationExecutor,
-                        userSettingsRepository);
+                        userSettingsRepository,
+                        operationHistoryService);
 
         // Setup test account
         testAccount =

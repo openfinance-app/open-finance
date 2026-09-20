@@ -42,11 +42,11 @@ class TransactionRuleServiceImplTest {
 
     private static final Long USER_ID = 42L;
 
+    @Mock private OperationHistoryService operationHistoryService;
+
     @Mock private TransactionRuleRepository transactionRuleRepository;
 
     @Mock private TransactionRuleMapper transactionRuleMapper;
-
-    @Mock private OperationHistoryService operationHistoryService;
 
     @InjectMocks private TransactionRuleServiceImpl service;
 

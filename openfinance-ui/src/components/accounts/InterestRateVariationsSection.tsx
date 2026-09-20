@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 import { useMemo, useState } from 'react';
 import { format, differenceInDays } from 'date-fns';
 import { Plus, Trash2, TrendingUp } from 'lucide-react';
@@ -152,7 +153,9 @@ export function InterestRateVariationsSection({
   const earned = interestEstimate?.historicalAccumulated ?? 0;
   const projected = interestEstimate?.estimate ?? 0;
   const projectedPct =
-    accountBalance > 0 ? percentage(projected, accountBalance).toFixed(2) : '0.00';
+    accountBalance > 0
+      ? formatDecimal(percentage(projected, accountBalance), 2)
+      : formatDecimal(0, 2);
 
   if (isLoading) {
     return (
@@ -233,10 +236,12 @@ export function InterestRateVariationsSection({
                     {format(new Date(variation.validFrom), 'MMM d, yyyy')}
                   </td>
                   <td className="px-4 py-3 text-text-primary font-mono bg-success/5">
-                    {variation.rate.toFixed(2)}%
+                    {formatDecimal(variation.rate, 2)}%
                   </td>
                   <td className="px-4 py-3 text-text-secondary font-mono">
-                    {variation.taxRate ? `${variation.taxRate.toFixed(2)}%` : '0.00%'}
+                    {variation.taxRate
+                      ? `${formatDecimal(variation.taxRate, 2)}%`
+                      : `${formatDecimal(0, 2)}%`}
                   </td>
                   <td className="px-4 py-3 text-text-secondary">
                     {variation.days === 0 ? (

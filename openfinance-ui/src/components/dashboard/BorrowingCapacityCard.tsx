@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 import { Activity, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 import type { IBorrowingCapacity } from '@/types/dashboard';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -42,11 +43,14 @@ export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCar
 
   // Format percentage
   const formatPercentage = (value: number) => {
-    return `${value.toFixed(1)}%`;
+    return `${formatDecimal(value, 1)}%`;
   };
 
   // Generate insight text
   const getInsightText = () => {
+    if (capacity.financialHealthStatus === 'INSUFFICIENT_DATA') {
+      return t('borrowingCapacity.insights.insufficientData');
+    }
     if (capacity.debtToIncomeRatio <= 20) {
       return t('borrowingCapacity.insights.excellent');
     } else if (capacity.debtToIncomeRatio <= 35) {

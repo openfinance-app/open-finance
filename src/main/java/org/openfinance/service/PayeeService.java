@@ -50,10 +50,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class PayeeService {
 
     private final PayeeRepository payeeRepository;
+    private final OperationHistoryService operationHistoryService;
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
     private final LogoFetchService logoFetchService;
     private final SearchTokenService searchTokenService;
+    private final TransactionService transactionService;
 
     /**
      * Get all payees visible to a specific user.
@@ -326,6 +328,14 @@ public class PayeeService {
 
         Payee saved = payeeRepository.save(payee);
         indexPayeeSearchTokens(saved);
+        operationHistoryService.record(
+                userId,
+                org.openfinance.entity.EntityType.PAYEE,
+                saved.getId(),
+                saved.getName(),
+                org.openfinance.entity.OperationType.CREATE,
+                (Object) null,
+                null);
         log.info("Created custom payee with id: {}", saved.getId());
         return toResponse(saved, null, null);
     }
@@ -365,6 +375,7 @@ public class PayeeService {
             throw new DuplicatePayeeException(trimmedName);
         }
 
+        boolean renamed = !payee.getName().equals(trimmedName);
         payee.setName(trimmedName);
         payee.setLogo(request.getLogo());
 
@@ -382,6 +393,15 @@ public class PayeeService {
 
         Payee saved = payeeRepository.save(payee);
         indexPayeeSearchTokens(saved);
+        if (renamed) {
+            List<Transaction> linked = transactionRepository.findByUserIdAndPayeeId(userId, id);
+            for (Transaction transaction : linked) {
+                transaction.setPayee(trimmedName);
+                transactionService.syncTransactionFts(
+                        transaction, transaction.getDescription(), transaction.getNotes());
+            }
+            transactionRepository.saveAll(linked);
+        }
         log.info("Updated payee id: {}", saved.getId());
         return toResponse(saved, null, null);
     }

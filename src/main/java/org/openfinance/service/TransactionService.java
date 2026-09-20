@@ -541,6 +541,14 @@ public class TransactionService {
         // Invalidate snapshots affected by this transfer's date
         invalidateSnapshotsFor(userId, request.getDate());
 
+        operationHistoryService.record(
+                userId,
+                org.openfinance.entity.EntityType.TRANSACTION,
+                savedSourceTransaction.getId(),
+                request.getDescription(),
+                org.openfinance.entity.OperationType.CREATE,
+                (Object) null,
+                null);
         // Return the source transaction response (client can query by transferId to get
         // both)
         return toResponseWithDecryption(savedSourceTransaction);

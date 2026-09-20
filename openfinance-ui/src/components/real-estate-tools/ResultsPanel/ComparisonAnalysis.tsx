@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 import React from 'react';
 import { TrendingUp, Wallet, Calendar, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -121,7 +122,7 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                   />
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  ({worthDifferencePercent.toFixed(1)}%)
+                  ({formatDecimal(worthDifferencePercent, 1)}%)
                 </p>
               </div>
             </div>

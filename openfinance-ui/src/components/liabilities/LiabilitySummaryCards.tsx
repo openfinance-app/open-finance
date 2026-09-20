@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * LiabilitySummaryCards Component
  * Task 6.2.1: Summary cards for liabilities overview
@@ -103,7 +104,7 @@ function weightedAvgRate(totals: BaseCurrencyTotals): string {
   const totalBalance = sum(totals.liabilitiesWithInterest.map(item => item.balance));
 
   if (totalBalance === 0) return 'N/A';
-  return `${divide(totalWeightedRate, totalBalance).toFixed(2)}%`;
+  return `${formatDecimal(divide(totalWeightedRate, totalBalance), 2)}%`;
 }
 
 export function LiabilitySummaryCards({

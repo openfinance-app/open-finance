@@ -150,8 +150,8 @@ function TreeNode({ node, depth = 0, onEdit, onDelete }: TreeNodeProps) {
         </div>
 
         {/* Transaction Count */}
-        <div className="w-[70px] shrink-0 text-sm text-text-secondary text-right">
-          {node.transactionCount || 0} {t('table.txns')}
+        <div className="w-[120px] shrink-0 text-sm text-text-secondary text-right">
+          {t('transactionCount', { count: node.transactionCount || 0 })}
         </div>
 
         {/* Total Amount */}
@@ -325,7 +325,7 @@ export function CategoryFormDialog({
             </div>
             <Input
               value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              onChange={e => setFormData(previous => ({ ...previous, name: e.target.value }))}
               placeholder={t('form.name')}
               maxLength={100}
               required
@@ -338,7 +338,9 @@ export function CategoryFormDialog({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, type: 'EXPENSE', parentId: undefined })}
+                onClick={() =>
+                  setFormData(previous => ({ ...previous, type: 'EXPENSE', parentId: undefined }))
+                }
                 className={`
                   flex-1 py-2 px-4 rounded-lg border transition-colors
                   ${
@@ -352,7 +354,9 @@ export function CategoryFormDialog({
               </button>
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, type: 'INCOME', parentId: undefined })}
+                onClick={() =>
+                  setFormData(previous => ({ ...previous, type: 'INCOME', parentId: undefined }))
+                }
                 className={`
                   flex-1 py-2 px-4 rounded-lg border transition-colors
                   ${
@@ -374,7 +378,7 @@ export function CategoryFormDialog({
             </label>
             <CategorySelect
               value={formData.parentId}
-              onValueChange={value => setFormData({ ...formData, parentId: value })}
+              onValueChange={value => setFormData(previous => ({ ...previous, parentId: value }))}
               placeholder={t('form.selectParentCategory')}
               type={formData.type}
               allowNone={true}
@@ -389,7 +393,7 @@ export function CategoryFormDialog({
                 <button
                   key={color}
                   type="button"
-                  onClick={() => setFormData({ ...formData, color })}
+                  onClick={() => setFormData(previous => ({ ...previous, color }))}
                   className={`
                     w-8 h-8 rounded-lg transition-transform
                     ${formData.color === color ? 'ring-2 ring-offset-2 ring-primary scale-110' : ''}
@@ -408,7 +412,9 @@ export function CategoryFormDialog({
                 <button
                   key={icon}
                   type="button"
-                  onClick={() => setFormData({ ...formData, icon })}
+                  aria-label={t('form.chooseIcon', { icon })}
+                  aria-pressed={formData.icon === icon}
+                  onClick={() => setFormData(previous => ({ ...previous, icon }))}
                   className={`
                     w-10 h-10 rounded-lg border flex items-center justify-center text-lg
                     transition-colors
@@ -749,7 +755,7 @@ export default function CategoriesPage() {
           <div className="w-8 shrink-0"></div>
           <div className="flex-1">{t('table.name')}</div>
           <div className="w-[80px] shrink-0">{t('table.type')}</div>
-          <div className="w-[70px] shrink-0 text-right">{t('table.txns')}</div>
+          <div className="w-[120px] shrink-0 text-right">{t('table.txns')}</div>
           <div className="w-[110px] shrink-0 text-right">{t('table.amount')}</div>
           <div className="w-[80px] shrink-0"></div>
         </div>

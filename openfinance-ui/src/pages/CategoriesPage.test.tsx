@@ -152,7 +152,7 @@ describe('CategoriesPage', () => {
 
   it('shows transaction counts', () => {
     renderWithProviders(<CategoriesPage />);
-    expect(screen.getByText(/10 Txns/)).toBeInTheDocument();
+    expect(screen.getByText(/10 transactions/)).toBeInTheDocument();
   });
 
   it('shows system badge on system categories', () => {

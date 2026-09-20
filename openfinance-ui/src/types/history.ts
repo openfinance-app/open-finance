@@ -5,7 +5,11 @@ export type EntityType =
   | 'LIABILITY'
   | 'REAL_ESTATE'
   | 'BUDGET'
-  | 'CATEGORY';
+  | 'CATEGORY'
+  | 'PAYEE'
+  | 'TRANSACTION_RULE'
+  | 'RECURRING_TRANSACTION'
+  | 'IMPORT';
 
 export type OperationType = 'CREATE' | 'UPDATE' | 'DELETE';
 

@@ -59,6 +59,41 @@ class CsvParserTest {
     // ========== Basic Parsing Tests ==========
 
     @Test
+    @DisplayName("Reject ambiguous unquoted decimal commas instead of dropping cents")
+    void rejectsUnquotedDecimalCommas() throws IOException {
+        List<ImportedTransaction> transactions =
+                parseCsv(
+                        """
+                date,payee,amount
+                2024-01-15,Groceries,-10,99
+                2024-01-16,Refund,45,20
+                """);
+
+        assertThat(transactions)
+                .hasSize(2)
+                .allSatisfy(
+                        transaction -> {
+                            assertThat(transaction.hasErrors()).isTrue();
+                            assertThat(transaction.getAmount()).isNull();
+                            assertThat(transaction.getValidationErrors().get(0))
+                                    .contains("columns", "semicolon");
+                        });
+    }
+
+    @Test
+    @DisplayName("Accept quoted decimal commas and semicolon exports without changing cents")
+    void acceptsUnambiguousDecimalCommas() throws IOException {
+        for (String csv :
+                List.of(
+                        "date,payee,amount\n2024-01-15,Groceries,\"-10,99\"\n",
+                        "date;payee;amount\n2024-01-15;Groceries;-10,99\n")) {
+            ImportedTransaction transaction = parseCsv(csv).get(0);
+            assertThat(transaction.hasErrors()).isFalse();
+            assertThat(transaction.getAmount()).isEqualByComparingTo("-10.99");
+        }
+    }
+
+    @Test
     @DisplayName("Should parse single transaction with all standard fields")
     void testParseSingleTransactionWithAllFields() throws IOException {
         String csv =

@@ -5,6 +5,7 @@ import { useUnreadAlertCount, useUnreadAlerts, useMarkAlertAsRead } from '@/hook
 import {
   useNotifications,
   useNotificationCount,
+  useMarkNotificationAsRead,
   useUpdateExchangeRatesFromNotification,
 } from '@/hooks/useNotifications';
 import { getAlertSeverity, getAlertColor, type BudgetAlert } from '@/types/alert';
@@ -50,6 +51,7 @@ function resolveActionUrl(type: NotificationType, fallbackUrl: string): string {
 }
 
 export function NotificationBadge() {
+  const { t } = useTranslation('common');
   const { data: budgetAlertCount = 0 } = useUnreadAlertCount();
   const { data: systemNotificationCount = 0 } = useNotificationCount();
   const totalCount = budgetAlertCount + systemNotificationCount;
@@ -95,7 +97,7 @@ export function NotificationBadge() {
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-lg hover:bg-surface-elevated transition-colors"
-        aria-label={`Notifications (${totalCount} unread)`}
+        aria-label={t('notifications.unread', { count: totalCount })}
       >
         <Bell className="w-5 h-5 text-text-secondary" />
         {totalCount > 0 && (
@@ -120,6 +122,7 @@ const NotificationDropdown = forwardRef<HTMLDivElement, NotificationDropdownProp
     const { data: budgetAlerts, isLoading: budgetAlertsLoading } = useUnreadAlerts();
     const { data: systemNotifications, isLoading: systemNotificationsLoading } = useNotifications();
     const markAsRead = useMarkAlertAsRead();
+    const markNotificationAsRead = useMarkNotificationAsRead();
     const updateExchangeRates = useUpdateExchangeRatesFromNotification();
     const navigate = useNavigate();
 
@@ -139,18 +142,21 @@ const NotificationDropdown = forwardRef<HTMLDivElement, NotificationDropdownProp
     };
 
     const handleSystemNotificationClick = (notification: INotification) => {
+      markNotificationAsRead(notification);
       // Notifications with inline actions don't navigate
       if (INLINE_ACTION_TYPES.includes(notification.type)) return;
       navigate(resolveActionUrl(notification.type, notification.actionUrl));
       onClose();
     };
 
-    const handleExchangeRateUpdate = (e: React.MouseEvent) => {
+    const handleExchangeRateUpdate = (e: React.MouseEvent, notification: INotification) => {
+      markNotificationAsRead(notification);
       e.stopPropagation();
       updateExchangeRates.mutate();
     };
 
     const handleBudgetAlertClick = (alert: BudgetAlert) => {
+      markAsRead.mutate(alert.id);
       const keyword = encodeURIComponent(alert.budgetName);
       navigate(`/budget?alertKeyword=${keyword}`);
       onClose();
@@ -194,7 +200,7 @@ const NotificationDropdown = forwardRef<HTMLDivElement, NotificationDropdownProp
                   <StaleExchangeRatesNotificationItem
                     key={`system-${index}`}
                     notification={notification}
-                    onUpdate={handleExchangeRateUpdate}
+                    onUpdate={event => handleExchangeRateUpdate(event, notification)}
                     isUpdating={updateExchangeRates.isPending}
                     isSuccess={updateExchangeRates.isSuccess}
                   />
@@ -317,12 +323,12 @@ function StaleExchangeRatesNotificationItem({
                 className="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0"
                 style={{ backgroundColor: color + '20', color }}
               >
-                {notification.count}d ago
+                {t('notifications.daysAgo', { count: notification.count })}
               </span>
             )}
           </div>
           <p className="text-xs text-text-secondary line-clamp-2 mb-2">
-            {isSuccess ? 'Exchange rates updated successfully! ✓' : notification.message}
+            {isSuccess ? t('notifications.ratesUpdated') : notification.message}
           </p>
 
           {/* Inline action button */}
@@ -393,7 +399,7 @@ function BudgetAlertItem({ alert, onNavigate, onMarkRead, isMarkingRead }: Budge
             </span>
           </div>
           <p className="text-xs text-text-secondary line-clamp-2">
-            {alert.message || `Budget exceeded ${alert.threshold}% threshold`}
+            {alert.message || t('notifications.budgetThreshold', { threshold: alert.threshold })}
           </p>
 
           {/* Actions row */}

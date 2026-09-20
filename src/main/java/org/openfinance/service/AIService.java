@@ -19,6 +19,7 @@ import org.openfinance.repository.UserRepository;
 import org.openfinance.repository.UserSettingsRepository;
 import org.openfinance.service.ai.AIProvider;
 import org.openfinance.service.ai.FinancialContextBuilder;
+import org.openfinance.service.ai.FinancialResponseGuard;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
@@ -112,6 +113,7 @@ public class AIService {
         // ever changes, don't rely on ThreadLocal SecurityContext propagating onto the
         // WebClient's Netty event-loop threads — pass the needed value in explicitly instead.
         String aiResponse = aiProvider.sendPrompt(request.getQuestion(), fullContext).block();
+        aiResponse = FinancialResponseGuard.verify(aiResponse, context, locale);
 
         // 4. Save conversation messages
         saveConversationMessages(conversation, request.getQuestion(), aiResponse);
@@ -167,23 +169,24 @@ public class AIService {
                                 : languageInstruction + "\n\n" + context,
                         conversation);
 
-        // Collect response chunks to save complete response
-        List<String> chunks = new ArrayList<>();
-
+        // Buffer before exposing chunks so a rejected financial claim never reaches the UI.
         return aiProvider
                 .streamResponse(request.getQuestion(), fullContext)
-                .doOnNext(chunks::add)
-                .doOnComplete(
-                        () -> {
-                            String fullResponse = String.join("", chunks);
-                            saveConversationMessages(
-                                    conversation, request.getQuestion(), fullResponse);
-
+                .collectList()
+                .flatMapMany(
+                        parts -> {
+                            String response = String.join("", parts);
+                            String verified =
+                                    FinancialResponseGuard.verify(response, context, locale);
+                            saveConversationMessages(conversation, request.getQuestion(), verified);
                             if (conversation.getTitle() == null) {
                                 conversation.setTitle(
                                         generateConversationTitle(request.getQuestion()));
                                 conversationRepository.save(conversation);
                             }
+                            return response.equals(verified)
+                                    ? Flux.fromIterable(parts)
+                                    : Flux.just(verified);
                         });
     }
 

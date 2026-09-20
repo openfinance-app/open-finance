@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * AccountForm Component
  * Task 2.2.10: Create AccountForm component with validation
@@ -581,10 +582,10 @@ export function AccountForm({
                     {initialBalanceNumeric > 0 && (
                       <p className="text-xs font-medium text-primary/70 mt-0.5">
                         (
-                        {percentage(
-                          interestPreview.netInterest,
-                          initialBalanceNumeric || 1
-                        ).toFixed(2)}
+                        {formatDecimal(
+                          percentage(interestPreview.netInterest, initialBalanceNumeric || 1),
+                          2
+                        )}
                         %)
                       </p>
                     )}

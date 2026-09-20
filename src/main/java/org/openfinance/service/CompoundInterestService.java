@@ -36,7 +36,6 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class CompoundInterestService {
 
-    private static final int SCALE = 10;
     private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
     private static final MathContext MC = new MathContext(20, ROUNDING);
 
@@ -55,8 +54,7 @@ public class CompoundInterestService {
                 request.getYears());
 
         BigDecimal principal = request.getPrincipal();
-        BigDecimal annualRate =
-                request.getAnnualRate().divide(BigDecimal.valueOf(100), SCALE, ROUNDING);
+        BigDecimal annualRate = request.getAnnualRate().divide(BigDecimal.valueOf(100), MC);
         int n = request.getCompoundingFrequency();
         int years = request.getYears();
         BigDecimal pmt =
@@ -88,7 +86,7 @@ public class CompoundInterestService {
 
         boolean atBeginning = request.isContributionAtBeginning();
 
-        BigDecimal rPerPeriod = annualRate.divide(BigDecimal.valueOf(n), SCALE, ROUNDING);
+        BigDecimal rPerPeriod = annualRate.divide(BigDecimal.valueOf(n), MC);
 
         List<CompoundInterestYearlyBreakdown> breakdown =
                 buildYearlyBreakdown(principal, rPerPeriod, n, years, pmt, atBeginning);
@@ -189,7 +187,7 @@ public class CompoundInterestService {
         if (annualRate.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;
         }
-        BigDecimal rPerPeriod = annualRate.divide(BigDecimal.valueOf(n), SCALE, ROUNDING);
+        BigDecimal rPerPeriod = annualRate.divide(BigDecimal.valueOf(n), MC);
         BigDecimal onePlusR = BigDecimal.ONE.add(rPerPeriod);
         BigDecimal ear = onePlusR.pow(n, MC).subtract(BigDecimal.ONE);
         // Convert back to percentage

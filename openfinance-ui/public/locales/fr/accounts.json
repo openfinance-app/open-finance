@@ -2,7 +2,38 @@
   "title": "Comptes",
   "description": "Gérez vos comptes financiers",
   "addAccount": "Ajouter un compte",
-  "filters": "Filtres",
+  "filters": {
+    "search": "Rechercher",
+    "accountType": "Type de compte",
+    "currency": "Devise",
+    "status": "Statut",
+    "sortBy": "Trier par",
+    "minBalance": "Solde minimum",
+    "maxBalance": "Solde maximum",
+    "institution": "Établissement",
+    "allTypes": "Tous les types",
+    "allAccounts": "Tous les comptes",
+    "active": "Actif",
+    "closed": "Fermé",
+    "clear": "Effacer",
+    "lowBalance": "Solde faible",
+    "types": {
+      "CHECKING": "Compte courant",
+      "SAVINGS": "Compte épargne",
+      "CREDIT_CARD": "Carte de crédit",
+      "INVESTMENT": "Compte investissement",
+      "CASH": "Espèces",
+      "OTHER": "Autre"
+    },
+    "sort": {
+      "nameAsc": "Nom (A-Z)",
+      "nameDesc": "Nom (Z-A)",
+      "balanceDesc": "Solde (décroissant)",
+      "balanceAsc": "Solde (croissant)",
+      "newestFirst": "Plus récent d'abord",
+      "oldestFirst": "Plus ancien d'abord"
+    }
+  },
   "totalBalance": "Solde total",
   "filtered": "Filtré :",
   "filteredCount": "({{filtered}} sur {{total}} comptes)",
@@ -49,7 +80,7 @@
     "currentBalance": "Solde actuel",
     "description": "Description (Facultatif)",
     "openingDate": "Date d'ouverture",
-    "openingDateHint": "Date de départ utilisée pour l'historique du solde et le calcul des intérêts",
+    "openingDateHint": "Date de début utilisée pour l’historique des soldes et les intérêts. L’ajout ou l’import d’une opération antérieure avance automatiquement cette date.",
     "descriptionPlaceholder": "Ajoutez des notes sur ce compte...",
     "accountNamePlaceholder": "ex. : Compte courant principal",
     "accountNumberPlaceholder": "ex. : 1234567890",
@@ -118,38 +149,6 @@
     "description": "Description",
     "failedToLoad": "Impossible de charger les détails du compte.",
     "editTitle": "Modifier le compte"
-  },
-  "filters": {
-    "search": "Rechercher",
-    "accountType": "Type de compte",
-    "currency": "Devise",
-    "status": "Statut",
-    "sortBy": "Trier par",
-    "minBalance": "Solde minimum",
-    "maxBalance": "Solde maximum",
-    "institution": "Établissement",
-    "allTypes": "Tous les types",
-    "allAccounts": "Tous les comptes",
-    "active": "Actif",
-    "closed": "Fermé",
-    "clear": "Effacer",
-    "lowBalance": "Solde faible",
-    "types": {
-      "CHECKING": "Compte courant",
-      "SAVINGS": "Compte épargne",
-      "CREDIT_CARD": "Carte de crédit",
-      "INVESTMENT": "Compte investissement",
-      "CASH": "Espèces",
-      "OTHER": "Autre"
-    },
-    "sort": {
-      "nameAsc": "Nom (A-Z)",
-      "nameDesc": "Nom (Z-A)",
-      "balanceDesc": "Solde (décroissant)",
-      "balanceAsc": "Solde (croissant)",
-      "newestFirst": "Plus récent d'abord",
-      "oldestFirst": "Plus ancien d'abord"
-    }
   },
   "interest": {
     "historyTitle": "Historique des taux d'intérêt",

@@ -109,10 +109,11 @@
     "interestInsurance": "Intérêts / Assurance",
     "monthlyPayment": "Mensualité",
     "paidOff": "Remboursé",
-    "monthsRemaining_one": "{{count}} mois restant",
-    "monthsRemaining_other": "{{count}} mois restants",
-    "ends": "Fin le {{date}}",
-    "ended": "Terminé le {{date}}"
+    "monthsRemaining_one": "{{count}} mois avant l’échéance contractuelle",
+    "monthsRemaining_other": "{{count}} mois avant l’échéance contractuelle",
+    "ends": "Échéance contractuelle le {{date}}",
+    "ended": "Terminé le {{date}}",
+    "monthsRemaining": "{{count}} mois avant l’échéance contractuelle"
   },
   "filterOptions": {
     "searchLabel": "Rechercher",
@@ -159,7 +160,9 @@
       "principal": "Capital",
       "interest": "Intérêts",
       "remainingBalance": "Solde restant"
-    }
+    },
+    "pastContract": "Avec cette mensualité, le remboursement est prévu le {{payoff}}, après l’échéance contractuelle du {{contract}}. Vérifiez la mensualité ou les conditions du contrat.",
+    "incomplete": "Cet échéancier ne rembourse pas tout le capital. Vérifiez la mensualité et la période de différé."
   },
   "breakdown": {
     "loadError": "Impossible de charger la décomposition. Veuillez réessayer.",

@@ -1,3 +1,4 @@
+import { formatPercentage as formatPercent } from '@/utils/format';
 /**
  * Financial Calculation Utilities
  *
@@ -220,7 +221,7 @@ export function formatCurrency(
  * @returns Formatted percentage string
  */
 export function formatPercentage(value: number, decimals: number = 1): string {
-  return `${value.toFixed(decimals)}%`;
+  return formatPercent(value, decimals);
 }
 
 /**

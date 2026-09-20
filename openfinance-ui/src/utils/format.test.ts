@@ -37,6 +37,13 @@ describe('formatCurrency', () => {
 });
 
 describe('formatPercentage', () => {
+  it('honors the saved French format independently of English labels', () => {
+    localStorage.setItem('open_finance_number_format', '1 234,56');
+    expect(formatPercentage(25, 1)).toBe('25,0%');
+    expect(formatPercentage(5.12)).toBe('5,12%');
+    localStorage.removeItem('open_finance_number_format');
+  });
+
   it('formats percentage with 2 decimals by default', () => {
     expect(formatPercentage(72.45)).toBe('72.45%');
   });

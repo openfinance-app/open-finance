@@ -304,8 +304,7 @@ public class PayeeSeeder {
                 createPayee("Udemy", "Online Courses"),
                 createPayee("Coursera", "Online Courses"),
                 createPayee("LinkedIn Learning", "Online Courses"),
-                createPayee("Domaine Skiable", "Entertainment"),
-                createPayee("Loan Payment Test", "Mortgage"));
+                createPayee("Domaine Skiable", "Entertainment"));
     }
 
     /**

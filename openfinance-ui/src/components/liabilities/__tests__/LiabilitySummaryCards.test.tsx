@@ -10,7 +10,8 @@ import { LiabilitySummaryCards } from '../LiabilitySummaryCards';
 import type { Liability } from '@/types/liability';
 
 // Mock formatCurrency to return predictable strings with proper formatting
-vi.mock('@/utils/format', () => ({
+vi.mock('@/utils/format', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/utils/format')>()),
   formatCurrency: vi.fn((amount: number, currency: string) => {
     // Return formatted currency like "$295,000.00"
     const formatted = new Intl.NumberFormat('en-US', {

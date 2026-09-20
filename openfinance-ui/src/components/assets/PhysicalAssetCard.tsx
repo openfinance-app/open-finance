@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * PhysicalAssetCard Component
  * Task 9.2.6: Create PhysicalAssetCard component
@@ -98,7 +99,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
               className={`text-xs font-medium ${valueLoss > 0 ? 'text-red-500' : 'text-green-500'}`}
             >
               {valueLoss > 0 ? '-' : '+'}
-              {Math.abs(lossPercent).toFixed(0)}% ({valueLoss > 0 ? '-' : '+'}
+              {formatDecimal(Math.abs(lossPercent), 0)}% ({valueLoss > 0 ? '-' : '+'}
               <ConvertedAmount
                 amount={Math.abs(valueLoss)}
                 currency={asset.currency}

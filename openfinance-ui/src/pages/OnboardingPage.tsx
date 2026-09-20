@@ -5,7 +5,7 @@
  * On submit the user's `onboardingComplete` flag is set to true
  * and they are redirected to the dashboard.
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -172,7 +172,7 @@ export default function OnboardingPage() {
   const [country, setCountry] = useState(defaults.country);
   const [baseCurrency, setBaseCurrency] = useState(defaults.baseCurrency);
   const [secondaryCurrency, setSecondaryCurrency] = useState<string | undefined>(undefined);
-  const [language, setLanguage] = useState<string>(defaults.language);
+  const language = (i18n.resolvedLanguage || i18n.language || defaults.language).split('-')[0];
   const [dateFormat, setDateFormat] = useState<OnboardingRequest['dateFormat']>(
     defaults.dateFormat
   );
@@ -181,13 +181,6 @@ export default function OnboardingPage() {
   );
   const [amountDisplayMode, setAmountDisplayMode] =
     useState<OnboardingRequest['amountDisplayMode']>('base');
-
-  // Sync i18n when language changes
-  useEffect(() => {
-    if (i18n.language !== language) {
-      i18n.changeLanguage(language);
-    }
-  }, [language, i18n]);
 
   const completeOnboarding = useCompleteOnboarding();
 
@@ -299,7 +292,7 @@ export default function OnboardingPage() {
                     <button
                       key={lang}
                       type="button"
-                      onClick={() => setLanguage(lang)}
+                      onClick={() => void i18n.changeLanguage(lang)}
                       className={cn(
                         'flex-1 text-sm font-medium transition-colors',
                         language === lang

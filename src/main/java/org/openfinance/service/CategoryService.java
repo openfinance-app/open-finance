@@ -122,6 +122,14 @@ public class CategoryService {
                 userId,
                 savedCategory.getType());
 
+        operationHistoryService.record(
+                userId,
+                org.openfinance.entity.EntityType.CATEGORY,
+                savedCategory.getId(),
+                request.getName(),
+                org.openfinance.entity.OperationType.CREATE,
+                (Object) null,
+                null);
         // Decrypt and return response
         return toResponseWithDecryption(savedCategory);
     }
@@ -610,6 +618,13 @@ public class CategoryService {
                 transactionRepository.findByCategoryId(category.getId());
         java.math.BigDecimal totalAmount =
                 categoryTransactions.stream()
+                        .filter(t -> t.getTransferId() == null)
+                        .filter(
+                                t ->
+                                        t.getType() != null
+                                                && t.getType()
+                                                        .name()
+                                                        .equals(category.getType().name()))
                         .filter(t -> t.getAmount() != null)
                         .map(org.openfinance.entity.Transaction::getAmount)
                         .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);

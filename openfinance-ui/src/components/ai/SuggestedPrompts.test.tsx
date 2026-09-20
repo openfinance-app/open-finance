@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithProviders as render } from '@/test/test-utils';
+import i18n from '@/test/i18n-test';
 import SuggestedPrompts from './SuggestedPrompts';
 
 describe('SuggestedPrompts', () => {
@@ -17,6 +19,21 @@ describe('SuggestedPrompts', () => {
     expect(onSelect).toHaveBeenCalledWith(
       'Can you analyze my spending patterns and tell me where most of my money is going?'
     );
+  });
+
+  it('inserts the French question when a French suggestion is selected', async () => {
+    await i18n.changeLanguage('fr');
+    try {
+      const onSelect = vi.fn();
+      render(<SuggestedPrompts onSelectPrompt={onSelect} />);
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('ai:prompts.analyzeSpending.label') })
+      );
+      expect(onSelect).toHaveBeenCalledWith(i18n.t('ai:prompts.analyzeSpending.question'));
+      expect(onSelect.mock.calls[0][0]).not.toMatch(/^Can you/);
+    } finally {
+      await i18n.changeLanguage('en');
+    }
   });
 
   it('disables buttons when disabled prop is true', () => {

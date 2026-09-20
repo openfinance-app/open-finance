@@ -146,5 +146,9 @@
       "edit": "Edit recurring transaction",
       "delete": "Delete recurring transaction"
     }
-  }
+  },
+  "processDue": "Process due now",
+  "processing": "Processing…",
+  "processResult": "Processed: {{count}}. Failed: {{failed}}.",
+  "processError": "Processing failed. Please try again."
 }

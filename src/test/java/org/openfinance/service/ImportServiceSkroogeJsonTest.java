@@ -71,6 +71,8 @@ class ImportServiceSkroogeJsonTest {
     private static final Long USER_ID = 123L;
     private static final String UPLOAD_ID = "skrooge-upload";
 
+    @Mock private OperationHistoryService operationHistoryService;
+
     @Mock private AccountCurrencyService accountCurrencyService;
 
     @Mock private ImportSessionRepository importSessionRepository;
@@ -153,7 +155,8 @@ class ImportServiceSkroogeJsonTest {
                         importProperties,
                         accountCurrencyService,
                         importConfirmationExecutor,
-                        userSettingsRepository);
+                        userSettingsRepository,
+                        operationHistoryService);
 
         // Lenient stubs for payee/currency resolution (used by convertToTransaction)
         lenient()

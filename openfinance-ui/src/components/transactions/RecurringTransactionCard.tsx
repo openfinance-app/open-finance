@@ -14,7 +14,7 @@ import {
   TrendingDown,
   ArrowRightLeft,
 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { differenceInCalendarDays, parseISO, format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -49,7 +49,7 @@ export function RecurringTransactionCard({
 }: RecurringTransactionCardProps) {
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('recurring');
-  const { dateFnsLocale } = useLocale();
+  const { dateFnsLocale, locale } = useLocale();
 
   const getStatusText = () => {
     if (recurringTransaction.isEnded) return t('status.ended');
@@ -90,8 +90,11 @@ export function RecurringTransactionCard({
 
   const formatNextOccurrence = () => {
     try {
-      const date = new Date(recurringTransaction.nextOccurrence);
-      return formatDistanceToNow(date, { addSuffix: true, locale: dateFnsLocale });
+      const days = differenceInCalendarDays(
+        parseISO(recurringTransaction.nextOccurrence),
+        new Date()
+      );
+      return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(days, 'day');
     } catch {
       return recurringTransaction.nextOccurrence;
     }

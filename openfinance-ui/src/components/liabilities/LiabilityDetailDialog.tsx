@@ -15,6 +15,7 @@ import { AssetFinancingSection } from '@/components/assets/AssetFinancingSection
  */
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { CreditCard, RefreshCcw, AlertCircle, Banknote } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
@@ -277,7 +278,8 @@ function TotalCostHero({ liability }: { liability: Liability }) {
  * Requirement 3.2: Display linked transactions in a dedicated tab.
  */
 function LinkedPaymentsTab({ liability }: { liability: Liability }) {
-  const { t, i18n } = useTranslation('liabilities');
+  const { t } = useTranslation('liabilities');
+  const { date } = useDateFormatter();
   const { data: breakdown } = useLiabilityBreakdown(liability.id);
   const { data: transactions = [], isLoading, error } = useLiabilityTransactions(liability.id);
   const { data: tranches = [] } = useTranches(liability.id);
@@ -389,11 +391,7 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
                     </span>
                   ))}
                   {tx.accountName && <span>{tx.accountName} · </span>}
-                  {new Date(tx.date).toLocaleDateString(i18n.language, {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                  {date(tx.date)}
                   {tx.payee && tx.description && (
                     <span className="ml-2 text-text-tertiary">{tx.payee}</span>
                   )}
@@ -591,7 +589,12 @@ export function LiabilityDetailDialog({
                     Loading amortization schedule…
                   </div>
                 )}
-                {amortizationSchedule && <AmortizationSchedule schedule={amortizationSchedule} />}
+                {amortizationSchedule && (
+                  <AmortizationSchedule
+                    schedule={amortizationSchedule}
+                    contractualEndDate={liability.endDate}
+                  />
+                )}
               </div>
             )}
 

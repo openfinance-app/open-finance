@@ -12,6 +12,7 @@
  * @since Sprint 11 - AI Assistant Integration
  */
 import React, { useRef, useEffect } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Send, Loader2 } from 'lucide-react';
 
 interface ChatInputProps {
@@ -46,9 +47,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSubmit,
   isLoading = false,
   disabled = false,
-  placeholder = 'Ask me about your finances...',
+  placeholder,
   maxLength = 2000,
 }) => {
+  const { t } = useTranslation('ai');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isFocused, setIsFocused] = React.useState(false);
 
@@ -107,7 +109,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           disabled={disabled || isLoading}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t('inputPlaceholder')}
           maxLength={maxLength}
           rows={1}
           className="flex-1 resize-none bg-transparent px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none min-h-[48px] max-h-[200px]"
@@ -119,7 +121,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           type="submit"
           disabled={!value.trim() || isLoading || disabled || isOverLimit}
           className="flex-shrink-0 mr-2 mb-2 p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-surface-elevated disabled:cursor-not-allowed transition-colors"
-          title={isOverLimit ? 'Message too long' : 'Send message (Enter)'}
+          title={t(isOverLimit ? 'input.tooLong' : 'input.send')}
+          aria-label={t('input.send')}
         >
           {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
         </button>
@@ -128,8 +131,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* Footer with character count and help text */}
       <div className="flex items-center justify-between text-xs text-text-secondary px-1">
         <span>
-          Press <kbd className="px-1.5 py-0.5 bg-surface-elevated rounded">Enter</kbd> to send,{' '}
-          <kbd className="px-1.5 py-0.5 bg-surface-elevated rounded">Shift+Enter</kbd> for new line
+          <Trans
+            t={t}
+            i18nKey="input.help"
+            components={{ key: <kbd className="px-1.5 py-0.5 bg-surface-elevated rounded" /> }}
+          />
         </span>
 
         {/* Character count */}

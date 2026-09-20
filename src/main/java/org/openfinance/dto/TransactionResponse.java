@@ -1,5 +1,6 @@
 package org.openfinance.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 import org.openfinance.entity.MovementType;
 import org.openfinance.entity.PaymentMethod;
 import org.openfinance.entity.TransactionType;
+import org.openfinance.util.ServerTimestampSerializer;
 
 /**
  * Data Transfer Object for transaction responses.
@@ -202,9 +204,11 @@ public class TransactionResponse {
     private Boolean isDeleted;
 
     /** Timestamp when the transaction was created. */
+    @JsonSerialize(using = ServerTimestampSerializer.class)
     private LocalDateTime createdAt;
 
     /** Timestamp when the transaction was last updated. */
+    @JsonSerialize(using = ServerTimestampSerializer.class)
     private LocalDateTime updatedAt;
 
     /**

@@ -18,10 +18,13 @@ import i18next from 'i18next';
  * Example: "2024-01-15" => "15 Jan 2024"
  */
 export function formatDate(date: string | Date, dateFormat?: string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d =
+    typeof date === 'string'
+      ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date}T00:00:00` : date)
+      : date;
 
   if (dateFormat === 'YYYY-MM-DD') {
-    return d.toISOString().split('T')[0];
+    return toLocalISODate(d);
   }
 
   if (dateFormat === 'MM/DD/YYYY') {

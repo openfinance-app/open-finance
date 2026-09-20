@@ -52,7 +52,7 @@
   "none": "None",
   "country": {
     "selectCountry": "Select country",
-    "searchCountry": "Search country\u2026",
+    "searchCountry": "Search country…",
     "noMatch": "No countries match"
   },
   "done": "Done",
@@ -157,7 +157,9 @@
     "custom": "Custom range",
     "title": "Custom Date Range",
     "daysSelected": "{{count}} day selected",
-    "daysSelected_plural": "{{count}} days selected"
+    "daysSelected_plural": "{{count}} days selected",
+    "daysSelected_one": "{{count}} day selected",
+    "daysSelected_other": "{{count}} days selected"
   },
   "errors": {
     "loadFailed": "Failed to load data. Please try again.",
@@ -222,8 +224,14 @@
     "markRead": "Mark read",
     "markAlertAsRead": "Mark alert as read",
     "updateRates": "Update exchange rates now",
-    "updating": "Updating\u2026",
-    "budgetAlert": "Budget alert: {{name}}"
+    "updating": "Updating…",
+    "budgetAlert": "Budget alert: {{name}}",
+    "unread_one": "Notifications ({{count}} unread)",
+    "unread_other": "Notifications ({{count}} unread)",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago",
+    "ratesUpdated": "Exchange rates updated successfully! ✓",
+    "budgetThreshold": "Budget exceeded {{threshold}}% threshold"
   },
   "aria": {
     "editAccount": "Edit account",

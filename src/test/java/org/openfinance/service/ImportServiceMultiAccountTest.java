@@ -62,6 +62,8 @@ class ImportServiceMultiAccountTest {
 
     private static final Long USER_ID = 123L;
 
+    @Mock private OperationHistoryService operationHistoryService;
+
     @Mock private AccountCurrencyService accountCurrencyService;
 
     @Mock private ImportSessionRepository importSessionRepository;
@@ -144,7 +146,8 @@ class ImportServiceMultiAccountTest {
                         importProperties,
                         accountCurrencyService,
                         importConfirmationExecutor,
-                        userSettingsRepository);
+                        userSettingsRepository,
+                        operationHistoryService);
 
         // Lenient stubs for payee/currency resolution (used by convertToTransaction)
         lenient()

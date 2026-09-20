@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * AssetList Component
  * Task 5.2.9: Create AssetList component
@@ -302,7 +303,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                           isConverted={asset.isConverted}
                         />{' '}
                         ({asset.unrealizedGain >= 0 ? '+' : '-'}
-                        {(asset.gainPercentage * 100).toFixed(2)}%)
+                        {formatDecimal(asset.gainPercentage * 100, 2)}%)
                       </td>
                       <td className="py-3 px-4 text-sm text-text-secondary">
                         {asset.accountName || '—'}
@@ -447,7 +448,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                           isConverted={asset.isConverted}
                         />{' '}
                         ({asset.unrealizedGain >= 0 ? '+' : '-'}
-                        {(asset.gainPercentage * 100).toFixed(2)}%)
+                        {formatDecimal(asset.gainPercentage * 100, 2)}%)
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">

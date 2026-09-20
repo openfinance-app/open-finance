@@ -94,6 +94,7 @@ public class DashboardService {
     private final ExchangeRateService exchangeRateService;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
     private final org.openfinance.config.BusinessRulesProperties businessRules;
+    private final org.springframework.context.MessageSource messageSource;
 
     /** Debt-to-income ratio ceiling used for borrowing-capacity estimates (40%). */
     private static final BigDecimal DTI_MAX_RATIO = new BigDecimal("0.40");
@@ -765,7 +766,10 @@ public class DashboardService {
      * @return CashflowSankeyDto with income sources, expense categories and surplus
      * @throws IllegalArgumentException if userId is null or period &lt;= 0
      */
-    @Cacheable(value = "cashflowSankey", key = "#userId + '_' + #period")
+    @Cacheable(
+            value = "cashflowSankey",
+            key =
+                    "#userId + '_' + #period + '_' + T(org.springframework.context.i18n.LocaleContextHolder).getLocale().toLanguageTag()")
     public CashflowSankeyDto getCashflowSankey(Long userId, int period) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -886,12 +890,20 @@ public class DashboardService {
 
         java.util.function.BiFunction<String, org.openfinance.entity.Category, String> resolveName =
                 (key, cat) -> {
-                    if (cat == null) return "Uncategorized";
-                    if (Boolean.TRUE.equals(cat.getIsSystem())) return cat.getName();
+                    java.util.Locale locale =
+                            org.springframework.context.i18n.LocaleContextHolder.getLocale();
+                    String uncategorized =
+                            messageSource.getMessage(
+                                    "category.uncategorized", null, "Uncategorized", locale);
+                    if (cat == null) return uncategorized;
+                    if (Boolean.TRUE.equals(cat.getIsSystem()) && cat.getNameKey() != null) {
+                        return messageSource.getMessage(
+                                cat.getNameKey(), null, cat.getName(), locale);
+                    }
                     if (cat.getName() != null && !cat.getName().isBlank()) {
                         return cat.getName();
                     }
-                    return "Uncategorized";
+                    return uncategorized;
                 };
 
         // Build income source nodes
@@ -1172,37 +1184,12 @@ public class DashboardService {
                                 .setScale(2, RoundingMode.HALF_UP)
                         : BigDecimal.ZERO;
 
-        // Get net worth history for sparkline data over the requested period
-        List<NetWorth> netWorthHistory =
-                netWorthService.getNetWorthHistory(userId, startDate, endDate);
-
-        // Convert to sparkline data points, filtering out zero-value stale snapshots
-        List<PortfolioPerformance.HistoricalDataPoint> sparklineData =
-                netWorthHistory.stream()
-                        .filter(nw -> nw.getTotalAssets().compareTo(BigDecimal.ZERO) > 0)
-                        .map(
-                                nw ->
-                                        PortfolioPerformance.HistoricalDataPoint.builder()
-                                                .date(nw.getSnapshotDate())
-                                                .value(nw.getTotalAssets())
-                                                .build())
-                        .collect(Collectors.toList());
-
-        // Calculate period change (null when no meaningful comparison baseline)
-        BigDecimal periodChange = BigDecimal.ZERO;
-        BigDecimal periodChangePercentage = BigDecimal.ZERO;
-        if (sparklineData.size() >= 2) {
-            BigDecimal oldValue = sparklineData.get(0).getValue();
-            BigDecimal newValue = sparklineData.get(sparklineData.size() - 1).getValue();
-            if (oldValue.compareTo(BigDecimal.ZERO) > 0) {
-                periodChange = newValue.subtract(oldValue);
-                periodChangePercentage =
-                        periodChange
-                                .divide(oldValue, 4, RoundingMode.HALF_UP)
-                                .multiply(BigDecimal.valueOf(100))
-                                .setScale(2, RoundingMode.HALF_UP);
-            }
-        }
+        // Net-worth snapshots include cash and asset contributions. They cannot measure
+        // portfolio performance. Leave period returns unavailable until portfolio cash flows
+        // and valuations are tracked independently; the current unrealized gain remains exact.
+        List<PortfolioPerformance.HistoricalDataPoint> sparklineData = List.of();
+        BigDecimal periodChange = null;
+        BigDecimal periodChangePercentage = null;
 
         // Build performance metrics
         List<PortfolioPerformance> performances =
@@ -1718,13 +1705,11 @@ public class DashboardService {
             builder.itemCount(categoryMap.get(category).build().getItemCount() + 1);
         }
 
-        // Calculate gross assets (sum of positive category values) for percentage
-        // calculations
-        // Using gross assets ensures asset percentages sum to ~100%, not net worth
-        BigDecimal grossAssets =
+        // Shares use the same absolute balances as treemap cell sizes, including debts.
+        BigDecimal absoluteBalances =
                 categoryMap.values().stream()
                         .map(b -> b.build().getValue())
-                        .filter(v -> v.compareTo(BigDecimal.ZERO) > 0)
+                        .map(BigDecimal::abs)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // Build final list with percentages
@@ -1734,14 +1719,14 @@ public class DashboardService {
                                 entry -> {
                                     NetWorthAllocation allocation = entry.getValue().build();
 
-                                    // Calculate percentage relative to gross assets
+                                    // Calculate percentage relative to all displayed balances
                                     BigDecimal percentage =
-                                            grossAssets.compareTo(BigDecimal.ZERO) > 0
+                                            absoluteBalances.compareTo(BigDecimal.ZERO) > 0
                                                     ? allocation
                                                             .getValue()
                                                             .abs()
                                                             .divide(
-                                                                    grossAssets,
+                                                                    absoluteBalances,
                                                                     4,
                                                                     RoundingMode.HALF_UP)
                                                             .multiply(BigDecimal.valueOf(100))
@@ -1771,10 +1756,10 @@ public class DashboardService {
                         .collect(Collectors.toList());
 
         log.info(
-                "Net worth allocation for user {}: {} categories, gross assets {}",
+                "Net worth allocation for user {}: {} categories, absolute balances {}",
                 userId,
                 allocations.size(),
-                grossAssets);
+                absoluteBalances);
 
         return allocations;
     }

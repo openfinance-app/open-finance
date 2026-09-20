@@ -12,10 +12,11 @@ import type { EntityType, OperationHistoryResponse } from '@/types/history';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuthContext } from '@/context/AuthContext';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '@/constants/pagination';
-import { format } from 'date-fns';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 
 export default function HistoryPage() {
   const { t } = useTranslation('history');
+  const { dateTime } = useDateFormatter();
   useDocumentTitle(t('title'));
   const queryClient = useQueryClient();
 
@@ -93,7 +94,9 @@ export default function HistoryPage() {
   }
 
   const getEntityOperationLabel = (item: OperationHistoryResponse) => {
-    const typeLabel = t(`filters.${item.entityType.toLowerCase()}`);
+    const typeLabel = t(
+      `filters.${item.entityType === 'REAL_ESTATE' ? 'realEstate' : item.entityType.toLowerCase()}`
+    );
     const opLabel = t(`operations.${item.operationType.toLowerCase()}`);
     return `${opLabel} ${typeLabel}`;
   };
@@ -120,6 +123,13 @@ export default function HistoryPage() {
             <option value="REAL_ESTATE">{t('filters.realEstate')}</option>
             <option value="BUDGET">{t('filters.budget')}</option>
             <option value="CATEGORY">{t('filters.category')}</option>
+            {(['PAYEE', 'TRANSACTION_RULE', 'RECURRING_TRANSACTION', 'IMPORT'] as const).map(
+              type => (
+                <option key={type} value={type}>
+                  {t(`filters.${type.toLowerCase()}`)}
+                </option>
+              )
+            )}
           </select>
         </div>
       </div>
@@ -158,7 +168,7 @@ export default function HistoryPage() {
                     <td className="px-6 py-4 font-medium">{getEntityOperationLabel(item)}</td>
                     <td className="px-6 py-4">{item.entityLabel || '-'}</td>
                     <td className="px-6 py-4 text-muted-foreground">
-                      {item.createdAt ? format(new Date(item.createdAt), 'PP pp') : '-'}
+                      {item.createdAt ? dateTime(item.createdAt) : '-'}
                     </td>
                     <td className="px-6 py-4">
                       {isUndone ? (
@@ -187,17 +197,21 @@ export default function HistoryPage() {
                         <Undo2 className="w-4 h-4 mr-1" />
                         {t('undo')}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRedo(item.id)}
-                        title={!item.canRedo ? t('unavailable') : undefined}
-                        disabled={!item.canRedo || undoMutation.isPending || redoMutation.isPending}
-                        className="h-8 px-2"
-                      >
-                        <Redo2 className="w-4 h-4 mr-1" />
-                        {t('redo')}
-                      </Button>
+                      {item.canRedo && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRedo(item.id)}
+                          title={!item.canRedo ? t('unavailable') : undefined}
+                          disabled={
+                            !item.canRedo || undoMutation.isPending || redoMutation.isPending
+                          }
+                          className="h-8 px-2"
+                        >
+                          <Redo2 className="w-4 h-4 mr-1" />
+                          {t('redo')}
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 );

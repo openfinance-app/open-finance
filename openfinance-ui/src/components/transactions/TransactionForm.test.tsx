@@ -383,6 +383,26 @@ describe('TransactionForm', () => {
       expect(screen.getByRole('button', { name: /update transaction/i })).toBeInTheDocument();
     });
 
+    it('submits an ordinary expense returned by the API with a null movement type', async () => {
+      const { onSubmit } = renderForm({
+        transaction: {
+          id: 99,
+          userId: 1,
+          accountId: 1,
+          type: 'EXPENSE',
+          amount: 50,
+          currency: 'EUR',
+          date: '2024-06-01',
+          isReconciled: false,
+          createdAt: '2024-06-01',
+          ...JSON.parse('{"movementType":null,"paymentMethod":null,"categoryId":null}'),
+        },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+      expect(onSubmit.mock.calls[0][0]).toMatchObject({ type: 'EXPENSE', amount: 50 });
+    });
+
     it('calls onCancel when Cancel button is clicked', () => {
       const { onCancel } = renderForm();
 
@@ -920,6 +940,27 @@ describe('TransactionForm', () => {
         isError: false,
       } as any);
     }
+
+    it('keeps the selected category on the principal part of an automatic loan split', async () => {
+      mockUseLiabilities.mockReturnValue({
+        data: [mortgageLiability],
+        isLoading: false,
+        isError: false,
+      } as any);
+      mockPreviewData();
+      const { onSubmit } = renderForm();
+      fireEvent.click(screen.getByTestId('account-selector'));
+      await selectLiability('1');
+      fireEvent.change(screen.getByTestId('category-select'), { target: { value: '10' } });
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '1200' } });
+      fireEvent.change(screen.getByLabelText(/^Date/i), { target: { value: '2024-06-15' } });
+      await screen.findByTestId('repayment-preview');
+      fireEvent.click(screen.getByRole('button', { name: /create transaction/i }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      expect(onSubmit.mock.calls[0][0].splits).toEqual(
+        expect.arrayContaining([expect.objectContaining({ amount: 981.25, categoryId: 10 })])
+      );
+    });
 
     it('shows principal/interest/insurance preview rows when a liability is selected', async () => {
       mockUseLiabilities.mockReturnValue({

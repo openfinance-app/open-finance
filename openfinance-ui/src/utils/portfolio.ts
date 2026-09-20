@@ -2,6 +2,7 @@
  * Portfolio calculation utilities
  * Task 5.4: Portfolio metrics and calculations
  */
+import { formatPercentage as formatPercent } from '@/utils/format';
 import type { Asset } from '@/types/asset';
 import { DEFAULT_CURRENCY, getCurrencyDecimals } from './currency';
 import { add, sum, subtract, percentage } from '@/utils/money';
@@ -142,7 +143,7 @@ export const formatCurrency = (value: number, currency: string = DEFAULT_CURRENC
  */
 export const formatPercentage = (value: number, includeSign: boolean = true): string => {
   const sign = includeSign && value > 0 ? '+' : '';
-  return `${sign}${value.toFixed(2)}%`;
+  return `${sign}${formatPercent(value, 2)}`;
 };
 
 /**

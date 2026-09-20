@@ -27,6 +27,7 @@ interface AssetAllocationChartProps {
  * Custom tooltip for treemap
  */
 const CustomTooltip = ({ active, payload }: any) => {
+  const { t } = useTranslation('dashboard');
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -35,9 +36,13 @@ const CustomTooltip = ({ active, payload }: any) => {
         <p className="text-lg font-bold text-text-primary mb-1">
           <ConvertedAmount amount={data.totalValue} currency={data.currency} inline />
         </p>
-        <p className="text-sm text-text-secondary mb-1">{data.percentage}% of portfolio</p>
+        <p className="text-sm text-text-secondary mb-1">
+          {t('assetAllocation.portfolioShare', {
+            percentage: formatPercentage(data.percentage, 2),
+          })}
+        </p>
         <p className="text-xs text-text-muted">
-          {data.assetCount} {data.assetCount === 1 ? 'asset' : 'assets'}
+          {t('assetAllocation.assetCount', { count: data.assetCount })}
         </p>
       </div>
     );
@@ -63,6 +68,8 @@ const CustomContent = (props: any) => {
     formatFn,
     onNavigate,
   } = props;
+
+  if (props.depth === 0 || !type) return null;
 
   // Only show text if cell is large enough
   const showText = width > 80 && height > 50;
@@ -104,7 +111,7 @@ const CustomContent = (props: any) => {
               fontSize={12}
               opacity={0.9}
             >
-              {percentage}%
+              {formatPercentage(percentage, 2)}
             </text>
           )}
           {showValue && (
@@ -135,21 +142,23 @@ export default function AssetAllocationChart({
   const navigate = useNavigate();
   const navigateToType = (type: string) => navigate(`/assets?type=${encodeURIComponent(type)}`);
   // Prepare data for treemap (recharts expects 'name' and 'size' fields)
-  const treemapData = allocations.map(allocation => {
-    const translatedType = t(`assetTypes.${allocation.type}`, {
-      defaultValue: allocation.typeName,
+  const treemapData = allocations
+    .filter(allocation => Number.isFinite(allocation.totalValue) && allocation.totalValue > 0)
+    .map(allocation => {
+      const translatedType = t(`assetTypes.${allocation.type}`, {
+        defaultValue: allocation.typeName,
+      });
+      return {
+        name: translatedType,
+        size: allocation.totalValue,
+        typeName: translatedType,
+        type: allocation.type,
+        percentage: allocation.percentage,
+        totalValue: allocation.totalValue,
+        assetCount: allocation.assetCount,
+        currency: allocation.currency,
+      };
     });
-    return {
-      name: translatedType,
-      size: allocation.totalValue,
-      typeName: translatedType,
-      type: allocation.type,
-      percentage: allocation.percentage.toFixed(2),
-      totalValue: allocation.totalValue,
-      assetCount: allocation.assetCount,
-      currency: allocation.currency,
-    };
-  });
 
   if (treemapData.length === 0) {
     return (

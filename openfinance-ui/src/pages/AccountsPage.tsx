@@ -443,7 +443,6 @@ export default function AccountsPage() {
                     convertedAmount={totals.hasConversion ? totals.baseCurrencyTotal : undefined}
                     baseCurrency={totals.baseCurrency}
                     isConverted={totals.hasConversion}
-                    animate
                   />
                   {/* Show filtered subtotal as secondary when a filter is active */}
                   {isFiltered && filteredTotalsByCurrency[currency] && (

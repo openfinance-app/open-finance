@@ -12,6 +12,9 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { enUS, fr } from 'date-fns/locale';
 import i18n from '@/test/i18n-test';
+import { useState } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient, mockAuthentication } from '@/test/test-utils';
 import { LocaleProvider } from '@/context/LocaleContext';
 import { formatRelativeDate, useRelativeDateFormatter } from '@/utils/date';
 
@@ -19,15 +22,19 @@ import { formatRelativeDate, useRelativeDateFormatter } from '@/utils/date';
  * Wrapper that provides i18n contexts
  */
 function DateTestWrapper({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(createTestQueryClient);
   return (
     <I18nextProvider i18n={i18n}>
-      <LocaleProvider>{children}</LocaleProvider>
+      <QueryClientProvider client={queryClient}>
+        <LocaleProvider>{children}</LocaleProvider>
+      </QueryClientProvider>
     </I18nextProvider>
   );
 }
 
 describe('Date Localization', () => {
   beforeEach(async () => {
+    mockAuthentication();
     // Reset to English before each test
     await i18n.changeLanguage('en');
   });

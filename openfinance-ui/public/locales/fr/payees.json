@@ -64,5 +64,7 @@
     "cancel": "Annuler",
     "confirm": "Supprimer",
     "error": "Impossible de supprimer ce bénéficiaire"
-  }
+  },
+  "transactions_one": "{{count}} transaction",
+  "transactions_other": "{{count}} transactions"
 }

@@ -241,6 +241,23 @@ public class CsvParser {
             String[] row = allRows.get(i);
             if (row.length == 0 || (row.length == 1 && row[0].trim().isEmpty())) continue;
             int lineNumber = i + 1;
+            if (row.length != headers.length) {
+                ImportedTransaction invalid =
+                        ImportedTransaction.builder()
+                                .lineNumber(lineNumber)
+                                .sourceFileName(fileName)
+                                .rawData(String.join(String.valueOf(separator), row))
+                                .build();
+                invalid.addValidationError(
+                        ImportParseSupport.message(
+                                "import.validation.csv.columns",
+                                context.locale(),
+                                lineNumber,
+                                headers.length,
+                                row.length));
+                transactions.add(invalid);
+                continue;
+            }
             ImportedTransaction transaction =
                     parseTransaction(
                             row, headerMap, lineNumber, fileName, dateFormats, separator, context);

@@ -139,6 +139,7 @@ public class ImportService {
     private final ObjectProvider<ImportConfirmationExecutor> importConfirmationExecutor;
 
     private final UserSettingsRepository userSettingsRepository;
+    private final OperationHistoryService operationHistoryService;
 
     /**
      * Start a new import session and parse the uploaded file.
@@ -1001,6 +1002,14 @@ public class ImportService {
             session.setSkippedCount(
                     duplicatesSkipped + errorTxs.size() + saveFailed + openingBalanceTxs.size());
             session.setStatus(ImportStatus.COMPLETED);
+            operationHistoryService.record(
+                    session.getUserId(),
+                    org.openfinance.entity.EntityType.IMPORT,
+                    session.getId(),
+                    session.getFileName(),
+                    org.openfinance.entity.OperationType.CREATE,
+                    (Object) null,
+                    null);
             session.setCompletedAt(LocalDateTime.now());
 
             log.info(
@@ -1790,6 +1799,14 @@ public class ImportService {
         session.setErrorCount(errorTxs.size());
         session.setSkippedCount(duplicatesSkipped + errorTxs.size() + saveFailed);
         session.setStatus(ImportStatus.COMPLETED);
+        operationHistoryService.record(
+                session.getUserId(),
+                org.openfinance.entity.EntityType.IMPORT,
+                session.getId(),
+                session.getFileName(),
+                org.openfinance.entity.OperationType.CREATE,
+                (Object) null,
+                null);
         session.setCompletedAt(LocalDateTime.now());
         if (accountIdsBySource.size() == 1) {
             session.setAccountId(accountIdsBySource.values().iterator().next());
@@ -2077,6 +2094,14 @@ public class ImportService {
         session.setErrorCount(errorTxs.size());
         session.setSkippedCount(duplicatesSkipped + errorTxs.size() + saveFailed);
         session.setStatus(ImportStatus.COMPLETED);
+        operationHistoryService.record(
+                session.getUserId(),
+                org.openfinance.entity.EntityType.IMPORT,
+                session.getId(),
+                session.getFileName(),
+                org.openfinance.entity.OperationType.CREATE,
+                (Object) null,
+                null);
         session.setCompletedAt(LocalDateTime.now());
 
         Set<Long> resolvedAccountIds = new java.util.HashSet<>(affectedAccountIds);

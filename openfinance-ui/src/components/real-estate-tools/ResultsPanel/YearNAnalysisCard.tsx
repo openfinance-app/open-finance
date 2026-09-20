@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 import React from 'react';
 import { Calendar, TrendingUp, Home, Key, ArrowRight, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -284,7 +285,9 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
               <p className="text-sm text-muted-foreground mb-2">
                 {t('results.annualProfitability')}
               </p>
-              <p className="text-2xl font-bold">{analysis.annualProfitability.toFixed(2)}%</p>
+              <p className="text-2xl font-bold">
+                {formatDecimal(analysis.annualProfitability, 2)}%
+              </p>
               <p className="text-sm text-muted-foreground mt-1">{t('results.forBuyScenario')}</p>
             </div>
           </div>

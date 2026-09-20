@@ -35,6 +35,23 @@ describe('useUserFinancialData', () => {
     expect(result.current.error).toBeNull();
   });
 
+  it('excludes both internal transfer legs from the monthly expense basis', async () => {
+    mockGet.mockResolvedValueOnce({ data: [] }).mockResolvedValueOnce({
+      data: [
+        { type: 'EXPENSE', amount: 2610.24, date: new Date().toISOString() },
+        {
+          type: 'EXPENSE',
+          amount: 500,
+          transferId: 'own-accounts',
+          date: new Date().toISOString(),
+        },
+        { type: 'INCOME', amount: 500, transferId: 'own-accounts', date: new Date().toISOString() },
+      ],
+    });
+    const { result } = renderHook(() => useUserFinancialData());
+    await waitFor(() => expect(result.current.data?.averageMonthlyExpenses).toBe(2610.24));
+  });
+
   it('should fetch and calculate user financial data', async () => {
     // Mock assets response
     const mockAssets = [

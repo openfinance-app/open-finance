@@ -59,5 +59,10 @@
       "label": "Conseils pour économiser",
       "question": "Quels sont des conseils pratiques pour réduire mes dépenses et économiser davantage ?"
     }
+  },
+  "input": {
+    "send": "Envoyer le message (Entrée)",
+    "tooLong": "Message trop long",
+    "help": "Appuyez sur <key>Entrée</key> pour envoyer, <key>Maj+Entrée</key> pour aller à la ligne"
   }
 }

@@ -81,26 +81,28 @@
       "title": "Cancel import?",
       "description": "You have an import in progress. Leaving now will cancel it and any changes you made during review will be lost.",
       "stay": "Stay",
-      "leave": "Leave anyway"
+      "leave": "Leave anyway",
+      "failed": "Cancellation failed. Please try again."
     },
     "accountSelection": {
       "description": "Choose the account for these transactions, or leave blank to let the wizard create one automatically.",
       "matched": "Account matched automatically:",
       "matchedSuffix": "has been pre-selected below. You can change it if needed.",
       "detected": "Account detected but not matched:",
-      "detectedSuffix": "Select an existing account below, or leave blank and a new account named \u201c{{name}}\u201d will be created automatically.",
-      "noneFound": "No account information was found in the file. Select an existing account below, or leave blank and a new account named \u201c{{name}}\u201d will be created automatically.",
-      "parsing": "Parsing file and detecting account details\u2026 please wait",
+      "detectedSuffix": "Select an existing account below, or leave blank and a new account named “{{name}}” will be created automatically.",
+      "noneFound": "No account information was found in the file. Select an existing account below, or leave blank and a new account named “{{name}}” will be created automatically.",
+      "parsing": "Parsing file and detecting account details… please wait",
       "uploadFailed": "Upload Failed",
       "uploadFailedDesc": "Could not start the import. Please check your connection and try again.",
       "parsingFailed": "Parsing Failed",
       "parsingFailedDesc": "The file could not be parsed. It may be corrupted, in an unsupported format, or missing required tags.",
       "startOver": "Start Over",
-      "applying": "Applying account\u2026",
+      "applying": "Applying account…",
       "autoCreateLabel": "Auto-create: \"{{name}}\"",
       "leaveBlank": "Leave blank to auto-create",
       "label": "Account"
-    }
+    },
+    "openingDateNotice": "If an imported transaction predates the account opening date, that date moves back to include the transaction in balance history."
   },
   "upload": {
     "dropHere": "Drop your file here",
@@ -131,7 +133,9 @@
       "transactions": "transactions",
       "categorized": "categorized",
       "duplicates": "duplicates",
-      "errors": "errors"
+      "errors": "errors",
+      "transactions_one": "transaction",
+      "transactions_other": "transactions"
     },
     "filters": {
       "all": "All",
@@ -149,7 +153,9 @@
     "categoryAssignments": {
       "title": "Category Assignments ({{count}} unique categories)",
       "notMapped": "not mapped",
-      "footer": "Category mappings are applied automatically when you confirm the import. Unmapped categories will be left unassigned on the imported transactions."
+      "footer": "Category mappings are applied automatically when you confirm the import. Unmapped categories will be left unassigned on the imported transactions.",
+      "title_one": "Category Assignments ({{count}} unique category)",
+      "title_other": "Category Assignments ({{count}} unique categories)"
     },
     "bulk": {
       "selected": "{{count}} selected",
@@ -177,7 +183,11 @@
       "status": "Status",
       "validationErrors": "Validation Errors",
       "splitLines": "Split Lines"
-    }
+    },
+    "autoAssignedCount_one": "{{count}} transaction automatically assigned.",
+    "autoAssignedCount_other": "{{count}} transactions automatically assigned.",
+    "categorizationHint_one": "{{count}} transaction still needs a category assignment.",
+    "categorizationHint_other": "{{count}} transactions still need a category assignment."
   },
   "progress": {
     "preparing": "Preparing import...",

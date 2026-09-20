@@ -111,11 +111,11 @@ export function useCreateAsset() {
       });
       return response.data;
     },
-    onSuccess: () => {
-      // Invalidate assets query to refetch the list
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
-      // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['assets'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ]);
     },
   });
 }

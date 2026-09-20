@@ -421,8 +421,8 @@ describe('LiabilityList', () => {
         />
       );
 
-      expect(screen.getByText(/months remaining/)).toBeInTheDocument();
-      expect(screen.getByText(/Ends/)).toBeInTheDocument();
+      expect(screen.getByText(/months to contractual end/)).toBeInTheDocument();
+      expect(screen.getByText(/Contract ends/)).toBeInTheDocument();
     });
   });
 
@@ -617,7 +617,7 @@ describe('LiabilityList', () => {
       renderWithProviders(
         <LiabilityList liabilities={[noEndDate]} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
-      expect(screen.queryByText(/months remaining/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/months to contractual end/)).not.toBeInTheDocument();
     });
   });
 

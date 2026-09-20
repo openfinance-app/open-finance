@@ -20,7 +20,11 @@
     "liability": "Passif",
     "realEstate": "Immobilier",
     "budget": "Budget",
-    "category": "Catégorie"
+    "category": "Catégorie",
+    "payee": "Bénéficiaire",
+    "transaction_rule": "Règle",
+    "recurring_transaction": "Opération récurrente",
+    "import": "Importation"
   },
   "operations": {
     "create": "Créé",

@@ -8,5 +8,8 @@ public enum EntityType {
     ACCOUNT,
     RECURRING_TRANSACTION,
     BUDGET,
-    CATEGORY
+    CATEGORY,
+    PAYEE,
+    TRANSACTION_RULE,
+    IMPORT
 }

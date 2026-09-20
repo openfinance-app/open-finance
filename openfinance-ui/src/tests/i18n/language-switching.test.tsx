@@ -14,13 +14,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { I18nextProvider, useTranslation } from 'react-i18next';
 import i18n from '@/test/i18n-test';
+import { useState } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient, mockAuthentication } from '@/test/test-utils';
 import { LocaleProvider, useLocale } from '@/context/LocaleContext';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
 
 // Mock apiClient to prevent actual API calls during tests
 vi.mock('@/services/apiClient', () => ({
   default: {
-    patch: vi.fn().mockResolvedValue({}),
+    put: vi.fn().mockResolvedValue({ data: { language: 'fr' } }),
   },
 }));
 
@@ -59,15 +62,19 @@ function TestLocaleChanger({ targetLocale }: { targetLocale: string }) {
  * Wrapper that provides all necessary i18n contexts
  */
 function I18nTestWrapper({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(createTestQueryClient);
   return (
     <I18nextProvider i18n={i18n}>
-      <LocaleProvider>{children}</LocaleProvider>
+      <QueryClientProvider client={queryClient}>
+        <LocaleProvider>{children}</LocaleProvider>
+      </QueryClientProvider>
     </I18nextProvider>
   );
 }
 
 describe('Language Switching', () => {
   beforeEach(async () => {
+    mockAuthentication();
     // Reset i18n to English before each test
     await i18n.changeLanguage('en');
   });
@@ -259,7 +266,7 @@ describe('Language Switching', () => {
     it('should still change locale even if backend persistence fails', async () => {
       // Mock API failure
       const apiClient = await import('@/services/apiClient');
-      vi.mocked(apiClient.default.patch).mockRejectedValueOnce(new Error('Network error'));
+      vi.mocked(apiClient.default.put).mockRejectedValueOnce(new Error('Network error'));
 
       render(
         <>

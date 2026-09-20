@@ -97,7 +97,8 @@
     "update": "Mettre à jour",
     "create": "Créer",
     "saving": "Enregistrement...",
-    "saveError": "Impossible d'enregistrer la catégorie. Veuillez vérifier votre saisie et réessayer."
+    "saveError": "Impossible d'enregistrer la catégorie. Veuillez vérifier votre saisie et réessayer.",
+    "chooseIcon": "Choisir l’icône {{icon}}"
   },
   "dialogs": {
     "delete": {
@@ -105,5 +106,7 @@
       "description": "Êtes-vous sûr(e) de vouloir supprimer « {{name}} » ? Cette action est irréversible.",
       "confirmText": "Supprimer"
     }
-  }
+  },
+  "transactionCount_one": "{{count}} transaction",
+  "transactionCount_other": "{{count}} transactions"
 }

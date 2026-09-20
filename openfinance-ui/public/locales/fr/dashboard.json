@@ -5,7 +5,10 @@
     "tooltip": "La carte proportionnelle d'allocation d'actifs visualise la répartition de votre patrimoine entre différentes classes d'actifs (actions, immobilier, crypto, etc.). La taille de chaque bloc représente sa valeur proportionnelle dans votre portefeuille total.",
     "empty": "Aucun actif à afficher.",
     "emptySub": "Ajoutez des actifs pour voir la répartition.",
-    "viewAssetType": "Voir les actifs {{type}}"
+    "viewAssetType": "Voir les actifs {{type}}",
+    "portfolioShare": "{{percentage}} du portefeuille",
+    "assetCount_one": "{{count}} actif",
+    "assetCount_other": "{{count}} actifs"
   },
   "subtitle": "Votre aperçu financier au {{date}}",
   "addTransaction": "Ajouter une transaction",
@@ -288,7 +291,7 @@
   "netWorthAllocation": {
     "title": "Allocation de la valeur nette",
     "description": "Répartition des actifs et des passifs",
-    "tooltip": "Ce graphique montre la valeur absolue de vos actifs par rapport à vos passifs pour visualiser la répartition des composantes de votre valeur nette.",
+    "tooltip": "Actifs et dettes répartis selon leur part du total des soldes en valeur absolue. Les cellules rouges représentent les dettes déduites pour calculer le patrimoine net.",
     "noData": "Aucune donnée disponible",
     "emptyDescription": "Aucune donnée d'actif ou de passif trouvée.",
     "asset": "Actif",
@@ -305,12 +308,15 @@
       "Total Value": "Valeur totale",
       "Unrealized Gain": "Gain latent",
       "Cost Basis": "Prix de revient"
-    }
+    },
+    "periodUnavailable": "Rendement sur la période indisponible : les apports ne sont pas suivis séparément."
   },
   "netWorthTrend": {
     "title": "Évolution de la valeur nette",
     "periodTrend": "Évolution pour {{period}}",
-    "dataPointsDays": "{{count}} points de données sur {{days}} jours"
+    "dataPointsDays": "{{count}} points de données sur {{days}} jours",
+    "dataPointsDays_one": "{{count}} point sur {{days}} jours",
+    "dataPointsDays_other": "{{count}} points sur {{days}} jours"
   },
   "borrowingCapacity": {
     "title": "Capacité d'emprunt",
@@ -333,7 +339,8 @@
       "excellent": "Excellente situation financière ! Vous avez une forte capacité d'emprunt.",
       "good": "Bonne santé financière avec une capacité d'emprunt modérée.",
       "fair": "Niveaux d'endettement moyens. Pensez à réduire vos dettes avant tout nouvel emprunt.",
-      "poor": "Rapport dette/revenu élevé. Une réduction de la dette est recommandée."
+      "poor": "Rapport dette/revenu élevé. Une réduction de la dette est recommandée.",
+      "insufficientData": "Ajoutez des revenus et des dépenses pour évaluer votre capacité d’emprunt."
     }
   },
   "estimatedInterest": {

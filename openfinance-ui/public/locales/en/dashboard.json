@@ -5,7 +5,10 @@
     "tooltip": "The Asset Allocation treemap visualizes how your wealth is distributed across different asset classes, such as stocks, real estate, and crypto. The size of each block represents its proportional value in your total portfolio.",
     "empty": "No assets to display.",
     "emptySub": "Add assets to see allocation breakdown.",
-    "viewAssetType": "View {{type}} assets"
+    "viewAssetType": "View {{type}} assets",
+    "portfolioShare": "{{percentage}} of portfolio",
+    "assetCount_one": "{{count}} asset",
+    "assetCount_other": "{{count}} assets"
   },
   "subtitle": "Your financial overview as of {{date}}",
   "addTransaction": "Add Transaction",
@@ -288,7 +291,7 @@
   "netWorthAllocation": {
     "title": "Net Worth Allocation",
     "description": "Distribution of assets and liabilities",
-    "tooltip": "This chart shows the absolute value of your assets vs. liabilities to visualize the distribution of your net worth components.",
+    "tooltip": "Assets and debts shown by their share of total absolute balances. Red cells represent debts deducted when calculating net worth.",
     "noData": "No data available",
     "emptyDescription": "No asset or liability data found.",
     "asset": "Asset",
@@ -305,12 +308,15 @@
       "Total Value": "Total Value",
       "Unrealized Gain": "Unrealized Gain",
       "Cost Basis": "Cost Basis"
-    }
+    },
+    "periodUnavailable": "Period return unavailable: asset contributions are not tracked separately."
   },
   "netWorthTrend": {
     "title": "Net Worth Trend",
     "periodTrend": "Trend for {{period}}",
-    "dataPointsDays": "{{count}} data points over {{days}} days"
+    "dataPointsDays": "{{count}} data points over {{days}} days",
+    "dataPointsDays_one": "{{count}} data point over {{days}} days",
+    "dataPointsDays_other": "{{count}} data points over {{days}} days"
   },
   "borrowingCapacity": {
     "title": "Borrowing Capacity",
@@ -333,7 +339,8 @@
       "excellent": "Excellent financial position! You have strong borrowing capacity.",
       "good": "Good financial health with moderate borrowing capacity available.",
       "fair": "Fair debt levels. Consider reducing debt before new borrowing.",
-      "poor": "High debt-to-income ratio. Focus on debt reduction is recommended."
+      "poor": "High debt-to-income ratio. Focus on debt reduction is recommended.",
+      "insufficientData": "Add income and expense transactions to assess your borrowing capacity."
     }
   },
   "estimatedInterest": {

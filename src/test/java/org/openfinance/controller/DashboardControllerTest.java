@@ -358,7 +358,7 @@ class DashboardControllerTest {
     class PortfolioPerformanceEndpointTests {
 
         @Test
-        @DisplayName("Should return portfolio performance with historical data")
+        @DisplayName("Should not treat net worth snapshots as portfolio returns")
         void shouldReturnPortfolioPerformanceWithHistoricalData() throws Exception {
             // Create assets
             createAsset(
@@ -391,12 +391,12 @@ class DashboardControllerTest {
                     // Total Value metric
                     .andExpect(jsonPath("$[0].label").value("Total Value"))
                     .andExpect(jsonPath("$[0].currentValue").value(53000))
-                    .andExpect(jsonPath("$[0].changeAmount").value(3000)) // 53000 - 50000
-                    .andExpect(jsonPath("$[0].changePercentage").value(closeTo(6.00, 0.1)))
+                    .andExpect(
+                            jsonPath("$[0].changeAmount")
+                                    .doesNotExist()) // Contributions cannot establish returns
+                    .andExpect(jsonPath("$[0].changePercentage").doesNotExist())
                     .andExpect(jsonPath("$[0].currency").value("EUR"))
-                    .andExpect(jsonPath("$[0].sparklineData", hasSize(3)))
-                    .andExpect(jsonPath("$[0].sparklineData[0].value").value(50000))
-                    .andExpect(jsonPath("$[0].sparklineData[2].value").value(53000))
+                    .andExpect(jsonPath("$[0].sparklineData", hasSize(0)))
                     // Unrealized Gain metric
                     .andExpect(jsonPath("$[1].label").value("Unrealized Gain"))
                     .andExpect(jsonPath("$[1].currentValue").value(8000))
@@ -442,8 +442,8 @@ class DashboardControllerTest {
                                     .header("X-Encryption-Session", encKey))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].currentValue").value(8000))
-                    .andExpect(jsonPath("$[0].changeAmount").value(-2000))
-                    .andExpect(jsonPath("$[0].changePercentage").value(closeTo(-20.00, 0.1)))
+                    .andExpect(jsonPath("$[0].changeAmount").doesNotExist())
+                    .andExpect(jsonPath("$[0].changePercentage").doesNotExist())
                     .andExpect(jsonPath("$[1].currentValue").value(-2000))
                     .andExpect(jsonPath("$[1].changePercentage").value(closeTo(-20.00, 0.1)));
         }
@@ -466,8 +466,8 @@ class DashboardControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(3)))
                     .andExpect(jsonPath("$[0].sparklineData", hasSize(0)))
-                    .andExpect(jsonPath("$[0].changeAmount").value(0))
-                    .andExpect(jsonPath("$[0].changePercentage").value(0.00));
+                    .andExpect(jsonPath("$[0].changeAmount").doesNotExist())
+                    .andExpect(jsonPath("$[0].changePercentage").doesNotExist());
         }
 
         @Test
@@ -487,9 +487,11 @@ class DashboardControllerTest {
                                     .header("Authorization", "Bearer " + token)
                                     .header("X-Encryption-Session", encKey))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].sparklineData", hasSize(1)))
-                    .andExpect(jsonPath("$[0].changeAmount").value(0)) // Need at least 2 points
-                    .andExpect(jsonPath("$[0].changePercentage").value(0.00));
+                    .andExpect(jsonPath("$[0].sparklineData", hasSize(0)))
+                    .andExpect(
+                            jsonPath("$[0].changeAmount")
+                                    .doesNotExist()) // No portfolio cash-flow series
+                    .andExpect(jsonPath("$[0].changePercentage").doesNotExist());
         }
 
         @Test

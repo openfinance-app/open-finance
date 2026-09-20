@@ -14,8 +14,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { enUS, fr } from 'date-fns/locale';
 import type { Locale as DateFnsLocale } from 'date-fns';
-import apiClient from '../services/apiClient';
+import { useQueryClient } from '@tanstack/react-query';
+import apiClient from '@/services/apiClient';
 import { STORAGE_KEYS } from '@/constants/storage';
+import type { UserSettings } from '@/types/user';
 
 // Map i18next language codes to date-fns locale objects
 const DATE_FNS_LOCALES: Record<string, DateFnsLocale> = {
@@ -46,7 +48,7 @@ const LocaleContext = createContext<LocaleContextValue>({
  * Only calls the API if the user is authenticated (token exists).
  * Errors are swallowed — the locale change still applies locally.
  */
-async function persistLocaleToBackend(locale: string): Promise<void> {
+async function persistLocaleToBackend(locale: string): Promise<UserSettings | undefined> {
   const token =
     localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ||
     sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
@@ -57,11 +59,12 @@ async function persistLocaleToBackend(locale: string): Promise<void> {
   }
 
   try {
-    await apiClient.put('/users/me/settings', { language: locale });
-  } catch (error: any) {
-    if (error?.response?.status === 401 || error?.response?.status === 403) {
-      sessionStorage.setItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC, locale);
-    } else if (import.meta.env.MODE !== 'test') {
+    const response = await apiClient.put<UserSettings>('/users/me/settings', { language: locale });
+    sessionStorage.removeItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC);
+    return response.data;
+  } catch (error: unknown) {
+    sessionStorage.setItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC, locale);
+    if (import.meta.env.MODE !== 'test') {
       console.warn('[LocaleContext] Failed to persist locale preference to backend:', error);
     }
   }
@@ -71,6 +74,11 @@ async function persistLocaleToBackend(locale: string): Promise<void> {
 const ALL_NAMESPACES = [
   'common',
   'auth',
+  'onboarding',
+  'history',
+  'currencies',
+  'payees',
+  'institutions',
   'navigation',
   'dashboard',
   'accounts',
@@ -93,6 +101,7 @@ const ALL_NAMESPACES = [
 
 export const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { i18n } = useTranslation();
+  const queryClient = useQueryClient();
   const [isChangingLocale, setIsChangingLocale] = useState(false);
 
   /**
@@ -108,9 +117,6 @@ export const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [resolvedLocale]);
 
   const setLocale = async (locale: string): Promise<void> => {
-    // Don't change if already on this locale
-    if (locale === resolvedLocale) return;
-
     setIsChangingLocale(true);
     try {
       if (import.meta.env.MODE !== 'test') {
@@ -123,12 +129,19 @@ export const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 2. Explicitly load all namespaces to ensure all components refresh immediately.
       // This fixes the "partial update" bug where sidebar or cards might stay in old language.
       await i18n.loadNamespaces(ALL_NAMESPACES);
+      await Promise.all(
+        ['categories', 'dashboard', 'notifications', 'payees'].map(key =>
+          queryClient.invalidateQueries({ queryKey: [key] })
+        )
+      );
 
       // Update HTML lang attribute
       document.documentElement.lang = locale;
+      localStorage.setItem('openfinance_language', locale);
 
       // 3. Persist to backend
-      void persistLocaleToBackend(locale);
+      const settings = await persistLocaleToBackend(locale);
+      if (settings) queryClient.setQueryData(['user', 'settings'], settings);
 
       if (import.meta.env.MODE !== 'test') {
         console.log(`[LocaleContext] Successfully switched to: ${locale}`);

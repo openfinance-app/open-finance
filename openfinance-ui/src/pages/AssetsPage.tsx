@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * AssetsPage Component
  * Task 5.2.7: Create AssetsPage component
@@ -371,7 +372,6 @@ export default function AssetsPage() {
               secondaryAmount={convert(globalSummary.totalValue)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
-              animate
               className="text-2xl font-bold text-foreground"
             />
             <p className="plate-label mt-1">
@@ -458,7 +458,6 @@ export default function AssetsPage() {
               secondaryAmount={convert(globalSummary.totalGain)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
-              animate
               className={`text-2xl font-bold ${getGainLossColor(globalSummary.totalGain)}`}
             />
             <p className={`text-xs mt-1 ${getGainLossColor(globalSummary.gainPct)}`}>
@@ -467,7 +466,7 @@ export default function AssetsPage() {
             {isFiltered && (
               <p className="text-xs font-mono text-text-tertiary mt-1">
                 {t('filtered')} {filteredSummary.gainPct >= 0 ? '+' : ''}
-                {filteredSummary.gainPct.toFixed(2)}%
+                {formatDecimal(filteredSummary.gainPct, 2)}%
               </p>
             )}
           </div>

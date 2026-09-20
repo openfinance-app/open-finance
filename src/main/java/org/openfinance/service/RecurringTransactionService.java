@@ -86,6 +86,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecurringTransactionService {
 
     private final RecurringTransactionRepository recurringTransactionRepository;
+    private final OperationHistoryService operationHistoryService;
     private final RecurringOccurrenceService occurrenceService;
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
@@ -177,6 +178,14 @@ public class RecurringTransactionService {
                 savedRecurringTransaction.getType(),
                 savedRecurringTransaction.getFrequency());
 
+        operationHistoryService.record(
+                userId,
+                org.openfinance.entity.EntityType.RECURRING_TRANSACTION,
+                savedRecurringTransaction.getId(),
+                request.getDescription(),
+                org.openfinance.entity.OperationType.CREATE,
+                (Object) null,
+                null);
         // Decrypt and return response with denormalized data
         return toResponseWithDecryption(savedRecurringTransaction);
     }

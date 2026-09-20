@@ -25,26 +25,29 @@ export interface AnimatedNumberProps {
 const easeOutExpo = (t: number): number => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t));
 
 export function AnimatedNumber({ value, format, duration = 900, className }: AnimatedNumberProps) {
-  const [display, setDisplay] = useState(() => format(value));
-  const fromRef = useRef(0);
+  const [display, setDisplay] = useState(value);
+  const fromRef = useRef(value);
   const rafRef = useRef<number>(null);
 
   useEffect(() => {
     const prefersReduced =
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) {
+    if (prefersReduced || duration <= 0) {
       fromRef.current = value;
-      setDisplay(format(value));
+      setDisplay(value);
       return;
     }
 
     // Skip the ramp for hidden tabs (rAF is throttled) and no-op changes
     const from = fromRef.current;
-    if (from === value) return;
+    if (from === value) {
+      setDisplay(value);
+      return;
+    }
     if (typeof document !== 'undefined' && document.hidden) {
       fromRef.current = value;
-      setDisplay(format(value));
+      setDisplay(value);
       return;
     }
 
@@ -52,7 +55,8 @@ export function AnimatedNumber({ value, format, duration = 900, className }: Ani
     const tick = (now: number) => {
       const progress = Math.min((now - start) / duration, 1);
       const current = from + (value - from) * easeOutExpo(progress);
-      setDisplay(format(current));
+      fromRef.current = current;
+      setDisplay(current);
       if (progress < 1) {
         rafRef.current = requestAnimationFrame(tick);
       } else {
@@ -62,15 +66,13 @@ export function AnimatedNumber({ value, format, duration = 900, className }: Ani
     rafRef.current = requestAnimationFrame(tick);
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-      fromRef.current = value;
     };
-    // `format` is expected to be a stable pure formatter
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, duration]);
 
   return (
     <span className={cn('number-display', className)} aria-live="off">
-      {display}
+      <span aria-hidden={display !== value ? true : undefined}>{format(display)}</span>
+      {display !== value && <span className="sr-only">{format(value)}</span>}
     </span>
   );
 }

@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 import { useMemo, useState } from 'react';
 import {
   BarChart,
@@ -309,7 +310,7 @@ export default function BalanceVariationCard({
                   }`}
                 >
                   {d.variationPercentage >= 0 ? '+' : ''}
-                  {d.variationPercentage.toFixed(1)}%
+                  {formatDecimal(d.variationPercentage, 1)}%
                 </div>
               )}
             </div>

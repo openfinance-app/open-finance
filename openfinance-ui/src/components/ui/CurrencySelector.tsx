@@ -1,3 +1,4 @@
+import { getCurrencyDisplayName } from '@/utils/currency';
 /**
  * CurrencySelector component
  * Sprint 6 - Task 6.2.11: Multi-currency support
@@ -114,7 +115,7 @@ export function CurrencySelector({
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const visibleCurrencies = normalizedQuery
     ? baseCurrencies.filter((currency: Currency) => {
-        const translatedName = t(`currency.${currency.code}`, { defaultValue: currency.name });
+        const translatedName = getCurrencyDisplayName(currency, t);
         return [currency.code, translatedName, currency.name, currency.symbol]
           .filter(Boolean)
           .some(v => v.toLowerCase().includes(normalizedQuery));
@@ -124,7 +125,7 @@ export function CurrencySelector({
   const selectedCurrency = value ? currencies.find((c: Currency) => c.code === value) : undefined;
 
   const selectedTranslatedName = selectedCurrency
-    ? t(`currency.${selectedCurrency.code}`, { defaultValue: selectedCurrency.name })
+    ? getCurrencyDisplayName(selectedCurrency, t)
     : undefined;
 
   const handleSelect = (code: string | undefined) => {
@@ -233,9 +234,7 @@ export function CurrencySelector({
               <div className="p-3 text-center text-sm text-text-muted">{t('noMatch')}</div>
             ) : (
               visibleCurrencies.map((currency: Currency) => {
-                const translatedName = t(`currency.${currency.code}`, {
-                  defaultValue: currency.name,
-                });
+                const translatedName = getCurrencyDisplayName(currency, t);
                 return (
                   <button
                     key={currency.code}
@@ -312,7 +311,7 @@ export function CurrencySelectorCompact({
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const visibleCurrencies = normalizedQuery
     ? currencies.filter((currency: Currency) => {
-        const translatedName = t(`currency.${currency.code}`, { defaultValue: currency.name });
+        const translatedName = getCurrencyDisplayName(currency, t);
         return [currency.code, translatedName, currency.name, currency.symbol]
           .filter(Boolean)
           .some(v => v.toLowerCase().includes(normalizedQuery));

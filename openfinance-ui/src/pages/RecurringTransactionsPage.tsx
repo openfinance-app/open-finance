@@ -25,6 +25,7 @@ import {
   useDeleteRecurringTransaction,
   usePauseRecurringTransaction,
   useResumeRecurringTransaction,
+  useProcessRecurringTransactions,
 } from '@/hooks/useRecurringTransactions';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useCategories } from '@/hooks/useTransactions';
@@ -79,6 +80,7 @@ export default function RecurringTransactionsPage() {
   const deleteMutation = useDeleteRecurringTransaction();
   const pauseMutation = usePauseRecurringTransaction();
   const resumeMutation = useResumeRecurringTransaction();
+  const processMutation = useProcessRecurringTransactions();
 
   const recurringTransactions = recurringTransactionsPage?.content || [];
   const allRecurring = allRecurringPage?.content || [];
@@ -217,6 +219,25 @@ export default function RecurringTransactionsPage() {
     <div className="container mx-auto px-4 py-8">
       {/* Page Header */}
       <PageHeader title={t('title')} description={t('description')} />
+
+      <div className="mt-4 flex items-center gap-3">
+        <Button
+          variant="secondary"
+          disabled={dueCount === 0 || processMutation.isPending}
+          onClick={() => processMutation.mutate()}
+        >
+          {t(processMutation.isPending ? 'processing' : 'processDue')}
+        </Button>
+        {processMutation.data && (
+          <span role="status">
+            {t('processResult', {
+              count: processMutation.data.processedCount,
+              failed: processMutation.data.failedCount,
+            })}
+          </span>
+        )}
+        {processMutation.isError && <span role="alert">{t('processError')}</span>}
+      </div>
 
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">

@@ -23,7 +23,6 @@ import { useAdvancedSearch, useGlobalSearch, useSavedSearches } from '@/hooks/us
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useLocale } from '@/context/LocaleContext';
 import {
   type SearchResult,
   type AdvancedSearchRequest,
@@ -34,7 +33,7 @@ import {
   getResultRoute,
   highlightMatch,
 } from '@/types/search';
-import { formatDistanceToNow } from 'date-fns';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import * as Icons from 'lucide-react';
 
 export default function SearchResultsPage() {
@@ -356,7 +355,7 @@ interface ResultCardProps {
 }
 
 function ResultCard({ result, query, onClick, localizeSubtitle }: ResultCardProps) {
-  const { dateFnsLocale } = useLocale();
+  const { date: formatDate } = useDateFormatter();
 
   const getIcon = (iconName: string) => {
     const IconComponent = (Icons as any)[iconName] || Icons.Search;
@@ -411,12 +410,7 @@ function ResultCard({ result, query, onClick, localizeSubtitle }: ResultCardProp
 
         <div className="flex items-center gap-2 flex-wrap">
           {result.date && (
-            <span className="text-xs text-text-tertiary">
-              {formatDistanceToNow(new Date(result.date), {
-                addSuffix: true,
-                locale: dateFnsLocale,
-              })}
-            </span>
+            <span className="text-xs text-text-tertiary">{formatDate(result.date)}</span>
           )}
           {result.tags && result.tags.length > 0 && (
             <div className="flex gap-1 flex-wrap">

@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * RegimeComparisonGrid Component
  *
@@ -139,9 +140,10 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
             <div>
               <p className="text-sm text-muted-foreground">{t('regimeGrid.bestNetYield')}</p>
               <p className="text-2xl font-bold text-primary">
-                {Math.max(
-                  ...regimes.map(r => getRegimeResult(r)?.performance.netYield || 0)
-                ).toFixed(2)}
+                {formatDecimal(
+                  Math.max(...regimes.map(r => getRegimeResult(r)?.performance.netYield || 0)),
+                  2
+                )}
                 %
               </p>
             </div>
@@ -269,7 +271,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                     const result = getRegimeResult(regime);
                     return (
                       <td key={regime} className="text-center py-2 px-4">
-                        {result ? `${result.performance.grossYield.toFixed(2)}%` : '-'}
+                        {result ? `${formatDecimal(result.performance.grossYield, 2)}%` : '-'}
                       </td>
                     );
                   })}
@@ -285,7 +287,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                           regime === recommendedRegime ? 'text-green-600' : ''
                         }`}
                       >
-                        {result ? `${result.performance.netYield.toFixed(2)}%` : '-'}
+                        {result ? `${formatDecimal(result.performance.netYield, 2)}%` : '-'}
                       </td>
                     );
                   })}

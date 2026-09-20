@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { Plus, ChevronDown, GripVertical, SlidersHorizontal } from 'lucide-react';
@@ -215,6 +216,7 @@ function requestErrorMessage(error: unknown, fallback: string): string {
 }
 
 export default function DashboardPage() {
+  const { date: formatDate } = useDateFormatter();
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
   useDocumentTitle(t('title'));
@@ -381,7 +383,10 @@ export default function DashboardPage() {
   /** Human-readable label for the currently selected period */
   const periodLabel = useMemo((): string => {
     if (selectedPeriod === 'CUSTOM' && activeDateRange) {
-      return t('period.custom', { from: activeDateRange.from, to: activeDateRange.to });
+      return t('period.custom', {
+        from: formatDate(activeDateRange.from),
+        to: formatDate(activeDateRange.to),
+      });
     }
     switch (selectedPeriod) {
       case '1D':
@@ -399,7 +404,7 @@ export default function DashboardPage() {
       default:
         return t('period.lastNDays', { days: periodDays });
     }
-  }, [selectedPeriod, activeDateRange, periodDays, t]);
+  }, [selectedPeriod, activeDateRange, periodDays, t, formatDate]);
 
   // ── Date range used for card → transactions deep links ─────────────────────
   const navDateRange: DateRange = useMemo(
@@ -830,7 +835,7 @@ export default function DashboardPage() {
             {t('title')}
           </h1>
           <p className="text-text-secondary text-sm">
-            {t('subtitle', { date: summary.snapshotDate })}
+            {t('subtitle', { date: formatDate(summary.snapshotDate) })}
           </p>
         </div>
 

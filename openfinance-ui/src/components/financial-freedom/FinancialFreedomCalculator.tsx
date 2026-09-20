@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 import { useCallback } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { useFinancialFreedom } from '../../hooks/useFinancialFreedom';
@@ -528,7 +529,7 @@ function FreedomResults({
             <Progress value={result.progressPercentage} className="h-3" />
             <p className="text-center text-sm text-muted-foreground">
               {t('financialFreedom.results.percentOfGoal', {
-                pct: result.progressPercentage.toFixed(1),
+                pct: formatDecimal(result.progressPercentage, 1),
               })}
             </p>
           </div>

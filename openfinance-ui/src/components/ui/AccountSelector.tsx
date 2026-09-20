@@ -223,7 +223,6 @@ export function AccountSelector({
                         amount={account.balance}
                         currency={account.currency}
                         inline
-                        compact
                       />
                     </span>
                   )}

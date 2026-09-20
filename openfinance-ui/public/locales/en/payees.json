@@ -64,5 +64,7 @@
     "cancel": "Cancel",
     "confirm": "Delete",
     "error": "Cannot delete this payee"
-  }
+  },
+  "transactions_one": "{{count}} transaction",
+  "transactions_other": "{{count}} transactions"
 }

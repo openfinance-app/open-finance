@@ -85,8 +85,8 @@ export interface IHistoricalDataPoint {
 export interface IPortfolioPerformance {
   label: string;
   currentValue: number;
-  changeAmount: number;
-  changePercentage: number;
+  changeAmount: number | null;
+  changePercentage: number | null;
   currency: string;
   sparklineData: IHistoricalDataPoint[];
 }
@@ -102,7 +102,7 @@ export interface IBorrowingCapacity {
   debtToIncomeRatio: number;
   recommendedMaxBorrowing: number;
   availableBorrowingCapacity: number;
-  financialHealthStatus: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR';
+  financialHealthStatus: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR' | 'INSUFFICIENT_DATA';
   currency: string;
   analysisPeriod: number;
 }

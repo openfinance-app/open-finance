@@ -81,7 +81,8 @@
       "title": "Annuler l'importation ?",
       "description": "Une importation est en cours. Si vous partez maintenant, elle sera annulée et toutes les modifications effectuées lors de la révision seront perdues.",
       "stay": "Rester",
-      "leave": "Quitter quand même"
+      "leave": "Quitter quand même",
+      "failed": "L’annulation a échoué. Veuillez réessayer."
     },
     "accountSelection": {
       "description": "Choisissez le compte pour ces transactions, ou laissez vide pour laisser l'assistant en créer un automatiquement.",
@@ -100,7 +101,8 @@
       "autoCreateLabel": "Création automatique : \"{{name}}\"",
       "leaveBlank": "Laissez vide pour créer automatiquement",
       "label": "Compte"
-    }
+    },
+    "openingDateNotice": "Si une opération importée précède la date d’ouverture du compte, cette date est avancée pour inclure l’opération dans l’historique des soldes."
   },
   "upload": {
     "dropHere": "Déposez votre fichier ici",
@@ -131,7 +133,9 @@
       "transactions": "transactions",
       "categorized": "catégorisées",
       "duplicates": "doublons",
-      "errors": "erreurs"
+      "errors": "erreurs",
+      "transactions_one": "transaction",
+      "transactions_other": "transactions"
     },
     "filters": {
       "all": "Tout",
@@ -149,7 +153,9 @@
     "categoryAssignments": {
       "title": "Affectations de catégories ({{count}} catégories uniques)",
       "notMapped": "non mappé",
-      "footer": "Les mappages de catégories sont appliqués automatiquement lorsque vous confirmez l'importation. Les catégories non mappées resteront non assignées sur les transactions importées."
+      "footer": "Les mappages de catégories sont appliqués automatiquement lorsque vous confirmez l'importation. Les catégories non mappées resteront non assignées sur les transactions importées.",
+      "title_one": "Affectations de catégories ({{count}} catégorie unique)",
+      "title_other": "Affectations de catégories ({{count}} catégories uniques)"
     },
     "bulk": {
       "selected": "{{count}} sélectionnés",
@@ -177,7 +183,11 @@
       "status": "État",
       "validationErrors": "Erreurs de validation",
       "splitLines": "Lignes ventilées"
-    }
+    },
+    "autoAssignedCount_one": "{{count}} transaction automatiquement assignée.",
+    "autoAssignedCount_other": "{{count}} transactions automatiquement assignées.",
+    "categorizationHint_one": "{{count}} transaction nécessite encore une affectation de catégorie.",
+    "categorizationHint_other": "{{count}} transactions nécessitent encore une affectation de catégorie."
   },
   "progress": {
     "preparing": "Préparation de l'importation...",

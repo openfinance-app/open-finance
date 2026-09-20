@@ -252,7 +252,11 @@ export function CategorySelect({
                   </span>
                   <span>{selectedCategory.name}</span>
                   <span className="text-xs text-text-tertiary">
-                    ({selectedCategory.transactionCount || 0} txns)
+                    (
+                    {t('categories:transactionCount', {
+                      count: selectedCategory.transactionCount || 0,
+                    })}
+                    )
                   </span>
                 </span>
               ) : (

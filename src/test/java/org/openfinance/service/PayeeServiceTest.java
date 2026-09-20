@@ -33,6 +33,8 @@ import org.openfinance.repository.TransactionRepository;
 @ExtendWith(MockitoExtension.class)
 class PayeeServiceTest {
 
+    @Mock private OperationHistoryService operationHistoryService;
+
     @Mock private PayeeRepository payeeRepository;
 
     @Mock private CategoryRepository categoryRepository;
@@ -43,10 +45,41 @@ class PayeeServiceTest {
 
     @Mock private SearchTokenService searchTokenService;
 
+    @Mock private TransactionService transactionService;
+
     @InjectMocks private PayeeService payeeService;
 
     private Payee existingPayee;
     private static final Long USER_ID = 1L;
+
+    @Test
+    @DisplayName("Renaming a custom payee updates owned linked transactions and their search index")
+    void renameUpdatesLinkedTransactions() {
+        existingPayee.setUserId(USER_ID);
+        existingPayee.setIsSystem(false);
+        org.openfinance.entity.Transaction transaction =
+                org.openfinance.entity.Transaction.builder()
+                        .id(10L)
+                        .userId(USER_ID)
+                        .payeeId(existingPayee.getId())
+                        .payee(existingPayee.getName())
+                        .amount(new java.math.BigDecimal("950.00"))
+                        .description("Payment")
+                        .build();
+        when(payeeRepository.findById(existingPayee.getId()))
+                .thenReturn(Optional.of(existingPayee));
+        when(payeeRepository.save(existingPayee)).thenReturn(existingPayee);
+        when(transactionRepository.findByUserIdAndPayeeId(USER_ID, existingPayee.getId()))
+                .thenReturn(List.of(transaction));
+
+        payeeService.updatePayee(
+                existingPayee.getId(), PayeeRequest.builder().name("New name").build(), USER_ID);
+
+        assertThat(transaction.getPayee()).isEqualTo("New name");
+        assertThat(transaction.getAmount()).isEqualByComparingTo("950.00");
+        verify(transactionRepository).saveAll(List.of(transaction));
+        verify(transactionService).syncTransactionFts(transaction, "Payment", null);
+    }
 
     @BeforeEach
     void setUp() {

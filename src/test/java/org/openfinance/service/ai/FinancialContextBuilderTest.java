@@ -49,6 +49,8 @@ class FinancialContextBuilderTest {
 
     @Mock private NetWorthService netWorthService;
 
+    @Mock private org.openfinance.service.ExchangeRateService exchangeRateService;
+
     @Mock private EncryptionService encryptionService;
 
     @Mock private MessageSource messageSource;
@@ -58,6 +60,67 @@ class FinancialContextBuilderTest {
     @InjectMocks private FinancialContextBuilder contextBuilder;
 
     private Long userId;
+
+    @Test
+    @DisplayName("Always grounds chat in converted balances and complete month-to-date cash flow")
+    void suppliesAuthoritativeTotalsIncludingMinimalContext() {
+        when(defaultCurrencyProvider.resolveForUser(userId)).thenReturn("EUR");
+        when(accountRepository.findByUserIdAndIsActive(userId, true))
+                .thenReturn(
+                        List.of(
+                                Account.builder()
+                                        .name("Checking")
+                                        .type(AccountType.CHECKING)
+                                        .currency("EUR")
+                                        .balance(new BigDecimal("11834.21"))
+                                        .build(),
+                                Account.builder()
+                                        .name("Savings")
+                                        .type(AccountType.SAVINGS)
+                                        .currency("USD")
+                                        .balance(new BigDecimal("1000"))
+                                        .build()));
+        when(exchangeRateService.convert(new BigDecimal("1000"), "USD", "EUR"))
+                .thenReturn(new BigDecimal("1100"));
+        when(netWorthService.calculateTotalAssets(userId, "EUR"))
+                .thenReturn(new BigDecimal("20000"));
+        when(netWorthService.calculateTotalLiabilities(userId, "EUR")).thenReturn(BigDecimal.ZERO);
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        userId, LocalDate.now().withDayOfMonth(1), LocalDate.now()))
+                .thenReturn(
+                        List.of(
+                                Transaction.builder()
+                                        .type(TransactionType.INCOME)
+                                        .amount(new BigDecimal("3245.20"))
+                                        .currency("EUR")
+                                        .build(),
+                                Transaction.builder()
+                                        .type(TransactionType.EXPENSE)
+                                        .amount(new BigDecimal("2460.24"))
+                                        .currency("EUR")
+                                        .build(),
+                                Transaction.builder()
+                                        .type(TransactionType.EXPENSE)
+                                        .amount(new BigDecimal("500"))
+                                        .currency("EUR")
+                                        .transferId("internal")
+                                        .build(),
+                                Transaction.builder()
+                                        .type(TransactionType.EXPENSE)
+                                        .amount(new BigDecimal("99"))
+                                        .currency("EUR")
+                                        .isDeleted(true)
+                                        .build()));
+
+        String context = contextBuilder.buildMinimalContext(userId, Locale.FRENCH);
+
+        assertThat(context)
+                .contains(
+                        "Total Account Balances: 12,934.21 EUR",
+                        "Month-to-date income: 3,245.20 EUR",
+                        "Month-to-date expenses: 2,460.24 EUR",
+                        "Month-to-date cash flow: 784.96 EUR (surplus)");
+    }
 
     @BeforeEach
     void setUp() {
@@ -172,7 +235,7 @@ class FinancialContextBuilderTest {
             assertThat(context).contains("=== BUDGET STATUS");
 
             verify(accountRepository, times(1)).findByUserIdAndIsActive(userId, true);
-            verify(transactionRepository)
+            verify(transactionRepository, times(2))
                     .findByUserIdAndDateBetween(
                             eq(userId), any(LocalDate.class), any(LocalDate.class));
             verify(assetRepository).findByUserId(userId);

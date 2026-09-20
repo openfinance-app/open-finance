@@ -7,6 +7,7 @@
  * @since Sprint 11 - AI Assistant Integration
  */
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   TrendingUp,
   TrendingDown,
@@ -17,7 +18,6 @@ import {
   Target,
   Lightbulb,
 } from 'lucide-react';
-import type { SuggestedPrompt } from '@/types/ai';
 
 interface SuggestedPromptsProps {
   /** Handler for when a prompt is selected */
@@ -30,55 +30,15 @@ interface SuggestedPromptsProps {
 /**
  * Predefined suggested prompts for common financial queries
  */
-const SUGGESTED_PROMPTS: SuggestedPrompt[] = [
-  {
-    label: 'Analyze My Spending',
-    question: 'Can you analyze my spending patterns and tell me where most of my money is going?',
-    icon: 'TrendingDown',
-    category: 'spending',
-  },
-  {
-    label: 'Budget Recommendations',
-    question: 'Based on my income and expenses, what budget recommendations do you have for me?',
-    icon: 'Target',
-    category: 'budgeting',
-  },
-  {
-    label: 'Investment Performance',
-    question: 'How is my investment portfolio performing? What are my best and worst performers?',
-    icon: 'TrendingUp',
-    category: 'investing',
-  },
-  {
-    label: 'Debt Strategy',
-    question: 'What strategy should I follow to pay off my debts most efficiently?',
-    icon: 'CreditCard',
-    category: 'debt',
-  },
-  {
-    label: 'Savings Goals',
-    question: 'How much should I be saving each month to reach my financial goals?',
-    icon: 'PiggyBank',
-    category: 'general',
-  },
-  {
-    label: 'Cash Flow Analysis',
-    question: 'What does my cash flow look like? Am I spending more than I earn?',
-    icon: 'DollarSign',
-    category: 'general',
-  },
-  {
-    label: 'Financial Summary',
-    question: 'Can you give me an overall summary of my current financial situation?',
-    icon: 'BarChart3',
-    category: 'general',
-  },
-  {
-    label: 'Money-Saving Tips',
-    question: 'What are some practical tips to reduce my expenses and save more money?',
-    icon: 'Lightbulb',
-    category: 'general',
-  },
+const SUGGESTED_PROMPTS = [
+  { key: 'analyzeSpending', icon: 'TrendingDown' },
+  { key: 'budgetRecommendations', icon: 'Target' },
+  { key: 'investmentPerformance', icon: 'TrendingUp' },
+  { key: 'debtStrategy', icon: 'CreditCard' },
+  { key: 'savingsGoals', icon: 'PiggyBank' },
+  { key: 'cashFlowAnalysis', icon: 'DollarSign' },
+  { key: 'financialSummary', icon: 'BarChart3' },
+  { key: 'moneySavingTips', icon: 'Lightbulb' },
 ];
 
 /**
@@ -102,18 +62,19 @@ export const SuggestedPrompts: React.FC<SuggestedPromptsProps> = ({
   onSelectPrompt,
   disabled = false,
 }) => {
+  const { t } = useTranslation('ai');
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium text-text-secondary">Suggested Questions</h3>
+      <h3 className="text-sm font-medium text-text-secondary">{t('suggestedQuestions')}</h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {SUGGESTED_PROMPTS.map((prompt, index) => {
+        {SUGGESTED_PROMPTS.map(prompt => {
           const Icon = ICON_MAP[prompt.icon || 'Lightbulb'];
 
           return (
             <button
-              key={index}
-              onClick={() => onSelectPrompt(prompt.question)}
+              key={prompt.key}
+              onClick={() => onSelectPrompt(t(`prompts.${prompt.key}.question`))}
               disabled={disabled}
               className="flex items-center gap-3 p-4 bg-surface border border-border rounded-lg hover:border-blue-500 hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-border text-left"
             >
@@ -122,7 +83,9 @@ export const SuggestedPrompts: React.FC<SuggestedPromptsProps> = ({
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-text-primary truncate">{prompt.label}</p>
+                <p className="text-sm font-medium text-text-primary truncate">
+                  {t(`prompts.${prompt.key}.label`)}
+                </p>
               </div>
             </button>
           );

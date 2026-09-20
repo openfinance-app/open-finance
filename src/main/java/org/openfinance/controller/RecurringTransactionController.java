@@ -46,7 +46,7 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>DELETE /api/v1/recurring-transactions/{id} - Delete recurring transaction
  *   <li>POST /api/v1/recurring-transactions/{id}/pause - Pause recurring transaction
  *   <li>POST /api/v1/recurring-transactions/{id}/resume - Resume recurring transaction
- *   <li>POST /api/v1/recurring-transactions/process - Manual trigger (admin only)
+ *   <li>POST /api/v1/recurring-transactions/process - Manual trigger for the authenticated user
  * </ul>
  *
  * <p><strong>Security:</strong>
@@ -647,18 +647,18 @@ public class RecurringTransactionController {
     }
 
     /**
-     * Manual trigger for processing recurring transactions (admin only).
+     * Process due recurring transactions owned by the authenticated user.
      *
      * <p>This endpoint allows manual processing of recurring transactions outside of the scheduled
      * time. Useful for testing or recovering from a failed scheduled job.
      *
-     * <p><strong>Warning:</strong> This endpoint should only be called by administrators to avoid
-     * processing recurring transactions multiple times in a single day.
+     * <p>Occurrence processing locks each schedule and advances its next date atomically, so
+     * repeated calls do not generate the same occurrence twice.
      *
      * <p><strong>Request Headers:</strong>
      *
      * <ul>
-     *   <li>Authorization: Bearer {jwt_token} (admin role required)
+     *   <li>Authorization: Bearer {jwt_token}
      * </ul>
      *
      * <p><strong>Success Response (HTTP 200 OK):</strong>

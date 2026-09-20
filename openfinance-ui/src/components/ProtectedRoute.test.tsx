@@ -94,6 +94,6 @@ describe('ProtectedRoute', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText('protected')).toBeTruthy();
+    expect(await screen.findByText('protected')).toBeTruthy();
   });
 });

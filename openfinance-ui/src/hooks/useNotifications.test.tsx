@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
@@ -7,6 +7,9 @@ import {
   useNotificationCount,
   useUpdateExchangeRatesFromNotification,
 } from './useNotifications';
+import { AuthProvider } from '@/context/AuthContext';
+import { mockAuthentication } from '@/test/test-utils';
+import { useNotificationReadState } from '@/stores/notificationReadState';
 import apiClient from '@/services/apiClient';
 
 vi.mock('@/services/apiClient');
@@ -22,10 +25,14 @@ describe('useNotifications', () => {
       },
     });
     vi.clearAllMocks();
+    mockAuthentication();
+    useNotificationReadState.setState({ seen: {} });
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>{children}</AuthProvider>
+    </QueryClientProvider>
   );
 
   const mockNotifications = [
@@ -78,7 +85,7 @@ describe('useNotifications', () => {
 
   describe('useNotificationCount', () => {
     it('should fetch notification count successfully', async () => {
-      mockedApiClient.get.mockResolvedValue({ data: 3 });
+      mockedApiClient.get.mockResolvedValue({ data: mockNotifications });
 
       const { result } = renderHook(() => useNotificationCount(), { wrapper });
 
@@ -86,12 +93,12 @@ describe('useNotifications', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(result.current.data).toBe(3);
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/notifications/count');
+      expect(result.current.data).toBe(2);
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/notifications');
     });
 
     it('should handle zero count', async () => {
-      mockedApiClient.get.mockResolvedValue({ data: 0 });
+      mockedApiClient.get.mockResolvedValue({ data: [] });
 
       const { result } = renderHook(() => useNotificationCount(), { wrapper });
 
@@ -101,6 +108,35 @@ describe('useNotifications', () => {
 
       expect(result.current.data).toBe(0);
     });
+  });
+
+  it('acknowledges conditions per user and makes changed or returning conditions unread', async () => {
+    mockedApiClient.get.mockResolvedValue({ data: mockNotifications });
+    const { result } = renderHook(() => useNotificationCount(), { wrapper });
+    await waitFor(() => expect(result.current.data).toBe(2));
+    act(() => useNotificationReadState.getState().markRead('1', mockNotifications[0]));
+    await waitFor(() => expect(result.current.data).toBe(1));
+    act(() => useNotificationReadState.getState().markRead('2', mockNotifications[1]));
+    expect(result.current.data).toBe(1);
+    mockedApiClient.get.mockResolvedValue({
+      data: [{ ...mockNotifications[0], count: 6 }, mockNotifications[1]],
+    });
+    await act(async () => {
+      await result.current.refetch();
+    });
+    expect(result.current.data).toBe(2);
+    act(() => useNotificationReadState.getState().markRead('1', mockNotifications[1]));
+    expect(result.current.data).toBe(1);
+    mockedApiClient.get.mockResolvedValue({ data: [] });
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.data).toBe(0));
+    mockedApiClient.get.mockResolvedValue({ data: mockNotifications });
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.data).toBe(2));
   });
 
   describe('useUpdateExchangeRatesFromNotification', () => {

@@ -1,3 +1,5 @@
+import { formatDecimal } from '@/utils/format';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
  * LiabilityList Component
  * Task 6.2.1: Create LiabilityList component
@@ -42,6 +44,7 @@ export function LiabilityList({
   const [deletingLiability, setDeletingLiability] = useState<Liability | null>(null);
   const { t: tc } = useTranslation('common');
   const { t } = useTranslation('liabilities');
+  const { date: formatDate } = useDateFormatter();
 
   useEffect(() => {
     if (highlightedId && liabilities.length > 0) {
@@ -150,7 +153,7 @@ export function LiabilityList({
                       size="sm"
                       onClick={() => onViewDetails(liability)}
                       aria-label={tc('aria.viewLiabilityDetails')}
-                      title={tc('viewPropertyDetails')}
+                      title={tc('aria.viewPropertyDetails')}
                     >
                       <BarChart2 className="h-4 w-4" />
                     </Button>
@@ -224,12 +227,12 @@ export function LiabilityList({
                     </div>
                     <div className="text-sm font-mono text-text-primary">
                       {liability.interestRate != null
-                        ? `${liability.interestRate.toFixed(2)}%`
+                        ? `${formatDecimal(liability.interestRate, 2)}%`
                         : '—'}
                       {liability.insurancePercentage && liability.insurancePercentage > 0 && (
                         <span className="text-text-tertiary">
                           {' '}
-                          / {liability.insurancePercentage.toFixed(2)}%
+                          / {formatDecimal(liability.insurancePercentage, 2)}%
                         </span>
                       )}
                     </div>
@@ -284,7 +287,7 @@ export function LiabilityList({
                 <div className="mb-3">
                   <div className="flex justify-between text-xs text-text-secondary mb-1">
                     <span>{t('list.paidOff')}</span>
-                    <span>{progress.toFixed(1)}%</span>
+                    <span>{formatDecimal(progress, 1)}%</span>
                   </div>
                   <div className="h-2 bg-surface-elevated rounded-full overflow-hidden">
                     <div
@@ -301,12 +304,10 @@ export function LiabilityList({
                     <>
                       {t('list.monthsRemaining', { count: monthsRemaining })}
                       {' • '}
-                      {t('list.ends', { date: new Date(liability.endDate).toLocaleDateString() })}
+                      {t('list.ends', { date: formatDate(liability.endDate) })}
                     </>
                   ) : (
-                    <>
-                      {t('list.ended', { date: new Date(liability.endDate).toLocaleDateString() })}
-                    </>
+                    <>{t('list.ended', { date: formatDate(liability.endDate) })}</>
                   )}
                 </div>
               )}

@@ -491,7 +491,7 @@ public class UserService {
             log.warn(
                     "Password update failed for user {}: invalid current password",
                     user.getUsername());
-            throw new IllegalArgumentException("Current password is incorrect");
+            throw new org.openfinance.exception.InvalidCurrentPasswordException();
         }
 
         // 3. Hash new password

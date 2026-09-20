@@ -33,7 +33,7 @@ function PerformanceCard({ performance, t }: { performance: IPortfolioPerformanc
   } = useSecondaryConversion(currency);
 
   // Determine trend direction
-  const isPositive = changeAmount >= 0;
+  const isPositive = changeAmount != null && changeAmount > 0;
   const isNeutral = changeAmount === 0;
 
   // Prepare sparkline data (recharts expects specific format)
@@ -72,37 +72,43 @@ function PerformanceCard({ performance, t }: { performance: IPortfolioPerformanc
       </p>
 
       {/* Change Indicator */}
-      <div className="flex items-center gap-2 mb-3">
-        <TrendIcon
-          className={`h-4 w-4 ${
-            isPositive ? 'text-green-500' : isNeutral ? 'text-text-muted' : 'text-red-500'
-          }`}
-        />
-        <span
-          className={`text-sm font-semibold ${
-            isPositive ? 'text-green-500' : isNeutral ? 'text-text-muted' : 'text-red-500'
-          }`}
-        >
-          {isPositive && '+'}
-          <ConvertedAmount
-            amount={changeAmount}
-            currency={currency}
-            isConverted={false}
-            secondaryAmount={convert(changeAmount)}
-            secondaryCurrency={secCurrency}
-            secondaryExchangeRate={secondaryExchangeRate}
-            inline
+      {changeAmount != null && changePercentage != null ? (
+        <div className="flex items-center gap-2 mb-3">
+          <TrendIcon
+            className={`h-4 w-4 ${
+              isPositive ? 'text-green-500' : isNeutral ? 'text-text-muted' : 'text-red-500'
+            }`}
           />
-        </span>
-        <span
-          className={`text-xs ${
-            isPositive ? 'text-green-500' : isNeutral ? 'text-text-muted' : 'text-red-500'
-          }`}
-        >
-          ({isPositive && '+'}
-          {formatPercentage(changePercentage)})
-        </span>
-      </div>
+          <span
+            className={`text-sm font-semibold ${
+              isPositive ? 'text-green-500' : isNeutral ? 'text-text-muted' : 'text-red-500'
+            }`}
+          >
+            {isPositive && '+'}
+            <ConvertedAmount
+              amount={changeAmount}
+              currency={currency}
+              isConverted={false}
+              secondaryAmount={convert(changeAmount)}
+              secondaryCurrency={secCurrency}
+              secondaryExchangeRate={secondaryExchangeRate}
+              inline
+            />
+          </span>
+          <span
+            className={`text-xs ${
+              isPositive ? 'text-green-500' : isNeutral ? 'text-text-muted' : 'text-red-500'
+            }`}
+          >
+            ({isPositive && '+'}
+            {formatPercentage(changePercentage)})
+          </span>
+        </div>
+      ) : (
+        <p className="text-xs text-text-secondary mb-3">
+          {t('portfolioPerformance.periodUnavailable')}
+        </p>
+      )}
 
       {/* Sparkline Chart */}
       {chartData.length > 0 ? (

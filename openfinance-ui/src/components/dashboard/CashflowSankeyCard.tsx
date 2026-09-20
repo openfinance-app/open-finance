@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useId, useState, useCallback, useRef, useMemo } from 'react';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
@@ -181,6 +182,7 @@ export default function CashflowSankeyCard({
   navDateRange,
 }: CashflowSankeyCardProps) {
   const { t } = useTranslation('dashboard');
+  const { date: formatDate } = useDateFormatter();
   const { isAmountsVisible } = useVisibility();
   const { format } = useFormatCurrency();
   const navigate = useNavigate();
@@ -337,7 +339,7 @@ export default function CashflowSankeyCard({
         {/* Period label — read-only, driven by global selector */}
         {dateRange ? (
           <span className="text-xs text-text-secondary bg-surface-elevated px-2 py-1 rounded border border-border">
-            {dateRange.from} → {dateRange.to}
+            {formatDate(dateRange.from)} → {formatDate(dateRange.to)}
           </span>
         ) : (
           <span className="text-xs text-text-secondary">

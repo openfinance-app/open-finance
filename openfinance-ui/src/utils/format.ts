@@ -10,6 +10,22 @@
 import { DEFAULT_CURRENCY, getCurrencyDecimals } from './currency';
 import i18n from '@/i18n';
 
+/** Use the same persisted number preference as monetary amounts. */
+function numberLocale(): string | undefined {
+  const locales: Record<string, string> = {
+    '1,234.56': 'en-US',
+    '1.234,56': 'de-DE',
+    '1 234,56': 'fr-FR',
+  };
+  try {
+    const preference = localStorage.getItem('open_finance_number_format');
+    if (preference && locales[preference]) return locales[preference];
+  } catch {
+    // Fall back to the active language when storage is unavailable.
+  }
+  return i18n.language || undefined;
+}
+
 /**
  * Format currency with proper thousand separators.
  * Uses fr-FR style as the display default (space thousands, comma decimal).
@@ -47,7 +63,7 @@ export function formatPercentage(value: number, decimals = 2): string {
  * Example: formatDecimal(72.45, 1) => "72,45" (fr), "72.45" (en)
  */
 export function formatDecimal(value: number, decimals = 2): string {
-  return new Intl.NumberFormat(i18n.language || undefined, {
+  return new Intl.NumberFormat(numberLocale(), {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(value);

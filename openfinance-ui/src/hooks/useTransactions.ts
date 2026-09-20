@@ -147,6 +147,8 @@ export function useCreateTransaction() {
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['session-history-exists'] });
       // Invalidate transactions and accounts queries
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
@@ -175,6 +177,8 @@ export function useCreateTransfer() {
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['session-history-exists'] });
       // Invalidate transactions and accounts queries
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
@@ -307,6 +311,8 @@ export function useCreateCategory() {
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['session-history-exists'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
     },
   });

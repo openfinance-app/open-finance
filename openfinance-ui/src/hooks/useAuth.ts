@@ -306,12 +306,14 @@ export function useCompleteOnboarding() {
       const response = await apiClient.post<UserSettings>('/users/me/onboarding', data);
       return response.data;
     },
-    onSuccess: (_settings: UserSettings, variables: OnboardingRequest) => {
+    onSuccess: (settings: UserSettings, variables: OnboardingRequest) => {
       // Sync the base currency into auth context so the whole app updates immediately
       updateUser({ baseCurrency: variables.baseCurrency });
       // Sync the amount display mode into context (and localStorage)
       setDisplayMode(variables.amountDisplayMode);
-      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+      queryClient.setQueryData(['user', 'settings'], settings);
+      queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      sessionStorage.removeItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC);
       navigate(ROUTES.DASHBOARD, { replace: true });
     },
     onError: error => {

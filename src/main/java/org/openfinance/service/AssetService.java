@@ -202,14 +202,16 @@ public class AssetService {
         AssetResponse assetCreateResponse = toResponseWithDecryption(savedAsset);
 
         // Record in operation history
-        operationHistoryService.record(
-                userId,
-                org.openfinance.entity.EntityType.ASSET,
-                savedAsset.getId(),
-                request.getName(),
-                org.openfinance.entity.OperationType.CREATE,
-                (Object) null,
-                null);
+        if (!propertyWrite) {
+            operationHistoryService.record(
+                    userId,
+                    org.openfinance.entity.EntityType.ASSET,
+                    savedAsset.getId(),
+                    request.getName(),
+                    org.openfinance.entity.OperationType.CREATE,
+                    (Object) null,
+                    null);
+        }
 
         return assetCreateResponse;
     }
@@ -370,14 +372,16 @@ public class AssetService {
         AssetResponse assetUpdateResponse = toResponseWithDecryption(updatedAsset);
 
         // Record in operation history
-        operationHistoryService.record(
-                userId,
-                org.openfinance.entity.EntityType.ASSET,
-                assetId,
-                request.getName(),
-                org.openfinance.entity.OperationType.UPDATE,
-                beforeAssetSnapshot,
-                null);
+        if (!propertyWrite) {
+            operationHistoryService.record(
+                    userId,
+                    org.openfinance.entity.EntityType.ASSET,
+                    assetId,
+                    request.getName(),
+                    org.openfinance.entity.OperationType.UPDATE,
+                    beforeAssetSnapshot,
+                    null);
+        }
 
         return assetUpdateResponse;
     }
@@ -581,14 +585,16 @@ public class AssetService {
         log.info("Asset deleted successfully: id={}, userId={}", assetId, userId);
 
         // Record in operation history
-        operationHistoryService.record(
-                userId,
-                org.openfinance.entity.EntityType.ASSET,
-                assetId,
-                label != null ? label : "Asset " + assetId,
-                org.openfinance.entity.OperationType.DELETE,
-                beforeDeleteSnapshot,
-                null);
+        if (!propertyWrite) {
+            operationHistoryService.record(
+                    userId,
+                    org.openfinance.entity.EntityType.ASSET,
+                    assetId,
+                    label != null ? label : "Asset " + assetId,
+                    org.openfinance.entity.OperationType.DELETE,
+                    beforeDeleteSnapshot,
+                    null);
+        }
     }
 
     /**

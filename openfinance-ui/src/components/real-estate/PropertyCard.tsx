@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * PropertyCard Component
  * Task 9.1.10: Create PropertyCard component
@@ -256,7 +257,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
                 />
                 <span>
                   ({property.appreciationPercentage >= 0 ? '+' : ''}
-                  {property.appreciationPercentage.toFixed(2)}%)
+                  {formatDecimal(property.appreciationPercentage, 2)}%)
                 </span>
               </span>
             </div>

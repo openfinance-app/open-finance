@@ -207,23 +207,19 @@ export const FloatingAIChat: React.FC = () => {
                   {[
                     {
                       label: t('prompt.spending', 'Analyze my spending'),
-                      question:
-                        'Can you analyze my spending patterns and tell me where most of my money is going?',
+                      question: t('prompts.analyzeSpending.question'),
                     },
                     {
                       label: t('prompt.budget', 'Budget advice'),
-                      question:
-                        'Based on my income and expenses, what budget recommendations do you have?',
+                      question: t('prompts.budgetRecommendations.question'),
                     },
                     {
                       label: t('prompt.summary', 'Financial summary'),
-                      question:
-                        'Can you give me an overall summary of my current financial situation?',
+                      question: t('prompts.financialSummary.question'),
                     },
                     {
                       label: t('prompt.savings', 'Savings tips'),
-                      question:
-                        'What are some practical tips to reduce my expenses and save more money?',
+                      question: t('prompts.moneySavingTips.question'),
                     },
                   ].map((p, i) => (
                     <button

@@ -133,6 +133,8 @@ export function useCreatePayee() {
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['session-history-exists'] });
       queryClient.invalidateQueries({ queryKey: ['payees'] });
     },
   });
@@ -151,6 +153,8 @@ export function useUpdatePayee() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payees'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['search'] });
     },
   });
 }

@@ -109,10 +109,11 @@
     "interestInsurance": "Interest / Insurance",
     "monthlyPayment": "Monthly Payment",
     "paidOff": "Paid Off",
-    "monthsRemaining_one": "{{count}} month remaining",
-    "monthsRemaining_other": "{{count}} months remaining",
-    "ends": "Ends {{date}}",
-    "ended": "Ended {{date}}"
+    "monthsRemaining_one": "{{count}} month to contractual end",
+    "monthsRemaining_other": "{{count}} months to contractual end",
+    "ends": "Contract ends {{date}}",
+    "ended": "Ended {{date}}",
+    "monthsRemaining": "{{count}} months to contractual end"
   },
   "filterOptions": {
     "searchLabel": "Search",
@@ -159,7 +160,9 @@
       "principal": "Principal",
       "interest": "Interest",
       "remainingBalance": "Remaining Balance"
-    }
+    },
+    "pastContract": "At this payment amount, estimated payoff is {{payoff}}, after the contractual end date {{contract}}. Review the payment amount or the contract terms.",
+    "incomplete": "This schedule does not repay the full balance. Review the payment amount and any interest-only period."
   },
   "breakdown": {
     "loadError": "Failed to load breakdown. Please try again.",

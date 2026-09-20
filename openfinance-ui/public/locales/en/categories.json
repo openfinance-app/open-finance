@@ -97,7 +97,8 @@
     "update": "Update",
     "create": "Create",
     "saving": "Saving...",
-    "saveError": "Failed to save category. Please check your input and try again."
+    "saveError": "Failed to save category. Please check your input and try again.",
+    "chooseIcon": "Choose icon {{icon}}"
   },
   "dialogs": {
     "delete": {
@@ -105,5 +106,7 @@
       "description": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
       "confirmText": "Delete"
     }
-  }
+  },
+  "transactionCount_one": "{{count}} transaction",
+  "transactionCount_other": "{{count}} transactions"
 }

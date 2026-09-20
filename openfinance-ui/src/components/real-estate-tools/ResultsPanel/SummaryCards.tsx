@@ -154,7 +154,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {t('results.inFavorOf', {
-                  winner:
+                  scenario:
                     comparison.winner === 'buy'
                       ? t('results.buyGenitive')
                       : t('results.rentGenitive'),

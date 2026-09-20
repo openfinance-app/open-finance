@@ -22,6 +22,16 @@ class CompoundInterestServiceTest {
         service = new CompoundInterestService();
     }
 
+    @Test
+    @DisplayName("Retain rate precision through ten years of monthly compounding")
+    void monthlyRateMustNotRoundFinalBalanceUpOneCent() {
+        CompoundInterestResult result = service.calculate(request("10000", "5", 12, 10));
+        assertEquals(new BigDecimal("16470.09"), result.getFinalBalance());
+        assertEquals(new BigDecimal("6470.09"), result.getTotalInterest());
+        assertEquals(
+                new BigDecimal("16470.09"), result.getYearlyBreakdown().get(9).getEndingBalance());
+    }
+
     // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------

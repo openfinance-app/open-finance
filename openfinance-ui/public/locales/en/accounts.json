@@ -2,7 +2,38 @@
   "title": "Accounts",
   "description": "Manage your financial accounts",
   "addAccount": "Add Account",
-  "filters": "Filters",
+  "filters": {
+    "search": "Search",
+    "accountType": "Account Type",
+    "currency": "Currency",
+    "status": "Status",
+    "sortBy": "Sort By",
+    "minBalance": "Min Balance",
+    "maxBalance": "Max Balance",
+    "institution": "Institution",
+    "allTypes": "All types",
+    "allAccounts": "All accounts",
+    "active": "Active",
+    "closed": "Closed",
+    "clear": "Clear",
+    "lowBalance": "Low Balance",
+    "types": {
+      "CHECKING": "Checking Account",
+      "SAVINGS": "Savings Account",
+      "CREDIT_CARD": "Credit Card",
+      "INVESTMENT": "Investment Account",
+      "CASH": "Cash",
+      "OTHER": "Other"
+    },
+    "sort": {
+      "nameAsc": "Name (A-Z)",
+      "nameDesc": "Name (Z-A)",
+      "balanceDesc": "Balance (High to Low)",
+      "balanceAsc": "Balance (Low to High)",
+      "newestFirst": "Newest First",
+      "oldestFirst": "Oldest First"
+    }
+  },
   "totalBalance": "Total Balance",
   "filtered": "Filtered:",
   "filteredCount": "({{filtered}} of {{total}} accounts)",
@@ -49,7 +80,7 @@
     "currentBalance": "Current Balance",
     "description": "Description (Optional)",
     "openingDate": "Opening Date",
-    "openingDateHint": "Start date used for balance history and interest accrual",
+    "openingDateHint": "Start date used for balance history and interest accrual. Adding or importing an earlier transaction moves this date back automatically.",
     "descriptionPlaceholder": "Add notes about this account...",
     "accountNamePlaceholder": "e.g., Main Checking",
     "accountNumberPlaceholder": "e.g., 1234567890",
@@ -118,38 +149,6 @@
     "description": "Description",
     "failedToLoad": "Failed to load account details.",
     "editTitle": "Edit Account"
-  },
-  "filters": {
-    "search": "Search",
-    "accountType": "Account Type",
-    "currency": "Currency",
-    "status": "Status",
-    "sortBy": "Sort By",
-    "minBalance": "Min Balance",
-    "maxBalance": "Max Balance",
-    "institution": "Institution",
-    "allTypes": "All types",
-    "allAccounts": "All accounts",
-    "active": "Active",
-    "closed": "Closed",
-    "clear": "Clear",
-    "lowBalance": "Low Balance",
-    "types": {
-      "CHECKING": "Checking Account",
-      "SAVINGS": "Savings Account",
-      "CREDIT_CARD": "Credit Card",
-      "INVESTMENT": "Investment Account",
-      "CASH": "Cash",
-      "OTHER": "Other"
-    },
-    "sort": {
-      "nameAsc": "Name (A-Z)",
-      "nameDesc": "Name (Z-A)",
-      "balanceDesc": "Balance (High to Low)",
-      "balanceAsc": "Balance (Low to High)",
-      "newestFirst": "Newest First",
-      "oldestFirst": "Oldest First"
-    }
   },
   "interest": {
     "historyTitle": "Interest Rate History",

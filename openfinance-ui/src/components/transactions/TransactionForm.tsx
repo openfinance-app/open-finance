@@ -275,7 +275,8 @@ function buildRepaymentAutoSplit(
   submitAmount: number,
   liabToAccount: number,
   categories: Category[],
-  decimals: number
+  decimals: number,
+  principalCategoryId?: number
 ): RepaymentAutoSplit {
   const interestLeg = roundToDecimals(multiply(preview.interest ?? 0, liabToAccount), decimals);
   const insuranceLeg = roundToDecimals(multiply(preview.insurance ?? 0, liabToAccount), decimals);
@@ -292,7 +293,11 @@ function buildRepaymentAutoSplit(
   const rows: TransactionSplitRequest[] = [];
   let principalRow: TransactionSplitRequest | undefined;
   if (principalLeg > 0) {
-    principalRow = { amount: principalLeg, categoryId: undefined, description: undefined };
+    principalRow = {
+      amount: principalLeg,
+      categoryId: principalCategoryId,
+      description: undefined,
+    };
     rows.push(principalRow);
   }
   if (interestLeg > 0) {
@@ -456,7 +461,8 @@ function buildTransactionRequest(ctx: SubmitContext): TransactionRequest {
       submitAmount,
       liabToAccount,
       categories,
-      decimals
+      decimals,
+      data.categoryId
     );
     finalSplits = autoSplit.splits;
     autoSplitCategoryId = autoSplit.categoryId;
@@ -604,7 +610,7 @@ export function TransactionForm({
           tags: transaction.tags || [],
           paymentMethod: transaction.paymentMethod || undefined,
           liabilityId: transaction.liabilityId,
-          movementType: transaction.movementType,
+          movementType: transaction.movementType ?? undefined,
           trancheId: transaction.trancheId,
           principalAmount: transaction.principalAmount,
           realEstateId: transaction.realEstateId,

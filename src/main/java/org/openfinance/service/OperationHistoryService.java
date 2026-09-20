@@ -2,6 +2,7 @@ package org.openfinance.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -191,7 +192,7 @@ public class OperationHistoryService {
     @Transactional
     public OperationHistoryResponse markUndone(Long historyId, Long userId) {
         OperationHistory entry = requireOwned(historyId, userId);
-        entry.setUndoneAt(LocalDateTime.now());
+        entry.setUndoneAt(LocalDateTime.now(ZoneOffset.UTC));
         entry.setRedoneAt(null);
         return toResponse(historyRepository.save(entry));
     }
@@ -204,7 +205,7 @@ public class OperationHistoryService {
     @Transactional
     public OperationHistoryResponse markRedone(Long historyId, Long userId) {
         OperationHistory entry = requireOwned(historyId, userId);
-        entry.setRedoneAt(LocalDateTime.now());
+        entry.setRedoneAt(LocalDateTime.now(ZoneOffset.UTC));
         return toResponse(historyRepository.save(entry));
     }
 

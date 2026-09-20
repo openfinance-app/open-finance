@@ -294,7 +294,12 @@ function TransactionItem({
 
   // The title line already shows the payee when there is no description, so only
   // repeat it on the metadata line when a description occupies the title.
-  const showPayeeInMeta = Boolean(transaction.payee && transaction.description);
+  const showPayeeInMeta = Boolean(
+    transaction.payee &&
+    transaction.description &&
+    transaction.payee.trim().toLocaleLowerCase() !==
+      transaction.description.trim().toLocaleLowerCase()
+  );
   const paymentMethodLabel = transaction.paymentMethod
     ? tl('form.paymentMethods.' + transaction.paymentMethod, {
         defaultValue: transaction.paymentMethod,

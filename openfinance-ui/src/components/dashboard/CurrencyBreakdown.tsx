@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * CurrencyBreakdown - Shows asset distribution across multiple currencies
  * Sprint 6 - Task 6.2.16: Multi-currency dashboard summary
@@ -358,7 +359,7 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency, onOpen }: CurrencyB
       <div className="flex items-center justify-between mt-1">
         <span className="text-xs text-text-secondary">
           {t('currencyBreakdown.percentOfTotal', {
-            percent: currencyBalance.percentage.toFixed(1),
+            percent: formatDecimal(currencyBalance.percentage, 1),
           })}
         </span>
         {isForeignCurrency && currencyBalance.rate && (

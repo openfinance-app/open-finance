@@ -868,7 +868,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.BAD_REQUEST.value())
                         .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                        .message(ex.getMessage())
+                        .message(resolveMessage(ex))
                         .path(getRequestPath(request))
                         .build();
 

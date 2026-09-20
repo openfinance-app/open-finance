@@ -129,12 +129,11 @@ describe('HistoryPage', () => {
       expect(undoButtons.length).toBeGreaterThan(0);
     });
 
-    it('should show redo buttons for entries', async () => {
+    it('hides redo when no entry supports it', async () => {
       renderWithProviders(<HistoryPage />);
       await screen.findByText('Weekly groceries');
 
-      const redoButtons = screen.getAllByRole('button', { name: /redo/i });
-      expect(redoButtons.length).toBeGreaterThan(0);
+      expect(screen.queryByRole('button', { name: /redo/i })).not.toBeInTheDocument();
     });
   });
 
@@ -170,7 +169,7 @@ describe('HistoryPage', () => {
       expect(historyService.undo).toHaveBeenCalledWith(1);
     });
 
-    it('should disable redo when the server reports it is unavailable', async () => {
+    it('keeps redo hidden immediately after undo when unsupported', async () => {
       const { historyService } = await import('@/services/historyService');
       // Being undone alone does not make redo available.
       (historyService.getHistory as any).mockResolvedValueOnce({
@@ -196,9 +195,7 @@ describe('HistoryPage', () => {
       renderWithProviders(<HistoryPage />);
       await screen.findByText('Undone item');
 
-      const redoButtons = screen.getAllByRole('button', { name: /redo/i });
-      await user.click(redoButtons[0]);
-      expect(redoButtons[0]).toBeDisabled();
+      expect(screen.queryByRole('button', { name: /redo/i })).not.toBeInTheDocument();
       expect(historyService.redo).not.toHaveBeenCalled();
     });
   });

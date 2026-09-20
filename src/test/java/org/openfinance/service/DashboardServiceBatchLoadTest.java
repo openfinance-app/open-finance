@@ -78,7 +78,8 @@ class DashboardServiceBatchLoadTest {
                         interestCalculatorService,
                         exchangeRateService,
                         defaultCurrencyProvider,
-                        new org.openfinance.config.BusinessRulesProperties());
+                        new org.openfinance.config.BusinessRulesProperties(),
+                        new org.springframework.context.support.StaticMessageSource());
         org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
                 defaultCurrencyProvider, userRepository);
     }

@@ -49,6 +49,21 @@ describe('RecurringTransactionCard', () => {
     Element.prototype.scrollIntoView = vi.fn();
   });
 
+  it('uses calendar days even late in the day', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 8, 19, 23, 45));
+    try {
+      renderWithProviders(
+        <RecurringTransactionCard
+          recurringTransaction={makeRecurring({ nextOccurrence: '2026-10-01' })}
+        />
+      );
+      expect(screen.getByText(/in 12 days/)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('renders description and account name', () => {
     renderWithProviders(<RecurringTransactionCard recurringTransaction={makeRecurring()} />);
     expect(screen.getByText('Monthly subscription')).toBeInTheDocument();

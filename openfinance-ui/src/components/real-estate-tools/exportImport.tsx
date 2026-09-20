@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * Export/Import Utilities for Real Estate Tools
  *
@@ -225,25 +226,25 @@ export function generatePDFContent(
           <tr>
             <td>Micro-Foncier</td>
             <td>${invResults.microFoncier.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no')}</td>
-            <td>${invResults.microFoncier.performance.netYield.toFixed(2)}%</td>
+            <td>${formatDecimal(invResults.microFoncier.performance.netYield, 2)}%</td>
             <td>${formatCurrency(invResults.microFoncier.performance.monthlyCashFlow, baseCurrency)}</td>
           </tr>
           <tr>
             <td>Réel Foncier</td>
             <td>${invResults.reelFoncier.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no')}</td>
-            <td>${invResults.reelFoncier.performance.netYield.toFixed(2)}%</td>
+            <td>${formatDecimal(invResults.reelFoncier.performance.netYield, 2)}%</td>
             <td>${formatCurrency(invResults.reelFoncier.performance.monthlyCashFlow, baseCurrency)}</td>
           </tr>
           <tr>
             <td>LMNP Réel</td>
             <td>${invResults.lmnpReel.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no')}</td>
-            <td>${invResults.lmnpReel.performance.netYield.toFixed(2)}%</td>
+            <td>${formatDecimal(invResults.lmnpReel.performance.netYield, 2)}%</td>
             <td>${formatCurrency(invResults.lmnpReel.performance.monthlyCashFlow, baseCurrency)}</td>
           </tr>
           <tr>
             <td>Micro-BIC</td>
             <td>${invResults.microBic.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no')}</td>
-            <td>${invResults.microBic.performance.netYield.toFixed(2)}%</td>
+            <td>${formatDecimal(invResults.microBic.performance.netYield, 2)}%</td>
             <td>${formatCurrency(invResults.microBic.performance.monthlyCashFlow, baseCurrency)}</td>
           </tr>
         </tbody>

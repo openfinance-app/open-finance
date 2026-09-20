@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * AccountCard Component
  * Task 2.2.11: Create AccountCard component with edit/delete
@@ -248,7 +249,7 @@ export function AccountCard({
                 />
                 {account.balance > 0 && (interestData?.estimate ?? 0) > 0 && (
                   <span className="text-xs font-medium text-success/70">
-                    ({percentage(interestData?.estimate ?? 0, account.balance).toFixed(2)}%)
+                    ({formatDecimal(percentage(interestData?.estimate ?? 0, account.balance), 2)}%)
                   </span>
                 )}
               </p>

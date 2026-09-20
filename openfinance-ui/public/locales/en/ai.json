@@ -59,5 +59,10 @@
       "label": "Money-Saving Tips",
       "question": "What are some practical tips to reduce my expenses and save more money?"
     }
+  },
+  "input": {
+    "send": "Send message (Enter)",
+    "tooLong": "Message too long",
+    "help": "Press <key>Enter</key> to send, <key>Shift+Enter</key> for new line"
   }
 }

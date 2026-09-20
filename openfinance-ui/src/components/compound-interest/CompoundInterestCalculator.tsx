@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -276,7 +277,7 @@ function ResultsSection({ result, currency, formatCurrency, t }: ResultsSectionP
         <SummaryCard
           icon={<Percent className="h-4 w-4 text-purple-500" />}
           label={t('compoundInterest.results.effectiveAnnualRate')}
-          value={`${result.effectiveAnnualRate.toFixed(2)}%`}
+          value={`${formatDecimal(result.effectiveAnnualRate, 2)}%`}
         />
       </div>
 

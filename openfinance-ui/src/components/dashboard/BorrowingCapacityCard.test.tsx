@@ -46,6 +46,21 @@ describe('BorrowingCapacityCard', () => {
     Element.prototype.scrollIntoView = vi.fn();
   });
 
+  it('does not describe an empty financial history as excellent', () => {
+    renderWithProviders(
+      <BorrowingCapacityCard
+        capacity={{
+          ...excellentCapacity,
+          monthlyIncome: 0,
+          debtToIncomeRatio: 0,
+          financialHealthStatus: 'INSUFFICIENT_DATA',
+        }}
+      />
+    );
+    expect(screen.getByText(/Add income and expense transactions/)).toBeInTheDocument();
+    expect(screen.queryByText(/Excellent financial position/)).not.toBeInTheDocument();
+  });
+
   it('renders title and subtitle', () => {
     renderWithProviders(<BorrowingCapacityCard capacity={excellentCapacity} />);
     expect(screen.getByText('Borrowing Capacity')).toBeInTheDocument();

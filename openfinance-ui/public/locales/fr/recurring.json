@@ -146,5 +146,9 @@
       "edit": "Modifier la transaction récurrente",
       "delete": "Supprimer la transaction récurrente"
     }
-  }
+  },
+  "processDue": "Traiter les échéances dues",
+  "processing": "Traitement…",
+  "processResult": "Traitées : {{count}}. Échecs : {{failed}}.",
+  "processError": "Le traitement a échoué. Veuillez réessayer."
 }

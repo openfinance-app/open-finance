@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * BudgetDetailModal Component
  *
@@ -186,7 +187,7 @@ function HistoryRow({ entry, currency }: { entry: BudgetHistoryEntry; currency: 
             />
           </div>
           <span className={cn(isExceeded ? 'text-error font-semibold' : 'text-text-primary')}>
-            {entry.percentageSpent.toFixed(1)}%
+            {formatDecimal(entry.percentageSpent, 1)}%
           </span>
         </div>
       </td>
@@ -385,7 +386,7 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                         isOverBudget ? 'text-error' : 'text-success'
                       )}
                     >
-                      {overallPercentage.toFixed(1)}%
+                      {formatDecimal(overallPercentage, 1)}%
                     </p>
                   </div>
                 </Card>

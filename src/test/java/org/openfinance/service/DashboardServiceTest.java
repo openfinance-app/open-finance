@@ -72,6 +72,8 @@ class DashboardServiceTest {
 
     @Mock private AssetRepository assetRepository;
 
+    @Mock private org.openfinance.repository.LiabilityRepository liabilityRepository;
+
     @Mock private UserRepository userRepository;
 
     @Mock private OperationHistoryService operationHistoryService;
@@ -83,6 +85,10 @@ class DashboardServiceTest {
     @org.mockito.Spy
     private org.openfinance.config.BusinessRulesProperties businessRules =
             new org.openfinance.config.BusinessRulesProperties();
+
+    @org.mockito.Spy
+    private org.springframework.context.support.StaticMessageSource messageSource =
+            new org.springframework.context.support.StaticMessageSource();
 
     @InjectMocks private DashboardService dashboardService;
 
@@ -982,8 +988,8 @@ class DashboardServiceTest {
     // ==================== getPortfolioPerformance Tests ====================
 
     @Test
-    @DisplayName("Should calculate portfolio performance with historical data")
-    void shouldCalculatePortfolioPerformanceWithHistoricalData() {
+    @DisplayName("Should not misrepresent net-worth snapshots as portfolio performance")
+    void shouldNotUseNetWorthHistoryAsPortfolioPerformance() {
         // Arrange
         User user = User.builder().id(userId).username("testuser").baseCurrency("EUR").build();
 
@@ -1029,13 +1035,10 @@ class DashboardServiceTest {
         org.openfinance.dto.PortfolioPerformance totalValue = result.get(0);
         assertThat(totalValue.getLabel()).isEqualTo("Total Value");
         assertThat(totalValue.getCurrentValue()).isEqualByComparingTo(new BigDecimal("20000"));
-        assertThat(totalValue.getChangeAmount())
-                .isEqualByComparingTo(new BigDecimal("2000")); // 20000 - 18000
-        assertThat(totalValue.getChangePercentage())
-                .isEqualByComparingTo(new BigDecimal("11.11")); // 2000/18000
-        // * 100
+        assertThat(totalValue.getChangeAmount()).isNull();
+        assertThat(totalValue.getChangePercentage()).isNull();
         assertThat(totalValue.getCurrency()).isEqualTo("EUR");
-        assertThat(totalValue.getSparklineData()).hasSize(3);
+        assertThat(totalValue.getSparklineData()).isEmpty();
 
         // Verify Unrealized Gain metric
         org.openfinance.dto.PortfolioPerformance unrealizedGain = result.get(1);
@@ -1053,8 +1056,7 @@ class DashboardServiceTest {
 
         verify(assetRepository).findByUserId(userId);
         verify(userRepository).findById(userId);
-        verify(netWorthService)
-                .getNetWorthHistory(eq(userId), any(LocalDate.class), any(LocalDate.class));
+        verifyNoInteractions(netWorthService);
     }
 
     @Test
@@ -1225,8 +1227,8 @@ class DashboardServiceTest {
         assertThat(result).hasSize(3);
         org.openfinance.dto.PortfolioPerformance totalValue = result.get(0);
         assertThat(totalValue.getSparklineData()).isEmpty();
-        assertThat(totalValue.getChangeAmount()).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(totalValue.getChangePercentage()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(totalValue.getChangeAmount()).isNull();
+        assertThat(totalValue.getChangePercentage()).isNull();
     }
 
     @Test
@@ -1260,11 +1262,9 @@ class DashboardServiceTest {
         // Assert
         assertThat(result).hasSize(3);
         org.openfinance.dto.PortfolioPerformance totalValue = result.get(0);
-        assertThat(totalValue.getSparklineData()).hasSize(1);
-        assertThat(totalValue.getChangeAmount())
-                .isEqualByComparingTo(BigDecimal.ZERO); // Need at least 2
-        // points
-        assertThat(totalValue.getChangePercentage()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(totalValue.getSparklineData()).isEmpty();
+        assertThat(totalValue.getChangeAmount()).isNull();
+        assertThat(totalValue.getChangePercentage()).isNull();
     }
 
     @Test
@@ -1301,10 +1301,8 @@ class DashboardServiceTest {
 
         // Assert
         org.openfinance.dto.PortfolioPerformance totalValue = result.get(0);
-        assertThat(totalValue.getChangeAmount()).isEqualByComparingTo(new BigDecimal("-2000"));
-        assertThat(totalValue.getChangePercentage())
-                .isEqualByComparingTo(new BigDecimal("-20.00")); // -2000/10000
-        // * 100
+        assertThat(totalValue.getChangeAmount()).isNull();
+        assertThat(totalValue.getChangePercentage()).isNull();
 
         org.openfinance.dto.PortfolioPerformance unrealizedGain = result.get(1);
         assertThat(unrealizedGain.getCurrentValue()).isEqualByComparingTo(new BigDecimal("-2000"));
@@ -1387,6 +1385,65 @@ class DashboardServiceTest {
         assertThat(dto.getExpenseCategories()).hasSize(1);
         assertThat(dto.getExpenseCategories().get(0).getName()).isEqualTo("Uncategorized");
         assertThat(dto.getExpenseCategories().get(0).getCategoryId()).isNull();
+    }
+
+    @Test
+    @DisplayName("Allocation shares include assets and debts in the same absolute denominator")
+    void allocationSharesMatchTreemapAreas() {
+        Account savings = createAccount(1L, "Savings", new BigDecimal("10000"));
+        Account card = createAccount(2L, "Credit card", new BigDecimal("-2500"));
+        card.setType(AccountType.CREDIT_CARD);
+        when(defaultCurrencyProvider.resolve("EUR")).thenReturn("EUR");
+        when(accountRepository.findByUserIdAndIsActive(userId, true))
+                .thenReturn(List.of(savings, card));
+        when(assetRepository.findByUserId(userId)).thenReturn(List.of());
+        when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of());
+
+        List<org.openfinance.dto.NetWorthAllocation> allocations =
+                dashboardService.getNetWorthAllocation(userId);
+        assertThat(allocations).hasSize(2);
+        assertThat(allocations.get(0).getPercentage()).isEqualByComparingTo("80.00");
+        assertThat(allocations.get(1).getPercentage()).isEqualByComparingTo("20.00");
+        assertThat(allocations.get(1).getIsLiability()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Sankey resolves system category names using the request locale")
+    void sankeyUsesFrenchCategoryNames() {
+        Category salary =
+                Category.builder()
+                        .id(5L)
+                        .name("Salary")
+                        .nameKey("category.income.salary")
+                        .isSystem(true)
+                        .build();
+        messageSource.addMessage("category.income.salary", java.util.Locale.FRENCH, "Salaire");
+        when(categoryRepository.findById(5L)).thenReturn(Optional.of(salary));
+        when(defaultCurrencyProvider.resolve("EUR")).thenReturn("EUR");
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        eq(userId), any(LocalDate.class), any(LocalDate.class)))
+                .thenReturn(
+                        List.of(
+                                Transaction.builder()
+                                        .type(TransactionType.INCOME)
+                                        .amount(new BigDecimal("3200"))
+                                        .currency("EUR")
+                                        .categoryId(5L)
+                                        .isDeleted(false)
+                                        .date(LocalDate.now())
+                                        .build()));
+        org.springframework.context.i18n.LocaleContextHolder.setLocale(java.util.Locale.FRENCH);
+        try {
+            assertThat(
+                            dashboardService
+                                    .getCashflowSankey(userId, 30)
+                                    .getIncomeSources()
+                                    .get(0)
+                                    .getName())
+                    .isEqualTo("Salaire");
+        } finally {
+            org.springframework.context.i18n.LocaleContextHolder.resetLocaleContext();
+        }
     }
 
     // ==================== Helper Methods ====================

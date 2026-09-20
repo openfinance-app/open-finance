@@ -107,6 +107,7 @@ export function ImportWizard() {
 
   /** Controls the "leave and cancel?" confirmation dialog */
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelFailed, setCancelFailed] = useState(false);
 
   /** Source-category → target-categoryId mappings, collected in the review step */
   const [categoryMappings, setCategoryMappings] = useState<Record<string, number>>({});
@@ -146,11 +147,16 @@ export function ImportWizard() {
   // ── Sync remote transactions → local on first load ───────────────────────
   useEffect(() => {
     // Initialization: only once per session, and only if local state is empty
-    if (transactions.length > 0 && !hasInitializedTransactions && localTransactions.length === 0) {
+    if (
+      sessionId &&
+      transactions.length > 0 &&
+      !hasInitializedTransactions &&
+      localTransactions.length === 0
+    ) {
       setLocalTransactions([...transactions]);
       setHasInitializedTransactions(true);
     }
-  }, [transactions, hasInitializedTransactions, localTransactions.length]);
+  }, [sessionId, transactions, hasInitializedTransactions, localTransactions.length]);
 
   // Reset local state when a new session starts
   const lastSessionIdRef = useRef<number | null>(null);
@@ -166,10 +172,10 @@ export function ImportWizard() {
 
   // ── Auto-populate accountId from session if backend matched one ─────────
   useEffect(() => {
-    if (session?.accountId && accountId === null) {
+    if (sessionId && session?.accountId && accountId === null) {
       setAccountId(session.accountId);
     }
-  }, [session?.accountId, accountId]);
+  }, [sessionId, session?.accountId, accountId]);
 
   // ── Auto-advance: confirm → progress when import kicks off ───────────────
   useEffect(() => {
@@ -186,6 +192,8 @@ export function ImportWizard() {
   useEffect(() => {
     if (session?.status === 'COMPLETED' && !importCompletedRef.current) {
       importCompletedRef.current = true;
+      queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['session-history-exists'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -369,26 +377,44 @@ export function ImportWizard() {
     }
   };
 
+  const resetWizard = () => {
+    setCurrentStep('upload');
+    setUploadId(null);
+    setFileName('');
+    setAccountId(null);
+    setSessionId(null);
+    setLocalTransactions([]);
+    setHasInitializedTransactions(false);
+    setCategoryMappings({});
+    setNewCategoryNames([]);
+    setSkipDuplicates(true);
+    lastSessionIdRef.current = null;
+    importCompletedRef.current = false;
+  };
+
   const handleCancel = async () => {
     // If an import session is active, ask for confirmation first
     if (isMidway) {
       setShowCancelConfirm(true);
       return;
     }
-    navigate(ROUTES.IMPORT);
+    resetWizard();
   };
 
   /** Called when the user confirms they want to leave mid-import */
   const handleCancelConfirmed = async () => {
-    setShowCancelConfirm(false);
+    setCancelFailed(false);
     if (sessionId && session?.cancellable) {
       try {
         await cancelImport.mutateAsync(sessionId);
       } catch (error) {
         console.error('Failed to cancel import:', error);
+        setCancelFailed(true);
+        return;
       }
     }
-    navigate(ROUTES.IMPORT);
+    setShowCancelConfirm(false);
+    resetWizard();
   };
 
   const handleViewTransactions = () => navigate(ROUTES.TRANSACTIONS);
@@ -498,7 +524,13 @@ export function ImportWizard() {
               <Button variant="secondary" size="sm" onClick={() => setShowCancelConfirm(false)}>
                 {t('wizard.cancelConfirm.stay')}
               </Button>
-              <Button variant="danger" size="sm" onClick={handleCancelConfirmed}>
+              {cancelFailed && <p role="alert">{t('wizard.cancelConfirm.failed')}</p>}
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleCancelConfirmed}
+                disabled={cancelImport.isPending}
+              >
                 {t('wizard.cancelConfirm.leave')}
               </Button>
             </div>
@@ -592,6 +624,7 @@ export function ImportWizard() {
             <p className="text-sm text-text-secondary">
               {t('wizard.accountSelection.description')}
             </p>
+            <p className="text-sm text-text-secondary">{t('wizard.openingDateNotice')}</p>
 
             {/* ── Scenario banners ─────────────────────────────────────────── */}
 

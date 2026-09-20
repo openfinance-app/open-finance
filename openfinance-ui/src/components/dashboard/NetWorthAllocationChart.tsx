@@ -1,8 +1,9 @@
+import { formatPercentage } from '@/utils/format';
 import { useMemo } from 'react';
 import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import type { INetWorthAllocation } from '@/types/dashboard';
-import { ConvertedAmount } from '../ui/ConvertedAmount';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import {
   NET_WORTH_TREEMAP_LIABILITY_COLORS,
   NET_WORTH_TREEMAP_ASSET_COLORS,
@@ -27,7 +28,7 @@ const CustomTooltip = ({ active, payload, currency, formatFn }: any) => {
             inline
           />
         </p>
-        <p>{Math.abs(data.percentage ?? 0).toFixed(1)}%</p>
+        <p>{formatPercentage(Math.abs(data.percentage ?? 0), 1)}</p>
         <p className={data.isLiability ? 'text-red-500' : 'text-green-500'}>
           {data.isLiability ? formatFn('liability') : formatFn('asset')}
         </p>
@@ -39,6 +40,7 @@ const CustomTooltip = ({ active, payload, currency, formatFn }: any) => {
 
 const CustomizedContent = (props: any) => {
   const { depth, x, y, width, height, index, name, percentage } = props;
+  if (depth === 0 || !name) return null;
 
   return (
     <g>
@@ -69,7 +71,7 @@ const CustomizedContent = (props: any) => {
           fill="#fff"
           fontSize={10}
         >
-          {percentage != null ? Math.abs(percentage).toFixed(1) : '0.0'}%
+          {formatPercentage(Math.abs(percentage ?? 0), 1)}
         </text>
       )}
     </g>
@@ -82,7 +84,6 @@ export default function NetWorthAllocationChart({
 }: NetWorthAllocationChartProps) {
   const { t } = useTranslation('dashboard');
   // Determine if we have any data
-  const hasData = allocations && allocations.length > 0;
 
   // Transform data for Treemap
   // We need to handle liabilities (negative values) for visualization
@@ -90,19 +91,21 @@ export default function NetWorthAllocationChart({
   // We'll use absolute values for size, but color code them.
   const chartData = useMemo(() => {
     if (!allocations) return [];
-    return allocations.map(item => ({
-      name: t(`allocationCategories.${item.category.replace(/[^a-zA-Z0-9]/g, '_')}`, {
-        defaultValue: item.category,
-      }),
-      value: Math.abs(item.value), // Use absolute value for chart sizing
-      originalValue: item.value,
-      percentage: item.percentage,
-      isLiability: item.isLiability,
-      currency: item.currency,
-    }));
+    return allocations
+      .filter(item => Number.isFinite(item.value) && item.value !== 0)
+      .map(item => ({
+        name: t(`allocationCategories.${item.category.replace(/[^a-zA-Z0-9]/g, '_')}`, {
+          defaultValue: item.category,
+        }),
+        value: Math.abs(item.value), // Use absolute value for chart sizing
+        originalValue: item.value,
+        percentage: item.percentage,
+        isLiability: item.isLiability,
+        currency: item.currency,
+      }));
   }, [allocations, t]);
 
-  if (!hasData) {
+  if (chartData.length === 0) {
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
         <div className="mb-4">
@@ -162,7 +165,7 @@ export default function NetWorthAllocationChart({
               })}
             </span>
             <span className="text-text-muted ml-auto">
-              {Math.abs(item.percentage ?? 0).toFixed(1)}%
+              {formatPercentage(Math.abs(item.percentage ?? 0), 1)}
             </span>
           </div>
         ))}

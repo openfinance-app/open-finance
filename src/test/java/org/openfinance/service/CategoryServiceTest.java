@@ -836,10 +836,18 @@ class CategoryServiceTest {
         when(transactionRepository.countByCategoryId(2L)).thenReturn(3L);
         when(transactionRepository.findByCategoryId(1L))
                 .thenReturn(
-                        List.of(Transaction.builder().amount(BigDecimal.valueOf(500.0)).build()));
+                        List.of(
+                                Transaction.builder()
+                                        .type(org.openfinance.entity.TransactionType.EXPENSE)
+                                        .amount(BigDecimal.valueOf(500.0))
+                                        .build()));
         when(transactionRepository.findByCategoryId(2L))
                 .thenReturn(
-                        List.of(Transaction.builder().amount(BigDecimal.valueOf(300.0)).build()));
+                        List.of(
+                                Transaction.builder()
+                                        .type(org.openfinance.entity.TransactionType.EXPENSE)
+                                        .amount(BigDecimal.valueOf(300.0))
+                                        .build()));
 
         // Act
         List<CategoryTreeNode> tree = categoryService.getCategoryTree(USER_ID);
@@ -939,7 +947,11 @@ class CategoryServiceTest {
         when(transactionRepository.countByCategoryId(1L)).thenReturn(10L);
         when(transactionRepository.findByCategoryId(1L))
                 .thenReturn(
-                        List.of(Transaction.builder().amount(BigDecimal.valueOf(1234.56)).build()));
+                        List.of(
+                                Transaction.builder()
+                                        .type(org.openfinance.entity.TransactionType.EXPENSE)
+                                        .amount(BigDecimal.valueOf(1234.56))
+                                        .build()));
 
         // Act
         List<CategoryTreeNode> tree = categoryService.getCategoryTree(USER_ID);
@@ -948,6 +960,35 @@ class CategoryServiceTest {
         assertThat(tree).hasSize(1);
         assertThat(tree.get(0).getTransactionCount()).isEqualTo(10L);
         assertThat(tree.get(0).getTotalAmount()).isEqualByComparingTo(BigDecimal.valueOf(1234.56));
+    }
+
+    @Test
+    @DisplayName("Expense category totals exclude income reimbursements and transfer legs")
+    void expenseCategoryDoesNotAddIncomeOrTransfers() {
+        Category healthcare =
+                systemCategoryFixture(1L, USER_ID, "Healthcare", CategoryType.EXPENSE);
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(healthcare));
+        when(transactionRepository.countByCategoryId(1L)).thenReturn(3L);
+        when(transactionRepository.findByCategoryId(1L))
+                .thenReturn(
+                        List.of(
+                                Transaction.builder()
+                                        .type(org.openfinance.entity.TransactionType.EXPENSE)
+                                        .amount(new BigDecimal("100.00"))
+                                        .build(),
+                                Transaction.builder()
+                                        .type(org.openfinance.entity.TransactionType.INCOME)
+                                        .amount(new BigDecimal("45.20"))
+                                        .build(),
+                                Transaction.builder()
+                                        .type(org.openfinance.entity.TransactionType.EXPENSE)
+                                        .amount(new BigDecimal("200.00"))
+                                        .transferId("internal-transfer")
+                                        .build()));
+
+        CategoryTreeNode category = categoryService.getCategoryTree(USER_ID).get(0);
+        assertThat(category.getTotalAmount()).isEqualByComparingTo("100.00");
+        assertThat(category.getTransactionCount()).isEqualTo(3L);
     }
 
     @Test

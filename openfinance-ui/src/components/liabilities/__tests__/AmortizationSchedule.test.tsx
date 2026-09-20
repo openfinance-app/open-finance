@@ -5,10 +5,9 @@
 import { screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
-import { renderWithProviders } from '@/test/test-utils';
+import { renderWithProviders, createTestQueryClient } from '@/test/test-utils';
 import { AmortizationSchedule } from '../AmortizationSchedule';
 import type { AmortizationSchedule as AmortizationScheduleType } from '@/types/liability';
-import i18n from '@/test/i18n-test';
 
 // Mock VisibilityContext
 vi.mock('@/context/VisibilityContext', () => ({
@@ -59,6 +58,17 @@ describe('AmortizationSchedule', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (useVisibility as any).mockReturnValue({ isAmountsVisible: true });
+  });
+
+  it('warns when the calculated payoff is later than the contractual end date', async () => {
+    const schedule = {
+      ...mockSchedule,
+      payments: [{ ...mockSchedule.payments[0], paymentDate: '2040-12-15', remainingBalance: 0 }],
+    };
+    renderWithProviders(
+      <AmortizationSchedule schedule={schedule} contractualEndDate="2040-06-15" />
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(/after the contractual end date/);
   });
 
   describe('Privacy Implementation - PrivateAmount Wrapping', () => {
@@ -271,7 +281,7 @@ describe('AmortizationSchedule', () => {
       // Rendered once in the desktop table and once in the mobile card view
       expect(phaseOneLabels.length).toBeGreaterThanOrEqual(1);
       expect(phaseTwoLabels.length).toBeGreaterThanOrEqual(1);
-      expect(phaseOneLabels[0]).toHaveTextContent(/interest-only until 2026-11-01/i);
+      expect(phaseOneLabels[0]).toHaveTextContent(/interest-only until 11\/01\/2026/i);
       expect(phaseTwoLabels[0]).toHaveTextContent(/amortizing/i);
     });
 
@@ -316,15 +326,12 @@ describe('AmortizationSchedule', () => {
   });
 
   describe('Locale-aware dates', () => {
-    it('formats payment dates with the active i18n locale, not a hardcoded en-US', () => {
-      const spy = vi.spyOn(Date.prototype, 'toLocaleDateString');
-      renderWithProviders(<AmortizationSchedule schedule={mockSchedule} />);
-
-      const locales = spy.mock.calls.map(call => call[0]);
-      expect(locales.length).toBeGreaterThan(0);
-      expect(locales).toContain(i18n.language);
-      expect(locales).not.toContain('en-US');
-      spy.mockRestore();
+    it('uses the saved numeric date format for payment dates', async () => {
+      const queryClient = createTestQueryClient();
+      queryClient.setQueryData(['user', 'settings'], { dateFormat: 'DD/MM/YYYY' });
+      renderWithProviders(<AmortizationSchedule schedule={mockSchedule} />, { queryClient });
+      expect(screen.getAllByText('01/02/2020').length).toBeGreaterThan(0);
+      expect(screen.queryByText('Feb 1, 2020')).not.toBeInTheDocument();
     });
   });
 });

@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * RegimeCard Component
  *
@@ -98,12 +99,14 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
             </div>
             <div className="bg-muted/50 p-3 rounded">
               <p className="text-xs text-muted-foreground mb-1">{t('regimeCard.grossYield')}</p>
-              <p className="text-lg font-bold">{result.performance.grossYield.toFixed(2)}%</p>
+              <p className="text-lg font-bold">
+                {formatDecimal(result.performance.grossYield, 2)}%
+              </p>
             </div>
             <div className="bg-muted/50 p-3 rounded">
               <p className="text-xs text-muted-foreground mb-1">{t('regimeCard.netYield')}</p>
               <p className={`text-lg font-bold ${isRecommended ? 'text-success' : ''}`}>
-                {result.performance.netYield.toFixed(2)}%
+                {formatDecimal(result.performance.netYield, 2)}%
               </p>
             </div>
           </div>

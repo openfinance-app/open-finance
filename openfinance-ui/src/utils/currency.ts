@@ -8,6 +8,15 @@
 
 import { useTranslation } from 'react-i18next';
 import type { NumberFormat } from '@/context/NumberFormatContext';
+import type { Currency } from '@/types/currency';
+import type { TFunction } from 'i18next';
+
+/** Crypto names are universal and come from the currency catalog. */
+export function getCurrencyDisplayName(currency: Currency, t: TFunction<'currencies'>): string {
+  return currency.type === 'CRYPTO'
+    ? currency.name || currency.code
+    : t(`currency.${currency.code}`, { defaultValue: currency.name || currency.code });
+}
 
 /**
  * Common currencies with their symbols and English name fallbacks.

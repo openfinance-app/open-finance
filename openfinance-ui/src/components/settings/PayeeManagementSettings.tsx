@@ -454,7 +454,7 @@ export function PayeeManagementSettings() {
                     )}
                     <div className="mt-1.5 flex gap-2">
                       <span className="text-[10px] text-text-muted">
-                        {t('txn', { count: payee.transactionCount || 0 })}
+                        {t('transactions', { count: payee.transactionCount || 0 })}
                       </span>
                       <span className="text-[10px] text-text-muted">
                         <ConvertedAmount

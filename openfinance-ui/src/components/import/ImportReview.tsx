@@ -76,90 +76,17 @@ const INFO_PREFIXES = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Common QIF/OFX hierarchical-category → normalized name mappings.
- * Used to bridge imported category names (e.g., "Food:Dining") to the
- * user's own category names (e.g., "Dining Out").
- */
-const CATEGORY_NORMALISATION_MAP: Record<string, string[]> = {
-  dining: ['dining out', 'restaurants', 'eating out', 'food & drink', 'food'],
-  groceries: ['groceries', 'supermarket', 'food & groceries'],
-  transport: ['transport', 'transportation', 'commute'],
-  fuel: ['fuel', 'petrol', 'gas', 'transport'],
-  utilities: ['utilities', 'bills', 'energy'],
-  entertainment: ['entertainment', 'leisure', 'fun'],
-  healthcare: ['healthcare', 'medical', 'health', 'pharmacy'],
-  insurance: ['insurance'],
-  salary: ['salary', 'income', 'wages', 'payroll'],
-  rent: ['rent', 'housing', 'mortgage'],
-  shopping: ['shopping', 'clothing', 'retail'],
-  subscriptions: ['subscriptions', 'streaming', 'services'],
-};
-
-/**
- * Normalise a raw imported category string into candidate search terms.
- * Handles:
- *  - Colon-separated hierarchical paths (QIF): "Food:Dining" → ["dining", "food"]
- *  - Slash-separated paths: "Food/Dining" → ["dining", "food"]
- *  - Literal text after stripping brackets and special characters
- */
-function normaliseCategoryTerms(rawCategory: string): string[] {
-  const terms: string[] = [];
-  // Split by ':' or '/' to get path segments
-  const parts = rawCategory
-    .split(/[:/]/)
-    .map(p => p.trim().toLowerCase())
-    .filter(Boolean);
-  // Most-specific segment first (last in the path)
-  for (let i = parts.length - 1; i >= 0; i--) {
-    const term = parts[i];
-    terms.push(term);
-    // Also add any canonical aliases from the normalisation map
-    const canonical = CATEGORY_NORMALISATION_MAP[term];
-    if (canonical) terms.push(...canonical);
-  }
-  return [...new Set(terms)]; // de-duplicate
-}
-
-/**
- * Auto-assign a category to a transaction.
- *
- * Priority order:
- *  1. Transaction already has a category → keep it.
- *  2. Exact (case-insensitive) name match against existing categories.
- *  3. Normalised QIF/OFX path segment match (e.g., "Food:Dining" → "Dining Out").
- *  4. Substring match: category name appears in payee or memo text.
- */
+/** Keep explicit file categories; infer only when the file did not supply one. */
 function autoAssignCategory(
   transaction: ImportTransactionDTO,
   categories: Array<{ id: number; name: string }>
 ): string | null {
-  // 1. Exact name match on the raw category field from the parsed file
-  if (transaction.category) {
+  if (transaction.category?.trim()) {
     const exact = categories.find(
-      c => c.name.toLowerCase() === transaction.category!.toLowerCase()
+      category => category.name.toLowerCase() === transaction.category!.trim().toLowerCase()
     );
-    if (exact) return exact.name;
+    return exact?.name ?? transaction.category;
   }
-
-  // 2. Normalised path-segment matching using the imported category string
-  // (which may be stored in memo or category field by the parser)
-  const rawCategory = transaction.category ?? '';
-  if (rawCategory) {
-    const terms = normaliseCategoryTerms(rawCategory);
-    for (const term of terms) {
-      const match = categories.find(
-        c =>
-          c.name.toLowerCase() === term ||
-          c.name.toLowerCase().includes(term) ||
-          term.includes(c.name.toLowerCase())
-      );
-      if (match) return match.name;
-    }
-  }
-
-  // If category was set but no system category matched, preserve the raw value
-  if (transaction.category) return transaction.category;
 
   // 3. Substring match: does any category name appear in payee / memo?
   //    Require word-boundary matching and minimum 3-char category name to avoid
@@ -492,7 +419,7 @@ export function ImportReview({
         <div className="text-sm text-text-secondary flex flex-wrap gap-x-3 gap-y-1">
           <span>
             <span className="font-semibold text-text-primary">{stats.total}</span>{' '}
-            {t('review.stats.transactions')}
+            {t('review.stats.transactions', { count: transactions.length })}
           </span>
           <span className="text-text-tertiary">·</span>
           <span className="flex items-center space-x-1">

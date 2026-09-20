@@ -1,3 +1,5 @@
+import { formatDecimal } from '@/utils/format';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { AssetFinancingSection } from '@/components/assets/AssetFinancingSection';
 /**
  * PropertyDetailView Component
@@ -62,6 +64,7 @@ type TabType = 'overview' | 'equity' | 'roi' | 'gallery' | 'attachments';
 
 export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewProps) {
   const { t } = useTranslation('realEstate');
+  const { date: formatDate } = useDateFormatter();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   const {
@@ -253,7 +256,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                               inline
                             />{' '}
                             ({property.appreciation >= 0 ? '+' : ''}
-                            {property.appreciationPercentage.toFixed(2)}%)
+                            {formatDecimal(property.appreciationPercentage, 2)}%)
                           </p>
                         ) : (
                           <p className="text-2xl font-bold text-text-muted">
@@ -290,13 +293,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                           <p className="text-sm text-text-secondary mb-1">
                             {t('form.purchaseDate')}
                           </p>
-                          <p className="text-text-primary">
-                            {new Date(property.purchaseDate).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            })}
-                          </p>
+                          <p className="text-text-primary">{formatDate(property.purchaseDate)}</p>
                         </div>
 
                         <div>
@@ -448,7 +445,10 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                           </p>
                           <p className="text-text-secondary">
                             {t('propertyDetail.percentOfValue', {
-                              percentage: equity.equityPercentage?.toFixed(2) ?? '—',
+                              percentage:
+                                equity.equityPercentage != null
+                                  ? formatDecimal(equity.equityPercentage, 2)
+                                  : '—',
                             })}
                           </p>
                         </Card>
@@ -539,7 +539,10 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                 <span>{t('propertyDetail.equityVsDebt')}</span>
                                 <span>
                                   {t('propertyDetail.equityPercent', {
-                                    percentage: equity.equityPercentage?.toFixed(1) ?? '—',
+                                    percentage:
+                                      equity.equityPercentage != null
+                                        ? formatDecimal(equity.equityPercentage, 1)
+                                        : '—',
                                   })}
                                 </span>
                               </div>
@@ -592,7 +595,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                           <p className="text-4xl font-bold text-primary mb-2">
                             <PrivateAmount>
                               {roi.totalROI != null
-                                ? `${roi.totalROI.toFixed(2)}%`
+                                ? `${formatDecimal(roi.totalROI, 2)}%`
                                 : t('propertyDetail.na')}
                             </PrivateAmount>
                           </p>
@@ -600,7 +603,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                             {t('propertyDetail.annualizedReturn', {
                               value:
                                 roi.annualizedReturn != null
-                                  ? roi.annualizedReturn.toFixed(2)
+                                  ? formatDecimal(roi.annualizedReturn, 2)
                                   : t('propertyDetail.na'),
                             })}
                           </p>
@@ -681,7 +684,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                 />{' '}
                                 (
                                 {roi.appreciationPercentage != null
-                                  ? roi.appreciationPercentage.toFixed(2)
+                                  ? formatDecimal(roi.appreciationPercentage, 2)
                                   : t('propertyDetail.na')}
                                 %)
                               </p>
@@ -693,7 +696,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                               </p>
                               <p className="text-primary font-bold text-lg">
                                 {roi.annualizedReturn != null
-                                  ? roi.annualizedReturn.toFixed(2)
+                                  ? formatDecimal(roi.annualizedReturn, 2)
                                   : t('propertyDetail.na')}
                                 %
                               </p>
@@ -759,7 +762,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                   </p>
                                   <p className="text-green-400 font-bold text-lg">
                                     {t('propertyDetail.rentalYieldValue', {
-                                      percentage: roi.rentalYield.toFixed(2),
+                                      percentage: formatDecimal(roi.rentalYield, 2),
                                     })}
                                   </p>
                                   <p className="text-xs text-text-tertiary mt-1">

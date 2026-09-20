@@ -50,6 +50,8 @@ import org.openfinance.security.EncryptionService;
 @DisplayName("RecurringTransactionService Unit Tests")
 class RecurringTransactionServiceTest {
 
+    @Mock private OperationHistoryService operationHistoryService;
+
     @Mock private RecurringTransactionRepository recurringTransactionRepository;
 
     @Mock private AccountRepository accountRepository;
@@ -61,8 +63,6 @@ class RecurringTransactionServiceTest {
     @Mock private TransactionService transactionService;
 
     @Mock private RecurringOccurrenceService occurrenceService;
-
-    @Mock private OperationHistoryService operationHistoryService;
 
     @Mock private CurrencyRepository currencyRepository;
 

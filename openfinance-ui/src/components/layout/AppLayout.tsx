@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
@@ -11,6 +11,7 @@ import { SidebarProvider } from '@/context/SidebarContext';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import type { GlobalSearchHandle } from '@/components/search/GlobalSearch';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export interface AppLayoutProps {
   children: ReactNode;
@@ -22,34 +23,43 @@ export interface AppLayoutProps {
 function AppLayoutInner({ children }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const location = useLocation();
-  const { data: settings } = useUserSettings();
+  const { data: settings, isLoading: settingsLoading } = useUserSettings();
   const { locale, setLocale } = useLocale();
+  const { t, i18n } = useTranslation();
+  const [settingsReady, setSettingsReady] = useState(false);
   const hasSyncedRef = useRef(false);
   const searchRef = useRef<GlobalSearchHandle>(null);
 
   // Load user's locale preference after login/mount
   useEffect(() => {
-    if (settings && !hasSyncedRef.current) {
+    if (!settingsLoading && !hasSyncedRef.current) {
+      hasSyncedRef.current = true;
       const pendingSync = sessionStorage.getItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC);
-
-      if (pendingSync && pendingSync !== settings.language) {
+      let applying: Promise<unknown> = Promise.resolve();
+      if (pendingSync && pendingSync !== settings?.language) {
         // User changed language on the login page before authenticating
         // We should push this new preference to the backend instead of reverting
-        void setLocale(pendingSync);
-        sessionStorage.removeItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC);
-      } else if (settings.language && settings.language !== locale) {
+        applying = setLocale(pendingSync);
+      } else if (settings?.language && settings.language !== locale) {
         // Normal flow: use the backend setting
-        void setLocale(settings.language);
+        applying = i18n.changeLanguage(settings.language);
       }
-
-      hasSyncedRef.current = true;
+      void applying.finally(() => setSettingsReady(true));
     }
-  }, [settings, locale, setLocale]);
+  }, [settings, settingsLoading, locale, setLocale, i18n]);
 
   // Global keyboard shortcuts (Ctrl/Cmd+K, Ctrl/Cmd+B, 1-9)
   useKeyboardShortcuts({
     onFocusSearch: () => searchRef.current?.focus(),
   });
+
+  if (!settingsReady) {
+    return (
+      <div role="status" className="p-8 text-text-secondary">
+        {t('loading')}
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">

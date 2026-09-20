@@ -1,3 +1,4 @@
+import { getCurrencyDisplayName } from '@/utils/currency';
 /**
  * GeneralSettings - General user settings component
  *
@@ -82,7 +83,7 @@ function SecondaryCurrencySelector({
   const activeCurrencies = currencies.filter((c: Currency) => c.isActive);
   const visibleCurrencies = normalizedQuery
     ? activeCurrencies.filter((c: Currency) => {
-        const translatedName = tCurrency(`currency.${c.code}`, { defaultValue: c.name });
+        const translatedName = getCurrencyDisplayName(c, tCurrency);
         return [c.code, translatedName, c.name, c.symbol]
           .filter(Boolean)
           .some(v => v.toLowerCase().includes(normalizedQuery));
@@ -145,9 +146,7 @@ function SecondaryCurrencySelector({
           </div>
         ) : (
           visibleCurrencies.map((currency: Currency) => {
-            const translatedName = tCurrency(`currency.${currency.code}`, {
-              defaultValue: currency.name,
-            });
+            const translatedName = getCurrencyDisplayName(currency, tCurrency);
             return (
               <SelectItem key={currency.code} value={currency.code}>
                 <span className="flex items-center gap-2">

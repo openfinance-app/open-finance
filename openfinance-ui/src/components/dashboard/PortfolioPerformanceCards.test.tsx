@@ -73,6 +73,18 @@ describe('PortfolioPerformanceCards', () => {
     Element.prototype.scrollIntoView = vi.fn();
   });
 
+  it('shows unavailable period performance without fabricating a zero return', () => {
+    renderWithProviders(
+      <PortfolioPerformanceCards
+        performances={[
+          { ...mockPerformance, changeAmount: null, changePercentage: null, sparklineData: [] },
+        ]}
+      />
+    );
+    expect(screen.getByText(/Period return unavailable/)).toBeInTheDocument();
+    expect(screen.queryByText(/0.00%/)).not.toBeInTheDocument();
+  });
+
   it('renders empty state when no performances', () => {
     renderWithProviders(<PortfolioPerformanceCards performances={[]} />);
     expect(screen.getByText('Portfolio Performance')).toBeInTheDocument();

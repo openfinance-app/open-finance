@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * BudgetsPage Component
  * TASK-8.2.7: Create BudgetsPage component with list, filters, and add button
@@ -269,11 +270,11 @@ export default function BudgetsPage() {
               message={
                 budget.status === 'EXCEEDED'
                   ? t('alerts.exceededMessage', {
-                      pct: budget.percentageSpent.toFixed(1),
+                      pct: formatDecimal(budget.percentageSpent, 1),
                       categoryName: budget.categoryName,
                     })
                   : t('alerts.warningMessage', {
-                      pct: budget.percentageSpent.toFixed(1),
+                      pct: formatDecimal(budget.percentageSpent, 1),
                       categoryName: budget.categoryName,
                     })
               }

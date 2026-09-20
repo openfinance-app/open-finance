@@ -65,7 +65,9 @@ export const useUserFinancialData = (): UseUserFinancialDataReturn => {
         },
       });
 
-      const expenses = transactionsResponse.data;
+      const expenses = transactionsResponse.data.filter(
+        transaction => transaction.type === 'EXPENSE' && !transaction.transferId
+      );
 
       // Calculate average monthly expenses
       let averageMonthlyExpenses = 0;

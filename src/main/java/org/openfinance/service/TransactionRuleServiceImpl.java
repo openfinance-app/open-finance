@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TransactionRuleServiceImpl implements TransactionRuleService {
 
     private final TransactionRuleRepository transactionRuleRepository;
+    private final OperationHistoryService operationHistoryService;
     private final TransactionRuleMapper transactionRuleMapper;
 
     // -----------------------------------------------------------------------
@@ -67,6 +68,14 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
         log.debug("Creating rule '{}' for userId={}", request.getName(), userId);
         TransactionRule rule = transactionRuleMapper.toEntity(userId, request);
         TransactionRule saved = transactionRuleRepository.save(rule);
+        operationHistoryService.record(
+                userId,
+                org.openfinance.entity.EntityType.TRANSACTION_RULE,
+                saved.getId(),
+                saved.getName(),
+                org.openfinance.entity.OperationType.CREATE,
+                (Object) null,
+                null);
         log.info("Created transaction rule id={} for userId={}", saved.getId(), userId);
         return transactionRuleMapper.toResponse(saved);
     }

@@ -26,7 +26,7 @@ public class NetWorthAllocation {
     /** Total value in this category Positive for assets, negative for liabilities */
     private BigDecimal value;
 
-    /** Percentage of total net worth this category represents Can be positive or negative */
+    /** Nonnegative share of the total absolute asset and liability balances shown in the treemap */
     private BigDecimal percentage;
 
     /** Number of items (accounts, assets, or liabilities) in this category */

@@ -39,6 +39,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TransactionRepository
         extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
+    List<Transaction> findByUserIdAndPayeeId(Long userId, Long payeeId);
+
     @Query("SELECT t FROM Transaction t WHERE t.userId = :userId")
     List<Transaction> findAllForExport(@Param("userId") Long userId);
 

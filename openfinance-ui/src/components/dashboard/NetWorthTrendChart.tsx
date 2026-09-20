@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * NetWorthTrendChart Component
  * Task 4.3.7: Create NetWorthTrendChart component
@@ -53,8 +54,8 @@ const CustomTooltip = ({
     const data = payload[0].payload;
     const change = subtract(data.netWorth, data.previousNetWorth || data.netWorth);
     const changePercent = data.previousNetWorth
-      ? percentage(change, data.previousNetWorth).toFixed(2)
-      : '0.00';
+      ? formatDecimal(percentage(change, data.previousNetWorth), 2)
+      : formatDecimal(0, 2);
 
     return (
       <div className="bg-surface rounded-lg shadow-lg p-4 border border-border">
@@ -125,7 +126,9 @@ export default function NetWorthTrendChart({
   const lastValue = data[data.length - 1]?.netWorth || 0;
   const overallChange = subtract(lastValue, firstValue);
   const overallChangePercent =
-    firstValue !== 0 ? percentage(overallChange, Math.abs(firstValue)).toFixed(2) : '0.00';
+    firstValue !== 0
+      ? formatDecimal(percentage(overallChange, Math.abs(firstValue)), 2)
+      : formatDecimal(0, 2);
 
   const getTrendIcon = () => {
     if (overallChange > 0) return <TrendingUp className="h-5 w-5 text-green-500" />;

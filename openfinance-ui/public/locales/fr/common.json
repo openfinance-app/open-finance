@@ -52,7 +52,7 @@
   "none": "Aucun",
   "country": {
     "selectCountry": "Sélectionner un pays",
-    "searchCountry": "Rechercher un pays\u2026",
+    "searchCountry": "Rechercher un pays…",
     "noMatch": "Aucun pays ne correspond"
   },
   "done": "Terminé",
@@ -157,7 +157,9 @@
     "custom": "Période personnalisée",
     "title": "Plage de dates personnalisée",
     "daysSelected": "{{count}} jour sélectionné",
-    "daysSelected_plural": "{{count}} jours sélectionnés"
+    "daysSelected_plural": "{{count}} jours sélectionnés",
+    "daysSelected_one": "{{count}} jour sélectionné",
+    "daysSelected_other": "{{count}} jours sélectionnés"
   },
   "errors": {
     "loadFailed": "Échec du chargement des données. Veuillez réessayer.",
@@ -222,8 +224,14 @@
     "markRead": "Marquer comme lu",
     "markAlertAsRead": "Marquer l'alerte comme lue",
     "updateRates": "Mettre à jour les taux maintenant",
-    "updating": "Mise à jour\u2026",
-    "budgetAlert": "Alerte budget : {{name}}"
+    "updating": "Mise à jour…",
+    "budgetAlert": "Alerte budget : {{name}}",
+    "unread_one": "Notifications ({{count}} non lue)",
+    "unread_other": "Notifications ({{count}} non lues)",
+    "daysAgo_one": "Il y a {{count}} jour",
+    "daysAgo_other": "Il y a {{count}} jours",
+    "ratesUpdated": "Taux de change mis à jour ! ✓",
+    "budgetThreshold": "Le budget a dépassé le seuil de {{threshold}} %"
   },
   "aria": {
     "editAccount": "Modifier le compte",

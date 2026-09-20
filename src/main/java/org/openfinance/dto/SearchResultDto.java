@@ -1,11 +1,13 @@
 package org.openfinance.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Builder;
 import lombok.Data;
+import org.openfinance.util.ServerTimestampSerializer;
 
 /**
  * Unified search result DTO for global search functionality.
@@ -63,9 +65,11 @@ public class SearchResultDto {
     private String snippet;
 
     /** Timestamp when the entity was created */
+    @JsonSerialize(using = ServerTimestampSerializer.class)
     private LocalDateTime createdAt;
 
     /** Timestamp when the entity was last updated */
+    @JsonSerialize(using = ServerTimestampSerializer.class)
     private LocalDateTime updatedAt;
 
     /** Enum for search result types */

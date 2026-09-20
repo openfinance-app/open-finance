@@ -14,6 +14,7 @@ const mockUseMarkAlertAsRead = vi.fn();
 const mockUseNotifications = vi.fn();
 const mockUseNotificationCount = vi.fn();
 const mockUseUpdateExchangeRates = vi.fn();
+const mockMarkNotificationAsRead = vi.fn();
 
 vi.mock('@/hooks/useAlerts', () => ({
   useUnreadAlertCount: () => mockUseUnreadAlertCount(),
@@ -24,6 +25,7 @@ vi.mock('@/hooks/useAlerts', () => ({
 vi.mock('@/hooks/useNotifications', () => ({
   useNotifications: () => mockUseNotifications(),
   useNotificationCount: () => mockUseNotificationCount(),
+  useMarkNotificationAsRead: () => mockMarkNotificationAsRead,
   useUpdateExchangeRatesFromNotification: () => mockUseUpdateExchangeRates(),
 }));
 

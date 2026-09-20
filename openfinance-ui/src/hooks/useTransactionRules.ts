@@ -53,6 +53,8 @@ export function useCreateRule() {
   return useMutation({
     mutationFn: (data: TransactionRuleRequest) => createRule(data),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['session-history-exists'] });
       queryClient.invalidateQueries({ queryKey: RULES_KEY });
     },
   });

@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * LiabilityBreakdownPanel Component
  * Task 22: Create LiabilityBreakdownPanel component showing full cost breakdown
@@ -196,7 +197,7 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
       <div>
         <div className="flex justify-between text-xs text-text-secondary mb-1">
           <span>{t('breakdown.principalPaidOff')}</span>
-          <span>{progressPercent.toFixed(1)}%</span>
+          <span>{formatDecimal(progressPercent, 1)}%</span>
         </div>
         <div className="h-2 bg-surface-elevated rounded-full overflow-hidden">
           <div
@@ -308,7 +309,7 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
           {liability.insurancePercentage && (
             <BreakdownRow
               label={t('breakdown.annualInsuranceRate', {
-                rate: liability.insurancePercentage.toFixed(2),
+                rate: formatDecimal(liability.insurancePercentage, 2),
               })}
               value={liability.monthlyInsuranceCost}
               liability={liability}
