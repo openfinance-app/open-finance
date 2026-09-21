@@ -32,6 +32,17 @@ docker compose up -d
 # demo user: demo/demo123 or register a new account
 ```
 
+### Optional: With local AI assistant
+
+The AI chat/insight features need Ollama (~4.7GB image) + SearXNG, opt-in via the `ai` profile:
+
+```bash
+docker compose --profile ai up -d
+# Pull the model you want (default: qwen2.5:0.5b)
+docker compose --profile ai exec ollama ollama pull qwen2.5:0.5b
+# Open http://localhost:8080
+```
+
 _Bug reports and feature requests → [GitHub Issues](https://github.com/open-finance/open-finance/issues)_
 
 ---

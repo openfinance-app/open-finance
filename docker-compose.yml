@@ -4,10 +4,16 @@
 # Pulls pre-built images from GitHub Container Registry (GHCR).
 # Does NOT build from source.
 #
-# Quick start:
+# Quick start (app only, ~450MB pull):
 #   1. cp .env.example .env   # set JWT_SECRET and choose APPLICATION_ENCRYPTION_ENABLED
 #   2. docker compose up -d
 #   3. Open http://localhost:8080
+#
+# With local AI assistant (~5.5GB extra pull for Ollama CUDA image + model):
+#   1. cp .env.example .env
+#   2. docker compose --profile ai up -d
+#   3. docker compose --profile ai exec ollama ollama pull ${APPLICATION_AI_OLLAMA_MODEL:-qwen2.5:0.5b}
+#   4. Open http://localhost:8080
 #
 # Pull a specific version:
 #   OPEN_FINANCE_TAG=0.1.1-SNAPSHOT docker compose up -d
@@ -48,10 +54,14 @@ services:
       - open_finance_backups:/app/backups
       - open_finance_temp:/app/temp/imports
     depends_on:
+      # 'required: false' lets the app start when the 'ai' profile is off
+      # (ollama/searxng simply stay unreachable until AI features are used).
       ollama:
         condition: service_healthy
+        required: false
       searxng:
         condition: service_started
+        required: false
     healthcheck:
       test:
         [
@@ -72,6 +82,11 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: open-finance-ollama
+    # Opt-in: only pulled/started with 'docker compose --profile ai up'.
+    # The base image is ~4.7GB (CUDA); the app runs fine without it —
+    # only AI chat/insight calls need it.
+    profiles:
+      - ai
     restart: unless-stopped
     ports:
       - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
@@ -97,6 +112,9 @@ services:
   searxng:
     image: searxng/searxng:latest
     container_name: open-finance-searxng
+    # Opt-in alongside ollama: 'docker compose --profile ai up'.
+    profiles:
+      - ai
     restart: unless-stopped
     ports:
       - "127.0.0.1:${SEARXNG_PORT:-8888}:8080"
