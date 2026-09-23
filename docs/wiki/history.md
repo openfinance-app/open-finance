@@ -8,6 +8,10 @@
 
 The Operation History system records every create, update, and delete action you perform. This provides a full audit trail of changes and enables you to undo or redo recent operations.
 
+![Operation History](screenshots/history.png)
+
+**Go to:** History in the sidebar.
+
 ---
 
 ## What Is Recorded

@@ -2,6 +2,12 @@
 
 > Comprehensive documentation for all Open-Finance features.
 
+## Demo Tour
+
+<video src="demo/demo-tour.mp4" controls width="100%" poster="demo/demo-tour-poster.jpg"></video>
+
+[Download the video](demo/demo-tour.mp4) if your reader can't play it inline.
+
 ---
 
 ## Navigation

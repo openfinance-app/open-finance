@@ -24,7 +24,7 @@ The Financial News widget displays curated headlines from major financial news s
 | Source              |
 | ------------------- |
 | Le Monde — Économie |
-| Le Figaro — Bourse  |
+| Le Figaro — Économie |
 
 The source is chosen automatically based on the language set in your [Settings](settings.md).
 
@@ -32,7 +32,7 @@ The source is chosen automatically based on the language set in your [Settings](
 
 ## Where to Find News
 
-The news feed appears as a widget on the Dashboard and on a dedicated **News** page. Headlines are refreshed automatically every 30 minutes from the source feeds.
+The news feed lives in the **Finance News** section of the [Dashboard](dashboard.md) — there is no dedicated News page. Headlines are refreshed automatically every 15 minutes from the source feeds.
 
 ---
 

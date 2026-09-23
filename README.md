@@ -24,7 +24,7 @@ cd open-finance
 cp .env.example .env
 
 # Generate a secure JWT signing secret (required, min 32 chars)
-sed -i "s/JWT_SECRET=REPLACE_WITH_A_LONG_RANDOM_SECRET_MIN_32_CHARS/JWT_SECRET=$(openssl rand -base64 48)/" .env
+JWT=$(openssl rand -hex 32) && sed -i.bak "s|^JWT_SECRET=.*|JWT_SECRET=${JWT}|" .env && rm .env.bak
 
 docker compose up -d
 # Open http://localhost:8080
@@ -43,7 +43,7 @@ docker compose --profile ai exec ollama ollama pull qwen2.5:0.5b
 # Open http://localhost:8080
 ```
 
-_Bug reports and feature requests → [GitHub Issues](https://github.com/open-finance/open-finance/issues)_
+_Bug reports and feature requests → [GitHub Issues](https://github.com/openfinance-app/open-finance/issues)_
 
 ---
 

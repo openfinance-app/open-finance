@@ -8,6 +8,10 @@
 
 Open-Finance generates encrypted backup archives of your entire database. Backups can be created manually, restored in-place, or downloaded for off-device storage.
 
+![Backup & Restore](screenshots/backup.png)
+
+**Go to:** Settings → Backup (or the Backup page).
+
 ---
 
 ## Backup File Format

@@ -8,6 +8,10 @@
 
 The AI Assistant is a conversational interface for asking natural language questions about your finances. It uses your actual financial data — accounts, transactions, budgets, assets — as context, so answers are specific to your situation.
 
+![AI Assistant](screenshots/ai-assistant.png)
+
+**Go to:** the floating assistant button (bottom-right) on any page.
+
 ---
 
 ## Getting Started

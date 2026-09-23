@@ -5,9 +5,12 @@
 # Does NOT build from source.
 #
 # Quick start (app only, ~450MB pull):
-#   1. cp .env.example .env   # set JWT_SECRET and choose APPLICATION_ENCRYPTION_ENABLED
-#   2. docker compose up -d
-#   3. Open http://localhost:8080
+#   1. git clone https://github.com/openfinance-app/open-finance.git && cd open-finance
+#      (or curl just this file + .env.example — clone is only to fetch these two files)
+#   2. cp .env.example .env   # set JWT_SECRET and choose APPLICATION_ENCRYPTION_ENABLED
+#      Compose auto-loads `.env` from this directory — no extra flag needed.
+#   3. docker compose up -d
+#   4. Open http://localhost:8080
 #
 # With local AI assistant (~5.5GB extra pull for Ollama CUDA image + model):
 #   1. cp .env.example .env
@@ -118,8 +121,11 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:${SEARXNG_PORT:-8888}:8080"
+    # NOTE: no host bind-mount for /etc/searxng — the image defaults work out of the box.
+    # Mount your own settings only if needed, e.g.:
+    # volumes:
+    #   - "./searxng/settings.yml:/etc/searxng/settings.yml:ro"
     volumes:
-      - "./searxng/config:/etc/searxng:rw"
       - searxng_cache:/var/cache/searxng:rw
     logging:
       driver: "json-file"

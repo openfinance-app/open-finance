@@ -8,6 +8,8 @@
 
 Open-Finance integrates with Yahoo Finance to fetch real-time and historical price data for your investment assets. Exchange rates for multi-currency support are sourced from the European Central Bank (ECB).
 
+There is no dedicated Market Data page: prices, charts, and symbol search live on the [Assets](assets.md) pages, and updates run via a background scheduler.
+
 ---
 
 ## Supported Asset Types for Live Prices

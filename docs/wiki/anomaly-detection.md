@@ -42,7 +42,7 @@ Transactions in categories where you historically never transact at certain time
 
 When an anomaly is detected:
 
-1. A **high-priority insight** is created and appears on your Insights page.
+1. A **high-priority insight** is created and appears in the **AI Insights** section of your [Dashboard](dashboard.md).
 2. A **notification** is sent to your notification centre.
 
 You can dismiss insights that turn out to be false positives. See [Financial Insights](insights.md) for more.

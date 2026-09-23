@@ -45,6 +45,8 @@ Model investment growth with regular contributions and variable compounding freq
 
 **Go to:** Tools → Compound Interest
 
+![Compound Interest](screenshots/compound-interest.png)
+
 ### Inputs
 
 | Field                 | Description                         |
@@ -72,6 +74,8 @@ Calculate the savings from making extra payments on an existing loan.
 
 **Go to:** Tools → Early Payoff
 
+![Early Payoff](screenshots/early-payoff.png)
+
 ### Inputs
 
 | Field                   | Description                   |
@@ -97,6 +101,8 @@ Calculate the savings from making extra payments on an existing loan.
 Model the path to financial independence using the FIRE (Financial Independence, Retire Early) framework.
 
 **Go to:** Tools → Financial Freedom
+
+![Financial Freedom](screenshots/financial-freedom.png)
 
 ### Timeline — How long until you reach financial freedom?
 

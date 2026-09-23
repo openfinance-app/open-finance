@@ -8,6 +8,10 @@
 
 The Global Search feature lets you find any financial record — transactions, accounts, assets, liabilities, and real estate properties — from a single search bar. It supports keyword search, advanced filters, and saving frequently used queries.
 
+![Global Search](screenshots/search.png)
+
+**Go to:** the search box in the top bar, or the Search page.
+
 ---
 
 ## Simple Search

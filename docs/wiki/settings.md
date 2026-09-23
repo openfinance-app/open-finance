@@ -8,6 +8,10 @@
 
 The Settings area lets you manage your personal profile, locale preferences, currency configuration, and security credentials.
 
+![Settings](screenshots/settings.png)
+
+**Go to:** Settings in the user menu.
+
 ---
 
 ## Profile

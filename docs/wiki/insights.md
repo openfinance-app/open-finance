@@ -39,7 +39,7 @@ The Insights engine analyses your financial data and generates actionable, prior
 
 ## Generating Insights
 
-Insights refresh automatically based on your transactions and budget activity. You can also trigger a manual refresh from the **Insights** page using the **Refresh Insights** button.
+Insights refresh automatically based on your transactions and budget activity. You can also generate fresh insights from the **AI Insights** section of the [Dashboard](dashboard.md) using the **Generate Insights** (or **Refresh**) button — there is no dedicated Insights page.
 
 When refreshed, the engine analyses your transactions, budgets, accounts, and assets and replaces the current insight list with fresh recommendations. A notification is sent to your notification centre when new insights are ready.
 
@@ -53,7 +53,7 @@ Spending anomalies are also detected automatically every day in the background. 
 
 ## Viewing Insights
 
-Insights appear on the **Insights** page, ordered by priority. The dashboard also shows a summary of your top high-priority insights.
+Your top 3 insights appear in the **AI Insights** section of the [Dashboard](dashboard.md), ordered by priority.
 
 ---
 
