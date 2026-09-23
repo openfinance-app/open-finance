@@ -13,6 +13,7 @@ import {
   useBorrowingCapacity,
   useNetWorthAllocation,
   useDailyCashFlow,
+  useCashFlowHistory,
   useCashflowSankey,
   useEstimatedInterest,
   useTransactionsByPeriod,
@@ -241,6 +242,36 @@ describe('useDashboard hooks', () => {
       expect(mockedApiClient.get).toHaveBeenCalledWith('/dashboard/daily-cashflow', {
         params: { year: 2026, month: 3 },
       });
+    });
+  });
+
+  describe('useCashFlowHistory', () => {
+    it.each(['DAY', 'MONTH', 'YEAR'] as const)(
+      'fetches %s totals with the correct scope',
+      async granularity => {
+        const data = [{ date: '2024-02-01', income: 100, expense: 50 }];
+        mockedApiClient.get.mockResolvedValue({ data });
+        const { result } = renderHook(() => useCashFlowHistory(granularity, 2024, 2), { wrapper });
+        await waitFor(() => expect(result.current.isSuccess).toBe(true));
+        expect(result.current.data).toEqual(data);
+        expect(mockedApiClient.get).toHaveBeenCalledWith('/dashboard/cashflow-history', {
+          params: { granularity, year: 2024, ...(granularity === 'DAY' ? { month: 2 } : {}) },
+        });
+      }
+    );
+
+    it('does not reuse totals for another grouping or year', async () => {
+      mockedApiClient.get.mockResolvedValue({ data: [] });
+      const { result, rerender } = renderHook(
+        ({ granularity, year }: { granularity: 'MONTH' | 'YEAR'; year: number }) =>
+          useCashFlowHistory(granularity, year, 2),
+        { wrapper, initialProps: { granularity: 'MONTH', year: 2024 } }
+      );
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      rerender({ granularity: 'YEAR', year: 2024 });
+      await waitFor(() => expect(mockedApiClient.get).toHaveBeenCalledTimes(2));
+      rerender({ granularity: 'YEAR', year: 2023 });
+      await waitFor(() => expect(mockedApiClient.get).toHaveBeenCalledTimes(3));
     });
   });
 

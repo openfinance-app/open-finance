@@ -121,11 +121,15 @@ export interface INetWorthAllocation {
   color?: string;
 }
 
-export interface IDailyCashFlow {
+export type CashFlowGranularity = 'DAY' | 'MONTH' | 'YEAR';
+
+export interface ICashFlowPeriod {
   date: string;
   income: number;
   expense: number;
 }
+
+export type IDailyCashFlow = ICashFlowPeriod;
 
 /**
  * A single node (income source or expense category) in the Cashflow Sankey diagram

@@ -517,6 +517,31 @@ export const dashboardHandlers = [
     });
   }),
 
+  http.get(`${API_BASE_URL}/dashboard/cashflow-history`, ({ request }) => {
+    const url = new URL(request.url);
+    const year = Number(url.searchParams.get('year') ?? new Date().getFullYear());
+    const month = Number(url.searchParams.get('month') ?? new Date().getMonth() + 1);
+    const granularity = url.searchParams.get('granularity') ?? 'DAY';
+    const count =
+      granularity === 'DAY'
+        ? new Date(year, month, 0).getDate()
+        : granularity === 'MONTH'
+          ? 12
+          : 10;
+    return HttpResponse.json(
+      Array.from({ length: count }, (_, index) => ({
+        date:
+          granularity === 'DAY'
+            ? `${year}-${String(month).padStart(2, '0')}-${String(index + 1).padStart(2, '0')}`
+            : granularity === 'MONTH'
+              ? `${year}-${String(index + 1).padStart(2, '0')}-01`
+              : `${year - 9 + index}-01-01`,
+        income: index === 0 ? 3000 : 0,
+        expense: index === 0 ? 1200 : 0,
+      }))
+    );
+  }),
+
   // Get daily cash flow
   http.get(`${API_BASE_URL}/dashboard/daily-cashflow`, ({ request }) => {
     const url = new URL(request.url);

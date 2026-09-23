@@ -77,8 +77,8 @@
       "description": "Diagramme des flux de revenus et dépenses"
     },
     "dailyCashFlow": {
-      "label": "Flux de trésorerie quotidien",
-      "description": "Calendrier des dépenses/revenus quotidiens"
+      "label": "Historique des flux de trésorerie",
+      "description": "Revenus et dépenses par jour, mois et année"
     },
     "recentTransactions": {
       "label": "Transactions récentes",
@@ -166,13 +166,12 @@
     "tooltip": "Les insights alimentés par l'IA analysent vos transactions et vos habitudes de dépenses pour faire ressortir des recommandations, des avertissements et des opportunités personnalisés."
   },
   "calendar": {
-    "title": "Flux de trésorerie quotidien",
-    "subtitle": "Revenus et dépenses quotidiens",
+    "title": "Historique des flux de trésorerie",
     "income": "Revenu",
     "expense": "Dépense",
     "net": "Net",
     "today": "Aujourd'hui",
-    "loadError": "Échec du chargement des données du calendrier",
+    "loadError": "Échec du chargement des flux de trésorerie",
     "days": {
       "mon": "Lun",
       "tue": "Mar",
@@ -182,7 +181,33 @@
       "sat": "Sam",
       "sun": "Dim"
     },
-    "viewDayTransactions": "Voir les transactions du {{date}}"
+    "viewDayTransactions": "Voir les transactions du {{date}}",
+    "subtitles": {
+      "DAY": "Revenus et dépenses quotidiens",
+      "MONTH": "Revenus et dépenses mensuels",
+      "YEAR": "Revenus et dépenses annuels"
+    },
+    "groupBy": "Regroupement des flux de trésorerie",
+    "granularity": {
+      "DAY": "Par jour",
+      "MONTH": "Par mois",
+      "YEAR": "Par année"
+    },
+    "previous": {
+      "DAY": "Mois précédent",
+      "MONTH": "Année précédente",
+      "YEAR": "10 années précédentes"
+    },
+    "next": {
+      "DAY": "Mois suivant",
+      "MONTH": "Année suivante",
+      "YEAR": "10 années suivantes"
+    },
+    "netTrend": "Flux de trésorerie net",
+    "chartTitle": "Revenus, dépenses et flux de trésorerie net",
+    "viewPeriodTransactions": "Voir les transactions pour {{period}}",
+    "loading": "Chargement des flux de trésorerie",
+    "retry": "Réessayer"
   },
   "accountsCard": {
     "title": "Comptes",

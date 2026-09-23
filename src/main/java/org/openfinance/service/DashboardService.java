@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,8 @@ import org.openfinance.dto.AccountInterest;
 import org.openfinance.dto.AccountSummary;
 import org.openfinance.dto.AssetAllocation;
 import org.openfinance.dto.BorrowingCapacity;
+import org.openfinance.dto.CashFlowGranularity;
+import org.openfinance.dto.CashFlowPeriod;
 import org.openfinance.dto.CashflowSankeyDto;
 import org.openfinance.dto.DashboardSummary;
 import org.openfinance.dto.EstimatedInterestSummary;
@@ -587,66 +590,97 @@ public class DashboardService {
      */
     public List<org.openfinance.dto.DailyCashFlow> getDailyCashFlow(
             Long userId, int year, int month) {
-        if (userId == null) {
-            throw new IllegalArgumentException("User ID cannot be null");
+        return getCashFlowHistory(userId, CashFlowGranularity.DAY, year, month).stream()
+                .map(
+                        p ->
+                                new org.openfinance.dto.DailyCashFlow(
+                                        p.getDate(), p.getIncome(), p.getExpense()))
+                .toList();
+    }
+
+    /**
+     * Daily totals for a month, monthly totals for a year, or yearly totals for the ten years
+     * ending in the requested year. Empty periods are included in chronological order.
+     */
+    public List<CashFlowPeriod> getCashFlowHistory(
+            Long userId, CashFlowGranularity granularity, int year, int month) {
+        if (userId == null || granularity == null) {
+            throw new IllegalArgumentException("User ID and cash flow granularity are required");
         }
-
-        log.debug(
-                "Calculating daily cash flow for user {} for year {} month {}",
-                userId,
-                year,
-                month);
-
-        YearMonth yearMonth = YearMonth.of(year, month);
-        LocalDate startDate = yearMonth.atDay(1);
-        LocalDate endDate = yearMonth.atEndOfMonth();
-
-        List<Transaction> transactions =
-                transactionRepository.findByUserIdAndDateBetween(userId, startDate, endDate);
-
-        // Look up the user's base currency so each transaction is converted before
-        // aggregation
-        // (consistent with getCashFlow, which also converts per-row).
-        User dailyUser =
+        if (year < 1 || year > 9999 || (granularity == CashFlowGranularity.YEAR && year < 10)) {
+            throw new IllegalArgumentException("Invalid cash flow year");
+        }
+        if (month < 1 || month > 12) {
+            throw new IllegalArgumentException("Month must be between 1 and 12");
+        }
+        LocalDate start =
+                switch (granularity) {
+                    case DAY -> LocalDate.of(year, month, 1);
+                    case MONTH -> LocalDate.of(year, 1, 1);
+                    case YEAR -> LocalDate.of(year - 9, 1, 1);
+                };
+        LocalDate end =
+                granularity == CashFlowGranularity.DAY
+                        ? YearMonth.of(year, month).atEndOfMonth()
+                        : LocalDate.of(year, 12, 31);
+        User user =
                 userRepository
                         .findById(userId)
                         .orElseThrow(
                                 () -> new IllegalArgumentException("User not found: " + userId));
-        final String dailyBase = defaultCurrencyProvider.resolve(dailyUser.getBaseCurrency());
-
-        Map<LocalDate, BigDecimal> dailyIncome = new HashMap<>();
-        Map<LocalDate, BigDecimal> dailyExpense = new HashMap<>();
-
-        for (int i = 1; i <= yearMonth.lengthOfMonth(); i++) {
-            LocalDate date = yearMonth.atDay(i);
-            dailyIncome.put(date, BigDecimal.ZERO);
-            dailyExpense.put(date, BigDecimal.ZERO);
+        String baseCurrency = defaultCurrencyProvider.resolve(user.getBaseCurrency());
+        Map<LocalDate, CashFlowPeriod> periods = new TreeMap<>();
+        for (LocalDate date = start;
+                !date.isAfter(end);
+                date = nextCashFlowPeriod(date, granularity)) {
+            periods.put(date, new CashFlowPeriod(date, BigDecimal.ZERO, BigDecimal.ZERO));
         }
+        aggregateCashFlow(userId, start, end, granularity, baseCurrency, periods);
+        return new ArrayList<>(periods.values());
+    }
 
-        for (Transaction t : transactions) {
-            // Exclude internal transfer legs — they are not real income/expense.
-            if (t.getIsDeleted() || t.getTransferId() != null) {
+    private void aggregateCashFlow(
+            Long userId,
+            LocalDate start,
+            LocalDate end,
+            CashFlowGranularity granularity,
+            String baseCurrency,
+            Map<LocalDate, CashFlowPeriod> periods) {
+        for (Transaction transaction :
+                transactionRepository.findByUserIdAndDateBetween(userId, start, end)) {
+            if (Boolean.TRUE.equals(transaction.getIsDeleted())
+                    || transaction.getTransferId() != null
+                    || (transaction.getType() != TransactionType.INCOME
+                            && transaction.getType() != TransactionType.EXPENSE)) {
                 continue;
             }
-            LocalDate date = t.getDate();
+            LocalDate date =
+                    switch (granularity) {
+                        case DAY -> transaction.getDate();
+                        case MONTH -> transaction.getDate().withDayOfMonth(1);
+                        case YEAR -> transaction.getDate().withDayOfYear(1);
+                    };
+            CashFlowPeriod period = periods.get(date);
             BigDecimal converted =
-                    convertToBase(t.getAmount(), t.getCurrency(), dailyBase, t.getDate());
-            if (t.getType() == TransactionType.INCOME) {
-                dailyIncome.put(date, dailyIncome.get(date).add(converted));
-            } else if (t.getType() == TransactionType.EXPENSE) {
-                dailyExpense.put(date, dailyExpense.get(date).add(converted));
+                    convertToBase(
+                            transaction.getAmount(),
+                            transaction.getCurrency(),
+                            baseCurrency,
+                            transaction.getDate());
+            if (transaction.getType() == TransactionType.INCOME) {
+                period.setIncome(period.getIncome().add(converted));
+            } else {
+                period.setExpense(period.getExpense().add(converted));
             }
         }
+    }
 
-        List<org.openfinance.dto.DailyCashFlow> result = new ArrayList<>();
-        for (int i = 1; i <= yearMonth.lengthOfMonth(); i++) {
-            LocalDate date = yearMonth.atDay(i);
-            result.add(
-                    new org.openfinance.dto.DailyCashFlow(
-                            date, dailyIncome.get(date), dailyExpense.get(date)));
-        }
-
-        return result;
+    private LocalDate nextCashFlowPeriod(LocalDate date, CashFlowGranularity granularity) {
+        return switch (granularity) {
+            case DAY -> date.plusDays(1);
+            case MONTH -> date.plusMonths(1);
+            case YEAR -> date.plusYears(1);
+        };
     }
 
     /**

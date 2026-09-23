@@ -1,6 +1,7 @@
 package org.openfinance.controller;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -8,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.openfinance.dto.AccountSummary;
 import org.openfinance.dto.AssetAllocation;
 import org.openfinance.dto.BorrowingCapacity;
+import org.openfinance.dto.CashFlowGranularity;
+import org.openfinance.dto.CashFlowPeriod;
 import org.openfinance.dto.CashflowSankeyDto;
 import org.openfinance.dto.DashboardSummary;
 import org.openfinance.dto.EstimatedInterestSummary;
@@ -354,6 +357,23 @@ public class DashboardController {
                 dashboardService.getDailyCashFlow(userId, year, month);
 
         return ResponseEntity.ok(dailyCashFlow);
+    }
+
+    /** Returns daily, monthly, or yearly cash flow in the authenticated user's base currency. */
+    @GetMapping("/cashflow-history")
+    public ResponseEntity<List<CashFlowPeriod>> getCashFlowHistory(
+            Authentication authentication,
+            @RequestParam(defaultValue = "DAY") CashFlowGranularity granularity,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+        LocalDate today = LocalDate.now();
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(
+                dashboardService.getCashFlowHistory(
+                        user.getId(),
+                        granularity,
+                        year == null ? today.getYear() : year,
+                        month == null ? today.getMonthValue() : month));
     }
 
     /**

@@ -77,8 +77,8 @@
       "description": "Income & expense flow diagram"
     },
     "dailyCashFlow": {
-      "label": "Daily Cash Flow",
-      "description": "Daily expense/income calendar"
+      "label": "Cash Flow History",
+      "description": "Daily, monthly and yearly income and expenses"
     },
     "recentTransactions": {
       "label": "Recent Transactions",
@@ -166,13 +166,12 @@
     "tooltip": "AI-powered insights analyse your transactions and spending patterns to surface personalized recommendations, warnings, and opportunities."
   },
   "calendar": {
-    "title": "Daily Cash Flow",
-    "subtitle": "Daily income and expenses",
+    "title": "Cash Flow History",
     "income": "Income",
     "expense": "Expense",
     "net": "Net",
     "today": "Today",
-    "loadError": "Failed to load calendar data",
+    "loadError": "Failed to load cash flow data",
     "days": {
       "mon": "Mon",
       "tue": "Tue",
@@ -182,7 +181,33 @@
       "sat": "Sat",
       "sun": "Sun"
     },
-    "viewDayTransactions": "View transactions for {{date}}"
+    "viewDayTransactions": "View transactions for {{date}}",
+    "subtitles": {
+      "DAY": "Daily income and expenses",
+      "MONTH": "Monthly income and expenses",
+      "YEAR": "Yearly income and expenses"
+    },
+    "groupBy": "Cash flow grouping",
+    "granularity": {
+      "DAY": "Daily",
+      "MONTH": "Monthly",
+      "YEAR": "Yearly"
+    },
+    "previous": {
+      "DAY": "Previous month",
+      "MONTH": "Previous year",
+      "YEAR": "Previous 10 years"
+    },
+    "next": {
+      "DAY": "Next month",
+      "MONTH": "Next year",
+      "YEAR": "Next 10 years"
+    },
+    "netTrend": "Net cash flow",
+    "chartTitle": "Income, expenses and net cash flow",
+    "viewPeriodTransactions": "View transactions for {{period}}",
+    "loading": "Loading cash flow",
+    "retry": "Retry"
   },
   "accountsCard": {
     "title": "Accounts",

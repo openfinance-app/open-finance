@@ -11,6 +11,8 @@ import type {
   IBorrowingCapacity,
   INetWorthAllocation,
   IDailyCashFlow,
+  ICashFlowPeriod,
+  CashFlowGranularity,
   ICashflowSankey,
   IEstimatedInterestSummary,
   IYearlyBalanceResponse,
@@ -264,6 +266,25 @@ export const useDailyCashFlow = (year?: number, month?: number) =>
   useQuery({
     queryKey: ['dashboard', 'daily-cashflow', year, month],
     queryFn: () => fetchDailyCashFlow(year, month),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+export const useCashFlowHistory = (granularity: CashFlowGranularity, year: number, month: number) =>
+  useQuery({
+    queryKey: [
+      'dashboard',
+      'cashflow-history',
+      granularity,
+      year,
+      granularity === 'DAY' ? month : null,
+    ],
+    queryFn: async (): Promise<ICashFlowPeriod[]> => {
+      const response = await apiClient.get<ICashFlowPeriod[]>('/dashboard/cashflow-history', {
+        params: { granularity, year, ...(granularity === 'DAY' ? { month } : {}) },
+      });
+      return response.data;
+    },
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });

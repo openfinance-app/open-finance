@@ -33,7 +33,7 @@ import PortfolioPerformanceCards from '../components/dashboard/PortfolioPerforma
 import InsightsCard from '../components/dashboard/InsightsCard';
 import BorrowingCapacityCard from '../components/dashboard/BorrowingCapacityCard';
 import NetWorthAllocationChart from '../components/dashboard/NetWorthAllocationChart';
-import DailyCashFlowCalendar from '../components/dashboard/DailyCashFlowCalendar';
+import CashFlowCalendar from '@/components/dashboard/CashFlowCalendar';
 import CashflowSankeyCard from '../components/dashboard/CashflowSankeyCard';
 import EstimatedInterestCard from '../components/dashboard/EstimatedInterestCard';
 import PeriodSelector, {
@@ -616,7 +616,7 @@ export default function DashboardPage() {
         label: t('cards.dailyCashFlow.label'),
         description: t('cards.dailyCashFlow.description'),
         isAvailable: true,
-        render: () => <DailyCashFlowCalendar baseCurrency={summary.baseCurrency} />,
+        render: () => <CashFlowCalendar baseCurrency={summary.baseCurrency} />,
       },
       {
         id: 'recentTransactions',
