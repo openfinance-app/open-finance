@@ -2,15 +2,15 @@ name: Backend CI (SQLite)
 
 on:
   workflow_call:
-  push:
-    branches:
-      - main
-      - develop
-    paths:
-      - 'src/**'
-      - 'pom.xml'
-      - 'quality/**'
-      - '.github/workflows/backend-sqlite.yml'
+  # push:
+  #   branches:
+  #     - main
+  #     - develop
+  #   paths:
+  #     - 'src/**'
+  #     - 'pom.xml'
+  #     - 'quality/**'
+  #     - '.github/workflows/backend-sqlite.yml'
   pull_request:
     branches:
       - main

@@ -8,14 +8,14 @@ name: Backend CI (PostgreSQL)
 
 on:
     workflow_call:
-    push:
-        branches:
-            - main
-            - develop
-        paths:
-            - "src/**"
-            - "pom.xml"
-            - ".github/workflows/backend-postgres.yml"
+    # push:
+    #     branches:
+    #         - main
+    #         - develop
+    #     paths:
+    #         - "src/**"
+    #         - "pom.xml"
+    #         - ".github/workflows/backend-postgres.yml"
     pull_request:
         branches:
             - main

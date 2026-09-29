@@ -2,9 +2,9 @@ name: Packaged Browser CI
 
 on:
   workflow_call:
-  push:
-    branches: [main, develop]
-    paths: ['src/**', 'openfinance-ui/**', 'pom.xml', 'scripts/run-browser-tests.py', '.github/workflows/browser-ci.yml']
+  # push:
+  #   branches: [main, develop]
+  #   paths: ['src/**', 'openfinance-ui/**', 'pom.xml', 'scripts/run-browser-tests.py', '.github/workflows/browser-ci.yml']
   pull_request:
     branches: [main, develop]
     paths: ['src/**', 'openfinance-ui/**', 'pom.xml', 'scripts/run-browser-tests.py', '.github/workflows/browser-ci.yml']

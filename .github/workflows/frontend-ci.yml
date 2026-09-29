@@ -2,13 +2,13 @@ name: Frontend CI
 
 on:
   workflow_call:
-  push:
-    branches:
-      - main
-      - develop
-    paths:
-      - "openfinance-ui/**"
-      - ".github/workflows/frontend-ci.yml"
+  # push:
+  #   branches:
+  #     - main
+  #     - develop
+  #   paths:
+  #     - "openfinance-ui/**"
+  #     - ".github/workflows/frontend-ci.yml"
   pull_request:
     branches:
       - main
