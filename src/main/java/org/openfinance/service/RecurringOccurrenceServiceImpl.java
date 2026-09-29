@@ -3,12 +3,14 @@ package org.openfinance.service;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.openfinance.dto.TransactionRequest;
+import org.openfinance.entity.EntityType;
+import org.openfinance.entity.OperationType;
 import org.openfinance.entity.RecurringTransaction;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.repository.RecurringTransactionRepository;
+import org.openfinance.service.history.ReversibleOperation;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -19,7 +21,13 @@ public class RecurringOccurrenceServiceImpl implements RecurringOccurrenceServic
     private final JdbcTemplate jdbc;
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
+    @ReversibleOperation(
+            entity = EntityType.RECURRING_TRANSACTION,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0,
+            requiresNew = true)
     public boolean post(Long recurringId, Long userId, LocalDate expectedDate) {
         // Acquire the writer/row lock before reading, including on SQLite WAL databases.
         if (jdbc.update(

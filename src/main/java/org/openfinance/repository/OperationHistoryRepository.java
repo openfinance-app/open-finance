@@ -9,7 +9,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface OperationHistoryRepository extends JpaRepository<OperationHistory, Long> {
+public interface OperationHistoryRepository
+        extends JpaRepository<OperationHistory, Long>,
+                org.springframework.data.jpa.repository.JpaSpecificationExecutor<OperationHistory> {
+
+    java.util.List<OperationHistory>
+            findByUserIdAndIdGreaterThanAndActionStateJsonIsNotNullOrderByIdAsc(
+                    Long userId, Long id);
 
     // neither filter (existing — used by internal callers such as undo)
     Page<OperationHistory> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);

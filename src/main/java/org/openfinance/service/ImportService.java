@@ -35,9 +35,11 @@ import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Category;
 import org.openfinance.entity.CategoryType;
+import org.openfinance.entity.EntityType;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
 import org.openfinance.entity.Institution;
+import org.openfinance.entity.OperationType;
 import org.openfinance.entity.PaymentMethod;
 import org.openfinance.entity.Transaction;
 // Import TransactionType enum
@@ -55,6 +57,7 @@ import org.openfinance.repository.PayeeRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.repository.UserSettingsRepository;
+import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.service.parser.CsvParser;
 import org.openfinance.service.parser.ImportParseContext;
 import org.openfinance.service.parser.OfxParser;
@@ -698,6 +701,11 @@ public class ImportService {
      * @return the updated import session
      */
     @Transactional
+    @ReversibleOperation(
+            entity = EntityType.IMPORT,
+            operation = OperationType.CREATE,
+            userArgument = 1,
+            idArgument = 0)
     public ImportSession confirmImport(
             Long sessionId,
             Long userId,
@@ -1004,10 +1012,10 @@ public class ImportService {
             session.setStatus(ImportStatus.COMPLETED);
             operationHistoryService.record(
                     session.getUserId(),
-                    org.openfinance.entity.EntityType.IMPORT,
+                    EntityType.IMPORT,
                     session.getId(),
                     session.getFileName(),
-                    org.openfinance.entity.OperationType.CREATE,
+                    OperationType.CREATE,
                     (Object) null,
                     null);
             session.setCompletedAt(LocalDateTime.now());
@@ -1802,10 +1810,10 @@ public class ImportService {
         session.setStatus(ImportStatus.COMPLETED);
         operationHistoryService.record(
                 session.getUserId(),
-                org.openfinance.entity.EntityType.IMPORT,
+                EntityType.IMPORT,
                 session.getId(),
                 session.getFileName(),
-                org.openfinance.entity.OperationType.CREATE,
+                OperationType.CREATE,
                 (Object) null,
                 null);
         session.setCompletedAt(LocalDateTime.now());
@@ -2097,10 +2105,10 @@ public class ImportService {
         session.setStatus(ImportStatus.COMPLETED);
         operationHistoryService.record(
                 session.getUserId(),
-                org.openfinance.entity.EntityType.IMPORT,
+                EntityType.IMPORT,
                 session.getId(),
                 session.getFileName(),
-                org.openfinance.entity.OperationType.CREATE,
+                OperationType.CREATE,
                 (Object) null,
                 null);
         session.setCompletedAt(LocalDateTime.now());

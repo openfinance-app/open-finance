@@ -839,7 +839,7 @@ class AuditRemediationIntegrationTest {
     }
 
     @Test
-    void exportReturnsContentAndUnsupportedHistoryActionsDoNotChangeStatus() throws Exception {
+    void exportReturnsContentAndAccountHistoryRestoresChanges() throws Exception {
         long account = account(owner, "Downloadable account", "EUR", 100);
         byte[] export =
                 mvc.perform(
@@ -876,14 +876,16 @@ class AuditRemediationIntegrationTest {
                         "SELECT id FROM operation_history WHERE user_id = ? AND operation_type = 'UPDATE' ORDER BY id DESC LIMIT 1",
                         Long.class,
                         owner.id());
-        json("POST", "/history/" + history + "/undo", null, owner, 400);
-        json("POST", "/history/" + history + "/redo", null, owner, 400);
+        json("POST", "/history/" + history + "/undo", null, owner, 200);
+        assertThat(json("GET", "/accounts/" + account, null, owner, 200).get("name").asText())
+                .isEqualTo("Downloadable account");
         assertThat(
                         jdbc.queryForObject(
                                 "SELECT undone_at FROM operation_history WHERE id = ?",
                                 String.class,
                                 history))
-                .isNull();
+                .isNotNull();
+        json("POST", "/history/" + history + "/redo", null, owner, 200);
         assertThat(json("GET", "/accounts/" + account, null, owner, 200).get("name").asText())
                 .isEqualTo("Updated account");
     }

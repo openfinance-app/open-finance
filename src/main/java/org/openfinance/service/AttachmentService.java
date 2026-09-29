@@ -13,6 +13,7 @@ import org.openfinance.exception.FileStorageException;
 import org.openfinance.repository.AttachmentRepository;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.service.history.SerializedFinancialWrite;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -82,6 +83,7 @@ public class AttachmentService {
      * @throws FileStorageException if file storage fails
      */
     @Transactional
+    @SerializedFinancialWrite(userArgument = 1)
     public Attachment uploadAttachment(
             MultipartFile file,
             Long userId,
@@ -201,6 +203,7 @@ public class AttachmentService {
      * @throws AttachmentNotFoundException if attachment not found or unauthorized
      */
     @Transactional
+    @SerializedFinancialWrite(userArgument = 1)
     public void deleteAttachment(Long attachmentId, Long userId) {
         log.info("Deleting attachment {} for user {}", attachmentId, userId);
 

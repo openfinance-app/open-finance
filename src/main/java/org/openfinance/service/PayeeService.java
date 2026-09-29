@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.PayeeRequest;
 import org.openfinance.dto.PayeeResponse;
 import org.openfinance.entity.Category;
+import org.openfinance.entity.EntityType;
+import org.openfinance.entity.OperationType;
 import org.openfinance.entity.Payee;
 import org.openfinance.entity.Transaction;
 import org.openfinance.exception.DuplicatePayeeException;
@@ -18,6 +20,7 @@ import org.openfinance.exception.PayeeNotFoundException;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.PayeeRepository;
 import org.openfinance.repository.TransactionRepository;
+import org.openfinance.service.history.ReversibleOperation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -241,6 +244,11 @@ public class PayeeService {
      * @return the existing or newly created payee
      */
     @Transactional
+    @ReversibleOperation(
+            entity = EntityType.PAYEE,
+            operation = OperationType.CREATE,
+            userArgument = 1,
+            idArgument = -1)
     public PayeeResponse findOrCreatePayee(String name, Long userId) {
         if (name == null || name.trim().isEmpty()) {
             return null;
@@ -291,6 +299,11 @@ public class PayeeService {
      * @param userId the authenticated user's ID
      * @return the created payee
      */
+    @ReversibleOperation(
+            entity = EntityType.PAYEE,
+            operation = OperationType.CREATE,
+            userArgument = 1,
+            idArgument = -1)
     public PayeeResponse createPayee(PayeeRequest request, Long userId) {
         String trimmedName = request.getName().trim();
         log.debug("Creating payee: {} for user: {}", trimmedName, userId);
@@ -330,10 +343,10 @@ public class PayeeService {
         indexPayeeSearchTokens(saved);
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.PAYEE,
+                EntityType.PAYEE,
                 saved.getId(),
                 saved.getName(),
-                org.openfinance.entity.OperationType.CREATE,
+                OperationType.CREATE,
                 (Object) null,
                 null);
         log.info("Created custom payee with id: {}", saved.getId());
@@ -352,6 +365,11 @@ public class PayeeService {
      * @throws PayeeNotFoundException if not found
      * @throws IllegalStateException if trying to update a system payee or another user's
      */
+    @ReversibleOperation(
+            entity = EntityType.PAYEE,
+            operation = OperationType.UPDATE,
+            userArgument = 2,
+            idArgument = 0)
     public PayeeResponse updatePayee(Long id, PayeeRequest request, Long userId) {
         log.debug("Updating payee id: {} for user: {}", id, userId);
 
@@ -443,6 +461,11 @@ public class PayeeService {
      * @throws PayeeNotFoundException if not found
      * @throws IllegalStateException if trying to delete a system payee or another user's
      */
+    @ReversibleOperation(
+            entity = EntityType.PAYEE,
+            operation = OperationType.DELETE,
+            userArgument = 1,
+            idArgument = 0)
     public void deletePayee(Long id, Long userId) {
         log.debug("Deleting payee id: {} for user: {}", id, userId);
 

@@ -1,6 +1,8 @@
 package org.openfinance.service;
 
 import java.util.Base64;
+import java.util.Map;
+import java.util.Set;
 import javax.crypto.SecretKey;
 
 /** Raw encrypted-column access shared by key rotation and portable user backups. */
@@ -15,6 +17,9 @@ public interface EncryptedUserDataService {
     void rotate(Long userId, SecretKey sourceKey, SecretKey targetKey);
 
     void rebuildSearchTokens(Long userId, SecretKey key);
+
+    /** Refresh only the records changed by a reversible action, including removed records. */
+    void refreshSearchTokens(Long userId, SecretKey key, Map<String, Set<Long>> changedIds);
 
     static String identifier(String name) {
         if (!name.matches("[a-z][a-z0-9_]*"))

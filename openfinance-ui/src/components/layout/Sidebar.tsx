@@ -31,7 +31,6 @@ import { cn } from '@/lib/utils';
 import { AppLogo } from '@/components/ui/AppLogo';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 import { useCountryToolConfig } from '@/hooks/useCountryToolConfig';
-import { useHasSessionHistory } from '@/hooks/useHasSessionHistory';
 
 interface NavItem {
   labelKey: string;
@@ -203,11 +202,8 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
   }, [pathname]);
 
   const { isPropertyRentalAvailable } = useCountryToolConfig();
-  const hasSessionHistory = useHasSessionHistory();
 
-  const navItems = BASE_NAV_ITEMS.filter(
-    item => item.labelKey !== 'history' || hasSessionHistory
-  ).map(item => {
+  const navItems = BASE_NAV_ITEMS.map(item => {
     if (item.labelKey === 'tools' && item.children) {
       return {
         ...item,

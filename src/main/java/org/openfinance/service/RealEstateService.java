@@ -13,7 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.*;
 import org.openfinance.dto.AssetRequest;
 import org.openfinance.entity.AssetType;
+import org.openfinance.entity.EntityType;
 import org.openfinance.entity.Liability;
+import org.openfinance.entity.OperationType;
 import org.openfinance.entity.PropertyType;
 import org.openfinance.entity.RealEstateProperty;
 import org.openfinance.entity.RealEstateValueHistory;
@@ -28,6 +30,7 @@ import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.RealEstateValueHistoryRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.specification.RealEstateSpecification;
 import org.openfinance.util.MathConstants;
 import org.springframework.cache.annotation.CacheEvict;
@@ -127,6 +130,11 @@ public class RealEstateService {
                         key = "#userId"),
                 @CacheEvict(value = "portfolioPerformance", allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.REAL_ESTATE,
+            operation = OperationType.CREATE,
+            userArgument = 0,
+            idArgument = -1)
     public RealEstatePropertyResponse createProperty(
             Long userId, RealEstatePropertyRequest request) {
         if (userId == null) {
@@ -211,10 +219,10 @@ public class RealEstateService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.REAL_ESTATE,
+                EntityType.REAL_ESTATE,
                 savedProperty.getId(),
                 request.getName(),
-                org.openfinance.entity.OperationType.CREATE,
+                OperationType.CREATE,
                 (Object) null,
                 null);
 
@@ -248,6 +256,11 @@ public class RealEstateService {
                         key = "#userId"),
                 @CacheEvict(value = "portfolioPerformance", allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.REAL_ESTATE,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public RealEstatePropertyResponse updateProperty(
             Long propertyId, Long userId, RealEstatePropertyRequest request) {
         if (propertyId == null) {
@@ -363,10 +376,10 @@ public class RealEstateService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.REAL_ESTATE,
+                EntityType.REAL_ESTATE,
                 propertyId,
                 request.getName(),
-                org.openfinance.entity.OperationType.UPDATE,
+                OperationType.UPDATE,
                 beforeSnapshot,
                 null);
 
@@ -395,6 +408,11 @@ public class RealEstateService {
                         key = "#userId"),
                 @CacheEvict(value = "portfolioPerformance", allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.REAL_ESTATE,
+            operation = OperationType.DELETE,
+            userArgument = 1,
+            idArgument = 0)
     public void deleteProperty(Long propertyId, Long userId) {
         if (propertyId == null) {
             throw new IllegalArgumentException("Property ID cannot be null");
@@ -442,10 +460,10 @@ public class RealEstateService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.REAL_ESTATE,
+                EntityType.REAL_ESTATE,
                 propertyId,
                 label,
-                org.openfinance.entity.OperationType.DELETE,
+                OperationType.DELETE,
                 snapshot,
                 null);
     }
@@ -1008,6 +1026,11 @@ public class RealEstateService {
                 "networthAllocation"
             },
             allEntries = true)
+    @ReversibleOperation(
+            entity = EntityType.REAL_ESTATE,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public RealEstatePropertyResponse estimateValue(
             Long propertyId, Long userId, BigDecimal newValue) {
         if (propertyId == null || userId == null) {
@@ -1041,10 +1064,10 @@ public class RealEstateService {
         RealEstatePropertyResponse response = toResponseWithDecryption(saved);
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.REAL_ESTATE,
+                EntityType.REAL_ESTATE,
                 propertyId,
                 response.getName(),
-                org.openfinance.entity.OperationType.UPDATE,
+                OperationType.UPDATE,
                 before,
                 null);
         return response;

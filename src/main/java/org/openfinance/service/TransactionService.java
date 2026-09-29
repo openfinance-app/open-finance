@@ -17,8 +17,10 @@ import org.openfinance.dto.TransferUpdateRequest;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.Category;
 import org.openfinance.entity.CategoryType;
+import org.openfinance.entity.EntityType;
 import org.openfinance.entity.Liability;
 import org.openfinance.entity.MovementType;
+import org.openfinance.entity.OperationType;
 import org.openfinance.entity.TrancheStatus;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
@@ -42,6 +44,7 @@ import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.util.LoanPostingPolicy;
 import org.openfinance.util.PrincipalLegs;
 import org.springframework.cache.annotation.CacheEvict;
@@ -169,6 +172,11 @@ public class TransactionService {
                         allEntries = true),
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.TRANSACTION,
+            operation = OperationType.CREATE,
+            userArgument = 0,
+            idArgument = -1)
     public TransactionResponse createTransaction(Long userId, TransactionRequest request) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -318,10 +326,10 @@ public class TransactionService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.TRANSACTION,
+                EntityType.TRANSACTION,
                 savedTransaction.getId(),
                 request.getDescription(),
-                org.openfinance.entity.OperationType.CREATE,
+                OperationType.CREATE,
                 (Object) null,
                 null);
 
@@ -384,6 +392,11 @@ public class TransactionService {
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
             })
     @Transactional
+    @ReversibleOperation(
+            entity = EntityType.TRANSACTION,
+            operation = OperationType.CREATE,
+            userArgument = 0,
+            idArgument = -1)
     public TransactionResponse createTransfer(Long userId, TransactionRequest request) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -543,10 +556,10 @@ public class TransactionService {
 
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.TRANSACTION,
+                EntityType.TRANSACTION,
                 savedSourceTransaction.getId(),
                 request.getDescription(),
-                org.openfinance.entity.OperationType.CREATE,
+                OperationType.CREATE,
                 (Object) null,
                 null);
         // Return the source transaction response (client can query by transferId to get
@@ -609,6 +622,11 @@ public class TransactionService {
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
             })
     @Transactional
+    @ReversibleOperation(
+            entity = EntityType.TRANSACTION,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = -1)
     public TransactionResponse updateTransfer(
             String transferId, Long userId, TransferUpdateRequest request) {
         if (transferId == null || transferId.isBlank()) {
@@ -898,6 +916,11 @@ public class TransactionService {
                         allEntries = true),
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.TRANSACTION,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public TransactionResponse updateTransaction(
             Long transactionId, Long userId, TransactionRequest request) {
         log.debug("Updating transaction {}: userId={}", transactionId, userId);
@@ -1084,10 +1107,10 @@ public class TransactionService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.TRANSACTION,
+                EntityType.TRANSACTION,
                 transactionId,
                 updateTxResponse.getDescription(), // available from TransactionResponse
-                org.openfinance.entity.OperationType.UPDATE,
+                OperationType.UPDATE,
                 beforeSnapshot,
                 null);
 
@@ -1126,6 +1149,11 @@ public class TransactionService {
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
             })
     @Transactional
+    @ReversibleOperation(
+            entity = EntityType.TRANSACTION,
+            operation = OperationType.DELETE,
+            userArgument = 1,
+            idArgument = 0)
     public void deleteTransaction(Long transactionId, Long userId) {
         log.debug("Soft-deleting transaction {}: userId={}", transactionId, userId);
 
@@ -1239,10 +1267,10 @@ public class TransactionService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.TRANSACTION,
+                EntityType.TRANSACTION,
                 transactionId,
                 label,
-                org.openfinance.entity.OperationType.DELETE,
+                OperationType.DELETE,
                 snapshot,
                 null);
     }

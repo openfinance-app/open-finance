@@ -60,7 +60,29 @@ public class GlobalExceptionHandler {
 
     private final MessageSource messageSource;
 
-    @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
+    @ExceptionHandler(HistoryConflictException.class)
+    public ResponseEntity<ErrorResponse> handleHistoryConflict(
+            HistoryConflictException exception, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(
+                        ErrorResponse.builder()
+                                .timestamp(LocalDateTime.now())
+                                .status(409)
+                                .error("Conflict")
+                                .message(
+                                        messageSource.getMessage(
+                                                exception.getMessage(),
+                                                null,
+                                                LocaleContextHolder.getLocale()))
+                                .path(getRequestPath(request))
+                                .build());
+    }
+
+    @ExceptionHandler({
+        org.springframework.dao.OptimisticLockingFailureException.class,
+        org.springframework.dao.CannotSerializeTransactionException.class,
+        org.springframework.dao.CannotAcquireLockException.class
+    })
     public ResponseEntity<ErrorResponse> handleConcurrentUpdate(WebRequest request) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(

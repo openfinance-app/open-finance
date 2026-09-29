@@ -20,6 +20,8 @@ import org.openfinance.dto.AssetSummaryResponse;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.AssetType;
+import org.openfinance.entity.EntityType;
+import org.openfinance.entity.OperationType;
 import org.openfinance.exception.AccountNotFoundException;
 import org.openfinance.exception.AssetNotFoundException;
 import org.openfinance.exception.InvalidAssetStateException;
@@ -32,6 +34,7 @@ import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.specification.AssetSpecification;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
@@ -126,6 +129,11 @@ public class AssetService {
                         key = "#userId"),
                 @CacheEvict(value = "portfolioPerformance", allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.ASSET,
+            operation = OperationType.CREATE,
+            userArgument = 0,
+            idArgument = -1)
     public AssetResponse createAsset(Long userId, AssetRequest request) {
         return createAssetInternal(userId, request, false);
     }
@@ -205,10 +213,10 @@ public class AssetService {
         if (!propertyWrite) {
             operationHistoryService.record(
                     userId,
-                    org.openfinance.entity.EntityType.ASSET,
+                    EntityType.ASSET,
                     savedAsset.getId(),
                     request.getName(),
-                    org.openfinance.entity.OperationType.CREATE,
+                    OperationType.CREATE,
                     (Object) null,
                     null);
         }
@@ -251,6 +259,11 @@ public class AssetService {
                         key = "#userId"),
                 @CacheEvict(value = "portfolioPerformance", allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.ASSET,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public AssetResponse updateAsset(Long assetId, Long userId, AssetRequest request) {
         return updateAssetInternal(assetId, userId, request, false);
     }
@@ -380,10 +393,10 @@ public class AssetService {
         if (!propertyWrite) {
             operationHistoryService.record(
                     userId,
-                    org.openfinance.entity.EntityType.ASSET,
+                    EntityType.ASSET,
                     assetId,
                     request.getName(),
-                    org.openfinance.entity.OperationType.UPDATE,
+                    OperationType.UPDATE,
                     beforeAssetSnapshot,
                     null);
         }
@@ -523,6 +536,11 @@ public class AssetService {
                         key = "#userId"),
                 @CacheEvict(value = "portfolioPerformance", allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.ASSET,
+            operation = OperationType.DELETE,
+            userArgument = 1,
+            idArgument = 0)
     public void deleteAsset(Long assetId, Long userId) {
         deleteAssetInternal(assetId, userId, false);
     }
@@ -569,8 +587,7 @@ public class AssetService {
 
         // Hard delete
         LocalDate assetPurchaseDate = asset.getPurchaseDate();
-        attachmentService.deleteEntityAttachments(
-                org.openfinance.entity.EntityType.ASSET, assetId, userId);
+        attachmentService.deleteEntityAttachments(EntityType.ASSET, assetId, userId);
         assetRepository.delete(asset);
         searchTokenService.removeEntity("ASSET", assetId);
         invalidateSnapshotsFrom(userId, assetPurchaseDate);
@@ -581,10 +598,10 @@ public class AssetService {
         if (!propertyWrite) {
             operationHistoryService.record(
                     userId,
-                    org.openfinance.entity.EntityType.ASSET,
+                    EntityType.ASSET,
                     assetId,
                     label != null ? label : "Asset " + assetId,
-                    org.openfinance.entity.OperationType.DELETE,
+                    OperationType.DELETE,
                     beforeDeleteSnapshot,
                     null);
         }

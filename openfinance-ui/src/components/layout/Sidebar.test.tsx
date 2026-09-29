@@ -80,10 +80,10 @@ describe('Sidebar', () => {
       }
     });
 
-    it('hides history when hasSessionHistory is false', () => {
+    it('keeps history accessible without operations in this session', () => {
       mockHasSessionHistory = false;
       renderWithProviders(<Sidebar />);
-      expect(screen.queryByText('History')).not.toBeInTheDocument();
+      expect(screen.getByText('History')).toBeInTheDocument();
     });
 
     it('shows history when hasSessionHistory is true', () => {

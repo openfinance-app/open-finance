@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import {
   renderWithProviders,
   mockAuthentication,
@@ -98,6 +98,7 @@ vi.mock('@/context/AuthContext', async importOriginal => {
 
 describe('HistoryPage', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     clearAuthentication();
     mockAuthentication();
     Element.prototype.scrollIntoView = vi.fn();
@@ -137,6 +138,68 @@ describe('HistoryPage', () => {
     });
   });
 
+  it('loads persisted history without restricting it to the login session', async () => {
+    const { historyService } = await import('@/services/historyService');
+    renderWithProviders(<HistoryPage />);
+    await screen.findByText('Weekly groceries');
+    expect(historyService.getHistory).toHaveBeenCalledWith(
+      0,
+      expect.any(Number),
+      undefined,
+      undefined,
+      undefined,
+      undefined
+    );
+  });
+
+  it('shows an undo rejection and keeps the affected entry', async () => {
+    const { historyService } = await import('@/services/historyService');
+    vi.mocked(historyService.undo).mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { data: { message: 'Undo the later payment first.' } },
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<HistoryPage />);
+    await screen.findByText('Weekly groceries');
+    await user.click(screen.getAllByRole('button', { name: /undo/i })[0]);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Undo the later payment first.');
+    expect(screen.getByText('Weekly groceries')).toBeInTheDocument();
+  });
+
+  it('executes redo for a reversible undone entry', async () => {
+    const { historyService } = await import('@/services/historyService');
+    vi.mocked(historyService.getHistory).mockResolvedValueOnce({
+      ...mockHistoryPage,
+      content: [
+        { ...mockHistoryItems[0], canUndo: false, canRedo: true, undoneAt: '2026-01-10T11:00:00Z' },
+      ],
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<HistoryPage />);
+    await screen.findByText('Weekly groceries');
+    await user.click(screen.getByRole('button', { name: /redo/i }));
+    await waitFor(() => expect(historyService.redo).toHaveBeenCalledWith(1));
+  });
+
+  it('displays before and after values when changes are expanded', async () => {
+    const { historyService } = await import('@/services/historyService');
+    vi.mocked(historyService.getHistory).mockResolvedValueOnce({
+      ...mockHistoryPage,
+      content: [
+        {
+          ...mockHistoryItems[0],
+          changedFieldsJson: JSON.stringify({ amount: { before: '50.01', after: '65.02' } }),
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<HistoryPage />);
+    await screen.findByText('Weekly groceries');
+    await user.click(screen.getByRole('button', { name: /show changes/i }));
+    expect(screen.getByText('50.01')).toBeInTheDocument();
+    expect(screen.getByText('65.02')).toBeInTheDocument();
+  });
+
   describe('Filters', () => {
     it('should have an entity type filter dropdown', async () => {
       renderWithProviders(<HistoryPage />);
@@ -169,10 +232,10 @@ describe('HistoryPage', () => {
       expect(historyService.undo).toHaveBeenCalledWith(1);
     });
 
-    it('keeps redo hidden immediately after undo when unsupported', async () => {
+    it('explains unavailable redo for an undone operation', async () => {
       const { historyService } = await import('@/services/historyService');
       // Being undone alone does not make redo available.
-      (historyService.getHistory as any).mockResolvedValueOnce({
+      vi.mocked(historyService.getHistory).mockResolvedValueOnce({
         content: [
           {
             id: 3,
@@ -195,7 +258,7 @@ describe('HistoryPage', () => {
       renderWithProviders(<HistoryPage />);
       await screen.findByText('Undone item');
 
-      expect(screen.queryByRole('button', { name: /redo/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /redo/i })).toBeDisabled();
       expect(historyService.redo).not.toHaveBeenCalled();
     });
   });

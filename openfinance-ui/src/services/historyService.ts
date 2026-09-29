@@ -1,5 +1,10 @@
-import apiClient from './apiClient';
-import type { OperationHistoryResponse, PageableResponse, EntityType } from '../types/history';
+import apiClient from '@/services/apiClient';
+import type {
+  OperationHistoryResponse,
+  PageableResponse,
+  EntityType,
+  OperationType,
+} from '@/types/history';
 
 export const historyService = {
   /**
@@ -15,7 +20,9 @@ export const historyService = {
     page: number = 0,
     size: number = 20,
     entityType?: EntityType,
-    since?: string
+    since?: string,
+    operationType?: OperationType,
+    until?: string
   ): Promise<PageableResponse<OperationHistoryResponse>> => {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -30,6 +37,9 @@ export const historyService = {
     if (since) {
       params.append('since', since);
     }
+
+    if (operationType) params.append('operationType', operationType);
+    if (until) params.append('until', until);
 
     const { data } = await apiClient.get<PageableResponse<OperationHistoryResponse>>(
       `/history?${params.toString()}`

@@ -26,10 +26,12 @@ import org.openfinance.dto.LiabilityTrancheResponse;
 import org.openfinance.dto.RepaymentPreviewResponse;
 import org.openfinance.dto.TransactionRequest;
 import org.openfinance.entity.Account;
+import org.openfinance.entity.EntityType;
 import org.openfinance.entity.Liability;
 import org.openfinance.entity.LiabilityTranche;
 import org.openfinance.entity.LiabilityType;
 import org.openfinance.entity.MovementType;
+import org.openfinance.entity.OperationType;
 import org.openfinance.entity.RealEstateProperty;
 import org.openfinance.entity.RealEstateValueHistory;
 import org.openfinance.entity.TrancheStatus;
@@ -50,6 +52,7 @@ import org.openfinance.repository.RealEstateValueHistoryRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.service.history.ReversibleOperation;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
@@ -150,6 +153,11 @@ public class LiabilityService {
                         value = {"portfolioPerformance", "borrowingCapacity"},
                         allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.LIABILITY,
+            operation = OperationType.CREATE,
+            userArgument = 0,
+            idArgument = -1)
     public LiabilityResponse createLiability(Long userId, LiabilityRequest request) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -241,10 +249,10 @@ public class LiabilityService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.LIABILITY,
+                EntityType.LIABILITY,
                 savedLiability.getId(),
                 request.getName(),
-                org.openfinance.entity.OperationType.CREATE,
+                OperationType.CREATE,
                 (Object) null,
                 null);
 
@@ -278,6 +286,11 @@ public class LiabilityService {
                         value = {"portfolioPerformance", "borrowingCapacity"},
                         allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.LIABILITY,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public LiabilityResponse updateLiability(
             Long liabilityId, Long userId, LiabilityRequest request) {
         if (liabilityId == null) {
@@ -466,10 +479,10 @@ public class LiabilityService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.LIABILITY,
+                EntityType.LIABILITY,
                 liabilityId,
                 request.getName(),
-                org.openfinance.entity.OperationType.UPDATE,
+                OperationType.UPDATE,
                 beforeSnapshot,
                 null);
 
@@ -499,6 +512,11 @@ public class LiabilityService {
                         value = {"portfolioPerformance", "borrowingCapacity"},
                         allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.LIABILITY,
+            operation = OperationType.DELETE,
+            userArgument = 1,
+            idArgument = 0)
     public void deleteLiability(Long liabilityId, Long userId) {
         if (liabilityId == null) {
             throw new IllegalArgumentException("Liability ID cannot be null");
@@ -545,10 +563,10 @@ public class LiabilityService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.LIABILITY,
+                EntityType.LIABILITY,
                 liabilityId,
                 label,
-                org.openfinance.entity.OperationType.DELETE,
+                OperationType.DELETE,
                 snapshot,
                 null);
     }
@@ -1443,6 +1461,11 @@ public class LiabilityService {
                 "borrowingCapacity"
             },
             allEntries = true)
+    @ReversibleOperation(
+            entity = EntityType.LIABILITY,
+            operation = OperationType.UPDATE,
+            userArgument = 0,
+            idArgument = 1)
     public LiabilityResponse disburse(Long userId, Long liabilityId, DisbursementRequest request) {
         Liability liability =
                 liabilityRepository
@@ -1692,6 +1715,11 @@ public class LiabilityService {
      *     reference a property owned by the user
      * @throws InvalidTransactionException on a duplicate tranche number or a currency mismatch
      */
+    @ReversibleOperation(
+            entity = EntityType.LIABILITY,
+            operation = OperationType.UPDATE,
+            userArgument = 0,
+            idArgument = 1)
     public LiabilityTrancheResponse createTranche(
             Long userId, Long liabilityId, LiabilityTrancheRequest request) {
         Liability liability =
@@ -1755,6 +1783,11 @@ public class LiabilityService {
      * @throws InvalidTransactionException when a DRAWN tranche's planned fields/status change, on
      *     an illegal status transition, or on a currency mismatch
      */
+    @ReversibleOperation(
+            entity = EntityType.LIABILITY,
+            operation = OperationType.UPDATE,
+            userArgument = 0,
+            idArgument = -1)
     public LiabilityTrancheResponse updateTranche(
             Long userId, Long trancheId, LiabilityTrancheRequest request) {
         LiabilityTranche tranche =
@@ -2097,6 +2130,11 @@ public class LiabilityService {
                 "borrowingCapacity"
             },
             allEntries = true)
+    @ReversibleOperation(
+            entity = EntityType.LIABILITY,
+            operation = OperationType.UPDATE,
+            userArgument = 0,
+            idArgument = -1)
     public LiabilityTrancheResponse reverseDirectDraw(Long userId, Long trancheId, LocalDate date) {
         LiabilityTranche tranche =
                 liabilityTrancheRepository

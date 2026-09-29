@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.TransactionRuleRequest;
 import org.openfinance.dto.TransactionRuleResponse;
+import org.openfinance.entity.EntityType;
+import org.openfinance.entity.OperationType;
 import org.openfinance.entity.RuleConditionField;
 import org.openfinance.entity.RuleConditionOperator;
 import org.openfinance.entity.TransactionRule;
@@ -18,6 +20,7 @@ import org.openfinance.entity.TransactionRuleCondition;
 import org.openfinance.exception.TransactionRuleNotFoundException;
 import org.openfinance.mapper.TransactionRuleMapper;
 import org.openfinance.repository.TransactionRuleRepository;
+import org.openfinance.service.history.ReversibleOperation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,16 +67,21 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
 
     /** {@inheritDoc} */
     @Override
+    @ReversibleOperation(
+            entity = EntityType.TRANSACTION_RULE,
+            operation = OperationType.CREATE,
+            userArgument = 0,
+            idArgument = -1)
     public TransactionRuleResponse createRule(Long userId, TransactionRuleRequest request) {
         log.debug("Creating rule '{}' for userId={}", request.getName(), userId);
         TransactionRule rule = transactionRuleMapper.toEntity(userId, request);
         TransactionRule saved = transactionRuleRepository.save(rule);
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.TRANSACTION_RULE,
+                EntityType.TRANSACTION_RULE,
                 saved.getId(),
                 saved.getName(),
-                org.openfinance.entity.OperationType.CREATE,
+                OperationType.CREATE,
                 (Object) null,
                 null);
         log.info("Created transaction rule id={} for userId={}", saved.getId(), userId);
@@ -87,6 +95,11 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
      * request (orphan removal handles the old child records).
      */
     @Override
+    @ReversibleOperation(
+            entity = EntityType.TRANSACTION_RULE,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public TransactionRuleResponse updateRule(
             Long id, Long userId, TransactionRuleRequest request) {
         log.debug("Updating rule id={} for userId={}", id, userId);
@@ -140,6 +153,11 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
 
     /** {@inheritDoc} */
     @Override
+    @ReversibleOperation(
+            entity = EntityType.TRANSACTION_RULE,
+            operation = OperationType.DELETE,
+            userArgument = 1,
+            idArgument = 0)
     public void deleteRule(Long id, Long userId) {
         log.debug("Deleting rule id={} for userId={}", id, userId);
         TransactionRule rule = findOwnedRule(id, userId);
@@ -149,6 +167,11 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
 
     /** {@inheritDoc} */
     @Override
+    @ReversibleOperation(
+            entity = EntityType.TRANSACTION_RULE,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public TransactionRuleResponse toggleRule(Long id, Long userId) {
         log.debug("Toggling rule id={} for userId={}", id, userId);
         TransactionRule rule = findOwnedRule(id, userId);

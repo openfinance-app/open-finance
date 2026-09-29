@@ -12,6 +12,8 @@ import org.openfinance.dto.RecurringTransactionResponse;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.Category;
 import org.openfinance.entity.CategoryType;
+import org.openfinance.entity.EntityType;
+import org.openfinance.entity.OperationType;
 import org.openfinance.entity.RecurringFrequency;
 import org.openfinance.entity.RecurringTransaction;
 import org.openfinance.entity.TransactionType;
@@ -24,6 +26,7 @@ import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.service.history.ReversibleOperation;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -125,6 +128,11 @@ public class RecurringTransactionService {
     @CacheEvict(
             value = {"dashboardSummary"},
             key = "#userId")
+    @ReversibleOperation(
+            entity = EntityType.RECURRING_TRANSACTION,
+            operation = OperationType.CREATE,
+            userArgument = 0,
+            idArgument = -1)
     public RecurringTransactionResponse createRecurringTransaction(
             Long userId, RecurringTransactionRequest request) {
 
@@ -180,10 +188,10 @@ public class RecurringTransactionService {
 
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.RECURRING_TRANSACTION,
+                EntityType.RECURRING_TRANSACTION,
                 savedRecurringTransaction.getId(),
                 request.getDescription(),
-                org.openfinance.entity.OperationType.CREATE,
+                OperationType.CREATE,
                 (Object) null,
                 null);
         // Decrypt and return response with denormalized data
@@ -208,6 +216,11 @@ public class RecurringTransactionService {
     @CacheEvict(
             value = {"dashboardSummary"},
             key = "#userId")
+    @ReversibleOperation(
+            entity = EntityType.RECURRING_TRANSACTION,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public RecurringTransactionResponse updateRecurringTransaction(
             Long recurringTransactionId, Long userId, RecurringTransactionRequest request) {
 
@@ -288,6 +301,11 @@ public class RecurringTransactionService {
     @CacheEvict(
             value = {"dashboardSummary"},
             key = "#userId")
+    @ReversibleOperation(
+            entity = EntityType.RECURRING_TRANSACTION,
+            operation = OperationType.DELETE,
+            userArgument = 1,
+            idArgument = 0)
     public void deleteRecurringTransaction(Long recurringTransactionId, Long userId) {
         if (recurringTransactionId == null) {
             throw new IllegalArgumentException("Recurring transaction ID cannot be null");
@@ -579,6 +597,11 @@ public class RecurringTransactionService {
     @CacheEvict(
             value = {"dashboardSummary"},
             key = "#userId")
+    @ReversibleOperation(
+            entity = EntityType.RECURRING_TRANSACTION,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public RecurringTransactionResponse pauseRecurringTransaction(
             Long recurringTransactionId, Long userId) {
 
@@ -627,6 +650,11 @@ public class RecurringTransactionService {
     @CacheEvict(
             value = {"dashboardSummary"},
             key = "#userId")
+    @ReversibleOperation(
+            entity = EntityType.RECURRING_TRANSACTION,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public RecurringTransactionResponse resumeRecurringTransaction(
             Long recurringTransactionId, Long userId) {
 

@@ -19,17 +19,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.openfinance.converter.EncryptedStringConverter;
 
-/**
- * Persistent record of a single Create / Update / Delete mutation on a financial entity.
- *
- * <p>Stored in the {@code operation_history} table. Used to drive the Undo/Redo feature: the {@code
- * entitySnapshotJson} field holds a full JSON snapshot of the entity <em>before</em> the change so
- * that any operation can be undone without loss of data.
- *
- * <p>Write operations are performed outside any active transaction (propagation NOT_SUPPORTED) to
- * avoid SQLite WAL BUSY_SNAPSHOT conflicts — identical to the pattern used in {@code
- * SecurityAuditService}.
- */
+/** Encrypted operation journal. Legacy display snapshots are retained for audit only. */
 @Entity
 @Table(
         name = "operation_history",
@@ -57,14 +47,11 @@ public class OperationHistory {
     @Column(name = "entity_type", nullable = false, length = 50)
     private EntityType entityType;
 
-    /** The primary-key ID of the entity that was mutated (null if the entity was deleted). */
+    /** The original primary-key ID, retained even when a supported action deletes the record. */
     @Column(name = "entity_id")
     private Long entityId;
 
-    /**
-     * Human-readable label for the entity (e.g., account name, transaction description). Stored
-     * plain-text at record time so the History view can display it without requiring decryption.
-     */
+    /** Human-readable label, encrypted at rest like the restoration payload. */
     @Column(name = "entity_label", length = 1000)
     @Convert(converter = EncryptedStringConverter.class)
     private String entityLabel;
@@ -74,10 +61,7 @@ public class OperationHistory {
     @Column(name = "operation_type", nullable = false, length = 10)
     private OperationType operationType;
 
-    /**
-     * Full JSON snapshot of the entity <strong>before</strong> the change. Used to restore the
-     * entity when this operation is undone. {@code null} for CREATE operations (no prior state).
-     */
+    /** Legacy display snapshot, retained for compatibility. New reversals use actionStateJson. */
     @Column(name = "entity_snapshot_json", columnDefinition = "TEXT")
     @Convert(converter = EncryptedStringConverter.class)
     private String entitySnapshotJson;
@@ -107,20 +91,23 @@ public class OperationHistory {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    /** Only advertise operations backed by an actual domain mutation. */
+    /** Complete before/after row changes, encrypted as a single versioned payload. */
+    @Column(name = "action_state_json", columnDefinition = "TEXT")
+    @Convert(converter = EncryptedStringConverter.class)
+    private String actionStateJson;
+
+    @jakarta.persistence.Version
+    @Column(name = "revision", nullable = false)
+    @Builder.Default
+    private Long revision = 0L;
+
+    public boolean isUndone() {
+        return undoneAt != null && redoneAt == null;
+    }
+
+    /** Availability also requires the service's live state and dependency checks. */
     public boolean canUndo() {
-        return operationType == OperationType.CREATE
-                && entityId != null
-                && entityId > 0
-                && (undoneAt == null || redoneAt != null)
-                && java.util.Set.of(
-                                EntityType.ACCOUNT,
-                                EntityType.ASSET,
-                                EntityType.LIABILITY,
-                                EntityType.REAL_ESTATE,
-                                EntityType.BUDGET,
-                                EntityType.TRANSACTION)
-                        .contains(entityType);
+        return actionStateJson != null && !isUndone();
     }
 
     @PrePersist

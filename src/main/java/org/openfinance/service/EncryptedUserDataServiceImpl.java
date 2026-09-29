@@ -139,37 +139,79 @@ public class EncryptedUserDataServiceImpl implements EncryptedUserDataService {
         jdbc.update("DELETE FROM search_tokens WHERE user_id = ?", userId);
         if (key == null) return;
         SecretKey searchKey = searchTokens.deriveSearchKey(key);
-        Map<String, List<String>> fields =
-                Map.of(
-                        "accounts", List.of("ACCOUNT", "name", "description"),
-                        "assets", List.of("ASSET", "name"),
-                        "liabilities", List.of("LIABILITY", "name"),
-                        "budgets", List.of("BUDGET", "notes"),
-                        "payees", List.of("PAYEE", "name"),
-                        "real_estate_properties", List.of("REAL_ESTATE", "name", "address"),
-                        "recurring_transactions",
-                                List.of("RECURRING_TRANSACTION", "description", "notes"),
-                        "transactions",
-                                List.of("TRANSACTION", "description", "notes", "tags", "payee"));
-        fields.forEach(
+        SEARCH_FIELDS.forEach(
                 (table, names) -> {
                     for (Map<String, Object> row : rows(table, userId)) {
-                        List<String[]> contents = new ArrayList<>();
-                        for (String name : names.subList(1, names.size())) {
-                            Object value = row.get(name);
-                            contents.add(
-                                    new String[] {
-                                        name,
-                                        value == null ? null : plaintext(value.toString(), key)
-                                    });
-                        }
-                        searchTokens.indexEntity(
-                                userId,
-                                names.getFirst(),
-                                ((Number) row.get("id")).longValue(),
-                                contents,
-                                searchKey);
+                        indexSearchRow(userId, key, searchKey, names, row);
                     }
                 });
+    }
+
+    private static final Map<String, List<String>> SEARCH_FIELDS =
+            Map.of(
+                    "accounts", List.of("ACCOUNT", "name", "description"),
+                    "assets", List.of("ASSET", "name"),
+                    "liabilities", List.of("LIABILITY", "name"),
+                    "budgets", List.of("BUDGET", "notes"),
+                    "payees", List.of("PAYEE", "name"),
+                    "real_estate_properties", List.of("REAL_ESTATE", "name", "address"),
+                    "recurring_transactions",
+                            List.of("RECURRING_TRANSACTION", "description", "notes"),
+                    "transactions",
+                            List.of("TRANSACTION", "description", "notes", "tags", "payee"));
+
+    public void refreshSearchTokens(
+            Long userId, SecretKey key, Map<String, java.util.Set<Long>> changedIds) {
+        SecretKey searchKey = key == null ? null : searchTokens.deriveSearchKey(key);
+        changedIds.forEach(
+                (table, changed) -> {
+                    List<String> names = SEARCH_FIELDS.get(table);
+                    if (names == null) return;
+                    List<Long> ids = new ArrayList<>(changed);
+                    for (int start = 0; start < ids.size(); start += 500) {
+                        List<Long> batch = ids.subList(start, Math.min(ids.size(), start + 500));
+                        String parameters =
+                                String.join(",", java.util.Collections.nCopies(batch.size(), "?"));
+                        List<Object> arguments = new ArrayList<>(List.of(userId, names.getFirst()));
+                        arguments.addAll(batch);
+                        jdbc.update(
+                                "DELETE FROM search_tokens WHERE user_id = ? AND entity_type = ? AND entity_id IN ("
+                                        + parameters
+                                        + ")",
+                                arguments.toArray());
+                        if (key == null) continue;
+                        arguments = new ArrayList<>(List.of(userId));
+                        arguments.addAll(batch);
+                        for (Map<String, Object> row :
+                                jdbc.queryForList(
+                                        "SELECT * FROM "
+                                                + identifier(table)
+                                                + " WHERE user_id = ? AND id IN ("
+                                                + parameters
+                                                + ")",
+                                        arguments.toArray()))
+                            indexSearchRow(userId, key, searchKey, names, row);
+                    }
+                });
+    }
+
+    private void indexSearchRow(
+            Long userId,
+            SecretKey key,
+            SecretKey searchKey,
+            List<String> names,
+            Map<String, Object> row) {
+        List<String[]> contents = new ArrayList<>();
+        for (String name : names.subList(1, names.size())) {
+            Object value = row.get(name);
+            contents.add(
+                    new String[] {name, value == null ? null : plaintext(value.toString(), key)});
+        }
+        searchTokens.indexEntity(
+                userId,
+                names.getFirst(),
+                ((Number) row.get("id")).longValue(),
+                contents,
+                searchKey);
     }
 }

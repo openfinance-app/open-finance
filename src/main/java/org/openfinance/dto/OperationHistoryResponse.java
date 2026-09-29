@@ -25,6 +25,9 @@ public class OperationHistoryResponse {
     private boolean canUndo;
     private boolean canRedo;
     private Long id;
+    private String unavailableReason;
+    private Integer affectedRecords;
+    private Long revision;
     private EntityType entityType;
     private Long entityId;
     private String entityLabel;
@@ -32,7 +35,7 @@ public class OperationHistoryResponse {
 
     /**
      * Raw JSON string of the form {@code {"field":{"before":"v1","after":"v2"}, ...}}. May be
-     * {@code null} for CREATE operations.
+     * {@code null} when no display fields changed.
      */
     private String changedFieldsJson;
 

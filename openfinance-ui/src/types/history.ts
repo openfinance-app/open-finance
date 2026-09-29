@@ -16,6 +16,10 @@ export type OperationType = 'CREATE' | 'UPDATE' | 'DELETE';
 export interface OperationHistoryResponse {
   canUndo: boolean;
   canRedo: boolean;
+  unavailableReason?: 'legacy' | 'expired' | 'changed' | 'dependencies' | 'state';
+  affectedRecords?: number;
+  changedFieldsJson?: string;
+  revision?: number;
   id: number;
   entityType: EntityType;
   entityId: number;

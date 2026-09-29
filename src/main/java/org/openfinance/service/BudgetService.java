@@ -23,6 +23,8 @@ import org.openfinance.entity.Budget;
 import org.openfinance.entity.BudgetPeriod;
 import org.openfinance.entity.Category;
 import org.openfinance.entity.CategoryType;
+import org.openfinance.entity.EntityType;
+import org.openfinance.entity.OperationType;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionSplit;
 import org.openfinance.entity.TransactionType;
@@ -36,6 +38,7 @@ import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.service.history.ReversibleOperation;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
@@ -119,6 +122,11 @@ public class BudgetService {
      * @throws IllegalArgumentException if validation fails or parameters are null
      * @throws CategoryNotFoundException if category doesn't exist or doesn't belong to user
      */
+    @ReversibleOperation(
+            entity = EntityType.BUDGET,
+            operation = OperationType.CREATE,
+            userArgument = 1,
+            idArgument = -1)
     public BudgetResponse createBudget(BudgetRequest request, Long userId) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -162,10 +170,10 @@ public class BudgetService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.BUDGET,
+                EntityType.BUDGET,
                 savedBudget.getId(),
                 category.getName(),
-                org.openfinance.entity.OperationType.CREATE,
+                OperationType.CREATE,
                 (Object) null,
                 null);
 
@@ -191,6 +199,11 @@ public class BudgetService {
      * @throws CategoryNotFoundException if category doesn't exist or doesn't belong to user
      * @throws IllegalArgumentException if validation fails or parameters are null
      */
+    @ReversibleOperation(
+            entity = EntityType.BUDGET,
+            operation = OperationType.UPDATE,
+            userArgument = 2,
+            idArgument = 0)
     public BudgetResponse updateBudget(Long budgetId, BudgetRequest request, Long userId) {
         if (budgetId == null) {
             throw new IllegalArgumentException("Budget ID cannot be null");
@@ -236,10 +249,10 @@ public class BudgetService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.BUDGET,
+                EntityType.BUDGET,
                 budgetId,
                 category.getName(), // decrypted from validateCategoryOwnership earlier
-                org.openfinance.entity.OperationType.UPDATE,
+                OperationType.UPDATE,
                 beforeSnapshot,
                 null);
 
@@ -261,6 +274,11 @@ public class BudgetService {
      * @throws BudgetNotFoundException if budget not found or doesn't belong to user
      * @throws IllegalArgumentException if budgetId or userId is null
      */
+    @ReversibleOperation(
+            entity = EntityType.BUDGET,
+            operation = OperationType.DELETE,
+            userArgument = 1,
+            idArgument = 0)
     public void deleteBudget(Long budgetId, Long userId) {
         if (budgetId == null) {
             throw new IllegalArgumentException("Budget ID cannot be null");
@@ -298,13 +316,7 @@ public class BudgetService {
 
         // Record in operation history
         operationHistoryService.record(
-                userId,
-                org.openfinance.entity.EntityType.BUDGET,
-                budgetId,
-                label,
-                org.openfinance.entity.OperationType.DELETE,
-                snapshot,
-                null);
+                userId, EntityType.BUDGET, budgetId, label, OperationType.DELETE, snapshot, null);
     }
 
     /**
@@ -1059,6 +1071,11 @@ public class BudgetService {
      * @return response summarising created, skipped, and error counts
      * @throws IllegalArgumentException if userId, requests, or encryptionKey is null
      */
+    @ReversibleOperation(
+            entity = EntityType.BUDGET,
+            operation = OperationType.CREATE,
+            userArgument = 0,
+            idArgument = -1)
     public BudgetBulkCreateResponse bulkCreateBudgets(Long userId, List<BudgetRequest> requests) {
 
         if (userId == null) {

@@ -13,6 +13,8 @@ import org.openfinance.dto.CategoryResponse;
 import org.openfinance.dto.CategoryTreeNode;
 import org.openfinance.entity.Category;
 import org.openfinance.entity.CategoryType;
+import org.openfinance.entity.EntityType;
+import org.openfinance.entity.OperationType;
 import org.openfinance.exception.CategoryNotFoundException;
 import org.openfinance.exception.InvalidCategoryException;
 import org.openfinance.mapper.CategoryMapper;
@@ -20,6 +22,7 @@ import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.service.history.ReversibleOperation;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
@@ -89,6 +92,11 @@ public class CategoryService {
      * @throws CategoryNotFoundException if parent category does not exist
      * @throws InvalidCategoryException if parent-child validation fails
      */
+    @ReversibleOperation(
+            entity = EntityType.CATEGORY,
+            operation = OperationType.CREATE,
+            userArgument = 0,
+            idArgument = -1)
     public CategoryResponse createCategory(Long userId, CategoryRequest request) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -124,10 +132,10 @@ public class CategoryService {
 
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.CATEGORY,
+                EntityType.CATEGORY,
                 savedCategory.getId(),
                 request.getName(),
-                org.openfinance.entity.OperationType.CREATE,
+                OperationType.CREATE,
                 (Object) null,
                 null);
         // Decrypt and return response
@@ -151,6 +159,11 @@ public class CategoryService {
      * @throws InvalidCategoryException if attempting to update a system category or validation
      *     fails
      */
+    @ReversibleOperation(
+            entity = EntityType.CATEGORY,
+            operation = OperationType.UPDATE,
+            userArgument = 0,
+            idArgument = 1)
     public CategoryResponse updateCategory(Long userId, Long categoryId, CategoryRequest request) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -232,6 +245,11 @@ public class CategoryService {
      *     subcategories, or used by transactions)
      */
     @Transactional
+    @ReversibleOperation(
+            entity = EntityType.CATEGORY,
+            operation = OperationType.DELETE,
+            userArgument = 0,
+            idArgument = 1)
     public void deleteCategory(Long userId, Long categoryId) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -291,10 +309,10 @@ public class CategoryService {
         // Record in operation history (if not suppressed)
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.CATEGORY,
+                EntityType.CATEGORY,
                 categoryId,
                 decryptedName != null ? decryptedName : "Category " + categoryId,
-                org.openfinance.entity.OperationType.DELETE,
+                OperationType.DELETE,
                 beforeDeleteSnapshot,
                 null);
     }

@@ -15,7 +15,9 @@ import org.openfinance.dto.AccountSearchCriteria;
 import org.openfinance.dto.AccountSummaryResponse;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
+import org.openfinance.entity.EntityType;
 import org.openfinance.entity.Institution;
+import org.openfinance.entity.OperationType;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.exception.AccountHasTransactionsException;
@@ -28,6 +30,8 @@ import org.openfinance.repository.InterestRateVariationRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.service.history.ReversibleOperation;
+import org.openfinance.service.history.SerializedFinancialWrite;
 import org.openfinance.specification.AccountSpecification;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
@@ -128,6 +132,11 @@ public class AccountService {
                         },
                         allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.ACCOUNT,
+            operation = OperationType.CREATE,
+            userArgument = 0,
+            idArgument = -1)
     public AccountResponse createAccount(Long userId, AccountRequest request) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -200,10 +209,10 @@ public class AccountService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.ACCOUNT,
+                EntityType.ACCOUNT,
                 savedAccount.getId(),
                 request.getName(),
-                org.openfinance.entity.OperationType.CREATE,
+                OperationType.CREATE,
                 (Object) null,
                 null);
 
@@ -249,6 +258,11 @@ public class AccountService {
                         },
                         allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.ACCOUNT,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public AccountResponse updateAccount(Long accountId, Long userId, AccountRequest request) {
         log.debug("Updating account {}: userId={}", accountId, userId);
 
@@ -362,10 +376,10 @@ public class AccountService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.ACCOUNT,
+                EntityType.ACCOUNT,
                 accountId,
                 request.getName(),
-                org.openfinance.entity.OperationType.UPDATE,
+                OperationType.UPDATE,
                 beforeSnapshot,
                 null);
 
@@ -418,6 +432,11 @@ public class AccountService {
                         },
                         allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.ACCOUNT,
+            operation = OperationType.DELETE,
+            userArgument = 1,
+            idArgument = 0)
     public void deleteAccount(Long accountId, Long userId) {
         log.debug("Deleting account id: {} for user: {}", accountId, userId);
 
@@ -477,10 +496,10 @@ public class AccountService {
         // Record in operation history
         operationHistoryService.record(
                 userId,
-                org.openfinance.entity.EntityType.ACCOUNT,
+                EntityType.ACCOUNT,
                 accountId,
                 decryptedName != null ? decryptedName : "Account " + accountId,
-                org.openfinance.entity.OperationType.DELETE,
+                OperationType.DELETE,
                 beforeDeleteSnapshot,
                 null);
     }
@@ -525,6 +544,11 @@ public class AccountService {
                         },
                         allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.ACCOUNT,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public void closeAccount(Long accountId, Long userId) {
         log.debug("Closing account {}: userId={}", accountId, userId);
 
@@ -595,6 +619,11 @@ public class AccountService {
                         },
                         allEntries = true)
             })
+    @ReversibleOperation(
+            entity = EntityType.ACCOUNT,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     public void reopenAccount(Long accountId, Long userId) {
         log.debug("Reopening account {}: userId={}", accountId, userId);
 
@@ -678,6 +707,7 @@ public class AccountService {
                         },
                         allEntries = true)
             })
+    @SerializedFinancialWrite(userArgument = 1, suppressHistory = true)
     public void permanentDeleteAccount(Long accountId, Long userId) {
         log.warn(
                 "Permanently deleting account {} and all its transactions: userId={}",

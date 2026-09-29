@@ -9,6 +9,8 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 // Import all translation resources
+import historyEn from '../../public/locales/en/history.json';
+import historyFr from '../../public/locales/fr/history.json';
 import commonEn from '../../public/locales/en/common.json';
 import authEn from '../../public/locales/en/auth.json';
 import navigationEn from '../../public/locales/en/navigation.json';
@@ -66,6 +68,7 @@ i18n.use(initReactI18next).init({
   supportedLngs: ['en', 'fr'],
   defaultNS: 'common',
   ns: [
+    'history',
     'common',
     'auth',
     'navigation',
@@ -93,6 +96,7 @@ i18n.use(initReactI18next).init({
   ],
   resources: {
     en: {
+      history: historyEn,
       common: commonEn,
       auth: authEn,
       navigation: navigationEn,
@@ -119,6 +123,7 @@ i18n.use(initReactI18next).init({
       onboarding: onboardingEn,
     },
     fr: {
+      history: historyFr,
       common: commonFr,
       auth: authFr,
       navigation: navigationFr,

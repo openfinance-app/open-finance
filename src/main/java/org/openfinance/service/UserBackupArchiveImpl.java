@@ -25,6 +25,8 @@ import org.openfinance.config.EncryptionProperties;
 import org.openfinance.exception.BackupException;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.UserEncryptionLock;
+import org.openfinance.service.history.HistoryBackupSupport;
+import org.openfinance.service.history.HistoryDomainRegistry;
 import org.springframework.cache.CacheManager;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
@@ -103,23 +105,10 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
                     Map.entry("rule_id", "transaction_rules"),
                     Map.entry("payee_id", "payees"));
     private static final Map<String, String> ENTITIES =
-            Map.of(
-                    "ACCOUNT",
-                    "accounts",
-                    "TRANSACTION",
-                    "transactions",
-                    "ASSET",
-                    "assets",
-                    "LIABILITY",
-                    "liabilities",
-                    "REAL_ESTATE",
-                    "real_estate_properties",
-                    "BUDGET",
-                    "budgets",
-                    "CATEGORY",
-                    "categories",
-                    "RECURRING_TRANSACTION",
-                    "recurring_transactions");
+            HistoryDomainRegistry.ENTITIES.entrySet().stream()
+                    .collect(
+                            java.util.stream.Collectors.toUnmodifiableMap(
+                                    entry -> entry.getKey().name(), Map.Entry::getValue));
     private static final List<String> PROFILE =
             List.of("base_currency", "secondary_currency", "profile_image", "onboarding_complete");
     private final DataSource dataSource;
@@ -132,6 +121,7 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
     private final EntityManagerFactory entityManagerFactory;
     private final CacheManager cacheManager;
     private final ObjectMapper objectMapper;
+    private final HistoryBackupSupport historyBackup;
 
     private static String owned(String table) {
         String child = CHILDREN.get(table);
@@ -311,6 +301,8 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
                                 jdbc.execute("PRAGMA defer_foreign_keys = ON");
                                 Map<String, Map<Long, Long>> ids =
                                         allocateIds(data, userId, sourceUser);
+                                historyBackup.reserve(
+                                        data.get("operation_history"), ids, sourceKey);
                                 assertNoForeignDependents(userId);
                                 jdbc.update("DELETE FROM search_tokens WHERE user_id = ?", userId);
                                 List<String> reverse = new ArrayList<>(TABLES);
@@ -340,6 +332,7 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
                                                 converted.values().toArray());
                                     }
                                 }
+                                historyBackup.reserveSequences(ids);
                                 Map<String, Object> profile =
                                         archive.queryForMap("SELECT * FROM user_profile");
                                 List<Object> values = new ArrayList<>();
@@ -428,7 +421,7 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
             if (!expected.equals(actual))
                 throw BackupException.validation("Backup columns are incompatible: " + table);
             List<Map<String, Object>> rows =
-                    archive.queryForList("SELECT * FROM " + identifier(table));
+                    archive.queryForList("SELECT * FROM " + identifier(table) + " ORDER BY id");
             for (Map<String, Object> row : rows) {
                 Object owner = row.get("user_id");
                 if (actual.contains("user_id")
@@ -611,6 +604,12 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
                     && List.of("PENDING", "PARSING", "PARSED", "REVIEWING", "IMPORTING")
                             .contains(value)) value = "FAILED";
             if (table.equals("operation_history")
+                    && column.equals("action_state_json")
+                    && value != null) {
+                String plain = encryptedData.plaintext(value.toString(), sourceKey);
+                value = historyBackup.remap(plain, ids, userId, transfers);
+                result.put(column, encryptedData.translate(table, column, value, null, targetKey));
+            } else if (table.equals("operation_history")
                     && (column.equals("entity_snapshot_json")
                             || column.equals("changed_fields_json"))
                     && value != null) {

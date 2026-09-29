@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.OperationHistoryResponse;
 import org.openfinance.entity.EntityType;
-import org.openfinance.entity.OperationHistory;
+import org.openfinance.entity.OperationType;
 import org.openfinance.entity.User;
 import org.openfinance.service.OperationHistoryService;
 import org.springframework.data.domain.Page;
@@ -35,8 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>POST /api/v1/history/{id}/redo — redo a previously undone operation
  * </ul>
  *
- * <p>Supported creation operations can be undone through their domain services. Unsupported
- * reversal operations are rejected without changing data or history status.
+ * <p>Reversals restore complete recorded actions after ownership, age and dependency validation.
  */
 @RestController
 @RequestMapping("/api/v1/history")
@@ -45,14 +44,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class OperationHistoryController {
 
     private final OperationHistoryService historyService;
-
-    // Lazy-inject domain services to avoid circular Spring dependency
-    private final org.openfinance.service.AccountService accountService;
-    private final org.openfinance.service.TransactionService transactionService;
-    private final org.openfinance.service.AssetService assetService;
-    private final org.openfinance.service.LiabilityService liabilityService;
-    private final org.openfinance.service.RealEstateService realEstateService;
-    private final org.openfinance.service.BudgetService budgetService;
 
     /**
      * Returns a page of operation history entries for the authenticated user, newest first.
@@ -64,8 +55,11 @@ public class OperationHistoryController {
     @GetMapping
     public ResponseEntity<Page<OperationHistoryResponse>> getHistory(
             @RequestParam(required = false) EntityType entityType,
+            @RequestParam(required = false) OperationType operationType,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
                     Instant since,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    Instant until,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
                     Pageable pageable,
             Authentication authentication) {
@@ -77,46 +71,27 @@ public class OperationHistoryController {
                 since != null ? LocalDateTime.ofInstant(since, ZoneOffset.UTC) : null;
 
         Page<OperationHistoryResponse> page =
-                historyService.getHistory(user.getId(), entityType, sinceLocal, pageable);
+                historyService.searchHistory(
+                        user.getId(),
+                        entityType,
+                        operationType,
+                        sinceLocal,
+                        until == null ? null : LocalDateTime.ofInstant(until, ZoneOffset.UTC),
+                        pageable);
         return ResponseEntity.ok(page);
     }
 
-    /** Undo a supported creation and mark history in the same transaction. */
     @PostMapping("/{id}/undo")
-    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<OperationHistoryResponse> undo(
             @PathVariable("id") Long historyId, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        OperationHistory entry = historyService.getEntry(historyId, user.getId());
-        if (!entry.canUndo())
-            throw new IllegalStateException("Undo is unavailable for this operation");
-        try {
-            historyService.suppressRecording();
-            dispatchDelete(entry.getEntityType(), entry.getEntityId(), user.getId());
-            return ResponseEntity.ok(historyService.markUndone(historyId, user.getId()));
-        } finally {
-            historyService.resumeRecording();
-        }
+        return ResponseEntity.ok(historyService.reverse(historyId, user.getId(), false));
     }
 
-    /** Redo remains unavailable until domain restoration is implemented. */
     @PostMapping("/{id}/redo")
     public ResponseEntity<OperationHistoryResponse> redo(
             @PathVariable("id") Long historyId, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        historyService.getEntry(historyId, user.getId());
-        throw new IllegalStateException("Redo is unavailable for this operation");
-    }
-
-    private void dispatchDelete(EntityType entityType, Long entityId, Long userId) {
-        switch (entityType) {
-            case ACCOUNT -> accountService.deleteAccount(entityId, userId);
-            case ASSET -> assetService.deleteAsset(entityId, userId);
-            case LIABILITY -> liabilityService.deleteLiability(entityId, userId);
-            case REAL_ESTATE -> realEstateService.deleteProperty(entityId, userId);
-            case BUDGET -> budgetService.deleteBudget(entityId, userId);
-            case TRANSACTION -> transactionService.deleteTransaction(entityId, userId);
-            default -> throw new IllegalStateException("Undo is unavailable for this entity type");
-        }
+        return ResponseEntity.ok(historyService.reverse(historyId, user.getId(), true));
     }
 }

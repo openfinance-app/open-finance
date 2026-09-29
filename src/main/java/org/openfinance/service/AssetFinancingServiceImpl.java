@@ -8,14 +8,17 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.openfinance.dto.AssetFinancingLink;
 import org.openfinance.entity.Asset;
+import org.openfinance.entity.EntityType;
 import org.openfinance.entity.Liability;
 import org.openfinance.entity.LiabilityAssetLink;
+import org.openfinance.entity.OperationType;
 import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.exception.ResourceNotFoundException;
 import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.LiabilityAssetLinkRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.RealEstateRepository;
+import org.openfinance.service.history.ReversibleOperation;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +54,11 @@ public class AssetFinancingServiceImpl implements AssetFinancingService {
     @CacheEvict(
             value = {"dashboardSummary", "netWorthSummary", "networthAllocation"},
             key = "#userId")
+    @ReversibleOperation(
+            entity = EntityType.LIABILITY,
+            operation = OperationType.UPDATE,
+            userArgument = 0,
+            idArgument = 1)
     public List<AssetFinancingLink> replace(
             Long userId, Long liabilityId, List<AssetFinancingLink> requested) {
         liability(userId, liabilityId);
