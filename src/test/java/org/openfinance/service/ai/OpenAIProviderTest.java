@@ -22,7 +22,12 @@ class OpenAIProviderTest {
      */
     private OpenAIProvider createProvider() {
         return new OpenAIProvider(
-                "sk-test-dummy-key-for-unit-tests", "gpt-4o-mini", 0.7, 2048, 30, null);
+                "sk-test-dummy-key-for-unit-tests",
+                "gpt-4o-mini",
+                0.7,
+                2048,
+                30,
+                "http://127.0.0.1:1");
     }
 
     @Test
@@ -36,13 +41,13 @@ class OpenAIProviderTest {
     }
 
     @Test
-    @DisplayName("should always report as available")
-    void shouldAlwaysBeAvailable() {
+    @DisplayName("should report unavailable when the configured provider cannot be reached")
+    void shouldRejectAnUnreachableConfiguredProvider() {
         // Given
         OpenAIProvider provider = createProvider();
 
         // When & Then
-        StepVerifier.create(provider.isAvailable()).expectNext(true).verifyComplete();
+        StepVerifier.create(provider.isAvailable()).expectNext(false).verifyComplete();
     }
 
     @Test

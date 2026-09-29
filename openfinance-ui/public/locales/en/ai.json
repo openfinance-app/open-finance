@@ -64,5 +64,13 @@
     "send": "Send message (Enter)",
     "tooLong": "Message too long",
     "help": "Press <key>Enter</key> to send, <key>Shift+Enter</key> for new line"
+  },
+  "history": {
+    "label": "Conversation history",
+    "untitled": "Untitled conversation",
+    "delete": "Delete conversation",
+    "error": "Could not load or update conversation history. Please try again.",
+    "offline": "AI is unavailable. You can still read your saved conversations.",
+    "loading": "Loading conversation…"
   }
 }

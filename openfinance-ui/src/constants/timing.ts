@@ -60,3 +60,6 @@ export const EXTENDED_MESSAGE_DURATION_MS = 5000;
 /** Extended banner duration for security actions whose message needs more read time (e.g.
  * surfacing a recovery/backup code). */
 export const SECURITY_EXTENDED_MESSAGE_DURATION_MS = 8000;
+
+/** Covers the bounded ten-minute backend AI operation plus response overhead. */
+export const AI_REQUEST_TIMEOUT_MS = 610_000;

@@ -8,7 +8,7 @@
  * - Expandable chat panel anchored to bottom-right
  * - Reuses existing ChatMessage, ChatInput, and SuggestedPrompts components
  * - Conversation state persists while navigating between pages
- * - Health-check aware: hides FAB when AI service is unavailable
+ * - Health-check aware: preserves saved history when AI service is unavailable
  * - Responsive: adapts to mobile viewports
  *
  * @since Sprint 11+ — Floating AI Chat Widget
@@ -16,8 +16,14 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { MessageCircle, X, Minimize2, Trash2, AlertCircle, Sparkles } from 'lucide-react';
-import { useAIChat, useSendMessage } from '@/hooks/useAIChat';
+import { MessageCircle, X, Minimize2, Trash2, Plus, AlertCircle, Sparkles } from 'lucide-react';
+import {
+  useAIChat,
+  useSendMessage,
+  useConversations,
+  useDeleteConversation,
+} from '@/hooks/useAIChat';
+import { useAuthContext } from '@/context/AuthContext';
 import ChatMessage from '@/components/ai/ChatMessage';
 import ChatInput from '@/components/ai/ChatInput';
 import { cn } from '@/lib/utils';
@@ -28,19 +34,49 @@ import type { Message } from '@/types/ai';
  * Clicking it opens a chat panel overlay.
  */
 export const FloatingAIChat: React.FC = () => {
+  const { user } = useAuthContext();
+  const selectionKey = `ai.conversation.${user?.id ?? 'session'}`;
+  return <FloatingAIChatSession key={selectionKey} selectionKey={selectionKey} />;
+};
+
+const FloatingAIChatSession: React.FC<{ selectionKey: string }> = ({ selectionKey }) => {
   const { t } = useTranslation('ai');
+  const generation = useRef(0);
+  const [historyError, setHistoryError] = React.useState(false);
 
   const [isOpen, setIsOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState('');
-  const [messages, setMessages] = React.useState<Message[]>([]);
-  const [conversationId, setConversationId] = React.useState<string | null>(null);
+  const [localMessages, setMessages] = React.useState<Message[] | null>(null);
+  const [conversationId, setConversationId] = React.useState<string | null>(() =>
+    sessionStorage.getItem(selectionKey)
+  );
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const { isOllamaAvailable, isCheckingHealth } = useAIChat(conversationId);
+  const {
+    isOllamaAvailable,
+    isCheckingHealth,
+    conversation,
+    isLoadingConversation,
+    conversationError,
+  } = useAIChat(conversationId);
+  const conversations = useConversations();
+  const deleteConversation = useDeleteConversation();
 
   const sendMessage = useSendMessage();
+  const savedMessages =
+    conversation && String(conversation.id) === conversationId ? conversation.messages : [];
+  const messages = localMessages ?? savedMessages;
+
+  const changeConversation = useCallback(
+    (id: string | null): void => {
+      setConversationId(id);
+      if (id) sessionStorage.setItem(selectionKey, id);
+      else sessionStorage.removeItem(selectionKey);
+    },
+    [selectionKey]
+  );
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -61,7 +97,9 @@ export const FloatingAIChat: React.FC = () => {
   }, [isOpen]);
 
   const handleSendMessage = useCallback(async () => {
-    if (!inputValue.trim() || sendMessage.isPending) return;
+    if (!inputValue.trim() || sendMessage.isPending || isLoadingConversation || conversationError)
+      return;
+    const requestGeneration = generation.current;
 
     const userMessage: Message = {
       role: 'user',
@@ -69,7 +107,7 @@ export const FloatingAIChat: React.FC = () => {
       timestamp: new Date().toISOString(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages([...messages, userMessage]);
     setInputValue('');
 
     try {
@@ -79,16 +117,17 @@ export const FloatingAIChat: React.FC = () => {
         include_full_context: true,
       });
 
+      if (generation.current !== requestGeneration) return;
       const aiMessage: Message = {
         role: 'assistant',
         content: response.response,
         timestamp: response.timestamp,
       };
 
-      setMessages(prev => [...prev, aiMessage]);
-      setConversationId(response.conversation_id);
+      setMessages(prev => [...(prev ?? []), aiMessage]);
+      changeConversation(String(response.conversation_id));
     } catch (error) {
-      console.error('Failed to send message:', error);
+      if (generation.current !== requestGeneration) return;
 
       let errorContent: string;
       if (axios.isAxiosError(error) && (error.code === 'ERR_NETWORK' || !error.response)) {
@@ -117,28 +156,55 @@ export const FloatingAIChat: React.FC = () => {
         timestamp: new Date().toISOString(),
       };
 
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...(prev ?? []), errorMessage]);
     }
-  }, [inputValue, sendMessage, conversationId, t]);
+  }, [
+    inputValue,
+    sendMessage,
+    conversationId,
+    isLoadingConversation,
+    conversationError,
+    changeConversation,
+    messages,
+    t,
+  ]);
 
   const handleSelectPrompt = useCallback((question: string) => {
     setInputValue(question);
   }, []);
 
   const handleNewConversation = useCallback(() => {
-    setMessages([]);
-    setConversationId(null);
+    generation.current += 1;
+    setMessages(null);
+    changeConversation(null);
     setInputValue('');
-  }, []);
+    setHistoryError(false);
+    sendMessage.reset();
+  }, [sendMessage, changeConversation]);
+
+  const selectConversation = (id: string): void => {
+    generation.current += 1;
+    setMessages(null);
+    changeConversation(id || null);
+    setInputValue('');
+    setHistoryError(false);
+    sendMessage.reset();
+  };
+
+  const handleDeleteConversation = async (): Promise<void> => {
+    if (!conversationId) return;
+    const requestGeneration = generation.current;
+    try {
+      await deleteConversation.mutateAsync(conversationId);
+      if (generation.current === requestGeneration) handleNewConversation();
+    } catch {
+      if (generation.current === requestGeneration) setHistoryError(true);
+    }
+  };
 
   const toggleOpen = useCallback(() => {
     setIsOpen(prev => !prev);
   }, []);
-
-  // Don't render if AI service is unavailable and we've checked
-  if (!isCheckingHealth && !isOllamaAvailable) {
-    return null;
-  }
 
   return (
     <>
@@ -168,16 +234,14 @@ export const FloatingAIChat: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-1">
-              {messages.length > 0 && (
-                <button
-                  onClick={handleNewConversation}
-                  className="p-1.5 rounded-lg hover:bg-surface-elevated transition-colors"
-                  title={t('newConversation', 'New conversation')}
-                  aria-label={t('newConversation', 'New conversation')}
-                >
-                  <Trash2 className="w-4 h-4 text-text-secondary" />
-                </button>
-              )}
+              <button
+                onClick={handleNewConversation}
+                className="p-1.5 rounded-lg hover:bg-surface-elevated transition-colors"
+                title={t('newConversation', 'New conversation')}
+                aria-label={t('newConversation', 'New conversation')}
+              >
+                <Plus className="w-4 h-4 text-text-secondary" />
+              </button>
               <button
                 onClick={toggleOpen}
                 className="p-1.5 rounded-lg hover:bg-surface-elevated transition-colors"
@@ -188,6 +252,49 @@ export const FloatingAIChat: React.FC = () => {
               </button>
             </div>
           </div>
+
+          <div className="flex items-center gap-2 border-b border-border px-4 py-2">
+            <label className="sr-only" htmlFor="ai-conversation-history">
+              {t('history.label')}
+            </label>
+            <select
+              id="ai-conversation-history"
+              value={conversationId ?? ''}
+              onChange={event => selectConversation(event.target.value)}
+              className="min-w-0 flex-1 rounded border border-border bg-background p-2 text-sm"
+            >
+              <option value="">{t('newConversation')}</option>
+              {conversations.data?.map(item => (
+                <option key={item.id} value={String(item.id)}>
+                  {item.title || t('history.untitled')}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleDeleteConversation}
+              disabled={!conversationId || deleteConversation.isPending}
+              className="rounded p-2 disabled:opacity-40"
+              aria-label={t('history.delete')}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+          {(historyError || conversationError || conversations.error) && (
+            <p role="alert" className="px-4 py-2 text-sm text-red-600">
+              {t('history.error')}
+            </p>
+          )}
+          {!isCheckingHealth && !isOllamaAvailable && (
+            <p role="status" className="px-4 py-2 text-sm text-text-secondary">
+              {t('history.offline')}
+            </p>
+          )}
+          {isLoadingConversation && (
+            <p role="status" className="px-4 py-2 text-sm">
+              {t('history.loading')}
+            </p>
+          )}
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
@@ -251,7 +358,7 @@ export const FloatingAIChat: React.FC = () => {
               onChange={setInputValue}
               onSubmit={handleSendMessage}
               isLoading={sendMessage.isPending}
-              disabled={!isOllamaAvailable}
+              disabled={!isOllamaAvailable || isLoadingConversation || !!conversationError}
               placeholder={t('inputPlaceholder', 'Ask about your finances...')}
             />
 

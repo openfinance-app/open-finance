@@ -64,5 +64,13 @@
     "send": "Envoyer le message (Entrée)",
     "tooLong": "Message trop long",
     "help": "Appuyez sur <key>Entrée</key> pour envoyer, <key>Maj+Entrée</key> pour aller à la ligne"
+  },
+  "history": {
+    "label": "Historique des conversations",
+    "untitled": "Conversation sans titre",
+    "delete": "Supprimer la conversation",
+    "error": "Impossible de charger ou modifier l’historique. Veuillez réessayer.",
+    "offline": "L’IA est indisponible. Vos conversations enregistrées restent accessibles.",
+    "loading": "Chargement de la conversation…"
   }
 }

@@ -163,7 +163,9 @@
     "generatePrompt": "Cliquez sur « Générer des insights » pour analyser vos données financières",
     "dismiss": "Masquer l'insight",
     "loadFailed": "Échec du chargement des insights",
-    "tooltip": "Les insights alimentés par l'IA analysent vos transactions et vos habitudes de dépenses pour faire ressortir des recommandations, des avertissements et des opportunités personnalisés."
+    "tooltip": "Les insights alimentés par l'IA analysent vos transactions et vos habitudes de dépenses pour faire ressortir des recommandations, des avertissements et des opportunités personnalisés.",
+    "refreshFailed": "L’actualisation a échoué. Vos analyses précédentes sont conservées.",
+    "dismissFailed": "Impossible de masquer cette analyse. Veuillez réessayer."
   },
   "calendar": {
     "title": "Historique des flux de trésorerie",

@@ -194,6 +194,8 @@ application:
       interval-hours: 6
   ai:
     provider: ollama
+    # Whole-operation deadline, including all insight calls; bounded to at most 600 seconds.
+    request-timeout-seconds: 600
     ollama:
       base-url: http://localhost:11434
       model: llama3.2:3b

@@ -619,6 +619,15 @@ class ImportServiceTest {
         testSession.setMetadata("{\"transactions\":[]}");
         Map<String, Long> categoryMappings = new HashMap<>();
         categoryMappings.put("Groceries", 10L);
+        when(categoryRepository.findByIdAndUserId(10L, USER_ID))
+                .thenReturn(
+                        Optional.of(
+                                Category.builder()
+                                        .id(10L)
+                                        .userId(USER_ID)
+                                        .name("Groceries")
+                                        .type(org.openfinance.entity.CategoryType.EXPENSE)
+                                        .build()));
 
         // Mock ObjectMapper to return Map first, then List via convertValue
         Map<String, Object> metadataMap = new HashMap<>();
@@ -646,6 +655,45 @@ class ImportServiceTest {
         assertThat(result).isNotNull();
         verify(importSessionRepository, atLeast(2)).save(any(ImportSession.class));
         verify(transactionRepository, times(testTransactions.size())).save(any(Transaction.class));
+    }
+
+    @Test
+    @DisplayName("Should reject an expense mapped to income and report the failed row")
+    void shouldRejectWrongTypeMappingAndCountFailure() throws Exception {
+        testSession.setStatus(ImportStatus.PARSED);
+        testSession.setMetadata("{\"transactions\":[]}");
+        when(categoryRepository.findByIdAndUserId(10L, USER_ID))
+                .thenReturn(
+                        Optional.of(
+                                Category.builder()
+                                        .id(10L)
+                                        .userId(USER_ID)
+                                        .name("Salary")
+                                        .type(org.openfinance.entity.CategoryType.INCOME)
+                                        .build()));
+        Map<String, Object> metadataMap = new HashMap<>();
+        metadataMap.put("transactions", testTransactions);
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
+        when(accountRepository.findByIdAndUserId(ACCOUNT_ID, USER_ID))
+                .thenReturn(Optional.of(testAccount));
+        when(objectMapper.readValue(
+                        anyString(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(metadataMap);
+        when(objectMapper.convertValue(
+                        any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(testTransactions);
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
+
+        ImportSession result =
+                importService.confirmImport(
+                        1L, USER_ID, ACCOUNT_ID, Map.of("Groceries", 10L), true);
+
+        assertThat(result.getImportedCount()).isEqualTo(1);
+        assertThat(result.getErrorCount()).isEqualTo(1);
+        assertThat(result.getSkippedCount()).isEqualTo(1);
+        verify(transactionRepository).save(any(Transaction.class));
     }
 
     @Test

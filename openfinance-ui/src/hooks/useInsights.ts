@@ -6,6 +6,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
+import { AI_REQUEST_TIMEOUT_MS } from '@/constants/timing';
 import type { Insight } from '@/types/insight';
 import { buildEncryptionHeaders } from '@/utils/encryption';
 
@@ -58,6 +59,7 @@ export function useGenerateInsights() {
         '/insights/generate',
         {},
         {
+          timeout: AI_REQUEST_TIMEOUT_MS,
           headers: buildEncryptionHeaders(),
         }
       );

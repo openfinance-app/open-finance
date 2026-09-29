@@ -1,69 +1,84 @@
 package org.openfinance.service.ai;
 
-import java.math.BigDecimal;
-import java.util.HashSet;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Rejects unsupported monetary figures before an assistant answer reaches the user or history. */
+/** Renders monetary claims from typed facts; model text is never treated as verified arithmetic. */
 public final class FinancialResponseGuard {
-    private static final String NUMBER = "[-+−]?\\s*\\d+(?:[\\s\\u00a0\\u202f.,]\\d+)*";
-    private static final Pattern MONEY =
+    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final Pattern FIGURE =
             Pattern.compile(
-                    "(?:(?<prefixSign>[-+−])?\\s*(?<code>[A-Z]{3,5}|[€$£])\\s*(?<before>"
-                            + NUMBER
-                            + ")|(?<after>"
-                            + NUMBER
-                            + ")\\s*(?<suffix>[A-Z]{3,5}|[€$£]))");
+                    "[\\p{N}\\p{Sc}]|\\b(?:EUR|USD|GBP|CHF|JPY|CAD|AUD|CNY|euros?|dollars?|pounds?|livres?|francs?|yens?|yuans?|roubles?|rubles?|rupees?)\\b",
+                    Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
     private FinancialResponseGuard() {}
 
     public static String verify(String response, String context, Locale locale) {
-        if (response == null || !context.contains("[VERIFIED_FINANCIAL_DATA]")) return response;
-        Set<String> facts = monetaryValues(context);
-        if (facts.containsAll(monetaryValues(response))) return response;
+        if (response == null || response.isBlank())
+            throw new AIProviderException("AI", "Empty answer");
+        try {
+            String cleaned =
+                    response.trim()
+                            .replaceFirst("^```(?:json)?\\s*", "")
+                            .replaceFirst("\\s*```$", "");
+            if (!cleaned.startsWith("{"))
+                return FIGURE.matcher(response).find() ? rejected(locale) : response;
+            JsonNode answer = JSON.readTree(cleaned);
+            if (!answer.path("explanation").isTextual() || !answer.path("factIds").isArray())
+                return rejected(locale);
+            String explanation = answer.path("explanation").asText();
+            if (FIGURE.matcher(explanation).find()) return rejected(locale);
+            Map<String, FinancialFact> facts = facts(context);
+            Set<String> selected = new LinkedHashSet<>();
+            for (JsonNode id : answer.path("factIds")) {
+                if (!id.isTextual() || !facts.containsKey(id.asText())) return rejected(locale);
+                selected.add(id.asText());
+            }
+            StringBuilder result = new StringBuilder(explanation.strip());
+            for (String id : selected) {
+                FinancialFact fact = facts.get(id);
+                result.append("\n\n").append(escape(fact.label()));
+                if (!fact.entity().isBlank()) result.append(" — ").append(escape(fact.entity()));
+                result.append(": **")
+                        .append(fact.amount())
+                        .append(' ')
+                        .append(fact.currency())
+                        .append("** (")
+                        .append(fact.period())
+                        .append(')');
+            }
+            return result.isEmpty() ? rejected(locale) : result.toString();
+        } catch (com.fasterxml.jackson.core.JsonProcessingException | RuntimeException ex) {
+            return rejected(locale);
+        }
+    }
+
+    private static Map<String, FinancialFact> facts(String context)
+            throws com.fasterxml.jackson.core.JsonProcessingException {
+        Map<String, FinancialFact> facts = new LinkedHashMap<>();
+        for (String line : context.split("\\R")) {
+            if (line.startsWith("[FACT] ")) {
+                FinancialFact fact = JSON.readValue(line.substring(7), FinancialFact.class);
+                facts.put(fact.id(), fact);
+            }
+        }
+        return facts;
+    }
+
+    private static String escape(String text) {
+        return text.replaceAll("[\\r\\n\\p{Cntrl}]", " ")
+                .replaceAll("([\\\\`*_{}\\[\\]()#+.!<>])", "\\\\$1");
+    }
+
+    private static String rejected(Locale locale) {
         return "fr".equals(locale.getLanguage())
                 ? "Je n’ai pas pu vérifier les montants de cette réponse. Consultez les soldes et le flux de trésorerie du tableau de bord."
                 : "I could not verify the amounts in this response. Please check the account balances and cash flow on your dashboard.";
-    }
-
-    private static Set<String> monetaryValues(String text) {
-        Set<String> values = new HashSet<>();
-        Matcher matcher = MONEY.matcher(text);
-        while (matcher.find()) {
-            String code =
-                    matcher.group("code") != null ? matcher.group("code") : matcher.group("suffix");
-            code =
-                    switch (code) {
-                        case "€" -> "EUR";
-                        case "$" -> "USD";
-                        case "£" -> "GBP";
-                        default -> code;
-                    };
-            String number =
-                    matcher.group("before") != null
-                            ? matcher.group("before")
-                            : matcher.group("after");
-            number = number.replaceAll("[\\s\\u00a0\\u202f]", "").replace('−', '-');
-            String prefixSign = matcher.group("prefixSign");
-            if (prefixSign != null && (prefixSign.equals("-") || prefixSign.equals("−"))) {
-                number = "-" + number.replaceFirst("^[+-]", "");
-            }
-            int separator = Math.max(number.lastIndexOf('.'), number.lastIndexOf(','));
-            // Financial context uses two decimals. Also accept grouped whole amounts and French
-            // decimals.
-            if (separator >= 0 && number.length() - separator - 1 != 3) {
-                number =
-                        number.substring(0, separator).replaceAll("[.,]", "")
-                                + "."
-                                + number.substring(separator + 1);
-            } else {
-                number = number.replaceAll("[.,]", "");
-            }
-            values.add(code + ":" + new BigDecimal(number).stripTrailingZeros().toPlainString());
-        }
-        return values;
     }
 }

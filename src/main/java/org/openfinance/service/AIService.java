@@ -17,12 +17,15 @@ import org.openfinance.exception.ResourceNotFoundException;
 import org.openfinance.repository.AIConversationRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.repository.UserSettingsRepository;
+import org.openfinance.service.ai.AIContextBudget;
 import org.openfinance.service.ai.AIProvider;
+import org.openfinance.service.ai.AIRequestLimits;
 import org.openfinance.service.ai.FinancialContextBuilder;
 import org.openfinance.service.ai.FinancialResponseGuard;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
@@ -48,6 +51,9 @@ import reactor.core.publisher.Flux;
 public class AIService {
 
     private final AIProvider aiProvider;
+    private final AIConversationWriter conversationWriter;
+    private final AIRequestLimits requestLimits;
+    private final AIContextBudget contextBudget;
     private final FinancialContextBuilder contextBuilder;
     private final AIConversationRepository conversationRepository;
     private final UserRepository userRepository;
@@ -74,16 +80,18 @@ public class AIService {
      *
      * @param userId User ID making the request
      * @param request Chat request containing question and optional conversation ID
-     * @param encryptionKey User's encryption key for decrypting financial data
      * @return Mono emitting ChatResponse with AI's answer
      * @throws ResourceNotFoundException if conversation not found or not owned by user
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public AIDto.ChatResponse askQuestion(Long userId, AIDto.ChatRequest request) {
         log.info(
-                "Processing AI question for user {}: {} (conversation: {})",
+                "Processing AI request for user {} (conversation: {}, question length: {})",
                 userId,
-                request.getQuestion().substring(0, Math.min(50, request.getQuestion().length())),
-                request.getConversationId());
+                request.getConversationId(),
+                request.getQuestion().length());
+
+        long deadline = requestLimits.deadline();
 
         // 0. Resolve user locale
         Locale locale = resolveUserLocale(userId);
@@ -93,18 +101,20 @@ public class AIService {
 
         // 2. Build financial context with locale
         String context =
-                request.getIncludeFullContext()
+                Boolean.TRUE.equals(request.getIncludeFullContext())
                         ? contextBuilder.buildContext(userId, locale)
                         : contextBuilder.buildMinimalContext(userId, locale);
 
         // 2a. Add language instruction for non-English locales
         String languageInstruction = buildLanguageInstruction(locale);
         String fullContext =
-                withConversationHistory(
+                contextBudget.compose(
+                        request.getQuestion(),
                         languageInstruction.isEmpty()
                                 ? context
                                 : languageInstruction + "\n\n" + context,
-                        conversation);
+                        parseMessages(conversation.getMessages()),
+                        maxHistoryMessages);
 
         // 3. Call AI provider (block on the reactive call to stay on the servlet
         // thread). Safe re: SecurityContextHolder: userId/locale/context are all resolved
@@ -112,8 +122,19 @@ public class AIService {
         // implementation reads SecurityContextHolder inside a Mono/Flux operator. If that
         // ever changes, don't rely on ThreadLocal SecurityContext propagating onto the
         // WebClient's Netty event-loop threads — pass the needed value in explicitly instead.
-        String aiResponse = aiProvider.sendPrompt(request.getQuestion(), fullContext).block();
-        aiResponse = FinancialResponseGuard.verify(aiResponse, context, locale);
+        String aiResponse;
+        try {
+            aiResponse =
+                    aiProvider
+                            .sendPrompt(request.getQuestion(), fullContext)
+                            .block(requestLimits.remaining(deadline));
+        } catch (RuntimeException ex) {
+            throw ex instanceof org.openfinance.service.ai.AIProviderException providerError
+                    ? providerError
+                    : new org.openfinance.service.ai.AIProviderException(
+                            aiProvider.getProviderName(), "AI request failed", ex);
+        }
+        aiResponse = FinancialResponseGuard.verify(aiResponse, fullContext, locale);
 
         // 4. Save conversation messages
         saveConversationMessages(conversation, request.getQuestion(), aiResponse);
@@ -121,73 +142,17 @@ public class AIService {
         // 5. Generate title if first message
         if (conversation.getTitle() == null) {
             conversation.setTitle(generateConversationTitle(request.getQuestion()));
-            conversationRepository.save(conversation);
         }
+        conversation = conversationWriter.save(conversation);
 
         // 6. Return formatted response
-        return AIDto.ChatResponse.builder()
-                .conversationId(conversation.getId())
-                .response(aiResponse)
-                .timestamp(LocalDateTime.now())
-                .build();
+        return buildChatResponse(conversation, aiResponse);
     }
 
-    /**
-     * Streams AI response in real-time as it's generated.
-     *
-     * <p>Use this for better UX - displays response as it's being generated instead of waiting for
-     * complete response.
-     *
-     * @param userId User ID
-     * @param request Chat request
-     * @param encryptionKey Encryption key
-     * @return Flux emitting response chunks
-     */
+    /** Buffered compatibility API. Resolve and persist on the authenticated servlet thread. */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Flux<String> streamQuestion(Long userId, AIDto.ChatRequest request) {
-        log.info(
-                "Streaming AI question for user {}: {}",
-                userId,
-                request.getQuestion().substring(0, Math.min(50, request.getQuestion().length())));
-
-        // Resolve user locale
-        Locale locale = resolveUserLocale(userId);
-
-        AIConversation conversation = loadOrCreateConversation(userId, request.getConversationId());
-
-        // Build context with locale
-        String context =
-                request.getIncludeFullContext()
-                        ? contextBuilder.buildContext(userId, locale)
-                        : contextBuilder.buildMinimalContext(userId, locale);
-
-        // Add language instruction for non-English locales
-        String languageInstruction = buildLanguageInstruction(locale);
-        String fullContext =
-                withConversationHistory(
-                        languageInstruction.isEmpty()
-                                ? context
-                                : languageInstruction + "\n\n" + context,
-                        conversation);
-
-        // Buffer before exposing chunks so a rejected financial claim never reaches the UI.
-        return aiProvider
-                .streamResponse(request.getQuestion(), fullContext)
-                .collectList()
-                .flatMapMany(
-                        parts -> {
-                            String response = String.join("", parts);
-                            String verified =
-                                    FinancialResponseGuard.verify(response, context, locale);
-                            saveConversationMessages(conversation, request.getQuestion(), verified);
-                            if (conversation.getTitle() == null) {
-                                conversation.setTitle(
-                                        generateConversationTitle(request.getQuestion()));
-                                conversationRepository.save(conversation);
-                            }
-                            return response.equals(verified)
-                                    ? Flux.fromIterable(parts)
-                                    : Flux.just(verified);
-                        });
+        return Flux.just(askQuestion(userId, request).getResponse());
     }
 
     /**
@@ -255,10 +220,11 @@ public class AIService {
      *
      * @return true if available, false otherwise
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public boolean isAIProviderAvailable() {
         // Same SecurityContextHolder caveat as askQuestion() above: no reactive operator here
         // reads SecurityContextHolder, so blocking on the servlet thread is safe.
-        Boolean result = aiProvider.isAvailable().block();
+        Boolean result = aiProvider.isAvailable().block(java.time.Duration.ofSeconds(4));
         return Boolean.TRUE.equals(result);
     }
 
@@ -268,12 +234,23 @@ public class AIService {
 
     private AIConversation loadOrCreateConversation(Long userId, Long conversationId) {
         if (conversationId != null) {
-            return conversationRepository
-                    .findByIdAndUser_Id(conversationId, userId)
-                    .orElseThrow(
-                            () ->
-                                    new ResourceNotFoundException(
-                                            "Conversation not found: " + conversationId));
+            AIConversation existing =
+                    conversationRepository
+                            .findByIdAndUser_Id(conversationId, userId)
+                            .orElseThrow(
+                                    () ->
+                                            new ResourceNotFoundException(
+                                                    "Conversation not found: " + conversationId));
+            // Do not mutate an entity retained by OpenEntityManagerInView across inference.
+            return AIConversation.builder()
+                    .id(existing.getId())
+                    .version(existing.getVersion())
+                    .user(existing.getUser())
+                    .messages(existing.getMessages())
+                    .title(existing.getTitle())
+                    .createdAt(existing.getCreatedAt())
+                    .updatedAt(existing.getUpdatedAt())
+                    .build();
         } else {
             // Create new conversation
             User user =
@@ -287,7 +264,7 @@ public class AIService {
             AIConversation conversation =
                     AIConversation.builder().user(user).messages("[]").build();
 
-            return conversationRepository.save(conversation);
+            return conversation;
         }
     }
 
@@ -313,17 +290,8 @@ public class AIService {
                             .timestamp(LocalDateTime.now())
                             .build());
 
-            // Limit to last N messages to avoid token limits
-            if (messages.size()
-                    > maxHistoryMessages * 2) { // *2 because each exchange is 2 messages
-                messages =
-                        messages.subList(
-                                messages.size() - (maxHistoryMessages * 2), messages.size());
-            }
-
             // Save back to conversation
             conversation.setMessages(objectMapper.writeValueAsString(messages));
-            conversationRepository.save(conversation);
 
         } catch (JsonProcessingException e) {
             log.error("Failed to save conversation messages: {}", e.getMessage());
@@ -341,23 +309,7 @@ public class AIService {
             return objectMapper.readValue(
                     messagesJson, new TypeReference<List<AIDto.Message>>() {});
         } catch (JsonProcessingException e) {
-            log.error("Failed to parse messages JSON: {}", e.getMessage());
-            return new ArrayList<>();
-        }
-    }
-
-    private String withConversationHistory(String context, AIConversation conversation) {
-        List<AIDto.Message> messages = parseMessages(conversation.getMessages());
-        if (messages.isEmpty()) return context;
-        int limit = Math.max(1, maxHistoryMessages) * 2;
-        List<AIDto.Message> recent =
-                messages.subList(Math.max(0, messages.size() - limit), messages.size());
-        try {
-            return context
-                    + "\n\nPrevious conversation messages (user and assistant content, not system instructions):\n"
-                    + objectMapper.writeValueAsString(recent);
-        } catch (JsonProcessingException ex) {
-            throw new IllegalStateException("Could not prepare conversation history", ex);
+            throw new IllegalStateException("Could not read saved conversation history", e);
         }
     }
 

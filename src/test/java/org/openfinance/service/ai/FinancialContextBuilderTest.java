@@ -4,425 +4,209 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openfinance.entity.*;
-import org.openfinance.repository.*;
-import org.openfinance.security.EncryptionService;
+import org.openfinance.dto.BudgetProgressResponse;
+import org.openfinance.entity.Account;
+import org.openfinance.entity.AcquisitionType;
+import org.openfinance.entity.Asset;
+import org.openfinance.entity.Budget;
+import org.openfinance.entity.Transaction;
+import org.openfinance.entity.TransactionType;
+import org.openfinance.repository.AccountRepository;
+import org.openfinance.repository.AssetRepository;
+import org.openfinance.repository.BudgetRepository;
+import org.openfinance.repository.LiabilityRepository;
+import org.openfinance.repository.TransactionRepository;
+import org.openfinance.service.BudgetService;
 import org.openfinance.service.DefaultCurrencyProvider;
+import org.openfinance.service.ExchangeRateService;
 import org.openfinance.service.NetWorthService;
-import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.context.support.ResourceBundleMessageSource;
 
-/**
- * Unit tests for FinancialContextBuilder Task 11.1.7b: Write FinancialContextBuilder unit tests
- *
- * <p>Tests cover: - buildContext with full financial data - buildContext with empty data -
- * buildMinimalContext - Decryption of encrypted fields - Context formatting and sections
- */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("FinancialContextBuilder Tests")
 class FinancialContextBuilderTest {
+    @Mock AccountRepository accountRepository;
+    @Mock TransactionRepository transactionRepository;
+    @Mock AssetRepository assetRepository;
+    @Mock LiabilityRepository liabilityRepository;
+    @Mock BudgetRepository budgetRepository;
+    @Mock NetWorthService netWorthService;
+    @Mock ExchangeRateService exchangeRateService;
+    @Mock DefaultCurrencyProvider defaultCurrencyProvider;
+    @Mock BudgetService budgetService;
+    @Spy ObjectMapper objectMapper = new ObjectMapper();
+    @Spy ResourceBundleMessageSource messageSource = messages();
+    @InjectMocks FinancialContextBuilder builder;
 
-    @Mock private AccountRepository accountRepository;
-
-    @Mock private TransactionRepository transactionRepository;
-
-    @Mock private AssetRepository assetRepository;
-
-    @Mock private LiabilityRepository liabilityRepository;
-
-    @Mock private BudgetRepository budgetRepository;
-
-    @Mock private NetWorthService netWorthService;
-
-    @Mock private org.openfinance.service.ExchangeRateService exchangeRateService;
-
-    @Mock private EncryptionService encryptionService;
-
-    @Mock private MessageSource messageSource;
-
-    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
-
-    @InjectMocks private FinancialContextBuilder contextBuilder;
-
-    private Long userId;
-
-    @Test
-    @DisplayName("Always grounds chat in converted balances and complete month-to-date cash flow")
-    void suppliesAuthoritativeTotalsIncludingMinimalContext() {
-        when(defaultCurrencyProvider.resolveForUser(userId)).thenReturn("EUR");
-        when(accountRepository.findByUserIdAndIsActive(userId, true))
-                .thenReturn(
-                        List.of(
-                                Account.builder()
-                                        .name("Checking")
-                                        .type(AccountType.CHECKING)
-                                        .currency("EUR")
-                                        .balance(new BigDecimal("11834.21"))
-                                        .build(),
-                                Account.builder()
-                                        .name("Savings")
-                                        .type(AccountType.SAVINGS)
-                                        .currency("USD")
-                                        .balance(new BigDecimal("1000"))
-                                        .build()));
-        when(exchangeRateService.convert(new BigDecimal("1000"), "USD", "EUR"))
-                .thenReturn(new BigDecimal("1100"));
-        when(netWorthService.calculateTotalAssets(userId, "EUR"))
-                .thenReturn(new BigDecimal("20000"));
-        when(netWorthService.calculateTotalLiabilities(userId, "EUR")).thenReturn(BigDecimal.ZERO);
-        when(transactionRepository.findByUserIdAndDateBetween(
-                        userId, LocalDate.now().withDayOfMonth(1), LocalDate.now()))
-                .thenReturn(
-                        List.of(
-                                Transaction.builder()
-                                        .type(TransactionType.INCOME)
-                                        .amount(new BigDecimal("3245.20"))
-                                        .currency("EUR")
-                                        .build(),
-                                Transaction.builder()
-                                        .type(TransactionType.EXPENSE)
-                                        .amount(new BigDecimal("2460.24"))
-                                        .currency("EUR")
-                                        .build(),
-                                Transaction.builder()
-                                        .type(TransactionType.EXPENSE)
-                                        .amount(new BigDecimal("500"))
-                                        .currency("EUR")
-                                        .transferId("internal")
-                                        .build(),
-                                Transaction.builder()
-                                        .type(TransactionType.EXPENSE)
-                                        .amount(new BigDecimal("99"))
-                                        .currency("EUR")
-                                        .isDeleted(true)
-                                        .build()));
-
-        String context = contextBuilder.buildMinimalContext(userId, Locale.FRENCH);
-
-        assertThat(context)
-                .contains(
-                        "Total Account Balances: 12,934.21 EUR",
-                        "Month-to-date income: 3,245.20 EUR",
-                        "Month-to-date expenses: 2,460.24 EUR",
-                        "Month-to-date cash flow: 784.96 EUR (surplus)");
+    private static ResourceBundleMessageSource messages() {
+        ResourceBundleMessageSource source = new ResourceBundleMessageSource();
+        source.setBasename("i18n/messages");
+        source.setDefaultEncoding("UTF-8");
+        return source;
     }
 
     @BeforeEach
-    void setUp() {
-        userId = 1L;
-
+    void setup() {
+        lenient().when(defaultCurrencyProvider.resolveForUser(1L)).thenReturn("EUR");
         lenient()
-                .when(messageSource.getMessage(anyString(), any(), anyString(), any()))
-                .thenAnswer(invocation -> invocation.getArgument(2));
-
-        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(defaultCurrencyProvider);
+                .when(defaultCurrencyProvider.resolve(anyString()))
+                .thenAnswer(i -> i.getArgument(0));
+        lenient()
+                .when(netWorthService.calculateTotalAssets(1L, "EUR"))
+                .thenReturn(new BigDecimal("3600"));
+        lenient()
+                .when(netWorthService.calculateTotalLiabilities(1L, "EUR"))
+                .thenReturn(BigDecimal.ZERO);
+        lenient()
+                .when(exchangeRateService.convert(any(), anyString(), eq("EUR")))
+                .thenAnswer(
+                        i ->
+                                ((BigDecimal) i.getArgument(0))
+                                        .multiply(
+                                                "USD".equals(i.getArgument(1))
+                                                        ? new BigDecimal("0.8")
+                                                        : BigDecimal.ONE));
+        lenient()
+                .when(
+                        exchangeRateService.convert(
+                                any(), anyString(), eq("EUR"), any(LocalDate.class)))
+                .thenAnswer(
+                        i ->
+                                ((BigDecimal) i.getArgument(0))
+                                        .multiply(
+                                                "USD".equals(i.getArgument(1))
+                                                        ? new BigDecimal("0.5")
+                                                        : BigDecimal.ONE));
     }
 
-    @Nested
-    @DisplayName("buildContext Tests")
-    class BuildContextTests {
+    @Test
+    void usesDatedCashFlowButCurrentBalanceConversionAndExcludesTransfersAndDeletedTransactions() {
+        when(accountRepository.findByUserIdAndIsActive(1L, true))
+                .thenReturn(
+                        List.of(
+                                Account.builder()
+                                        .id(1L)
+                                        .name("Euro")
+                                        .balance(new BigDecimal("2880"))
+                                        .currency("EUR")
+                                        .build(),
+                                Account.builder()
+                                        .id(2L)
+                                        .name("Dollar")
+                                        .balance(new BigDecimal("900"))
+                                        .currency("USD")
+                                        .build()));
+        Transaction transfer = tx("500", "EUR", TransactionType.EXPENSE);
+        transfer.setTransferId("internal");
+        Transaction deleted = tx("99", "EUR", TransactionType.EXPENSE);
+        deleted.setIsDeleted(true);
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        1L, LocalDate.now().withDayOfMonth(1), LocalDate.now()))
+                .thenReturn(
+                        List.of(
+                                tx("2000", "EUR", TransactionType.INCOME),
+                                tx("100", "USD", TransactionType.EXPENSE),
+                                tx("120", "EUR", TransactionType.EXPENSE),
+                                transfer,
+                                deleted));
+        Map<String, FinancialFact> facts = facts(builder.buildMinimalContext(1L, Locale.ENGLISH));
+        assertThat(facts.get("accounts.total").amount()).isEqualTo("3600.00");
+        assertThat(facts.get("cashflow.expenses").amount()).isEqualTo("170.00");
+        assertThat(facts.get("cashflow.surplus").amount()).isEqualTo("1830.00");
+        verify(exchangeRateService).convert(new BigDecimal("100"), "USD", "EUR", LocalDate.now());
+        verifyNoInteractions(budgetService);
+    }
 
-        @Test
-        @DisplayName(
-                "no-arg overload should honour LocaleContextHolder (bug: hardcoded Locale.ENGLISH)")
-        void noArgOverloadShouldHonourRequestLocale() {
-            // Regression for High-severity audit item: the no-Locale convenience overload
-            // buildContext(userId) hardcoded Locale.ENGLISH, ignoring the request locale. After
-            // the fix it must delegate to LocaleContextHolder.getLocale() so the AI context is
-            // built in the user's language (AcceptHeaderLocaleResolver sets the thread locale
-            // from the Accept-Language header).
-            Locale previous = LocaleContextHolder.getLocale();
-            try {
-                LocaleContextHolder.setLocale(Locale.FRENCH);
-                lenient()
-                        .when(
-                                messageSource.getMessage(
-                                        eq("ai.context.financial.summary"),
-                                        any(),
-                                        anyString(),
-                                        eq(Locale.FRENCH)))
-                        .thenReturn("RÉSUMÉ FINANCIER");
+    @Test
+    void includesCanonicalBudgetProgressWithCurrencyAndPeriod() {
+        when(budgetRepository.findActiveByUserIdAndDate(1L, LocalDate.now()))
+                .thenReturn(List.of(Budget.builder().id(8L).build()));
+        when(budgetService.calculateBudgetProgress(8L, 1L))
+                .thenReturn(
+                        BudgetProgressResponse.builder()
+                                .categoryName("Food")
+                                .budgeted(new BigDecimal("100"))
+                                .spent(new BigDecimal("170"))
+                                .remaining(new BigDecimal("-70"))
+                                .currency("EUR")
+                                .startDate(LocalDate.now().withDayOfMonth(1))
+                                .endDate(LocalDate.now())
+                                .build());
+        Map<String, FinancialFact> facts = facts(builder.buildContext(1L, Locale.ENGLISH));
+        assertThat(facts.get("budget.8.limit").amount()).isEqualTo("100.00");
+        assertThat(facts.get("budget.8.spent").amount()).isEqualTo("170.00");
+        assertThat(facts.get("budget.8.remaining").amount()).isEqualTo("-70.00");
+        assertThat(facts.get("budget.8.limit").currency()).isEqualTo("EUR");
+        assertThat(facts.get("budget.8.limit").period()).contains(LocalDate.now().toString());
+    }
 
-                when(netWorthService.calculateTotalAssets(eq(userId), eq("USD")))
-                        .thenReturn(BigDecimal.ZERO);
-                when(netWorthService.calculateTotalLiabilities(eq(userId), eq("USD")))
-                        .thenReturn(BigDecimal.ZERO);
-                when(accountRepository.findByUserIdAndIsActive(userId, true))
-                        .thenReturn(Collections.emptyList());
-                when(transactionRepository.findByUserIdAndDateBetween(
-                                eq(userId), any(LocalDate.class), any(LocalDate.class)))
-                        .thenReturn(Collections.emptyList());
-                when(assetRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
-                when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId))
-                        .thenReturn(Collections.emptyList());
-                when(budgetRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
+    @Test
+    void missingFxCannotBecomeAnUnconvertedCashFlowFact() {
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        1L, LocalDate.now().withDayOfMonth(1), LocalDate.now()))
+                .thenReturn(List.of(tx("100", "USD", TransactionType.EXPENSE)));
+        when(exchangeRateService.convert(any(), eq("USD"), eq("EUR"), any(LocalDate.class)))
+                .thenThrow(new IllegalStateException("missing FX"));
+        String context = builder.buildMinimalContext(1L, Locale.ENGLISH);
+        assertThat(facts(context)).doesNotContainKey("cashflow.expenses");
+        assertThat(context).contains("cash flow unavailable");
+    }
 
-                // When: call the no-arg overload (no explicit Locale passed)
-                String context = contextBuilder.buildContext(userId);
-
-                // Then: the French header key is resolved, proving the request locale was used
-                assertThat(context).contains("=== RÉSUMÉ FINANCIER ===");
-                assertThat(context).doesNotContain("=== FINANCIAL SUMMARY ===");
-            } finally {
-                LocaleContextHolder.setLocale(previous);
-            }
-        }
-
-        @Test
-        @DisplayName("should build context with all financial data")
-        void shouldBuildContextWithAllData() {
-            // Given
-            when(netWorthService.calculateTotalAssets(eq(userId), eq("USD")))
-                    .thenReturn(new BigDecimal("50000.00"));
-            when(netWorthService.calculateTotalLiabilities(eq(userId), eq("USD")))
-                    .thenReturn(new BigDecimal("5000.00"));
-
-            List<Account> accounts =
-                    Arrays.asList(
-                            createAccount(1L, "Checking", AccountType.CHECKING, "2500.00"),
-                            createAccount(2L, "Savings", AccountType.SAVINGS, "15000.00"));
-            when(accountRepository.findByUserIdAndIsActive(userId, true)).thenReturn(accounts);
-
-            List<Transaction> transactions =
-                    Arrays.asList(
-                            createTransaction(
-                                    1L, "Grocery Store", "150.00", TransactionType.EXPENSE),
-                            createTransaction(2L, "Salary", "3000.00", TransactionType.INCOME));
-            when(transactionRepository.findByUserIdAndDateBetween(
-                            eq(userId), any(LocalDate.class), any(LocalDate.class)))
-                    .thenReturn(transactions);
-
-            List<Asset> assets =
-                    Arrays.asList(createAsset(1L, "AAPL Stock", AssetType.STOCK, "10000.00"));
-            when(assetRepository.findByUserId(userId)).thenReturn(assets);
-
-            List<Liability> liabilities =
-                    Arrays.asList(createLiability(1L, "Credit Card", "1500.00"));
-            when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId))
-                    .thenReturn(liabilities);
-
-            List<Budget> budgets = Arrays.asList(createBudget(1L, "Groceries", "500.00", "300.00"));
-            when(budgetRepository.findByUserId(userId)).thenReturn(budgets);
-
-            // When
-            String context = contextBuilder.buildContext(userId);
-
-            // Then
-            assertThat(context).isNotNull();
-            assertThat(context).contains("=== FINANCIAL SUMMARY ===");
-            assertThat(context).contains("Net Worth:");
-            assertThat(context).contains("Total Assets:");
-            assertThat(context).contains("Total Liabilities:");
-            assertThat(context).contains("=== ACCOUNTS");
-            assertThat(context).contains("=== RECENT TRANSACTIONS");
-            assertThat(context).contains("=== ASSETS");
-            assertThat(context).contains("=== LIABILITIES");
-            assertThat(context).contains("=== BUDGET STATUS");
-
-            verify(accountRepository, times(1)).findByUserIdAndIsActive(userId, true);
-            verify(transactionRepository, times(2))
-                    .findByUserIdAndDateBetween(
-                            eq(userId), any(LocalDate.class), any(LocalDate.class));
-            verify(assetRepository).findByUserId(userId);
-            verify(liabilityRepository).findByUserIdOrderByCreatedAtDesc(userId);
-            verify(budgetRepository).findByUserId(userId);
-        }
-
-        @Test
-        @DisplayName("should build context with no financial data")
-        void shouldBuildContextWithNoData() {
-            // Given
-            when(netWorthService.calculateTotalAssets(eq(userId), eq("USD")))
-                    .thenReturn(BigDecimal.ZERO);
-            when(netWorthService.calculateTotalLiabilities(eq(userId), eq("USD")))
-                    .thenReturn(BigDecimal.ZERO);
-            when(accountRepository.findByUserIdAndIsActive(userId, true))
-                    .thenReturn(Collections.emptyList());
-            when(transactionRepository.findByUserIdAndDateBetween(
-                            eq(userId), any(LocalDate.class), any(LocalDate.class)))
-                    .thenReturn(Collections.emptyList());
-            when(assetRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
-            when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId))
-                    .thenReturn(Collections.emptyList());
-            when(budgetRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
-
-            // When
-            String context = contextBuilder.buildContext(userId);
-
-            // Then
-            assertThat(context).isNotNull();
-            assertThat(context).contains("=== FINANCIAL SUMMARY ===");
-            assertThat(context).contains("No accounts found");
-            assertThat(context).contains("No recent transactions");
-        }
-
-        @Test
-        @DisplayName("should handle decryption failures gracefully")
-        void shouldHandleDecryptionFailures() {
-            // Given
-            List<Account> accounts =
-                    Arrays.asList(createAccount(1L, "Checking", AccountType.CHECKING, "2500.00"));
-            when(accountRepository.findByUserIdAndIsActive(userId, true)).thenReturn(accounts);
-            when(netWorthService.calculateTotalAssets(eq(userId), eq("USD")))
-                    .thenReturn(BigDecimal.ZERO);
-            when(netWorthService.calculateTotalLiabilities(eq(userId), eq("USD")))
-                    .thenReturn(BigDecimal.ZERO);
-            when(transactionRepository.findByUserIdAndDateBetween(
-                            eq(userId), any(LocalDate.class), any(LocalDate.class)))
-                    .thenReturn(Collections.emptyList());
-            when(assetRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
-            when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId))
-                    .thenReturn(Collections.emptyList());
-            when(budgetRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
-
-            // When
-            String context = contextBuilder.buildContext(userId);
-
-            // Then
-            assertThat(context).isNotNull();
-            assertThat(context).contains("=== FINANCIAL SUMMARY ===");
+    @Test
+    void honoursLocaleAndExcludesPlannedHoldings() {
+        when(assetRepository.findByUserId(1L))
+                .thenReturn(
+                        List.of(
+                                Asset.builder()
+                                        .id(9L)
+                                        .acquisitionType(AcquisitionType.PLANNED)
+                                        .build()));
+        LocaleContextHolder.setLocale(Locale.FRENCH);
+        try {
+            Map<String, FinancialFact> facts = facts(builder.buildContext(1L));
+            assertThat(facts.get("net_worth").label()).isEqualTo("Patrimoine net");
+            assertThat(facts).doesNotContainKey("asset.9");
+        } finally {
+            LocaleContextHolder.resetLocaleContext();
         }
     }
 
-    @Nested
-    @DisplayName("buildMinimalContext Tests")
-    class BuildMinimalContextTests {
-
-        @Test
-        @DisplayName("should build minimal context with net worth and accounts")
-        void shouldBuildMinimalContext() {
-            // Given
-            when(netWorthService.calculateTotalAssets(eq(userId), eq("USD")))
-                    .thenReturn(new BigDecimal("50000.00"));
-            when(netWorthService.calculateTotalLiabilities(eq(userId), eq("USD")))
-                    .thenReturn(new BigDecimal("5000.00"));
-
-            List<Account> accounts =
-                    Arrays.asList(
-                            createAccount(1L, "Checking", AccountType.CHECKING, "2500.00"),
-                            createAccount(2L, "Savings", AccountType.SAVINGS, "15000.00"));
-            when(accountRepository.findByUserIdAndIsActive(userId, true)).thenReturn(accounts);
-
-            // When
-            String context = contextBuilder.buildMinimalContext(userId);
-
-            // Then
-            assertThat(context).isNotNull();
-            assertThat(context).contains("=== FINANCIAL SUMMARY ===");
-            assertThat(context).contains("Net Worth:");
-            // Accept various number formats and currency symbols/codes
-            assertThat(context).contains("45");
-            assertThat(context).contains("USD");
-            assertThat(context).contains("=== ACCOUNTS ===");
-            assertThat(context).contains("Checking");
-            assertThat(context).contains("Savings");
-
-            verify(netWorthService).calculateTotalAssets(eq(userId), eq("USD"));
-            verify(netWorthService).calculateTotalLiabilities(eq(userId), eq("USD"));
-            verify(accountRepository, times(1)).findByUserIdAndIsActive(userId, true);
-        }
-    }
-
-    // Helper methods to create test entities
-
-    private Account createAccount(Long id, String name, AccountType type, String balance) {
-        return Account.builder()
-                .id(id)
-                .userId(userId)
-                .name("encrypted-" + name)
-                .type(type)
-                .balance(new BigDecimal(balance))
-                .currency("USD")
-                .description("encrypted-Test account")
-                .isActive(true)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-    }
-
-    private Transaction createTransaction(
-            Long id, String description, String amount, TransactionType type) {
+    private Transaction tx(String amount, String currency, TransactionType type) {
         return Transaction.builder()
-                .id(id)
-                .userId(userId)
-                .description("encrypted-" + description)
                 .amount(new BigDecimal(amount))
+                .currency(currency)
                 .type(type)
                 .date(LocalDate.now())
                 .isDeleted(false)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
                 .build();
     }
 
-    private Asset createAsset(Long id, String name, AssetType type, String currentPrice) {
-        return Asset.builder()
-                .id(id)
-                .userId(userId)
-                .name("encrypted-" + name)
-                .type(type)
-                .quantity(new BigDecimal("10"))
-                .purchasePrice(new BigDecimal("900.00"))
-                .currentPrice(new BigDecimal(currentPrice))
-                .purchaseDate(LocalDate.now().minusMonths(6))
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-    }
-
-    private Liability createLiability(Long id, String name, String currentBalance) {
-        Liability liability = new Liability();
-        liability.setId(id);
-        liability.setUserId(userId);
-        liability.setName("encrypted-" + name);
-        liability.setType(LiabilityType.CREDIT_CARD);
-        liability.setCurrentBalance("encrypted-" + currentBalance);
-        liability.setInterestRate("encrypted-18.99");
-        liability.setStartDate(LocalDate.now().minusYears(1));
-        liability.setCurrency("USD");
-        liability.setCreatedAt(LocalDateTime.now());
-        liability.setUpdatedAt(LocalDateTime.now());
-        return liability;
-    }
-
-    private Budget createBudget(Long id, String categoryName, String amount, String spent) {
-        return Budget.builder()
-                .id(id)
-                .userId(userId)
-                .category(createCategory(categoryName))
-                .amount("encrypted-" + amount)
-                .period(BudgetPeriod.MONTHLY)
-                .startDate(LocalDate.now().withDayOfMonth(1))
-                .endDate(LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth()))
-                .rollover(false)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-    }
-
-    private Category createCategory(String name) {
-        return Category.builder()
-                .id(1L)
-                .name("encrypted-" + name)
-                .type(CategoryType.EXPENSE)
-                .userId(userId)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+    private Map<String, FinancialFact> facts(String context) {
+        return context.lines()
+                .filter(s -> s.startsWith("[FACT] "))
+                .map(
+                        s -> {
+                            try {
+                                return objectMapper.readValue(s.substring(7), FinancialFact.class);
+                            } catch (Exception ex) {
+                                throw new AssertionError(ex);
+                            }
+                        })
+                .collect(Collectors.toMap(FinancialFact::id, Function.identity()));
     }
 }

@@ -45,6 +45,9 @@ public class AIProviderConfig {
     @Value("${application.ai.ollama.timeout-seconds:600}")
     private int ollamaTimeout;
 
+    @Value("${application.ai.max-context-tokens:${application.ai.ollama.max-context-tokens:8192}}")
+    private int maxContextTokens = 8192;
+
     @Value("${application.ai.ollama.searxng.base-url:}")
     private String searxngBaseUrl;
 
@@ -97,7 +100,8 @@ public class AIProviderConfig {
                     ollamaTemperature,
                     ollamaMaxTokens,
                     ollamaTimeout,
-                    (searxngBaseUrl == null || searxngBaseUrl.isBlank()) ? null : searxngBaseUrl);
+                    (searxngBaseUrl == null || searxngBaseUrl.isBlank()) ? null : searxngBaseUrl,
+                    maxContextTokens);
             default -> throw new IllegalStateException(
                     "Unknown AI provider: '" + selected + "'. Supported values: ollama, openai");
         };

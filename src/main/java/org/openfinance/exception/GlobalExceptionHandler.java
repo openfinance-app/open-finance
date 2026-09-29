@@ -60,6 +60,23 @@ public class GlobalExceptionHandler {
 
     private final MessageSource messageSource;
 
+    @ExceptionHandler(org.openfinance.service.ai.AIProviderException.class)
+    public ResponseEntity<ErrorResponse> handleAIProviderFailure(WebRequest request) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(
+                        ErrorResponse.builder()
+                                .timestamp(LocalDateTime.now())
+                                .status(503)
+                                .error("Service Unavailable")
+                                .message(
+                                        messageSource.getMessage(
+                                                "ai.provider.unavailable",
+                                                null,
+                                                LocaleContextHolder.getLocale()))
+                                .path(getRequestPath(request))
+                                .build());
+    }
+
     @ExceptionHandler(HistoryConflictException.class)
     public ResponseEntity<ErrorResponse> handleHistoryConflict(
             HistoryConflictException exception, WebRequest request) {

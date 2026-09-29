@@ -24,6 +24,19 @@ import reactor.core.publisher.Mono;
  */
 public interface AIProvider {
 
+    /** Exact request framing, used to budget input before sending a chat request. */
+    default String instructions(String context) {
+        return context;
+    }
+
+    /** Conservative byte-token upper bound for providers without a locally available tokenizer. */
+    default int countInputTokens(String prompt, String context) {
+        return (instructions(context) + prompt)
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8)
+                        .length
+                + 64;
+    }
+
     /**
      * Sends a prompt with financial context and returns the complete response.
      *

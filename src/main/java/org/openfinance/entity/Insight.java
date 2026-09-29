@@ -64,6 +64,10 @@ public class Insight {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Stable generator/subject identity; independent of translated presentation and amounts. */
+    @Column(name = "source_key", length = 200)
+    private String sourceKey;
+
     /**
      * The user who owns this insight.
      *

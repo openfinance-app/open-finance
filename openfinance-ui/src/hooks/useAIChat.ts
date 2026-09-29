@@ -13,6 +13,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { resolveEncryptionEnabled, useSecurityConfig } from '@/hooks/useSecurityConfig';
 import apiClient from '@/services/apiClient';
+import { AI_REQUEST_TIMEOUT_MS } from '@/constants/timing';
 import type {
   ChatRequest,
   ChatResponse,
@@ -48,6 +49,7 @@ export function useSendMessage() {
   return useMutation<ChatResponse, Error, ChatRequest>({
     mutationFn: async (request: ChatRequest) => {
       const response = await apiClient.post<ChatResponse>('/ai/chat', request, {
+        timeout: AI_REQUEST_TIMEOUT_MS,
         headers: buildEncryptionHeaders(encryptionEnabled),
       });
       return response.data;
@@ -59,7 +61,7 @@ export function useSendMessage() {
       // Update specific conversation cache if continuing existing conversation
       if (data.conversation_id) {
         queryClient.invalidateQueries({
-          queryKey: ['ai', 'conversations', data.conversation_id],
+          queryKey: ['ai', 'conversations', String(data.conversation_id)],
         });
       }
     },

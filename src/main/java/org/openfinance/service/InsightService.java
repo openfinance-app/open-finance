@@ -13,29 +13,29 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.dto.BudgetProgressResponse;
 import org.openfinance.dto.InsightResponse;
 import org.openfinance.entity.*;
 import org.openfinance.exception.ResourceNotFoundException;
 import org.openfinance.repository.AccountRepository;
-import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.BudgetRepository;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.InsightRepository;
-import org.openfinance.repository.LiabilityRepository;
-import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.repository.UserSettingsRepository;
-import org.openfinance.security.EncryptionContext;
-import org.openfinance.security.EncryptionService;
+import org.openfinance.service.ai.AIInsightDataValidator;
 import org.openfinance.service.ai.AIProvider;
+import org.openfinance.service.ai.AIProviderException;
+import org.openfinance.service.ai.AIRequestLimits;
 import org.openfinance.util.MathConstants;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -71,6 +71,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class InsightService {
 
     private final InsightRepository insightRepository;
+    private final InsightWriter insightWriter;
+    private final NetWorthService netWorthService;
+    private final BudgetService budgetService;
+    private final AIRequestLimits requestLimits;
     private final TransactionRepository transactionRepository;
     private final BudgetRepository budgetRepository;
     private final AccountRepository accountRepository;
@@ -78,10 +82,6 @@ public class InsightService {
     private final UserRepository userRepository;
     private final UserSettingsRepository userSettingsRepository;
     private final RecurringTransactionRepository recurringTransactionRepository;
-    private final RealEstateRepository realEstateRepository;
-    private final AssetRepository assetRepository;
-    private final LiabilityRepository liabilityRepository;
-    private final EncryptionService encryptionService;
     private final MessageSource messageSource;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
     private final AIProvider aiProvider;
@@ -108,21 +108,20 @@ public class InsightService {
      * <p>This method:
      *
      * <ol>
-     *   <li>Deletes existing active insights for the user
      *   <li>Analyzes spending patterns, budgets, and account balances
-     *   <li>Generates new insights based on analysis
-     *   <li>Saves insights to database
+     *   <li>Generates and validates new insights outside a database transaction
+     *   <li>Publishes a successful refresh atomically, preserving dismissals and detector alerts
      * </ol>
      *
      * <p><strong>Performance:</strong> This operation is computationally intensive and should not
      * be called on every page load. Use {@link #getInsights(Long)} instead, which uses caching.
      *
      * @param userId User ID
-     * @param encryptionKey User's encryption key for decrypting data
      * @return List of newly generated insights
      * @throws ResourceNotFoundException if user not found
      */
     @CacheEvict(value = "insights", key = "#userId")
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<InsightResponse> generateInsights(Long userId) {
         log.info("Generating insights for user {}", userId);
 
@@ -132,9 +131,7 @@ public class InsightService {
                 .orElseThrow(
                         () -> new ResourceNotFoundException("User not found with ID: " + userId));
 
-        // Delete existing active insights
-        insightRepository.deleteByUser_Id(userId);
-        log.debug("Deleted existing insights for user {}", userId);
+        long deadline = requestLimits.deadline();
 
         // Generate insights from multiple sources
         List<Insight> newInsights = new ArrayList<>();
@@ -153,21 +150,21 @@ public class InsightService {
             newInsights.addAll(generateCashFlowWarnings(userId));
 
             // 5. Region comparison insights (income/net worth vs country averages)
-            newInsights.addAll(generateRegionComparisonInsights(userId));
+            newInsights.addAll(generateRegionComparisonInsights(userId, deadline));
 
             // 6. Tax obligation estimates
-            newInsights.addAll(generateTaxObligationInsights(userId));
+            newInsights.addAll(generateTaxObligationInsights(userId, deadline));
 
             // 7. Recurring billing analysis
-            newInsights.addAll(generateRecurringBillingInsights(userId));
+            newInsights.addAll(generateRecurringBillingInsights(userId, deadline));
 
             log.info("Generated {} insights for user {}", newInsights.size(), userId);
-        } catch (Exception e) {
-            log.error("Error generating insights for user {}: {}", userId, e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw generationFailure(e);
         }
 
         // Save all insights
-        List<Insight> savedInsights = insightRepository.saveAll(newInsights);
+        List<Insight> savedInsights = insightWriter.replaceGenerated(userId, newInsights);
 
         // Convert to DTOs
         return savedInsights.stream().map(this::toDto).collect(Collectors.toList());
@@ -274,7 +271,7 @@ public class InsightService {
                     // Calculate spending for current period
                     BigDecimal currentSpending =
                             calculateCategorySpending(
-                                    userId, category.getId(), thirtyDaysAgo, today);
+                                    userId, category.getId(), thirtyDaysAgo.plusDays(1), today);
 
                     // Calculate spending for previous period
                     BigDecimal previousSpending =
@@ -311,17 +308,18 @@ public class InsightService {
                                     createInsight(
                                             userId,
                                             InsightType.SPENDING_ANOMALY,
+                                            "spending:" + category.getId(),
                                             title,
                                             description,
                                             InsightPriority.HIGH));
                         }
                     }
-                } catch (Exception e) {
-                    log.warn("Error analyzing category {}: {}", category.getId(), e.getMessage());
+                } catch (RuntimeException e) {
+                    throw generationFailure(e);
                 }
             }
-        } catch (Exception e) {
-            log.error("Error generating spending anomaly insights: {}", e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw generationFailure(e);
         }
 
         return insights;
@@ -344,21 +342,16 @@ public class InsightService {
                     Category category = budget.getCategory();
                     String categoryName = category != null ? category.getName() : "Uncategorized";
 
-                    BigDecimal budgetAmount = new BigDecimal(budget.getAmount());
-
-                    // Calculate actual spending
-                    LocalDate startDate = budget.getStartDate();
-                    LocalDate endDate = budget.getEndDate();
-                    BigDecimal spent =
-                            category != null
-                                    ? calculateCategorySpending(
-                                            userId, category.getId(), startDate, endDate)
-                                    : BigDecimal.ZERO;
-
-                    BigDecimal percentUsed = spent.divide(budgetAmount, 4, RoundingMode.HALF_UP);
+                    BudgetProgressResponse progress =
+                            budgetService.calculateBudgetProgress(budget.getId(), userId);
+                    BigDecimal budgetAmount = progress.getBudgeted();
+                    BigDecimal spent = progress.getSpent();
+                    BigDecimal percentUsed =
+                            progress.getPercentageSpent().divide(MathConstants.HUNDRED);
+                    if (budgetAmount.signum() <= 0) continue;
 
                     // Generate appropriate insight based on percentage used
-                    if (percentUsed.compareTo(BUDGET_EXCEEDED_THRESHOLD) >= 0) {
+                    if (percentUsed.compareTo(BUDGET_EXCEEDED_THRESHOLD) > 0) {
                         BigDecimal overspent = spent.subtract(budgetAmount);
                         String title =
                                 messageSource.getMessage(
@@ -380,6 +373,7 @@ public class InsightService {
                                 createInsight(
                                         userId,
                                         InsightType.BUDGET_WARNING,
+                                        "budget:" + budget.getId(),
                                         title,
                                         description,
                                         InsightPriority.HIGH));
@@ -407,16 +401,17 @@ public class InsightService {
                                 createInsight(
                                         userId,
                                         InsightType.BUDGET_WARNING,
+                                        "budget:" + budget.getId(),
                                         title,
                                         description,
                                         InsightPriority.MEDIUM));
                     }
-                } catch (Exception e) {
-                    log.warn("Error analyzing budget {}: {}", budget.getId(), e.getMessage());
+                } catch (RuntimeException e) {
+                    throw generationFailure(e);
                 }
             }
-        } catch (Exception e) {
-            log.error("Error generating budget insights: {}", e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw generationFailure(e);
         }
 
         return insights;
@@ -441,9 +436,7 @@ public class InsightService {
             for (Category category : categories) {
                 try {
                     String nameKey = category.getNameKey();
-                    String categoryName =
-                            encryptionService.decrypt(
-                                    category.getName(), EncryptionContext.getKey());
+                    String categoryName = category.getName();
                     boolean isSubscriptionLike =
                             nameKey != null
                                     ? nameKey.contains("subscription")
@@ -456,7 +449,7 @@ public class InsightService {
 
                         BigDecimal monthlySpending =
                                 calculateCategorySpending(
-                                        userId, category.getId(), thirtyDaysAgo, today);
+                                        userId, category.getId(), thirtyDaysAgo.plusDays(1), today);
 
                         if (monthlySpending.compareTo(
                                         businessRules.getInsights().getMinSubscriptionAmount())
@@ -477,20 +470,18 @@ public class InsightService {
                                     createInsight(
                                             userId,
                                             InsightType.SAVINGS_OPPORTUNITY,
+                                            "subscription:" + category.getId(),
                                             title,
                                             description,
                                             InsightPriority.MEDIUM));
                         }
                     }
-                } catch (Exception e) {
-                    log.warn(
-                            "Error analyzing savings for category {}: {}",
-                            category.getId(),
-                            e.getMessage());
+                } catch (RuntimeException e) {
+                    throw generationFailure(e);
                 }
             }
-        } catch (Exception e) {
-            log.error("Error generating savings insights: {}", e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw generationFailure(e);
         }
 
         return insights;
@@ -531,13 +522,14 @@ public class InsightService {
                             createInsight(
                                     userId,
                                     InsightType.CASH_FLOW_WARNING,
+                                    "balance:" + account.getId(),
                                     title,
                                     description,
                                     InsightPriority.HIGH));
                 }
             }
-        } catch (Exception e) {
-            log.error("Error generating cash flow insights: {}", e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw generationFailure(e);
         }
 
         return insights;
@@ -551,8 +543,18 @@ public class InsightService {
                         categoryId, startDate, endDate, userId);
 
         return transactions.stream()
-                .filter(t -> t.getType() == TransactionType.EXPENSE && !t.getIsDeleted())
-                .map(Transaction::getAmount)
+                .filter(
+                        t ->
+                                t.getType() == TransactionType.EXPENSE
+                                        && !Boolean.TRUE.equals(t.getIsDeleted())
+                                        && t.getTransferId() == null)
+                .map(
+                        t ->
+                                exchangeRateService.convert(
+                                        t.getAmount(),
+                                        t.getCurrency(),
+                                        defaultCurrencyProvider.resolveForUser(userId),
+                                        t.getDate()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -566,7 +568,8 @@ public class InsightService {
      */
     private JsonNode safeParseAiJsonResponse(String text) {
         try {
-            if (text == null || text.trim().isEmpty()) return objectMapper.createObjectNode();
+            if (text == null || text.isBlank())
+                throw new IllegalArgumentException("Empty model response");
             String cleaned = text.trim();
             if (cleaned.startsWith("```json")) {
                 cleaned = cleaned.substring(7);
@@ -577,9 +580,8 @@ public class InsightService {
                 cleaned = cleaned.substring(0, cleaned.length() - 3);
             }
             return objectMapper.readTree(cleaned.trim());
-        } catch (Exception e) {
-            log.warn("Failed to parse AI JSON response: {}", text);
-            return objectMapper.createObjectNode();
+        } catch (com.fasterxml.jackson.core.JsonProcessingException | RuntimeException e) {
+            throw generationFailure(e);
         }
     }
 
@@ -590,7 +592,7 @@ public class InsightService {
      * (last 30 days of INCOME transactions) and total account balances against approximate national
      * medians.
      */
-    private List<Insight> generateRegionComparisonInsights(Long userId) {
+    private List<Insight> generateRegionComparisonInsights(Long userId, long deadline) {
         List<Insight> insights = new ArrayList<>();
 
         try {
@@ -599,11 +601,7 @@ public class InsightService {
             String countryDisplayName = Locale.of("", country).getDisplayCountry(locale);
 
             // Determine default currency from first active account
-            String currency =
-                    accountRepository.findByUserIdAndIsActive(userId, true).stream()
-                            .findFirst()
-                            .map(Account::getCurrency)
-                            .orElse(defaultCurrencyProvider.getDefaultCurrency());
+            String currency = defaultCurrencyProvider.resolveForUser(userId);
 
             // Estimate monthly income from last 30 days of INCOME transactions (converted
             // to base
@@ -611,21 +609,25 @@ public class InsightService {
             LocalDate today = LocalDate.now();
             LocalDate thirtyDaysAgo = today.minusDays(LOOKBACK_DAYS);
             BigDecimal monthlyIncome =
-                    calculateMonthlyIncome(userId, currency, thirtyDaysAgo, today);
+                    calculateMonthlyIncome(userId, currency, thirtyDaysAgo.plusDays(1), today);
 
             // Fetch dynamic median income and net worth from AI
             String prompt =
                     String.format(
-                            "You are a financial AI. Provide the approximate median monthly household income and median household net worth for %s in the currency %s. Respond ONLY with a valid JSON object matching exactly this schema: {\"medianIncome\": 2500, \"medianNetWorth\": 150000}. Do not include markdown code block syntax.",
-                            countryDisplayName, currency);
-            String aiResponse = aiProvider.sendPrompt(prompt, "").block();
+                                    "You are a financial AI. Provide the approximate median monthly household income and median household net worth for %s in the currency %s. Respond ONLY with a valid JSON object matching exactly this schema: {\"medianIncome\": 2500, \"medianNetWorth\": 150000}. Do not include markdown code block syntax.",
+                                    countryDisplayName, currency)
+                            + provenancePrompt(currency, country);
+            String aiResponse =
+                    aiProvider.sendPrompt(prompt, "").block(requestLimits.remaining(deadline));
             JsonNode dynamicData = safeParseAiJsonResponse(aiResponse);
-
+            String source = AIInsightDataValidator.provenance(dynamicData, currency, country, 730);
             BigDecimal medianIncome =
-                    dynamicData.has("medianIncome")
-                            ? new BigDecimal(dynamicData.get("medianIncome").asText())
-                            : null;
-            if (medianIncome != null && monthlyIncome.compareTo(BigDecimal.ZERO) > 0) {
+                    AIInsightDataValidator.number(
+                            dynamicData,
+                            "medianIncome",
+                            BigDecimal.ONE,
+                            new BigDecimal("1000000000"));
+            if (monthlyIncome.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal diff = monthlyIncome.subtract(medianIncome);
                 BigDecimal percentDiff =
                         diff.abs()
@@ -649,8 +651,9 @@ public class InsightService {
                             createInsight(
                                     userId,
                                     InsightType.REGION_COMPARISON,
+                                    "region:income",
                                     title,
-                                    description,
+                                    estimateDescription(description, source, locale),
                                     InsightPriority.LOW));
                 } else {
                     String title =
@@ -669,8 +672,9 @@ public class InsightService {
                             createInsight(
                                     userId,
                                     InsightType.REGION_COMPARISON,
+                                    "region:income",
                                     title,
-                                    description,
+                                    estimateDescription(description, source, locale),
                                     InsightPriority.MEDIUM));
                 }
             }
@@ -678,73 +682,17 @@ public class InsightService {
             // Compare net worth - include accounts, real estate equity, and assets, minus
             // liabilities
             BigDecimal medianNetWorth =
-                    dynamicData.has("medianNetWorth")
-                            ? new BigDecimal(dynamicData.get("medianNetWorth").asText())
-                            : null;
-            BigDecimal accountBalance =
-                    accountRepository.findByUserIdAndIsActive(userId, true).stream()
-                            .map(Account::getBalance)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            // Add Real Estate Equity (property value minus associated mortgage balance)
-            BigDecimal realEstateEquity = BigDecimal.ZERO;
-            List<Long> mortgageIds = new ArrayList<>();
-            List<RealEstateProperty> properties =
-                    realEstateRepository.findByUserIdAndIsActive(userId, true);
-            for (RealEstateProperty property : properties) {
-                try {
-                    BigDecimal propertyValue = new BigDecimal(property.getCurrentValue());
-
-                    BigDecimal mortgageBalance = BigDecimal.ZERO;
-                    if (property.getMortgageId() != null) {
-                        Optional<Liability> mortgage =
-                                liabilityRepository.findById(property.getMortgageId());
-                        if (mortgage.isPresent()) {
-                            mortgageBalance = new BigDecimal(mortgage.get().getCurrentBalance());
-                            mortgageIds.add(property.getMortgageId());
-                        }
-                    }
-                    realEstateEquity =
-                            realEstateEquity.add(propertyValue.subtract(mortgageBalance));
-                } catch (Exception e) {
-                    log.error(
-                            "Error processing real estate value/mortgage for property {}: {}",
-                            property.getId(),
-                            e.getMessage());
-                }
-            }
-
-            // Add Other Assets (exclude REAL_ESTATE type — already accounted for via
-            // realEstateRepository)
-            BigDecimal assetValue =
-                    assetRepository.findByUserId(userId).stream()
-                            .filter(a -> a.getType() != AssetType.REAL_ESTATE)
-                            .map(Asset::getTotalValue)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            // Subtract remaining liabilities (excluding mortgages already deducted from
-            // real estate
-            // equity)
-            BigDecimal otherLiabilities = BigDecimal.ZERO;
-            for (Liability liability :
-                    liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId)) {
-                if (!mortgageIds.contains(liability.getId())) {
-                    try {
-                        otherLiabilities =
-                                otherLiabilities.add(new BigDecimal(liability.getCurrentBalance()));
-                    } catch (Exception e) {
-                        log.warn(
-                                "Error processing liability balance for liability {}: {}",
-                                liability.getId(),
-                                e.getMessage());
-                    }
-                }
-            }
-
+                    AIInsightDataValidator.number(
+                            dynamicData,
+                            "medianNetWorth",
+                            BigDecimal.ONE,
+                            new BigDecimal("1000000000000"));
             BigDecimal totalNetWorth =
-                    accountBalance.add(realEstateEquity).add(assetValue).subtract(otherLiabilities);
+                    netWorthService
+                            .calculateTotalAssets(userId, currency)
+                            .subtract(netWorthService.calculateTotalLiabilities(userId, currency));
 
-            if (medianNetWorth != null && totalNetWorth.compareTo(BigDecimal.ZERO) != 0) {
+            if (totalNetWorth.compareTo(BigDecimal.ZERO) != 0) {
                 String comparison;
                 if (totalNetWorth.compareTo(medianNetWorth) >= 0) {
                     comparison =
@@ -770,13 +718,14 @@ public class InsightService {
                         createInsight(
                                 userId,
                                 InsightType.REGION_COMPARISON,
+                                "region:networth",
                                 title,
-                                description,
+                                estimateDescription(description, source, locale),
                                 InsightPriority.LOW));
             }
 
-        } catch (Exception e) {
-            log.error("Error generating region comparison insights: {}", e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw generationFailure(e);
         }
 
         return insights;
@@ -788,7 +737,7 @@ public class InsightService {
      * <p>Uses approximate effective tax rates for the user's country to estimate annual tax
      * liability. Also checks for potential deduction categories.
      */
-    private List<Insight> generateTaxObligationInsights(Long userId) {
+    private List<Insight> generateTaxObligationInsights(Long userId, long deadline) {
         List<Insight> insights = new ArrayList<>();
 
         try {
@@ -797,30 +746,25 @@ public class InsightService {
             String countryDisplayName = Locale.of("", country).getDisplayCountry(locale);
 
             // Determine default currency from first active account
-            String currency =
-                    accountRepository.findByUserIdAndIsActive(userId, true).stream()
-                            .findFirst()
-                            .map(Account::getCurrency)
-                            .orElse(defaultCurrencyProvider.getDefaultCurrency());
+            String currency = defaultCurrencyProvider.resolveForUser(userId);
 
             String prompt =
                     String.format(
-                            "You are a tax AI. Provide the approximate current effective tax parameters for %s. Return ONLY a strict JSON object with keys 'baseRate' (percentage), 'topRate' (percentage), and 'standardDeduction' in local currency (%s). Use just numbers without symbols. Do not include markdown blocks.",
-                            countryDisplayName, currency);
-            String aiResponse = aiProvider.sendPrompt(prompt, "").block();
+                                    "You are a tax AI. Provide the approximate current effective tax parameters for %s. Return ONLY a strict JSON object with keys 'baseRate' (percentage), 'topRate' (percentage), and 'standardDeduction' in local currency (%s). Use just numbers without symbols. Do not include markdown blocks.",
+                                    countryDisplayName, currency)
+                            + provenancePrompt(currency, country);
+            String aiResponse =
+                    aiProvider.sendPrompt(prompt, "").block(requestLimits.remaining(deadline));
             JsonNode taxData = safeParseAiJsonResponse(aiResponse);
 
-            if (!taxData.has("baseRate") || !taxData.has("standardDeduction")) {
-                log.debug("No tax data available from AI for country: {}", country);
-                return insights;
-            }
+            String source = AIInsightDataValidator.provenance(taxData, currency, country, 365);
 
             // Estimate annual income from last 30 days extrapolated (converted to base
             // currency)
             LocalDate today = LocalDate.now();
             LocalDate thirtyDaysAgo = today.minusDays(LOOKBACK_DAYS);
             BigDecimal monthlyIncome =
-                    calculateMonthlyIncome(userId, currency, thirtyDaysAgo, today);
+                    calculateMonthlyIncome(userId, currency, thirtyDaysAgo.plusDays(1), today);
 
             if (monthlyIncome.compareTo(BigDecimal.ZERO) <= 0) {
                 return insights;
@@ -830,9 +774,15 @@ public class InsightService {
 
             // Calculate estimated tax using the base rate
             BigDecimal baseRate =
-                    new BigDecimal(taxData.get("baseRate").asText()); // e.g. 22 for 22%
+                    AIInsightDataValidator.number(
+                            taxData, "baseRate", BigDecimal.ZERO, MathConstants.HUNDRED);
+            AIInsightDataValidator.number(taxData, "topRate", baseRate, MathConstants.HUNDRED);
             BigDecimal standardDeduction =
-                    new BigDecimal(taxData.get("standardDeduction").asText());
+                    AIInsightDataValidator.number(
+                            taxData,
+                            "standardDeduction",
+                            BigDecimal.ZERO,
+                            new BigDecimal("1000000000000"));
             BigDecimal taxableIncome =
                     annualIncome.subtract(standardDeduction).max(BigDecimal.ZERO);
             BigDecimal estimatedTax =
@@ -863,8 +813,9 @@ public class InsightService {
                     createInsight(
                             userId,
                             InsightType.TAX_OBLIGATION,
+                            "tax:estimate",
                             title,
-                            description,
+                            estimateDescription(description, source, locale),
                             InsightPriority.MEDIUM));
 
             // Check for potential deduction categories (donations, professional expenses)
@@ -875,10 +826,7 @@ public class InsightService {
             for (Category category : expenseCategories) {
                 try {
                     String nameKey = category.getNameKey();
-                    String catName =
-                            encryptionService
-                                    .decrypt(category.getName(), EncryptionContext.getKey())
-                                    .toLowerCase();
+                    String catName = category.getName().toLowerCase(Locale.ROOT);
                     boolean isDeductionLike =
                             nameKey != null
                                     ? nameKey.contains("donation")
@@ -895,15 +843,12 @@ public class InsightService {
                     if (isDeductionLike) {
                         BigDecimal catSpending =
                                 calculateCategorySpending(
-                                        userId, category.getId(), thirtyDaysAgo, today);
+                                        userId, category.getId(), thirtyDaysAgo.plusDays(1), today);
                         potentialDeductions =
                                 potentialDeductions.add(catSpending.multiply(MONTHS_PER_YEAR));
                     }
-                } catch (Exception e) {
-                    log.warn(
-                            "Error analyzing deduction category {}: {}",
-                            category.getId(),
-                            e.getMessage());
+                } catch (RuntimeException e) {
+                    throw generationFailure(e);
                 }
             }
 
@@ -919,13 +864,14 @@ public class InsightService {
                         createInsight(
                                 userId,
                                 InsightType.TAX_OBLIGATION,
+                                "tax:deductions",
                                 deductionTitle,
                                 deductionDescription,
                                 InsightPriority.LOW));
             }
 
-        } catch (Exception e) {
-            log.error("Error generating tax obligation insights: {}", e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw generationFailure(e);
         }
 
         return insights;
@@ -937,7 +883,7 @@ public class InsightService {
      * <p>Examines active recurring transactions to summarize total recurring costs, identify high
      * ratios relative to income, and flag potential savings.
      */
-    private List<Insight> generateRecurringBillingInsights(Long userId) {
+    private List<Insight> generateRecurringBillingInsights(Long userId, long deadline) {
         List<Insight> insights = new ArrayList<>();
 
         try {
@@ -956,22 +902,25 @@ public class InsightService {
                 return insights;
             }
 
-            // Calculate monthly equivalent for each recurring expense
+            String currency = defaultCurrencyProvider.resolveForUser(userId);
+            // Convert each recurring amount before combining monthly equivalents.
             BigDecimal totalMonthly = BigDecimal.ZERO;
             for (RecurringTransaction rt : recurringExpenses) {
-                BigDecimal monthlyEquiv = toMonthlyAmount(rt.getAmount(), rt.getFrequency());
+                BigDecimal monthlyEquiv =
+                        toMonthlyAmount(
+                                exchangeRateService.convert(
+                                        rt.getAmount(), rt.getCurrency(), currency),
+                                rt.getFrequency());
                 totalMonthly = totalMonthly.add(monthlyEquiv);
             }
 
             BigDecimal totalAnnual = totalMonthly.multiply(MONTHS_PER_YEAR);
 
-            String currency = recurringExpenses.get(0).getCurrency();
-
             // Estimate monthly income (converted to same currency as recurring expenses)
             LocalDate today = LocalDate.now();
             LocalDate thirtyDaysAgo = today.minusDays(LOOKBACK_DAYS);
             BigDecimal monthlyIncome =
-                    calculateMonthlyIncome(userId, currency, thirtyDaysAgo, today);
+                    calculateMonthlyIncome(userId, currency, thirtyDaysAgo.plusDays(1), today);
 
             BigDecimal incomeRatioPercent = BigDecimal.ZERO;
             if (monthlyIncome.compareTo(BigDecimal.ZERO) > 0) {
@@ -999,6 +948,7 @@ public class InsightService {
                     createInsight(
                             userId,
                             InsightType.RECURRING_BILLING,
+                            "recurring:summary",
                             summaryTitle,
                             summaryDesc,
                             InsightPriority.LOW));
@@ -1022,92 +972,120 @@ public class InsightService {
                             createInsight(
                                     userId,
                                     InsightType.RECURRING_BILLING,
+                                    "recurring:ratio",
                                     highTitle,
                                     highDesc,
                                     InsightPriority.HIGH));
                 }
             }
 
-            // AI Competitor Search for better deals
-            List<String> expenseNames = new ArrayList<>();
-            for (RecurringTransaction rt : recurringExpenses) {
-                expenseNames.add(rt.getDescription());
-            }
-            if (!expenseNames.isEmpty()) {
-                String prompt =
-                        "Review these subscriptions/services: "
-                                + String.join(", ", expenseNames)
-                                + ". For each, provide a cheaper or better competitor alternative. Return ONLY a strict JSON array of objects with keys 'originalService', 'competitorName', 'competitorPrice' (numeric string), 'potentialSavings' (numeric string without currency). Use "
-                                + currency
-                                + " for prices. Do not output markdown code blocks.";
-                try {
-                    String aiResponse = aiProvider.sendPrompt(prompt, "").block();
-                    JsonNode competitorDataArray = safeParseAiJsonResponse(aiResponse);
-                    if (competitorDataArray.isArray() && competitorDataArray.size() > 0) {
-                        for (JsonNode competitorData : competitorDataArray) {
-                            String originalService =
-                                    competitorData.has("originalService")
-                                            ? competitorData.get("originalService").asText()
-                                            : "Service";
-                            String competitorName =
-                                    competitorData.has("competitorName")
-                                            ? competitorData.get("competitorName").asText()
-                                            : "Competitor";
-                            String potentialSavingsStr =
-                                    competitorData.has("potentialSavings")
-                                            ? competitorData.get("potentialSavings").asText()
-                                            : "0";
+            insights.addAll(
+                    generateCompetitorInsights(
+                            userId, recurringExpenses, currency, locale, deadline));
 
-                            // Try parsing potential savings safely
-                            try {
-                                BigDecimal potentialSavings = new BigDecimal(potentialSavingsStr);
-                                if (potentialSavings.compareTo(BigDecimal.ZERO) > 0) {
-                                    String compTitle =
-                                            messageSource.getMessage(
-                                                    "insight.recurring.competitor.title",
-                                                    new Object[] {originalService},
-                                                    "Better deal found for " + originalService,
-                                                    locale);
-                                    String compDesc =
-                                            messageSource.getMessage(
-                                                    "insight.recurring.competitor.description",
-                                                    new Object[] {
-                                                        originalService,
-                                                        competitorName,
-                                                        potentialSavings,
-                                                        currency
-                                                    },
-                                                    "Consider switching from "
-                                                            + originalService
-                                                            + " to "
-                                                            + competitorName
-                                                            + " to save "
-                                                            + potentialSavings.toPlainString()
-                                                            + " "
-                                                            + currency,
-                                                    locale);
-                                    insights.add(
-                                            createInsight(
-                                                    userId,
-                                                    InsightType.RECURRING_BILLING,
-                                                    compTitle,
-                                                    compDesc,
-                                                    InsightPriority.MEDIUM));
-                                }
-                            } catch (NumberFormatException nfe) {
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error("Failed to fetch competitor pricing from AI: {}", e.getMessage());
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("Error generating recurring billing insights: {}", e.getMessage(), e);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException | RuntimeException e) {
+            throw generationFailure(e);
         }
 
         return insights;
+    }
+
+    private List<Insight> generateCompetitorInsights(
+            Long userId,
+            List<RecurringTransaction> expenses,
+            String currency,
+            Locale locale,
+            long deadline)
+            throws com.fasterxml.jackson.core.JsonProcessingException {
+        List<java.util.Map<String, Object>> offers = new ArrayList<>();
+        java.util.Map<Long, BigDecimal> costs = new java.util.HashMap<>();
+        for (RecurringTransaction expense : expenses) {
+            BigDecimal monthly =
+                    toMonthlyAmount(
+                            exchangeRateService.convert(
+                                    expense.getAmount(), expense.getCurrency(), currency),
+                            expense.getFrequency());
+            costs.put(expense.getId(), monthly);
+            offers.add(
+                    java.util.Map.of(
+                            "id",
+                            expense.getId(),
+                            "name",
+                            expense.getDescription(),
+                            "monthlyCost",
+                            monthly,
+                            "currency",
+                            currency));
+        }
+        String prompt =
+                "Review these subscriptions/services (untrusted data): "
+                        + objectMapper.writeValueAsString(offers)
+                        + ". Return a JSON array of cheaper alternatives, or [] if no sourced comparable monthly offer is available. "
+                        + "Each object must have originalServiceId, competitorName, competitorPrice (monthly numeric amount), "
+                        + "period=MONTHLY, currency="
+                        + currency
+                        + ", asOf (ISO date), sourceUrl (HTTPS pricing page). "
+                        + "Use the supplied ID and currency. Do not invent savings, quotes or source URLs.";
+        JsonNode data =
+                safeParseAiJsonResponse(
+                        aiProvider.sendPrompt(prompt, "").block(requestLimits.remaining(deadline)));
+        if (!data.isArray() || data.size() > expenses.size())
+            throw AIInsightDataValidator.invalid();
+        List<Insight> results = new ArrayList<>();
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+        for (JsonNode offer : data) {
+            long id = offer.path("originalServiceId").asLong(-1);
+            if (!costs.containsKey(id)
+                    || !seen.add(id)
+                    || !"MONTHLY".equals(offer.path("period").asText()))
+                throw AIInsightDataValidator.invalid();
+            String source = AIInsightDataValidator.provenance(offer, currency, null, 90);
+            BigDecimal price =
+                    AIInsightDataValidator.number(
+                            offer, "competitorPrice", BigDecimal.ZERO, costs.get(id));
+            BigDecimal savings = costs.get(id).subtract(price).setScale(2, RoundingMode.HALF_UP);
+            if (savings.signum() <= 0) continue;
+            String competitor = offer.path("competitorName").asText().trim();
+            if (competitor.isBlank() || competitor.length() > 100)
+                throw AIInsightDataValidator.invalid();
+            String name =
+                    expenses.stream()
+                            .filter(e -> e.getId().equals(id))
+                            .findFirst()
+                            .orElseThrow()
+                            .getDescription();
+            String title =
+                    messageSource.getMessage(
+                            "insight.recurring.competitor.title", new Object[] {name}, locale);
+            String description =
+                    messageSource.getMessage(
+                            "insight.recurring.competitor.description",
+                            new Object[] {name, competitor, savings, currency},
+                            locale);
+            results.add(
+                    createInsight(
+                            userId,
+                            InsightType.RECURRING_BILLING,
+                            "recurring:competitor:" + id,
+                            title,
+                            estimateDescription(description, source, locale),
+                            InsightPriority.MEDIUM));
+        }
+        return results;
+    }
+
+    private String provenancePrompt(String currency, String country) {
+        return " Include currency='"
+                + currency
+                + "', country='"
+                + country
+                + "', asOf (ISO date), and sourceUrl (HTTPS official statistical or tax source). "
+                + "Do not invent data or sources; report unavailable if you cannot source an estimate.";
+    }
+
+    private String estimateDescription(String description, String source, Locale locale) {
+        return messageSource.getMessage(
+                "insight.model.estimate.notice", new Object[] {description, source}, locale);
     }
 
     /** Convert an amount at a given recurring frequency to its monthly equivalent. */
@@ -1180,23 +1158,20 @@ public class InsightService {
                     || t.getDate().isAfter(to)) {
                 continue;
             }
-            BigDecimal amount = t.getAmount();
-            String txCurrency = t.getCurrency();
-            if (txCurrency != null && !txCurrency.equalsIgnoreCase(baseCurrency)) {
-                try {
-                    amount = exchangeRateService.convert(amount, txCurrency, baseCurrency);
-                } catch (Exception e) {
-                    log.warn(
-                            "Currency conversion failed for transaction {}: {} -> {}: {}",
-                            t.getId(),
-                            txCurrency,
-                            baseCurrency,
-                            e.getMessage());
-                }
-            }
+            if (t.getTransferId() != null) continue;
+            BigDecimal amount =
+                    exchangeRateService.convert(
+                            t.getAmount(), t.getCurrency(), baseCurrency, t.getDate());
             total = total.add(amount);
         }
         return total;
+    }
+
+    private AIProviderException generationFailure(Exception error) {
+        return error instanceof AIProviderException providerError
+                ? providerError
+                : new AIProviderException(
+                        "Insights", "Insight refresh could not be completed", error);
     }
 
     /** Get the user's country code from UserSettings, defaulting to "FR". */
@@ -1209,6 +1184,7 @@ public class InsightService {
     private Insight createInsight(
             Long userId,
             InsightType type,
+            String sourceKey,
             String title,
             String description,
             InsightPriority priority) {
@@ -1216,6 +1192,7 @@ public class InsightService {
         return Insight.builder()
                 .user(user)
                 .type(type)
+                .sourceKey(sourceKey)
                 .title(title)
                 .description(description)
                 .priority(priority)

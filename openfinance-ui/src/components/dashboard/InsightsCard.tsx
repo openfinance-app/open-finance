@@ -97,7 +97,7 @@ const getPriorityVariant = (priority: InsightPriority): 'error' | 'warning' | 'i
  */
 interface InsightItemProps {
   insight: Insight;
-  onDismiss: (id: number) => void;
+  onDismiss: (id: number) => Promise<boolean>;
   onClick: () => void;
   isDismissing: boolean;
   t: (key: string) => string;
@@ -112,8 +112,8 @@ function InsightItem({ insight, onDismiss, onClick, isDismissing, t }: InsightIt
     e.stopPropagation();
     setIsExiting(true);
     // Wait for animation before calling onDismiss
-    setTimeout(() => {
-      onDismiss(insight.id);
+    setTimeout(async () => {
+      if (!(await onDismiss(insight.id))) setIsExiting(false);
     }, DISMISS_ANIMATION_DELAY_MS);
   };
 
@@ -183,19 +183,25 @@ export default function InsightsCard() {
   const dismissInsight = useDismissInsight();
   const [selectedInsight, setSelectedInsight] = useState<Insight | null>(null);
 
+  const [mutationError, setMutationError] = useState<string | null>(null);
+
   const handleGenerate = async () => {
+    setMutationError(null);
     try {
       await generateInsights.mutateAsync();
-    } catch (error) {
-      console.error('Failed to generate insights:', error);
+    } catch {
+      setMutationError(t('insightsCard.refreshFailed'));
     }
   };
 
-  const handleDismiss = async (id: number) => {
+  const handleDismiss = async (id: number): Promise<boolean> => {
+    setMutationError(null);
     try {
       await dismissInsight.mutateAsync(id);
-    } catch (error) {
-      console.error('Failed to dismiss insight:', error);
+      return true;
+    } catch {
+      setMutationError(t('insightsCard.dismissFailed'));
+      return false;
     }
   };
 
@@ -216,6 +222,11 @@ export default function InsightsCard() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
+          {mutationError && (
+            <p role="alert" className="mb-3 text-sm text-red-600">
+              {mutationError}
+            </p>
+          )}
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="animate-pulse">
@@ -241,6 +252,11 @@ export default function InsightsCard() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
+          {mutationError && (
+            <p role="alert" className="mb-3 text-sm text-red-600">
+              {mutationError}
+            </p>
+          )}
           <div className="text-center py-8">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
             <p className="text-red-500 font-semibold mb-2">{t('insightsCard.loadFailed')}</p>
@@ -279,6 +295,11 @@ export default function InsightsCard() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col items-center justify-center text-center py-6">
+          {mutationError && (
+            <p role="alert" className="mb-3 text-sm text-red-600">
+              {mutationError}
+            </p>
+          )}
           <div
             className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20"
             aria-hidden="true"
@@ -321,6 +342,11 @@ export default function InsightsCard() {
         </div>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
+        {mutationError && (
+          <p role="alert" className="mb-3 text-sm text-red-600">
+            {mutationError}
+          </p>
+        )}
         <div className="space-y-3">
           {insights.map(insight => (
             <InsightItem

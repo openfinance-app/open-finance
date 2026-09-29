@@ -117,7 +117,7 @@ public class AICategorizationService {
                 } catch (Exception e) {
                     log.warn(
                             "Error extracting metadata during AI categorization: {}",
-                            e.getMessage());
+                            e.getClass().getSimpleName());
                 }
 
                 session.setMetadata(
@@ -127,7 +127,9 @@ public class AICategorizationService {
             }
         } catch (Exception e) {
             log.warn(
-                    "Async AI categorization failed for session {}: {}", sessionId, e.getMessage());
+                    "Async AI categorization failed for session {}: {}",
+                    sessionId,
+                    e.getClass().getSimpleName());
         }
     }
 
@@ -141,7 +143,13 @@ public class AICategorizationService {
     public void categorizeWithAI(
             List<ImportedTransaction> transactions, List<Category> userCategories) {
         // Check AI availability first
-        Boolean available = aiProvider.isAvailable().block(Duration.ofSeconds(3));
+        Boolean available;
+        try {
+            available = aiProvider.isAvailable().block(Duration.ofSeconds(4));
+        } catch (RuntimeException ex) {
+            log.info("AI provider readiness check failed; leaving categories for review");
+            return;
+        }
         if (!Boolean.TRUE.equals(available)) {
             log.info("AI provider unavailable, skipping AI categorization");
             return;
@@ -182,12 +190,12 @@ public class AICategorizationService {
                         .collect(Collectors.toList());
 
         // Process in batches with a total time budget
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
         int categorized = 0;
         for (int batchStart = 0;
                 batchStart < uncategorizedIndices.size();
                 batchStart += BATCH_SIZE) {
-            if (System.currentTimeMillis() - startTime > TOTAL_BUDGET_MS) {
+            if (System.nanoTime() - startTime >= Duration.ofMillis(TOTAL_BUDGET_MS).toNanos()) {
                 log.info(
                         "AI categorization time budget exhausted after {} items categorized",
                         categorized);
@@ -200,27 +208,36 @@ public class AICategorizationService {
             try {
                 categorized +=
                         processBatch(
-                                transactions, batchIndices, incomeCategories, expenseCategories);
+                                transactions,
+                                batchIndices,
+                                incomeCategories,
+                                expenseCategories,
+                                Duration.ofNanos(
+                                        Math.min(
+                                                BATCH_TIMEOUT.toNanos(),
+                                                Duration.ofMillis(TOTAL_BUDGET_MS).toNanos()
+                                                        - (System.nanoTime() - startTime))));
             } catch (Exception e) {
                 log.warn(
                         "AI categorization batch failed (items {}-{}): {}",
                         batchStart,
                         batchEnd - 1,
-                        e.getMessage());
+                        e.getClass().getSimpleName());
             }
         }
         log.info(
                 "AI categorization completed: {}/{} transactions categorized in {} ms",
                 categorized,
                 uncategorizedIndices.size(),
-                System.currentTimeMillis() - startTime);
+                Duration.ofNanos(System.nanoTime() - startTime).toMillis());
     }
 
     private int processBatch(
             List<ImportedTransaction> transactions,
             List<Integer> indices,
             List<Category> incomeCategories,
-            List<Category> expenseCategories) {
+            List<Category> expenseCategories,
+            Duration timeout) {
 
         int batchSize = indices.size();
         Locale locale = LocaleContextHolder.getLocale();
@@ -229,7 +246,7 @@ public class AICategorizationService {
         // displays)
         // Separate by type so the model knows which categories apply to income vs
         // expense
-        Map<String, String> displayNameMap = new HashMap<>();
+        Map<String, Category> displayNameMap = new HashMap<>();
         List<String> incomeCategoryNames = new ArrayList<>();
         List<String> expenseCategoryNames = new ArrayList<>();
 
@@ -237,14 +254,14 @@ public class AICategorizationService {
             String displayName = resolveDisplayName(cat, locale);
             if (cat.getParentId() != null) {
                 incomeCategoryNames.add(displayName);
-                displayNameMap.put(displayName.toLowerCase().trim(), displayName);
+                addCategory(displayNameMap, cat, displayName);
             }
         }
         for (Category cat : expenseCategories) {
             String displayName = resolveDisplayName(cat, locale);
             if (cat.getParentId() != null) {
                 expenseCategoryNames.add(displayName);
-                displayNameMap.put(displayName.toLowerCase().trim(), displayName);
+                addCategory(displayNameMap, cat, displayName);
             }
         }
         // Add parent categories that have no children as fallback
@@ -256,7 +273,7 @@ public class AICategorizationService {
                 if (!hasChildren) {
                     String displayName = resolveDisplayName(parent, locale);
                     incomeCategoryNames.add(displayName);
-                    displayNameMap.put(displayName.toLowerCase().trim(), displayName);
+                    addCategory(displayNameMap, parent, displayName);
                 }
             }
         }
@@ -268,7 +285,7 @@ public class AICategorizationService {
                 if (!hasChildren) {
                     String displayName = resolveDisplayName(parent, locale);
                     expenseCategoryNames.add(displayName);
-                    displayNameMap.put(displayName.toLowerCase().trim(), displayName);
+                    addCategory(displayNameMap, parent, displayName);
                 }
             }
         }
@@ -296,20 +313,20 @@ public class AICategorizationService {
             String memo = tx.getMemo() != null ? tx.getMemo() : "";
             BigDecimal amount = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
             prompt.append(
-                    String.format("%d. %s %s [%s]\n", i + 1, payee, memo, amount.toPlainString()));
+                    String.format("%d. %s %s [%s]%n", i + 1, payee, memo, amount.toPlainString()));
         }
 
         prompt.append("\nJSON:");
 
         // Call AI with timeout
-        String response = aiProvider.sendPrompt(prompt.toString(), "").block(BATCH_TIMEOUT);
+        String response = aiProvider.sendPrompt(prompt.toString(), "").block(timeout);
 
         if (response == null || response.isBlank()) {
             log.warn("AI returned empty response for categorization batch");
             return 0;
         }
 
-        log.info("AI raw response: {}", response);
+        log.debug("Received AI categorization response ({} characters)", response.length());
 
         // Parse the JSON response using the display name map
         return applyAIResults(transactions, indices, response, displayNameMap);
@@ -329,11 +346,32 @@ public class AICategorizationService {
         return category.getName();
     }
 
+    private CategoryType categoryType(ImportedTransaction transaction) {
+        return transaction.getAmount() != null && transaction.getAmount().signum() > 0
+                ? CategoryType.INCOME
+                : CategoryType.EXPENSE;
+    }
+
+    private String categoryKey(CategoryType type, String name) {
+        return type + ":" + name.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private void addCategory(
+            Map<String, Category> categories, Category category, String displayName) {
+        String key = categoryKey(category.getType(), displayName);
+        // An ambiguous display name must be resolved by the user, not guessed.
+        if (categories.containsKey(key) && !category.equals(categories.get(key))) {
+            categories.put(key, null);
+        } else {
+            categories.put(key, category);
+        }
+    }
+
     private int applyAIResults(
             List<ImportedTransaction> transactions,
             List<Integer> indices,
             String response,
-            Map<String, String> displayNameMap) {
+            Map<String, Category> displayNameMap) {
 
         int count = 0;
         try {
@@ -349,7 +387,8 @@ public class AICategorizationService {
             // Fallback: try parsing as plain string array ["Groceries", "Salary", ...]
             count = parseAsStringArray(json, transactions, indices, displayNameMap);
         } catch (Exception e) {
-            log.warn("Failed to parse AI categorization response: {}", e.getMessage());
+            log.warn(
+                    "Failed to parse AI categorization response: {}", e.getClass().getSimpleName());
         }
         return count;
     }
@@ -358,7 +397,7 @@ public class AICategorizationService {
             String json,
             List<ImportedTransaction> transactions,
             List<Integer> indices,
-            Map<String, String> displayNameMap) {
+            Map<String, Category> displayNameMap) {
         try {
             List<Map<String, Object>> results =
                     objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
@@ -387,17 +426,17 @@ public class AICategorizationService {
                 }
 
                 String categoryName = categoryObj.toString().trim();
-                String matchedDisplayName = displayNameMap.get(categoryName.toLowerCase());
+                ImportedTransaction tx = transactions.get(indices.get(idx));
+                Category matchedCategory =
+                        displayNameMap.get(categoryKey(categoryType(tx), categoryName));
 
-                if (matchedDisplayName != null) {
-                    int txIndex = indices.get(idx);
-                    ImportedTransaction tx = transactions.get(txIndex);
-                    tx.setCategory(matchedDisplayName);
+                if (matchedCategory != null) {
+                    tx.setCategory(matchedCategory.getName());
                     tx.setCategorizationConfidence(AI_CONFIDENCE);
                     tx.addValidationError("AI_MATCH: Category assigned by AI");
                     count++;
                 } else {
-                    log.info("AI suggested '{}' — no match (index {})", categoryName, idx + 1);
+                    log.debug("Rejected invalid AI category for item {}", idx + 1);
                 }
             }
             return count;
@@ -411,7 +450,7 @@ public class AICategorizationService {
             String json,
             List<ImportedTransaction> transactions,
             List<Integer> indices,
-            Map<String, String> displayNameMap) {
+            Map<String, Category> displayNameMap) {
         try {
             List<String> categoryNames =
                     objectMapper.readValue(json, new TypeReference<List<String>>() {});
@@ -419,17 +458,17 @@ public class AICategorizationService {
             int count = 0;
             for (int i = 0; i < categoryNames.size() && i < indices.size(); i++) {
                 String categoryName = categoryNames.get(i).trim();
-                String matchedDisplayName = displayNameMap.get(categoryName.toLowerCase());
+                ImportedTransaction tx = transactions.get(indices.get(i));
+                Category matchedCategory =
+                        displayNameMap.get(categoryKey(categoryType(tx), categoryName));
 
-                if (matchedDisplayName != null) {
-                    int txIndex = indices.get(i);
-                    ImportedTransaction tx = transactions.get(txIndex);
-                    tx.setCategory(matchedDisplayName);
+                if (matchedCategory != null) {
+                    tx.setCategory(matchedCategory.getName());
                     tx.setCategorizationConfidence(AI_CONFIDENCE);
                     tx.addValidationError("AI_MATCH: Category assigned by AI");
                     count++;
                 } else {
-                    log.info("AI suggested '{}' — no match (position {})", categoryName, i + 1);
+                    log.debug("Rejected invalid AI category for item {}", i + 1);
                 }
             }
             log.info(
@@ -438,7 +477,9 @@ public class AICategorizationService {
                     categoryNames.size());
             return count;
         } catch (Exception e) {
-            log.warn("Could not parse AI response as string array either: {}", e.getMessage());
+            log.warn(
+                    "Could not parse AI response as string array either: {}",
+                    e.getClass().getSimpleName());
             return 0;
         }
     }
@@ -532,7 +573,9 @@ public class AICategorizationService {
                     metadataMap.get("transactions"),
                     new TypeReference<List<ImportedTransaction>>() {});
         } catch (JsonProcessingException e) {
-            log.error("Error deserializing transactions for AI categorization: {}", e.getMessage());
+            log.error(
+                    "Error deserializing transactions for AI categorization: {}",
+                    e.getClass().getSimpleName());
             return new ArrayList<>();
         }
     }
@@ -548,7 +591,9 @@ public class AICategorizationService {
             metadata.put("timestamp", LocalDateTime.now().toString());
             return objectMapper.writeValueAsString(metadata);
         } catch (JsonProcessingException e) {
-            log.error("Error serializing transactions after AI categorization: {}", e.getMessage());
+            log.error(
+                    "Error serializing transactions after AI categorization: {}",
+                    e.getClass().getSimpleName());
             return null;
         }
     }

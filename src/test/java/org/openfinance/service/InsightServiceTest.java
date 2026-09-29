@@ -1,144 +1,272 @@
 package org.openfinance.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
-import java.util.Collections;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
-import org.openfinance.entity.*;
-import org.openfinance.repository.*;
-import org.openfinance.security.EncryptionService;
+import org.openfinance.dto.BudgetProgressResponse;
+import org.openfinance.dto.InsightResponse;
+import org.openfinance.entity.Budget;
+import org.openfinance.entity.Category;
+import org.openfinance.entity.CategoryType;
+import org.openfinance.entity.InsightType;
+import org.openfinance.entity.RecurringFrequency;
+import org.openfinance.entity.RecurringTransaction;
+import org.openfinance.entity.Transaction;
+import org.openfinance.entity.TransactionType;
+import org.openfinance.entity.User;
+import org.openfinance.repository.AccountRepository;
+import org.openfinance.repository.BudgetRepository;
+import org.openfinance.repository.CategoryRepository;
+import org.openfinance.repository.InsightRepository;
+import org.openfinance.repository.RecurringTransactionRepository;
+import org.openfinance.repository.TransactionRepository;
+import org.openfinance.repository.UserRepository;
+import org.openfinance.repository.UserSettingsRepository;
 import org.openfinance.service.ai.AIProvider;
-import org.springframework.context.MessageSource;
+import org.openfinance.service.ai.AIProviderException;
+import org.openfinance.service.ai.AIRequestLimits;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import reactor.core.publisher.Mono;
 
-/**
- * Unit tests for InsightService. Focuses on ensuring that net worth calculations include Real
- * Estate and Assets.
- */
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("InsightService Unit Tests")
 class InsightServiceTest {
-
-    @Mock private InsightRepository insightRepository;
-    @Mock private TransactionRepository transactionRepository;
-    @Mock private BudgetRepository budgetRepository;
-    @Mock private AccountRepository accountRepository;
-    @Mock private CategoryRepository categoryRepository;
-    @Mock private UserRepository userRepository;
-    @Mock private UserSettingsRepository userSettingsRepository;
-    @Mock private RecurringTransactionRepository recurringTransactionRepository;
-    @Mock private RealEstateRepository realEstateRepository;
-    @Mock private AssetRepository assetRepository;
-    @Mock private LiabilityRepository liabilityRepository;
-    @Mock private EncryptionService encryptionService;
-    @Mock private MessageSource messageSource;
-    @Mock private AIProvider aiProvider;
-    @Spy private ObjectMapper objectMapper = new ObjectMapper();
-
-    @Mock private OperationHistoryService operationHistoryService;
-
-    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+    @Mock InsightRepository insightRepository;
+    @Mock InsightWriter insightWriter;
+    @Mock TransactionRepository transactionRepository;
+    @Mock BudgetRepository budgetRepository;
+    @Mock AccountRepository accountRepository;
+    @Mock CategoryRepository categoryRepository;
+    @Mock UserRepository userRepository;
+    @Mock UserSettingsRepository userSettingsRepository;
+    @Mock RecurringTransactionRepository recurringTransactionRepository;
+    @Mock DefaultCurrencyProvider defaultCurrencyProvider;
+    @Mock NetWorthService netWorthService;
+    @Mock BudgetService budgetService;
+    @Mock ExchangeRateService exchangeRateService;
+    @Mock AIProvider aiProvider;
+    @Spy ObjectMapper objectMapper = new ObjectMapper();
+    @Spy AIRequestLimits requestLimits = new AIRequestLimits();
 
     @Spy
-    private org.openfinance.config.BusinessRulesProperties businessRules =
+    org.openfinance.config.BusinessRulesProperties businessRules =
             new org.openfinance.config.BusinessRulesProperties();
 
-    @InjectMocks private InsightService insightService;
+    @Spy ResourceBundleMessageSource messageSource = messages();
+    @InjectMocks InsightService service;
 
-    private Long testUserId = 1L;
+    private static ResourceBundleMessageSource messages() {
+        ResourceBundleMessageSource source = new ResourceBundleMessageSource();
+        source.setBasename("i18n/messages");
+        source.setDefaultEncoding("UTF-8");
+        return source;
+    }
+
+    private String provenance() {
+        return ",\"currency\":\"EUR\",\"country\":\"FR\",\"asOf\":\""
+                + LocalDate.now()
+                + "\",\"sourceUrl\":\"https://example.test/statistics\"}";
+    }
 
     @BeforeEach
-    void setUp() {
-        // Default mocks to prevent NPEs
-        when(userSettingsRepository.findByUserId(testUserId)).thenReturn(Optional.empty());
-        when(userRepository.findById(testUserId))
-                .thenReturn(Optional.of(User.builder().id(testUserId).build()));
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true))
-                .thenReturn(Collections.emptyList());
-        when(realEstateRepository.findByUserIdAndIsActive(testUserId, true))
-                .thenReturn(Collections.emptyList());
-        when(assetRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
-        when(liabilityRepository.findById(anyLong())).thenReturn(Optional.empty());
-        when(transactionRepository.findByUserIdAndType(anyLong(), any()))
-                .thenReturn(Collections.emptyList());
-        when(aiProvider.sendPrompt(anyString(), anyString())).thenReturn(Mono.just("{}"));
-        org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
-                defaultCurrencyProvider, userRepository);
+    void setup() {
+        lenient()
+                .when(userRepository.findById(1L))
+                .thenReturn(Optional.of(User.builder().id(1L).build()));
+        lenient().when(defaultCurrencyProvider.resolveForUser(1L)).thenReturn("EUR");
+        lenient()
+                .when(netWorthService.calculateTotalAssets(1L, "EUR"))
+                .thenReturn(new BigDecimal("3600"));
+        lenient()
+                .when(netWorthService.calculateTotalLiabilities(1L, "EUR"))
+                .thenReturn(BigDecimal.ZERO);
+        lenient()
+                .when(insightWriter.replaceGenerated(eq(1L), anyList()))
+                .thenAnswer(i -> i.getArgument(1));
+        lenient()
+                .when(exchangeRateService.convert(any(), anyString(), eq("EUR")))
+                .thenAnswer(
+                        i ->
+                                ((BigDecimal) i.getArgument(0))
+                                        .multiply(
+                                                "USD".equals(i.getArgument(1))
+                                                        ? new BigDecimal("0.8")
+                                                        : BigDecimal.ONE));
+        lenient()
+                .when(exchangeRateService.convert(any(), anyString(), eq("EUR"), any()))
+                .thenAnswer(
+                        i ->
+                                ((BigDecimal) i.getArgument(0))
+                                        .multiply(
+                                                "USD".equals(i.getArgument(1))
+                                                        ? new BigDecimal("0.5")
+                                                        : BigDecimal.ONE));
+        lenient()
+                .when(transactionRepository.findByUserIdAndType(1L, TransactionType.INCOME))
+                .thenReturn(List.of(tx("2000", "EUR", TransactionType.INCOME)));
+        lenient()
+                .when(aiProvider.sendPrompt(anyString(), anyString()))
+                .thenAnswer(
+                        i -> {
+                            String prompt = i.getArgument(0);
+                            return Mono.just(
+                                    prompt.startsWith("You are a tax")
+                                            ? "{\"baseRate\":20,\"topRate\":40,\"standardDeduction\":1000"
+                                                    + provenance()
+                                            : prompt.startsWith("Review these")
+                                                    ? "[]"
+                                                    : "{\"medianIncome\":2500,\"medianNetWorth\":150000"
+                                                            + provenance());
+                        });
     }
 
     @Test
-    @DisplayName("generateInsights should call repositories for Net Worth calculation")
-    void shouldCallRepositoriesForNetWorthCalculation() throws Exception {
-        // Arrange
-        // 1. User Settings (Country: US)
-        User user = User.builder().id(testUserId).build();
-        UserSettings userSettings =
-                UserSettings.builder().user(user).country("US").language("en").build();
-        when(userSettingsRepository.findByUserId(testUserId)).thenReturn(Optional.of(userSettings));
+    void usesCanonicalNetWorthAndBudgetProgress() {
+        Category category =
+                Category.builder().id(3L).name("Food").type(CategoryType.EXPENSE).build();
+        when(budgetRepository.findActiveByUserIdAndDate(1L, LocalDate.now()))
+                .thenReturn(List.of(Budget.builder().id(5L).category(category).build()));
+        when(budgetService.calculateBudgetProgress(5L, 1L))
+                .thenReturn(
+                        BudgetProgressResponse.builder()
+                                .budgeted(new BigDecimal("100"))
+                                .spent(new BigDecimal("170"))
+                                .percentageSpent(new BigDecimal("170"))
+                                .currency("EUR")
+                                .build());
+        List<InsightResponse> results = service.generateInsights(1L);
+        assertThat(results)
+                .filteredOn(i -> i.getType() == InsightType.BUDGET_WARNING)
+                .singleElement()
+                .satisfies(i -> assertThat(i.getDescription()).contains("70", "70%"));
+        assertThat(results)
+                .filteredOn(i -> i.getTitle().equals("Net Worth Assessment"))
+                .singleElement()
+                .satisfies(
+                        i ->
+                                assertThat(i.getDescription())
+                                        .contains("3600 EUR", "Unverified AI estimate"));
+        verify(netWorthService).calculateTotalAssets(1L, "EUR");
+        verify(insightRepository, never()).deleteByUser_Id(anyLong());
+    }
 
-        // 2. Account Balances: $10,000
-        Account account =
-                Account.builder()
-                        .balance(new BigDecimal("10000.00"))
-                        .currency("USD")
-                        .isActive(true)
-                        .build();
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true))
-                .thenReturn(List.of(account));
+    @Test
+    void convertsRecurringCostsAndHistoricalIncomeBeforeSumming() {
+        when(recurringTransactionRepository.findByUserIdAndIsActive(1L))
+                .thenReturn(List.of(recurring(1L, "EUR"), recurring(2L, "USD")));
+        when(transactionRepository.findByUserIdAndType(1L, TransactionType.INCOME))
+                .thenReturn(List.of(tx("2000", "USD", TransactionType.INCOME)));
+        List<InsightResponse> results = service.generateInsights(1L);
+        assertThat(results)
+                .filteredOn(i -> i.getTitle().equals("Recurring Expenses Summary"))
+                .singleElement()
+                .satisfies(i -> assertThat(i.getDescription()).contains("180 EUR/month", "18%"));
+        verify(exchangeRateService, atLeastOnce())
+                .convert(new BigDecimal("2000"), "USD", "EUR", LocalDate.now());
+    }
 
-        // 3. Real Estate: Value $300,000, Mortgage $200,000 -> Equity $100,000
-        RealEstateProperty property =
-                RealEstateProperty.builder()
+    @Test
+    void readsPlaintextCategoriesForSubscriptionAndDeductionRules() {
+        Category subscriptions =
+                Category.builder()
                         .id(1L)
-                        .userId(testUserId)
-                        .currentValue("300000.00")
-                        .currency("USD")
-                        .isActive(true)
-                        .mortgageId(10L)
+                        .name("Subscriptions")
+                        .nameKey("category.subscriptions")
+                        .type(CategoryType.EXPENSE)
                         .build();
-        when(realEstateRepository.findByUserIdAndIsActive(testUserId, true))
-                .thenReturn(List.of(property));
-
-        Liability mortgage = new Liability();
-        mortgage.setId(10L);
-        mortgage.setCurrentBalance("200000.00");
-        mortgage.setCurrency("USD");
-        when(liabilityRepository.findById(10L)).thenReturn(Optional.of(mortgage));
-
-        // 4. Other Assets: Value $5,000
-        Asset asset =
-                Asset.builder()
-                        .userId(testUserId)
-                        .quantity(new BigDecimal("1"))
-                        .currentPrice(new BigDecimal("5000.00"))
-                        .currency("USD")
+        Category donations =
+                Category.builder()
+                        .id(2L)
+                        .name("Donations")
+                        .nameKey("category.donations")
+                        .type(CategoryType.EXPENSE)
                         .build();
-        when(assetRepository.findByUserId(testUserId)).thenReturn(List.of(asset));
+        when(categoryRepository.findByUserIdAndType(1L, CategoryType.EXPENSE))
+                .thenReturn(List.of(subscriptions, donations));
+        when(transactionRepository.findByCategoryIdAndDateRange(eq(1L), any(), any(), eq(1L)))
+                .thenReturn(List.of(tx("80", "EUR", TransactionType.EXPENSE)));
+        when(transactionRepository.findByCategoryIdAndDateRange(eq(2L), any(), any(), eq(1L)))
+                .thenReturn(List.of(tx("50", "EUR", TransactionType.EXPENSE)));
+        List<InsightResponse> results = service.generateInsights(1L);
+        assertThat(results)
+                .extracting(InsightResponse::getTitle)
+                .contains("Subscription Review Opportunity", "Potential Tax Deductions");
+    }
 
-        // Mock message source to avoid breakage
-        when(messageSource.getMessage(anyString(), any(), any())).thenReturn("Mocked Insight");
+    @Test
+    void failureCannotPublishOrDeletePreviousResults() {
+        when(aiProvider.sendPrompt(anyString(), anyString()))
+                .thenReturn(Mono.error(new AIProviderException("fixture", "unavailable")));
+        assertThatThrownBy(() -> service.generateInsights(1L))
+                .isInstanceOf(AIProviderException.class);
+        verifyNoInteractions(insightWriter, insightRepository);
+    }
 
-        // Act
-        insightService.generateInsights(testUserId);
+    @Test
+    void rejectsNegativeTaxParametersWithoutSavingThem() {
+        when(aiProvider.sendPrompt(startsWith("You are a tax"), anyString()))
+                .thenReturn(
+                        Mono.just(
+                                "{\"baseRate\":-25,\"topRate\":40,\"standardDeduction\":-1000"
+                                        + provenance()));
+        assertThatThrownBy(() -> service.generateInsights(1L))
+                .isInstanceOf(AIProviderException.class);
+        verifyNoInteractions(insightWriter);
+    }
 
-        // Assert
-        verify(realEstateRepository).findByUserIdAndIsActive(testUserId, true);
-        verify(assetRepository).findByUserId(testUserId);
-        verify(liabilityRepository).findById(10L);
+    @Test
+    void rejectsUnownedCompetitorSuggestions() {
+        when(recurringTransactionRepository.findByUserIdAndIsActive(1L))
+                .thenReturn(List.of(recurring(1L, "EUR")));
+        when(aiProvider.sendPrompt(startsWith("Review these"), anyString()))
+                .thenReturn(Mono.just("[{\"originalServiceId\":999,\"potentialSavings\":999999}]"));
+        assertThatThrownBy(() -> service.generateInsights(1L))
+                .isInstanceOf(AIProviderException.class);
+        verifyNoInteractions(insightWriter);
+    }
+
+    @Test
+    void missingFxNeverFallsBackToRawCurrencyAmounts() {
+        when(transactionRepository.findByUserIdAndType(1L, TransactionType.INCOME))
+                .thenReturn(List.of(tx("100", "USD", TransactionType.INCOME)));
+        when(exchangeRateService.convert(any(), eq("USD"), eq("EUR"), any()))
+                .thenThrow(new IllegalStateException("No rate"));
+        assertThatThrownBy(() -> service.generateInsights(1L))
+                .isInstanceOf(AIProviderException.class);
+        verifyNoInteractions(insightWriter);
+    }
+
+    private Transaction tx(String amount, String currency, TransactionType type) {
+        return Transaction.builder()
+                .amount(new BigDecimal(amount))
+                .currency(currency)
+                .type(type)
+                .date(LocalDate.now())
+                .isDeleted(false)
+                .build();
+    }
+
+    private RecurringTransaction recurring(Long id, String currency) {
+        return RecurringTransaction.builder()
+                .id(id)
+                .type(TransactionType.EXPENSE)
+                .description("Service " + id)
+                .amount(new BigDecimal("100"))
+                .currency(currency)
+                .frequency(RecurringFrequency.MONTHLY)
+                .build();
     }
 }

@@ -43,6 +43,10 @@ public class AIConversation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(nullable = false)
+    private long version;
+
     /**
      * The user who owns this conversation.
      *

@@ -7,11 +7,12 @@
  * @since Sprint 11+ — Floating AI Chat Widget
  */
 
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { renderWithProviders } from '@/test/test-utils';
+import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { FloatingAIChat } from './FloatingAIChat';
 import * as useAIChatHook from '@/hooks/useAIChat';
+import type { ChatResponse } from '@/types/ai';
 
 // ----- Mocks -----
 
@@ -43,6 +44,7 @@ function mockUseSendMessage(overrides: Record<string, unknown> = {}) {
   const mock = {
     mutateAsync: mockMutateAsync,
     isPending: false,
+    reset: vi.fn(),
     error: null,
     ...overrides,
   };
@@ -55,6 +57,16 @@ function mockUseSendMessage(overrides: Record<string, unknown> = {}) {
 describe('FloatingAIChat', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
+    mockAuthentication();
+    vi.spyOn(useAIChatHook, 'useConversations').mockReturnValue({
+      data: [],
+      error: null,
+    } as ReturnType<typeof useAIChatHook.useConversations>);
+    vi.spyOn(useAIChatHook, 'useDeleteConversation').mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(undefined),
+      isPending: false,
+    } as unknown as ReturnType<typeof useAIChatHook.useDeleteConversation>);
     mockUseAIChatAvailable();
     mockUseSendMessage();
 
@@ -72,7 +84,7 @@ describe('FloatingAIChat', () => {
     expect(fab).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('does not render when AI is unavailable and health check is complete', () => {
+  it('keeps history accessible while AI is unavailable', () => {
     vi.spyOn(useAIChatHook, 'useAIChat').mockReturnValue({
       isOllamaAvailable: false,
       isCheckingHealth: false,
@@ -87,8 +99,10 @@ describe('FloatingAIChat', () => {
       refetchHealth: vi.fn(),
     } as any);
 
-    const { container } = renderWithProviders(<FloatingAIChat />);
-    expect(container.innerHTML).toBe('');
+    renderWithProviders(<FloatingAIChat />);
+    fireEvent.click(screen.getByRole('button', { name: /open ai assistant/i }));
+    expect(screen.getByRole('combobox', { name: /conversation history/i })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('AI is unavailable');
   });
 
   it('renders FAB while health check is still loading', () => {
@@ -250,7 +264,7 @@ describe('FloatingAIChat', () => {
 
   // ====== New conversation ======
 
-  it('shows new conversation button only when messages exist', async () => {
+  it('can start a new conversation before or after sending messages', async () => {
     mockMutateAsync.mockResolvedValueOnce({
       response: 'Here is your summary.',
       conversation_id: 'conv-456',
@@ -261,7 +275,7 @@ describe('FloatingAIChat', () => {
     fireEvent.click(screen.getByRole('button', { name: /open ai assistant/i }));
 
     // Initially no "new conversation" button
-    expect(screen.queryByRole('button', { name: /new conversation/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /new conversation/i })).toBeInTheDocument();
 
     // Send a message to create history
     const input = screen.getByPlaceholderText(/ask me about your finances/i);
@@ -275,6 +289,70 @@ describe('FloatingAIChat', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /new conversation/i })).toBeInTheDocument();
     });
+  });
+
+  it('ignores an old reply after the user starts a new conversation', async () => {
+    let resolveReply: (response: ChatResponse) => void = () => {};
+    mockMutateAsync.mockImplementationOnce(
+      () =>
+        new Promise<ChatResponse>(resolve => {
+          resolveReply = resolve;
+        })
+    );
+    renderWithProviders(<FloatingAIChat />);
+    fireEvent.click(screen.getByRole('button', { name: /open ai assistant/i }));
+    fireEvent.change(screen.getByPlaceholderText(/ask me about your finances/i), {
+      target: { value: 'Old question' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send message/i }));
+    await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: /new conversation/i }));
+    await act(async () =>
+      resolveReply({
+        response: 'Late old answer',
+        conversation_id: '42',
+        timestamp: new Date().toISOString(),
+      })
+    );
+    expect(screen.queryByText('Late old answer')).not.toBeInTheDocument();
+    expect(screen.queryByText('Old question')).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /conversation history/i })).toHaveValue('');
+  });
+
+  it('loads a selected saved conversation and deletes it through the API hook', async () => {
+    const deleteSaved = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useAIChatHook.useDeleteConversation).mockReturnValue({
+      mutateAsync: deleteSaved,
+      isPending: false,
+    } as unknown as ReturnType<typeof useAIChatHook.useDeleteConversation>);
+    vi.mocked(useAIChatHook.useConversations).mockReturnValue({
+      data: [{ id: '42', title: 'Saved budget', message_count: 2, created_at: '', updated_at: '' }],
+      error: null,
+    } as ReturnType<typeof useAIChatHook.useConversations>);
+    const base = vi.mocked(useAIChatHook.useAIChat).getMockImplementation()!(null);
+    const saved: NonNullable<ReturnType<typeof useAIChatHook.useAIChat>['conversation']> = {
+      id: '42',
+      user_id: 1,
+      title: 'Saved budget',
+      messages: [
+        { role: 'assistant', content: 'Saved reply', timestamp: new Date().toISOString() },
+      ],
+      created_at: '',
+      updated_at: '',
+    };
+    vi.mocked(useAIChatHook.useAIChat).mockImplementation(id => ({
+      ...base,
+      conversation: id === '42' ? saved : undefined,
+    }));
+    renderWithProviders(<FloatingAIChat />);
+    fireEvent.click(screen.getByRole('button', { name: /open ai assistant/i }));
+    fireEvent.change(screen.getByRole('combobox', { name: /conversation history/i }), {
+      target: { value: '42' },
+    });
+    expect(await screen.findByText('Saved reply')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /delete conversation/i }));
+    await waitFor(() => expect(deleteSaved).toHaveBeenCalledWith('42'));
+    await waitFor(() => expect(screen.queryByText('Saved reply')).not.toBeInTheDocument());
   });
 
   // ====== Error display ======

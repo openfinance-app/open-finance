@@ -8,12 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AIDto;
 import org.openfinance.entity.User;
 import org.openfinance.service.AIService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 
 /**
  * REST controller for AI Assistant interactions.
@@ -89,67 +87,23 @@ public class AIController {
         User user = (User) authentication.getPrincipal();
 
         log.info(
-                "User {} asking AI: {}",
+                "User {} submitted an AI request ({} characters)",
                 user.getId(),
-                request.getQuestion().substring(0, Math.min(50, request.getQuestion().length())));
-
-        try {
-            AIDto.ChatResponse response = aiService.askQuestion(user.getId(), request);
-            return ResponseEntity.ok(response);
-        } catch (Exception error) {
-            log.error("Error processing AI chat for user {}: {}", user.getId(), error.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+                request.getQuestion().length());
+        return ResponseEntity.ok(aiService.askQuestion(user.getId(), request));
     }
 
     /**
-     * Streams AI response in real-time using Server-Sent Events (SSE).
-     *
-     * <p><strong>Recommended for better UX:</strong> Displays response as it's being generated
-     * instead of waiting for complete response.
-     *
-     * <p><strong>Request Headers:</strong>
-     *
-     * <ul>
-     *   <li>{@code Authorization: Bearer {jwt_token}}
-     *   <li>{@code X-Encryption-Session: {base64_encoded_key}}
-     * </ul>
-     *
-     * <p><strong>Request Body:</strong> Same as /chat endpoint
-     *
-     * <p><strong>Response:</strong> Server-Sent Events stream with chunks:
-     *
-     * <pre>{@code
-     * data: Based
-     * data:  on
-     * data:  your
-     * data:  accounts
-     * ...
-     * }</pre>
-     *
-     * @param request Chat request
-     * @param authentication Spring Security authentication
-     * @return Flux of response chunks
+     * Buffered SSE compatibility response. Inference and encrypted persistence finish on the
+     * authenticated servlet thread before the response is written; no asynchronous dispatch.
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> streamChat(
+    public ResponseEntity<String> streamChat(
             @Valid @RequestBody AIDto.ChatRequest request, Authentication authentication) {
-
         User user = (User) authentication.getPrincipal();
-
-        log.info(
-                "User {} streaming AI question: {}",
-                user.getId(),
-                request.getQuestion().substring(0, Math.min(50, request.getQuestion().length())));
-
-        return aiService
-                .streamQuestion(user.getId(), request)
-                .doOnError(
-                        error ->
-                                log.error(
-                                        "Error streaming AI response for user {}: {}",
-                                        user.getId(),
-                                        error.getMessage()));
+        String answer = aiService.askQuestion(user.getId(), request).getResponse();
+        String event = "data: " + answer.replace("\r", "").replace("\n", "\ndata: ") + "\n\n";
+        return ResponseEntity.ok().contentType(MediaType.TEXT_EVENT_STREAM).body(event);
     }
 
     /**

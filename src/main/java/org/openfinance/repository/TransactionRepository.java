@@ -483,12 +483,10 @@ public interface TransactionRepository
      * @param before upper-bound creation timestamp (exclusive)
      * @return number of prior transactions with this payee
      */
-    @Query(
-            "SELECT COUNT(t) FROM Transaction t WHERE t.userId = :userId AND t.payee = :payee AND t.createdAt < :before AND t.isDeleted = false")
-    Long countByUserIdAndPayeeAndCreatedAtBefore(
-            @Param("userId") Long userId,
-            @Param("payee") String payee,
-            @Param("before") java.time.LocalDateTime before);
+    default Long countByUserIdAndPayeeAndCreatedAtBefore(
+            Long userId, String payee, java.time.LocalDateTime before) {
+        return (long) findByUserIdAndPayeeAndCreatedAtBefore(userId, payee, before).size();
+    }
 
     /**
      * Finds all non-deleted transactions for a user with the given payee created strictly before
@@ -502,12 +500,23 @@ public interface TransactionRepository
      * @param before upper-bound creation timestamp (exclusive)
      * @return list of prior transactions for this payee ordered by date descending
      */
+    default List<Transaction> findByUserIdAndPayeeAndCreatedAtBefore(
+            Long userId, String payee, java.time.LocalDateTime before) {
+        // Payee is randomized ciphertext in SQL. Compare only after JPA decryption.
+        return findByUserIdAndCreatedAtBefore(userId, before).stream()
+                .filter(
+                        transaction ->
+                                payee != null
+                                        && transaction.getPayee() != null
+                                        && payee.strip()
+                                                .equalsIgnoreCase(transaction.getPayee().strip()))
+                .toList();
+    }
+
     @Query(
-            "SELECT t FROM Transaction t WHERE t.userId = :userId AND t.payee = :payee AND t.createdAt < :before AND t.isDeleted = false ORDER BY t.date DESC")
-    List<Transaction> findByUserIdAndPayeeAndCreatedAtBefore(
-            @Param("userId") Long userId,
-            @Param("payee") String payee,
-            @Param("before") java.time.LocalDateTime before);
+            "SELECT t FROM Transaction t WHERE t.userId = :userId AND t.createdAt < :before AND t.isDeleted = false ORDER BY t.createdAt, t.id")
+    List<Transaction> findByUserIdAndCreatedAtBefore(
+            @Param("userId") Long userId, @Param("before") java.time.LocalDateTime before);
 
     /**
      * Finds all non-deleted EXPENSE transactions for a user in a given category created strictly

@@ -163,7 +163,9 @@
     "generatePrompt": "Click 'Generate Insights' to analyze your financial data",
     "dismiss": "Dismiss insight",
     "loadFailed": "Failed to load insights",
-    "tooltip": "AI-powered insights analyse your transactions and spending patterns to surface personalized recommendations, warnings, and opportunities."
+    "tooltip": "AI-powered insights analyse your transactions and spending patterns to surface personalized recommendations, warnings, and opportunities.",
+    "refreshFailed": "Refresh failed. Your previous insights have been kept.",
+    "dismissFailed": "Could not dismiss this insight. Please try again."
   },
   "calendar": {
     "title": "Cash Flow History",

@@ -1006,7 +1006,7 @@ public class ImportService {
             int duplicatesSkipped = skipDuplicates ? duplicateTxs.size() : 0;
             session.setImportedCount(imported);
             session.setDuplicateCount(duplicateTxs.size());
-            session.setErrorCount(errorTxs.size());
+            session.setErrorCount(errorTxs.size() + saveFailed);
             session.setSkippedCount(
                     duplicatesSkipped + errorTxs.size() + saveFailed + openingBalanceTxs.size());
             session.setStatus(ImportStatus.COMPLETED);
@@ -1024,7 +1024,7 @@ public class ImportService {
                     "Import complete: {} imported, {} duplicates, {} errors, {} skipped",
                     imported,
                     duplicateTxs.size(),
-                    errorTxs.size(),
+                    session.getErrorCount(),
                     session.getSkippedCount());
 
             // Transparently invalidate net worth snapshots affected by imported transaction
@@ -1805,7 +1805,7 @@ public class ImportService {
         int duplicatesSkipped = skipDuplicates ? duplicateTxs.size() : 0;
         session.setImportedCount(imported);
         session.setDuplicateCount(duplicateTxs.size());
-        session.setErrorCount(errorTxs.size());
+        session.setErrorCount(errorTxs.size() + saveFailed);
         session.setSkippedCount(duplicatesSkipped + errorTxs.size() + saveFailed);
         session.setStatus(ImportStatus.COMPLETED);
         operationHistoryService.record(
@@ -2100,7 +2100,7 @@ public class ImportService {
         int duplicatesSkipped = skipDuplicates ? duplicateTxs.size() : 0;
         session.setImportedCount(imported);
         session.setDuplicateCount(duplicateTxs.size());
-        session.setErrorCount(errorTxs.size());
+        session.setErrorCount(errorTxs.size() + saveFailed);
         session.setSkippedCount(duplicatesSkipped + errorTxs.size() + saveFailed);
         session.setStatus(ImportStatus.COMPLETED);
         operationHistoryService.record(
@@ -2897,7 +2897,10 @@ public class ImportService {
             return null;
         }
 
-        List<Category> userCategories = categoryRepository.findByUserId(userId);
+        List<Category> userCategories =
+                categoryRepository.findByUserId(userId).stream()
+                        .filter(category -> category.getType() == type)
+                        .toList();
 
         // 1. Try exact match on full path name
         Optional<Category> exactMatch =
@@ -3120,6 +3123,21 @@ public class ImportService {
                         "Mapping category '{}' using provided mapping to ID {}",
                         categoryName,
                         categoryId);
+                Category selectedCategory =
+                        categoryRepository
+                                .findByIdAndUserId(categoryId, userId)
+                                .orElseThrow(
+                                        () ->
+                                                new IllegalArgumentException(
+                                                        "Invalid import category"));
+                CategoryType expectedType =
+                        transactionType == TransactionType.INCOME
+                                ? CategoryType.INCOME
+                                : CategoryType.EXPENSE;
+                if (selectedCategory.getType() != expectedType) {
+                    throw new IllegalArgumentException(
+                            "Import category type does not match transaction type");
+                }
                 builder.categoryId(categoryId);
             } else if (!categoryName.startsWith("[")) {
                 // Resolve hierarchical category (e.g., "Income:Salary" → parent "Income", child

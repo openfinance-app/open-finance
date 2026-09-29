@@ -23,6 +23,7 @@ public class OpenAIProvider implements AIProvider {
     private final Duration timeout;
     private final boolean configured;
     private final String systemPromptTemplate;
+    private final dev.langchain4j.model.openai.OpenAiTokenizer tokenizer;
 
     public OpenAIProvider(
             String apiKey,
@@ -37,6 +38,13 @@ public class OpenAIProvider implements AIProvider {
         this.timeout = Duration.ofSeconds(timeoutSeconds);
         this.configured = apiKey != null && !apiKey.isBlank() && model != null && !model.isBlank();
         this.systemPromptTemplate = buildSystemPromptTemplate();
+        dev.langchain4j.model.openai.OpenAiTokenizer selected;
+        try {
+            selected = new dev.langchain4j.model.openai.OpenAiTokenizer(model);
+        } catch (IllegalArgumentException ex) {
+            selected = null;
+        }
+        this.tokenizer = selected;
         this.webClient =
                 WebClient.builder()
                         .baseUrl(
@@ -61,7 +69,7 @@ public class OpenAIProvider implements AIProvider {
         body.put("max_output_tokens", maxTokens);
         body.put("stream", stream);
         body.put("store", false);
-        body.put("instructions", systemPromptTemplate.formatted(context));
+        body.put("instructions", instructions(context));
         body.put("input", prompt);
         body.putArray("tools").addObject().put("type", "web_search");
         return body;
@@ -81,10 +89,9 @@ public class OpenAIProvider implements AIProvider {
     }
 
     private String responseText(JsonNode response) {
-        if (response.hasNonNull("error") || "failed".equals(response.path("status").asText())) {
+        if (response.hasNonNull("error") || !"completed".equals(response.path("status").asText())) {
             throw providerError(
-                    new IllegalStateException(
-                            response.path("error").path("message").asText("Response failed")));
+                    new IllegalStateException("Response did not complete successfully"));
         }
         StringBuilder text = new StringBuilder();
         for (JsonNode item : response.path("output")) {
@@ -94,7 +101,7 @@ public class OpenAIProvider implements AIProvider {
                     for (JsonNode annotation : part.path("annotations"))
                         text.append(citation(annotation));
                 } else if ("refusal".equals(part.path("type").asText())) {
-                    text.append(part.path("refusal").asText());
+                    throw providerError(new IllegalStateException("Provider refused the request"));
                 }
             }
         }
@@ -105,30 +112,49 @@ public class OpenAIProvider implements AIProvider {
 
     @Override
     public Flux<String> streamResponse(String prompt, String context) {
-        return webClient
-                .post()
-                .uri("/responses")
-                .bodyValue(request(prompt, context, true))
-                .retrieve()
-                .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<JsonNode>>() {})
-                .mapNotNull(ServerSentEvent::data)
-                .map(this::streamText)
-                .filter(text -> !text.isEmpty())
-                .timeout(timeout)
-                .onErrorMap(this::providerError);
+        return Flux.defer(
+                () -> {
+                    java.util.concurrent.atomic.AtomicBoolean completed =
+                            new java.util.concurrent.atomic.AtomicBoolean();
+                    return webClient
+                            .post()
+                            .uri("/responses")
+                            .bodyValue(request(prompt, context, true))
+                            .retrieve()
+                            .bodyToFlux(
+                                    new ParameterizedTypeReference<ServerSentEvent<JsonNode>>() {})
+                            .mapNotNull(ServerSentEvent::data)
+                            .doOnNext(
+                                    event -> {
+                                        if ("response.completed"
+                                                .equals(event.path("type").asText()))
+                                            completed.set(true);
+                                    })
+                            .map(this::streamText)
+                            .filter(text -> !text.isEmpty())
+                            .concatWith(
+                                    Flux.defer(
+                                            () ->
+                                                    completed.get()
+                                                            ? Flux.empty()
+                                                            : Flux.error(
+                                                                    new AIProviderException(
+                                                                            PROVIDER_NAME,
+                                                                            "Stream ended without completion"))))
+                            .timeout(timeout)
+                            .onErrorMap(this::providerError);
+                });
     }
 
     private String streamText(JsonNode event) {
         return switch (event.path("type").asText()) {
-            case "response.output_text.delta", "response.refusal.delta" -> event.path("delta")
-                    .asText();
+            case "response.output_text.delta" -> event.path("delta").asText();
             case "response.output_text.annotation.added" -> citation(event.path("annotation"));
-            case "response.failed", "error" -> throw providerError(
-                    new IllegalStateException(
-                            event.path("response")
-                                    .path("error")
-                                    .path("message")
-                                    .asText("Streaming response failed")));
+            case "response.failed",
+                    "response.incomplete",
+                    "response.refusal.delta",
+                    "error" -> throw providerError(
+                    new IllegalStateException("Streaming response did not complete successfully"));
             default -> "";
         };
     }
@@ -150,12 +176,35 @@ public class OpenAIProvider implements AIProvider {
 
     @Override
     public Mono<Boolean> isAvailable() {
-        return Mono.just(configured);
+        if (!configured) return Mono.just(false);
+        return webClient
+                .get()
+                .uri("/models/{model}", model)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .map(response -> model.equals(response.path("id").asText()))
+                .defaultIfEmpty(false)
+                .timeout(Duration.ofSeconds(3))
+                .onErrorReturn(false);
     }
 
     @Override
     public String getProviderName() {
         return PROVIDER_NAME;
+    }
+
+    @Override
+    public String instructions(String context) {
+        return systemPromptTemplate.formatted(context);
+    }
+
+    @Override
+    public int countInputTokens(String prompt, String context) {
+        return tokenizer == null
+                ? AIProvider.super.countInputTokens(prompt, context)
+                : tokenizer.estimateTokenCountInText(instructions(context))
+                        + tokenizer.estimateTokenCountInText(prompt)
+                        + 64;
     }
 
     private String buildSystemPromptTemplate() {

@@ -107,7 +107,7 @@ describe('useAIChat hooks', () => {
           conversation_id: null,
           include_full_context: true,
         },
-        { headers: { 'X-Encryption-Session': 'test-encryption-key' } }
+        { timeout: 610000, headers: { 'X-Encryption-Session': 'test-encryption-key' } }
       );
     });
 
@@ -159,7 +159,7 @@ describe('useAIChat hooks', () => {
           conversation_id: null,
           include_full_context: true,
         },
-        { headers: {} }
+        { timeout: 610000, headers: {} }
       );
     });
 

@@ -1,10 +1,13 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.Insight;
@@ -55,14 +58,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class UnusualTransactionDetectionService {
 
-    private static final double Z_SCORE_THRESHOLD = 2.5;
+    private static final BigDecimal Z_SCORE_THRESHOLD = new BigDecimal("2.5");
     private static final int MIN_HISTORY_FOR_STDDEV = 5;
-    private static final double RELATIVE_THRESHOLD_FACTOR = 3.0;
+    private static final BigDecimal RELATIVE_THRESHOLD_FACTOR = new BigDecimal("3");
 
     private final TransactionRepository transactionRepository;
     private final InsightRepository insightRepository;
     private final UserRepository userRepository;
     private final MessageSource messageSource;
+    private final ExchangeRateService exchangeRateService;
 
     /**
      * Analyses all transactions created for {@code userId} since {@code since} and persists an
@@ -89,14 +93,33 @@ public class UnusualTransactionDetectionService {
             return 0;
         }
 
+        List<Transaction> history =
+                new ArrayList<>(
+                        transactionRepository.findByUserIdAndCreatedAtBefore(userId, since));
+        Set<String> existing =
+                insightRepository
+                        .findByUser_IdAndType(userId, InsightType.UNUSUAL_TRANSACTION)
+                        .stream()
+                        .map(Insight::getSourceKey)
+                        .collect(Collectors.toSet());
         List<Insight> insights = new ArrayList<>();
+        recentTransactions = new ArrayList<>(recentTransactions);
+        recentTransactions.sort(
+                java.util.Comparator.comparing(Transaction::getCreatedAt)
+                        .thenComparing(Transaction::getId));
         for (Transaction tx : recentTransactions) {
             // Only analyse expense and income movements; skip internal transfers
-            if (tx.getType() == TransactionType.TRANSFER) {
+            if (tx.getType() == TransactionType.TRANSFER
+                    || tx.getTransferId() != null
+                    || Boolean.TRUE.equals(tx.getIsDeleted())) {
                 continue;
             }
             try {
-                insights.addAll(analyseTransaction(tx, user, since));
+                insights.addAll(
+                        analyseTransaction(tx, user, history).stream()
+                                .filter(insight -> existing.add(insight.getSourceKey()))
+                                .toList());
+                history.add(tx);
             } catch (Exception e) {
                 log.warn(
                         "Error analysing transaction {} for user {}: {}",
@@ -121,62 +144,72 @@ public class UnusualTransactionDetectionService {
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private List<Insight> analyseTransaction(Transaction tx, User user, LocalDateTime cutoff) {
+    private List<Insight> analyseTransaction(Transaction tx, User user, List<Transaction> prior) {
         List<Insight> insights = new ArrayList<>();
-
         String payee = tx.getPayee();
         BigDecimal amount = tx.getAmount();
-
         if (payee != null && !payee.isBlank()) {
-            // --- Algorithm 1: first-time payee ---
-            long priorCount =
-                    transactionRepository.countByUserIdAndPayeeAndCreatedAtBefore(
-                            user.getId(), payee, cutoff);
-
-            if (priorCount == 0) {
-                insights.add(buildNewPayeeInsight(user, tx, payee, amount));
-                // A new payee is already flagged – no need to also flag large amount
+            List<Transaction> payeeHistory = prior.stream().filter(t -> samePayee(tx, t)).toList();
+            if (payeeHistory.isEmpty()) {
+                Insight insight = buildNewPayeeInsight(user, tx, payee, amount);
+                insight.setSourceKey("unusual:new-payee:" + tx.getId());
+                insights.add(insight);
                 return insights;
             }
-
-            // --- Algorithm 2 / 3: amount anomaly for known payee ---
-            List<Transaction> history =
-                    transactionRepository.findByUserIdAndPayeeAndCreatedAtBefore(
-                            user.getId(), payee, cutoff);
-
-            if (history.size() >= MIN_HISTORY_FOR_STDDEV) {
-                // Sufficient history → Z-score check
-                double mean = mean(history);
-                double stdDev = stdDev(history, mean);
-                double threshold = mean + Z_SCORE_THRESHOLD * stdDev;
-                if (amount.doubleValue() > threshold && stdDev > 0) {
-                    double pct = ((amount.doubleValue() - mean) / mean) * 100;
-                    insights.add(buildLargeAmountInsight(user, tx, payee, amount, mean, pct));
-                }
-            } else if (!history.isEmpty()) {
-                // Sparse history → relative factor check
-                double mean = mean(history);
-                if (mean > 0 && amount.doubleValue() > RELATIVE_THRESHOLD_FACTOR * mean) {
-                    double pct = ((amount.doubleValue() - mean) / mean) * 100;
-                    insights.add(buildLargeAmountInsight(user, tx, payee, amount, mean, pct));
+            List<BigDecimal> amounts = historicalAmounts(payeeHistory, tx);
+            if (!amounts.isEmpty()) {
+                BigDecimal mean = mean(amounts);
+                BigDecimal deviation = stdDev(amounts, mean);
+                BigDecimal threshold =
+                        amounts.size() >= MIN_HISTORY_FOR_STDDEV && deviation.signum() > 0
+                                ? mean.add(Z_SCORE_THRESHOLD.multiply(deviation))
+                                : mean.multiply(RELATIVE_THRESHOLD_FACTOR);
+                if (mean.signum() > 0 && amount.compareTo(threshold) > 0) {
+                    BigDecimal pct =
+                            amount.subtract(mean)
+                                    .multiply(new BigDecimal("100"))
+                                    .divide(mean, 0, RoundingMode.HALF_UP);
+                    Insight insight = buildLargeAmountInsight(user, tx, payee, amount, mean, pct);
+                    insight.setSourceKey("unusual:amount:" + tx.getId());
+                    insights.add(insight);
                 }
             }
-
         } else if (tx.getCategoryId() != null && tx.getType() == TransactionType.EXPENSE) {
-            // --- Algorithm 3 (no payee): compare against category average ---
-            List<Transaction> history =
-                    transactionRepository.findExpensesByUserIdAndCategoryIdAndCreatedAtBefore(
-                            user.getId(), tx.getCategoryId(), cutoff);
-
-            if (!history.isEmpty()) {
-                double mean = mean(history);
-                if (mean > 0 && amount.doubleValue() > RELATIVE_THRESHOLD_FACTOR * mean) {
-                    insights.add(buildLargeAmountNoPayeeInsight(user, tx, amount));
-                }
+            List<BigDecimal> amounts =
+                    historicalAmounts(
+                            prior.stream()
+                                    .filter(t -> tx.getCategoryId().equals(t.getCategoryId()))
+                                    .toList(),
+                            tx);
+            if (!amounts.isEmpty()
+                    && amount.compareTo(mean(amounts).multiply(RELATIVE_THRESHOLD_FACTOR)) > 0) {
+                Insight insight = buildLargeAmountNoPayeeInsight(user, tx, amount);
+                insight.setSourceKey("unusual:amount:" + tx.getId());
+                insights.add(insight);
             }
         }
-
         return insights;
+    }
+
+    private boolean samePayee(Transaction first, Transaction second) {
+        if (first.getPayeeId() != null && second.getPayeeId() != null)
+            return first.getPayeeId().equals(second.getPayeeId());
+        return first.getPayee() != null
+                && second.getPayee() != null
+                && first.getPayee().strip().equalsIgnoreCase(second.getPayee().strip());
+    }
+
+    private List<BigDecimal> historicalAmounts(List<Transaction> history, Transaction current) {
+        return history.stream()
+                .filter(t -> t.getType() == current.getType() && t.getTransferId() == null)
+                .map(
+                        t ->
+                                exchangeRateService.convert(
+                                        t.getAmount(),
+                                        t.getCurrency(),
+                                        current.getCurrency(),
+                                        t.getDate()))
+                .toList();
     }
 
     private Insight buildNewPayeeInsight(
@@ -195,9 +228,14 @@ public class UnusualTransactionDetectionService {
     }
 
     private Insight buildLargeAmountInsight(
-            User user, Transaction tx, String payee, BigDecimal amount, double mean, double pct) {
-        BigDecimal meanDecimal = BigDecimal.valueOf(mean).setScale(2, RoundingMode.HALF_UP);
-        long pctLong = Math.round(pct);
+            User user,
+            Transaction tx,
+            String payee,
+            BigDecimal amount,
+            BigDecimal mean,
+            BigDecimal pct) {
+        BigDecimal meanDecimal = mean.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal pctLong = pct.setScale(0, RoundingMode.HALF_UP);
         String title =
                 messageSource.getMessage(
                         "insight.unusual.transaction.large.amount.title",
@@ -241,23 +279,17 @@ public class UnusualTransactionDetectionService {
     // Statistics helpers
     // -------------------------------------------------------------------------
 
-    private double mean(List<Transaction> transactions) {
-        return transactions.stream()
-                .mapToDouble(t -> t.getAmount().doubleValue())
-                .average()
-                .orElse(0.0);
+    private BigDecimal mean(List<BigDecimal> amounts) {
+        return amounts.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(amounts.size()), MathContext.DECIMAL128);
     }
 
-    private double stdDev(List<Transaction> transactions, double mean) {
-        double variance =
-                transactions.stream()
-                        .mapToDouble(
-                                t -> {
-                                    double diff = t.getAmount().doubleValue() - mean;
-                                    return diff * diff;
-                                })
-                        .average()
-                        .orElse(0.0);
-        return Math.sqrt(variance);
+    private BigDecimal stdDev(List<BigDecimal> amounts, BigDecimal mean) {
+        return amounts.stream()
+                .map(amount -> amount.subtract(mean).pow(2))
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(amounts.size()), MathContext.DECIMAL128)
+                .sqrt(MathContext.DECIMAL128);
     }
 }

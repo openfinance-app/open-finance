@@ -50,7 +50,7 @@ public interface InsightRepository extends JpaRepository<Insight, Long> {
      * @return List of insights sorted by priority and date
      */
     @Query(
-            "SELECT i FROM Insight i WHERE i.user.id = :userId ORDER BY i.priority ASC, i.createdAt DESC")
+            "SELECT i FROM Insight i WHERE i.user.id = :userId ORDER BY CASE i.priority WHEN org.openfinance.entity.InsightPriority.HIGH THEN 0 WHEN org.openfinance.entity.InsightPriority.MEDIUM THEN 1 ELSE 2 END, i.createdAt DESC")
     List<Insight> findByUser_IdOrderByPriorityAscCreatedAtDesc(@Param("userId") Long userId);
 
     /**
@@ -62,7 +62,7 @@ public interface InsightRepository extends JpaRepository<Insight, Long> {
      * @return List of active insights sorted by priority (HIGH first) and date (newest first)
      */
     @Query(
-            "SELECT i FROM Insight i WHERE i.user.id = :userId AND i.dismissed = false ORDER BY i.priority ASC, i.createdAt DESC")
+            "SELECT i FROM Insight i WHERE i.user.id = :userId AND i.dismissed = false ORDER BY CASE i.priority WHEN org.openfinance.entity.InsightPriority.HIGH THEN 0 WHEN org.openfinance.entity.InsightPriority.MEDIUM THEN 1 ELSE 2 END, i.createdAt DESC")
     List<Insight> findByUser_IdAndDismissedFalse(@Param("userId") Long userId);
 
     /**
@@ -76,7 +76,7 @@ public interface InsightRepository extends JpaRepository<Insight, Long> {
      */
     @Query(
             value =
-                    "SELECT * FROM insights WHERE user_id = :userId AND dismissed = 0 "
+                    "SELECT * FROM insights WHERE user_id = :userId AND dismissed = false "
                             + "ORDER BY CASE priority WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 WHEN 'LOW' THEN 3 END, "
                             + "created_at DESC LIMIT :limit",
             nativeQuery = true)

@@ -1,5 +1,6 @@
 package org.openfinance.service.ai;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
@@ -12,6 +13,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * Langchain4J-backed AI provider using a local Ollama instance.
@@ -28,6 +30,8 @@ public class OllamaAIProvider implements AIProvider {
 
     private final WebClient healthClient;
     private final String systemPromptTemplate;
+    private final String model;
+    private final Duration timeout;
 
     /**
      * Creates an Ollama provider from explicit configuration values.
@@ -59,6 +63,20 @@ public class OllamaAIProvider implements AIProvider {
             int maxTokens,
             int timeoutSeconds,
             String searxngBaseUrl) {
+        this(baseUrl, model, temperature, maxTokens, timeoutSeconds, searxngBaseUrl, 8192);
+    }
+
+    public OllamaAIProvider(
+            String baseUrl,
+            String model,
+            double temperature,
+            int maxTokens,
+            int timeoutSeconds,
+            String searxngBaseUrl,
+            int maxContextTokens) {
+
+        this.model = model;
+        this.timeout = Duration.ofSeconds(timeoutSeconds);
 
         ChatLanguageModel chatModel =
                 OllamaChatModel.builder()
@@ -66,6 +84,7 @@ public class OllamaAIProvider implements AIProvider {
                         .modelName(model)
                         .temperature(temperature)
                         .numPredict(maxTokens)
+                        .numCtx(maxContextTokens)
                         .timeout(Duration.ofSeconds(timeoutSeconds))
                         .build();
 
@@ -75,6 +94,7 @@ public class OllamaAIProvider implements AIProvider {
                         .modelName(model)
                         .temperature(temperature)
                         .numPredict(maxTokens)
+                        .numCtx(maxContextTokens)
                         .timeout(Duration.ofSeconds(timeoutSeconds))
                         .build();
 
@@ -120,17 +140,18 @@ public class OllamaAIProvider implements AIProvider {
         return Mono.fromCallable(
                         () -> {
                             log.debug(
-                                    "Sending prompt to Ollama: {} (context: {} chars)",
-                                    prompt.substring(0, Math.min(50, prompt.length())),
+                                    "Sending prompt to Ollama ({} chars, context: {} chars)",
+                                    prompt.length(),
                                     context.length());
 
-                            String text =
-                                    assistant.chat(systemPromptTemplate.formatted(context), prompt);
+                            String text = assistant.chat(instructions(context), prompt);
 
                             log.debug(
                                     "Ollama response: {} chars", text != null ? text.length() : 0);
                             return text;
                         })
+                .subscribeOn(Schedulers.boundedElastic())
+                .timeout(timeout)
                 .onErrorMap(
                         e ->
                                 new AIProviderException(
@@ -143,7 +164,7 @@ public class OllamaAIProvider implements AIProvider {
 
         try {
             assistant
-                    .streamChat(systemPromptTemplate.formatted(context), prompt)
+                    .streamChat(instructions(context), prompt)
                     .onPartialResponse(token -> sink.tryEmitNext(token))
                     .onCompleteResponse(c -> sink.tryEmitComplete())
                     .onError(
@@ -167,16 +188,31 @@ public class OllamaAIProvider implements AIProvider {
                 .get()
                 .uri("/api/tags")
                 .retrieve()
-                .bodyToMono(String.class)
-                .map(r -> true)
-                .timeout(Duration.ofSeconds(5))
+                .bodyToMono(JsonNode.class)
+                .map(this::hasConfiguredModel)
+                .defaultIfEmpty(false)
+                .timeout(Duration.ofSeconds(3))
                 .onErrorReturn(false)
                 .doOnSuccess(ok -> log.debug("Ollama availability: {}", ok));
+    }
+
+    private boolean hasConfiguredModel(JsonNode response) {
+        String expected = model.contains(":") ? model : model + ":latest";
+        for (JsonNode candidate : response.path("models")) {
+            String name = candidate.path("name").asText(candidate.path("model").asText());
+            if (expected.equals(name) || model.equals(name)) return true;
+        }
+        return false;
     }
 
     @Override
     public String getProviderName() {
         return PROVIDER_NAME;
+    }
+
+    @Override
+    public String instructions(String context) {
+        return systemPromptTemplate.formatted(context);
     }
 
     private String buildSystemPromptTemplate() {
