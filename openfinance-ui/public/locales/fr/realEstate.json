@@ -672,5 +672,23 @@
     "previous": "Précédent",
     "next": "Suivant",
     "page": "Page {{page}} sur {{total}}"
+  },
+  "taxContext": {
+    "title": "Hypothèses fiscales de la location en France",
+    "scope": "Estimation pour une année complète de location longue durée ordinaire par un foyer résident fiscal français affilié à la sécurité sociale française. Les charges locatives sont supposées remboursées à leur coût. Les locations touristiques et les cotisations professionnelles sont hors périmètre.",
+    "incomeYear": "Année des revenus",
+    "otherHouseholdIncome": "Autres revenus annuels du foyer retenus pour le statut (€)",
+    "incomeHelp": "Salaires, pensions et autres revenus professionnels ou commerciaux nets imposables de tout le foyer fiscal, hors location meublée. Laissez vide si inconnus.",
+    "otherFurnishedReceipts": "Autres recettes locatives meublées du foyer, charges comprises (€ / an)",
+    "otherUnfurnishedRent": "Autres loyers nus du foyer, hors charges (€ / an)",
+    "incomplete": "Revenus à renseigner",
+    "needsHouseholdIncome": "Les recettes meublées du foyer dépassent 23 000 €. Renseignez les autres revenus du foyer pour déterminer le statut LMNP ou LMP avant d’estimer les impôts et la trésorerie.",
+    "professionalOutOfScope": "Les deux conditions du statut LMP sont réunies. Les cotisations professionnelles dépendent de votre situation ; ce simulateur LMNP ne peut pas calculer le résultat net.",
+    "microFoncierLimit": "Les loyers nus du foyer dépassent 15 000 € ; le micro-foncier n’est pas disponible.",
+    "microBicLimit": "Les recettes meublées du foyer dépassent {{threshold}} €. Vérifiez les recettes des années précédentes et les règles transitoires avant de choisir le micro-BIC.",
+    "sources": "Règles fiscales officielles",
+    "invalid": "Saisissez des montants annuels positifs ou nuls et une année de revenus 2025 ou 2026.",
+    "assumptions": "La comparaison utilise les recettes annuelles du foyer saisies pour les plafonds micro. Elle n’applique pas les règles transitoires, dispositifs immobiliers particuliers, reports de déficits ou abattements personnels. L’amortissement reste une estimation simplifiée. La déduction des intérêts d’emprunt et l’exclusion du terrain de l’amortissement ne sont pas modélisées. L’abattement minimum micro-BIC du foyer est réparti au prorata des recettes locatives.",
+    "rates": "Revenus {{year}} : plafond micro-BIC longue durée {{threshold}} € ; prélèvements sociaux de 18,6 % en meublé et 17,2 % en location nue."
   }
 }

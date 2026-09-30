@@ -2,6 +2,7 @@ package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -15,7 +16,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -110,6 +113,8 @@ class ImportServiceTest {
 
     @Mock private ObjectMapper objectMapper;
 
+    @Mock private ObjectReader metadataReader;
+
     @Mock private CsvParser csvParser;
 
     @Mock private AutoCategorizationService autoCategorizationService;
@@ -158,7 +163,24 @@ class ImportServiceTest {
     private List<ImportedTransaction> testTransactions;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        lenient()
+                .when(
+                        objectMapper.readerFor(
+                                any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(metadataReader);
+        lenient()
+                .when(metadataReader.with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS))
+                .thenReturn(metadataReader);
+        lenient()
+                .when(metadataReader.readValue(anyString()))
+                .thenAnswer(
+                        invocation ->
+                                objectMapper.readValue(
+                                        invocation.getArgument(0, String.class),
+                                        new com.fasterxml.jackson.core.type.TypeReference<
+                                                Map<String, Object>>() {}));
+
         org.mockito.Mockito.lenient()
                 .when(
                         importSessionRepository.claimConfirmation(
@@ -612,6 +634,48 @@ class ImportServiceTest {
     // ========================================
 
     @Test
+    @DisplayName("Imports preserve crypto deposits, dust and expenses without rounding")
+    void shouldPreserveCryptoImportPrecision() throws Exception {
+        testAccount.setCurrency("BTC");
+        testSession.setStatus(ImportStatus.PARSED);
+        testSession.setMetadata("{\"transactions\":[]}");
+        List<ImportedTransaction> transactions =
+                List.of("0.12345678", "0.00001234", "-0.00000001", "0.000000000000000001").stream()
+                        .map(
+                                amount ->
+                                        ImportedTransaction.builder()
+                                                .transactionDate(LocalDate.of(2026, 9, 1))
+                                                .amount(new BigDecimal(amount))
+                                                .currency("BTC")
+                                                .build())
+                        .toList();
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
+        when(accountRepository.findByIdAndUserId(ACCOUNT_ID, USER_ID))
+                .thenReturn(Optional.of(testAccount));
+        when(objectMapper.readValue(
+                        anyString(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(Map.of("transactions", transactions));
+        when(objectMapper.convertValue(
+                        any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(transactions);
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
+
+        ImportSession result = importService.confirmImport(1L, USER_ID, ACCOUNT_ID, Map.of(), true);
+
+        org.mockito.ArgumentCaptor<Transaction> saved =
+                org.mockito.ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository, times(4)).save(saved.capture());
+        assertThat(saved.getAllValues())
+                .extracting(tx -> tx.getAmount().toPlainString())
+                .containsExactly("0.12345678", "0.00001234", "0.00000001", "0.000000000000000001");
+        assertThat(saved.getAllValues().get(2).getType()).isEqualTo(TransactionType.EXPENSE);
+        assertThat(result.getImportedCount()).isEqualTo(4);
+        assertThat(result.getSkippedCount()).isZero();
+    }
+
+    @Test
     @DisplayName("Should confirm import successfully")
     void shouldConfirmImportSuccessfully() throws Exception {
         // Given
@@ -658,8 +722,8 @@ class ImportServiceTest {
     }
 
     @Test
-    @DisplayName("Should reject an expense mapped to income and report the failed row")
-    void shouldRejectWrongTypeMappingAndCountFailure() throws Exception {
+    @DisplayName("Should reject an expense mapped to income before posting any row")
+    void shouldRejectWrongTypeMappingBeforePosting() throws Exception {
         testSession.setStatus(ImportStatus.PARSED);
         testSession.setMetadata("{\"transactions\":[]}");
         when(categoryRepository.findByIdAndUserId(10L, USER_ID))
@@ -674,26 +738,19 @@ class ImportServiceTest {
         Map<String, Object> metadataMap = new HashMap<>();
         metadataMap.put("transactions", testTransactions);
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
-        when(accountRepository.findByIdAndUserId(ACCOUNT_ID, USER_ID))
-                .thenReturn(Optional.of(testAccount));
         when(objectMapper.readValue(
                         anyString(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
                 .thenReturn(metadataMap);
         when(objectMapper.convertValue(
                         any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
                 .thenReturn(testTransactions);
-        when(transactionRepository.save(any(Transaction.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
 
-        ImportSession result =
-                importService.confirmImport(
-                        1L, USER_ID, ACCOUNT_ID, Map.of("Groceries", 10L), true);
-
-        assertThat(result.getImportedCount()).isEqualTo(1);
-        assertThat(result.getErrorCount()).isEqualTo(1);
-        assertThat(result.getSkippedCount()).isEqualTo(1);
-        verify(transactionRepository).save(any(Transaction.class));
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        importService.confirmImport(
+                                1L, USER_ID, ACCOUNT_ID, Map.of("Groceries", 10L), true));
+        verify(transactionRepository, never()).save(any(Transaction.class));
     }
 
     @Test
@@ -1238,5 +1295,70 @@ class ImportServiceTest {
 
         // Then: outside ±1 day window → not flagged
         assertThat(result.get(0).isPotentialDuplicate()).isFalse();
+    }
+
+    @Test
+    void rejectsForeignSplitMappingsBeforeWritingAccountsOrTransactions() throws Exception {
+        testSession.setStatus(ImportStatus.PARSED);
+        testSession.setMetadata("{}");
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
+        when(objectMapper.readValue(
+                        anyString(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(Map.of());
+        assertThatThrownBy(
+                        () ->
+                                importService.confirmImport(
+                                        1L,
+                                        USER_ID,
+                                        ACCOUNT_ID,
+                                        Map.of("Foreign split", 987L),
+                                        true))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(transactionRepository, never()).save(any());
+        verify(accountService, never()).createAccount(anyLong(), any());
+    }
+
+    @Test
+    void rejectsWrongTypeSplitMappingsBeforeAnyPosting() throws Exception {
+        ImportedTransaction transaction =
+                ImportedTransaction.builder()
+                        .amount(new BigDecimal("-10"))
+                        .transactionDate(LocalDate.of(2025, 9, 1))
+                        .splits(
+                                List.of(
+                                        ImportedTransaction.SplitEntry.builder()
+                                                .category("Mapped split")
+                                                .amount(BigDecimal.TEN)
+                                                .build()))
+                        .build();
+        testSession.setStatus(ImportStatus.PARSED);
+        testSession.setMetadata("{}");
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
+        when(objectMapper.readValue(
+                        anyString(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(Map.of("transactions", List.of(transaction)));
+        when(objectMapper.convertValue(
+                        any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(List.of(transaction));
+        when(categoryRepository.findByIdAndUserId(987L, USER_ID))
+                .thenReturn(
+                        Optional.of(
+                                Category.builder()
+                                        .id(987L)
+                                        .userId(USER_ID)
+                                        .type(org.openfinance.entity.CategoryType.INCOME)
+                                        .build()));
+        assertThatThrownBy(
+                        () ->
+                                importService.confirmImport(
+                                        1L,
+                                        USER_ID,
+                                        ACCOUNT_ID,
+                                        Map.of("Mapped split", 987L),
+                                        true))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("type");
+        verify(transactionRepository, never()).save(any());
+        verify(accountService, never()).createAccount(anyLong(), any());
     }
 }

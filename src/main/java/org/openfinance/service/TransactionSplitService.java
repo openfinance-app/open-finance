@@ -1,7 +1,6 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -103,14 +102,9 @@ public class TransactionSplitService {
                     "A split transaction must have at least 2 split entries");
         }
 
-        // REQ-SPL-1.2 / REQ-SPL-2.6: sum check
-        BigDecimal splitSum =
-                splits.stream()
-                        .map(TransactionSplitRequest::getAmount)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add)
-                        .setScale(4, RoundingMode.HALF_UP);
-
-        BigDecimal expected = totalAmount.setScale(4, RoundingMode.HALF_UP);
+        // Compare the stored amounts exactly; rounding would hide crypto imbalances.
+        BigDecimal splitSum = sumPositiveSplits(splits);
+        BigDecimal expected = totalAmount;
         BigDecimal difference = expected.subtract(splitSum).abs();
 
         if (difference.compareTo(BigDecimal.ZERO) != 0) {
@@ -146,7 +140,11 @@ public class TransactionSplitService {
         if (CollectionUtils.isEmpty(splits)) {
             return splits == null ? List.of() : splits;
         }
-        int scale = Math.min(currencyTypeResolver.decimalsFor(currency), 4);
+        // Already-balanced imports retain their source precision, even beyond display precision.
+        if (sumPositiveSplits(splits).compareTo(total) == 0) {
+            return splits;
+        }
+        int scale = currencyTypeResolver.decimalsFor(currency);
         // A transaction amount with finer precision than the currency's minor unit cannot be split
         // into exactly-summing minor-unit lines; reject it explicitly so a successful reconcile
         // always satisfies the exact validateSplits check.
@@ -181,6 +179,22 @@ public class TransactionSplitService {
                             .build());
         }
         return out;
+    }
+
+    private BigDecimal sumPositiveSplits(List<TransactionSplitRequest> splits) {
+        BigDecimal sum = BigDecimal.ZERO;
+        for (TransactionSplitRequest split : splits) {
+            BigDecimal amount = split.getAmount();
+            if (amount == null || amount.signum() <= 0) {
+                throw new InvalidTransactionException("Split amounts must be positive");
+            }
+            BigDecimal normalized = amount.stripTrailingZeros();
+            if (normalized.scale() > 18 || normalized.precision() - normalized.scale() > 26) {
+                throw new InvalidTransactionException("Split amount exceeds supported precision");
+            }
+            sum = sum.add(amount);
+        }
+        return sum;
     }
 
     // -----------------------------------------------------------------------

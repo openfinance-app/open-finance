@@ -219,12 +219,18 @@ public class TransactionService {
                                                                     request.getPayee().trim()))
                             .findFirst()
                             .orElse(null);
-            if (payee != null && payee.getDefaultCategory() != null) {
+            if (payee != null
+                    && payee.getDefaultCategory() != null
+                    && payee.getDefaultCategory()
+                            .getType()
+                            .name()
+                            .equals(request.getType().name())) {
                 log.info(
                         "Auto-filling category {} from payee {}",
                         payee.getDefaultCategory().getId(),
                         payee.getName());
                 request.setCategoryId(payee.getDefaultCategory().getId());
+                validateTransactionRequest(userId, request);
             }
         }
 
@@ -780,11 +786,13 @@ public class TransactionService {
         // New source account: subtract the new amount
         newSourceAccount.setBalance(
                 newSourceAccount.getBalance().subtract(sourceTransaction.getBalanceAmount()));
+        includeTransactionDate(newSourceAccount, request.getDate());
         accountRepository.save(newSourceAccount);
 
         // New destination account: add the new amount
         newDestAccount.setBalance(
                 newDestAccount.getBalance().add(destTransaction.getBalanceAmount()));
+        includeTransactionDate(newDestAccount, request.getDate());
         accountRepository.save(newDestAccount);
 
         log.info(
@@ -1046,6 +1054,7 @@ public class TransactionService {
                 newAccount.setBalance(
                         newAccount.getBalance().subtract(transaction.getBalanceAmount()));
             }
+            includeTransactionDate(newAccount, request.getDate());
             accountRepository.save(newAccount);
         } else {
             // Same account, but amount or type may have changed
@@ -1071,6 +1080,7 @@ public class TransactionService {
                 account.setBalance(account.getBalance().subtract(transaction.getBalanceAmount()));
             }
 
+            includeTransactionDate(account, request.getDate());
             accountRepository.save(account);
         }
 
@@ -1115,6 +1125,13 @@ public class TransactionService {
                 null);
 
         return updateTxResponse;
+    }
+
+    private void includeTransactionDate(Account account, LocalDate date) {
+        if (date != null
+                && (account.getOpeningDate() == null || date.isBefore(account.getOpeningDate()))) {
+            account.setOpeningDate(date);
+        }
     }
 
     /**

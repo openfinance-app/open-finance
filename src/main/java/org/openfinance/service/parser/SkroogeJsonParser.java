@@ -1,5 +1,6 @@
 package org.openfinance.service.parser;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -110,7 +111,11 @@ public class SkroogeJsonParser {
 
     public SkroogeImportParseResult parseFile(InputStream inputStream, String fileName)
             throws IOException {
-        JsonNode root = objectMapper.readTree(inputStream);
+        JsonNode root =
+                objectMapper
+                        .reader()
+                        .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+                        .readTree(inputStream);
 
         if (!root.has("account") || !root.has("operation") || !root.has("suboperation")) {
             throw new IOException("Invalid Skrooge JSON export: missing required collections");

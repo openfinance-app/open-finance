@@ -16,7 +16,6 @@ import { formatPercentage } from '@/utils/format';
 import { useTranslation } from 'react-i18next';
 import type { BudgetProgressResponse } from '@/types/budget';
 import { cn } from '@/lib/utils';
-import { useAuthContext } from '@/context/AuthContext';
 
 interface BudgetCardProps {
   budget: BudgetProgressResponse;
@@ -59,12 +58,12 @@ function getStatusVariant(status: string): 'success' | 'warning' | 'error' | 'de
 }
 
 export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCardProps) {
-  const { baseCurrency } = useAuthContext();
+  const displayCurrency = budget.currency;
   const {
     convert,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
-  } = useSecondaryConversion(baseCurrency);
+  } = useSecondaryConversion(displayCurrency);
   const { t } = useTranslation('budgets');
   const { t: tc } = useTranslation('common');
   const isOverBudget = budget.percentageSpent > 100;
@@ -134,7 +133,7 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
           <span className="text-sm font-medium font-mono text-text-primary">
             <ConvertedAmount
               amount={budget.budgeted}
-              currency={baseCurrency}
+              currency={displayCurrency}
               isConverted={false}
               secondaryAmount={convert(budget.budgeted)}
               secondaryCurrency={secCurrency}
@@ -148,7 +147,7 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
           <span className="text-sm font-medium font-mono text-text-primary">
             <ConvertedAmount
               amount={budget.spent}
-              currency={baseCurrency}
+              currency={displayCurrency}
               isConverted={false}
               secondaryAmount={convert(budget.spent)}
               secondaryCurrency={secCurrency}
@@ -167,7 +166,7 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
           >
             <ConvertedAmount
               amount={budget.remaining}
-              currency={baseCurrency}
+              currency={displayCurrency}
               isConverted={false}
               secondaryAmount={convert(budget.remaining)}
               secondaryCurrency={secCurrency}
@@ -199,7 +198,7 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
               {t('card.overBudgetBy')}{' '}
               <ConvertedAmount
                 amount={Math.abs(budget.remaining)}
-                currency={baseCurrency}
+                currency={displayCurrency}
                 isConverted={false}
                 secondaryAmount={convert(Math.abs(budget.remaining))}
                 secondaryCurrency={secCurrency}

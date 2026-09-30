@@ -361,10 +361,10 @@ class ImportControllerTest {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].payee").value("Walmart"))
-                .andExpect(jsonPath("$[0].amount").value(-45.67))
+                .andExpect(jsonPath("$[0].amount").value("-45.67"))
                 .andExpect(jsonPath("$[0].category").value("Groceries"))
                 .andExpect(jsonPath("$[1].payee").value("Employer Inc"))
-                .andExpect(jsonPath("$[1].amount").value(2500.00))
+                .andExpect(jsonPath("$[1].amount").value("2500.00"))
                 .andExpect(jsonPath("$[1].category").value("Salary"));
 
         verify(importService).reviewTransactions(SESSION_ID, USER_ID);

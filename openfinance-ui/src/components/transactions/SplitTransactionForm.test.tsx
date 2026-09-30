@@ -116,6 +116,36 @@ describe('SplitTransactionForm', () => {
     } as ReturnType<typeof useTransactionsModule.useCategoryTree>);
   });
 
+  it('detects a one-satoshi remainder and distributes it without losing crypto precision', () => {
+    const onChange = vi.fn();
+    renderForm({
+      totalAmount: 0.000001,
+      currency: 'BTC',
+      splits: [{ amount: 0.00000033 }, { amount: 0.00000033 }, { amount: 0.00000033 }],
+      onChange,
+    });
+
+    expect(screen.queryByText('Balanced')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /distribute remainder/i }));
+
+    expect(onChange).toHaveBeenCalledWith([
+      { amount: 0.00000034 },
+      { amount: 0.00000033 },
+      { amount: 0.00000033 },
+    ]);
+  });
+
+  it('keeps imported satoshi amounts editable without a one-cent minimum', () => {
+    renderForm({
+      totalAmount: 0.00000003,
+      currency: 'BTC',
+      splits: [{ amount: 0.00000001 }, { amount: 0.00000002 }],
+    });
+    expect(screen.getByText('Balanced')).toBeInTheDocument();
+    expect(screen.getByLabelText('Split 1 amount')).toHaveAttribute('min', '0');
+  });
+
   describe('Basic Rendering', () => {
     it('renders split entries with category, amount, and description inputs', () => {
       renderForm();

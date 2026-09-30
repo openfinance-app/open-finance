@@ -28,17 +28,20 @@ describe('useUserFinancialData', () => {
       data:
         url === '/assets'
           ? [
-              { totalValue: 1000, currency: 'EUR' },
+              { type: 'STOCK', totalValue: 1000, currency: 'EUR' },
               {
+                type: 'STOCK',
                 totalValue: 100000,
                 currency: 'JPY',
                 valueInBaseCurrency: 600,
                 baseCurrency: 'EUR',
                 isConverted: true,
               },
-              { totalValue: 99999, currency: 'EUR', acquisitionType: 'PLANNED' },
+              { type: 'STOCK', totalValue: 99999, currency: 'EUR', acquisitionType: 'PLANNED' },
             ]
-          : { expenses: 360 },
+          : url === '/accounts'
+            ? []
+            : { expenses: 360 },
     }));
     const { result } = renderFinancialData();
     await waitFor(() =>
@@ -60,8 +63,10 @@ describe('useUserFinancialData', () => {
     mockGet.mockImplementation(async url => ({
       data:
         url === '/assets'
-          ? [{ totalValue: 0, quantity: 100, currentPrice: 50, currency: 'EUR' }]
-          : { expenses: 0 },
+          ? [{ type: 'STOCK', totalValue: 0, quantity: 100, currentPrice: 50, currency: 'EUR' }]
+          : url === '/accounts'
+            ? []
+            : { expenses: 0 },
     }));
     const { result } = renderFinancialData();
     await waitFor(() => expect(result.current.data?.totalSavings).toBe(0));
@@ -73,6 +78,7 @@ describe('useUserFinancialData', () => {
         url === '/assets'
           ? [
               {
+                type: 'STOCK',
                 totalValue: 100000,
                 currency: 'JPY',
                 valueInBaseCurrency: 100000,
@@ -80,7 +86,9 @@ describe('useUserFinancialData', () => {
                 isConverted: false,
               },
             ]
-          : { expenses: 0 },
+          : url === '/accounts'
+            ? []
+            : { expenses: 0 },
     }));
     const { result } = renderFinancialData();
     await waitFor(() => expect(result.current.error).not.toBeNull());
@@ -88,7 +96,9 @@ describe('useUserFinancialData', () => {
   });
 
   it('handles an empty portfolio and zero expenses', async () => {
-    mockGet.mockImplementation(async url => ({ data: url === '/assets' ? [] : { expenses: 0 } }));
+    mockGet.mockImplementation(async url => ({
+      data: url === '/assets' ? [] : url === '/accounts' ? [] : { expenses: 0 },
+    }));
     const { result } = renderFinancialData();
     await waitFor(() =>
       expect(result.current.data).toEqual({
@@ -108,13 +118,66 @@ describe('useUserFinancialData', () => {
   });
 
   it('refreshes the totals on demand', async () => {
-    mockGet.mockImplementation(async url => ({ data: url === '/assets' ? [] : { expenses: 60 } }));
+    mockGet.mockImplementation(async url => ({
+      data: url === '/assets' ? [] : url === '/accounts' ? [] : { expenses: 60 },
+    }));
     const { result } = renderFinancialData();
     await waitFor(() => expect(result.current.data?.averageMonthlyExpenses).toBe(10));
-    mockGet.mockImplementation(async url => ({ data: url === '/assets' ? [] : { expenses: 120 } }));
+    mockGet.mockImplementation(async url => ({
+      data: url === '/assets' ? [] : url === '/accounts' ? [] : { expenses: 120 },
+    }));
     await act(async () => {
       await result.current.refetch();
     });
     await waitFor(() => expect(result.current.data?.averageMonthlyExpenses).toBe(20));
+  });
+  it('includes cash, converts foreign own balances, and counts linked holdings only once', async () => {
+    mockGet.mockImplementation(async url => ({
+      data:
+        url === '/accounts'
+          ? [
+              { currency: 'EUR', ownBalance: 12000, balance: 12000, isActive: true },
+              { currency: 'EUR', ownBalance: 200, balance: 1200, isActive: true },
+              {
+                currency: 'USD',
+                ownBalance: 100,
+                balance: 100,
+                baseCurrency: 'EUR',
+                exchangeRate: 0.8,
+                isActive: true,
+              },
+              { currency: 'EUR', ownBalance: -300, balance: -300, isActive: true },
+              { currency: 'EUR', ownBalance: 99999, balance: 99999, isActive: false },
+            ]
+          : url === '/assets'
+            ? [
+                { type: 'STOCK', currency: 'EUR', totalValue: 1000 },
+                { type: 'REAL_ESTATE', currency: 'EUR', totalValue: 300000 },
+                { type: 'VEHICLE', currency: 'EUR', totalValue: 20000 },
+                { type: 'STOCK', currency: 'EUR', totalValue: 5000, acquisitionType: 'PLANNED' },
+              ]
+            : { expenses: 6000 },
+    }));
+    const { result } = renderFinancialData();
+    await waitFor(() =>
+      expect(result.current.data).toEqual({
+        totalSavings: 12980,
+        averageMonthlyExpenses: 1000,
+        currency: 'EUR',
+      })
+    );
+  });
+
+  it('includes a bank-only household with no assets', async () => {
+    mockGet.mockImplementation(async url => ({
+      data:
+        url === '/accounts'
+          ? [{ currency: 'EUR', ownBalance: 12000, balance: 12000, isActive: true }]
+          : url === '/assets'
+            ? []
+            : { expenses: 6000 },
+    }));
+    const { result } = renderFinancialData();
+    await waitFor(() => expect(result.current.data?.totalSavings).toBe(12000));
   });
 });

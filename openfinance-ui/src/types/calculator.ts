@@ -28,6 +28,9 @@ export interface FreedomCalculatorInput {
 
   /** Whether to include inflation adjustment */
   adjustForInflation?: boolean;
+
+  /** Maximum number of annual projection rows (default 30). */
+  projectionYears?: number;
 }
 
 /**
@@ -234,6 +237,9 @@ export interface TimelineApiRequest {
   withdrawalRate?: number;
   inflationRate?: number;
   adjustForInflation?: boolean;
+
+  /** Maximum number of annual projection rows (default 30). */
+  projectionYears?: number;
 }
 
 /**

@@ -1,6 +1,7 @@
 package org.openfinance.util;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -42,16 +43,16 @@ public final class MoneyAllocation {
      * @param scale the minor-unit scale (e.g. 2 for USD, 0 for JPY)
      */
     public static ReconcileResult reconcile(BigDecimal total, List<BigDecimal> parts, int scale) {
-        long totalUnits = toUnits(total, scale);
-        long[] units = new long[parts.size()];
-        long partsSum = 0;
+        BigInteger totalUnits = toUnits(total, scale);
+        BigInteger[] units = new BigInteger[parts.size()];
+        BigInteger partsSum = BigInteger.ZERO;
         for (int i = 0; i < parts.size(); i++) {
             units[i] = toUnits(parts.get(i), scale);
-            partsSum += units[i];
+            partsSum = partsSum.add(units[i]);
         }
-        long residue = totalUnits - partsSum;
+        BigInteger residue = totalUnits.subtract(partsSum);
 
-        if (Math.abs(residue) > parts.size()) {
+        if (residue.abs().compareTo(BigInteger.valueOf(parts.size())) > 0) {
             return new ReconcileResult(true, parts);
         }
 
@@ -61,37 +62,38 @@ public final class MoneyAllocation {
         for (int i = 0; i < units.length; i++) {
             order.add(i);
         }
-        final long[] snapshot = units.clone();
+        final BigInteger[] snapshot = units.clone();
         order.sort(
-                Comparator.<Integer>comparingLong(i -> -Math.abs(snapshot[i]))
+                Comparator.<Integer, BigInteger>comparing(i -> snapshot[i].abs().negate())
                         .thenComparingInt(i -> i));
 
-        int step = residue > 0 ? 1 : -1;
+        BigInteger step = BigInteger.valueOf(residue.signum());
         for (int idx : order) {
-            if (residue == 0) {
+            if (residue.signum() == 0) {
                 break;
             }
-            long next = units[idx] + step;
-            if (next >= 1) { // never push a line below one minor unit
+            BigInteger next = units[idx].add(step);
+            if (next.signum() > 0) { // never push a line below one minor unit
                 units[idx] = next;
-                residue -= step;
+                residue = residue.subtract(step);
             }
         }
-        if (residue != 0) {
+        if (residue.signum() != 0) {
             // Could not place the residue without violating the per-line minimum.
             return new ReconcileResult(true, parts);
         }
 
-        BigDecimal unit = BigDecimal.ONE.movePointLeft(scale);
         List<BigDecimal> result = new ArrayList<>(units.length);
-        for (long u : units) {
-            result.add(
-                    BigDecimal.valueOf(u).multiply(unit).setScale(scale, RoundingMode.UNNECESSARY));
+        for (BigInteger u : units) {
+            if (u.signum() <= 0) {
+                return new ReconcileResult(true, parts);
+            }
+            result.add(new BigDecimal(u, scale));
         }
         return new ReconcileResult(false, result);
     }
 
-    private static long toUnits(BigDecimal value, int scale) {
-        return value.movePointRight(scale).setScale(0, RoundingMode.HALF_UP).longValueExact();
+    private static BigInteger toUnits(BigDecimal value, int scale) {
+        return value.movePointRight(scale).setScale(0, RoundingMode.HALF_UP).toBigIntegerExact();
     }
 }

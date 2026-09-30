@@ -65,6 +65,8 @@ class BudgetControllerTest {
 
     @MockBean private BudgetService budgetService;
 
+    @MockBean private org.openfinance.repository.CurrencyRepository currencyRepository;
+
     @MockBean private org.openfinance.service.JwtService jwtService;
 
     @MockBean private org.openfinance.service.SessionRevocationService sessionRevocationService;

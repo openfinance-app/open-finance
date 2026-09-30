@@ -14,6 +14,7 @@ import { PropertySection } from './InvestmentForm/PropertySection';
 import { RevenueSection } from './InvestmentForm/RevenueSection';
 import { ExpensesSection } from './InvestmentForm/ExpensesSection';
 import { RegimeComparisonGrid } from './RegimeComparisonGrid';
+import { TaxContextSection } from '@/components/real-estate-tools/InvestmentForm/TaxContextSection';
 import type { SharedPropertyData } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -45,6 +46,7 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
     updatePropertyInput,
     updateRevenueInput,
     updateExpenseInput,
+    updateTaxInput,
     calculate,
     reset,
     setInputs,
@@ -205,6 +207,8 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
           onToggle={toggleExpenses}
         />
       </div>
+
+      <TaxContextSection inputs={inputs.tax} onUpdate={updateTaxInput} />
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">

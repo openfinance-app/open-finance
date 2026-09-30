@@ -14,6 +14,7 @@ import type {
   MarketInputs,
   ResaleInputs,
 } from '@/types/realEstateTools';
+import i18n from '@/i18n';
 import { REGIME_LIMITS } from '@/types/realEstateTools';
 
 /**
@@ -439,6 +440,21 @@ export function validateInvestmentInputs(inputs: InvestmentInputs): ValidationEr
     });
   }
 
+  if (inputs.tax) {
+    const { incomeYear, otherHouseholdIncome, otherFurnishedReceipts, otherUnfurnishedRent } =
+      inputs.tax;
+    const amounts = [otherHouseholdIncome, otherFurnishedReceipts, otherUnfurnishedRent];
+    if (
+      ![2025, 2026].includes(incomeYear) ||
+      amounts.some(value => value !== null && (!Number.isFinite(value) || value < 0))
+    ) {
+      errors.push({
+        field: 'general',
+        message: i18n.t('taxContext.invalid', { ns: 'realEstate' }),
+      });
+    }
+  }
+
   return errors;
 }
 
@@ -578,10 +594,14 @@ export function validateLoanParameters(
  * @param grossRevenue - Gross annual revenue
  * @returns Object with eligibility info for each regime
  */
-export function checkRegimeEligibility(grossRevenue: number): {
+export function checkRegimeEligibility(
+  grossRevenue: number,
+  otherHouseholdIncome: number | null = null,
+  incomeYear: 2025 | 2026 = 2026
+): {
   microFoncier: { eligible: boolean; limit: number };
   microBic: { eligible: boolean; limit: number };
-  lmnp: { isLMP: boolean; threshold: number };
+  lmnp: { isLMP: boolean | null; threshold: number };
 } {
   return {
     microFoncier: {
@@ -589,11 +609,16 @@ export function checkRegimeEligibility(grossRevenue: number): {
       limit: REGIME_LIMITS.MICRO_FONCIER,
     },
     microBic: {
-      eligible: grossRevenue <= REGIME_LIMITS.MICRO_BIC,
-      limit: REGIME_LIMITS.MICRO_BIC,
+      eligible: grossRevenue <= REGIME_LIMITS.MICRO_BIC[incomeYear],
+      limit: REGIME_LIMITS.MICRO_BIC[incomeYear],
     },
     lmnp: {
-      isLMP: grossRevenue > REGIME_LIMITS.LMNP_SOCIAL_THRESHOLD,
+      isLMP:
+        grossRevenue <= REGIME_LIMITS.LMNP_SOCIAL_THRESHOLD
+          ? false
+          : otherHouseholdIncome === null
+            ? null
+            : grossRevenue > otherHouseholdIncome,
       threshold: REGIME_LIMITS.LMNP_SOCIAL_THRESHOLD,
     },
   };

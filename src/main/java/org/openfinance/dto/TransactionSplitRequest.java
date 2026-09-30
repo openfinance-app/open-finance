@@ -50,7 +50,7 @@ public class TransactionSplitRequest {
      * <p>Requirement REQ-SPL-1.1: Amount field; REQ-SPL-1.2: Sum constraint
      */
     @NotNull(message = "{split.amount.required}")
-    @DecimalMin(value = "0.01", message = "{split.amount.min}")
+    @DecimalMin(value = "0", inclusive = false, message = "{split.amount.min}")
     @Digits(integer = 26, fraction = 18, message = "{split.amount.digits}")
     private BigDecimal amount;
 

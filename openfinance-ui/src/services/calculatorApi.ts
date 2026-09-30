@@ -21,7 +21,11 @@ import type {
 export async function calculateTimeline(
   input: FreedomCalculatorInput
 ): Promise<FreedomCalculatorResult> {
-  const response = await apiClient.post('/calculator/financial-freedom/timeline', {
+  const response = await apiClient.post<
+    Omit<FreedomCalculatorResult, 'yearlyProjections'> & {
+      projections: FreedomCalculatorResult['yearlyProjections'];
+    }
+  >('/calculator/financial-freedom/timeline', {
     currentSavings: input.currentSavings,
     monthlyExpenses: input.monthlyExpenses,
     expectedAnnualReturn: input.expectedAnnualReturn,
@@ -29,9 +33,11 @@ export async function calculateTimeline(
     withdrawalRate: input.withdrawalRate ?? 4,
     inflationRate: input.inflationRate ?? 2.5,
     adjustForInflation: input.adjustForInflation ?? false,
+    projectionYears: input.projectionYears ?? 30,
   });
 
-  return response.data;
+  const { projections, ...result } = response.data;
+  return { ...result, yearlyProjections: projections };
 }
 
 /**
@@ -47,12 +53,10 @@ export async function calculateLongevity(
   monthlyExpenses: number,
   annualReturnRate: number
 ): Promise<SavingsLongevityResult> {
-  const response = await apiClient.post('/calculator/financial-freedom/longevity', null, {
-    params: {
-      currentSavings,
-      monthlyExpenses,
-      annualReturnRate,
-    },
+  const response = await apiClient.post('/calculator/financial-freedom/longevity', {
+    currentSavings,
+    monthlyExpenses,
+    expectedAnnualReturn: annualReturnRate,
   });
 
   return response.data;

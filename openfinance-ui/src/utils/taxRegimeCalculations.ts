@@ -11,9 +11,16 @@ import type {
   TaxRegime,
   RentalRevenueInputs,
   OwnerExpensesInputs,
+  RentalCalculationStatus,
 } from '@/types/realEstateTools';
-import { REGIME_LIMITS, REGIME_RATES, FURNITURE_VALUES } from '@/types/realEstateTools';
+import {
+  DEFAULT_RENTAL_TAX_CONTEXT,
+  REGIME_LIMITS,
+  REGIME_RATES,
+  FURNITURE_VALUES,
+} from '@/types/realEstateTools';
 import { add, subtract, multiply, divide, sum, percentage } from '@/utils/money';
+import i18n from '@/i18n';
 
 /**
  * Calculate gross rental revenue
@@ -30,6 +37,20 @@ export function calculateGrossRevenue(revenue: RentalRevenueInputs): number {
   return multiply(multiply(annualRent, effectiveOccupancy), effectiveCollection);
 }
 
+/** Tenant reimbursements are excluded from unfurnished tax receipts and economic profit. */
+export function calculateRentExcludingCharges(revenue: RentalRevenueInputs): number {
+  return calculateGrossRevenue({ ...revenue, recoverableCharges: 0 });
+}
+
+/** Ordinary full-year, long-term furnished rentals by French-resident households. */
+function furnishedStatus(inputs: InvestmentInputs): RentalCalculationStatus {
+  const tax = { ...DEFAULT_RENTAL_TAX_CONTEXT, ...inputs.tax };
+  const householdReceipts = add(calculateGrossRevenue(inputs.revenue), tax.otherFurnishedReceipts);
+  if (householdReceipts <= REGIME_LIMITS.LMNP_SOCIAL_THRESHOLD) return 'complete';
+  if (tax.otherHouseholdIncome === null) return 'needsHouseholdIncome';
+  return householdReceipts > tax.otherHouseholdIncome ? 'professionalOutOfScope' : 'complete';
+}
+
 /**
  * Calculate Micro-Foncier regime
  * - Eligible if gross revenue <= €15,000
@@ -42,8 +63,9 @@ export function calculateGrossRevenue(revenue: RentalRevenueInputs): number {
  * @returns Regime calculation result
  */
 export function calculateMicroFoncier(inputs: InvestmentInputs): RegimeCalculationResult {
-  const grossRevenue = calculateGrossRevenue(inputs.revenue);
-  const eligible = grossRevenue <= REGIME_LIMITS.MICRO_FONCIER;
+  const grossRevenue = calculateRentExcludingCharges(inputs.revenue);
+  const eligible =
+    add(grossRevenue, inputs.tax?.otherUnfurnishedRent ?? 0) <= REGIME_LIMITS.MICRO_FONCIER;
 
   const abattement = multiply(grossRevenue, REGIME_RATES.MICRO_FONCIER_ABATEMENT);
   const taxableIncome = Math.max(0, subtract(grossRevenue, abattement));
@@ -52,7 +74,7 @@ export function calculateMicroFoncier(inputs: InvestmentInputs): RegimeCalculati
 
   const warnings: string[] = [];
   if (!eligible) {
-    warnings.push('Revenus > 15 000€ - Régime réel conseillé');
+    warnings.push(i18n.t('taxContext.microFoncierLimit', { ns: 'realEstate' }));
   }
 
   return buildRegimeResult(
@@ -80,7 +102,7 @@ export function calculateMicroFoncier(inputs: InvestmentInputs): RegimeCalculati
  * @returns Regime calculation result
  */
 export function calculateReelFoncier(inputs: InvestmentInputs): RegimeCalculationResult {
-  const grossRevenue = calculateGrossRevenue(inputs.revenue);
+  const grossRevenue = calculateRentExcludingCharges(inputs.revenue);
 
   const deductibleExpenses = calculateDeductibleExpenses(inputs.expenses);
   const taxableIncome = Math.max(0, subtract(grossRevenue, deductibleExpenses));
@@ -102,9 +124,9 @@ export function calculateReelFoncier(inputs: InvestmentInputs): RegimeCalculatio
 
 /**
  * Calculate Micro-BIC regime (furnished rental)
- * - Eligible if gross revenue <= €77,700
+ * - Long-term micro-BIC threshold depends on the income year
  * - 50% flat-rate deduction
- * - 17.2% social contributions on taxable income
+ * - 18.6% non-professional social levies (income years 2025 and 2026)
  *
  * REQ-2.4.3, REQ-2.6.2
  *
@@ -115,16 +137,29 @@ export function calculateMicroBIC(inputs: InvestmentInputs): RegimeCalculationRe
   const grossRevenue = calculateGrossRevenue(inputs.revenue);
   // For Micro-BIC, eligibility is based on gross revenue (chiffre d'affaires)
   // before any deductions
-  const eligible = grossRevenue <= REGIME_LIMITS.MICRO_BIC;
+  const tax = { ...DEFAULT_RENTAL_TAX_CONTEXT, ...inputs.tax };
+  const threshold = REGIME_LIMITS.MICRO_BIC[tax.incomeYear];
+  const status = furnishedStatus(inputs);
+  const householdReceipts = add(grossRevenue, tax.otherFurnishedReceipts);
+  const eligible = householdReceipts <= threshold && status === 'complete';
 
-  const abattement = multiply(grossRevenue, REGIME_RATES.MICRO_BIC_ABATEMENT);
+  const householdAbatement = Math.min(
+    householdReceipts,
+    Math.max(305, multiply(householdReceipts, REGIME_RATES.MICRO_BIC_ABATEMENT))
+  );
+  // Allocate the household allowance to this property's share of receipts. The minimum
+  // must not be awarded again for every property in the same household.
+  const abattement =
+    householdReceipts === 0
+      ? 0
+      : multiply(householdAbatement, divide(grossRevenue, householdReceipts));
   const taxableIncome = Math.max(0, subtract(grossRevenue, abattement));
   const incomeTax = multiply(taxableIncome, divide(inputs.expenses.marginalTaxRate, 100));
-  const socialContributions = multiply(taxableIncome, REGIME_RATES.SOCIAL_CONTRIBUTIONS_STANDARD);
+  const socialContributions = multiply(taxableIncome, REGIME_RATES.SOCIAL_CONTRIBUTIONS_FURNISHED);
 
   const warnings: string[] = [];
-  if (!eligible) {
-    warnings.push("Chiffre d'affaires brut > 77 700€ - Régime réel conseillé");
+  if (add(grossRevenue, tax.otherFurnishedReceipts) > threshold) {
+    warnings.push(i18n.t('taxContext.microBicLimit', { ns: 'realEstate', threshold }));
   }
 
   return buildRegimeResult(
@@ -136,7 +171,8 @@ export function calculateMicroBIC(inputs: InvestmentInputs): RegimeCalculationRe
     0, // No depreciation in micro-BIC
     incomeTax,
     socialContributions,
-    warnings
+    warnings,
+    status
   );
 }
 
@@ -146,7 +182,7 @@ export function calculateMicroBIC(inputs: InvestmentInputs): RegimeCalculationRe
  * - All actual expenses deductible
  * - Building depreciation: 25 years straight-line
  * - Furniture depreciation: 5 years straight-line
- * - Social contributions: 17.2% (standard) or 45% if LMP (> €23,000 revenue)
+ * - 18.6% social levies for LMNP; professional contributions are not estimated
  *
  * REQ-2.4.4, REQ-2.6.3
  *
@@ -156,7 +192,8 @@ export function calculateMicroBIC(inputs: InvestmentInputs): RegimeCalculationRe
 export function calculateLMNPReel(inputs: InvestmentInputs): RegimeCalculationResult {
   const grossRevenue = calculateGrossRevenue(inputs.revenue);
 
-  const deductibleExpenses = calculateDeductibleExpenses(inputs.expenses);
+  const recoveredCharges = subtract(grossRevenue, calculateRentExcludingCharges(inputs.revenue));
+  const deductibleExpenses = add(calculateDeductibleExpenses(inputs.expenses), recoveredCharges);
 
   // Calculate depreciation
   const buildingDepreciation = divide(
@@ -173,34 +210,22 @@ export function calculateLMNPReel(inputs: InvestmentInputs): RegimeCalculationRe
   const taxableIncome = Math.max(0, subtract(grossRevenue, totalDeductions));
   const incomeTax = multiply(taxableIncome, divide(inputs.expenses.marginalTaxRate, 100));
 
-  // Determine social contribution rate based on LMP threshold
-  const isLMP = grossRevenue > REGIME_LIMITS.LMNP_SOCIAL_THRESHOLD;
-  const socialRate = isLMP
-    ? REGIME_RATES.SOCIAL_CONTRIBUTIONS_LMP
-    : REGIME_RATES.SOCIAL_CONTRIBUTIONS_STANDARD;
-  const socialContributions = multiply(taxableIncome, socialRate);
-
+  const status = furnishedStatus(inputs);
+  const socialContributions = multiply(taxableIncome, REGIME_RATES.SOCIAL_CONTRIBUTIONS_FURNISHED);
   const warnings: string[] = [];
-  if (isLMP) {
-    warnings.push('Revenus > 23 000€ - Cotisations sociales LMP applicables');
-  }
 
   const result = buildRegimeResult(
     'lmnp_reel',
-    true,
+    status === 'complete',
     inputs,
     grossRevenue,
     totalDeductions,
     totalDepreciation,
     incomeTax,
     socialContributions,
-    warnings
+    warnings,
+    status
   );
-
-  // Override regime label for LMP
-  if (isLMP) {
-    result.taxation.regime = 'lmnp_reel';
-  }
 
   return result;
 }
@@ -247,7 +272,8 @@ function buildRegimeResult(
   depreciation: number,
   incomeTax: number,
   socialContributions: number,
-  warnings: string[]
+  warnings: string[],
+  status: RentalCalculationStatus = 'complete'
 ): RegimeCalculationResult {
   const taxableIncome = Math.max(0, subtract(grossRevenue, deduction));
   const totalTaxes = add(incomeTax, socialContributions);
@@ -258,11 +284,11 @@ function buildRegimeResult(
   const totalCharges = add(creditCharges, otherCharges);
 
   // Calculate performance metrics
-  const netRevenue = grossRevenue;
+  const netRevenue = calculateRentExcludingCharges(inputs.revenue);
   const monthlyCashFlow = divide(subtract(subtract(netRevenue, totalCharges), totalTaxes), 12);
 
   const totalInvestment = add(inputs.property.totalPrice, inputs.property.furnitureValue);
-  const grossYield = totalInvestment > 0 ? percentage(grossRevenue, totalInvestment) : 0;
+  const grossYield = totalInvestment > 0 ? percentage(netRevenue, totalInvestment) : 0;
   const netYield =
     totalInvestment > 0
       ? percentage(
@@ -301,17 +327,18 @@ function buildRegimeResult(
     },
     taxation: {
       regime,
-      incomeTax: incomeTax,
-      socialContributions: socialContributions,
-      totalTaxes: totalTaxes,
+      incomeTax: status === 'complete' ? incomeTax : null,
+      socialContributions: status === 'complete' ? socialContributions : null,
+      totalTaxes: status === 'complete' ? totalTaxes : null,
     },
     performance: {
-      monthlyCashFlow: monthlyCashFlow,
+      monthlyCashFlow: status === 'complete' ? monthlyCashFlow : null,
       grossYield: grossYield,
-      netYield: netYield,
+      netYield: status === 'complete' ? netYield : null,
     },
     details: {
       isEligible: eligible,
+      calculationStatus: status,
       depreciation: depreciation,
       warnings: warnings,
     },
@@ -435,7 +462,11 @@ export function getRecommendedRegime(results: {
               : 'microBic'
       ];
 
-    if (result.eligible && result.performance.netYield > bestYield) {
+    if (
+      result.eligible &&
+      result.performance.netYield !== null &&
+      result.performance.netYield > bestYield
+    ) {
       bestYield = result.performance.netYield;
       bestRegime = regime;
     }
@@ -471,7 +502,7 @@ export function getRegimeDescription(regime: TaxRegime): string {
     micro_foncier: 'Abattement forfaitaire de 30% pour les revenus ≤ 15 000€',
     reel_foncier: 'Déduction des frais réels pour locations non meublées',
     lmnp_reel: 'Amortissements sur 25 ans (bâtiment) et 5 ans (mobilier)',
-    micro_bic: 'Abattement forfaitaire de 50% pour locations meublées ≤ 77 700€',
+    micro_bic: 'Abattement forfaitaire de 50% pour locations meublées de longue durée',
   };
   return descriptions[regime] || '';
 }

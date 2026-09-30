@@ -13,10 +13,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
-import org.openfinance.util.MoneyAllocation;
 import org.springframework.stereotype.Component;
 
 /**
@@ -735,9 +733,29 @@ public class QifParser {
         builder.sourceFileName(fileName);
 
         ImportedTransaction transaction = builder.build();
+        recognizeOpeningBalance(transaction);
         validateTransaction(transaction, locale);
 
         return transaction;
+    }
+
+    private void recognizeOpeningBalance(ImportedTransaction transaction) {
+        String target = transaction.getToAccountName();
+        if (!"Opening Balance".equalsIgnoreCase(transaction.getPayee())
+                || !transaction.isTransfer()
+                || target == null
+                || transaction.isSplitTransaction()) {
+            return;
+        }
+        String account = transaction.getAccountName();
+        if (account != null && !account.equalsIgnoreCase(target)) {
+            return;
+        }
+        transaction.setAccountName(target);
+        transaction.setOpeningBalance(true);
+        transaction.setTransfer(false);
+        transaction.setToAccountName(null);
+        transaction.setCategory(null);
     }
 
     /** Validate imported transaction and add errors. */
@@ -750,7 +768,8 @@ public class QifParser {
         if (transaction.getAmount() == null) {
             transaction.addValidationError(
                     ImportParseSupport.message("import.validation.amount.required", locale));
-        } else if (transaction.getAmount().compareTo(BigDecimal.ZERO) == 0) {
+        } else if (transaction.getAmount().compareTo(BigDecimal.ZERO) == 0
+                && !transaction.isOpeningBalance()) {
             transaction.addValidationError(
                     ImportParseSupport.message("import.validation.amount.zero", locale));
         }
@@ -771,18 +790,24 @@ public class QifParser {
             if (transaction.getAmount() != null) {
                 // QIF split lines may carry the parent's sign — compare absolute values so
                 // expense splits reconcile correctly.
-                // QIF carries no currency, so use the fiat minor unit (scale 2). Legitimate
-                // per-line rounding residue is reconciled at import time; only flag a residue too
-                // large to be rounding (a gross mismatch).
-                List<BigDecimal> partAmounts =
+                // QIF does not identify the currency. Do not round split lines here: small
+                // crypto quantities can be below a fiat minor unit. The import service performs
+                // exact reconciliation once the target account's currency is known.
+                BigDecimal absoluteSplitSum =
                         transaction.getSplits().stream()
                                 .map(ImportedTransaction.SplitEntry::getAmount)
-                                .filter(a -> a != null)
+                                .filter(amount -> amount != null)
                                 .map(BigDecimal::abs)
-                                .collect(Collectors.toList());
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal roundingAllowance =
+                        new BigDecimal("0.01")
+                                .multiply(BigDecimal.valueOf(transaction.getSplits().size()));
                 boolean grossMismatch =
-                        MoneyAllocation.reconcile(transaction.getAmount().abs(), partAmounts, 2)
-                                .grossMismatch();
+                        absoluteSplitSum
+                                        .subtract(transaction.getAmount().abs())
+                                        .abs()
+                                        .compareTo(roundingAllowance)
+                                > 0;
                 if (grossMismatch) {
                     transaction.addValidationError(
                             ImportParseSupport.message(

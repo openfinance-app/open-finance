@@ -35,6 +35,44 @@ describe('ImportReview source categories', () => {
     mockAuthentication();
   });
 
+  it('preserves exact decimal strings when saving a category edit', () => {
+    const onTransactionsChange = vi.fn();
+    const transaction = {
+      transactionDate: '2026-09-15',
+      amount: '-0.123456789012345679',
+      currency: 'ETH',
+      payee: 'Crypto purchase',
+      category: null,
+      memo: '',
+      validationErrors: [],
+      splits: [
+        { amount: '-0.123456789012345678', category: 'First', memo: '' },
+        { amount: '-0.000000000000000001', category: 'Second', memo: '' },
+      ],
+    } as ImportTransactionDTO;
+    renderWithProviders(
+      <ImportReview
+        transactions={[transaction]}
+        onTransactionsChange={onTransactionsChange}
+        categoryMappings={{}}
+        onCategoryMappingsChange={vi.fn()}
+        newCategoryNames={[]}
+        onNewCategoryNamesChange={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByTitle('Edit transaction'));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose existing groceries' }));
+    fireEvent.click(screen.getByTitle('Save'));
+
+    const updated = onTransactionsChange.mock.lastCall?.[0][0] as ImportTransactionDTO;
+    expect(updated.amount).toBe('-0.123456789012345679');
+    expect(updated.splits.map(split => split.amount)).toEqual([
+      '-0.123456789012345678',
+      '-0.000000000000000001',
+    ]);
+  });
+
   it('maps a canonical source name to the existing localized category', async () => {
     const mappingsChanged = vi.fn();
     const newNamesChanged = vi.fn();

@@ -165,7 +165,7 @@ public class FinancialFreedomService {
                         monthlyContribution,
                         effectiveReturnRate,
                         targetAmount,
-                        MAX_PROJECTION_YEARS);
+                        request.getProjectionYears() == null ? 30 : request.getProjectionYears());
 
         // Generate sensitivity scenarios
         List<SensitivityScenario> scenarios =
@@ -177,10 +177,7 @@ public class FinancialFreedomService {
                         withdrawalRate);
 
         // Calculate progress percentage
-        BigDecimal progressPercentage =
-                request.getCurrentSavings()
-                        .divide(targetAmount, 6, RoundingMode.HALF_UP)
-                        .multiply(HUNDRED);
+        BigDecimal progressPercentage = targetProgress(request.getCurrentSavings(), targetAmount);
 
         // Calculate annual passive income at target
         BigDecimal annualPassiveIncome =
@@ -345,10 +342,12 @@ public class FinancialFreedomService {
     private static boolean isSustainable(
             BigDecimal savings, BigDecimal monthlyExpenses, BigDecimal annualReturnRate) {
         // Compare annual amounts before rounding a monthly rate, including the exact boundary.
-        return annualReturnRate.signum() > 0
-                && savings.multiply(annualReturnRate)
-                                .compareTo(monthlyExpenses.multiply(BigDecimal.valueOf(1200)))
-                        >= 0;
+        return monthlyExpenses.signum() == 0
+                || annualReturnRate.signum() > 0
+                        && savings.multiply(annualReturnRate)
+                                        .compareTo(
+                                                monthlyExpenses.multiply(BigDecimal.valueOf(1200)))
+                                >= 0;
     }
 
     /**
@@ -412,9 +411,10 @@ public class FinancialFreedomService {
                         ? request.getMonthlyContribution()
                         : BigDecimal.ZERO;
 
-        if (request.getCurrentSavings().compareTo(BigDecimal.ZERO) == 0
+        if (request.getMonthlyExpenses().signum() > 0
+                && request.getCurrentSavings().compareTo(BigDecimal.ZERO) == 0
                 && monthlyContribution.compareTo(BigDecimal.ZERO) == 0
-                && request.getExpectedAnnualReturn().doubleValue() <= 0) {
+                && request.getExpectedAnnualReturn().signum() <= 0) {
             throw new CalculationValidationException(
                     "Cannot achieve financial freedom with no savings, no contributions, and non-positive returns");
         }
@@ -532,22 +532,25 @@ public class FinancialFreedomService {
 
         List<ProjectionResult> projections = new ArrayList<>();
         BigDecimal balance = currentSavings;
-        BigDecimal annualRateFraction = annualRate.divide(HUNDRED, MC);
+        BigDecimal monthlyGrowth =
+                BigDecimal.ONE.add(
+                        annualRate
+                                .divide(HUNDRED, MC)
+                                .divide(BigDecimal.valueOf(MONTHS_PER_YEAR), MC));
         BigDecimal annualContribution =
                 monthlyContribution.multiply(BigDecimal.valueOf(MONTHS_PER_YEAR));
 
-        for (int year = 0; year <= maxYears; year++) {
+        for (int year = 1; year <= maxYears; year++) {
             BigDecimal startingBalance = balance;
 
-            // Calculate yearly returns
-            BigDecimal yearlyReturns = balance.multiply(annualRateFraction, MC);
-
-            // Update balance
-            balance = balance.add(yearlyReturns).add(annualContribution);
+            for (int month = 0; month < MONTHS_PER_YEAR; month++) {
+                balance = balance.multiply(monthlyGrowth, MC).add(monthlyContribution);
+            }
+            BigDecimal yearlyReturns =
+                    balance.subtract(startingBalance).subtract(annualContribution);
 
             // Calculate progress (as a percentage; clamped to 100 before assignment below)
-            BigDecimal progress =
-                    balance.divide(targetAmount, 6, RoundingMode.HALF_UP).multiply(HUNDRED);
+            BigDecimal progress = targetProgress(balance, targetAmount);
 
             boolean targetReached = balance.compareTo(targetAmount) >= 0;
 
@@ -569,6 +572,12 @@ public class FinancialFreedomService {
         }
 
         return projections;
+    }
+
+    private BigDecimal targetProgress(BigDecimal balance, BigDecimal targetAmount) {
+        return targetAmount.signum() == 0
+                ? HUNDRED
+                : balance.divide(targetAmount, 6, RoundingMode.HALF_UP).multiply(HUNDRED);
     }
 
     /**

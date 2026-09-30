@@ -17,6 +17,31 @@ class MoneyAllocationTest {
     }
 
     @Test
+    @DisplayName("reconcile: 18-decimal minor units must not overflow a long")
+    void reconcileLargeHighPrecisionAmounts() {
+        List<BigDecimal> parts =
+                List.of(new BigDecimal("50"), new BigDecimal("49.999999999999999999"));
+        MoneyAllocation.ReconcileResult result =
+                MoneyAllocation.reconcile(new BigDecimal("100"), parts, 18);
+        assertThat(result.grossMismatch()).isFalse();
+        assertThat(result.parts())
+                .containsExactly(
+                        new BigDecimal("50.000000000000000001"),
+                        new BigDecimal("49.999999999999999999"));
+    }
+
+    @Test
+    @DisplayName("reconcile: rounding must not erase a positive split")
+    void reconcileCannotProduceZeroSplits() {
+        List<BigDecimal> parts =
+                List.of(new BigDecimal("0.000000004"), new BigDecimal("0.000000004"));
+        MoneyAllocation.ReconcileResult result =
+                MoneyAllocation.reconcile(new BigDecimal("0.00000001"), parts, 8);
+        assertThat(result.grossMismatch()).isTrue();
+        assertThat(result.parts()).isEqualTo(parts);
+    }
+
+    @Test
     @DisplayName("reconcile: 33.33 x3 for 100.00 becomes 33.34 + 33.33 + 33.33 (exact)")
     void reconcileThreeWaySplit() {
         List<BigDecimal> parts =

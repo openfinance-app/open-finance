@@ -259,7 +259,7 @@ export function useEarlyPayoffCalculator(cfg: EarlyPayoffCountryConfig) {
       monthlyExtraPayment,
     } = input;
 
-    if (loanBalance <= 0 || annualRate <= 0 || (remainingYears <= 0 && remainingMonthsExtra <= 0)) {
+    if (loanBalance <= 0 || annualRate < 0 || (remainingYears <= 0 && remainingMonthsExtra <= 0)) {
       setResult(null);
       return;
     }

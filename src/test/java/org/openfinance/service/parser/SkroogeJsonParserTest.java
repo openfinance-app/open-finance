@@ -13,6 +13,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.SkroogeImportMetadata;
 import org.openfinance.dto.SkroogeImportParseResult;
@@ -26,6 +28,29 @@ class SkroogeJsonParserTest {
     @BeforeEach
     void setUp() {
         parser = new SkroogeJsonParser(new ObjectMapper());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0.123456789012345678", "\"0.123456789012345678\""})
+    @DisplayName("Skrooge numeric and quoted quantities retain eighteen decimals")
+    void shouldPreserveExactJsonAmounts(String value) throws IOException {
+        String json =
+                """
+                {
+                  "account": [{"id":10,"t_name":"Precision","t_type":"C","t_close":false}],
+                  "unit": [{"id":1,"t_name":"Euro (EUR)","t_symbol":"EUR","t_type":"1","rd_unit_id":0}],
+                  "operation": [{"id":1,"rd_account_id":10,"d_date":"2026-09-15","rc_unit_id":1,"t_comment":"Precision deposit"}],
+                  "suboperation": [{"id":1,"rd_operation_id":1,"f_value":%s}]
+                }
+                """
+                        .formatted(value);
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
+                        "precision.json");
+        assertThat(result.getTransactions()).hasSize(1);
+        assertThat(result.getTransactions().get(0).getAmount())
+                .isEqualByComparingTo("0.123456789012345678");
     }
 
     @Test

@@ -185,8 +185,14 @@ export function useFinancialFreedom() {
     const monthsRemainder = Math.round(monthsToFreedom % 12);
 
     const isAchievable = monthsToFreedom < 600; // 50 years max
-    const progressPercentage = percentage(input.currentSavings, targetAmount);
+    const progressPercentage =
+      targetAmount === 0 ? 100 : percentage(input.currentSavings, targetAmount);
     const annualPassiveIncome = multiply(targetAmount, divide(withdrawalRate, 100));
+    const longevity = calculateSavingsLongevity(
+      input.currentSavings,
+      input.monthlyExpenses,
+      effectiveReturnRate
+    );
 
     const result: FreedomCalculatorResult = {
       yearsToFreedom,
@@ -195,7 +201,7 @@ export function useFinancialFreedom() {
       progressPercentage: Math.min(progressPercentage, 100),
       currentProgress: input.currentSavings,
       annualPassiveIncome,
-      isSustainableIndefinitely: isAchievable && monthsToFreedom >= 600,
+      isSustainableIndefinitely: longevity.isInfinite,
       isAchievable,
       withdrawalRate,
       yearlyProjections: [],
@@ -210,13 +216,6 @@ export function useFinancialFreedom() {
       result,
       isLoading: false,
     }));
-
-    // Calculate longevity based on target amount if achievable, otherwise current savings
-    const longevity = calculateSavingsLongevity(
-      Math.max(input.currentSavings, targetAmount),
-      input.monthlyExpenses,
-      input.expectedAnnualReturn
-    );
 
     setState(prev => ({
       ...prev,

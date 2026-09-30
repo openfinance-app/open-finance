@@ -74,7 +74,7 @@ public class TransactionRequest {
      * <p>Requirement REQ-2.3.1: Record transaction amount
      */
     @NotNull(message = "{transaction.amount.required}")
-    @DecimalMin(value = "0.01", message = "{transaction.amount.greater}")
+    @DecimalMin(value = "0", inclusive = false, message = "{transaction.amount.greater}")
     @Digits(integer = 26, fraction = 18, message = "{transaction.amount.digits}")
     private BigDecimal amount;
 

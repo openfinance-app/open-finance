@@ -127,12 +127,12 @@ export function exportInvestmentToCSV(
       result.revenue.gross.toFixed(2),
       result.revenue.deduction.toFixed(2),
       result.revenue.taxable.toFixed(2),
-      result.taxation.incomeTax.toFixed(2),
-      result.taxation.socialContributions.toFixed(2),
-      result.taxation.totalTaxes.toFixed(2),
-      result.performance.monthlyCashFlow.toFixed(2),
+      result.taxation.incomeTax?.toFixed(2) ?? '',
+      result.taxation.socialContributions?.toFixed(2) ?? '',
+      result.taxation.totalTaxes?.toFixed(2) ?? '',
+      result.performance.monthlyCashFlow?.toFixed(2) ?? '',
       result.performance.grossYield.toFixed(2),
-      result.performance.netYield.toFixed(2),
+      result.performance.netYield?.toFixed(2) ?? '',
     ];
   });
 
@@ -226,26 +226,26 @@ export function generatePDFContent(
           <tr>
             <td>Micro-Foncier</td>
             <td>${invResults.microFoncier.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no')}</td>
-            <td>${formatDecimal(invResults.microFoncier.performance.netYield, 2)}%</td>
-            <td>${formatCurrency(invResults.microFoncier.performance.monthlyCashFlow, baseCurrency)}</td>
+            <td>${invResults.microFoncier.performance.netYield === null ? '—' : formatDecimal(invResults.microFoncier.performance.netYield, 2)}%</td>
+            <td>${invResults.microFoncier.performance.monthlyCashFlow === null ? '—' : formatCurrency(invResults.microFoncier.performance.monthlyCashFlow, baseCurrency)}</td>
           </tr>
           <tr>
             <td>Réel Foncier</td>
             <td>${invResults.reelFoncier.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no')}</td>
-            <td>${formatDecimal(invResults.reelFoncier.performance.netYield, 2)}%</td>
-            <td>${formatCurrency(invResults.reelFoncier.performance.monthlyCashFlow, baseCurrency)}</td>
+            <td>${invResults.reelFoncier.performance.netYield === null ? '—' : formatDecimal(invResults.reelFoncier.performance.netYield, 2)}%</td>
+            <td>${invResults.reelFoncier.performance.monthlyCashFlow === null ? '—' : formatCurrency(invResults.reelFoncier.performance.monthlyCashFlow, baseCurrency)}</td>
           </tr>
           <tr>
             <td>LMNP Réel</td>
             <td>${invResults.lmnpReel.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no')}</td>
-            <td>${formatDecimal(invResults.lmnpReel.performance.netYield, 2)}%</td>
-            <td>${formatCurrency(invResults.lmnpReel.performance.monthlyCashFlow, baseCurrency)}</td>
+            <td>${invResults.lmnpReel.performance.netYield === null ? '—' : formatDecimal(invResults.lmnpReel.performance.netYield, 2)}%</td>
+            <td>${invResults.lmnpReel.performance.monthlyCashFlow === null ? '—' : formatCurrency(invResults.lmnpReel.performance.monthlyCashFlow, baseCurrency)}</td>
           </tr>
           <tr>
             <td>Micro-BIC</td>
             <td>${invResults.microBic.eligible ? i18n.t('realEstate.exportImport.yes') : i18n.t('realEstate.exportImport.no')}</td>
-            <td>${formatDecimal(invResults.microBic.performance.netYield, 2)}%</td>
-            <td>${formatCurrency(invResults.microBic.performance.monthlyCashFlow, baseCurrency)}</td>
+            <td>${invResults.microBic.performance.netYield === null ? '—' : formatDecimal(invResults.microBic.performance.netYield, 2)}%</td>
+            <td>${invResults.microBic.performance.monthlyCashFlow === null ? '—' : formatCurrency(invResults.microBic.performance.monthlyCashFlow, baseCurrency)}</td>
           </tr>
         </tbody>
       </table>

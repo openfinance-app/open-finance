@@ -672,5 +672,23 @@
     "previous": "Previous",
     "next": "Next",
     "page": "Page {{page}} of {{total}}"
+  },
+  "taxContext": {
+    "title": "French rental tax assumptions",
+    "scope": "Estimate for a full year of ordinary long-term rental by a French-resident household affiliated to French social security. Tenant charges are assumed to be reimbursed at cost. Tourist rentals and professional social contributions are outside this estimator.",
+    "incomeYear": "Income year",
+    "otherHouseholdIncome": "Other qualifying household income per year (€)",
+    "incomeHelp": "Net taxable salaries, pensions and other qualifying business or professional income of the whole tax household, excluding furnished rent. Leave blank if unknown.",
+    "otherFurnishedReceipts": "Other household furnished rental receipts, including charges (€ / year)",
+    "otherUnfurnishedRent": "Other household unfurnished rent, excluding charges (€ / year)",
+    "incomplete": "Income needed",
+    "needsHouseholdIncome": "Household furnished receipts exceed €23,000. Enter other qualifying household income to determine LMNP or LMP status before estimating taxes and cash flow.",
+    "professionalOutOfScope": "Both LMP conditions are met. Professional social contributions depend on your actual situation; this LMNP estimator cannot calculate the net result.",
+    "microFoncierLimit": "Household unfurnished rent exceeds €15,000; micro-foncier is unavailable.",
+    "microBicLimit": "Household furnished receipts exceed €{{threshold}}. Check previous-year receipts and transitional eligibility before choosing micro-BIC.",
+    "sources": "Official tax rules",
+    "invalid": "Enter non-negative annual amounts and an income year of 2025 or 2026.",
+    "assumptions": "The comparison uses the entered annual household receipts for micro thresholds. It does not apply transitional eligibility, special property schemes, deficit carryforwards or personal tax allowances. Depreciation remains a simplified estimate. Mortgage interest deductions and land exclusion from depreciation are not modeled. The household minimum micro-BIC allowance is allocated in proportion to rental receipts.",
+    "rates": "Income year {{year}}: long-term micro-BIC ceiling €{{threshold}}; furnished social levies 18.6%, unfurnished 17.2%."
   }
 }

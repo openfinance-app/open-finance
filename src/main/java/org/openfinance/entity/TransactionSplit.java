@@ -91,7 +91,7 @@ public class TransactionSplit {
      * <p>Requirement REQ-SPL-1.1: Amount field; REQ-SPL-1.2: Sum validation
      */
     @NotNull(message = "{transactionSplit.amount.notnull}")
-    @DecimalMin(value = "0.01", message = "{transactionSplit.amount.decimalMin}")
+    @DecimalMin(value = "0", inclusive = false, message = "{split.amount.min}")
     @Digits(integer = 26, fraction = 18, message = "{transactionSplit.amount.digits}")
     @Column(name = "amount", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)

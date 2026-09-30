@@ -844,10 +844,12 @@ export function ImportReview({
                         {/* Amount */}
                         <td className="py-2.5 px-4 text-sm text-right font-mono whitespace-nowrap">
                           <span
-                            className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-500'}
+                            className={
+                              Number(transaction.amount) >= 0 ? 'text-green-600' : 'text-red-500'
+                            }
                           >
                             <ConvertedAmount
-                              amount={transaction.amount}
+                              amount={Number(transaction.amount)}
                               currency={transaction.currency || baseCurrency}
                               inline
                             />
@@ -1055,7 +1057,7 @@ export function ImportReview({
                                 </span>
                                 <span className="font-mono text-text-primary whitespace-nowrap">
                                   <ConvertedAmount
-                                    amount={split.amount}
+                                    amount={Number(split.amount)}
                                     currency={transaction.currency || baseCurrency}
                                     inline
                                   />

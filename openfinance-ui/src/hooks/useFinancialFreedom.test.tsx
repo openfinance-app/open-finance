@@ -436,4 +436,20 @@ describe('useFinancialFreedom', () => {
       expect(result.current.result).toBeNull();
     });
   });
+  it('uses actual savings for longevity independently of the freedom target', async () => {
+    const { result } = renderHook(() => useFinancialFreedom());
+    await waitFor(() => expect(result.current.defaults).not.toBeNull());
+    act(() => {
+      result.current.updateInput('currentSavings', 12000);
+      result.current.updateInput('monthlyExpenses', 1000);
+      result.current.updateInput('expectedAnnualReturn', 0);
+      result.current.updateInput('adjustForInflation', false);
+    });
+    act(() => {
+      result.current.calculateLocal();
+    });
+    expect(result.current.result?.targetSavingsAmount).toBe(300000);
+    expect(result.current.longevityResult?.totalMonthsUntilDepletion).toBe(12);
+    expect(result.current.result?.isSustainableIndefinitely).toBe(false);
+  });
 });

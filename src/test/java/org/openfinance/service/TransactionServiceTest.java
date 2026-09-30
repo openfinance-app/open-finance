@@ -2015,4 +2015,48 @@ class TransactionServiceTest {
         assertThatThrownBy(() -> transactionService.createTransaction(1L, req))
                 .isInstanceOf(InvalidTransactionException.class);
     }
+
+    @Test
+    void backdatedEditMovesOpeningBoundaryWithoutChangingBalance() {
+        TransactionRequest request = baseRequest();
+        request.setAmount(new BigDecimal("25"));
+        Transaction existing = transactionEntity(50L, 11L, request);
+        existing.setDate(LocalDate.of(2025, 9, 15));
+        request.setDate(LocalDate.of(2025, 8, 15));
+        Account account = accountFixture(10L, 11L, "Checking", "USD");
+        account.setOpeningDate(LocalDate.of(2025, 9, 1));
+        account.setBalance(new BigDecimal("975"));
+        when(accountRepository.findByIdAndUserId(10L, 11L)).thenReturn(Optional.of(account));
+        when(transactionRepository.findByIdAndUserId(50L, 11L)).thenReturn(Optional.of(existing));
+        when(transactionRepository.save(any())).thenReturn(existing);
+        when(transactionMapper.toResponse(existing)).thenReturn(new TransactionResponse());
+        doAnswer(
+                        invocation -> {
+                            existing.setDate(request.getDate());
+                            return null;
+                        })
+                .when(transactionMapper)
+                .updateEntityFromRequest(request, existing);
+        transactionService.updateTransaction(50L, 11L, request);
+        assertThat(account.getOpeningDate()).isEqualTo(request.getDate());
+        assertThat(account.getBalance()).isEqualByComparingTo("975");
+    }
+
+    @Test
+    void expenseDoesNotInheritPayeeIncomeCategory() {
+        TransactionRequest request = baseRequest();
+        request.setPayee("Income merchant");
+        Category income = categoryFixture(31L, 11L, "Salary", CategoryType.INCOME, false);
+        Payee payee = Payee.builder().name("Income merchant").defaultCategory(income).build();
+        when(payeeRepository.findAllByUser(11L)).thenReturn(List.of(payee));
+        when(accountRepository.findByIdAndUserId(10L, 11L))
+                .thenReturn(Optional.of(accountFixture(10L, 11L, "Checking", "USD")));
+        Transaction transaction = transactionEntity(50L, 11L, request);
+        when(transactionMapper.toEntity(request)).thenReturn(transaction);
+        when(transactionRepository.save(any())).thenReturn(transaction);
+        when(transactionMapper.toResponse(transaction)).thenReturn(new TransactionResponse());
+        transactionService.createTransaction(11L, request);
+        assertThat(request.getCategoryId()).isNull();
+        assertThat(transaction.getCategoryId()).isNull();
+    }
 }

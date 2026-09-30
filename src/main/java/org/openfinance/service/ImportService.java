@@ -2,11 +2,11 @@ package org.openfinance.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -486,9 +486,7 @@ public class ImportService {
         String fileCurrency = defaultCurrencyProvider.getDefaultCurrency();
         if (session.getMetadata() != null && !session.getMetadata().trim().isEmpty()) {
             try {
-                Map<String, Object> metadataMap =
-                        objectMapper.readValue(
-                                session.getMetadata(), new TypeReference<Map<String, Object>>() {});
+                Map<String, Object> metadataMap = deserializeMetadata(session.getMetadata());
                 if (metadataMap.get("ledgerBalance") != null) {
                     ledgerBalance = new BigDecimal(metadataMap.get("ledgerBalance").toString());
                 }
@@ -590,9 +588,7 @@ public class ImportService {
         }
         if (session.getMetadata() != null && !session.getMetadata().trim().isEmpty()) {
             try {
-                Map<String, Object> metadataMap =
-                        objectMapper.readValue(
-                                session.getMetadata(), new TypeReference<Map<String, Object>>() {});
+                Map<String, Object> metadataMap = deserializeMetadata(session.getMetadata());
                 if (metadataMap.get("ledgerBalance") != null) {
                     ledgerBalance = new BigDecimal(metadataMap.get("ledgerBalance").toString());
                 }
@@ -732,12 +728,14 @@ public class ImportService {
                     "Session cannot be confirmed. Current status: " + session.getStatus());
         }
 
+        List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
+        validateImportCategoryMappings(transactions, userId, categoryMappings);
+
         if ("JSON".equalsIgnoreCase(session.getFileFormat())
                 && hasSkroogeMetadata(session.getMetadata())) {
             return confirmSkroogeImport(session, userId, categoryMappings, skipDuplicates);
         }
 
-        List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
         if (shouldUseImportedAccountRouting(transactions)) {
             return confirmImportedAccountImport(
                     session, userId, accountId, categoryMappings, skipDuplicates, transactions);
@@ -759,10 +757,7 @@ public class ImportService {
             }
             if (session.getMetadata() != null && !session.getMetadata().trim().isEmpty()) {
                 try {
-                    Map<String, Object> metadataMap =
-                            objectMapper.readValue(
-                                    session.getMetadata(),
-                                    new TypeReference<Map<String, Object>>() {});
+                    Map<String, Object> metadataMap = deserializeMetadata(session.getMetadata());
                     if (metadataMap.get("ledgerBalance") != null) {
                         ledgerBalance = new BigDecimal(metadataMap.get("ledgerBalance").toString());
                     }
@@ -902,57 +897,13 @@ public class ImportService {
                     Transaction transaction =
                             convertToTransaction(
                                     importedTx, targetAccountId, userId, categoryMappings);
+                    List<TransactionSplitRequest> splits =
+                            prepareImportedSplits(
+                                    transaction, importedTx, userId, categoryMappings, Map.of());
                     accountCurrencyService.book(transaction, userId);
                     Transaction saved = transactionRepository.save(transaction);
-                    // Save splits if present (REQ-SPL)
                     if (importedTx.isSplitTransaction()) {
-                        List<TransactionSplitRequest> splitRequests =
-                                importedTx.getSplits().stream()
-                                        .map(
-                                                se -> {
-                                                    Long catId = null;
-                                                    if (se.getCategory() != null
-                                                            && !se.getCategory().trim().isEmpty()) {
-                                                        String catName = se.getCategory().trim();
-                                                        Long mapped =
-                                                                categoryMappings != null
-                                                                        ? categoryMappings.get(
-                                                                                catName)
-                                                                        : null;
-                                                        if (mapped != null) {
-                                                            catId = mapped;
-                                                        } else if (!catName.startsWith("[")) {
-                                                            CategoryType catType =
-                                                                    se.getAmount()
-                                                                                            .compareTo(
-                                                                                                    BigDecimal
-                                                                                                            .ZERO)
-                                                                                    >= 0
-                                                                            ? CategoryType.INCOME
-                                                                            : CategoryType.EXPENSE;
-                                                            catId =
-                                                                    resolveOrCreateHierarchicalCategory(
-                                                                            catName, userId,
-                                                                            catType);
-                                                        }
-                                                    }
-                                                    return TransactionSplitRequest.builder()
-                                                            .categoryId(catId)
-                                                            .amount(se.getAmount().abs())
-                                                            .description(se.getMemo())
-                                                            .build();
-                                                })
-                                        .collect(Collectors.toList());
-                        List<TransactionSplitRequest> reconciledSplits =
-                                transactionSplitService.reconcileForImport(
-                                        saved.getAmount(), saved.getCurrency(), splitRequests);
-                        transactionSplitService.validateSplits(
-                                saved.getAmount(), saved.getType(), reconciledSplits);
-                        transactionSplitService.saveSplits(saved.getId(), reconciledSplits);
-                        log.debug(
-                                "Saved {} split(s) for transaction {}",
-                                reconciledSplits.size(),
-                                saved.getId());
+                        transactionSplitService.saveSplits(saved.getId(), splits);
                     }
                     // Index in FTS ΓÇö importedTx has plain-text description (payee) and memo
                     // (notes)
@@ -1765,18 +1716,17 @@ public class ImportService {
                                 userId,
                                 categoryMappings,
                                 categoryIdsBySource);
+                List<TransactionSplitRequest> splits =
+                        prepareImportedSplits(
+                                transaction,
+                                importedTx,
+                                userId,
+                                categoryMappings,
+                                categoryIdsBySource);
                 accountCurrencyService.book(transaction, userId);
                 Transaction saved = transactionRepository.save(transaction);
                 if (importedTx.isSplitTransaction()) {
-                    List<TransactionSplitRequest> splitRequests =
-                            buildSplitRequests(
-                                    importedTx, userId, categoryMappings, categoryIdsBySource);
-                    List<TransactionSplitRequest> reconciledSplits =
-                            transactionSplitService.reconcileForImport(
-                                    saved.getAmount(), saved.getCurrency(), splitRequests);
-                    transactionSplitService.validateSplits(
-                            saved.getAmount(), saved.getType(), reconciledSplits);
-                    transactionSplitService.saveSplits(saved.getId(), reconciledSplits);
+                    transactionSplitService.saveSplits(saved.getId(), splits);
                 }
                 transactionService.syncTransactionFts(
                         saved, importedTx.getPayee(), importedTx.getMemo());
@@ -2060,17 +2010,13 @@ public class ImportService {
 
                 Transaction transaction =
                         convertToTransaction(importedTx, sourceAccountId, userId, categoryMappings);
+                List<TransactionSplitRequest> splits =
+                        prepareImportedSplits(
+                                transaction, importedTx, userId, categoryMappings, Map.of());
                 accountCurrencyService.book(transaction, userId);
                 Transaction saved = transactionRepository.save(transaction);
                 if (importedTx.isSplitTransaction()) {
-                    List<TransactionSplitRequest> splitRequests =
-                            buildSplitRequests(importedTx, userId, categoryMappings, Map.of());
-                    List<TransactionSplitRequest> reconciledSplits =
-                            transactionSplitService.reconcileForImport(
-                                    saved.getAmount(), saved.getCurrency(), splitRequests);
-                    transactionSplitService.validateSplits(
-                            saved.getAmount(), saved.getType(), reconciledSplits);
-                    transactionSplitService.saveSplits(saved.getId(), reconciledSplits);
+                    transactionSplitService.saveSplits(saved.getId(), splits);
                 }
                 transactionService.syncTransactionFts(
                         saved, importedTx.getPayee(), importedTx.getMemo());
@@ -2741,11 +2687,31 @@ public class ImportService {
         return String.join(":", segments);
     }
 
+    private List<TransactionSplitRequest> prepareImportedSplits(
+            Transaction transaction,
+            ImportedTransaction importedTx,
+            Long userId,
+            Map<String, Long> categoryMappings,
+            Map<Long, Long> categoryIdsBySource) {
+        if (!importedTx.isSplitTransaction()) {
+            return List.of();
+        }
+        List<TransactionSplitRequest> requests =
+                buildSplitRequests(importedTx, userId, categoryMappings, categoryIdsBySource);
+        List<TransactionSplitRequest> splits =
+                transactionSplitService.reconcileForImport(
+                        transaction.getAmount(), transaction.getCurrency(), requests);
+        transactionSplitService.validateSplits(
+                transaction.getAmount(), transaction.getType(), splits);
+        return splits;
+    }
+
     private List<TransactionSplitRequest> buildSplitRequests(
             ImportedTransaction importedTx,
             Long userId,
             Map<String, Long> categoryMappings,
             Map<Long, Long> categoryIdsBySource) {
+        CategoryType categoryType = importedCategoryType(importedTx);
         return importedTx.getSplits().stream()
                 .map(
                         splitEntry -> {
@@ -2757,18 +2723,17 @@ public class ImportService {
                             if (categoryId == null
                                     && splitEntry.getCategory() != null
                                     && categoryMappings != null) {
-                                categoryId = categoryMappings.get(splitEntry.getCategory());
+                                categoryId = categoryMappings.get(splitEntry.getCategory().trim());
+                            }
+                            if (categoryId != null) {
+                                validateImportedCategory(categoryId, userId, categoryType);
                             }
                             if (categoryId == null && splitEntry.getCategory() != null) {
                                 String catName = splitEntry.getCategory().trim();
                                 if (!catName.isEmpty() && !catName.startsWith("[")) {
-                                    CategoryType catType =
-                                            splitEntry.getAmount().compareTo(BigDecimal.ZERO) >= 0
-                                                    ? CategoryType.INCOME
-                                                    : CategoryType.EXPENSE;
                                     categoryId =
                                             resolveOrCreateHierarchicalCategory(
-                                                    catName, userId, catType);
+                                                    catName, userId, categoryType);
                                 }
                             }
                             return TransactionSplitRequest.builder()
@@ -2781,6 +2746,46 @@ public class ImportService {
                                     .build();
                         })
                 .collect(Collectors.toList());
+    }
+
+    private CategoryType importedCategoryType(ImportedTransaction transaction) {
+        return transaction.getAmount().signum() >= 0 ? CategoryType.INCOME : CategoryType.EXPENSE;
+    }
+
+    private void validateImportedCategory(Long categoryId, Long userId, CategoryType type) {
+        Category category =
+                categoryRepository
+                        .findByIdAndUserId(categoryId, userId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+        if (category.getType() != type) {
+            throw new IllegalArgumentException(
+                    "Mapped category type does not match transaction type");
+        }
+    }
+
+    /** Validate untrusted mappings before accounts or transactions can be created. */
+    private void validateImportCategoryMappings(
+            List<ImportedTransaction> transactions, Long userId, Map<String, Long> mappings) {
+        if (mappings == null || mappings.isEmpty()) return;
+        for (Long categoryId : new java.util.HashSet<>(mappings.values())) {
+            if (categoryId != null
+                    && categoryRepository.findByIdAndUserId(categoryId, userId).isEmpty()) {
+                throw new ResourceNotFoundException("Category not found");
+            }
+        }
+        for (ImportedTransaction transaction : transactions) {
+            if (transaction.hasErrors()
+                    || transaction.isTransfer()
+                    || transaction.isOpeningBalance()) continue;
+            CategoryType type = importedCategoryType(transaction);
+            List<String> names = new ArrayList<>();
+            names.add(transaction.getCategory());
+            transaction.getSplits().forEach(split -> names.add(split.getCategory()));
+            for (String name : names) {
+                Long categoryId = name == null ? null : mappings.get(name.trim());
+                if (categoryId != null) validateImportedCategory(categoryId, userId, type);
+            }
+        }
     }
 
     private boolean hasSkroogeMetadata(String metadata) {
@@ -2805,12 +2810,22 @@ public class ImportService {
         return preserved;
     }
 
+    private Map<String, Object> deserializeMetadata(String metadata)
+            throws JsonProcessingException {
+        // Untyped JSON otherwise becomes Double before convertValue can bind BigDecimal fields.
+        // Use a local reader so transactions, splits and opening balances retain source precision.
+        return objectMapper
+                .readerFor(new TypeReference<Map<String, Object>>() {})
+                .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+                .readValue(metadata);
+    }
+
     private Map<String, Object> readMetadataMap(String metadata) {
         if (metadata == null || metadata.trim().isEmpty()) {
             return new HashMap<>();
         }
         try {
-            return objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {});
+            return deserializeMetadata(metadata);
         } catch (JsonProcessingException ex) {
             log.warn("Failed to read import metadata: {}", ex.getMessage());
             return new HashMap<>();
@@ -3204,18 +3219,16 @@ public class ImportService {
     }
 
     private BigDecimal normalizeAmount(BigDecimal amount) {
-        if (amount == null) {
-            return null;
-        }
-
-        BigDecimal absoluteAmount = amount.abs();
-        if (absoluteAmount.compareTo(new BigDecimal("0.0001")) < 0) {
+        if (amount == null || amount.signum() == 0) {
             throw new IllegalArgumentException(
-                    "Imported amount is below minimum supported value: " + amount);
+                    "Imported transaction amount must be non-zero: " + amount);
         }
-        BigDecimal normalized = absoluteAmount.setScale(4, RoundingMode.HALF_UP);
+        // Preserve source precision, including crypto dust. Display/minor-unit rounding is not
+        // a storage rule: encrypted Transaction amounts support 26 integer and 18 fractional
+        // digits.
+        BigDecimal normalized = amount.abs().stripTrailingZeros();
         int integerDigits = normalized.precision() - normalized.scale();
-        if (integerDigits > 15) {
+        if (integerDigits > 26 || normalized.scale() > 18) {
             throw new IllegalArgumentException(
                     "Imported amount exceeds supported precision: " + amount);
         }
@@ -3275,8 +3288,7 @@ public class ImportService {
         }
 
         try {
-            Map<String, Object> metadataMap =
-                    objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> metadataMap = deserializeMetadata(metadata);
 
             if (!metadataMap.containsKey("transactions")) {
                 log.warn("Metadata does not contain transactions field");

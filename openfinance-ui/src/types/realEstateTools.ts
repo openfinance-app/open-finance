@@ -304,11 +304,24 @@ export interface InvestmentCreditInfo {
 /**
  * Complete investment inputs
  */
+export interface RentalTaxContext {
+  incomeYear: 2025 | 2026;
+  otherHouseholdIncome: number | null;
+  otherFurnishedReceipts: number;
+  otherUnfurnishedRent: number;
+}
+
+export type RentalCalculationStatus =
+  | 'complete'
+  | 'needsHouseholdIncome'
+  | 'professionalOutOfScope';
+
 export interface InvestmentInputs {
   credit: InvestmentCreditInfo;
   property: InvestmentPropertyInputs;
   revenue: RentalRevenueInputs;
   expenses: OwnerExpensesInputs;
+  tax?: RentalTaxContext;
 }
 
 // ============================================
@@ -355,17 +368,18 @@ export interface RegimeCalculationResult {
   };
   taxation: {
     regime: TaxRegime;
-    incomeTax: number;
-    socialContributions: number;
-    totalTaxes: number;
+    incomeTax: number | null;
+    socialContributions: number | null;
+    totalTaxes: number | null;
   };
   performance: {
-    monthlyCashFlow: number;
+    monthlyCashFlow: number | null;
     grossYield: number;
-    netYield: number;
+    netYield: number | null;
   };
   details: {
     isEligible: boolean;
+    calculationStatus?: RentalCalculationStatus;
     depreciation: number;
     warnings: string[];
   };
@@ -522,6 +536,13 @@ export const DEFAULT_BUY_RENT_INPUTS: BuyRentInputs = {
 /**
  * Default values for Rental Simulator
  */
+export const DEFAULT_RENTAL_TAX_CONTEXT: RentalTaxContext = {
+  incomeYear: 2026,
+  otherHouseholdIncome: null,
+  otherFurnishedReceipts: 0,
+  otherUnfurnishedRent: 0,
+};
+
 export const DEFAULT_INVESTMENT_INPUTS: Omit<InvestmentInputs, 'credit'> = {
   property: {
     totalPrice: 0,
@@ -563,7 +584,7 @@ export const FURNITURE_VALUES: Record<FurnishingType, number> = {
  */
 export const REGIME_LIMITS = {
   MICRO_FONCIER: 15000,
-  MICRO_BIC: 77700,
+  MICRO_BIC: { 2025: 77700, 2026: 83600 },
   LMNP_SOCIAL_THRESHOLD: 23000,
 } as const;
 
@@ -575,7 +596,7 @@ export const REGIME_RATES = {
   MICRO_FONCIER_ABATEMENT: 0.3,
   MICRO_BIC_ABATEMENT: 0.5,
   SOCIAL_CONTRIBUTIONS_STANDARD: 0.172,
-  SOCIAL_CONTRIBUTIONS_LMP: 0.45,
+  SOCIAL_CONTRIBUTIONS_FURNISHED: 0.186,
   BUILDING_DEPRECIATION_YEARS: 25,
   FURNITURE_DEPRECIATION_YEARS: 5,
 } as const;

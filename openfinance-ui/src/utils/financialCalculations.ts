@@ -102,7 +102,7 @@ export function calculateTargetAmount(annualExpenses: number, withdrawalRate: nu
  * @param monthlyExpenses Monthly expenses
  * @param annualReturnRate Annual return rate as percentage
  * @param maxMonths Maximum months to calculate (default 1200 = 100 years)
- * @returns Object with months until depletion and infinity flag
+ * @returns Depletion month (including a final partially funded month), infinity flag and balance
  */
 export function calculateSavingsLongevity(
   currentSavings: number,
@@ -120,6 +120,9 @@ export function calculateSavingsLongevity(
 
   // Check for infinite sustainability
   // If returns on current savings exceed monthly expenses
+  if (monthlyExpenses === 0) {
+    return { monthsUntilDepletion: maxMonths, isInfinite: true, finalBalance: null };
+  }
   if (monthlyRate > 0) {
     const monthlyReturn = multiply(currentSavings, monthlyRate);
     if (monthlyReturn >= monthlyExpenses) {
@@ -138,9 +141,7 @@ export function calculateSavingsLongevity(
     // Subtract monthly expenses
     balance = subtract(balance, monthlyExpenses);
 
-    if (balance > 0) {
-      months++;
-    }
+    months++;
   }
 
   return {

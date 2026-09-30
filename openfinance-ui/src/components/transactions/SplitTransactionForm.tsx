@@ -64,9 +64,7 @@ export function SplitTransactionForm({
   exchangeRate,
 }: SplitTransactionFormProps) {
   const { t } = useTranslation('transactions');
-  // Cap at 4 dp to mirror the backend split scale (@Digits(fraction = 4)); crypto's 8-dp display
-  // precision is not usable for split line amounts.
-  const decimals = Math.min(getCurrencyDecimals(currency), 4);
+  const decimals = getCurrencyDecimals(currency);
   // REQ-SPL-3.3: running total via exact integer minor-units arithmetic.
   const splitTotal = sumToDecimals(
     splits.map(s => Number(s.amount) || 0),
@@ -99,8 +97,7 @@ export function SplitTransactionForm({
       ...splits,
       {
         categoryId: undefined,
-        // `remaining` is already precisely rounded to 2 decimals (see above) — no further
-        // Math.round(x * 100) / 100 needed, which would reintroduce the float rounding bug.
+        // Keep the currency's precision, including satoshis for crypto.
         amount: remaining > 0 ? remaining : 0,
         description: undefined,
       },
@@ -150,7 +147,7 @@ export function SplitTransactionForm({
               placeholder="0.00"
               aria-label={`Split ${index + 1} amount`}
               className="font-mono"
-              min="0.01"
+              min="0"
             />
           </div>
 

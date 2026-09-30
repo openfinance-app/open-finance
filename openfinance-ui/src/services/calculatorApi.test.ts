@@ -30,7 +30,9 @@ describe('calculatorApi', () => {
         message: 'On track',
       };
 
-      vi.mocked(apiClient.post).mockResolvedValue({ data: mockResult });
+      vi.mocked(apiClient.post).mockResolvedValue({
+        data: { ...mockResult, projections: mockResult.yearlyProjections },
+      });
 
       const input = {
         currentSavings: 50000,
@@ -52,6 +54,7 @@ describe('calculatorApi', () => {
         withdrawalRate: 4,
         inflationRate: 2.5,
         adjustForInflation: true,
+        projectionYears: 30,
       });
       expect(result).toEqual(mockResult);
     });
@@ -74,13 +77,14 @@ describe('calculatorApi', () => {
           withdrawalRate: 4,
           inflationRate: 2.5,
           adjustForInflation: false,
+          projectionYears: 30,
         })
       );
     });
   });
 
   describe('calculateLongevity', () => {
-    it('calls correct endpoint with query params', async () => {
+    it('sends the longevity request as the controller JSON DTO', async () => {
       const mockResult = {
         yearsUntilDepletion: 25,
         totalMonthsUntilDepletion: 300,
@@ -94,12 +98,10 @@ describe('calculatorApi', () => {
 
       const result = await calculateLongevity(100000, 3000, 5);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/calculator/financial-freedom/longevity', null, {
-        params: {
-          currentSavings: 100000,
-          monthlyExpenses: 3000,
-          annualReturnRate: 5,
-        },
+      expect(apiClient.post).toHaveBeenCalledWith('/calculator/financial-freedom/longevity', {
+        currentSavings: 100000,
+        monthlyExpenses: 3000,
+        expectedAnnualReturn: 5,
       });
       expect(result).toEqual(mockResult);
     });

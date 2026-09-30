@@ -319,6 +319,20 @@ public class RealEstateService {
             throw new org.openfinance.exception.InvalidTransactionException(
                     "Reverse property cost movements before correcting its currency");
         }
+        if (request.getPurchaseDate() != null
+                && transactionRepository.findByRealEstateIdAndUserId(propertyId, userId).stream()
+                        .filter(
+                                tx ->
+                                        tx.getMovementType()
+                                                        == org.openfinance.entity.MovementType
+                                                                .CAPITAL_IMPROVEMENT
+                                                || tx.getMovementType()
+                                                        == org.openfinance.entity.MovementType
+                                                                .MAINTENANCE)
+                        .anyMatch(tx -> tx.getDate().isBefore(request.getPurchaseDate()))) {
+            throw new InvalidTransactionException(
+                    "Acquisition cannot follow an existing property cost movement");
+        }
         // Update entity fields (MapStruct will skip null values)
         realEstateMapper.updateEntityFromRequest(request, property);
         if (request.isMortgageIdPresent() || request.getMortgageId() != null) {
@@ -1105,6 +1119,10 @@ public class RealEstateService {
         if (property.getAcquisitionType() == org.openfinance.entity.AcquisitionType.PLANNED) {
             throw new InvalidTransactionException(
                     "Complete the property's acquisition before capitalizing improvements");
+        }
+        if (property.getPurchaseDate() != null
+                && movementDate.isBefore(property.getPurchaseDate())) {
+            throw new InvalidTransactionException("An improvement cannot precede acquisition");
         }
         if (movementCurrency != null
                 && property.getCurrency() != null

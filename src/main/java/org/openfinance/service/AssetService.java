@@ -303,6 +303,12 @@ public class AssetService {
             throw new InvalidTransactionException(
                     "Reverse asset cost movements before correcting its currency");
         }
+        if (request.getPurchaseDate() != null
+                && transactionRepository.findByAssetIdAndUserId(assetId, userId).stream()
+                        .anyMatch(tx -> tx.getDate().isBefore(request.getPurchaseDate()))) {
+            throw new InvalidTransactionException(
+                    "Acquisition cannot follow an existing asset cost movement");
+        }
         // Capture snapshot before update for history
         AssetResponse beforeAssetSnapshot = toResponseWithDecryption(asset);
 

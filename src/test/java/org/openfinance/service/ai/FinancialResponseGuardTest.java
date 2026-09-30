@@ -75,4 +75,29 @@ class FinancialResponseGuardTest {
                                 Locale.ENGLISH))
                 .contains("\\[click\\]\\(https://example\\.test\\)");
     }
+
+    @Test
+    void rejectsWrittenAmountsWithoutCurrencyInPlainAndStructuredReplies() {
+        for (String claim :
+                new String[] {
+                    "Your account balance is one million.", "Your balance is twenty-five.",
+                    "Votre solde est deux mille.", "Votre solde est un million.",
+                    "Your savings cover half your expenses."
+                }) {
+            assertThat(FinancialResponseGuard.verify(claim, CONTEXT, Locale.ENGLISH))
+                    .contains("could not verify");
+            assertThat(
+                            FinancialResponseGuard.verify(
+                                    "{\"explanation\":\""
+                                            + claim
+                                            + "\",\"factIds\":[\"budget.1.limit\"]}",
+                                    CONTEXT,
+                                    Locale.ENGLISH))
+                    .contains("could not verify");
+        }
+        assertThat(
+                        FinancialResponseGuard.verify(
+                                "Examinez un budget adapté.", CONTEXT, Locale.FRENCH))
+                .isEqualTo("Examinez un budget adapté.");
+    }
 }

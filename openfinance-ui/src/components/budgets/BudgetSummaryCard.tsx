@@ -17,7 +17,6 @@ import { percentage, sum, subtract } from '@/utils/money';
 import { TrendingUp, TrendingDown, DollarSign, Target } from 'lucide-react';
 import type { BudgetProgressResponse, BudgetSummaryResponse } from '@/types/budget';
 import { cn } from '@/lib/utils';
-import { useAuthContext } from '@/context/AuthContext';
 
 interface BudgetSummaryCardProps {
   /** Global budget summary (all budgets for the selected period) */
@@ -28,12 +27,12 @@ interface BudgetSummaryCardProps {
 
 export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCardProps) {
   const { t } = useTranslation('budgets');
-  const { baseCurrency } = useAuthContext();
+  const displayCurrency = summary.currency;
   const {
     convert,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
-  } = useSecondaryConversion(baseCurrency);
+  } = useSecondaryConversion(displayCurrency);
   const isOverBudget = summary.totalSpent > summary.totalBudgeted;
   // Actual spent % for the "Total Spent" card (aggregate ratio)
   const spentPercentage = percentage(summary.totalSpent, summary.totalBudgeted);
@@ -69,7 +68,7 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
             <p className="text-2xl font-bold font-mono text-text-primary">
               <ConvertedAmount
                 amount={summary.totalBudgeted}
-                currency={baseCurrency}
+                currency={displayCurrency}
                 isConverted={false}
                 secondaryAmount={convert(summary.totalBudgeted)}
                 secondaryCurrency={secCurrency}
@@ -89,7 +88,7 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
                 {t('summary.filtered')}{' '}
                 <ConvertedAmount
                   amount={filteredTotals.filteredTotalBudgeted}
-                  currency={baseCurrency}
+                  currency={displayCurrency}
                   isConverted={false}
                   secondaryAmount={convert(filteredTotals.filteredTotalBudgeted)}
                   secondaryCurrency={secCurrency}
@@ -112,7 +111,7 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
             <p className="text-2xl font-bold font-mono text-text-primary">
               <ConvertedAmount
                 amount={summary.totalSpent}
-                currency={baseCurrency}
+                currency={displayCurrency}
                 isConverted={false}
                 secondaryAmount={convert(summary.totalSpent)}
                 secondaryCurrency={secCurrency}
@@ -129,7 +128,7 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
                 {t('summary.filtered')}{' '}
                 <ConvertedAmount
                   amount={filteredTotals.filteredTotalSpent}
-                  currency={baseCurrency}
+                  currency={displayCurrency}
                   isConverted={false}
                   secondaryAmount={convert(filteredTotals.filteredTotalSpent)}
                   secondaryCurrency={secCurrency}
@@ -161,7 +160,7 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
             >
               <ConvertedAmount
                 amount={Math.abs(summary.totalRemaining)}
-                currency={baseCurrency}
+                currency={displayCurrency}
                 isConverted={false}
                 secondaryAmount={convert(Math.abs(summary.totalRemaining))}
                 secondaryCurrency={secCurrency}
@@ -178,7 +177,7 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
                 {t('summary.filtered')}{' '}
                 <ConvertedAmount
                   amount={Math.abs(filteredTotals.filteredTotalRemaining)}
-                  currency={baseCurrency}
+                  currency={displayCurrency}
                   isConverted={false}
                   secondaryAmount={convert(Math.abs(filteredTotals.filteredTotalRemaining))}
                   secondaryCurrency={secCurrency}

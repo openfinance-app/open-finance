@@ -203,7 +203,7 @@ describe('useEarlyPayoffCalculator', () => {
     expect(result.current.result).toBeNull();
   });
 
-  it('should not calculate with invalid inputs (zero rate)', () => {
+  it('calculates interest-free repayment schedules', () => {
     const { result } = renderHook(() => useEarlyPayoffCalculator(frenchConfig));
 
     act(() => {
@@ -214,7 +214,9 @@ describe('useEarlyPayoffCalculator', () => {
       result.current.calculate();
     });
 
-    expect(result.current.result).toBeNull();
+    expect(result.current.result?.base.totalInterest).toBe(0);
+    expect(result.current.result?.base.totalMonths).toBe(240);
+    expect(result.current.result?.reduceDuration.totalMonths).toBeLessThan(240);
   });
 
   it('should not calculate with zero remaining time', () => {

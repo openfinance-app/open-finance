@@ -27,6 +27,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -316,6 +318,15 @@ class ImportServiceSkroogeJsonTest {
                             storedCategories.add(category);
                             return category;
                         });
+        when(categoryRepository.findByIdAndUserId(anyLong(), eq(USER_ID)))
+                .thenAnswer(
+                        inv ->
+                                storedCategories.stream()
+                                        .filter(
+                                                category ->
+                                                        category.getId().equals(inv.getArgument(0)))
+                                        .filter(category -> category.getUserId().equals(USER_ID))
+                                        .findFirst());
         when(transactionRepository.save(any(Transaction.class)))
                 .thenAnswer(
                         invocation -> {
@@ -341,7 +352,8 @@ class ImportServiceSkroogeJsonTest {
         assertThat(transferTransactions).hasSize(2);
         assertThat(transferTransactions)
                 .extracting(Transaction::getAmount)
-                .containsExactly(new BigDecimal("200.0000"), new BigDecimal("200.0000"));
+                .usingComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .containsExactly(new BigDecimal("200"), new BigDecimal("200"));
         assertThat(transferTransactions)
                 .extracting(Transaction::getCurrency)
                 .containsExactly("EUR", "EUR");
@@ -939,7 +951,8 @@ class ImportServiceSkroogeJsonTest {
         verify(transactionRepository).save(transactionCaptor.capture());
         Transaction savedTransaction = transactionCaptor.getValue();
         assertThat(savedTransaction.getCurrency()).isEqualTo("XOF");
-        assertThat(savedTransaction.getAmount()).isEqualByComparingTo(new BigDecimal("1960.1235"));
+        assertThat(savedTransaction.getAmount())
+                .isEqualByComparingTo(new BigDecimal("1960.12345678"));
         assertThat(savedTransaction.getType()).isEqualTo(TransactionType.EXPENSE);
     }
 
@@ -1019,14 +1032,14 @@ class ImportServiceSkroogeJsonTest {
     }
 
     @Test
-    @DisplayName("Should skip tiny Skrooge amounts without failing the import session")
-    void shouldSkipTinySkroogeAmountsWithoutFailingImportSession() throws Exception {
+    @DisplayName("Should skip amounts beyond ledger precision without failing the import session")
+    void shouldSkipUnrepresentableSkroogeAmountsWithoutFailingImportSession() throws Exception {
         SkroogeImportMetadata metadata = buildMetadataWithoutCategories();
         ImportedTransaction tinyAmountTransaction =
                 ImportedTransaction.builder()
                         .transactionDate(LocalDate.of(2024, 1, 16))
                         .payee("Dust adjustment")
-                        .amount(new BigDecimal("0.00001"))
+                        .amount(new BigDecimal("0.0000000000000000001"))
                         .memo("Residual currency dust")
                         .sourceAccountId(10L)
                         .accountName("Checking")
@@ -1080,15 +1093,16 @@ class ImportServiceSkroogeJsonTest {
         assertThat(result.getSkippedCount()).isEqualTo(1);
     }
 
-    @Test
-    @DisplayName("Should import crypto-scale Skrooge amounts at the supported minimum boundary")
-    void shouldImportCryptoScaleSkroogeAmountAtSupportedMinimumBoundary() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"0.000000000000000001", "0.123456789012345678"})
+    @DisplayName("Should preserve eighteen-decimal Skrooge amounts through JSON metadata")
+    void shouldPreserveSkroogeAmountThroughMetadata(String amount) throws Exception {
         SkroogeImportMetadata metadata = buildMetadataWithoutCategories();
         ImportedTransaction cryptoAmountTransaction =
                 ImportedTransaction.builder()
                         .transactionDate(LocalDate.of(2024, 1, 16))
                         .payee("Crypto dust")
-                        .amount(new BigDecimal("0.0001"))
+                        .amount(new BigDecimal(amount))
                         .memo("Small crypto quantity")
                         .sourceAccountId(10L)
                         .accountName("Checking")
@@ -1098,6 +1112,8 @@ class ImportServiceSkroogeJsonTest {
                         .build();
 
         ImportSession session = buildSession(metadata, List.of(cryptoAmountTransaction));
+        // Older sessions stored JSON numbers; the reader must preserve those too.
+        session.setMetadata(session.getMetadata().replace("\"" + amount + "\"", amount));
         Institution institution =
                 Institution.builder().id(301L).name("Demo Bank").isSystem(false).build();
         Account checkingAccount =
@@ -1146,7 +1162,7 @@ class ImportServiceSkroogeJsonTest {
         ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepository).save(transactionCaptor.capture());
         assertThat(transactionCaptor.getValue().getAmount())
-                .isEqualByComparingTo(new BigDecimal("0.0001"));
+                .isEqualByComparingTo(new BigDecimal(amount));
         assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
         assertThat(result.getImportedCount()).isEqualTo(1);
         assertThat(result.getSkippedCount()).isZero();
@@ -1244,7 +1260,7 @@ class ImportServiceSkroogeJsonTest {
                 ImportedTransaction.builder()
                         .transactionDate(LocalDate.of(2024, 1, 12))
                         .payee("Transfer Desk")
-                        .amount(new BigDecimal("0.00001"))
+                        .amount(new BigDecimal("0.0000000000000000001"))
                         .memo("Invalid dust side")
                         .sourceAccountId(20L)
                         .toAccountSourceId(10L)

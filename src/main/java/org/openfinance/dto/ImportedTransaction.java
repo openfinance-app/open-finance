@@ -1,5 +1,6 @@
 package org.openfinance.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -37,6 +38,7 @@ public class ImportedTransaction {
     private String originalPayee;
 
     /** Transaction amount (required) Negative for expenses, positive for income */
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal amount;
 
     /** Memo/notes/description */
@@ -109,6 +111,7 @@ public class ImportedTransaction {
      * delta so imports can preserve source rows even when Open-Finance has no historical FX rate
      * for the operation currency/account currency pair.
      */
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal sourceAccountBalanceDelta;
 
     /** Source category ID from the import format, when available. */
@@ -232,6 +235,7 @@ public class ImportedTransaction {
         private Long sourceCategoryId;
 
         /** Amount for this split */
+        @JsonFormat(shape = JsonFormat.Shape.STRING)
         private BigDecimal amount;
     }
 }

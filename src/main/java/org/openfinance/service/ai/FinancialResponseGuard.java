@@ -16,6 +16,17 @@ public final class FinancialResponseGuard {
             Pattern.compile(
                     "[\\p{N}\\p{Sc}]|\\b(?:EUR|USD|GBP|CHF|JPY|CAD|AUD|CNY|euros?|dollars?|pounds?|livres?|francs?|yens?|yuans?|roubles?|rubles?|rupees?)\\b",
                     Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern WRITTEN_FIGURE =
+            Pattern.compile(
+                    "\\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|"
+                            + "thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|"
+                            + "thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|"
+                            + "millions?|billions?|trillions?|half|quarter|dozen|twice|thrice|"
+                            + "zéro|deux|trois|quatre|cinq|sept|huit|neuf|dix|onze|douze|treize|"
+                            + "quatorze|quinze|seize|vingt|trente|quarante|cinquante|soixante|"
+                            + "centaines?|cents?|milliers?|mille|milliards?|demi|moitié|quart)\\b"
+                            + "|\\b(?:un|une)\\b(?!\\s+\\p{L})",
+                    Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
 
     private FinancialResponseGuard() {}
 
@@ -28,12 +39,12 @@ public final class FinancialResponseGuard {
                             .replaceFirst("^```(?:json)?\\s*", "")
                             .replaceFirst("\\s*```$", "");
             if (!cleaned.startsWith("{"))
-                return FIGURE.matcher(response).find() ? rejected(locale) : response;
+                return containsFigure(response) ? rejected(locale) : response;
             JsonNode answer = JSON.readTree(cleaned);
             if (!answer.path("explanation").isTextual() || !answer.path("factIds").isArray())
                 return rejected(locale);
             String explanation = answer.path("explanation").asText();
-            if (FIGURE.matcher(explanation).find()) return rejected(locale);
+            if (containsFigure(explanation)) return rejected(locale);
             Map<String, FinancialFact> facts = facts(context);
             Set<String> selected = new LinkedHashSet<>();
             for (JsonNode id : answer.path("factIds")) {
@@ -57,6 +68,10 @@ public final class FinancialResponseGuard {
         } catch (com.fasterxml.jackson.core.JsonProcessingException | RuntimeException ex) {
             return rejected(locale);
         }
+    }
+
+    private static boolean containsFigure(String text) {
+        return FIGURE.matcher(text).find() || WRITTEN_FIGURE.matcher(text).find();
     }
 
     private static Map<String, FinancialFact> facts(String context)

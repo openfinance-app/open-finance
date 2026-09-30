@@ -36,6 +36,7 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('realEstate');
   const isEligible = result.eligible;
+  const status = result.details.calculationStatus ?? 'complete';
   const hasWarnings = result.details.warnings.length > 0;
 
   return (
@@ -56,7 +57,11 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
             {isEligible ? (
               <Badge variant="default">{t('regimeCard.eligible')}</Badge>
             ) : (
-              <Badge variant="destructive">{t('regimeCard.notEligible')}</Badge>
+              <Badge variant="destructive">
+                {status === 'needsHouseholdIncome'
+                  ? t('taxContext.incomplete')
+                  : t('regimeCard.notEligible')}
+              </Badge>
             )}
             <ChevronDown
               className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -82,199 +87,224 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
             </Alert>
           )}
 
-          {/* Performance Metrics */}
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="bg-muted/50 p-3 rounded">
-              <p className="text-xs text-muted-foreground mb-1">{t('regimeCard.cashFlow')}</p>
-              <p
-                className={`text-lg font-bold ${result.performance.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}
-              >
-                <ConvertedAmount
-                  amount={result.performance.monthlyCashFlow}
-                  currency={baseCurrency}
-                  inline
-                />
-              </p>
-              <p className="text-xs text-muted-foreground">{t('regimeCard.perMonth')}</p>
-            </div>
-            <div className="bg-muted/50 p-3 rounded">
-              <p className="text-xs text-muted-foreground mb-1">{t('regimeCard.grossYield')}</p>
-              <p className="text-lg font-bold">
-                {formatDecimal(result.performance.grossYield, 2)}%
-              </p>
-            </div>
-            <div className="bg-muted/50 p-3 rounded">
-              <p className="text-xs text-muted-foreground mb-1">{t('regimeCard.netYield')}</p>
-              <p className={`text-lg font-bold ${isRecommended ? 'text-success' : ''}`}>
-                {formatDecimal(result.performance.netYield, 2)}%
-              </p>
-            </div>
-          </div>
+          {status !== 'complete' && (
+            <Alert variant="warning">
+              <AlertDescription>{t(`taxContext.${status}`)}</AlertDescription>
+            </Alert>
+          )}
+          {status === 'complete' && (
+            <>
+              {/* Performance Metrics */}
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="bg-muted/50 p-3 rounded">
+                  <p className="text-xs text-muted-foreground mb-1">{t('regimeCard.cashFlow')}</p>
+                  <p
+                    className={`text-lg font-bold ${(result.performance.monthlyCashFlow ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                  >
+                    <ConvertedAmount
+                      amount={result.performance.monthlyCashFlow ?? 0}
+                      currency={baseCurrency}
+                      inline
+                    />
+                  </p>
+                  <p className="text-xs text-muted-foreground">{t('regimeCard.perMonth')}</p>
+                </div>
+                <div className="bg-muted/50 p-3 rounded">
+                  <p className="text-xs text-muted-foreground mb-1">{t('regimeCard.grossYield')}</p>
+                  <p className="text-lg font-bold">
+                    {formatDecimal(result.performance.grossYield, 2)}%
+                  </p>
+                </div>
+                <div className="bg-muted/50 p-3 rounded">
+                  <p className="text-xs text-muted-foreground mb-1">{t('regimeCard.netYield')}</p>
+                  <p className={`text-lg font-bold ${isRecommended ? 'text-success' : ''}`}>
+                    {formatDecimal(result.performance.netYield ?? 0, 2)}%
+                  </p>
+                </div>
+              </div>
 
-          {/* Investment Summary */}
-          <div>
-            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              {t('regimeCard.investment')}
-            </h4>
-            <Table>
-              <TableBody>
-                <TableRow>
-                  <TableCell className="py-1 text-sm">{t('regimeCard.totalPrice')}</TableCell>
-                  <TableCell className="py-1 text-right font-medium">
-                    <ConvertedAmount
-                      amount={result.investment.totalPrice}
-                      currency={baseCurrency}
-                      inline
-                    />
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="py-1 text-sm">{t('regimeCard.annualCreditCost')}</TableCell>
-                  <TableCell className="py-1 text-right">
-                    <ConvertedAmount
-                      amount={result.investment.annualCreditCost}
-                      currency={baseCurrency}
-                      inline
-                    />
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="py-1 text-sm">{t('regimeCard.monthlyPayment')}</TableCell>
-                  <TableCell className="py-1 text-right">
-                    <ConvertedAmount
-                      amount={result.investment.monthlyCreditPayment}
-                      currency={baseCurrency}
-                      inline
-                    />
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
+              {/* Investment Summary */}
+              <div>
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <Building className="h-4 w-4" />
+                  {t('regimeCard.investment')}
+                </h4>
+                <Table>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="py-1 text-sm">{t('regimeCard.totalPrice')}</TableCell>
+                      <TableCell className="py-1 text-right font-medium">
+                        <ConvertedAmount
+                          amount={result.investment.totalPrice}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="py-1 text-sm">
+                        {t('regimeCard.annualCreditCost')}
+                      </TableCell>
+                      <TableCell className="py-1 text-right">
+                        <ConvertedAmount
+                          amount={result.investment.annualCreditCost}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="py-1 text-sm">
+                        {t('regimeCard.monthlyPayment')}
+                      </TableCell>
+                      <TableCell className="py-1 text-right">
+                        <ConvertedAmount
+                          amount={result.investment.monthlyCreditPayment}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
 
-          {/* Revenue */}
-          <div>
-            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              {t('regimeCard.revenue')}
-            </h4>
-            <Table>
-              <TableBody>
-                <TableRow>
-                  <TableCell className="py-1 text-sm">{t('regimeCard.gross')}</TableCell>
-                  <TableCell className="py-1 text-right">
-                    <ConvertedAmount amount={result.revenue.gross} currency={baseCurrency} inline />
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="py-1 text-sm">{t('regimeCard.deduction')}</TableCell>
-                  <TableCell className="py-1 text-right text-red-600">
-                    -
-                    <ConvertedAmount
-                      amount={Math.abs(result.revenue.deduction)}
-                      currency={baseCurrency}
-                      inline
-                    />
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="py-1 text-sm font-medium">
-                    {t('regimeCard.taxable')}
-                  </TableCell>
-                  <TableCell className="py-1 text-right font-medium">
-                    <ConvertedAmount
-                      amount={result.revenue.taxable}
-                      currency={baseCurrency}
-                      inline
-                    />
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
+              {/* Revenue */}
+              <div>
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  {t('regimeCard.revenue')}
+                </h4>
+                <Table>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="py-1 text-sm">{t('regimeCard.gross')}</TableCell>
+                      <TableCell className="py-1 text-right">
+                        <ConvertedAmount
+                          amount={result.revenue.gross}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="py-1 text-sm">{t('regimeCard.deduction')}</TableCell>
+                      <TableCell className="py-1 text-right text-red-600">
+                        -
+                        <ConvertedAmount
+                          amount={Math.abs(result.revenue.deduction)}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="py-1 text-sm font-medium">
+                        {t('regimeCard.taxable')}
+                      </TableCell>
+                      <TableCell className="py-1 text-right font-medium">
+                        <ConvertedAmount
+                          amount={result.revenue.taxable}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
 
-          {/* Charges */}
-          <div>
-            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-              <Wallet className="h-4 w-4" />
-              {t('regimeCard.charges')}
-            </h4>
-            <Table>
-              <TableBody>
-                <TableRow>
-                  <TableCell className="py-1 text-sm">{t('regimeCard.credit')}</TableCell>
-                  <TableCell className="py-1 text-right">
-                    <ConvertedAmount
-                      amount={result.charges.credit}
-                      currency={baseCurrency}
-                      inline
-                    />
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="py-1 text-sm">{t('regimeCard.other')}</TableCell>
-                  <TableCell className="py-1 text-right">
-                    <ConvertedAmount amount={result.charges.other} currency={baseCurrency} inline />
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="py-1 text-sm font-medium">
-                    {t('regimeCard.total')}
-                  </TableCell>
-                  <TableCell className="py-1 text-right font-medium">
-                    <ConvertedAmount amount={result.charges.total} currency={baseCurrency} inline />
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
+              {/* Charges */}
+              <div>
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  {t('regimeCard.charges')}
+                </h4>
+                <Table>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="py-1 text-sm">{t('regimeCard.credit')}</TableCell>
+                      <TableCell className="py-1 text-right">
+                        <ConvertedAmount
+                          amount={result.charges.credit}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="py-1 text-sm">{t('regimeCard.other')}</TableCell>
+                      <TableCell className="py-1 text-right">
+                        <ConvertedAmount
+                          amount={result.charges.other}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="py-1 text-sm font-medium">
+                        {t('regimeCard.total')}
+                      </TableCell>
+                      <TableCell className="py-1 text-right font-medium">
+                        <ConvertedAmount
+                          amount={result.charges.total}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
 
-          {/* Taxes */}
-          <div>
-            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-              <Percent className="h-4 w-4" />
-              {t('regimeCard.taxation')}
-            </h4>
-            <Table>
-              <TableBody>
-                <TableRow>
-                  <TableCell className="py-1 text-sm">{t('regimeCard.incomeTax')}</TableCell>
-                  <TableCell className="py-1 text-right">
-                    <ConvertedAmount
-                      amount={result.taxation.incomeTax}
-                      currency={baseCurrency}
-                      inline
-                    />
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="py-1 text-sm">
-                    {t('regimeCard.socialContributions')}
-                  </TableCell>
-                  <TableCell className="py-1 text-right">
-                    <ConvertedAmount
-                      amount={result.taxation.socialContributions}
-                      currency={baseCurrency}
-                      inline
-                    />
-                  </TableCell>
-                </TableRow>
-                <TableRow className="bg-muted/50">
-                  <TableCell className="py-1 text-sm font-medium">
-                    {t('regimeCard.totalTaxes')}
-                  </TableCell>
-                  <TableCell className="py-1 text-right font-medium text-red-600">
-                    <ConvertedAmount
-                      amount={result.taxation.totalTaxes}
-                      currency={baseCurrency}
-                      inline
-                    />
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
+              {/* Taxes */}
+              <div>
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <Percent className="h-4 w-4" />
+                  {t('regimeCard.taxation')}
+                </h4>
+                <Table>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="py-1 text-sm">{t('regimeCard.incomeTax')}</TableCell>
+                      <TableCell className="py-1 text-right">
+                        <ConvertedAmount
+                          amount={result.taxation.incomeTax ?? 0}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="py-1 text-sm">
+                        {t('regimeCard.socialContributions')}
+                      </TableCell>
+                      <TableCell className="py-1 text-right">
+                        <ConvertedAmount
+                          amount={result.taxation.socialContributions ?? 0}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow className="bg-muted/50">
+                      <TableCell className="py-1 text-sm font-medium">
+                        {t('regimeCard.totalTaxes')}
+                      </TableCell>
+                      <TableCell className="py-1 text-right font-medium text-red-600">
+                        <ConvertedAmount
+                          amount={result.taxation.totalTaxes ?? 0}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
         </CardContent>
       </div>
     </Card>

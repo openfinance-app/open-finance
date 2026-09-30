@@ -125,9 +125,9 @@ describe('calculateSavingsLongevity', () => {
   });
 
   it('should handle zero return rate', () => {
-    // €50,000 with €1,000/month expenses and 0% return = 49 months (balance goes to 0 after 49 months)
+    // €50,000 funds exactly 50 withdrawals of €1,000 at zero interest.
     const result = calculateSavingsLongevity(50000, 1000, 0);
-    expect(result.monthsUntilDepletion).toBe(49);
+    expect(result.monthsUntilDepletion).toBe(50);
     expect(result.isInfinite).toBe(false);
   });
 
@@ -140,7 +140,7 @@ describe('calculateSavingsLongevity', () => {
   it('should handle immediate depletion', () => {
     // Very high expenses relative to savings
     const result = calculateSavingsLongevity(1000, 5000, 5);
-    expect(result.monthsUntilDepletion).toBe(0);
+    expect(result.monthsUntilDepletion).toBe(1); // Depletes during the first month.
     expect(result.finalBalance).toBe(0);
   });
 });

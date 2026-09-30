@@ -79,6 +79,8 @@ class AssetServiceTest {
 
     @Mock private AttachmentService attachmentService;
 
+    @Mock private org.openfinance.repository.TransactionRepository transactionRepository;
+
     @InjectMocks private AssetService assetService;
 
     private LocalDate purchaseDate;
@@ -1552,5 +1554,33 @@ class AssetServiceTest {
         // Base conversion works normally
         assertThat(result.getIsConverted()).isTrue();
         assertThat(result.getValueInBaseCurrency()).isEqualByComparingTo(new BigDecimal("850.0"));
+    }
+
+    @Test
+    void rejectsAcquisitionAfterExistingImprovement() {
+        Asset asset =
+                Asset.builder()
+                        .id(7L)
+                        .userId(1L)
+                        .type(AssetType.FURNITURE)
+                        .purchaseDate(LocalDate.of(2025, 7, 1))
+                        .build();
+        when(assetRepository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(asset));
+        when(transactionRepository.findByAssetIdAndUserId(7L, 1L))
+                .thenReturn(
+                        List.of(
+                                org.openfinance.entity.Transaction.builder()
+                                        .date(LocalDate.of(2025, 8, 5))
+                                        .build()));
+        assertThrows(
+                org.openfinance.exception.InvalidTransactionException.class,
+                () ->
+                        assetService.updateAsset(
+                                7L,
+                                1L,
+                                AssetRequest.builder()
+                                        .purchaseDate(LocalDate.of(2025, 9, 1))
+                                        .build()));
+        verify(assetRepository, never()).save(any());
     }
 }

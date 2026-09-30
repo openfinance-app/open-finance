@@ -287,6 +287,59 @@ class TransactionSplitServiceTest {
     // ---------- saveSplits tests ----------
 
     @Test
+    @DisplayName("Crypto splits preserve every supplied decimal when they already balance")
+    void shouldPreserveExactCryptoSplits() {
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("0.123456780000000001"), "deposit"),
+                        createSplitRequest(2L, new BigDecimal("0.000000000000000002"), "dust"));
+        BigDecimal total = new BigDecimal("0.123456780000000003");
+
+        List<TransactionSplitRequest> result =
+                transactionSplitService.reconcileForImport(total, "ETH", splits);
+
+        assertThat(result).usingRecursiveComparison().isEqualTo(splits);
+        transactionSplitService.validateSplits(total, TransactionType.INCOME, result);
+    }
+
+    @Test
+    @DisplayName("One satoshi split mismatch cannot disappear through rounding")
+    void shouldRejectOneSatoshiSplitMismatch() {
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("0.12345678"), "a"),
+                        createSplitRequest(2L, new BigDecimal("0.00000001"), "b"));
+        assertThatThrownBy(
+                        () ->
+                                transactionSplitService.validateSplits(
+                                        new BigDecimal("0.12345678"),
+                                        TransactionType.INCOME,
+                                        splits))
+                .isInstanceOf(InvalidTransactionException.class)
+                .hasMessageContaining("must sum exactly");
+    }
+
+    @Test
+    @DisplayName("Crypto reconciliation uses satoshis instead of rounding to four decimals")
+    void shouldReconcileAtCryptoPrecision() {
+        when(currencyTypeResolver.decimalsFor("BTC")).thenReturn(8);
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(1L, new BigDecimal("0.00000033"), "a"),
+                        createSplitRequest(2L, new BigDecimal("0.00000033"), "b"),
+                        createSplitRequest(3L, new BigDecimal("0.00000033"), "c"));
+        List<TransactionSplitRequest> result =
+                transactionSplitService.reconcileForImport(
+                        new BigDecimal("0.00000100"), "BTC", splits);
+        assertThat(result)
+                .extracting(TransactionSplitRequest::getAmount)
+                .containsExactly(
+                        new BigDecimal("0.00000034"),
+                        new BigDecimal("0.00000033"),
+                        new BigDecimal("0.00000033"));
+    }
+
+    @Test
     @DisplayName("Should save splits successfully")
     void shouldSaveSplitsSuccessfully() {
         // Arrange

@@ -68,7 +68,7 @@ export class RealEstateCalculationService {
         inputs,
         borrowedAmount,
         monthlyPayment,
-        totalPrice,
+        inputs.purchase.propertyPrice,
         buyCumulativeCost,
         rentCumulativeCost,
         currentSavings,

@@ -56,7 +56,7 @@ public class TransferUpdateRequest {
      * destination account.
      */
     @NotNull(message = "{transfer.amount.required}")
-    @DecimalMin(value = "0.01", message = "{transfer.amount.min}")
+    @DecimalMin(value = "0", inclusive = false, message = "{transfer.amount.min}")
     @Digits(integer = 26, fraction = 18, message = "{transfer.amount.digits}")
     private BigDecimal amount;
 

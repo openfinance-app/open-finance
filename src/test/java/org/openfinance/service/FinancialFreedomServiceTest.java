@@ -135,7 +135,7 @@ class FinancialFreedomServiceTest {
         }
 
         @Test
-        @DisplayName("Yearly projections compound in BigDecimal (10% on 100k, no contributions)")
+        @DisplayName("Yearly projections use the monthly compounding convention of the timeline")
         void shouldGenerateAnnualProjectionsExactly() {
             FreedomCalculatorRequest request =
                     FreedomCalculatorRequest.builder()
@@ -148,31 +148,35 @@ class FinancialFreedomServiceTest {
 
             FreedomCalculatorResponse response = service.calculateTimeToFreedom(request);
 
-            // 100000 →(+10%) 110000 →(+10%) 121000 →(+10%) 133100
+            // Independent closed form: 100000 * (1 + 0.10/12)^(12 * year), rounded to cents.
             assertEquals(
                     0,
                     response.getYearlyProjections()
                             .get(0)
                             .getEndingBalance()
-                            .compareTo(new BigDecimal("110000")));
+                            .setScale(2, java.math.RoundingMode.HALF_UP)
+                            .compareTo(new BigDecimal("110471.31")));
             assertEquals(
                     0,
                     response.getYearlyProjections()
                             .get(1)
                             .getEndingBalance()
-                            .compareTo(new BigDecimal("121000")));
+                            .setScale(2, java.math.RoundingMode.HALF_UP)
+                            .compareTo(new BigDecimal("122039.10")));
             assertEquals(
                     0,
                     response.getYearlyProjections()
                             .get(2)
                             .getEndingBalance()
-                            .compareTo(new BigDecimal("133100")));
+                            .setScale(2, java.math.RoundingMode.HALF_UP)
+                            .compareTo(new BigDecimal("134818.18")));
             assertEquals(
                     0,
                     response.getYearlyProjections()
                             .get(0)
                             .getInvestmentReturns()
-                            .compareTo(new BigDecimal("10000")));
+                            .setScale(2, java.math.RoundingMode.HALF_UP)
+                            .compareTo(new BigDecimal("10471.31")));
         }
 
         @Test
@@ -340,5 +344,44 @@ class FinancialFreedomServiceTest {
             assertEquals(0, new BigDecimal("4.0").compareTo(defaults.getDefaultWithdrawalRate()));
             assertEquals(0, new BigDecimal("2.5").compareTo(defaults.getDefaultInflationRate()));
         }
+    }
+
+    @Test
+    void respectsRequestedHorizonAndMonthlyContributionTiming() {
+        FreedomCalculatorRequest request =
+                FreedomCalculatorRequest.builder()
+                        .currentSavings(new BigDecimal("12000"))
+                        .monthlyExpenses(new BigDecimal("1000"))
+                        .monthlyContribution(new BigDecimal("100"))
+                        .expectedAnnualReturn(new BigDecimal("12"))
+                        .projectionYears(5)
+                        .build();
+        FreedomCalculatorResponse response = service.calculateTimeToFreedom(request);
+        assertEquals(5, response.getYearlyProjections().size());
+        assertEquals(1, response.getYearlyProjections().get(0).getYear());
+        assertEquals(
+                new BigDecimal("14790.15"),
+                response.getYearlyProjections()
+                        .get(0)
+                        .getEndingBalance()
+                        .setScale(2, java.math.RoundingMode.HALF_UP));
+    }
+
+    @Test
+    void zeroExpenseTargetIsAlreadyFundedEvenWithoutSavings() {
+        FreedomCalculatorRequest request =
+                FreedomCalculatorRequest.builder()
+                        .currentSavings(BigDecimal.ZERO)
+                        .monthlyExpenses(BigDecimal.ZERO)
+                        .monthlyContribution(BigDecimal.ZERO)
+                        .expectedAnnualReturn(BigDecimal.ZERO)
+                        .build();
+        FreedomCalculatorResponse response = service.calculateTimeToFreedom(request);
+        assertEquals(0, response.getYearsToFreedom());
+        assertEquals(0, response.getProgressPercentage().compareTo(new BigDecimal("100")));
+        assertTrue(response.isSustainableIndefinitely());
+        assertTrue(
+                service.calculateSavingsLongevity(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO)
+                        .isInfinite());
     }
 }

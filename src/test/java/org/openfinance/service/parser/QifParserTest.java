@@ -13,6 +13,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.openfinance.dto.ImportedTransaction;
 
 /**
@@ -35,6 +37,34 @@ class QifParserTest {
     }
 
     // ========== Basic Parsing Tests ==========
+
+    @ParameterizedTest
+    @CsvSource({
+        "0.12346912,0.12345678,0.00001234",
+        "0.00000003,0.00000001,0.00000002",
+        "0.123456789012345679,0.123456789012345678,0.000000000000000001"
+    })
+    @DisplayName("QIF parsing preserves crypto split quantities before account currency is known")
+    void shouldPreserveSmallSplitAmounts(String total, String first, String second)
+            throws IOException {
+        String qif =
+                "!Type:Bank\nD09/10/2026\nT-"
+                        + total
+                        + "\nPCrypto split\nSFirst\n$-"
+                        + first
+                        + "\nSSecond\n$-"
+                        + second
+                        + "\n^\n";
+        List<ImportedTransaction> transactions = parseQif(qif);
+        assertThat(transactions).hasSize(1);
+        ImportedTransaction transaction = transactions.get(0);
+        assertThat(transaction.hasErrors()).isFalse();
+        assertThat(transaction.getAmount()).isEqualByComparingTo(new BigDecimal(total).negate());
+        assertThat(transaction.getSplits().get(0).getAmount())
+                .isEqualByComparingTo(new BigDecimal(first).negate());
+        assertThat(transaction.getSplits().get(1).getAmount())
+                .isEqualByComparingTo(new BigDecimal(second).negate());
+    }
 
     @Test
     @DisplayName("Should parse single transaction with all fields")
@@ -1531,5 +1561,51 @@ class QifParserTest {
             }
             return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         }
+    }
+
+    @Test
+    void recognizesZeroOpeningBalanceAndInfersSingleAccount() throws IOException {
+        List<ImportedTransaction> transactions =
+                parseQif(
+                        """
+                !Type:Bank
+                D09/01/2025
+                T0
+                POpening Balance
+                L[Checking]
+                ^
+                """);
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.get(0).isOpeningBalance()).isTrue();
+        assertThat(transactions.get(0).isTransfer()).isFalse();
+        assertThat(transactions.get(0).hasErrors()).isFalse();
+        assertThat(transactions.get(0).getAccountName()).isEqualTo("Checking");
+    }
+
+    @Test
+    void distinguishesOpeningRecordsFromOrdinaryTransfers() throws IOException {
+        List<ImportedTransaction> transactions =
+                parseQif(
+                        """
+                !Account
+                NChecking
+                TBank
+                ^
+                !Type:Bank
+                D09/01/2025
+                T500
+                POpening Balance
+                L[Checking]
+                ^
+                D09/02/2025
+                T-50
+                POpening Balance
+                L[Savings]
+                ^
+                """);
+        assertThat(transactions.get(0).isOpeningBalance()).isTrue();
+        assertThat(transactions.get(0).getAmount()).isEqualByComparingTo("500");
+        assertThat(transactions.get(1).isOpeningBalance()).isFalse();
+        assertThat(transactions.get(1).isTransfer()).isTrue();
     }
 }

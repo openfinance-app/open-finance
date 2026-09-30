@@ -2,6 +2,7 @@ package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -1128,5 +1129,27 @@ class RealEstateServiceTest {
         assertThat(result.getCurrency()).isEqualTo("JPY");
         verify(realEstateRepository, org.mockito.Mockito.atLeastOnce())
                 .save(any(RealEstateProperty.class));
+    }
+
+    @Test
+    void rejectsImprovementBeforePropertyAcquisition() {
+        RealEstateProperty property =
+                RealEstateProperty.builder()
+                        .id(propertyId)
+                        .userId(userId)
+                        .purchaseDate(LocalDate.of(2025, 7, 1))
+                        .build();
+        when(realEstateRepository.findByIdAndUserId(propertyId, userId))
+                .thenReturn(Optional.of(property));
+        assertThrows(
+                org.openfinance.exception.InvalidTransactionException.class,
+                () ->
+                        realEstateService.applyCapitalImprovement(
+                                propertyId,
+                                userId,
+                                BigDecimal.TEN,
+                                LocalDate.of(2025, 6, 1),
+                                "EUR"));
+        verify(realEstateRepository, never()).save(any());
     }
 }

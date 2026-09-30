@@ -130,7 +130,9 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
               <p className="text-2xl font-bold text-green-600">
                 <ConvertedAmount
                   amount={Math.max(
-                    ...regimes.map(r => getRegimeResult(r)?.performance.monthlyCashFlow || 0)
+                    ...regimes
+                      .filter(isRegimeEligible)
+                      .map(r => getRegimeResult(r)?.performance.monthlyCashFlow ?? -Infinity)
                   )}
                   currency={baseCurrency}
                   inline
@@ -141,7 +143,11 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
               <p className="text-sm text-muted-foreground">{t('regimeGrid.bestNetYield')}</p>
               <p className="text-2xl font-bold text-primary">
                 {formatDecimal(
-                  Math.max(...regimes.map(r => getRegimeResult(r)?.performance.netYield || 0)),
+                  Math.max(
+                    ...regimes
+                      .filter(isRegimeEligible)
+                      .map(r => getRegimeResult(r)?.performance.netYield ?? -Infinity)
+                  ),
                   2
                 )}
                 %
@@ -252,7 +258,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                     const result = getRegimeResult(regime);
                     return (
                       <td key={regime} className="text-center py-2 px-4">
-                        {result ? (
+                        {result?.performance.monthlyCashFlow != null ? (
                           <ConvertedAmount
                             amount={result.performance.monthlyCashFlow}
                             currency={baseCurrency}
@@ -287,7 +293,9 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                           regime === recommendedRegime ? 'text-green-600' : ''
                         }`}
                       >
-                        {result ? `${formatDecimal(result.performance.netYield, 2)}%` : '-'}
+                        {result?.performance.netYield != null
+                          ? `${formatDecimal(result.performance.netYield, 2)}%`
+                          : '-'}
                       </td>
                     );
                   })}
@@ -317,7 +325,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                     const result = getRegimeResult(regime);
                     return (
                       <td key={regime} className="text-center py-2 px-4 text-red-600">
-                        {result ? (
+                        {result?.taxation.totalTaxes != null ? (
                           <ConvertedAmount
                             amount={result.taxation.totalTaxes}
                             currency={baseCurrency}

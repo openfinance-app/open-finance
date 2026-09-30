@@ -140,12 +140,12 @@ public class Transaction {
      *   <li>TRANSFER: Decreases source account, increases destination account
      * </ul>
      *
-     * <p>Stored as BigDecimal for precision (up to 19 digits, 4 decimal places).
+     * <p>Stored as an encrypted BigDecimal (up to 26 integer digits and 18 decimal places).
      *
      * <p>Requirement REQ-2.4.1.1: Amount validation (non-zero)
      */
     @NotNull(message = "{transaction.amount.notnull}")
-    @DecimalMin(value = "0.0001", message = "{transaction.amount.decimalMin}")
+    @DecimalMin(value = "0", inclusive = false, message = "{transaction.amount.greater}")
     @Digits(integer = 26, fraction = 18, message = "{transaction.amount.digits}")
     @Column(name = "amount", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)

@@ -13,8 +13,13 @@ import type {
   TaxRegime,
   ValidationError,
   SharedPropertyData,
+  RentalTaxContext,
 } from '@/types/realEstateTools';
-import { DEFAULT_INVESTMENT_INPUTS, FURNITURE_VALUES } from '@/types/realEstateTools';
+import {
+  DEFAULT_INVESTMENT_INPUTS,
+  DEFAULT_RENTAL_TAX_CONTEXT,
+  FURNITURE_VALUES,
+} from '@/types/realEstateTools';
 import { RealEstateCalculationService } from '@/services/realEstateCalculationService';
 import { validateInvestmentInputs } from '@/validators/realEstateValidators';
 import { getRecommendedRegime } from '@/utils/taxRegimeCalculations';
@@ -35,6 +40,7 @@ export interface UseRentalSimulatorReturn {
   updatePropertyInput: (field: keyof InvestmentInputs['property'], value: string | number) => void;
   updateRevenueInput: (field: keyof InvestmentInputs['revenue'], value: number) => void;
   updateExpenseInput: (field: keyof InvestmentInputs['expenses'], value: number) => void;
+  updateTaxInput: (field: keyof RentalTaxContext, value: number | null) => void;
   calculate: () => void;
   reset: () => void;
   setInputs: (inputs: InvestmentInputs) => void;
@@ -62,6 +68,7 @@ function createDefaultInputs(sharedData?: SharedPropertyData): InvestmentInputs 
       furnishingType: 'unfurnished',
       furnitureValue: 0,
     },
+    tax: { ...DEFAULT_RENTAL_TAX_CONTEXT },
     revenue: DEFAULT_INVESTMENT_INPUTS.revenue,
     expenses: {
       ...DEFAULT_INVESTMENT_INPUTS.expenses,
@@ -198,6 +205,14 @@ export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSi
     []
   );
 
+  const updateTaxInput = useCallback((field: keyof RentalTaxContext, value: number | null) => {
+    setInputsState(prev => ({
+      ...prev,
+      tax: { ...DEFAULT_RENTAL_TAX_CONTEXT, ...prev.tax, [field]: value },
+    }));
+    setResults(null);
+  }, []);
+
   /**
    * Run the calculation
    */
@@ -327,6 +342,7 @@ export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSi
     updatePropertyInput,
     updateRevenueInput,
     updateExpenseInput,
+    updateTaxInput,
     calculate,
     reset,
     setInputs,

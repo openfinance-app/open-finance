@@ -592,19 +592,8 @@ public class BudgetService {
         // Calculate progress for each budget
         List<BudgetProgressResponse> progressList =
                 budgets.stream()
-                        .map(
-                                budget -> {
-                                    try {
-                                        return calculateBudgetProgress(budget.getId(), userId);
-                                    } catch (Exception e) {
-                                        log.error(
-                                                "Error calculating progress for budget {}: {}",
-                                                budget.getId(),
-                                                e.getMessage());
-                                        return null;
-                                    }
-                                })
-                        .filter(progress -> progress != null)
+                        .map(budget -> calculateBudgetProgress(budget.getId(), userId))
+                        .map(progress -> convertSummaryProgress(progress, userId))
                         .collect(Collectors.toList());
 
         // Aggregate statistics
@@ -642,8 +631,8 @@ public class BudgetService {
                                                         && !today.isAfter(b.getEndDate()))
                                 .count();
 
-        // Use currency from first budget (assumes single currency)
-        String currency = budgets.get(0).getCurrency();
+        // Every summary row and aggregate uses the reporting currency.
+        String currency = defaultCurrencyProvider.resolveForUser(userId);
 
         log.debug(
                 "Budget summary generated: totalBudgets={}, activeBudgets={}, totalBudgeted={}, totalSpent={}",
@@ -704,19 +693,8 @@ public class BudgetService {
 
         List<BudgetProgressResponse> progressList =
                 budgets.stream()
-                        .map(
-                                budget -> {
-                                    try {
-                                        return calculateBudgetProgress(budget.getId(), userId);
-                                    } catch (Exception e) {
-                                        log.error(
-                                                "Error calculating progress for budget {}: {}",
-                                                budget.getId(),
-                                                e.getMessage());
-                                        return null;
-                                    }
-                                })
-                        .filter(progress -> progress != null)
+                        .map(budget -> calculateBudgetProgress(budget.getId(), userId))
+                        .map(progress -> convertSummaryProgress(progress, userId))
                         .collect(Collectors.toList());
 
         BigDecimal totalBudgeted =
@@ -746,7 +724,7 @@ public class BudgetService {
                                                 !today.isBefore(b.getStartDate())
                                                         && !today.isAfter(b.getEndDate()))
                                 .count();
-        String currency = budgets.get(0).getCurrency();
+        String currency = defaultCurrencyProvider.resolveForUser(userId);
 
         log.debug(
                 "All-period budget summary generated: totalBudgets={}, totalSpent={}",
@@ -1551,5 +1529,25 @@ public class BudgetService {
         } catch (Exception e) {
             log.warn("Failed to index budget {} search tokens: {}", budget.getId(), e.getMessage());
         }
+    }
+
+    /** Native progress stays native; summary rows share a dated reporting-currency snapshot. */
+    private BudgetProgressResponse convertSummaryProgress(
+            BudgetProgressResponse progress, Long userId) {
+        String currency = defaultCurrencyProvider.resolveForUser(userId);
+        if (!currency.equalsIgnoreCase(progress.getCurrency())) {
+            LocalDate date = LocalDate.now();
+            BigDecimal budgeted =
+                    exchangeRateService.convert(
+                            progress.getBudgeted(), progress.getCurrency(), currency, date);
+            BigDecimal spent =
+                    exchangeRateService.convert(
+                            progress.getSpent(), progress.getCurrency(), currency, date);
+            progress.setBudgeted(budgeted);
+            progress.setSpent(spent);
+            progress.setRemaining(budgeted.subtract(spent));
+        }
+        progress.setCurrency(currency);
+        return progress;
     }
 }

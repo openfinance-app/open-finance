@@ -1095,4 +1095,53 @@ class BudgetServiceTest {
         assertThat(response.getCurrency()).isEqualTo("JPY");
         assertThat(response.getAmount()).isEqualByComparingTo(new BigDecimal("100000"));
     }
+
+    @Test
+    void convertsSummaryRowsBeforeAggregatingAndRejectsMissingRates() {
+        BudgetService service = org.mockito.Mockito.spy(budgetService);
+        Budget foreign =
+                Budget.builder()
+                        .id(2L)
+                        .userId(1L)
+                        .currency("USD")
+                        .startDate(testBudget.getStartDate())
+                        .endDate(testBudget.getEndDate())
+                        .build();
+        when(defaultCurrencyProvider.resolveForUser(1L)).thenReturn("EUR");
+        when(budgetRepository.findByUserIdAndPeriod(1L, BudgetPeriod.MONTHLY))
+                .thenReturn(List.of(testBudget, foreign));
+        org.mockito.Mockito.doReturn(
+                        BudgetProgressResponse.builder()
+                                .currency("EUR")
+                                .budgeted(new BigDecimal("1470"))
+                                .spent(new BigDecimal("485"))
+                                .remaining(new BigDecimal("985"))
+                                .percentageSpent(BigDecimal.ZERO)
+                                .build())
+                .when(service)
+                .calculateBudgetProgress(1L, 1L);
+        org.mockito.Mockito.doAnswer(
+                        inv ->
+                                BudgetProgressResponse.builder()
+                                        .currency("USD")
+                                        .budgeted(new BigDecimal("100"))
+                                        .spent(new BigDecimal("100"))
+                                        .remaining(BigDecimal.ZERO)
+                                        .percentageSpent(new BigDecimal("100"))
+                                        .build())
+                .when(service)
+                .calculateBudgetProgress(2L, 1L);
+        when(exchangeRateService.convert(new BigDecimal("100"), "USD", "EUR", LocalDate.now()))
+                .thenReturn(new BigDecimal("80"));
+        BudgetSummaryResponse summary = service.getBudgetSummary(1L, BudgetPeriod.MONTHLY);
+        assertThat(summary.getCurrency()).isEqualTo("EUR");
+        assertThat(summary.getTotalBudgeted()).isEqualByComparingTo("1550");
+        assertThat(summary.getTotalSpent()).isEqualByComparingTo("565");
+        assertThat(summary.getBudgets())
+                .allSatisfy(row -> assertThat(row.getCurrency()).isEqualTo("EUR"));
+        when(exchangeRateService.convert(new BigDecimal("100"), "USD", "EUR", LocalDate.now()))
+                .thenThrow(new IllegalStateException("Missing rate"));
+        assertThatThrownBy(() -> service.getBudgetSummary(1L, BudgetPeriod.MONTHLY))
+                .isInstanceOf(IllegalStateException.class);
+    }
 }
