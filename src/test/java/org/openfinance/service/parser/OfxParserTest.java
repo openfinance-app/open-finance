@@ -271,22 +271,22 @@ class OfxParserTest {
                 <BANKTRANLIST>
                 <DTSTART>20240101120000
                 <DTEND>20240131120000
-                <CCSTMTTRN>
+                <STMTTRN>
                 <TRNTYPE>DEBIT
                 <DTPOSTED>20240115120000
                 <TRNAMT>-89.99
                 <FITID>CC202401150001
                 <NAME>AMAZON.COM
                 <MEMO>Online purchase
-                </CCSTMTTRN>
-                <CCSTMTTRN>
+                </STMTTRN>
+                <STMTTRN>
                 <TRNTYPE>CREDIT
                 <DTPOSTED>20240120120000
                 <TRNAMT>50.00
                 <FITID>CC202401200001
                 <NAME>REFUND - AMAZON.COM
                 <MEMO>Return credit
-                </CCSTMTTRN>
+                </STMTTRN>
                 </BANKTRANLIST>
                 <LEDGERBAL>
                 <BALAMT>-234.56
@@ -377,7 +377,7 @@ class OfxParserTest {
 
         assertThat(transactions).hasSize(1);
         ImportedTransaction tx = transactions.get(0);
-        assertThat(tx.getReferenceNumber()).isEqualTo("1234");
+        assertThat(tx.getReferenceNumber()).isEqualTo("202401150001");
         assertThat(tx.getMemo()).contains("Electric bill");
     }
 
@@ -492,14 +492,14 @@ class OfxParserTest {
                 <CCSTMTTRNRS>
                 <CCSTMTRS>
                 <BANKTRANLIST>
-                <CCSTMTTRN>
+                <STMTTRN>
                 <TRNTYPE>DEBIT</TRNTYPE>
                 <DTPOSTED>20240115120000</DTPOSTED>
                 <TRNAMT>-89.99</TRNAMT>
                 <FITID>CC202401150001</FITID>
                 <NAME>AMAZON.COM</NAME>
                 <MEMO>Online purchase</MEMO>
-                </CCSTMTTRN>
+                </STMTTRN>
                 </BANKTRANLIST>
                 </CCSTMTRS>
                 </CCSTMTTRNRS>
@@ -766,8 +766,8 @@ class OfxParserTest {
     }
 
     @Test
-    @DisplayName("Should prefer CHECKNUM over FITID for reference number")
-    void testPreferChecknumOverFitid() throws IOException {
+    @DisplayName("Should preserve FITID when a cheque number is also present")
+    void testPreferFitidOverChecknum() throws IOException {
         String ofx =
                 """
                 OFXHEADER:100
@@ -794,7 +794,7 @@ class OfxParserTest {
         List<ImportedTransaction> transactions = parseOfx(ofx);
 
         assertThat(transactions).hasSize(1);
-        assertThat(transactions.get(0).getReferenceNumber()).isEqualTo("5678");
+        assertThat(transactions.get(0).getReferenceNumber()).isEqualTo("FITID123");
     }
 
     // ========================================
@@ -1298,7 +1298,7 @@ class OfxParserTest {
 
         // Verify check transaction
         ImportedTransaction tx2 = transactions.get(1);
-        assertThat(tx2.getReferenceNumber()).isEqualTo("2456");
+        assertThat(tx2.getReferenceNumber()).isEqualTo("20240105001");
         assertThat(tx2.getPayee()).isEqualTo("LANDLORD INC");
         assertThat(tx2.getAmount()).isEqualByComparingTo(new BigDecimal("-1200.00"));
 
@@ -1343,46 +1343,46 @@ class OfxParserTest {
                 <BANKTRANLIST>
                 <DTSTART>20240101000000</DTSTART>
                 <DTEND>20240131235959</DTEND>
-                <CCSTMTTRN>
+                <STMTTRN>
                 <TRNTYPE>DEBIT</TRNTYPE>
                 <DTPOSTED>20240103120000</DTPOSTED>
                 <TRNAMT>-89.99</TRNAMT>
                 <FITID>CC20240103001</FITID>
                 <NAME>AMAZON.COM</NAME>
                 <MEMO>AMZN Marketplace Purchase</MEMO>
-                </CCSTMTTRN>
-                <CCSTMTTRN>
+                </STMTTRN>
+                <STMTTRN>
                 <TRNTYPE>DEBIT</TRNTYPE>
                 <DTPOSTED>20240107183000</DTPOSTED>
                 <TRNAMT>-45.67</TRNAMT>
                 <FITID>CC20240107001</FITID>
                 <NAME>STARBUCKS #5678</NAME>
                 <MEMO>COFFEE PURCHASE</MEMO>
-                </CCSTMTTRN>
-                <CCSTMTTRN>
+                </STMTTRN>
+                <STMTTRN>
                 <TRNTYPE>DEBIT</TRNTYPE>
                 <DTPOSTED>20240112140000</DTPOSTED>
                 <TRNAMT>-125.00</TRNAMT>
                 <FITID>CC20240112001</FITID>
                 <NAME>WHOLE FOODS MARKET</NAME>
                 <MEMO>GROCERY PURCHASE</MEMO>
-                </CCSTMTTRN>
-                <CCSTMTTRN>
+                </STMTTRN>
+                <STMTTRN>
                 <TRNTYPE>CREDIT</TRNTYPE>
                 <DTPOSTED>20240115120000</DTPOSTED>
                 <TRNAMT>89.99</TRNAMT>
                 <FITID>CC20240115001</FITID>
                 <NAME>AMAZON.COM</NAME>
                 <MEMO>RETURN CREDIT</MEMO>
-                </CCSTMTTRN>
-                <CCSTMTTRN>
+                </STMTTRN>
+                <STMTTRN>
                 <TRNTYPE>DEBIT</TRNTYPE>
                 <DTPOSTED>20240120190000</DTPOSTED>
                 <TRNAMT>-55.00</TRNAMT>
                 <FITID>CC20240120001</FITID>
                 <NAME>RESTAURANT XYZ</NAME>
                 <MEMO>DINING</MEMO>
-                </CCSTMTTRN>
+                </STMTTRN>
                 </BANKTRANLIST>
                 <LEDGERBAL>
                 <BALAMT>-135.68</BALAMT>
@@ -1452,7 +1452,7 @@ class OfxParserTest {
     }
 
     @Test
-    @DisplayName("Should use REFNUM as reference number when CHECKNUM is absent")
+    @DisplayName("Should preserve FITID when a bank reference is also present")
     void testRefnumUsedWhenChecknumAbsent() throws IOException {
         String ofx =
                 """
@@ -1481,7 +1481,7 @@ class OfxParserTest {
         List<ImportedTransaction> transactions = parseOfx(ofx);
 
         assertThat(transactions).hasSize(1);
-        assertThat(transactions.get(0).getReferenceNumber()).isEqualTo("REF-12345");
+        assertThat(transactions.get(0).getReferenceNumber()).isEqualTo("FITID999");
     }
 
     @Test

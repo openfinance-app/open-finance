@@ -191,7 +191,13 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
             {/* Value input */}
             {isTypeField ? (
               <select
-                value={condition.value}
+                value={
+                  condition.value === 'INCOME'
+                    ? 'CREDIT'
+                    : condition.value === 'EXPENSE'
+                      ? 'DEBIT'
+                      : condition.value
+                }
                 onChange={e => handleValueChange(index, e.target.value)}
                 className="flex-1 h-9 rounded-md border border-border bg-background px-3 pr-8 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 aria-label="Condition value"

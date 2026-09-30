@@ -1210,4 +1210,24 @@ class CsvParserTest {
         assertThat(transactions.get(0).getAmount()).isEqualByComparingTo(new BigDecimal("-5.00"));
         assertThat(transactions.get(0).getPayee()).isEqualTo("Shop, Inc");
     }
+
+    @Test
+    void readsCreditWhenDebitColumnContainsZero() throws IOException {
+        List<ImportedTransaction> transactions =
+                parseCsv("date;debit;credit;payee\n2026-09-10;0;150,25;Cash gift\n");
+        assertThat(transactions).hasSize(1);
+        assertThat(transactions.getFirst().getAmount()).isEqualByComparingTo("150.25");
+        assertThat(transactions.getFirst().hasErrors()).isFalse();
+    }
+
+    @Test
+    void rejectsNonexistentCalendarDatesWithoutClampingToMonthEnd() throws IOException {
+        List<ImportedTransaction> transactions =
+                parseCsv(
+                        "date,amount,payee\n31/02/2026,-4.56,Impossible date\n29/02/2024,-5,Valid leap day\n29/02/2025,-6,Invalid leap day\n");
+        assertThat(transactions.get(0).getTransactionDate()).isNull();
+        assertThat(transactions.get(0).hasErrors()).isTrue();
+        assertThat(transactions.get(1).getTransactionDate()).isEqualTo(LocalDate.of(2024, 2, 29));
+        assertThat(transactions.get(2).getTransactionDate()).isNull();
+    }
 }

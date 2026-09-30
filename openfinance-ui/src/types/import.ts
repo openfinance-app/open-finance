@@ -38,6 +38,7 @@ export type ImportSessionStatus =
   | 'PENDING'
   | 'PARSING'
   | 'PARSED'
+  | 'REVIEWING'
   | 'IMPORTING'
   | 'COMPLETED'
   | 'FAILED'
@@ -108,7 +109,7 @@ export interface ImportTransactionDTO {
   potentialDuplicate: boolean;
   sourceFileName: string;
   rawData: string | null;
-  splitTransaction: boolean;
+  splitTransaction?: boolean;
 }
 
 /**

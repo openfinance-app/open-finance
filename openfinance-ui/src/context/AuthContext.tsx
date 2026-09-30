@@ -14,6 +14,7 @@ import { QueryClientContext } from '@tanstack/react-query';
 import type { User } from '@/types/user';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { STORAGE_KEYS } from '@/constants/storage';
+import { useImportDraftStore } from '@/stores/importDraft';
 
 interface AuthContextType {
   /** Current authenticated user, null if not authenticated */
@@ -135,6 +136,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const setAuth = useCallback(
     (user: User, token: string, rememberMe = false) => {
       queryClient?.clear();
+      useImportDraftStore.getState().clear();
       setUser(user);
       setToken(token);
 
@@ -160,7 +162,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         oppositeStorage.removeItem(STORAGE_KEYS.AUTH_USER);
       } catch (error) {
         // Log but don't throw — UI should remain usable even if persistence fails
-        // eslint-disable-next-line no-console
+
         console.error('Failed to persist auth state:', error);
       }
     },
@@ -198,6 +200,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    */
   const clearAuth = useCallback(() => {
     queryClient?.clear();
+    useImportDraftStore.getState().clear();
     setUser(null);
     setToken(null);
 

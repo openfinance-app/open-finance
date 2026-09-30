@@ -19,6 +19,27 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface ImportSessionRepository extends JpaRepository<ImportSession, Long> {
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query(
+            "UPDATE ImportSession s SET s.metadata = :metadata, s.totalTransactions = :count, s.status = 'REVIEWING', s.updatedAt = :updatedAt WHERE s.id = :id AND s.userId = :userId AND s.status IN ('PARSED', 'REVIEWING') AND s.confirmationStarted = false")
+    int saveReview(
+            @Param("id") Long id,
+            @Param("userId") Long userId,
+            @Param("metadata") String metadata,
+            @Param("count") int count,
+            @Param("updatedAt") LocalDateTime updatedAt);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query(
+            "UPDATE ImportSession s SET s.accountId = :accountId, s.updatedAt = :updatedAt WHERE s.id = :id AND s.userId = :userId AND s.status IN ('PARSED', 'REVIEWING') AND s.confirmationStarted = false")
+    int selectReviewAccount(
+            @Param("id") Long id,
+            @Param("userId") Long userId,
+            @Param("accountId") Long accountId,
+            @Param("updatedAt") LocalDateTime updatedAt);
+
     @org.springframework.data.jpa.repository.Modifying(
             clearAutomatically = true,
             flushAutomatically = true)

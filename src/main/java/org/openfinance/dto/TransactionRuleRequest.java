@@ -90,6 +90,16 @@ public class TransactionRuleRequest {
         @NotBlank(message = "{rule.condition.value.required}")
         private String value;
 
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(
+                message = "{rule.condition.transactionType.invalid}")
+        public boolean isValidTransactionType() {
+            return field != RuleConditionField.TRANSACTION_TYPE
+                    || value == null
+                    || java.util.Set.of("CREDIT", "DEBIT", "INCOME", "EXPENSE")
+                            .contains(value.trim().toUpperCase(java.util.Locale.ROOT));
+        }
+
         /** Display/evaluation order of this condition within the rule. */
         @Builder.Default private Integer sortOrder = 0;
     }

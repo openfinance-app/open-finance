@@ -1494,4 +1494,39 @@ class TransactionRuleServiceImplTest {
             }
         }
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+        "CREDIT,10,-10",
+        "DEBIT,-10,10",
+        "INCOME,10,-10",
+        "EXPENSE,-10,10"
+    })
+    void matchesFormValuesAndLegacyAliases(String type, String matching, String other) {
+        TransactionRule rule =
+                rule(
+                        "type",
+                        0,
+                        List.of(
+                                condition(
+                                        RuleConditionField.TRANSACTION_TYPE,
+                                        RuleConditionOperator.EQUALS,
+                                        type)),
+                        List.of(action(RuleActionType.SET_DESCRIPTION, "matched")));
+        when(transactionRuleRepository.findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(
+                        USER_ID))
+                .thenReturn(List.of(rule));
+        ImportedTransaction match =
+                ImportedTransaction.builder().amount(new BigDecimal(matching)).build();
+        ImportedTransaction noMatch =
+                ImportedTransaction.builder().amount(new BigDecimal(other)).build();
+        service.applyRules(List.of(match, noMatch), USER_ID);
+        assertThat(match.getMemo()).isEqualTo("matched");
+        assertThat(noMatch.getMemo()).isNull();
+        rule.getConditions().getFirst().setOperator(RuleConditionOperator.NOT_EQUALS);
+        match.setMemo(null);
+        service.applyRules(List.of(match, noMatch), USER_ID);
+        assertThat(match.getMemo()).isNull();
+        assertThat(noMatch.getMemo()).isEqualTo("matched");
+    }
 }

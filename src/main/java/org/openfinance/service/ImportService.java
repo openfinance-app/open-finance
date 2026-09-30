@@ -414,7 +414,9 @@ public class ImportService {
                                 fileCurrency,
                                 Map.of(
                                         "ledgerBalances",
-                                        ledgerBalances == null ? Map.of() : ledgerBalances)));
+                                        ledgerBalances == null ? Map.of() : ledgerBalances,
+                                        "statementNetAmounts",
+                                        statementNetAmounts(transactions))));
             }
 
             importSessionRepository.save(session);
@@ -471,46 +473,12 @@ public class ImportService {
                     "Session is not ready for review. Current status: " + session.getStatus());
         }
 
-        // Deserialize transactions from metadata
+        // Review is a projection of parsed input until the user explicitly saves it.
+        // Never write a detached session here: confirmation may have completed while
+        // categorization was running. Saved review edits must not run through rules again.
         List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
-
-        // Detect duplicates
+        prepareUnreviewedTransactions(session, transactions, userId);
         detectDuplicates(transactions, session.getAccountId(), session.getFileFormat(), userId);
-
-        // Suggest categories and apply transaction rules (sets tags, category, etc.)
-        suggestCategories(transactions, userId);
-
-        // Persist the rule-enriched transactions back to the session metadata so that
-        // confirmImport() sees the tags/category values set by ADD_TAG / SET_CATEGORY
-        // actions. Without this, the enriched state is discarded after the review call.
-        BigDecimal ledgerBalance = null;
-        String fileCurrency = defaultCurrencyProvider.getDefaultCurrency();
-        if (session.getMetadata() != null && !session.getMetadata().trim().isEmpty()) {
-            try {
-                Map<String, Object> metadataMap = deserializeMetadata(session.getMetadata());
-                if (metadataMap.get("ledgerBalance") != null) {
-                    ledgerBalance = new BigDecimal(metadataMap.get("ledgerBalance").toString());
-                }
-                if (metadataMap.containsKey("fileCurrency")
-                        && metadataMap.get("fileCurrency") != null) {
-                    fileCurrency = metadataMap.get("fileCurrency").toString();
-                }
-            } catch (Exception e) {
-                log.warn("Error extracting ledger metadata during review: {}", e.getMessage());
-            }
-        }
-        session.setMetadata(
-                serializeTransactions(
-                        transactions,
-                        ledgerBalance,
-                        fileCurrency,
-                        preserveMetadata(session.getMetadata())));
-
-        // Update status to REVIEWING if not already
-        if (session.getStatus() == ImportStatus.PARSED) {
-            session.setStatus(ImportStatus.REVIEWING);
-        }
-        importSessionRepository.save(session);
 
         return transactions;
     }
@@ -523,34 +491,32 @@ public class ImportService {
      * @param userId the user ID (for authorization)
      * @return the updated import session
      */
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ImportSession updateAccount(Long sessionId, Long accountId, Long userId) {
-        log.info("Updating account for session: {}, accountId={}", sessionId, accountId);
-
         ImportSession session = getSessionForUser(sessionId, userId);
-
-        // Can only change account if not already importing
-        if (!session.isReadyForReview()
-                && session.getStatus() != ImportStatus.PARSING
-                && session.getStatus() != ImportStatus.PENDING) {
+        if (!session.isReadyForReview()) {
             throw new IllegalStateException(
-                    "Cannot update account. Current status: " + session.getStatus());
+                    "Session is not ready for review: " + session.getStatus());
         }
-
-        Account account =
-                accountRepository
-                        .findByIdAndUserId(accountId, userId)
-                        .orElseThrow(
-                                () ->
-                                        new ResourceNotFoundException(
-                                                "Account not found: " + accountId));
-
-        if (!account.getIsActive()) {
-            throw new IllegalArgumentException("Cannot import to inactive account: " + accountId);
+        if (accountId != null) {
+            Account account =
+                    accountRepository
+                            .findByIdAndUserId(accountId, userId)
+                            .orElseThrow(
+                                    () ->
+                                            new ResourceNotFoundException(
+                                                    "Account not found: " + accountId));
+            if (!account.getIsActive()) {
+                throw new IllegalArgumentException(
+                        "Cannot import to inactive account: " + accountId);
+            }
         }
-
-        session.setAccountId(accountId);
-        return importSessionRepository.save(session);
+        if (importSessionRepository.selectReviewAccount(
+                        sessionId, userId, accountId, LocalDateTime.now())
+                != 1) {
+            throw new IllegalStateException("Import is no longer available for review");
+        }
+        return getSessionForUser(sessionId, userId);
     }
 
     /**
@@ -561,7 +527,7 @@ public class ImportService {
      * @param userId the user ID (for authorization)
      * @return the updated import session
      */
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ImportSession updateParsedTransactions(
             Long sessionId, List<ImportedTransaction> transactions, Long userId) {
         log.info("Updating parsed transactions for session: {}", sessionId);
@@ -602,13 +568,16 @@ public class ImportService {
             }
         }
 
-        session.setMetadata(
-                serializeTransactions(
-                        transactions,
-                        ledgerBalance,
-                        fileCurrency,
-                        preserveMetadata(session.getMetadata())));
-        return importSessionRepository.save(session);
+        Map<String, Object> extraMetadata = preserveMetadata(session.getMetadata());
+        extraMetadata.put("reviewSaved", true);
+        String metadata =
+                serializeTransactions(transactions, ledgerBalance, fileCurrency, extraMetadata);
+        if (importSessionRepository.saveReview(
+                        sessionId, userId, metadata, transactions.size(), LocalDateTime.now())
+                != 1) {
+            throw new IllegalStateException("Import is no longer available for review");
+        }
+        return getSessionForUser(sessionId, userId);
     }
 
     /**
@@ -730,6 +699,7 @@ public class ImportService {
         }
 
         List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
+        prepareUnreviewedTransactions(session, transactions, userId);
         validateImportCategoryMappings(transactions, userId, categoryMappings);
         detectDuplicates(
                 transactions,
@@ -739,7 +709,8 @@ public class ImportService {
 
         if ("JSON".equalsIgnoreCase(session.getFileFormat())
                 && hasSkroogeMetadata(session.getMetadata())) {
-            return confirmSkroogeImport(session, userId, categoryMappings, skipDuplicates);
+            return confirmSkroogeImport(
+                    session, userId, categoryMappings, skipDuplicates, transactions);
         }
 
         if (shouldUseImportedAccountRouting(transactions)) {
@@ -799,6 +770,11 @@ public class ImportService {
                                             }
                                         })
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+                Object originalNet =
+                        readMetadataMap(session.getMetadata()).get("statementNetAmounts");
+                if (originalNet instanceof Map<?, ?> amounts && amounts.get("") != null) {
+                    transactionNet = new BigDecimal(amounts.get("").toString());
+                }
                 ledgerBalance = ledgerBalance.subtract(transactionNet);
             }
             resolvedAccountId =
@@ -832,7 +808,7 @@ public class ImportService {
             // Separate blocking-error transactions from importable ones
             List<ImportedTransaction> errorTxs =
                     transactions.stream()
-                            .filter(ImportedTransaction::hasErrors)
+                            .filter(tx -> tx.hasErrors() && !tx.isSkippedByRule())
                             .collect(Collectors.toList());
 
             List<ImportedTransaction> validTxs =
@@ -942,11 +918,20 @@ public class ImportService {
 
             // Update session with results
             int duplicatesSkipped = skipDuplicates ? duplicateTxs.size() : 0;
+            int ruleSkipped =
+                    (int)
+                            transactions.stream()
+                                    .filter(ImportedTransaction::isSkippedByRule)
+                                    .count();
             session.setImportedCount(imported);
             session.setDuplicateCount(duplicateTxs.size());
             session.setErrorCount(errorTxs.size() + saveFailed);
             session.setSkippedCount(
-                    duplicatesSkipped + errorTxs.size() + saveFailed + openingBalanceTxs.size());
+                    duplicatesSkipped
+                            + ruleSkipped
+                            + errorTxs.size()
+                            + saveFailed
+                            + openingBalanceTxs.size());
             session.setStatus(ImportStatus.COMPLETED);
             operationHistoryService.record(
                     session.getUserId(),
@@ -1166,124 +1151,122 @@ public class ImportService {
             Long accountId,
             String fileFormat,
             Long userId) {
-        if (accountId == null) {
-            // No specific account selected yet ΓÇö fall back to checking against all of the
-            // user's existing transactions so duplicates are still surfaced at review time.
-            log.debug(
-                    "Account not specified; checking duplicates across all transactions for user {}",
-                    userId);
-        }
-
-        // findByAccountId JPQL already filters isDeleted = false ΓÇö no extra stream
-        // filter needed
-        List<Transaction> existingTransactions =
-                accountId != null
-                        ? transactionRepository.findByAccountId(accountId)
+        boolean useReferences = isReferenceAuthoritative(fileFormat);
+        Map<String, Long> importedAccounts =
+                duplicateAccountScopes(transactions, accountId, userId);
+        List<Transaction> existing =
+                importedAccounts.isEmpty()
+                        ? accountId == null
+                                ? List.of()
+                                : transactionRepository.findByAccountId(accountId)
                         : transactionRepository.findByUserId(userId);
-
-        // Only OFX/QFX produces globally-unique FITIDs that are safe for exact-match
-        // dedup.
-        // QIF check numbers and CSV reference columns are not reliable unique
-        // identifiers.
-        boolean useReferenceTiers = isReferenceAuthoritative(fileFormat);
-
-        // Tier 0: reference numbers seen within THIS import batch (OFX/QFX only)
-        // Maps referenceNumber ΓåÆ index of the first transaction that owns it
-        Map<String, Integer> seenReferenceNumbers = new HashMap<>();
-
-        for (int i = 0; i < transactions.size(); i++) {
-            ImportedTransaction tx = transactions.get(i);
-
-            if (tx.getTransactionDate() == null || tx.getAmount() == null) {
-                continue; // Skip structurally invalid transactions
-            }
-
-            if (useReferenceTiers) {
-                String ref = tx.getReferenceNumber();
-                if (ref != null && !ref.isBlank()) {
-
-                    // ΓöÇΓöÇ Tier 0: intra-session reference duplicate
-                    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-                    if (seenReferenceNumbers.containsKey(ref)) {
-                        int firstIdx = seenReferenceNumbers.get(ref);
-                        markDuplicate(
-                                tx,
-                                "DUPLICATE: Same reference number '"
-                                        + ref
-                                        + "' already appears in this import batch (transaction #"
-                                        + (firstIdx + 1)
-                                        + ")");
-                        continue; // No need for further tiers
-                    }
-                    seenReferenceNumbers.put(ref, i);
-
-                    // ΓöÇΓöÇ Tier 1: exact reference match against persisted transactions ΓöÇ
-                    boolean tier1Match =
-                            existingTransactions.stream()
-                                    .anyMatch(
-                                            existing ->
-                                                    ref.equals(existing.getExternalReference()));
-                    if (tier1Match) {
-                        markDuplicate(
-                                tx,
-                                "DUPLICATE: Transaction with reference '"
-                                        + ref
-                                        + "' has already been imported into this account");
-                        continue; // Authoritative match ΓÇö skip fuzzy check
-                    }
-                }
-            }
-
-            // ΓöÇΓöÇ Tier 2: fuzzy date / amount / payee match (all formats)
-            // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-            LocalDate importDate = tx.getTransactionDate();
-            BigDecimal importAmount = tx.getAmount().abs();
-
-            for (Transaction existing : existingTransactions) {
-                // Date within ┬▒1 day
-                long daysDiff = Math.abs(existing.getDate().toEpochDay() - importDate.toEpochDay());
-                if (daysDiff > 1) {
-                    continue;
-                }
-
-                // Amount match ΓÇö use compareTo to handle scale differences (50.00 vs 50.0000)
-                if (existing.getAmount().abs().compareTo(importAmount) != 0) {
-                    continue;
-                }
-
-                // Currency mismatch ΓÇö skip (e.g. USD $6.75 is not a duplicate of EUR Γé¼6.75)
-                String importCurrency = tx.getCurrency();
-                String existingCurrency = existing.getCurrency();
-                if (importCurrency != null
-                        && existingCurrency != null
-                        && !importCurrency.equalsIgnoreCase(existingCurrency)) {
-                    continue;
-                }
-
-                // Payee / description similarity
-                if (isPayeeSimilar(tx.getPayee(), existing.getDescription())) {
+        Map<String, Integer> seenReferences = new HashMap<>();
+        for (int index = 0; index < transactions.size(); index++) {
+            ImportedTransaction tx = transactions.get(index);
+            tx.setPotentialDuplicate(false);
+            tx.setValidationErrors(
+                    tx.getValidationErrors().stream()
+                            .filter(error -> !error.startsWith("DUPLICATE:"))
+                            .collect(Collectors.toList()));
+            if (tx.getTransactionDate() == null || tx.getAmount() == null) continue;
+            String importedKey =
+                    buildImportedAccountKey(tx.getAccountName(), tx.getAccountNumber());
+            Long targetId = importedKey == null ? accountId : importedAccounts.get(importedKey);
+            String scope = targetId == null ? "import:" + importedKey : "account:" + targetId;
+            String reference = tx.getReferenceNumber();
+            boolean authoritative =
+                    useReferences && !Boolean.FALSE.equals(tx.getAuthoritativeReference());
+            if (authoritative && reference != null && !reference.isBlank()) {
+                Integer first = seenReferences.putIfAbsent(scope + "|" + reference, index);
+                if (first != null) {
                     markDuplicate(
                             tx,
-                            "DUPLICATE: Possible duplicate of transaction on "
-                                    + existing.getDate()
-                                    + " with description: "
-                                    + existing.getDescription());
-                    break; // First fuzzy match is sufficient
+                            "DUPLICATE: Same reference number '"
+                                    + reference
+                                    + "' already appears in this account's import (transaction #"
+                                    + (first + 1)
+                                    + ")");
+                    continue;
+                }
+            }
+            if (targetId == null)
+                continue; // A new/unselected account has no existing transactions.
+            for (Transaction candidate : existing) {
+                if (targetId.equals(candidate.getAccountId())
+                        && matchesDuplicate(tx, candidate, authoritative)) {
+                    String message =
+                            authoritative
+                                            && reference != null
+                                            && reference.equals(candidate.getExternalReference())
+                                    ? "DUPLICATE: Transaction with reference '"
+                                            + reference
+                                            + "' has already been imported into this account"
+                                    : "DUPLICATE: Possible duplicate of transaction on "
+                                            + candidate.getDate()
+                                            + " with description: "
+                                            + candidate.getDescription();
+                    markDuplicate(tx, message);
+                    break;
                 }
             }
         }
+    }
 
-        long duplicateCount = transactions.stream().filter(this::isDuplicate).count();
-        log.debug(
-                "Detected {} possible duplicates out of {} transactions (format={}, referenceTiers={})",
-                duplicateCount,
-                transactions.size(),
-                fileFormat,
-                useReferenceTiers);
+    private Map<String, Long> duplicateAccountScopes(
+            List<ImportedTransaction> transactions, Long fallbackAccountId, Long userId) {
+        Map<String, ImportedAccountDescriptor> descriptors =
+                collectImportedAccounts(transactions, null);
+        if (descriptors.isEmpty()) return Map.of();
+        List<Account> accounts = accountRepository.findByUserId(userId);
+        Map<String, Long> scopes = new HashMap<>();
+        for (ImportedAccountDescriptor descriptor : descriptors.values()) {
+            Account existing = findMatchingAccount(accounts, descriptor);
+            scopes.put(
+                    descriptor.key(),
+                    existing != null
+                            ? existing.getId()
+                            : descriptors.size() == 1 ? fallbackAccountId : null);
+        }
+        return scopes;
+    }
+
+    private boolean matchesDuplicate(
+            ImportedTransaction imported, Transaction existing, boolean useReferences) {
+        String reference = imported.getReferenceNumber();
+        if (useReferences
+                && reference != null
+                && !reference.isBlank()
+                && existing.getExternalReference() != null
+                && !existing.getExternalReference().isBlank()) {
+            // Different bank-issued IDs are different movements, even with identical
+            // amounts/payees.
+            return reference.equals(existing.getExternalReference());
+        }
+        if (existing.getType() != TransactionType.INCOME
+                && existing.getType() != TransactionType.EXPENSE) {
+            return false;
+        }
+        if ((imported.getAmount().signum() >= 0)
+                != (existing.getType() == TransactionType.INCOME)) {
+            return false;
+        }
+        if (Math.abs(existing.getDate().toEpochDay() - imported.getTransactionDate().toEpochDay())
+                        > 1
+                || existing.getAmount().abs().compareTo(imported.getAmount().abs()) != 0) {
+            return false;
+        }
+        if (imported.getCurrency() != null
+                && existing.getCurrency() != null
+                && !imported.getCurrency().equalsIgnoreCase(existing.getCurrency())) return false;
+        String payee =
+                imported.getOriginalPayee() != null
+                        ? imported.getOriginalPayee()
+                        : imported.getPayee();
+        return isPayeeSimilar(payee, existing.getDescription());
     }
 
     /**
-     * Returns {@code true} when the given file format produces globally-unique transaction IDs that
+     * Returns {@code true} when the given file format produces account-scoped transaction IDs that
      * are safe to use as authoritative duplicate-detection keys (Tier 0 intra-session and Tier 1 DB
      * exact-match).
      *
@@ -1380,6 +1363,27 @@ public class ImportService {
      * @param userId the user ID
      *     <p>Requirement: REQ-2.10.3 (Category mapping during import)
      */
+    private void prepareUnreviewedTransactions(
+            ImportSession session, List<ImportedTransaction> transactions, Long userId) {
+        if (Boolean.TRUE.equals(readMetadataMap(session.getMetadata()).get("reviewSaved"))) {
+            return;
+        }
+        // Old sessions may already contain persisted rule output. Do not append its
+        // split actions again; all newly parsed sessions remain immutable until save.
+        List<ImportedTransaction> unprocessed =
+                transactions.stream()
+                        .filter(
+                                tx ->
+                                        tx.getValidationErrors().stream()
+                                                .noneMatch(
+                                                        error ->
+                                                                error.startsWith("RULE_MATCH:")
+                                                                        || error.startsWith(
+                                                                                "RULE_SKIP:")))
+                        .collect(Collectors.toList());
+        suggestCategories(unprocessed, userId);
+    }
+
     private void suggestCategories(List<ImportedTransaction> transactions, Long userId) {
         // Preserve the raw imported payee BEFORE rules run — SET_PAYEE actions
         // overwrite
@@ -1631,14 +1635,14 @@ public class ImportService {
             ImportSession session,
             Long userId,
             Map<String, Long> categoryMappings,
-            boolean skipDuplicates) {
+            boolean skipDuplicates,
+            List<ImportedTransaction> transactions) {
         session.setStatus(ImportStatus.IMPORTING);
         importSessionRepository.save(session);
 
-        List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
         List<ImportedTransaction> errorTxs =
                 transactions.stream()
-                        .filter(ImportedTransaction::hasErrors)
+                        .filter(tx -> tx.hasErrors() && !tx.isSkippedByRule())
                         .collect(Collectors.toList());
         List<ImportedTransaction> validTxs =
                 transactions.stream().filter(tx -> !tx.hasErrors()).collect(Collectors.toList());
@@ -1740,10 +1744,12 @@ public class ImportService {
         }
 
         int duplicatesSkipped = skipDuplicates ? duplicateTxs.size() : 0;
+        int ruleSkipped =
+                (int) transactions.stream().filter(ImportedTransaction::isSkippedByRule).count();
         session.setImportedCount(imported);
         session.setDuplicateCount(duplicateTxs.size());
         session.setErrorCount(errorTxs.size() + saveFailed);
-        session.setSkippedCount(duplicatesSkipped + errorTxs.size() + saveFailed);
+        session.setSkippedCount(duplicatesSkipped + ruleSkipped + errorTxs.size() + saveFailed);
         session.setStatus(ImportStatus.COMPLETED);
         operationHistoryService.record(
                 session.getUserId(),
@@ -1852,7 +1858,7 @@ public class ImportService {
 
         List<ImportedTransaction> errorTxs =
                 transactions.stream()
-                        .filter(ImportedTransaction::hasErrors)
+                        .filter(tx -> tx.hasErrors() && !tx.isSkippedByRule())
                         .collect(Collectors.toList());
         List<ImportedTransaction> validTxs =
                 transactions.stream().filter(tx -> !tx.hasErrors()).collect(Collectors.toList());
@@ -1894,7 +1900,7 @@ public class ImportService {
         descriptorSource.addAll(openingBalanceTxs);
         Map<String, ImportedAccountDescriptor> descriptorsByKey =
                 collectImportedAccounts(descriptorSource, fileCurrency);
-        applyStatementOpeningBalances(descriptorsByKey, toImport, session.getMetadata());
+        applyStatementOpeningBalances(descriptorsByKey, transactions, session.getMetadata());
         Map<String, Long> accountIdsByKey =
                 ensureImportedAccounts(descriptorsByKey, fallbackAccount, userId);
 
@@ -1916,7 +1922,7 @@ public class ImportService {
             affectedAccountIds.add(resolvedFallbackAccountId);
         }
         Set<String> processedTransferKeys = new java.util.HashSet<>();
-        Map<String, Integer> ungroupedTransferOccurrences = new HashMap<>();
+        ImportedTransferMatcher transferMatcher = new ImportedTransferMatcher();
 
         for (ImportedTransaction importedTx : toImport) {
             try {
@@ -1936,11 +1942,8 @@ public class ImportService {
                     }
 
                     String transferKey =
-                            buildImportedTransferKey(
-                                    importedTx,
-                                    sourceAccountId,
-                                    destinationAccountId,
-                                    ungroupedTransferOccurrences);
+                            transferMatcher.keyFor(
+                                    importedTx, sourceAccountId, destinationAccountId);
                     if (!processedTransferKeys.add(transferKey)) {
                         continue;
                     }
@@ -2031,10 +2034,12 @@ public class ImportService {
         }
 
         int duplicatesSkipped = skipDuplicates ? duplicateTxs.size() : 0;
+        int ruleSkipped =
+                (int) transactions.stream().filter(ImportedTransaction::isSkippedByRule).count();
         session.setImportedCount(imported);
         session.setDuplicateCount(duplicateTxs.size());
         session.setErrorCount(errorTxs.size() + saveFailed);
-        session.setSkippedCount(duplicatesSkipped + errorTxs.size() + saveFailed);
+        session.setSkippedCount(duplicatesSkipped + ruleSkipped + errorTxs.size() + saveFailed);
         session.setStatus(ImportStatus.COMPLETED);
         operationHistoryService.record(
                 session.getUserId(),
@@ -2295,8 +2300,13 @@ public class ImportService {
             String metadata) {
         if (metadata == null || !metadata.contains("\"ledgerBalances\"")) return;
         try {
-            com.fasterxml.jackson.databind.JsonNode balances =
-                    objectMapper.readTree(metadata).path("ledgerBalances");
+            com.fasterxml.jackson.databind.JsonNode root =
+                    objectMapper
+                            .reader()
+                            .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+                            .readTree(metadata);
+            com.fasterxml.jackson.databind.JsonNode balances = root.path("ledgerBalances");
+            com.fasterxml.jackson.databind.JsonNode originalNets = root.path("statementNetAmounts");
             for (Map.Entry<String, ImportedAccountDescriptor> entry : descriptors.entrySet()) {
                 ImportedAccountDescriptor descriptor = entry.getValue();
                 String statementId =
@@ -2315,7 +2325,12 @@ public class ImportService {
                                                                         tx.getAccountName(),
                                                                         tx.getAccountNumber())))
                                 .map(ImportedTransaction::getAmount)
+                                .filter(Objects::nonNull)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+                if (originalNets.has(entry.getKey())) {
+                    if (originalNets.get(entry.getKey()).isNull()) continue;
+                    net = originalNets.get(entry.getKey()).decimalValue();
+                }
                 entry.setValue(
                         new ImportedAccountDescriptor(
                                 descriptor.key(),
@@ -2330,6 +2345,24 @@ public class ImportService {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Invalid import metadata", e);
         }
+    }
+
+    /** Preserve statement arithmetic before rules or review edits remove/change movements. */
+    private Map<String, BigDecimal> statementNetAmounts(List<ImportedTransaction> transactions) {
+        Map<String, BigDecimal> amounts = new HashMap<>();
+        for (ImportedTransaction tx : transactions) {
+            String key =
+                    Objects.toString(
+                            buildImportedAccountKey(tx.getAccountName(), tx.getAccountNumber()),
+                            "");
+            if (tx.getAmount() == null) {
+                amounts.put(
+                        key, null); // An incomplete statement cannot establish an opening balance.
+            } else if (!amounts.containsKey(key) || amounts.get(key) != null) {
+                amounts.merge(key, tx.getAmount(), BigDecimal::add);
+            }
+        }
+        return amounts;
     }
 
     private boolean shouldUseImportedAccountRouting(List<ImportedTransaction> transactions) {
@@ -2569,30 +2602,6 @@ public class ImportService {
                                                 || transaction.getAccountName().isBlank())
                                         && (transaction.getAccountNumber() == null
                                                 || transaction.getAccountNumber().isBlank()));
-    }
-
-    private String buildImportedTransferKey(
-            ImportedTransaction transaction,
-            Long sourceAccountId,
-            Long destinationAccountId,
-            Map<String, Integer> ungroupedTransferOccurrences) {
-        String groupKey = transaction.getTransferGroupKey();
-        if (groupKey != null && !groupKey.isBlank()) {
-            return groupKey;
-        }
-
-        long lowerAccountId = Math.min(sourceAccountId, destinationAccountId);
-        long higherAccountId = Math.max(sourceAccountId, destinationAccountId);
-        String baseKey =
-                String.join("|", String.valueOf(lowerAccountId), String.valueOf(higherAccountId));
-        String rawSideKey =
-                String.join(
-                        "|",
-                        baseKey,
-                        String.valueOf(sourceAccountId),
-                        String.valueOf(destinationAccountId));
-        int occurrence = ungroupedTransferOccurrences.merge(rawSideKey, 1, Integer::sum);
-        return String.join("|", baseKey, String.valueOf(occurrence));
     }
 
     private String decryptQuietly(String value) {
@@ -3109,7 +3118,9 @@ public class ImportService {
                         .payeeId(payeeId)
                         .type(transactionType)
                         .externalReference(
-                                importedTx.getReferenceNumber()) // Persist for future dedup
+                                Boolean.FALSE.equals(importedTx.getAuthoritativeReference())
+                                        ? null
+                                        : importedTx.getReferenceNumber())
                         .paymentMethod(mapPaymentMethod(importedTx.getPaymentMethod()))
                         .isReconciled("reconciled".equalsIgnoreCase(importedTx.getClearedStatus()))
                         .isDeleted(false);

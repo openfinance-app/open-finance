@@ -86,7 +86,7 @@ describe('useImport hooks', () => {
       });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(setQueryDataSpy).toHaveBeenCalledWith(['import-sessions', 1], mockSession);
+      expect(setQueryDataSpy).toHaveBeenCalledWith(['import-sessions', 1, true], mockSession);
     });
   });
 
@@ -128,6 +128,15 @@ describe('useImport hooks', () => {
       const { result } = renderHook(() => useImportTransactions(1, 'COMPLETED'), { wrapper });
       expect(result.current.fetchStatus).toBe('idle');
     });
+
+    it.each(['PENDING', 'PARSING', 'IMPORTING'] as const)(
+      'does not fetch a review in %s',
+      status => {
+        const { result } = renderHook(() => useImportTransactions(1, status), { wrapper });
+        expect(result.current.fetchStatus).toBe('idle');
+        expect(mockedImportService.getTransactions).not.toHaveBeenCalled();
+      }
+    );
 
     it('should be disabled when session status is FAILED', () => {
       const { result } = renderHook(() => useImportTransactions(1, 'FAILED'), { wrapper });

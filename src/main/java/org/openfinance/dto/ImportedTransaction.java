@@ -58,6 +58,9 @@ public class ImportedTransaction {
     /** Check/reference number (optional) Used as import ID for duplicate detection */
     private String referenceNumber;
 
+    /** False when an OFX reference is only a cheque number rather than a bank-issued FITID. */
+    private Boolean authoritativeReference;
+
     /** Account name from import file Used to match against user's accounts */
     private String accountName;
 
@@ -211,6 +214,11 @@ public class ImportedTransaction {
     public boolean hasErrors() {
         return validationErrors.stream()
                 .anyMatch(e -> INFO_PREFIXES.stream().noneMatch(e::startsWith));
+    }
+
+    @JsonIgnore
+    public boolean isSkippedByRule() {
+        return validationErrors.stream().anyMatch(error -> error.startsWith("RULE_SKIP:"));
     }
 
     /** Check if transaction is a split transaction */

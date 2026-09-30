@@ -40,9 +40,9 @@ import org.xml.sax.InputSource;
  * CREDIT, INT, DIV, FEE, …) — appended to memo - DTPOSTED : Date posted (YYYYMMDDHHMMSS) - DTUSER :
  * User-initiated date — used as fallback when DTPOSTED is absent - TRNAMT : Transaction amount
  * (negative for debits) - FITID : Financial Institution Transaction ID - CHECKNUM : Check number
- * (preferred over FITID when present) - REFNUM : Reference number (used when CHECKNUM absent and
- * preferred over FITID) - NAME : Payee/description - MEMO : Additional memo/notes - CURRENCY /
- * CURSYM : Currency code
+ * (fallback when FITID is absent) - REFNUM : Reference number (used when both FITID and CHECKNUM
+ * are absent) - NAME : Payee/description - MEMO : Additional memo/notes - CURRENCY / CURSYM :
+ * Currency code
  *
  * <p>Investment transactions (INVBUY, INVSELL, REINVEST, INCOME, INVEXPENSE, etc.) are parsed from
  * INVSTMTTRNRS / INVTRANLIST using minimal field extraction: - DTSETTLE or DTTRADE as date - TOTAL
@@ -352,13 +352,14 @@ public class OfxParser {
                         && !statementCurrency.isEmpty()) {
                     fileCurrency = statementCurrency;
                 }
-                NodeList stmtTrnList = stmtRs.getElementsByTagName("CCSTMTTRN");
+                NodeList stmtTrnList = stmtRs.getElementsByTagName("STMTTRN");
                 for (int j = 0; j < stmtTrnList.getLength(); j++) {
                     Element el = (Element) stmtTrnList.item(j);
                     ImportedTransaction txn =
                             parseTransaction(
                                     el, fileName, ++index, accountId, statementCurrency, locale);
                     if (txn != null) {
+                        txn.setQifAccountType("CCard");
                         transactions.add(txn);
                     }
                 }
@@ -441,17 +442,18 @@ public class OfxParser {
         String trnAmt = getElementText(stmtTrn, "TRNAMT");
         builder.amount(parseAmount(trnAmt));
 
-        // Reference number: CHECKNUM > REFNUM > FITID
+        // FITID identifies a transaction; cheque/reference numbers can legitimately repeat.
         String fitId = getElementText(stmtTrn, "FITID");
         String checkNum = getElementText(stmtTrn, "CHECKNUM");
         String refNum = getElementText(stmtTrn, "REFNUM");
+        builder.authoritativeReference(fitId != null && !fitId.isBlank());
 
-        if (checkNum != null && !checkNum.isEmpty()) {
+        if (fitId != null && !fitId.isEmpty()) {
+            builder.referenceNumber(fitId);
+        } else if (checkNum != null && !checkNum.isEmpty()) {
             builder.referenceNumber(checkNum);
         } else if (refNum != null && !refNum.isEmpty()) {
             builder.referenceNumber(refNum);
-        } else if (fitId != null && !fitId.isEmpty()) {
-            builder.referenceNumber(fitId);
         }
 
         // NAME — payee, MEMO — memo. Per the OFX spec these are distinct fields and are

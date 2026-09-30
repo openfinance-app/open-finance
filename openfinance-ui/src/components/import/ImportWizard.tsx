@@ -16,9 +16,12 @@ import { useNavigate, useBeforeUnload } from 'react-router';
 import { ROUTES } from '@/constants/routes';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { FileUpload } from './FileUpload';
-import { ImportReview } from './ImportReview';
-import { ImportProgress } from './ImportProgress';
+import { FileUpload } from '@/components/import/FileUpload';
+import { useAuthContext } from '@/context/AuthContext';
+import { useImportDraftStore } from '@/stores/importDraft';
+import { getImportReviewCounts } from '@/utils/import-review';
+import { ImportReview } from '@/components/import/ImportReview';
+import { ImportProgress } from '@/components/import/ImportProgress';
 import { Button } from '@/components/ui/Button';
 import { SimpleSelect } from '@/components/ui/SimpleSelect';
 import {
@@ -94,25 +97,70 @@ export function ImportWizard() {
   const { t } = useTranslation('import');
   const queryClient = useQueryClient();
 
+  const { user } = useAuthContext();
+  const savedDraft = useImportDraftStore.getState();
+  const initialDraft = useRef(savedDraft.userId === user?.id ? savedDraft.draft : null).current;
+  const [stepError, setStepError] = useState<string | null>(null);
+
   // ── Wizard state ─────────────────────────────────────────────────────────
-  const [selectedStep, setCurrentStep] = useState<ImportWizardStep>('upload');
-  const [uploadId, setUploadId] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string>('');
-  const [accountOverride, setAccountId] = useState<number | null | undefined>(undefined);
-  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [selectedStep, setCurrentStep] = useState<ImportWizardStep>(
+    initialDraft?.selectedStep ?? 'upload'
+  );
+  const [uploadId, setUploadId] = useState<string | null>(initialDraft?.uploadId ?? null);
+  const [fileName, setFileName] = useState<string>(initialDraft?.fileName ?? '');
+  const [accountOverride, setAccountId] = useState<number | null | undefined>(
+    initialDraft?.accountOverride
+  );
+  const [sessionId, setSessionId] = useState<number | null>(initialDraft?.sessionId ?? null);
 
   /** Controls the "leave and cancel?" confirmation dialog */
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelFailed, setCancelFailed] = useState(false);
 
   /** Source-category → target-categoryId mappings, collected in the review step */
-  const [categoryMappings, setCategoryMappings] = useState<Record<string, number>>({});
+  const [categoryMappings, setCategoryMappings] = useState<Record<string, number>>(
+    initialDraft?.categoryMappings ?? {}
+  );
   /** Category names from the import file that don't exist in DB yet — created on confirm */
-  const [newCategoryNames, setNewCategoryNames] = useState<string[]>([]);
-  const [skipDuplicates, setSkipDuplicates] = useState(true);
+  const [newCategoryNames, setNewCategoryNames] = useState<string[]>(
+    initialDraft?.newCategoryNames ?? []
+  );
+  const [skipDuplicates, setSkipDuplicates] = useState(initialDraft?.skipDuplicates ?? true);
 
   /** Local (editable) copy of parsed transactions */
-  const [editedTransactions, setLocalTransactions] = useState<ImportTransactionDTO[] | null>(null);
+  const [editedTransactions, setLocalTransactions] = useState<ImportTransactionDTO[] | null>(
+    initialDraft?.editedTransactions ?? null
+  );
+
+  useEffect(() => {
+    if (!user) return;
+    if (!sessionId && !uploadId) {
+      useImportDraftStore.getState().clear();
+      return;
+    }
+    useImportDraftStore.getState().save(user.id, {
+      selectedStep,
+      uploadId,
+      fileName,
+      accountOverride,
+      sessionId,
+      categoryMappings,
+      newCategoryNames,
+      skipDuplicates,
+      editedTransactions,
+    });
+  }, [
+    user,
+    selectedStep,
+    uploadId,
+    fileName,
+    accountOverride,
+    sessionId,
+    categoryMappings,
+    newCategoryNames,
+    skipDuplicates,
+    editedTransactions,
+  ]);
 
   // ── Remote data & mutations ───────────────────────────────────────────────
   const { data: accounts = [] } = useAccounts();
@@ -142,7 +190,11 @@ export function ImportWizard() {
   const localTransactions = editedTransactions ?? transactions;
   const accountId = accountOverride === undefined ? (session?.accountId ?? null) : accountOverride;
   const currentStep =
-    session?.status === 'IMPORTING' && selectedStep === 'confirm' ? 'progress' : selectedStep;
+    session &&
+    ['IMPORTING', 'COMPLETED', 'FAILED', 'CANCELLED'].includes(session.status) &&
+    selectedStep !== 'account'
+      ? 'progress'
+      : selectedStep;
 
   // ── Refresh dependent data once the async import actually completes ───────
   // Confirmation runs asynchronously on the backend, so the imported rows only
@@ -180,12 +232,14 @@ export function ImportWizard() {
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const currentStepIndex = STEPS.indexOf(currentStep);
+  const reviewCounts = getImportReviewCounts(localTransactions, skipDuplicates);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleUploadSuccess = async (response: FileUploadResponse) => {
     if (!response.uploadId) return;
 
+    setStepError(null);
     setLocalTransactions(null);
     setCategoryMappings({});
     setNewCategoryNames([]);
@@ -203,27 +257,27 @@ export function ImportWizard() {
       setSessionId(result.id);
     } catch (error) {
       console.error('Failed to start import:', error);
+      setStepError('errors.start');
     }
   };
 
   const handleApplyAccount = async () => {
     if (!sessionId) return;
-    // Register the chosen account with the session then advance to review.
-    // If no account was selected we skip the API call — the backend will
-    // auto-create one from suggestedAccountName (or filename) at confirm time.
-    if (accountId) {
-      try {
-        await updateAccount.mutateAsync({ sessionId, accountId });
-      } catch (err) {
-        console.error('Failed to update account:', err);
-        return; // Don't advance on error
-      }
+    setStepError(null);
+    try {
+      await updateAccount.mutateAsync({ sessionId, accountId: accountId ?? null });
+      setLocalTransactions(null); // Use review recalculated for the selected destination.
+    } catch (err) {
+      console.error('Failed to update account:', err);
+      setStepError('errors.account');
+      return;
     }
     setCurrentStep('review');
   };
 
   const handleConfirmImport = async () => {
     if (!sessionId) return;
+    setStepError(null);
     try {
       // The backend resolves/creates categories inside the import transaction, after
       // validation and duplicate filtering. Preserve selected category IDs from review.
@@ -236,10 +290,13 @@ export function ImportWizard() {
       setCurrentStep('progress');
     } catch (error) {
       console.error('Failed to confirm import:', error);
+      setStepError('errors.confirm');
     }
   };
 
   const resetWizard = () => {
+    setStepError(null);
+    useImportDraftStore.getState().clear();
     setCurrentStep('upload');
     setUploadId(null);
     setFileName('');
@@ -306,6 +363,7 @@ export function ImportWizard() {
   // ── handleNext ─────────────────────────────────────────────────────────────
 
   const handleNext = () => {
+    setStepError(null);
     const nextIndex = currentStepIndex + 1;
     if (nextIndex >= STEPS.length) return;
     const nextStep = STEPS[nextIndex];
@@ -321,7 +379,10 @@ export function ImportWizard() {
       updateTransactions
         .mutateAsync({ sessionId, transactions: localTransactions })
         .then(() => setCurrentStep(nextStep))
-        .catch(e => console.error('Failed to update transactions', e));
+        .catch(e => {
+          console.error('Failed to update transactions', e);
+          setStepError('errors.reviewSave');
+        });
       return;
     }
 
@@ -334,6 +395,7 @@ export function ImportWizard() {
   };
 
   const handlePrevious = () => {
+    setStepError(null);
     const prevIndex = currentStepIndex - 1;
     if (prevIndex < 0) return;
 
@@ -345,8 +407,7 @@ export function ImportWizard() {
         .then(() => setCurrentStep(STEPS[prevIndex]))
         .catch(e => {
           console.error('Failed to persist transactions before navigating back', e);
-          // Navigate anyway — local state still holds the edits
-          setCurrentStep(STEPS[prevIndex]);
+          setStepError('errors.reviewSave');
         });
       return;
     }
@@ -360,6 +421,14 @@ export function ImportWizard() {
 
   return (
     <div className="max-w-5xl mx-auto">
+      {stepError && currentStep !== 'progress' && (
+        <div
+          role="alert"
+          className="mb-4 rounded-lg border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-500"
+        >
+          {t(stepError)}
+        </div>
+      )}
       {/* ── Cancel-confirmation overlay ─────────────────────────────────── */}
       {showCancelConfirm && (
         <div
@@ -700,20 +769,28 @@ export function ImportWizard() {
                   {t('summary.transactionsToImport')}
                 </div>
                 <div className="text-2xl font-bold text-text-primary mt-1">
-                  {localTransactions.length}
+                  {reviewCounts.importable}
                 </div>
               </div>
 
               <div className="bg-app-bg border border-border rounded-lg p-4">
                 <div className="text-sm text-text-secondary">{t('summary.categorized')}</div>
                 <div className="text-2xl font-bold text-text-primary mt-1">
-                  {localTransactions.filter(t => !!t.category).length}
+                  {reviewCounts.categorized}
                   <span className="text-sm font-normal text-text-tertiary ml-1">
-                    / {localTransactions.length}
+                    / {reviewCounts.importable}
                   </span>
                 </div>
               </div>
             </div>
+
+            <p className="text-sm text-text-secondary">
+              {t('summary.excluded', {
+                duplicates: reviewCounts.duplicates,
+                rules: reviewCounts.ruleSkipped,
+                invalid: reviewCounts.invalid,
+              })}
+            </p>
 
             <div className="flex items-center space-x-2 pt-2">
               <input

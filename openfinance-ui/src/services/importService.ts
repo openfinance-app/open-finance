@@ -110,11 +110,11 @@ export const importService = {
    */
   updateAccount: async (
     sessionId: number,
-    accountId: number,
+    accountId: number | null,
     encryptionEnabled = true
   ): Promise<ImportSessionResponse> => {
     const response = await apiClient.put<ImportSessionResponse>(
-      `/import/sessions/${sessionId}/account?accountId=${accountId}`,
+      `/import/sessions/${sessionId}/account${accountId == null ? '' : `?accountId=${accountId}`}`,
       {},
       {
         headers: buildEncryptionHeaders(encryptionEnabled),

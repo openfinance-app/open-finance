@@ -53,7 +53,8 @@
     "file": "Fichier",
     "account": "Compte",
     "transactionsToImport": "Transactions à importer",
-    "confirming": "Confirmation de l'importation…"
+    "confirming": "Confirmation de l'importation…",
+    "excluded": "Exclus : {{duplicates}} doublons, {{rules}} ignorés par les règles, {{invalid}} lignes invalides."
   },
   "wizard": {
     "upload": {
@@ -223,7 +224,7 @@
     "failed": "Échec de l'importation",
     "cancelled": "Importation annulée",
     "processing": "Traitement...",
-    "skipped": "{{count}} transactions ont été ignorées (doublons ou erreurs de validation)",
+    "skipped": "{{count}} lignes ignorées (doublons, règles ou erreurs de validation)",
     "viewTransactions": "Voir les transactions",
     "completedAt": "Terminé à {{date}}",
     "stats": {
@@ -262,5 +263,11 @@
     "summaryMapped": "associée(s)",
     "summaryUnmapped": "non associée(s)",
     "summaryNote": "Les catégories non associées ne seront pas attribuées aux transactions. Vous pouvez les ignorer ou créer de nouvelles catégories."
+  },
+  "errors": {
+    "start": "Impossible de démarrer l’import. Envoyez à nouveau le fichier pour réessayer.",
+    "account": "Impossible d’enregistrer le compte sélectionné. Veuillez réessayer.",
+    "reviewSave": "Impossible d’enregistrer la vérification. Vos modifications sont conservées ; veuillez réessayer.",
+    "confirm": "Impossible de confirmer l’import. Votre vérification est conservée. Veuillez réessayer."
   }
 }

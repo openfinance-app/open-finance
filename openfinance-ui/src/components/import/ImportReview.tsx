@@ -210,7 +210,7 @@ export function ImportReview({
     const map = new Map<string, number>();
     transactions.forEach(t => {
       if (t.category) map.set(t.category, (map.get(t.category) ?? 0) + 1);
-      if (t.splitTransaction && t.splits) {
+      if (t.splits?.length) {
         t.splits.forEach(s => {
           if (s.category) map.set(s.category, (map.get(s.category) ?? 0) + 1);
         });
@@ -774,7 +774,7 @@ export function ImportReview({
                   const isEditing = editingRow === idx;
                   const isExpanded = expandedRows.has(idx);
                   const isSelected = selectedRows.has(idx);
-                  const hasSplits = transaction.splitTransaction && transaction.splits.length > 0;
+                  const hasSplits = transaction.splits?.length > 0;
                   const hasErrors = transaction.validationErrors.some(
                     e => !INFO_PREFIXES.some(p => e.startsWith(p))
                   );

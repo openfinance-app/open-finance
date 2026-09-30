@@ -53,7 +53,8 @@
     "file": "File",
     "account": "Account",
     "transactionsToImport": "Transactions to import",
-    "confirming": "Confirming import…"
+    "confirming": "Confirming import…",
+    "excluded": "Excluded: {{duplicates}} duplicates, {{rules}} skipped by rules, {{invalid}} invalid rows."
   },
   "wizard": {
     "upload": {
@@ -223,7 +224,7 @@
     "failed": "Import failed",
     "cancelled": "Import cancelled",
     "processing": "Processing...",
-    "skipped": "{{count}} transactions were skipped (duplicates or validation errors)",
+    "skipped": "{{count}} rows were skipped (duplicates, rules, or validation errors)",
     "viewTransactions": "View Transactions",
     "completedAt": "Completed at {{date}}",
     "stats": {
@@ -262,5 +263,11 @@
     "summaryMapped": "mapped",
     "summaryUnmapped": "unmapped",
     "summaryNote": "Unmapped categories will not be assigned to transactions. You can skip them or create new categories."
+  },
+  "errors": {
+    "start": "Could not start the import. Upload the file again to retry.",
+    "account": "Could not save the selected account. Please try again.",
+    "reviewSave": "Could not save your review. Your edits are still here; please try again.",
+    "confirm": "Could not confirm the import. Your review is preserved. Please try again."
   }
 }

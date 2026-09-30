@@ -543,7 +543,9 @@ public class ImportController {
     /** Update the target account for an import session. */
     @PutMapping("/sessions/{id}/account")
     public ResponseEntity<ImportSession> updateAccount(
-            @PathVariable Long id, @RequestParam Long accountId, Authentication authentication) {
+            @PathVariable Long id,
+            @RequestParam(required = false) Long accountId,
+            Authentication authentication) {
 
         Long userId = ControllerUtil.extractUserId(authentication);
         log.info("User {} updating account for import session: {} to {}", userId, id, accountId);

@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,16 +41,16 @@ public class CsvParser {
 
     /** Numeric (locale-independent) date formats, month-first variants ordered first. */
     private static final DateTimeFormatter[] NUMERIC_DEFAULT = {
-        DateTimeFormatter.ofPattern("MM/dd/yyyy"),
-        DateTimeFormatter.ofPattern("dd/MM/yyyy"),
-        DateTimeFormatter.ofPattern("yyyy-MM-dd"),
-        DateTimeFormatter.ofPattern("M/d/yyyy"),
-        DateTimeFormatter.ofPattern("d/M/yyyy"),
-        DateTimeFormatter.ofPattern("yyyy/MM/dd"),
-        DateTimeFormatter.ofPattern("dd-MM-yyyy"),
-        DateTimeFormatter.ofPattern("MM-dd-yyyy"),
-        DateTimeFormatter.ofPattern("M-d-yyyy"),
-        DateTimeFormatter.ofPattern("d-M-yyyy"),
+        DateTimeFormatter.ofPattern("MM/dd/uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("uuuu-MM-dd").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("M/d/uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("d/M/uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("uuuu/MM/dd").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("dd-MM-uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("MM-dd-uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("M-d-uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("d-M-uuuu").withResolverStyle(ResolverStyle.STRICT),
     };
 
     /**
@@ -61,16 +62,16 @@ public class CsvParser {
 
     /** Numeric (locale-independent) date formats, day-first variants prioritised. */
     private static final DateTimeFormatter[] NUMERIC_DAY_FIRST = {
-        DateTimeFormatter.ofPattern("dd/MM/yyyy"),
-        DateTimeFormatter.ofPattern("d/M/yyyy"),
-        DateTimeFormatter.ofPattern("dd-MM-yyyy"),
-        DateTimeFormatter.ofPattern("d-M-yyyy"),
-        DateTimeFormatter.ofPattern("yyyy-MM-dd"),
-        DateTimeFormatter.ofPattern("yyyy/MM/dd"),
-        DateTimeFormatter.ofPattern("MM/dd/yyyy"),
-        DateTimeFormatter.ofPattern("M/d/yyyy"),
-        DateTimeFormatter.ofPattern("MM-dd-yyyy"),
-        DateTimeFormatter.ofPattern("M-d-yyyy"),
+        DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("d/M/uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("dd-MM-uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("d-M-uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("uuuu-MM-dd").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("uuuu/MM/dd").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("MM/dd/uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("M/d/uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("MM-dd-uuuu").withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("M-d-uuuu").withResolverStyle(ResolverStyle.STRICT),
     };
 
     /**
@@ -82,12 +83,18 @@ public class CsvParser {
     private static DateTimeFormatter[] buildDateFormats(Locale locale, boolean dayFirst) {
         DateTimeFormatter[] numeric = dayFirst ? NUMERIC_DAY_FIRST : NUMERIC_DEFAULT;
         DateTimeFormatter[] textual = {
-            DateTimeFormatter.ofPattern("MMM dd, yyyy", locale),
-            DateTimeFormatter.ofPattern("dd MMM yyyy", locale),
-            DateTimeFormatter.ofPattern("MMM d, yyyy", locale),
-            DateTimeFormatter.ofPattern("d MMM yyyy", locale),
-            DateTimeFormatter.ofPattern("MMMM dd, yyyy", locale),
-            DateTimeFormatter.ofPattern("dd MMMM yyyy", locale),
+            DateTimeFormatter.ofPattern("MMM dd, uuuu", locale)
+                    .withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ofPattern("dd MMM uuuu", locale)
+                    .withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ofPattern("MMM d, uuuu", locale)
+                    .withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ofPattern("d MMM uuuu", locale)
+                    .withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ofPattern("MMMM dd, uuuu", locale)
+                    .withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ofPattern("dd MMMM uuuu", locale)
+                    .withResolverStyle(ResolverStyle.STRICT),
         };
         DateTimeFormatter[] result = new DateTimeFormatter[numeric.length + textual.length];
         System.arraycopy(numeric, 0, result, 0, numeric.length);
@@ -395,7 +402,7 @@ public class CsvParser {
                 BigDecimal debitAmount = parseAmount(debitStr, lineNumber);
                 if (debitAmount != null) {
                     amount = debitAmount.abs().negate(); // Debits are negative
-                    foundAmount = true;
+                    foundAmount = debitAmount.signum() != 0;
                 }
             }
 

@@ -21,10 +21,9 @@ import type {
 } from '@/types/import';
 
 /**
- * Session statuses that indicate the import is done and the /review endpoint
- * is no longer accessible. Querying it in these states returns HTTP 400.
+ * Session statuses in which parsing has finished and review remains editable.
  */
-const TERMINAL_STATUSES: ImportSessionStatus[] = ['COMPLETED', 'FAILED', 'CANCELLED'];
+const REVIEW_STATUSES: ImportSessionStatus[] = ['PARSED', 'REVIEWING'];
 
 /**
  * Start import from uploaded file
@@ -46,7 +45,7 @@ export function useStartImport(): UseMutationResult<
     mutationFn: data => importService.startImport(data, encryptionEnabled),
     onSuccess: data => {
       // Cache the session data
-      queryClient.setQueryData(['import-sessions', data.id], data);
+      queryClient.setQueryData(['import-sessions', data.id, encryptionEnabled], data);
       queryClient.invalidateQueries({ queryKey: ['import-sessions'] });
     },
   });
@@ -104,7 +103,7 @@ export function useImportTransactions(
   sessionId: number | null,
   sessionStatus?: ImportSessionStatus
 ): UseQueryResult<ImportTransactionDTO[]> {
-  const isTerminal = !!sessionStatus && TERMINAL_STATUSES.includes(sessionStatus);
+  const canReview = !!sessionStatus && REVIEW_STATUSES.includes(sessionStatus);
   const securityConfig = useSecurityConfig();
   const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
 
@@ -114,9 +113,8 @@ export function useImportTransactions(
       if (!sessionId) throw new Error('Session ID is required');
       return importService.getTransactions(sessionId, encryptionEnabled);
     },
-    // Do not fetch if there is no session yet OR the session is in a terminal
-    // state — the backend rejects /review requests for those sessions with 400.
-    enabled: !!sessionId && !isTerminal,
+    // Wait for parsing and stop fetching once confirmation starts.
+    enabled: !!sessionId && canReview,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1, // AI categorization is slow; avoid aggressive retries
   });
@@ -168,8 +166,13 @@ export function useConfirmImport(): UseMutationResult<
       // intentionally NOT invalidated here — the imported data does not exist
       // yet. They are refreshed once the session poll reports COMPLETED (see
       // ImportWizard's completion effect).
-      queryClient.setQueryData(['import-sessions', variables.sessionId], data);
+      queryClient.setQueryData(['import-sessions', variables.sessionId, encryptionEnabled], data);
       queryClient.invalidateQueries({ queryKey: ['import-sessions'] });
+    },
+    onError: (_error, variables) => {
+      // A lost response does not prove that the server rejected confirmation.
+      // Fetch status so a completed or running import can recover without another write.
+      queryClient.invalidateQueries({ queryKey: ['import-sessions', variables.sessionId] });
     },
   });
 }
@@ -180,20 +183,25 @@ export function useConfirmImport(): UseMutationResult<
 export function useUpdateAccount(): UseMutationResult<
   ImportSessionResponse,
   Error,
-  { sessionId: number; accountId: number }
+  { sessionId: number; accountId: number | null }
 > {
   const queryClient = useQueryClient();
   const securityConfig = useSecurityConfig();
   const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
 
-  return useMutation<ImportSessionResponse, Error, { sessionId: number; accountId: number }>({
-    mutationFn: ({ sessionId, accountId }) =>
-      importService.updateAccount(sessionId, accountId, encryptionEnabled),
-    onSuccess: (data, variables) => {
-      queryClient.setQueryData(['import-sessions', variables.sessionId], data);
-      queryClient.invalidateQueries({ queryKey: ['import-sessions'] });
-    },
-  });
+  return useMutation<ImportSessionResponse, Error, { sessionId: number; accountId: number | null }>(
+    {
+      mutationFn: ({ sessionId, accountId }) =>
+        importService.updateAccount(sessionId, accountId, encryptionEnabled),
+      onSuccess: async (data, variables) => {
+        queryClient.setQueryData(['import-sessions', variables.sessionId, encryptionEnabled], data);
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['import-sessions'] }),
+          queryClient.invalidateQueries({ queryKey: ['import-transactions', variables.sessionId] }),
+        ]);
+      },
+    }
+  );
 }
 
 /**
@@ -216,7 +224,7 @@ export function useUpdateTransactions(): UseMutationResult<
     mutationFn: ({ sessionId, transactions }) =>
       importService.updateTransactions(sessionId, transactions, encryptionEnabled),
     onSuccess: (data, variables) => {
-      queryClient.setQueryData(['import-sessions', variables.sessionId], data);
+      queryClient.setQueryData(['import-sessions', variables.sessionId, encryptionEnabled], data);
       queryClient.invalidateQueries({ queryKey: ['import-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['import-transactions', variables.sessionId] });
     },

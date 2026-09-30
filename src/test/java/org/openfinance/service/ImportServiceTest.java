@@ -506,7 +506,6 @@ class ImportServiceTest {
                         Optional.of(
                                 new AutoCategorizationService.Prediction(
                                         "Groceries", "Carrefour", 0.9)));
-        when(objectMapper.writeValueAsString(any())).thenReturn("{\"transactions\":[]}");
 
         importService.reviewTransactions(1L, USER_ID);
 
@@ -591,7 +590,6 @@ class ImportServiceTest {
                 .thenReturn(testTransactions);
         when(transactionRepository.findByAccountId(ACCOUNT_ID)).thenReturn(Collections.emptyList());
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
-        when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
 
         // When
         List<ImportedTransaction> result = importService.reviewTransactions(1L, USER_ID);
@@ -601,8 +599,8 @@ class ImportServiceTest {
         assertThat(result).hasSize(testTransactions.size());
 
         verify(importSessionRepository).findById(1L);
-        verify(objectMapper, times(3))
-                .readValue(anyString(), any(com.fasterxml.jackson.core.type.TypeReference.class));
+        verify(importSessionRepository, never()).save(any());
+        assertThat(testSession.getMetadata()).isEqualTo("{\"transactions\":[]}");
     }
 
     @Test
@@ -977,7 +975,6 @@ class ImportServiceTest {
                 .thenReturn(parsed);
         when(transactionRepository.findByAccountId(ACCOUNT_ID)).thenReturn(existing);
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
-        when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
 
         return importService.reviewTransactions(1L, USER_ID);
     }
@@ -1137,16 +1134,10 @@ class ImportServiceTest {
                         .validationErrors(new ArrayList<>())
                         .build();
 
-        // When — OFX format: Tier 1 finds no match, Tier 2 fires on payee+date+amount
         List<ImportedTransaction> result = runReview(List.of(incoming), List.of(existing), "OFX");
-
-        // Then: Tier 2 catches the fuzzy match; exactly one DUPLICATE message
-        assertThat(result.get(0).isPotentialDuplicate()).isTrue();
-        assertThat(
-                        result.get(0).getValidationErrors().stream()
-                                .filter(e -> e.startsWith("DUPLICATE:"))
-                                .count())
-                .isEqualTo(1); // exactly one DUPLICATE message (not double-flagged)
+        assertThat(result.getFirst().isPotentialDuplicate()).isFalse();
+        assertThat(result.getFirst().getValidationErrors())
+                .noneMatch(e -> e.startsWith("DUPLICATE:"));
     }
 
     // ========================================

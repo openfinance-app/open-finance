@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -283,7 +284,7 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
      * <ul>
      *   <li>{@code DESCRIPTION} — combined payee+memo string; string operators only
      *   <li>{@code AMOUNT} — absolute value of amount; numeric operators
-     *   <li>{@code TRANSACTION_TYPE} — "INCOME" vs "EXPENSE" based on sign; EQUALS/NOT_EQUALS
+     *   <li>{@code TRANSACTION_TYPE} — "CREDIT" vs "DEBIT" based on sign; EQUALS/NOT_EQUALS
      * </ul>
      *
      * Requirement: REQ-TR-2.1, REQ-TR-2.2
@@ -307,7 +308,18 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
             }
             case TRANSACTION_TYPE -> {
                 String transactionType = deriveTransactionType(tx);
-                return evaluateStringCondition(operator, transactionType, conditionValue);
+                String expected =
+                        conditionValue == null
+                                ? ""
+                                : conditionValue.trim().toUpperCase(Locale.ROOT);
+                // Accept the older backend names as aliases for the values saved by the UI.
+                expected =
+                        switch (expected) {
+                            case "INCOME" -> "CREDIT";
+                            case "EXPENSE" -> "DEBIT";
+                            default -> expected;
+                        };
+                return evaluateStringCondition(operator, transactionType, expected);
             }
             default -> {
                 log.warn("Unknown condition field: {}", field);
@@ -335,14 +347,14 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
     }
 
     /**
-     * Derives the transaction type string ("INCOME" or "EXPENSE") from the amount sign.
-     * Requirement: REQ-TR-2.1 (TRANSACTION_TYPE field)
+     * Derives the transaction type string ("CREDIT" or "DEBIT") from the amount sign. Requirement:
+     * REQ-TR-2.1 (TRANSACTION_TYPE field)
      */
     private String deriveTransactionType(ImportedTransaction tx) {
         if (tx.getAmount() == null) {
-            return "EXPENSE"; // treat missing amount as expense
+            return "DEBIT"; // treat missing amount as expense
         }
-        return tx.getAmount().compareTo(BigDecimal.ZERO) >= 0 ? "INCOME" : "EXPENSE";
+        return tx.getAmount().compareTo(BigDecimal.ZERO) >= 0 ? "CREDIT" : "DEBIT";
     }
 
     /** Evaluates a string-based operator. Requirement: REQ-TR-2.2 */

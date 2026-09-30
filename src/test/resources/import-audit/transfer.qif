@@ -1,0 +1,20 @@
+!Account
+NEveryday audit
+TBank
+^
+!Type:Bank
+D09/10/2026
+T-100.00
+PSeptember savings
+L[Savings audit]
+^
+!Account
+NSavings audit
+TBank
+^
+!Type:Bank
+D09/10/2026
+T100.00
+PSeptember savings
+L[Everyday audit]
+^

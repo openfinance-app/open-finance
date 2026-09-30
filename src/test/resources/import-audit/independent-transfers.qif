@@ -1,0 +1,20 @@
+!Account
+NEveryday audit
+TBank
+^
+!Type:Bank
+D09/22/2026
+T-75.00
+PWeekly savings
+L[Savings audit]
+^
+!Account
+NSavings audit
+TBank
+^
+!Type:Bank
+D09/23/2026
+T-40.00
+PEmergency withdrawal
+L[Everyday audit]
+^
