@@ -20,11 +20,12 @@ class PropertyValuationHistoryTest {
                 .recordedValue(value)
                 .currency("EUR")
                 .adjustment(adjustment)
+                .createdAt(START.atStartOfDay().plusSeconds(id))
                 .build();
     }
 
     @Test
-    void laterValuationIncludesKnownImprovementsAndTheirSubsequentReversal() {
+    void laterIndependentValuationSurvivesReversalOfAnEarlierImprovement() {
         List<RealEstateValueHistory> history =
                 List.of(
                         entry(1, 0, "1000", false),
@@ -35,7 +36,9 @@ class PropertyValuationHistoryTest {
         assertThat(PropertyValuationHistory.atDate(property, history, START.plusMonths(2)).amount())
                 .isEqualByComparingTo("1500");
         List<RealEstateValueHistory> reversed = new java.util.ArrayList<>(history);
-        reversed.add(entry(4, 1, "-200", true));
+        RealEstateValueHistory reversal = entry(4, 1, "-200", true);
+        reversal.setMovementRecordedAt(history.get(1).getCreatedAt());
+        reversed.add(reversal);
         assertThat(
                         PropertyValuationHistory.atDate(property, reversed, START.plusMonths(1))
                                 .amount())
@@ -43,13 +46,13 @@ class PropertyValuationHistoryTest {
         assertThat(
                         PropertyValuationHistory.atDate(property, reversed, START.plusMonths(2))
                                 .amount())
-                .isEqualByComparingTo("1300");
+                .isEqualByComparingTo("1500");
         assertThat(PropertyValuationHistory.current(property, reversed).amount())
-                .isEqualByComparingTo("1300");
+                .isEqualByComparingTo("1500");
     }
 
     @Test
-    void backdatedAdjustmentCorrectsEarlierValuationWithoutBeingCountedTwice() {
+    void newlyRecordedBackdatedContributionIsSupersededByTheNextValuation() {
         List<RealEstateValueHistory> history =
                 List.of(
                         entry(1, 0, "1000", false),

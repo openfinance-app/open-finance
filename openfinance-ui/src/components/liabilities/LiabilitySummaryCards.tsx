@@ -32,6 +32,7 @@ interface BaseCurrencyTotals {
   totalBalance: number;
   totalPrincipal: number;
   totalMinimumPayment: number;
+  missingPayments: number;
   liabilitiesWithInterest: { balance: number; rate: number }[];
   /** Currencies that could not be converted and were excluded from totals */
   excludedCurrencies: Set<string>;
@@ -70,9 +71,16 @@ function aggregateToBaseCurrency(
       const principal = useConverted ? multiply(liability.principal, rate) : liability.principal;
 
       // Minimum payment
-      const minimumPayment = useConverted
-        ? multiply(liability.minimumPayment ?? 0, rate)
-        : (liability.minimumPayment ?? 0);
+      const payment =
+        liability.currentBalance <= 0
+          ? 0
+          : liability.effectiveMonthlyPayment !== undefined
+            ? liability.effectiveMonthlyPayment
+            : liability.minimumPayment && liability.minimumPayment > 0
+              ? liability.minimumPayment
+              : null;
+      if (payment === null) acc.missingPayments += 1;
+      const minimumPayment = useConverted ? multiply(payment ?? 0, rate) : (payment ?? 0);
 
       acc.totalBalance = add(acc.totalBalance, balance);
       acc.totalPrincipal = add(acc.totalPrincipal, principal);
@@ -88,6 +96,7 @@ function aggregateToBaseCurrency(
       totalBalance: 0,
       totalPrincipal: 0,
       totalMinimumPayment: 0,
+      missingPayments: 0,
       liabilitiesWithInterest: [],
       excludedCurrencies: new Set<string>(),
     }
@@ -242,33 +251,43 @@ export function LiabilitySummaryCards({
       <div className="p-4 bg-surface border border-border rounded-lg hover:border-primary/30 transition-colors">
         <div className="text-sm text-text-secondary mb-1">{t('summary.monthlyPayments')}</div>
         <div className="text-2xl font-bold text-text-primary">
-          <ConvertedAmount
-            amount={globalTotals.totalMinimumPayment}
-            currency={baseCurrency}
-            isConverted={false}
-            secondaryAmount={convert(globalTotals.totalMinimumPayment)}
-            secondaryCurrency={secCurrency}
-            secondaryExchangeRate={secondaryExchangeRate}
-            inline
-          />
-        </div>
-        <div className="text-xs text-text-tertiary mt-1">
-          {globalTotals.totalMinimumPayment > 0
-            ? t('summary.minimumDue')
-            : t('summary.noPaymentsSet')}
-        </div>
-        {isFiltered && filteredTotals && (
-          <div className="text-xs text-text-tertiary">
-            {t('summary.filteredLabel')}
+          {globalTotals.missingPayments > 0 ? (
+            t('summary.incompletePayments')
+          ) : (
             <ConvertedAmount
-              amount={filteredTotals.totalMinimumPayment}
+              amount={globalTotals.totalMinimumPayment}
               currency={baseCurrency}
               isConverted={false}
-              secondaryAmount={convert(filteredTotals.totalMinimumPayment)}
+              secondaryAmount={convert(globalTotals.totalMinimumPayment)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
             />
+          )}
+        </div>
+        <div className="text-xs text-text-tertiary mt-1">
+          {globalTotals.missingPayments > 0
+            ? t('summary.missingPayments', { count: globalTotals.missingPayments })
+            : globalTotals.totalMinimumPayment > 0
+              ? t('summary.minimumDue')
+              : t('summary.noPaymentsSet')}
+        </div>
+        {isFiltered && filteredTotals && (
+          <div className="text-xs text-text-tertiary">
+            {t('summary.filteredLabel')}
+            {filteredTotals.missingPayments > 0 ? (
+              t('summary.incompletePayments')
+            ) : (
+              <ConvertedAmount
+                amount={filteredTotals.totalMinimumPayment}
+                currency={baseCurrency}
+                isConverted={false}
+                secondaryAmount={convert(filteredTotals.totalMinimumPayment)}
+                secondaryCurrency={secCurrency}
+                secondaryExchangeRate={secondaryExchangeRate}
+                inline
+              />
+            )}
           </div>
         )}
       </div>

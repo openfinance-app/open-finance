@@ -165,6 +165,13 @@ public class Asset {
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal valuationRemainder;
 
+    /** Time of the latest independent physical-asset valuation; improvements do not reset it. */
+    @Column(name = "valuation_recorded_at")
+    private LocalDateTime valuationRecordedAt;
+
+    /** Loaded from the active expense ledger when computing portfolio cost and return. */
+    @Transient private BigDecimal capitalizedCost;
+
     public void updateTotalValue(BigDecimal total) {
         currentPrice = total.divide(quantity, 8, java.math.RoundingMode.HALF_UP);
         valuationRemainder = total.subtract(quantity.multiply(currentPrice));
@@ -325,7 +332,8 @@ public class Asset {
      * @return total purchase cost
      */
     public BigDecimal getTotalCost() {
-        return quantity.multiply(purchasePrice);
+        return quantity.multiply(purchasePrice)
+                .add(capitalizedCost == null ? BigDecimal.ZERO : capitalizedCost);
     }
 
     /**

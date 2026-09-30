@@ -245,6 +245,7 @@
     "viewExpenses": "Voir les transactions de dépenses"
   },
   "currencyBreakdown": {
+    "empty": "Aucun actif pour le moment",
     "title": "Actifs par devise",
     "total": "Total des actifs",
     "item": "élément",
@@ -348,6 +349,7 @@
     "noHistory": "Aucun historique disponible pour afficher l’évolution."
   },
   "borrowingCapacity": {
+    "missingPayments": "Renseignez une mensualité ou les conditions complètes de chaque dette restante pour calculer la capacité d'emprunt.",
     "title": "Capacité d'emprunt",
     "subtitle": "Basé sur une analyse des revenus et dépenses sur {{days}} jours",
     "available": "Capacité d'emprunt disponible",

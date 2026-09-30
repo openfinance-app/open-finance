@@ -22,6 +22,12 @@ currency association, by reference as required by those lifecycles. No category-
 exception is used. Existing identities are retained so the original audit baseline
 remains traceable; some are now obsolete after fixes/signature changes.
 
+The second finance correction round reviewed 58 further exact constructor identities:
+53 are the same fields retained by constructors whose signatures changed; five are
+new Spring-managed collaborators for recurring-account closure, property cost basis,
+and shared dashboard calculations. The null-exception catch and redundant boxing
+reported in new code were fixed. No package-wide or bug-type-wide filter was added.
+
 Run `mvn compile spotbugs:check`. A new identity fails the check. Review it against
 source and fix real defects; do not regenerate this file from current output just
 to make CI pass.

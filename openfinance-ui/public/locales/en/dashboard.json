@@ -245,6 +245,7 @@
     "viewExpenses": "View expense transactions"
   },
   "currencyBreakdown": {
+    "empty": "No assets yet",
     "title": "Assets by Currency",
     "total": "Total Assets",
     "item": "item",
@@ -348,6 +349,7 @@
     "noHistory": "No historical data available to show trend."
   },
   "borrowingCapacity": {
+    "missingPayments": "Add a monthly payment or complete loan terms for each outstanding debt to calculate borrowing capacity.",
     "title": "Borrowing Capacity",
     "subtitle": "Based on {{days}}-day income and expense analysis",
     "available": "Available Borrowing Capacity",

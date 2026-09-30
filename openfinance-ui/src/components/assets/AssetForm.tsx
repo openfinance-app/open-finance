@@ -209,7 +209,7 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
 
   const handleFormSubmit = handleSubmit(data => {
     const requestData: AssetRequest = {
-      accountId: data.accountId || undefined,
+      accountId: data.accountId ?? null,
       name: data.name,
       type: data.type,
       symbol: data.symbol || undefined,

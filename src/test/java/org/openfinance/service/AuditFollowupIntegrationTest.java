@@ -961,8 +961,7 @@ class AuditFollowupIntegrationTest {
                         "SELECT asset_id FROM real_estate_properties WHERE id = ?",
                         Long.class,
                         property);
-        // The property's initial appraisal is dated today, so a backdated draw does not
-        // overwrite it. A later entry effective today does update it; debt still accumulates.
+        // Backdated and current financing both preserve the independent appraisal.
         for (int amount : List.of(20000, 40000)) {
             json(
                     "POST",
@@ -978,13 +977,12 @@ class AuditFollowupIntegrationTest {
                     200);
             JsonNode updated = json("GET", "/real-estate/" + property, null, owner, 200);
             assertThat(updated.get("purchasePrice").decimalValue()).isEqualByComparingTo("200000");
-            assertThat(updated.get("currentValue").decimalValue())
-                    .isEqualByComparingTo(amount == 20000 ? "0" : "40000");
+            assertThat(updated.get("currentValue").decimalValue()).isEqualByComparingTo("0");
             assertThat(
                             json("GET", "/assets/" + asset, null, owner, 200)
                                     .get("currentPrice")
                                     .decimalValue())
-                    .isEqualByComparingTo(amount == 20000 ? "0" : "40000");
+                    .isEqualByComparingTo("0");
         }
         assertThat(
                         json("GET", "/liabilities/" + loan, null, owner, 200)

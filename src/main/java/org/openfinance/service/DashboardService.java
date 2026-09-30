@@ -87,7 +87,9 @@ public class DashboardService {
     private final NetWorthService netWorthService;
     private final AccountRepository accountRepository;
     private final AssetRepository assetRepository;
+    private final AssetService assetService;
     private final LiabilityRepository liabilityRepository;
+    private final LiabilityService liabilityService;
     private final TransactionRepository transactionRepository;
     private final org.openfinance.repository.TransactionSplitRepository transactionSplitRepository;
     private final CategoryRepository categoryRepository;
@@ -1188,7 +1190,12 @@ public class DashboardService {
 
         BigDecimal totalCost =
                 assets.stream()
-                        .map(a -> convertToBase(a.getTotalCost(), a.getCurrency(), baseCurrency))
+                        .map(
+                                a ->
+                                        convertToBase(
+                                                assetService.getCostBasis(a),
+                                                a.getCurrency(),
+                                                baseCurrency))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal unrealizedGain = totalValue.subtract(totalCost);
@@ -1384,28 +1391,19 @@ public class DashboardService {
         // base currency)
         List<Liability> liabilities = liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId);
 
-        BigDecimal monthlyDebtPayments =
-                liabilities.stream()
-                        .filter(
-                                l ->
-                                        l.getMinimumPayment() != null
-                                                && !l.getMinimumPayment().isBlank())
-                        .map(
-                                l -> {
-                                    try {
-                                        BigDecimal rawPayment =
-                                                new BigDecimal(l.getMinimumPayment());
-                                        return convertToBase(
-                                                rawPayment, l.getCurrency(), baseCurrency);
-                                    } catch (NumberFormatException e) {
-                                        log.warn(
-                                                "Failed to parse minimum payment for liability id={}",
-                                                l.getId(),
-                                                e);
-                                        return BigDecimal.ZERO;
-                                    }
-                                })
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        List<BigDecimal> debtPayments =
+                liabilities.stream().map(liabilityService::effectiveMonthlyPayment).toList();
+        boolean debtPaymentsComplete = debtPayments.stream().allMatch(java.util.Objects::nonNull);
+        BigDecimal monthlyDebtPayments = BigDecimal.ZERO;
+        for (int i = 0; i < liabilities.size(); i++) {
+            if (debtPayments.get(i) != null)
+                monthlyDebtPayments =
+                        monthlyDebtPayments.add(
+                                convertToBase(
+                                        debtPayments.get(i),
+                                        liabilities.get(i).getCurrency(),
+                                        baseCurrency));
+        }
 
         // Calculate debt-to-income ratio
         BigDecimal debtToIncomeRatio =
@@ -1441,7 +1439,7 @@ public class DashboardService {
         // BUG-002 fix: When no income data, return INSUFFICIENT_DATA instead of falsely
         // EXCELLENT
         String financialHealthStatus;
-        if (monthlyIncome.compareTo(BigDecimal.ZERO) == 0) {
+        if (!debtPaymentsComplete || monthlyIncome.compareTo(BigDecimal.ZERO) == 0) {
             financialHealthStatus = "INSUFFICIENT_DATA";
         } else if (debtToIncomeRatio.compareTo(
                         businessRules.getDebtToIncome().getExcellentMaxPercent())
@@ -1462,9 +1460,12 @@ public class DashboardService {
                         .monthlyIncome(monthlyIncome)
                         .monthlyExpenses(monthlyExpenses)
                         .monthlyDebtPayments(monthlyDebtPayments)
+                        .debtPaymentsComplete(debtPaymentsComplete)
                         .debtToIncomeRatio(debtToIncomeRatio)
-                        .recommendedMaxBorrowing(recommendedMaxBorrowing)
-                        .availableBorrowingCapacity(availableBorrowingCapacity)
+                        .recommendedMaxBorrowing(
+                                debtPaymentsComplete ? recommendedMaxBorrowing : BigDecimal.ZERO)
+                        .availableBorrowingCapacity(
+                                debtPaymentsComplete ? availableBorrowingCapacity : BigDecimal.ZERO)
                         .financialHealthStatus(financialHealthStatus)
                         .currency(baseCurrency)
                         .analysisPeriod(analysisPeriod)
@@ -1554,28 +1555,19 @@ public class DashboardService {
         BigDecimal monthlyExpenses = totalExpenses.divide(monthsInPeriod, 2, RoundingMode.HALF_UP);
 
         List<Liability> liabilities = liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        BigDecimal monthlyDebtPayments =
-                liabilities.stream()
-                        .filter(
-                                l ->
-                                        l.getMinimumPayment() != null
-                                                && !l.getMinimumPayment().isBlank())
-                        .map(
-                                l -> {
-                                    try {
-                                        BigDecimal rawPayment =
-                                                new BigDecimal(l.getMinimumPayment());
-                                        return convertToBase(
-                                                rawPayment, l.getCurrency(), baseCurrency);
-                                    } catch (NumberFormatException e) {
-                                        log.warn(
-                                                "Failed to parse minimum payment for liability id={}",
-                                                l.getId(),
-                                                e);
-                                        return BigDecimal.ZERO;
-                                    }
-                                })
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        List<BigDecimal> debtPayments =
+                liabilities.stream().map(liabilityService::effectiveMonthlyPayment).toList();
+        boolean debtPaymentsComplete = debtPayments.stream().allMatch(java.util.Objects::nonNull);
+        BigDecimal monthlyDebtPayments = BigDecimal.ZERO;
+        for (int i = 0; i < liabilities.size(); i++) {
+            if (debtPayments.get(i) != null)
+                monthlyDebtPayments =
+                        monthlyDebtPayments.add(
+                                convertToBase(
+                                        debtPayments.get(i),
+                                        liabilities.get(i).getCurrency(),
+                                        baseCurrency));
+        }
 
         BigDecimal debtToIncomeRatio =
                 monthlyIncome.compareTo(BigDecimal.ZERO) > 0
@@ -1597,7 +1589,7 @@ public class DashboardService {
                         .setScale(2, RoundingMode.HALF_UP);
 
         String financialHealthStatus;
-        if (monthlyIncome.compareTo(BigDecimal.ZERO) == 0) {
+        if (!debtPaymentsComplete || monthlyIncome.compareTo(BigDecimal.ZERO) == 0) {
             financialHealthStatus = "INSUFFICIENT_DATA";
         } else if (debtToIncomeRatio.compareTo(
                         businessRules.getDebtToIncome().getExcellentMaxPercent())
@@ -1617,9 +1609,12 @@ public class DashboardService {
                 .monthlyIncome(monthlyIncome)
                 .monthlyExpenses(monthlyExpenses)
                 .monthlyDebtPayments(monthlyDebtPayments)
+                .debtPaymentsComplete(debtPaymentsComplete)
                 .debtToIncomeRatio(debtToIncomeRatio)
-                .recommendedMaxBorrowing(recommendedMaxBorrowing)
-                .availableBorrowingCapacity(availableBorrowingCapacity)
+                .recommendedMaxBorrowing(
+                        debtPaymentsComplete ? recommendedMaxBorrowing : BigDecimal.ZERO)
+                .availableBorrowingCapacity(
+                        debtPaymentsComplete ? availableBorrowingCapacity : BigDecimal.ZERO)
                 .financialHealthStatus(financialHealthStatus)
                 .currency(baseCurrency)
                 .analysisPeriod(analysisPeriod)
@@ -1666,34 +1661,33 @@ public class DashboardService {
 
         Map<String, NetWorthAllocation.NetWorthAllocationBuilder> categoryMap = new HashMap<>();
 
-        // Process accounts
+        // Keep positive cash and overdrafts in separate groups even when their account types match.
         List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
         for (Account account : accounts) {
             String category = categorizeAccount(account.getType());
-            // Credit card accounts with negative balance are liabilities
-            boolean isLiabilityAccount =
-                    account.getType() == AccountType.CREDIT_CARD
-                            && account.getBalance().compareTo(BigDecimal.ZERO) < 0;
-            categoryMap.computeIfAbsent(
-                    category,
-                    k ->
-                            NetWorthAllocation.builder()
-                                    .category(k)
-                                    .value(BigDecimal.ZERO)
-                                    .itemCount(0)
-                                    .isLiability(isLiabilityAccount)
-                                    .currency(baseCurrency));
-
-            NetWorthAllocation.NetWorthAllocationBuilder builder = categoryMap.get(category);
-            BigDecimal convertedBalance =
+            boolean liability = account.getBalance().signum() < 0;
+            String key = category + (liability ? ":liability" : "");
+            NetWorthAllocation.NetWorthAllocationBuilder builder =
+                    categoryMap.computeIfAbsent(
+                            key,
+                            ignored ->
+                                    NetWorthAllocation.builder()
+                                            .category(category)
+                                            .value(BigDecimal.ZERO)
+                                            .itemCount(0)
+                                            .isLiability(liability)
+                                            .currency(baseCurrency));
+            BigDecimal value =
                     convertToBase(account.getBalance(), account.getCurrency(), baseCurrency);
-            builder.value(categoryMap.get(category).build().getValue().add(convertedBalance));
-            builder.itemCount(categoryMap.get(category).build().getItemCount() + 1);
+            builder.value(builder.build().getValue().add(value));
+            builder.itemCount(builder.build().getItemCount() + 1);
         }
 
         // Process assets
         List<Asset> assets = assetRepository.findByUserId(userId);
         for (Asset asset : assets) {
+            if (asset.getAcquisitionType() == org.openfinance.entity.AcquisitionType.PLANNED)
+                continue;
             String category = categorizeAsset(asset.getType());
             categoryMap.computeIfAbsent(
                     category,
@@ -2093,216 +2087,147 @@ public class DashboardService {
      * @param encryptionKey the AES-256 encryption key for decrypting account names
      * @return response containing yearly balance data for net worth, accounts, and institutions
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public YearlyBalanceResponse getYearlyBalanceVariations(Long userId) {
-        // 1. Determine year range from transactions
-        List<Transaction> allTransactions =
-                transactionRepository.findByUserId(userId).stream()
-                        .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
-                        .toList();
-        if (allTransactions.isEmpty()) {
-            return YearlyBalanceResponse.builder()
-                    .years(List.of())
-                    .netWorth(List.of())
-                    .accounts(List.of())
-                    .institutions(List.of())
-                    .currency(getUserCurrency(userId))
-                    .build();
-        }
-
-        int minYear =
-                allTransactions.stream()
-                        .map(t -> t.getDate().getYear())
-                        .min(Integer::compareTo)
-                        .orElse(LocalDate.now().getYear());
-        int maxYear =
-                allTransactions.stream()
-                        .map(t -> t.getDate().getYear())
-                        .max(Integer::compareTo)
-                        .orElse(LocalDate.now().getYear());
-
-        List<Integer> years = new ArrayList<>();
-        for (int y = minYear; y <= maxYear; y++) {
-            years.add(y);
-        }
-
-        // 2. Net worth: pick last snapshot per year from NetWorth table
-        List<NetWorth> snapshots =
-                netWorthService.getNetWorthHistory(
-                        userId, LocalDate.of(minYear, 1, 1), LocalDate.of(maxYear, 12, 31));
-
-        Map<Integer, BigDecimal> netWorthByYear = new HashMap<>();
-        for (NetWorth nw : snapshots) {
-            int year = nw.getSnapshotDate().getYear();
-            // Keep latest snapshot per year (snapshots are ordered ASC)
-            netWorthByYear.put(year, nw.getNetWorth());
-        }
-
-        List<YearlyBalanceResponse.YearlyDataPoint> netWorthPoints = new ArrayList<>();
-        BigDecimal previousNw = null;
+        LocalDate today = LocalDate.now();
+        String currency = getUserCurrency(userId);
+        List<Account> accounts = accountRepository.findByUserIdWithInstitution(userId);
+        List<LocalDate> dates = new ArrayList<>();
+        accounts.forEach(a -> dates.add(a.getOpeningDate()));
+        transactionRepository.findByUserId(userId).stream()
+                .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
+                .forEach(t -> dates.add(t.getDate()));
+        assetRepository.findByUserId(userId).stream()
+                .filter(
+                        a ->
+                                a.getAcquisitionType()
+                                        != org.openfinance.entity.AcquisitionType.PLANNED)
+                .forEach(a -> dates.add(a.getPurchaseDate()));
+        liabilityRepository
+                .findByUserIdOrderByCreatedAtDesc(userId)
+                .forEach(l -> dates.add(l.getStartDate()));
+        List<Integer> years =
+                dates.stream()
+                        .filter(java.util.Objects::nonNull)
+                        .filter(d -> !d.isAfter(today))
+                        .min(LocalDate::compareTo)
+                        .map(
+                                first ->
+                                        java.util.stream.IntStream.rangeClosed(
+                                                        first.getYear(), today.getYear())
+                                                .boxed()
+                                                .toList())
+                        .orElse(List.of());
+        Map<Integer, BigDecimal> worth = new HashMap<>();
+        Map<Integer, Map<Long, BigDecimal>> balances = new HashMap<>();
         for (int year : years) {
-            BigDecimal amount = netWorthByYear.getOrDefault(year, BigDecimal.ZERO);
-            BigDecimal variation = null;
-            if (previousNw != null && previousNw.compareTo(BigDecimal.ZERO) != 0) {
-                variation =
-                        amount.subtract(previousNw)
-                                .multiply(BigDecimal.valueOf(100))
-                                .divide(previousNw.abs(), 2, RoundingMode.HALF_UP);
-            }
-            netWorthPoints.add(
+            LocalDate date = year == today.getYear() ? today : LocalDate.of(year, 12, 31);
+            if (date.equals(today)) netWorthService.saveNetWorthSnapshot(userId, date, currency);
+            netWorthService.backfillNetWorthHistory(userId, date, date, currency);
+            BigDecimal amount =
+                    netWorthService.getNetWorthHistory(userId, date, date).stream()
+                            .findFirst()
+                            .map(
+                                    n ->
+                                            netWorthService
+                                                    .inReportingCurrency(n, currency)
+                                                    .getNetWorth())
+                            .orElse(BigDecimal.ZERO);
+            worth.put(year, amount);
+            balances.put(year, netWorthService.getAccountBalancesAt(userId, date, currency));
+        }
+        List<YearlyBalanceResponse.YearlyBalanceEntry> accountEntries =
+                accounts.stream()
+                        .map(
+                                a ->
+                                        yearlyEntry(
+                                                a.getId(),
+                                                a.getName(),
+                                                years,
+                                                year ->
+                                                        balances.get(year)
+                                                                .getOrDefault(
+                                                                        a.getId(),
+                                                                        BigDecimal.ZERO)))
+                        .toList();
+        Map<Long, List<Account>> institutions =
+                accounts.stream()
+                        .collect(
+                                Collectors.groupingBy(
+                                        a ->
+                                                a.getInstitution() == null
+                                                        ? Long.valueOf(-1L)
+                                                        : a.getInstitution().getId()));
+        List<YearlyBalanceResponse.YearlyBalanceEntry> institutionEntries =
+                institutions.entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .map(
+                                e ->
+                                        yearlyEntry(
+                                                e.getKey(),
+                                                e.getKey() == -1L
+                                                        ? "Other"
+                                                        : e.getValue()
+                                                                .get(0)
+                                                                .getInstitution()
+                                                                .getName(),
+                                                years,
+                                                year ->
+                                                        e.getValue().stream()
+                                                                .map(
+                                                                        a ->
+                                                                                balances.get(year)
+                                                                                        .getOrDefault(
+                                                                                                a
+                                                                                                        .getId(),
+                                                                                                BigDecimal
+                                                                                                        .ZERO))
+                                                                .reduce(
+                                                                        BigDecimal.ZERO,
+                                                                        BigDecimal::add)))
+                        .toList();
+        return YearlyBalanceResponse.builder()
+                .years(years)
+                .currency(currency)
+                .netWorth(yearlyPoints(years, worth::get))
+                .accounts(accountEntries)
+                .institutions(institutionEntries)
+                .build();
+    }
+
+    private YearlyBalanceResponse.YearlyBalanceEntry yearlyEntry(
+            Long id,
+            String name,
+            List<Integer> years,
+            java.util.function.IntFunction<BigDecimal> amount) {
+        return YearlyBalanceResponse.YearlyBalanceEntry.builder()
+                .id(id)
+                .name(name)
+                .data(yearlyPoints(years, amount))
+                .build();
+    }
+
+    private List<YearlyBalanceResponse.YearlyDataPoint> yearlyPoints(
+            List<Integer> years, java.util.function.IntFunction<BigDecimal> amountAt) {
+        List<YearlyBalanceResponse.YearlyDataPoint> points = new ArrayList<>();
+        BigDecimal previous = null;
+        for (int year : years) {
+            BigDecimal amount = amountAt.apply(year);
+            BigDecimal variation =
+                    previous == null || previous.signum() == 0
+                            ? null
+                            : amount.subtract(previous)
+                                    .multiply(BigDecimal.valueOf(100))
+                                    .divide(previous.abs(), 2, RoundingMode.HALF_UP);
+            points.add(
                     YearlyBalanceResponse.YearlyDataPoint.builder()
                             .year(year)
                             .amount(amount)
                             .variationPercentage(variation)
                             .build());
-            previousNw = amount;
+            previous = amount;
         }
-
-        // 3. Per-account year-end balances
-        List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
-        String baseCurrency = getUserCurrency(userId);
-
-        List<YearlyBalanceResponse.YearlyBalanceEntry> accountEntries = new ArrayList<>();
-        // Group transactions by accountId for efficient lookup
-        Map<Long, List<Transaction>> txByAccount =
-                allTransactions.stream().collect(Collectors.groupingBy(Transaction::getAccountId));
-
-        for (Account account : accounts) {
-            BigDecimal currentBalance = account.getBalance();
-            if (currentBalance == null) {
-                currentBalance = BigDecimal.ZERO;
-            }
-
-            // Compute year-end balance for each year by working backwards from current
-            // balance_at_year_end = current_balance - net_effect_after_year_end
-            List<Transaction> accountTx = txByAccount.getOrDefault(account.getId(), List.of());
-
-            Map<Integer, BigDecimal> yearEndBalances = new HashMap<>();
-            for (int year : years) {
-                LocalDate yearEnd = LocalDate.of(year, 12, 31);
-                // Net effect of this account's own transactions after yearEnd.
-                // Transfers are stored as two rows (one per account, each in its
-                // own native currency); each account's own row already reflects the
-                // transfer's effect on that account — mirroring
-                // AccountService.recalculateBalance. We therefore only walk the
-                // account's own rows and never the other transfer side, which would
-                // double-count and mix currencies (e.g. XOF into an EUR account).
-                BigDecimal netEffectAfter = BigDecimal.ZERO;
-                for (Transaction tx : accountTx) {
-                    if (tx.getDate().isAfter(yearEnd)) {
-                        if (tx.getType() == TransactionType.INCOME) {
-                            netEffectAfter = netEffectAfter.add(tx.getAmount());
-                        } else {
-                            // EXPENSE and TRANSFER both reduced this account
-                            netEffectAfter = netEffectAfter.subtract(tx.getAmount());
-                        }
-                    }
-                }
-                yearEndBalances.put(year, currentBalance.subtract(netEffectAfter));
-            }
-
-            // Compute variation percentages
-            List<YearlyBalanceResponse.YearlyDataPoint> dataPoints = new ArrayList<>();
-            BigDecimal prevBalance = null;
-            for (int year : years) {
-                BigDecimal bal = yearEndBalances.getOrDefault(year, BigDecimal.ZERO);
-                BigDecimal variation = null;
-                if (prevBalance != null && prevBalance.compareTo(BigDecimal.ZERO) != 0) {
-                    variation =
-                            bal.subtract(prevBalance)
-                                    .multiply(BigDecimal.valueOf(100))
-                                    .divide(prevBalance.abs(), 2, RoundingMode.HALF_UP);
-                }
-                dataPoints.add(
-                        YearlyBalanceResponse.YearlyDataPoint.builder()
-                                .year(year)
-                                .amount(bal)
-                                .variationPercentage(variation)
-                                .build());
-                prevBalance = bal;
-            }
-
-            // Name already decrypted by JPA converter
-            String accountName = account.getName();
-
-            accountEntries.add(
-                    YearlyBalanceResponse.YearlyBalanceEntry.builder()
-                            .id(account.getId())
-                            .name(accountName)
-                            .data(dataPoints)
-                            .build());
-        }
-
-        // 4. Per-institution: group accounts by institution
-        Map<Long, List<YearlyBalanceResponse.YearlyBalanceEntry>> byInstitution = new HashMap<>();
-        Map<Long, String> institutionNames = new HashMap<>();
-        Long noInstitutionKey = -1L;
-
-        for (int i = 0; i < accounts.size(); i++) {
-            Account account = accounts.get(i);
-            Long instId =
-                    account.getInstitution() != null ? account.getInstitution().getId() : null;
-            if (instId == null) {
-                instId = noInstitutionKey;
-                institutionNames.putIfAbsent(instId, "Other");
-            } else {
-                if (!institutionNames.containsKey(instId)) {
-                    institutionNames.put(instId, account.getInstitution().getName());
-                }
-            }
-            byInstitution
-                    .computeIfAbsent(instId, k -> new ArrayList<>())
-                    .add(accountEntries.get(i));
-        }
-
-        List<YearlyBalanceResponse.YearlyBalanceEntry> institutionEntries = new ArrayList<>();
-        for (Map.Entry<Long, List<YearlyBalanceResponse.YearlyBalanceEntry>> entry :
-                byInstitution.entrySet()) {
-            Long instId = entry.getKey();
-            List<YearlyBalanceResponse.YearlyBalanceEntry> instAccounts = entry.getValue();
-
-            // Sum each year across all accounts in this institution
-            List<YearlyBalanceResponse.YearlyDataPoint> instPoints = new ArrayList<>();
-            BigDecimal prevInstBalance = null;
-            for (int year : years) {
-                BigDecimal total = BigDecimal.ZERO;
-                for (YearlyBalanceResponse.YearlyBalanceEntry acctEntry : instAccounts) {
-                    for (YearlyBalanceResponse.YearlyDataPoint dp : acctEntry.getData()) {
-                        if (dp.getYear() == year) {
-                            total = total.add(dp.getAmount());
-                        }
-                    }
-                }
-                BigDecimal variation = null;
-                if (prevInstBalance != null && prevInstBalance.compareTo(BigDecimal.ZERO) != 0) {
-                    variation =
-                            total.subtract(prevInstBalance)
-                                    .multiply(BigDecimal.valueOf(100))
-                                    .divide(prevInstBalance.abs(), 2, RoundingMode.HALF_UP);
-                }
-                instPoints.add(
-                        YearlyBalanceResponse.YearlyDataPoint.builder()
-                                .year(year)
-                                .amount(total)
-                                .variationPercentage(variation)
-                                .build());
-                prevInstBalance = total;
-            }
-
-            institutionEntries.add(
-                    YearlyBalanceResponse.YearlyBalanceEntry.builder()
-                            .id(instId)
-                            .name(institutionNames.getOrDefault(instId, "Unknown"))
-                            .data(instPoints)
-                            .build());
-        }
-
-        return YearlyBalanceResponse.builder()
-                .years(years)
-                .netWorth(netWorthPoints)
-                .accounts(accountEntries)
-                .institutions(institutionEntries)
-                .currency(baseCurrency)
-                .build();
+        return points;
     }
 
     private String getUserCurrency(Long userId) {

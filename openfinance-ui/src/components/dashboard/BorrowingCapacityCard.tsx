@@ -22,6 +22,15 @@ export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCar
   } = useSecondaryConversion(capacity.currency || DEFAULT_CURRENCY);
   const { t } = useTranslation('dashboard');
 
+  if (capacity.debtPaymentsComplete === false) {
+    return (
+      <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
+        <h3 className="plate-label mb-4">{t('borrowingCapacity.title')}</h3>
+        <p className="text-sm text-text-secondary">{t('borrowingCapacity.missingPayments')}</p>
+      </div>
+    );
+  }
+
   // Determine health status color and icon
   const getHealthStatusStyle = (status: string) => {
     switch (status) {

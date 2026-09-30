@@ -39,6 +39,14 @@ public class AssetRequest {
      */
     private Long accountId;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore private boolean accountIdPresent;
+
+    @com.fasterxml.jackson.annotation.JsonSetter("accountId")
+    public void setAccountId(Long accountId) {
+        this.accountId = accountId;
+        this.accountIdPresent = true;
+    }
+
     /**
      * Name of the asset (e.g., "Apple Inc.", "Bitcoin", "S&P 500 ETF").
      *

@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class RecurringOccurrenceServiceImpl implements RecurringOccurrenceService {
     private final RecurringTransactionRepository recurringRepository;
+    private final org.openfinance.repository.AccountRepository accountRepository;
     private final TransactionService transactionService;
     private final JdbcTemplate jdbc;
 
@@ -40,6 +41,13 @@ public class RecurringOccurrenceServiceImpl implements RecurringOccurrenceServic
         if (!Boolean.TRUE.equals(template.getIsActive())
                 || !expectedDate.equals(template.getNextOccurrence())) return false;
         if (expectedDate.isAfter(LocalDate.now())) return false;
+        if (!activeAccount(template.getAccountId(), userId)
+                || (template.getToAccountId() != null
+                        && !activeAccount(template.getToAccountId(), userId))) {
+            template.setIsActive(false);
+            recurringRepository.save(template);
+            return false;
+        }
         TransactionRequest request =
                 TransactionRequest.builder()
                         .accountId(template.getAccountId())
@@ -64,5 +72,12 @@ public class RecurringOccurrenceServiceImpl implements RecurringOccurrenceServic
             template.setIsActive(false);
         recurringRepository.save(template);
         return true;
+    }
+
+    private boolean activeAccount(Long accountId, Long userId) {
+        return accountRepository
+                .findByIdAndUserId(accountId, userId)
+                .map(account -> Boolean.TRUE.equals(account.getIsActive()))
+                .orElse(false);
     }
 }

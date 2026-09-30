@@ -46,6 +46,10 @@ public class RealEstateValueHistory {
     @Column(name = "is_adjustment", nullable = false)
     private boolean adjustment;
 
+    /** Original posting time, retained by a reversal so it cannot change a later appraisal. */
+    @Column(name = "movement_recorded_at")
+    private LocalDateTime movementRecordedAt;
+
     /** Reference to the property entity (lazy-loaded). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", insertable = false, updatable = false)

@@ -1011,6 +1011,12 @@ public class NetWorthService {
                                                                         .isAfter(targetDate))
                                 || liabilities.stream()
                                         .anyMatch(l -> !l.getStartDate().isAfter(targetDate));
+                if (targetDate.equals(LocalDate.now())) {
+                    // Today's point is an observed position, including booked cash and current
+                    // quotes.
+                    totalAssets = calculateTotalAssets(userId, baseCurrency);
+                    totalLiabilities = calculateTotalLiabilities(userId, baseCurrency);
+                }
                 if (existed) {
                     BigDecimal netWorthAtDate = totalAssets.subtract(totalLiabilities);
                     NetWorth snapshot =
@@ -1043,6 +1049,59 @@ public class NetWorthService {
                 startDate,
                 effectiveEnd);
         return savedCount;
+    }
+
+    /** Reporting-currency own-cash balances at the requested observation date. */
+    @Transactional(readOnly = true)
+    public Map<Long, BigDecimal> getAccountBalancesAt(
+            Long userId, LocalDate date, String baseCurrency) {
+        Map<Long, List<Transaction>> movements =
+                transactionRepository.findByUserId(userId).stream()
+                        .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
+                        .collect(Collectors.groupingBy(Transaction::getAccountId));
+        Map<Long, List<AccountStatusHistory>> statuses =
+                accountStatusHistoryRepository.findByUserId(userId).stream()
+                        .collect(Collectors.groupingBy(AccountStatusHistory::getAccountId));
+        Map<Long, BigDecimal> result = new java.util.HashMap<>();
+        for (Account account : accountRepository.findByUserId(userId)) {
+            LocalDate opening = account.getOpeningDate();
+            for (Transaction movement : movements.getOrDefault(account.getId(), List.of())) {
+                if (opening == null || movement.getDate().isBefore(opening))
+                    opening = movement.getDate();
+            }
+            if ((opening != null && opening.isAfter(date))
+                    || !accountWasActive(statuses.getOrDefault(account.getId(), List.of()), date))
+                continue;
+            BigDecimal balance =
+                    date.equals(LocalDate.now())
+                            ? account.getBalance()
+                            : computeHistoricalBalance(account, date, movements, Map.of());
+            AccountCurrencyService.Position position =
+                    accountCurrencyService.historicalPosition(account, balance, date, userId);
+            result.put(
+                    account.getId(),
+                    convertToBaseCurrency(
+                            position.amount(), position.currency(), baseCurrency, date));
+        }
+        return result;
+    }
+
+    /** Shared dated principal reconstruction for history and repayment estimates. */
+    @Transactional(readOnly = true)
+    public BigDecimal getLiabilityBalanceAt(Liability liability, LocalDate date) {
+        if (liability.getStartDate() != null && date.isBefore(liability.getStartDate()))
+            return BigDecimal.ZERO;
+        if (liability.getRepresentedByAccountId() != null) {
+            return getAccountBalancesAt(liability.getUserId(), date, liability.getCurrency())
+                    .getOrDefault(liability.getRepresentedByAccountId(), BigDecimal.ZERO)
+                    .negate()
+                    .max(BigDecimal.ZERO);
+        }
+        List<Transaction> movements =
+                transactionRepository.findByLiabilityIdAndUserId(
+                        liability.getId(), liability.getUserId());
+        return computeHistoricalLiabilityBalance(
+                liability, date, Map.of(liability.getId(), movements));
     }
 
     /** A reversed direct draw stops contributing its valuation on the reversal date. */

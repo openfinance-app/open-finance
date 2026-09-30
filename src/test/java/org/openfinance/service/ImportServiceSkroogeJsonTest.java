@@ -143,6 +143,8 @@ class ImportServiceSkroogeJsonTest {
                         objectMapper,
                         autoCategorizationService,
                         accountService,
+                        new ImportedOpeningBalanceServiceImpl(
+                                accountRepository, transactionRepository),
                         transactionRuleService,
                         transactionService,
                         exchangeRateService,

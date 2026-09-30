@@ -35,6 +35,7 @@ vi.mock('@/components/ui/CurrencySelector', () => ({
 vi.mock('@/components/ui/AccountSelector', () => ({
   AccountSelector: ({ value, onValueChange, placeholder }: any) => (
     <select
+      aria-label="Linked account"
       data-testid="account-selector"
       value={value || ''}
       onChange={e => onValueChange(e.target.value ? Number(e.target.value) : undefined)}
@@ -277,6 +278,40 @@ describe('AssetForm', () => {
   });
 
   describe('Submission', () => {
+    it('sends explicit null after clearing an existing linked account', async () => {
+      const asset: Asset = {
+        id: 1,
+        userId: 1,
+        name: 'Car',
+        type: 'VEHICLE',
+        acquisitionType: 'PURCHASE',
+        quantity: 1,
+        purchasePrice: 1000,
+        currentPrice: 1000,
+        currency: 'EUR',
+        purchaseDate: '2026-01-01',
+        accountId: 1,
+        lastUpdated: '',
+        createdAt: '',
+        updatedAt: '',
+        totalValue: 1000,
+        totalCost: 1000,
+        unrealizedGain: 0,
+        gainPercentage: 0,
+        holdingDays: 0,
+      };
+      renderWithProviders(
+        <AssetForm asset={asset} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+      );
+      await userEvent
+        .setup()
+        .selectOptions(screen.getByRole('combobox', { name: 'Linked account' }), '');
+      fireEvent.submit(screen.getByRole('button', { name: /update asset/i }).closest('form')!);
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({ accountId: null }))
+      );
+    });
+
     it('should call onCancel when Cancel button is clicked', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AssetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);

@@ -307,6 +307,21 @@ describe('useDashboard hooks', () => {
 
   // ── useTransactionsByPeriod ─────────────────────────────────────────────
   describe('useTransactionsByPeriod', () => {
+    it('sends both search date boundaries for a custom range', async () => {
+      mockedApiClient.get.mockResolvedValue({ data: { content: [] } });
+      const { result } = renderHook(
+        () => useTransactionsByPeriod(30, { from: '2026-07-01', to: '2026-07-31' }),
+        { wrapper }
+      );
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/transactions/search',
+        expect.objectContaining({
+          params: expect.objectContaining({ dateFrom: '2026-07-01', dateTo: '2026-07-31' }),
+        })
+      );
+    });
+
     it('should fetch transactions by period', async () => {
       const mockTransactions = { content: [{ id: 1, description: 'Test', amount: -50 }] };
       mockedApiClient.get.mockResolvedValue({ data: mockTransactions });
@@ -314,6 +329,15 @@ describe('useDashboard hooks', () => {
       const { result } = renderHook(() => useTransactionsByPeriod(), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/transactions/search',
+        expect.objectContaining({
+          params: expect.objectContaining({
+            dateFrom: expect.any(String),
+            dateTo: expect.any(String),
+          }),
+        })
+      );
     });
 
     it('should handle array response format', async () => {

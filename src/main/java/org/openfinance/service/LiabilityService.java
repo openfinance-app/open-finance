@@ -102,6 +102,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class LiabilityService {
 
     private final LiabilityRepository liabilityRepository;
+    private final NetWorthService netWorthService;
     private final org.openfinance.repository.AssetRepository backingAssetRepository;
     private final CurrencyRepository currencyRepository;
     private final EncryptionService encryptionService;
@@ -944,7 +945,10 @@ public class LiabilityService {
 
     /** Validated inputs of an amortization schedule computation. */
     private record ScheduleInputs(
-            BigDecimal balance, BigDecimal minimumPayment, BigDecimal monthlyRate) {}
+            BigDecimal balance,
+            BigDecimal minimumPayment,
+            BigDecimal monthlyRate,
+            int moneyScale) {}
 
     /** Total interest of a generated schedule (sum of the per-row interest portions). */
     private static BigDecimal totalInterestOf(List<AmortizationScheduleEntry> schedule) {
@@ -980,6 +984,34 @@ public class LiabilityService {
      * minimum payment (auto-calculated from principal and term when missing). Returns null, with a
      * WARN log explaining why, when the schedule cannot be computed.
      */
+    /** Monthly amount currently due, including insurance; null means the terms are incomplete. */
+    @Transactional(readOnly = true)
+    public BigDecimal effectiveMonthlyPayment(Liability liability) {
+        BigDecimal balance = currentDebt(liability);
+        if (balance.signum() <= 0) return BigDecimal.ZERO;
+        BigDecimal rate = decryptAmount(liability.getInterestRate());
+        BigDecimal interest =
+                balance.multiply(orZero(rate))
+                        .divide(
+                                BigDecimal.valueOf(MONTHS_PER_YEAR * 100),
+                                org.openfinance.util.MoneyPrecision.scale(liability.getCurrency()),
+                                RoundingMode.HALF_UP);
+        if (isInterestOnlyWindowActive(
+                liabilityTrancheRepository.findByLiabilityIdAndUserId(
+                        liability.getId(), liability.getUserId()),
+                LocalDate.now())) {
+            return interest.add(monthlyInsuranceOf(liability));
+        }
+        BigDecimal payment = decryptAmount(liability.getMinimumPayment());
+        if (payment == null || payment.signum() <= 0) {
+            if (rate == null) return null;
+            payment = autoCalculatedMinimumPayment(liability, liability.getId(), rate);
+        }
+        return payment == null
+                ? null
+                : payment.min(balance.add(interest)).add(monthlyInsuranceOf(liability));
+    }
+
     private ScheduleInputs resolveScheduleInputs(
             Liability liability, Long liabilityId, Long userId) {
         BigDecimal currentBalance = currentDebt(liability);
@@ -1009,7 +1041,11 @@ public class LiabilityService {
         BigDecimal monthlyRate =
                 interestRate.divide(
                         BigDecimal.valueOf(MONTHS_PER_YEAR * 100), SCALE, RoundingMode.HALF_UP);
-        return new ScheduleInputs(currentBalance, minimumPayment, monthlyRate);
+        return new ScheduleInputs(
+                currentBalance,
+                minimumPayment,
+                monthlyRate,
+                org.openfinance.util.MoneyPrecision.scale(liability.getCurrency()));
     }
 
     /** Resolved interest-only window of a liability's DRAWN interest-only tranches. */
@@ -1058,7 +1094,10 @@ public class LiabilityService {
         }
         return principalAmount
                 .multiply(insurancePercentage)
-                .divide(BigDecimal.valueOf(MONTHS_PER_YEAR * 100), 2, RoundingMode.HALF_UP);
+                .divide(
+                        BigDecimal.valueOf(MONTHS_PER_YEAR * 100),
+                        org.openfinance.util.MoneyPrecision.scale(liability.getCurrency()),
+                        RoundingMode.HALF_UP);
     }
 
     /**
@@ -1092,7 +1131,13 @@ public class LiabilityService {
                 BigDecimal numerator = mRate.multiply(onePlusRPowN);
                 BigDecimal denominator = onePlusRPowN.subtract(BigDecimal.ONE);
                 BigDecimal minimumPayment =
-                        principal.multiply(numerator).divide(denominator, 2, RoundingMode.HALF_UP);
+                        principal
+                                .multiply(numerator)
+                                .divide(
+                                        denominator,
+                                        org.openfinance.util.MoneyPrecision.scale(
+                                                liability.getCurrency()),
+                                        RoundingMode.HALF_UP);
                 log.info(
                         "Calculated missing minimum payment for liability {}: {} over {} total"
                                 + " months using principal {}",
@@ -1107,7 +1152,10 @@ public class LiabilityService {
             }
         }
         // 0% interest rate
-        return principal.divide(BigDecimal.valueOf(totalMonths), 2, RoundingMode.HALF_UP);
+        return principal.divide(
+                BigDecimal.valueOf(totalMonths),
+                org.openfinance.util.MoneyPrecision.scale(liability.getCurrency()),
+                RoundingMode.HALF_UP);
     }
 
     /**
@@ -1135,7 +1183,7 @@ public class LiabilityService {
             BigDecimal interestPortion =
                     remainingBalance
                             .multiply(inputs.monthlyRate())
-                            .setScale(2, RoundingMode.HALF_UP);
+                            .setScale(inputs.moneyScale(), RoundingMode.HALF_UP);
             boolean interestOnlyRow = window.activeOn(currentDate);
 
             BigDecimal principalPortion;
@@ -1632,46 +1680,13 @@ public class LiabilityService {
             throw new InvalidTransactionException(
                     "Complete the property's acquisition details before disbursing directly to it");
         }
-        // A direct draw supplies the latest funded valuation; the agreed purchase price stays
-        // fixed.
-        // Liability principal remains cumulative across the separate tranches.
-        BigDecimal updatedValue = request.getAmount();
-        property.setCurrentValue(updatedValue.toPlainString());
-        BigDecimal purchasePrice = property.getPurchasePriceDecimal();
-        BigDecimal updatedPurchase = purchasePrice == null ? BigDecimal.ZERO : purchasePrice;
-        RealEstateProperty savedProperty = realEstateRepository.save(property);
-        if (savedProperty.getAssetId() != null) {
-            org.openfinance.entity.Asset asset =
-                    backingAssetRepository
-                            .findByIdAndUserId(savedProperty.getAssetId(), userId)
-                            .orElseThrow();
-            asset.updateTotalValue(updatedValue);
-            asset.setAcquisitionType(savedProperty.getAcquisitionType());
-            asset.setPurchaseDate(savedProperty.getPurchaseDate());
-            asset.setPurchasePrice(updatedPurchase);
-            backingAssetRepository.save(asset);
-        }
-
-        realEstateValueHistoryRepository.save(
-                RealEstateValueHistory.builder()
-                        .propertyId(savedProperty.getId())
-                        .sourceTrancheId(tranche.getId())
-                        .userId(savedProperty.getUserId())
-                        .effectiveDate(request.getDate())
-                        .recordedValue(updatedValue.toPlainString())
-                        .currency(savedProperty.getCurrency())
-                        .currencyId(savedProperty.getCurrencyId())
-                        .build());
-        restoreDirectValuation(userId, tranche);
+        // Financing changes the debt, not the independently recorded property valuation.
         log.info(
-                "Direct disbursement of {} applied to liability {} and property {}: liability "
-                        + "balance {}, property value {}, purchase price {}",
+                "Direct disbursement of {} applied to liability {} for property {}: balance {}",
                 request.getAmount(),
                 liability.getId(),
-                savedProperty.getId(),
-                finalBalance,
-                updatedValue,
-                updatedPurchase);
+                property.getId(),
+                finalBalance);
     }
 
     /**
@@ -2058,7 +2073,10 @@ public class LiabilityService {
                                         inputCurrency.toUpperCase(),
                                         liability.getCurrency(),
                                         date)
-                                .setScale(2, RoundingMode.HALF_UP);
+                                .setScale(
+                                        org.openfinance.util.MoneyPrecision.scale(
+                                                liability.getCurrency()),
+                                        RoundingMode.HALF_UP);
             } catch (IllegalStateException e) {
                 // ExchangeRateService signals "no exchange rate available" with an
                 // IllegalStateException; invalid-input IllegalArgumentExceptions propagate.
@@ -2080,18 +2098,24 @@ public class LiabilityService {
                     liabilityId);
         }
 
-        BigDecimal balance = orZero(currentDebt(liability));
+        BigDecimal balance = netWorthService.getLiabilityBalanceAt(liability, date);
         BigDecimal rate = orZero(decryptAmount(liability.getInterestRate()));
         BigDecimal principalAmt = orZero(decryptAmount(liability.getPrincipal()));
         BigDecimal insurancePct = orZero(decryptAmount(liability.getInsurancePercentage()));
 
         BigDecimal interest =
                 balance.multiply(rate)
-                        .divide(BigDecimal.valueOf(MONTHS_PER_YEAR * 100), 2, RoundingMode.HALF_UP);
+                        .divide(
+                                BigDecimal.valueOf(MONTHS_PER_YEAR * 100),
+                                org.openfinance.util.MoneyPrecision.scale(liability.getCurrency()),
+                                RoundingMode.HALF_UP);
         BigDecimal insurance =
                 principalAmt
                         .multiply(insurancePct)
-                        .divide(BigDecimal.valueOf(MONTHS_PER_YEAR * 100), 2, RoundingMode.HALF_UP);
+                        .divide(
+                                BigDecimal.valueOf(MONTHS_PER_YEAR * 100),
+                                org.openfinance.util.MoneyPrecision.scale(liability.getCurrency()),
+                                RoundingMode.HALF_UP);
 
         boolean interestOnly =
                 isInterestOnlyWindowActive(
@@ -2514,6 +2538,7 @@ public class LiabilityService {
                         .startDate(liability.getStartDate())
                         .endDate(liability.getEndDate())
                         .minimumPayment(decryptedMinimumPayment)
+                        .effectiveMonthlyPayment(effectiveMonthlyPayment(liability))
                         .currency(liability.getCurrency())
                         .notes(decryptedNotes)
                         .institution(institutionInfo)

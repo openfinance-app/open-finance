@@ -86,11 +86,21 @@ class PrincipalLegsTest {
     }
 
     @Test
-    @DisplayName("positive conversion rate converts the categorized sum and rounds to 2 decimals")
+    @DisplayName("positive conversion rate converts the categorized sum exactly")
     void ofConvertedConvertsCategorizedSum() {
         assertThat(
                         PrincipalLegs.ofConverted(
                                 new BigDecimal("1200"), new BigDecimal("500"), new BigDecimal("2")))
                 .isEqualByComparingTo("950");
+    }
+
+    @Test
+    void convertedCryptoPrincipalRetainsSubCentPrecision() {
+        assertThat(
+                        PrincipalLegs.ofConverted(
+                                new BigDecimal("0.00001234"),
+                                new BigDecimal("0.10"),
+                                new BigDecimal("50000")))
+                .isEqualByComparingTo("0.00001034");
     }
 }

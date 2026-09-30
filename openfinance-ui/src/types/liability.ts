@@ -22,6 +22,7 @@ export interface Liability {
   startDate: string; // ISO date string
   endDate?: string; // ISO date string
   minimumPayment?: number;
+  effectiveMonthlyPayment?: number | null;
   currency: string;
   notes?: string;
   institution?: {

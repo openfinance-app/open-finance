@@ -48,6 +48,15 @@ public class InvalidAssetStateException extends RuntimeException implements Loca
         return messageKey;
     }
 
+    public static InvalidAssetStateException valuationBoundaryMissing(Long assetId) {
+        return new InvalidAssetStateException(
+                "Confirm the current valuation of asset "
+                        + assetId
+                        + " before reversing its older capital improvements",
+                "error.asset.valuation.boundary.missing",
+                new Object[] {assetId});
+    }
+
     @Override
     public Object[] getMessageArgs() {
         return messageArgs;

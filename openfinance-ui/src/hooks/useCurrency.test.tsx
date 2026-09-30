@@ -7,6 +7,7 @@ import {
   useAllCurrencies,
   useExchangeRate,
   useLatestExchangeRate,
+  useLatestExchangeRates,
   useConvertCurrency,
   useUpdateExchangeRates,
   useConvertAmount,
@@ -36,6 +37,19 @@ describe('useCurrency hooks', () => {
     { code: 'EUR', name: 'Euro', symbol: '\u20AC', isActive: true },
     { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF', isActive: true },
   ];
+
+  it('can add and remove currency queries without changing React hook order', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { rate: 0.9 } });
+    const { result, rerender } = renderHook(
+      ({ currencies }) => useLatestExchangeRates(currencies, 'EUR'),
+      { wrapper, initialProps: { currencies: ['EUR'] } }
+    );
+    rerender({ currencies: ['EUR', 'USD'] });
+    await waitFor(() => expect(result.current[1].data?.rate).toBe(0.9));
+    rerender({ currencies: ['EUR'] });
+    expect(result.current).toHaveLength(1);
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+  });
 
   // ── useCurrencies ─────────────────────────────────────────────────────
   describe('useCurrencies', () => {

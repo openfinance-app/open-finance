@@ -90,6 +90,9 @@ public class LiabilityResponse {
      */
     private BigDecimal minimumPayment;
 
+    /** Current scheduled debt service, zero for settled debt and null when terms are incomplete. */
+    private BigDecimal effectiveMonthlyPayment;
+
     /**
      * Currency code in ISO 4217 format.
      *

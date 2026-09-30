@@ -37,6 +37,7 @@ class RepaymentPreviewTest {
     @Mock private LiabilityTrancheRepository liabilityTrancheRepository;
 
     @Mock private ExchangeRateService exchangeRateService;
+    @Mock private NetWorthService netWorthService;
 
     @InjectMocks private LiabilityService liabilityService;
 
@@ -61,6 +62,12 @@ class RepaymentPreviewTest {
     }
 
     private void givenLiability(Liability liability, List<LiabilityTranche> tranches) {
+        org.mockito.Mockito.lenient()
+                .when(
+                        netWorthService.getLiabilityBalanceAt(
+                                org.mockito.ArgumentMatchers.eq(liability),
+                                org.mockito.ArgumentMatchers.any(LocalDate.class)))
+                .thenReturn(new BigDecimal(liability.getCurrentBalance()));
         when(liabilityRepository.findByIdAndUserId(LIABILITY_ID, USER_ID))
                 .thenReturn(Optional.of(liability));
         when(liabilityTrancheRepository.findByLiabilityIdAndUserId(LIABILITY_ID, USER_ID))

@@ -72,6 +72,8 @@ class DashboardServiceTest {
     @Mock private EncryptionService encryptionService;
 
     @Mock private AssetRepository assetRepository;
+    @Mock private AssetService assetService;
+    @Mock private LiabilityService liabilityService;
 
     @Mock private org.openfinance.repository.LiabilityRepository liabilityRepository;
 
@@ -98,6 +100,9 @@ class DashboardServiceTest {
     @BeforeEach
     void setUp() {
         userId = 1L;
+        lenient()
+                .when(assetService.getCostBasis(any(Asset.class)))
+                .thenAnswer(call -> ((Asset) call.getArgument(0)).getTotalCost());
 
         // Mock user repository to return a user with EUR base currency
         // Using lenient() because not all tests call methods that need the user
@@ -1080,8 +1085,8 @@ class DashboardServiceTest {
 
     @Test
     @DisplayName(
-            "Yearly balance variation should not be contaminated by a cross-currency transfer's foreign amount")
-    void yearlyBalanceShouldIgnoreOtherTransferSideCurrency() {
+            "Yearly rows use reconstructed reporting-currency balances through the current year")
+    void yearlyBalanceUsesSharedDatedBalances() {
         // An EUR account and an XOF account, with a transfer from XOF -> EUR persisted
         // as two
         // rows (each in its own native currency). The EUR account's own INCOME row
@@ -1133,7 +1138,18 @@ class DashboardServiceTest {
 
         when(transactionRepository.findByUserId(userId))
                 .thenReturn(List.of(earlyIncome, transferSourceXof, transferDestEur));
-        when(accountRepository.findByUserIdAndIsActive(userId, true)).thenReturn(List.of(eur, xof));
+        when(accountRepository.findByUserIdWithInstitution(userId)).thenReturn(List.of(eur, xof));
+        when(netWorthService.getAccountBalancesAt(eq(userId), any(LocalDate.class), eq("EUR")))
+                .thenAnswer(
+                        call ->
+                                Map.of(
+                                        1L,
+                                        new BigDecimal(
+                                                ((LocalDate) call.getArgument(1)).getYear() == 2023
+                                                        ? "50"
+                                                        : "150"),
+                                        2L,
+                                        BigDecimal.ZERO));
         when(netWorthService.getNetWorthHistory(
                         anyLong(), any(LocalDate.class), any(LocalDate.class)))
                 .thenReturn(List.of());
@@ -1141,8 +1157,11 @@ class DashboardServiceTest {
         org.openfinance.dto.YearlyBalanceResponse response =
                 dashboardService.getYearlyBalanceVariations(userId);
 
-        // Year range spans 2023..2024.
-        assertThat(response.getYears()).containsExactly(2023, 2024);
+        assertThat(response.getYears())
+                .containsExactlyElementsOf(
+                        java.util.stream.IntStream.rangeClosed(2023, LocalDate.now().getYear())
+                                .boxed()
+                                .toList());
 
         org.openfinance.dto.YearlyBalanceResponse.YearlyBalanceEntry eurEntry =
                 response.getAccounts().stream()

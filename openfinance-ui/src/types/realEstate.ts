@@ -117,6 +117,8 @@ export interface PropertyEquityResponse {
  * Matches: org.openfinance.dto.PropertyROIResponse
  */
 export interface PropertyROIResponse {
+  /** Purchase amount plus active capital improvements. */
+  costBasis?: number;
   propertyId: number;
   propertyName: string;
   purchasePrice: number;

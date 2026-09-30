@@ -103,6 +103,8 @@ class AssetImprovementSyncTest {
         AssetService assetService =
                 new AssetService(
                         assetRepository,
+                        org.mockito.Mockito.mock(
+                                org.openfinance.repository.RealEstateRepository.class),
                         transactionRepository,
                         accountRepository,
                         currencyRepository,
@@ -143,6 +145,7 @@ class AssetImprovementSyncTest {
                 .currentPrice(currentPrice)
                 .currency("USD")
                 .purchaseDate(LocalDate.now().minusYears(1))
+                .valuationRecordedAt(LocalDate.now().minusYears(1).atStartOfDay())
                 .build();
     }
 

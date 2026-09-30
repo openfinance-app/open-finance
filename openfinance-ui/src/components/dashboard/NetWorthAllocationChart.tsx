@@ -150,7 +150,7 @@ export default function NetWorthAllocationChart({
       {/* Legend */}
       <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
         {allocations.map((item, index) => (
-          <div key={item.category} className="flex items-center gap-2">
+          <div key={`${item.category}-${item.isLiability}`} className="flex items-center gap-2">
             <div
               className="w-3 h-3 rounded-full"
               style={{

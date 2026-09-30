@@ -110,14 +110,14 @@ const fetchTransactionsByPeriod = async (
   const searchParams: Record<string, string | number> = {};
   if ('startDate' in params) {
     searchParams['dateFrom'] = params['startDate'];
-    searchParams['endDate'] = params['endDate'];
+    searchParams['dateTo'] = params['endDate'];
   } else {
     const endDate = new Date().toISOString().split('T')[0];
     const startDate = new Date(Date.now() - period * 24 * 60 * 60 * 1000)
       .toISOString()
       .split('T')[0];
     searchParams['dateFrom'] = startDate;
-    searchParams['endDate'] = endDate;
+    searchParams['dateTo'] = endDate;
   }
   searchParams['sort'] = 'date,desc';
   searchParams['size'] = 50;

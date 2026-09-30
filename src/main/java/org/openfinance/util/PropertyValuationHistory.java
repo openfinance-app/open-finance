@@ -44,11 +44,18 @@ public final class PropertyValuationHistory {
         if (amount == null) amount = BigDecimal.ZERO;
         for (RealEstateValueHistory entry : history) {
             if (!entry.isAdjustment()) continue;
-            // Later-entered backdated corrections also correct the anchor's previously known value.
             boolean applies =
                     anchor == null
-                            || entry.getId() > anchor.getId()
-                            || entry.getEffectiveDate().isAfter(anchor.getEffectiveDate());
+                            || ValuationContributions.applies(
+                                    entry.getEffectiveDate(),
+                                    entry.getMovementRecordedAt() != null
+                                            ? entry.getMovementRecordedAt()
+                                            : entry.getCreatedAt(),
+                                    anchor.getEffectiveDate(),
+                                    anchor.getCreatedAt())
+                            || (entry.getCreatedAt() == null
+                                    && entry.getMovementRecordedAt() == null
+                                    && entry.getId() > anchor.getId());
             if (!applies) continue;
             if (!currency.equalsIgnoreCase(entry.getCurrency())) {
                 throw new IllegalStateException(

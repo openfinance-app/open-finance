@@ -36,6 +36,9 @@ public class PropertyROIResponse {
      */
     private BigDecimal purchasePrice;
 
+    /** Purchase price plus capitalized expenses from the active ledger. */
+    private BigDecimal costBasis;
+
     /**
      * Current market value (decrypted).
      *

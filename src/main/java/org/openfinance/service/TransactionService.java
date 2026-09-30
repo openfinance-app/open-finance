@@ -1,8 +1,8 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -2468,13 +2468,12 @@ public class TransactionService {
                                 .orElse(false)) {
                     principal = BigDecimal.ZERO;
                 }
-                principal = roundMoney(principal);
             }
             transaction.setPrincipalAmount(principal);
             transactionRepository.save(transaction);
             BigDecimal delta =
                     transaction.getMovementType() == MovementType.DISBURSEMENT
-                            ? roundMoney(liabilityTotal)
+                            ? liabilityTotal
                             : principal.negate();
 
             // Validate the existing position before adding more borrowing.
@@ -2499,8 +2498,10 @@ public class TransactionService {
             adjustLiabilityBalance(liability, delta);
         }
 
-        applyImprovementLeg(userId, transaction.getRealEstateId(), true, request);
-        applyImprovementLeg(userId, transaction.getAssetId(), false, request);
+        applyImprovementLeg(
+                userId, transaction.getRealEstateId(), true, request, transaction.getCreatedAt());
+        applyImprovementLeg(
+                userId, transaction.getAssetId(), false, request, transaction.getCreatedAt());
     }
 
     /**
@@ -2510,7 +2511,11 @@ public class TransactionService {
      * currency inside {@link RealEstateService}/{@link AssetService} (Task 6 deferred minor).
      */
     private void applyImprovementLeg(
-            Long userId, Long instrumentId, boolean property, TransactionRequest request) {
+            Long userId,
+            Long instrumentId,
+            boolean property,
+            TransactionRequest request,
+            LocalDateTime recordedAt) {
         if (instrumentId == null || request.getMovementType() != MovementType.CAPITAL_IMPROVEMENT) {
             return;
         }
@@ -2522,10 +2527,20 @@ public class TransactionService {
                 isConvertedMovement(request) ? request.getOriginalAmount() : request.getAmount();
         if (property) {
             realEstateService.applyCapitalImprovement(
-                    instrumentId, userId, instrumentTotal, request.getDate(), movementCurrency);
+                    instrumentId,
+                    userId,
+                    instrumentTotal,
+                    request.getDate(),
+                    movementCurrency,
+                    recordedAt);
         } else {
             assetService.applyCapitalImprovement(
-                    instrumentId, userId, instrumentTotal, request.getDate(), movementCurrency);
+                    instrumentId,
+                    userId,
+                    instrumentTotal,
+                    request.getDate(),
+                    movementCurrency,
+                    recordedAt);
         }
     }
 
@@ -2564,11 +2579,6 @@ public class TransactionService {
                 || type == MovementType.FEE;
     }
 
-    /** Rounds a monetary value to 2 decimals HALF_UP (balance-write scale). */
-    private BigDecimal roundMoney(BigDecimal value) {
-        return value != null ? value.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
-    }
-
     /**
      * Pre-update snapshot of a persisted movement's linked-leg inputs, captured BEFORE the mapper
      * overwrites the row — the reverse legs must always derive from the OLD values.
@@ -2588,7 +2598,8 @@ public class TransactionService {
             BigDecimal originalAmount,
             String originalCurrency,
             BigDecimal conversionRate,
-            LocalDate date) {}
+            LocalDate date,
+            LocalDateTime recordedAt) {}
 
     /**
      * Builds a {@link ReversibleMovement} snapshot from a persisted transaction entity.
@@ -2604,7 +2615,8 @@ public class TransactionService {
                 transaction.getOriginalAmount(),
                 transaction.getOriginalCurrency(),
                 transaction.getConversionRate(),
-                transaction.getDate());
+                transaction.getDate(),
+                transaction.getCreatedAt());
     }
 
     /**
@@ -2647,7 +2659,7 @@ public class TransactionService {
             BigDecimal instrumentTotal = converted ? old.originalAmount() : old.amount();
             BigDecimal delta =
                     movementType == MovementType.DISBURSEMENT
-                            ? roundMoney(instrumentTotal).negate()
+                            ? instrumentTotal.negate()
                             : old.principalAmount();
 
             if (movementType == MovementType.DISBURSEMENT && trancheId != null) {
@@ -2664,7 +2676,8 @@ public class TransactionService {
                     old.originalCurrency() != null && old.conversionRate() != null
                             ? old.originalAmount()
                             : old.amount(),
-                    old.date());
+                    old.date(),
+                    old.recordedAt());
         }
 
         if (assetId != null && movementType == MovementType.CAPITAL_IMPROVEMENT) {
@@ -2674,7 +2687,8 @@ public class TransactionService {
                     old.originalCurrency() != null && old.conversionRate() != null
                             ? old.originalAmount()
                             : old.amount(),
-                    old.date());
+                    old.date(),
+                    old.recordedAt());
         }
     }
 

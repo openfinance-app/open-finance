@@ -273,4 +273,6 @@ public interface RealEstateRepository
      * @return Number of properties deleted (0 or 1)
      */
     long deleteByIdAndUserId(Long id, Long userId);
+
+    java.util.Optional<RealEstateProperty> findByAssetIdAndUserId(Long assetId, Long userId);
 }

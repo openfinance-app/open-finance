@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useAssets } from '@/hooks/useAssets';
-import { useLatestExchangeRate } from '@/hooks/useCurrency';
+import { useLatestExchangeRates } from '@/hooks/useCurrency';
 import { DEFAULT_CURRENCY, formatExchangeRate } from '@/utils/currency';
 import { add, multiply, sum, percentage } from '@/utils/money';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -49,7 +49,7 @@ export default function CurrencyBreakdown({
   const { t } = useTranslation('dashboard');
   const [refreshKey] = useState(0);
   const { data: accounts, isLoading, error } = useAccounts();
-  const { data: assets, isLoading: isLoadingAssets } = useAssets();
+  const { data: assets, isLoading: isLoadingAssets, error: assetError } = useAssets();
 
   const allLoading = isLoading || isLoadingAssets;
 
@@ -69,7 +69,7 @@ export default function CurrencyBreakdown({
   }
 
   // Error state
-  if (error) {
+  if (error || assetError) {
     return (
       <div className="bg-surface rounded-lg p-6 border border-red-500/50">
         <div className="flex items-center justify-between mb-4">
@@ -78,15 +78,15 @@ export default function CurrencyBreakdown({
             {t('currencyBreakdown.title')}
           </h3>
         </div>
-        <p className="text-sm text-red-500">
-          {error instanceof Error ? error.message : t('currencyBreakdown.loadError')}
-        </p>
+        <p className="text-sm text-red-500">{t('currencyBreakdown.loadError')}</p>
       </div>
     );
   }
 
-  // No accounts state
-  if (!accounts || accounts.length === 0) {
+  const ownedAssets = (assets ?? []).filter(
+    asset => asset.acquisitionType !== 'PLANNED' && asset.totalValue > 0
+  );
+  if ((!accounts || accounts.length === 0) && ownedAssets.length === 0) {
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
         <div className="flex items-center justify-between mb-4">
@@ -95,43 +95,39 @@ export default function CurrencyBreakdown({
             {t('currencyBreakdown.title')}
           </h3>
         </div>
-        <p className="text-sm text-text-secondary">{t('accountsCard.empty')}</p>
+        <p className="text-sm text-text-secondary">{t('currencyBreakdown.empty')}</p>
       </div>
     );
   }
 
   // Group accounts by currency and calculate balances
-  const currencyGroups = accounts.reduce(
+  const currencyGroups = (accounts ?? []).reduce(
     (acc, account) => {
       // Only include positive balances (assets) — negative balances are liabilities and
       // should not inflate the currency breakdown total (matches Net Worth Card totalAssets)
-      if (account.balance <= 0) return acc;
+      const cash = account.ownBalance ?? account.balance;
+      if (account.isActive === false || cash <= 0) return acc;
       if (!acc[account.currency]) {
         acc[account.currency] = { balance: 0, accountCount: 0 };
       }
-      acc[account.currency].balance = add(acc[account.currency].balance, account.balance);
+      acc[account.currency].balance = add(acc[account.currency].balance, cash);
       acc[account.currency].accountCount += 1;
       return acc;
     },
     {} as Record<string, { balance: number; accountCount: number }>
   );
 
-  // Also include financial asset totalValue grouped by currency
-  // Only include assets NOT linked to an account (linked asset values are already
-  // added to the account balance by AccountService.toResponseWithDecryption)
-  if (assets) {
-    assets.forEach(asset => {
-      if (asset.accountId != null) return; // Skip: already counted in account balance
-      if (!currencyGroups[asset.currency]) {
-        currencyGroups[asset.currency] = { balance: 0, accountCount: 0 };
-      }
-      currencyGroups[asset.currency].balance = add(
-        currencyGroups[asset.currency].balance,
-        asset.totalValue
-      );
-      currencyGroups[asset.currency].accountCount += 1;
-    });
-  }
+  // Every holding retains its native currency, independent of its account's cash currency.
+  ownedAssets.forEach(asset => {
+    if (!currencyGroups[asset.currency]) {
+      currencyGroups[asset.currency] = { balance: 0, accountCount: 0 };
+    }
+    currencyGroups[asset.currency].balance = add(
+      currencyGroups[asset.currency].balance,
+      asset.totalValue
+    );
+    currencyGroups[asset.currency].accountCount += 1;
+  });
 
   // Convert to CurrencyBalance array with exchange rates
   const currencyBalances: CurrencyBalance[] = Object.entries(currencyGroups).map(
@@ -182,15 +178,15 @@ function CurrencyBreakdownContent({
   } = useSecondaryConversion(baseCurrency);
   const navigate = useNavigate();
   // Fetch exchange rates for all foreign currencies
-  const balancesWithRates = currencyBalances.map(currencyBalance => {
+  const rates = useLatestExchangeRates(
+    currencyBalances.map(balance => balance.currency),
+    baseCurrency,
+    refreshKey
+  );
+  const balancesWithRates = currencyBalances.map((currencyBalance, index) => {
     const isForeignCurrency = currencyBalance.currency !== baseCurrency;
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { data: exchangeRate, isLoading } = useLatestExchangeRate(
-      currencyBalance.currency,
-      baseCurrency,
-      refreshKey
-    );
+    const { data: exchangeRate, isLoading } = rates[index];
 
     const rate = isForeignCurrency && exchangeRate ? exchangeRate.rate : 1;
     const balanceInBase = multiply(currencyBalance.balance, rate);

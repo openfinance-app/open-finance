@@ -91,7 +91,7 @@ export interface Asset {
 }
 
 export interface AssetRequest {
-  accountId?: number;
+  accountId?: number | null;
   name: string;
   type: AssetType;
   symbol?: string;

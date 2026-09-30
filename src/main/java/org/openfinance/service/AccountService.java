@@ -72,6 +72,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class AccountService {
+    private final org.openfinance.repository.RecurringTransactionRepository
+            recurringTransactionRepository;
 
     private final AccountRepository accountRepository;
     private final org.openfinance.repository.AccountStatusHistoryRepository
@@ -280,6 +282,17 @@ public class AccountService {
                 accountRepository
                         .findByIdAndUserId(accountId, userId)
                         .orElseThrow(() -> AccountNotFoundException.byIdAndUser(accountId, userId));
+
+        if (request.getOpeningDate() != null
+                && transactionRepository.findByUserIdAndAccountId(userId, accountId).stream()
+                        .anyMatch(
+                                t ->
+                                        !Boolean.TRUE.equals(t.getIsDeleted())
+                                                && t.getDate()
+                                                        .isBefore(request.getOpeningDate()))) {
+            throw new org.openfinance.exception.InvalidTransactionException(
+                    "The account opening date cannot follow existing transactions");
+        }
 
         if (accountRepository.isLiabilityBalanceSource(accountId, userId)
                 && (!account.getCurrency().equalsIgnoreCase(request.getCurrency())
@@ -579,6 +592,13 @@ public class AccountService {
         account.setIsActive(false);
         accountRepository.save(account);
         recordAccountStatus(account, false);
+        recurringTransactionRepository
+                .findByUserIdAndAccountId(userId, accountId)
+                .forEach(
+                        template -> {
+                            template.setIsActive(false);
+                            recurringTransactionRepository.save(template);
+                        });
 
         log.info("Account closed successfully: id={}, userId={}", accountId, userId);
     }

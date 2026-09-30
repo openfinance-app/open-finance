@@ -526,7 +526,7 @@ class DomainManagementIntegrationTest {
         JsonNode property = property("Home", 0);
         long propertyId = property.get("id").asLong();
         LocalDate drawDate = LocalDate.now().withDayOfMonth(1);
-        // This fixture's opening valuation predates the funding. A newer appraisal would win.
+        // Funding adds debt independently of the existing valuation.
         jdbc.update(
                 "UPDATE real_estate_value_history SET effective_date = ? WHERE property_id = ?",
                 drawDate.minusDays(1).toString(),
@@ -539,7 +539,7 @@ class DomainManagementIntegrationTest {
                 owner,
                 200);
         JsonNode current = json("GET", "/real-estate/" + propertyId, null, owner, 200);
-        assertThat(current.get("equity").decimalValue()).isZero();
+        assertThat(current.get("equity").decimalValue()).isEqualByComparingTo("-80");
         assertThat(current.get("allocatedDebt").decimalValue()).isEqualByComparingTo("80");
         assertThat(current.get("mortgageId").isNull()).isTrue();
         assertDebt(loan, "80");

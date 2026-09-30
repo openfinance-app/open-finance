@@ -29,6 +29,8 @@ public class BorrowingCapacity {
     /** Total monthly debt payments (sum of minimum payments on all liabilities) */
     private BigDecimal monthlyDebtPayments;
 
+    private boolean debtPaymentsComplete;
+
     /**
      * Debt-to-income ratio as a percentage (0-100+) Formula: (monthlyDebtPayments / monthlyIncome)
      * * 100 Industry standard: ≤ 40% is healthy

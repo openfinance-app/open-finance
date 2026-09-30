@@ -48,6 +48,10 @@ class AccountServiceTest {
     @Mock private AccountRepository accountRepository;
 
     @Mock
+    private org.openfinance.repository.RecurringTransactionRepository
+            recurringTransactionRepository;
+
+    @Mock
     private org.openfinance.repository.AccountStatusHistoryRepository
             accountStatusHistoryRepository;
 

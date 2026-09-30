@@ -2,7 +2,7 @@
  * Unit tests for LiabilitySummaryCards component
  * Focus: Test privacy implementation with PrivateAmount wrapping of currency displays
  */
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
 import React from 'react';
 import { renderWithProviders } from '@/test/test-utils';
@@ -104,6 +104,32 @@ describe('LiabilitySummaryCards', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (useVisibility as any).mockReturnValue({ isAmountsVisible: true });
+  });
+
+  it('uses effective payments and excludes settled debt', () => {
+    renderWithProviders(
+      <LiabilitySummaryCards
+        liabilities={[
+          { ...mockLiabilities[0], currentBalance: 0 },
+          { ...mockLiabilities[1], minimumPayment: undefined, effectiveMonthlyPayment: 1000 },
+        ]}
+      />
+    );
+    const card = screen.getByText('Monthly Payments').parentElement!;
+    expect(within(card).getByText('$1,000.00')).toBeInTheDocument();
+  });
+
+  it('labels unknown payments as incomplete', () => {
+    renderWithProviders(
+      <LiabilitySummaryCards
+        liabilities={[
+          { ...mockLiabilities[0], minimumPayment: undefined, effectiveMonthlyPayment: null },
+        ]}
+      />
+    );
+    const card = screen.getByText('Monthly Payments').parentElement!;
+    expect(within(card).getByText('Incomplete')).toBeInTheDocument();
+    expect(within(card).queryByText('$0.00')).not.toBeInTheDocument();
   });
 
   describe('Privacy Implementation - PrivateAmount Wrapping', () => {
@@ -325,8 +351,8 @@ describe('LiabilitySummaryCards', () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText('$0.00')).toBeInTheDocument();
-      expect(screen.getByText('No payments set')).toBeInTheDocument();
+      expect(screen.getByText('Incomplete')).toBeInTheDocument();
+      expect(screen.getByText(/Payment terms are missing/)).toBeInTheDocument();
     });
 
     it('should prefer USD as primary currency when available', () => {

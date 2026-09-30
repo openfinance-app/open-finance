@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 
@@ -29,7 +29,8 @@ vi.mock('@/hooks/useAssets', () => ({
 }));
 
 vi.mock('@/hooks/useCurrency', () => ({
-  useLatestExchangeRate: () => ({ data: { rate: 1.1 }, isLoading: false }),
+  useLatestExchangeRates: (currencies: string[]) =>
+    currencies.map(() => ({ data: { rate: 1.1 }, isLoading: false })),
 }));
 
 vi.mock('@/hooks/useSecondaryConversion', () => ({
@@ -50,6 +51,7 @@ vi.mock('@/components/ui/PrivateAmount', () => ({
 
 import CurrencyBreakdown from './CurrencyBreakdown';
 import { useAccounts } from '@/hooks/useAccounts';
+import { useAssets } from '@/hooks/useAssets';
 
 describe('CurrencyBreakdown', () => {
   beforeEach(() => {
@@ -104,5 +106,73 @@ describe('CurrencyBreakdown', () => {
     renderWithProviders(<CurrencyBreakdown baseCurrency="USD" />);
     await user.click(screen.getByRole('button', { name: 'View assets in USD' }));
     expect(mockNavigate).toHaveBeenCalledWith('/assets?currency=USD');
+  });
+});
+
+describe('CurrencyBreakdown underlying positions', () => {
+  beforeEach(() => {
+    mockAuthentication();
+    vi.mocked(useAccounts).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useAccounts>);
+    vi.mocked(useAssets).mockReturnValue({ data: [], isLoading: false, error: null } as ReturnType<
+      typeof useAssets
+    >);
+  });
+
+  it('counts linked holdings without subtracting the brokerage overdraft from gross assets', () => {
+    vi.mocked(useAccounts).mockReturnValue({
+      data: [{ id: 1, currency: 'EUR', balance: 900, ownBalance: -100, isActive: true }],
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useAccounts>);
+    vi.mocked(useAssets).mockReturnValue({
+      data: [
+        { id: 1, accountId: 1, currency: 'EUR', totalValue: 1000, acquisitionType: 'PURCHASE' },
+      ],
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useAssets>);
+    renderWithProviders(<CurrencyBreakdown baseCurrency="EUR" />);
+    const row = screen.getByRole('button', { name: 'View assets in EUR' });
+    expect(within(row).getByText('1000')).toBeInTheDocument();
+    expect(screen.queryByText('900')).not.toBeInTheDocument();
+  });
+
+  it('preserves a holding currency that differs from its linked account', () => {
+    vi.mocked(useAccounts).mockReturnValue({
+      data: [{ id: 1, currency: 'EUR', balance: 1200, ownBalance: 100, isActive: true }],
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useAccounts>);
+    vi.mocked(useAssets).mockReturnValue({
+      data: [
+        { id: 1, accountId: 1, currency: 'USD', totalValue: 1000, acquisitionType: 'PURCHASE' },
+      ],
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useAssets>);
+    renderWithProviders(<CurrencyBreakdown baseCurrency="EUR" />);
+    expect(screen.getByRole('button', { name: 'View assets in USD' })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('button', { name: 'View assets in EUR' })).getByText('100')
+    ).toBeInTheDocument();
+  });
+
+  it('shows standalone owned assets and excludes planned holdings without any accounts', () => {
+    vi.mocked(useAssets).mockReturnValue({
+      data: [
+        { id: 1, currency: 'EUR', totalValue: 1000, acquisitionType: 'PURCHASE' },
+        { id: 2, currency: 'USD', totalValue: 5000, acquisitionType: 'PLANNED' },
+      ],
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useAssets>);
+    renderWithProviders(<CurrencyBreakdown baseCurrency="EUR" />);
+    expect(screen.getByRole('button', { name: 'View assets in EUR' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View assets in USD' })).not.toBeInTheDocument();
+    expect(screen.queryByText('No assets yet')).not.toBeInTheDocument();
   });
 });

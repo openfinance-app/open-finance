@@ -99,6 +99,7 @@ export interface IBorrowingCapacity {
   monthlyIncome: number;
   monthlyExpenses: number;
   monthlyDebtPayments: number;
+  debtPaymentsComplete?: boolean;
   debtToIncomeRatio: number;
   recommendedMaxBorrowing: number;
   availableBorrowingCapacity: number;

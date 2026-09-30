@@ -16,10 +16,7 @@ import java.math.RoundingMode;
 public final class PrincipalLegs {
 
     /** Intermediate scale used when converting split legs across the stored conversion rate. */
-    private static final int CONVERSION_SCALE = 6;
-
-    /** Final monetary scale of a computed principal leg. */
-    private static final int MONEY_SCALE = 2;
+    private static final int CONVERSION_SCALE = 18;
 
     private PrincipalLegs() {}
 
@@ -44,13 +41,13 @@ public final class PrincipalLegs {
      * ({@code originalAmount}, e.g. the liability currency) while the categorized splits are
      * expressed in the account currency. Each categorized split is converted to the instrument
      * currency by dividing by the stored rate ({@code 1 originalCurrency = rate × currency}), then
-     * the plain subtraction applies. The result is rounded to 2 decimals HALF_UP so balance writes
-     * and tranche ledgers stay on monetary scale.
+     * the plain subtraction applies. Conversion retains the same 18 fractional digits accepted by
+     * the transaction API, including fractional crypto principal.
      *
      * @param total the movement total in the linked instrument's currency
      * @param categorizedSum the sum of categorized split amounts in the account currency
      * @param conversionRate the stored conversion rate, strictly positive
-     * @return {@code max(total − categorizedSum / rate, 0)} rounded to 2 decimals
+     * @return {@code max(total − categorizedSum / rate, 0)} at transaction precision
      * @throws IllegalArgumentException if {@code conversionRate} is null or not strictly positive.
      *     Unreachable from request paths (rates are validated positive at write time and callers
      *     only invoke this method with a non-null stored rate); the guard protects against silently
@@ -67,6 +64,6 @@ public final class PrincipalLegs {
                         ? categorizedSum.divide(
                                 conversionRate, CONVERSION_SCALE, RoundingMode.HALF_UP)
                         : BigDecimal.ZERO;
-        return of(total, converted).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        return of(total, converted);
     }
 }

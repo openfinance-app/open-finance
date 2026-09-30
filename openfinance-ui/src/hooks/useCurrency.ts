@@ -4,7 +4,7 @@
  *
  * Provides React Query hooks for currency and exchange rate operations
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import { multiply } from '@/utils/money';
 import { getCurrencyDecimals } from '@/utils/currency';
@@ -77,7 +77,18 @@ export function useLatestExchangeRate(
   refreshKey?: number,
   enabled: boolean = true
 ) {
-  return useQuery({
+  return useQuery(latestExchangeRateOptions(from, to, refreshKey, enabled));
+}
+
+/** A changing set of holdings must not change the number of React hook calls. */
+export function useLatestExchangeRates(from: string[], to: string, refreshKey?: number) {
+  return useQueries({
+    queries: from.map(currency => latestExchangeRateOptions(currency, to, refreshKey)),
+  });
+}
+
+function latestExchangeRateOptions(from: string, to: string, refreshKey?: number, enabled = true) {
+  return {
     queryKey: ['exchangeRate', 'latest', from, to, refreshKey],
     queryFn: async () => {
       const params = new URLSearchParams({ from, to });
@@ -88,7 +99,7 @@ export function useLatestExchangeRate(
     },
     enabled: !!from && !!to && from !== to && enabled, // Don't fetch if same currency or disabled
     staleTime: 1000 * 60 * 15, // 15 minutes
-  });
+  };
 }
 
 /**

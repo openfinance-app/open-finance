@@ -268,8 +268,8 @@ class FinanceCorrectnessIntegrationTest extends AuditApiTestSupport {
                 200);
         JsonNode current = json("GET", "/real-estate/" + property, null, owner, 200);
         JsonNode historical = history(START.plusMonths(2), START.plusMonths(2));
-        money(current, "currentValue", "200");
-        money(historical.get(0), "totalAssets", "200");
+        money(current, "currentValue", "1000");
+        money(historical.get(0), "totalAssets", "1000");
     }
 
     @Test

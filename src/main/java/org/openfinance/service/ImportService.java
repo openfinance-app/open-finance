@@ -120,6 +120,7 @@ public class ImportService {
     private final ObjectMapper objectMapper;
     private final AutoCategorizationService autoCategorizationService;
     private final AccountService accountService;
+    private final ImportedOpeningBalanceService openingBalanceService;
     private final TransactionRuleService transactionRuleService;
     private final TransactionService transactionService;
     private final ExchangeRateService exchangeRateService;
@@ -730,6 +731,11 @@ public class ImportService {
 
         List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
         validateImportCategoryMappings(transactions, userId, categoryMappings);
+        detectDuplicates(
+                transactions,
+                accountId != null ? accountId : session.getAccountId(),
+                session.getFileFormat(),
+                userId);
 
         if ("JSON".equalsIgnoreCase(session.getFileFormat())
                 && hasSkroogeMetadata(session.getMetadata())) {
@@ -859,33 +865,14 @@ public class ImportService {
                                 .map(ImportedTransaction::getAmount)
                                 .filter(java.util.Objects::nonNull)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-                try {
-                    Account acct =
-                            accountRepository
-                                    .findByIdAndUserId(targetAccountId, userId)
-                                    .orElseThrow(
-                                            () ->
-                                                    new ResourceNotFoundException(
-                                                            "Account not found: "
-                                                                    + targetAccountId));
-                    BigDecimal newOpening =
-                            (acct.getOpeningBalance() != null
-                                            ? acct.getOpeningBalance()
-                                            : BigDecimal.ZERO)
-                                    .add(openingDelta);
-                    acct.setOpeningBalance(newOpening);
-                    accountRepository.save(acct);
-                    log.info(
-                            "Applied {} opening-balance row(s) to account {}: +{}",
-                            openingBalanceTxs.size(),
-                            targetAccountId,
-                            openingDelta);
-                } catch (Exception e) {
-                    log.warn(
-                            "Failed to apply opening balance to account {}: {}",
-                            targetAccountId,
-                            e.getMessage());
-                }
+                LocalDate openingDate =
+                        openingBalanceTxs.stream()
+                                .map(ImportedTransaction::getTransactionDate)
+                                .filter(java.util.Objects::nonNull)
+                                .min(LocalDate::compareTo)
+                                .orElse(null);
+                openingBalanceService.reconcile(
+                        account, openingDelta, account.getCurrency(), openingDate, userId);
             }
 
             // Save transactions
@@ -2500,6 +2487,13 @@ public class ImportService {
                                                 new ResourceNotFoundException(
                                                         "Account not found: " + created.getId()));
                 existingAccounts.add(matchingAccount);
+            } else {
+                openingBalanceService.reconcile(
+                        matchingAccount,
+                        descriptor.openingBalance(),
+                        descriptor.currency(),
+                        descriptor.openingDate(),
+                        userId);
             }
             accountIdsByKey.put(descriptor.key(), matchingAccount.getId());
         }

@@ -299,9 +299,9 @@ class LiabilityDisburseApiTest {
 
     @Test
     @DisplayName(
-            "Direct disbursement (no toAccountId) bumps liability and property, auto-creates a "
+            "Direct disbursement increases debt while preserving property value, auto-creates a "
                     + "DRAWN tranche and records no transaction")
-    void directDisbursementBumpsLiabilityAndPropertyWithoutTransaction() throws Exception {
+    void directDisbursementFundsLiabilityAndPreservesPropertyWithoutTransaction() throws Exception {
         Long liabilityId = createStagedLiability();
         Long propertyId = createProperty();
 
@@ -331,13 +331,13 @@ class LiabilityDisburseApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        // Property purchase price AND current value increased by the disbursed amount
+        // Financing is independent of the purchase price and current valuation.
         mockMvc.perform(
                         get("/api/v1/real-estate/" + propertyId)
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.currentValue").value(30000.00))
+                .andExpect(jsonPath("$.currentValue").value(100000.00))
                 .andExpect(jsonPath("$.purchasePrice").value(100000.00));
     }
 

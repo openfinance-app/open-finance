@@ -103,6 +103,18 @@ class TransactionLiabilitySyncTest {
 
     @BeforeEach
     void setUp() {
+        List<RealEstateValueHistory> recordedValues = new java.util.ArrayList<>();
+        when(realEstateValueHistoryRepository.save(any(RealEstateValueHistory.class)))
+                .thenAnswer(
+                        call -> {
+                            RealEstateValueHistory entry = call.getArgument(0);
+                            recordedValues.add(entry);
+                            return entry;
+                        });
+        when(realEstateValueHistoryRepository.findHistoryUpToDate(
+                        org.mockito.ArgumentMatchers.eq(PROPERTY_ID), any(LocalDate.class)))
+                .thenReturn(recordedValues);
+
         when(realEstateRepository.existsByIdAndUserId(PROPERTY_ID, USER_ID)).thenReturn(true);
         for (long categoryId : new long[] {5L, 6L}) {
             when(categoryRepository.findByIdAndUserId(categoryId, 1L))
@@ -179,6 +191,7 @@ class TransactionLiabilitySyncTest {
                 .id(PROPERTY_ID)
                 .userId(1L)
                 .currency("USD")
+                .purchasePrice(currentValue)
                 .currentValue(currentValue)
                 .build();
     }
@@ -237,8 +250,6 @@ class TransactionLiabilitySyncTest {
         when(accountRepository.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
         when(liabilityRepository.save(any(Liability.class))).thenAnswer(inv -> inv.getArgument(0));
         when(realEstateRepository.save(any(RealEstateProperty.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
-        when(realEstateValueHistoryRepository.save(any(RealEstateValueHistory.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -658,7 +669,8 @@ class TransactionLiabilitySyncTest {
         // Liability leg moves in the liability currency: 5000 − 1310.04 USD
         ArgumentCaptor<Liability> captor = ArgumentCaptor.forClass(Liability.class);
         verify(liabilityRepository).save(captor.capture());
-        assertThat(captor.getValue().getCurrentBalance()).isEqualTo("3689.96");
+        assertThat(new BigDecimal(captor.getValue().getCurrentBalance()))
+                .isEqualByComparingTo("3689.96");
     }
 
     @Test
@@ -688,7 +700,8 @@ class TransactionLiabilitySyncTest {
         // Principal leg = 1000 − (100 + 50) / 0.5 = 700 USD → 5000 − 700
         ArgumentCaptor<Liability> captor = ArgumentCaptor.forClass(Liability.class);
         verify(liabilityRepository).save(captor.capture());
-        assertThat(captor.getValue().getCurrentBalance()).isEqualTo("4300.00");
+        assertThat(new BigDecimal(captor.getValue().getCurrentBalance()))
+                .isEqualByComparingTo("4300.00");
     }
 
     @Test
@@ -761,7 +774,8 @@ class TransactionLiabilitySyncTest {
                 .isEqualTo(TRANCHE_ID);
         ArgumentCaptor<Liability> captor = ArgumentCaptor.forClass(Liability.class);
         verify(liabilityRepository).save(captor.capture());
-        assertThat(captor.getValue().getCurrentBalance()).isEqualTo("4000.00");
+        assertThat(new BigDecimal(captor.getValue().getCurrentBalance()))
+                .isEqualByComparingTo("4000.00");
     }
 
     @Test

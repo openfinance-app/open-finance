@@ -84,6 +84,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AssetService {
 
     private final AssetRepository assetRepository;
+    private final org.openfinance.repository.RealEstateRepository realEstateRepository;
     private final org.openfinance.repository.TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final CurrencyRepository currencyRepository;
@@ -185,6 +186,9 @@ public class AssetService {
 
         // Set lastUpdated timestamp to now (initial price entry)
         asset.setLastUpdated(LocalDateTime.now());
+        if (!propertyWrite && asset.isPhysical()) {
+            asset.setValuationRecordedAt(asset.getLastUpdated());
+        }
 
         // Save to database
         Asset savedAsset = assetRepository.save(asset);
@@ -325,6 +329,10 @@ public class AssetService {
 
         // Update fields from request (only non-null fields will be copied)
         assetMapper.updateEntityFromRequest(request, asset);
+        if (request.isAccountIdPresent() || request.getAccountId() != null) {
+            asset.setAccountId(request.getAccountId());
+            asset.setAccount(null);
+        }
         if (asset.getCurrentPrice().compareTo(oldPrice) != 0
                 || asset.getQuantity().compareTo(oldQuantity) != 0) {
             asset.updateTotalValue(asset.getQuantity().multiply(asset.getCurrentPrice()));
@@ -368,9 +376,18 @@ public class AssetService {
         }
 
         // Update lastUpdated timestamp if price changed (Requirement 2.6.5)
+        if (!propertyWrite
+                && asset.isPhysical()
+                && request.getCurrentPrice() != null
+                && asset.getValuationRecordedAt() == null) {
+            asset.setValuationRecordedAt(LocalDateTime.now());
+        }
         if (request.getCurrentPrice() != null
                 && request.getCurrentPrice().compareTo(oldPrice) != 0) {
             asset.setLastUpdated(LocalDateTime.now());
+            if (!propertyWrite && asset.isPhysical()) {
+                asset.setValuationRecordedAt(LocalDateTime.now());
+            }
             log.debug(
                     "Asset price updated: id={}, oldPrice={}, newPrice={}",
                     assetId,
@@ -435,6 +452,17 @@ public class AssetService {
             BigDecimal amount,
             LocalDate movementDate,
             String movementCurrency) {
+        applyCapitalImprovement(
+                assetId, userId, amount, movementDate, movementCurrency, LocalDateTime.now());
+    }
+
+    public void applyCapitalImprovement(
+            Long assetId,
+            Long userId,
+            BigDecimal amount,
+            LocalDate movementDate,
+            String movementCurrency,
+            LocalDateTime recordedAt) {
         Asset asset = findPhysicalAsset(assetId, userId);
         if (asset.getAcquisitionType() == org.openfinance.entity.AcquisitionType.PLANNED) {
             throw new InvalidTransactionException(
@@ -445,7 +473,9 @@ public class AssetService {
         if (movementDate.isBefore(asset.getPurchaseDate())) {
             throw new InvalidTransactionException("An improvement cannot precede acquisition");
         }
-        asset.updateTotalValue(asset.getTotalValue().add(amount));
+        if (improvementAffectsValue(asset, movementDate, recordedAt)) {
+            asset.updateTotalValue(asset.getTotalValue().add(amount));
+        }
         BigDecimal updated = asset.getCurrentPrice();
         asset.setLastUpdated(LocalDateTime.now());
         assetRepository.save(asset);
@@ -485,8 +515,22 @@ public class AssetService {
      */
     public void reverseCapitalImprovement(
             Long assetId, Long userId, BigDecimal amount, LocalDate movementDate) {
+        reverseCapitalImprovement(assetId, userId, amount, movementDate, LocalDateTime.now());
+    }
+
+    public void reverseCapitalImprovement(
+            Long assetId,
+            Long userId,
+            BigDecimal amount,
+            LocalDate movementDate,
+            LocalDateTime recordedAt) {
         Asset asset = findPhysicalAsset(assetId, userId);
-        asset.updateTotalValue(asset.getTotalValue().subtract(amount).max(BigDecimal.ZERO));
+        if (asset.getValuationRecordedAt() == null) {
+            throw InvalidAssetStateException.valuationBoundaryMissing(assetId);
+        }
+        if (improvementAffectsValue(asset, movementDate, recordedAt)) {
+            asset.updateTotalValue(asset.getTotalValue().subtract(amount).max(BigDecimal.ZERO));
+        }
         BigDecimal updated = asset.getCurrentPrice();
         asset.setLastUpdated(LocalDateTime.now());
         assetRepository.save(asset);
@@ -502,6 +546,12 @@ public class AssetService {
      * Loads an asset by ID and user, rejecting non-physical assets (spec §3.3: improvements track
      * the cost basis of physical assets only).
      */
+    private boolean improvementAffectsValue(Asset asset, LocalDate date, LocalDateTime recordedAt) {
+        LocalDateTime anchor = asset.getValuationRecordedAt();
+        return org.openfinance.util.ValuationContributions.applies(
+                date, recordedAt, anchor == null ? null : anchor.toLocalDate(), anchor);
+    }
+
     private Asset findPhysicalAsset(Long assetId, Long userId) {
         Asset asset =
                 assetRepository
@@ -1036,6 +1086,7 @@ public class AssetService {
         // Get all assets to determine currencies
         List<Asset> assets = assetRepository.findByUserId(userId);
 
+        assets.forEach(asset -> asset.setCapitalizedCost(capitalizedCost(asset)));
         // Group by currency and sum costs
         Map<String, BigDecimal> costsByCurrency =
                 assets.stream()
@@ -1129,7 +1180,30 @@ public class AssetService {
      * @param encryptionKey the encryption key for decryption
      * @return the asset response with decrypted fields and calculated values
      */
+    /** Cost of an owned position, including its active capitalized expenditure. */
+    @Transactional(readOnly = true)
+    public BigDecimal getCostBasis(Asset asset) {
+        return asset.getQuantity().multiply(asset.getPurchasePrice()).add(capitalizedCost(asset));
+    }
+
+    private BigDecimal capitalizedCost(Asset asset) {
+        if (asset.getType() == AssetType.REAL_ESTATE) {
+            return realEstateRepository
+                    .findByAssetIdAndUserId(asset.getId(), asset.getUserId())
+                    .map(
+                            property ->
+                                    org.openfinance.util.CapitalizedCosts.total(
+                                            transactionRepository.findByRealEstateIdAndUserId(
+                                                    property.getId(), asset.getUserId())))
+                    .orElse(BigDecimal.ZERO);
+        }
+        if (!asset.isPhysical()) return BigDecimal.ZERO;
+        return org.openfinance.util.CapitalizedCosts.total(
+                transactionRepository.findByAssetIdAndUserId(asset.getId(), asset.getUserId()));
+    }
+
     private AssetResponse toResponseWithDecryption(Asset asset) {
+        if (canReadSensitiveFields()) asset.setCapitalizedCost(capitalizedCost(asset));
         // Map to response first (mapper will populate calculated fields automatically)
         AssetResponse response = assetMapper.toResponse(asset);
 
