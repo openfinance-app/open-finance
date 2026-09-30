@@ -165,7 +165,10 @@ public class RealEstatePropertyRequest {
      *
      * <p>Requirement REQ-2.16.1: Soft delete support for historical tracking
      */
-    @Builder.Default private boolean isActive = true;
+    @com.fasterxml.jackson.annotation.JsonProperty("isActive")
+    @com.fasterxml.jackson.annotation.JsonAlias("active")
+    @Builder.Default
+    private boolean isActive = true;
 
     /**
      * Optional notes about the property (e.g., renovation plans, property features, tenant info).

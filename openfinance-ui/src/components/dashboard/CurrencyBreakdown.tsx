@@ -84,7 +84,7 @@ export default function CurrencyBreakdown({
   }
 
   const ownedAssets = (assets ?? []).filter(
-    asset => asset.acquisitionType !== 'PLANNED' && asset.totalValue > 0
+    asset => asset.isActive !== false && asset.acquisitionType !== 'PLANNED' && asset.totalValue > 0
   );
   if ((!accounts || accounts.length === 0) && ownedAssets.length === 0) {
     return (

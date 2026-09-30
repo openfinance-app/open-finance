@@ -237,11 +237,14 @@ export function ExchangeRateInline({
   from,
   to,
   rate,
+  fetchRate = true,
   hint,
   className = '',
 }: Pick<ExchangeRateDisplayProps, 'from' | 'to' | 'className'> & {
   /** When provided, render this fixed rate instead of fetching the latest one. */
   rate?: number;
+  /** Disable independent fetching when the caller supplies a dated or booked rate. */
+  fetchRate?: boolean;
   /** Optional muted suffix, e.g. "(rate at time of transaction)". */
   hint?: string;
 }) {
@@ -250,16 +253,16 @@ export function ExchangeRateInline({
     data: exchangeRate,
     isLoading,
     isError,
-  } = useLatestExchangeRate(from, to, undefined, !hasFixedRate);
+  } = useLatestExchangeRate(from, to, undefined, fetchRate && !hasFixedRate);
 
   if (from === to) return null;
 
-  const effectiveRate = hasFixedRate ? rate : exchangeRate?.rate;
+  const effectiveRate = hasFixedRate ? rate : fetchRate ? exchangeRate?.rate : undefined;
 
-  if (!hasFixedRate && isLoading) {
+  if (fetchRate && !hasFixedRate && isLoading) {
     return <span className={`text-xs text-text-muted ${className}`}>Loading rate...</span>;
   }
-  if (effectiveRate === undefined || (!hasFixedRate && isError)) {
+  if (effectiveRate === undefined || (fetchRate && !hasFixedRate && isError)) {
     return <span className={`text-xs text-error ${className}`}>Rate unavailable</span>;
   }
 

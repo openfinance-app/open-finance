@@ -18,6 +18,17 @@ public interface LiabilityTrancheRepository extends JpaRepository<LiabilityTranc
     /** Find a tranche by ID and user ID (for authorization). */
     Optional<LiabilityTranche> findByIdAndUserId(Long id, Long userId);
 
+    /** Claim a planned draw atomically, including when different accounts fund the same loan. */
+    @org.springframework.data.jpa.repository.Modifying(flushAutomatically = true)
+    @org.springframework.data.jpa.repository.Query(
+            "UPDATE LiabilityTranche t SET t.status = org.openfinance.entity.TrancheStatus.DRAWN "
+                    + "WHERE t.id = :id AND t.userId = :userId AND t.liabilityId = :liabilityId "
+                    + "AND t.status = org.openfinance.entity.TrancheStatus.PLANNED")
+    int claimDraw(
+            @org.springframework.data.repository.query.Param("id") Long id,
+            @org.springframework.data.repository.query.Param("userId") Long userId,
+            @org.springframework.data.repository.query.Param("liabilityId") Long liabilityId);
+
     /**
      * Check whether a tranche number already exists for a liability and user.
      *

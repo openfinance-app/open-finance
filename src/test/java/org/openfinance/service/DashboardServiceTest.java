@@ -757,7 +757,7 @@ class DashboardServiceTest {
                         );
         // Total portfolio value: 24,050
 
-        when(assetRepository.findByUserId(userId)).thenReturn(assets);
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // Act
@@ -793,7 +793,7 @@ class DashboardServiceTest {
         assertThat(bondAllocation.getTotalValue()).isEqualByComparingTo(new BigDecimal("1050"));
         assertThat(bondAllocation.getAssetCount()).isEqualTo(1);
 
-        verify(assetRepository).findByUserId(userId);
+        verify(assetRepository).findCurrentHoldingsByUserId(userId);
         verify(userRepository).findById(userId);
     }
 
@@ -801,7 +801,7 @@ class DashboardServiceTest {
     @DisplayName("Should return empty list when no assets exist for allocation")
     void shouldReturnEmptyListWhenNoAssetsForAllocation() {
         // Arrange
-        when(assetRepository.findByUserId(userId)).thenReturn(List.of());
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(List.of());
 
         // Act
         List<org.openfinance.dto.AssetAllocation> result =
@@ -809,7 +809,7 @@ class DashboardServiceTest {
 
         // Assert
         assertThat(result).isEmpty();
-        verify(assetRepository).findByUserId(userId);
+        verify(assetRepository).findCurrentHoldingsByUserId(userId);
         verifyNoInteractions(userRepository);
     }
 
@@ -832,7 +832,7 @@ class DashboardServiceTest {
                                 BigDecimal.ZERO,
                                 BigDecimal.ZERO));
 
-        when(assetRepository.findByUserId(userId)).thenReturn(assets);
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(assets);
 
         // Act
         List<org.openfinance.dto.AssetAllocation> result =
@@ -840,7 +840,7 @@ class DashboardServiceTest {
 
         // Assert
         assertThat(result).isEmpty();
-        verify(assetRepository).findByUserId(userId);
+        verify(assetRepository).findCurrentHoldingsByUserId(userId);
     }
 
     @Test
@@ -865,7 +865,7 @@ class DashboardServiceTest {
                                 new BigDecimal("110")));
 
         assets.forEach(asset -> asset.setCurrency("USD"));
-        when(assetRepository.findByUserId(userId)).thenReturn(assets);
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // Act
@@ -899,7 +899,7 @@ class DashboardServiceTest {
                                 new BigDecimal("60")));
 
         assets.forEach(asset -> asset.setCurrency("USD"));
-        when(assetRepository.findByUserId(userId)).thenReturn(assets);
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // Act
@@ -940,7 +940,7 @@ class DashboardServiceTest {
                                 new BigDecimal("100")) // 5000 (second)
                         );
 
-        when(assetRepository.findByUserId(userId)).thenReturn(assets);
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // Act
@@ -981,7 +981,7 @@ class DashboardServiceTest {
                                 new BigDecimal("50"),
                                 new BigDecimal("60")));
 
-        when(assetRepository.findByUserId(userId)).thenReturn(assets);
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -989,7 +989,7 @@ class DashboardServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("User not found with ID: " + userId);
 
-        verify(assetRepository).findByUserId(userId);
+        verify(assetRepository).findCurrentHoldingsByUserId(userId);
         verify(userRepository).findById(userId);
     }
 
@@ -1026,7 +1026,7 @@ class DashboardServiceTest {
                                 LocalDate.now().minusDays(15), new BigDecimal("19000")),
                         createNetWorthWithDate(LocalDate.now(), new BigDecimal("20000")));
 
-        when(assetRepository.findByUserId(userId)).thenReturn(assets);
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(netWorthService.getNetWorthHistory(
                         eq(userId), any(LocalDate.class), any(LocalDate.class)))
@@ -1062,7 +1062,7 @@ class DashboardServiceTest {
         assertThat(costBasis.getCurrentValue()).isEqualByComparingTo(new BigDecimal("15000"));
         assertThat(costBasis.getChangeAmount()).isEqualByComparingTo(BigDecimal.ZERO);
 
-        verify(assetRepository).findByUserId(userId);
+        verify(assetRepository).findCurrentHoldingsByUserId(userId);
         verify(userRepository).findById(userId);
         verifyNoInteractions(netWorthService);
     }
@@ -1071,7 +1071,7 @@ class DashboardServiceTest {
     @DisplayName("Should return empty list when no assets exist for performance")
     void shouldReturnEmptyListWhenNoAssetsForPerformance() {
         // Arrange
-        when(assetRepository.findByUserId(userId)).thenReturn(List.of());
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(List.of());
 
         // Act
         List<org.openfinance.dto.PortfolioPerformance> result =
@@ -1079,7 +1079,7 @@ class DashboardServiceTest {
 
         // Assert
         assertThat(result).isEmpty();
-        verify(assetRepository).findByUserId(userId);
+        verify(assetRepository).findCurrentHoldingsByUserId(userId);
         verifyNoInteractions(userRepository, netWorthService);
     }
 
@@ -1201,7 +1201,7 @@ class DashboardServiceTest {
                                 BigDecimal.ZERO,
                                 new BigDecimal("100")));
 
-        when(assetRepository.findByUserId(userId)).thenReturn(assets);
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(netWorthService.getNetWorthHistory(
                         eq(userId), any(LocalDate.class), any(LocalDate.class)))
@@ -1236,7 +1236,7 @@ class DashboardServiceTest {
                                 new BigDecimal("60")));
 
         assets.forEach(asset -> asset.setCurrency("USD"));
-        when(assetRepository.findByUserId(userId)).thenReturn(assets);
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(netWorthService.getNetWorthHistory(
                         eq(userId), any(LocalDate.class), any(LocalDate.class)))
@@ -1272,7 +1272,7 @@ class DashboardServiceTest {
         List<NetWorth> netWorthHistory =
                 List.of(createNetWorthWithDate(LocalDate.now(), new BigDecimal("600")));
 
-        when(assetRepository.findByUserId(userId)).thenReturn(assets);
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(netWorthService.getNetWorthHistory(
                         eq(userId), any(LocalDate.class), any(LocalDate.class)))
@@ -1312,7 +1312,7 @@ class DashboardServiceTest {
                                 LocalDate.now().minusDays(30), new BigDecimal("10000")),
                         createNetWorthWithDate(LocalDate.now(), new BigDecimal("8000")));
 
-        when(assetRepository.findByUserId(userId)).thenReturn(assets);
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(netWorthService.getNetWorthHistory(
                         eq(userId), any(LocalDate.class), any(LocalDate.class)))
@@ -1357,7 +1357,7 @@ class DashboardServiceTest {
                                 new BigDecimal("50"),
                                 new BigDecimal("60")));
 
-        when(assetRepository.findByUserId(userId)).thenReturn(assets);
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(assets);
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -1365,7 +1365,7 @@ class DashboardServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("User not found with ID: " + userId);
 
-        verify(assetRepository).findByUserId(userId);
+        verify(assetRepository).findCurrentHoldingsByUserId(userId);
         verify(userRepository).findById(userId);
     }
 
@@ -1419,7 +1419,7 @@ class DashboardServiceTest {
         when(defaultCurrencyProvider.resolve("EUR")).thenReturn("EUR");
         when(accountRepository.findByUserIdAndIsActive(userId, true))
                 .thenReturn(List.of(savings, card));
-        when(assetRepository.findByUserId(userId)).thenReturn(List.of());
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(List.of());
         when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of());
 
         List<org.openfinance.dto.NetWorthAllocation> allocations =

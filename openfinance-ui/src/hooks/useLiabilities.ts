@@ -223,6 +223,7 @@ interface RawAmortizationEntry {
   paymentAmount: number;
   principalPortion: number;
   interestPortion: number;
+  insurancePortion?: number;
   remainingBalance: number;
   interestOnlyPhase?: boolean;
 }
@@ -255,6 +256,7 @@ export function useAmortizationSchedule(liability: Liability | null) {
         paymentAmount: e.paymentAmount,
         principalPayment: e.principalPortion, // renamed from backend
         interestPayment: e.interestPortion, // renamed from backend
+        insurancePayment: e.insurancePortion ?? 0,
         remainingBalance: e.remainingBalance,
         interestOnlyPhase: e.interestOnlyPhase ?? false,
       }));

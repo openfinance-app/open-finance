@@ -182,6 +182,7 @@ public class AccountService {
 
         // Save to database
         Account savedAccount = accountRepository.save(account);
+        invalidateSnapshotsFrom(userId, savedAccount.getOpeningDate());
         indexAccountSearchTokens(savedAccount, request.getName(), request.getDescription());
         log.info(
                 "Account created successfully: id={}, userId={}, type={}",
@@ -305,7 +306,18 @@ public class AccountService {
 
         // Update fields from request (only non-null fields will be copied)
         String previousCurrency = account.getCurrency();
+        java.time.LocalDate previousOpeningDate = account.getOpeningDate();
         accountMapper.updateEntityFromRequest(request, account);
+        if (!java.util.Objects.equals(previousOpeningDate, account.getOpeningDate())) {
+            java.time.LocalDate cutoff =
+                    previousOpeningDate == null
+                                    || (account.getOpeningDate() != null
+                                            && account.getOpeningDate()
+                                                    .isBefore(previousOpeningDate))
+                            ? account.getOpeningDate()
+                            : previousOpeningDate;
+            invalidateSnapshotsFrom(userId, cutoff);
+        }
         accountCurrencyService.change(account, previousCurrency, userId, java.time.LocalDate.now());
         String balanceCurrency =
                 request.getBalanceCurrency() == null
@@ -684,6 +696,13 @@ public class AccountService {
                         .active(active)
                         .build());
         netWorthRepository.deleteByUserIdAndSnapshotDateBetween(account.getUserId(), today, today);
+    }
+
+    private void invalidateSnapshotsFrom(Long userId, java.time.LocalDate date) {
+        netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
+                userId,
+                date == null ? java.time.LocalDate.of(1, 1, 1) : date,
+                java.time.LocalDate.now());
     }
 
     /**

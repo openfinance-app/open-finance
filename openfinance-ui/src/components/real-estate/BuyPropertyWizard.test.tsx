@@ -176,7 +176,7 @@ describe('BuyPropertyWizard', () => {
       screen.getByRole('button', { name: /next/i }).click();
     });
     fireEvent.change(screen.getByLabelText(/funding source/i), { target: { value: 'none' } });
-    fireEvent.change(screen.getByLabelText(/down payment amount/i), { target: { value: '100' } });
+    fireEvent.change(screen.getByLabelText(/down payment amount/i), { target: { value: '1000' } });
     await act(async () => {
       screen.getByRole('button', { name: 'Account' }).click();
     });
@@ -225,6 +225,7 @@ describe('BuyPropertyWizard', () => {
 
     // Step 3: review + confirm
     expect(screen.getByText(/villa/i)).toBeInTheDocument();
+    expect(screen.getByText('Current Value').nextElementSibling).toHaveTextContent('0 USD');
     await act(async () => {
       screen.getByRole('button', { name: /confirm/i }).click();
     });
@@ -287,6 +288,7 @@ describe('BuyPropertyWizard', () => {
     fireEvent.change(screen.getByLabelText(/funding source/i), { target: { value: 'existing' } });
     fireEvent.change(screen.getByTestId('wizard-mortgage'), { target: { value: '9' } });
     fireEvent.change(screen.getByLabelText(/disburse now/i), { target: { value: '240000' } });
+    fireEvent.change(screen.getByLabelText(/down payment amount/i), { target: { value: '60000' } });
     fireEvent.change(screen.getByLabelText(/disbursement route/i), {
       target: { value: 'account' },
     });
@@ -305,6 +307,9 @@ describe('BuyPropertyWizard', () => {
         liabilityId: 9,
         request: expect.objectContaining({ toAccountId: 1 }),
       })
+    );
+    expect(mockUseCreateTransaction().mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 300000, accountId: 1, realEstateId: 55 })
     );
     // No new mortgage was created
     expect(mockUseCreateLiability().mutateAsync).not.toHaveBeenCalled();
@@ -368,6 +373,8 @@ describe('BuyPropertyWizard', () => {
     fireEvent.change(screen.getByLabelText(/funding source/i), { target: { value: 'new' } });
     fireEvent.change(screen.getByLabelText(/mortgage name/i), { target: { value: 'Home loan' } });
     fireEvent.change(screen.getByLabelText(/loan amount/i), { target: { value: '240000' } });
+    fireEvent.change(screen.getByLabelText(/down payment amount/i), { target: { value: '60000' } });
+    fireEvent.click(screen.getByTestId('wizard-account'));
     fireEvent.change(screen.getByLabelText(/disbursement route/i), { target: { value: 'direct' } });
     await act(async () => {
       screen.getByRole('button', { name: /next/i }).click();
@@ -466,6 +473,8 @@ describe('BuyPropertyWizard', () => {
     fireEvent.change(screen.getByLabelText(/funding source/i), { target: { value: 'new' } });
     fireEvent.change(screen.getByLabelText(/mortgage name/i), { target: { value: 'Home loan' } });
     fireEvent.change(screen.getByLabelText(/loan amount/i), { target: { value: '240000' } });
+    fireEvent.change(screen.getByLabelText(/down payment amount/i), { target: { value: '60000' } });
+    fireEvent.click(screen.getByTestId('wizard-account'));
     await act(async () => {
       screen.getByRole('button', { name: /next/i }).click();
     });
@@ -478,14 +487,8 @@ describe('BuyPropertyWizard', () => {
       expect(screen.getByRole('alert')).toHaveTextContent(/disbursement failed/i);
     });
 
-    // Back to the funding step: the property's mortgage link is fixed, so the
-    // funding source can no longer be switched
-    await act(async () => {
-      screen.getByRole('button', { name: /back/i }).click();
-    });
-
-    expect(screen.getByLabelText(/funding source/i)).toBeDisabled();
-    expect(screen.getByText(/locked/i)).toBeInTheDocument();
+    // Once created, acquisition and funding inputs cannot diverge on retry.
+    expect(screen.getByRole('button', { name: /back/i })).toBeDisabled();
   });
 
   it('blocks advancing to review when the account route has no account selected', async () => {
@@ -496,6 +499,7 @@ describe('BuyPropertyWizard', () => {
     fireEvent.change(screen.getByLabelText(/funding source/i), { target: { value: 'new' } });
     fireEvent.change(screen.getByLabelText(/mortgage name/i), { target: { value: 'Home loan' } });
     fireEvent.change(screen.getByLabelText(/loan amount/i), { target: { value: '240000' } });
+    fireEvent.change(screen.getByLabelText(/down payment amount/i), { target: { value: '60000' } });
     fireEvent.change(screen.getByLabelText(/disbursement route/i), {
       target: { value: 'account' },
     });

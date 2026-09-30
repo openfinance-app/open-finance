@@ -2,7 +2,7 @@
  * Unit tests for AmortizationSchedule component
  * Focus: Test privacy implementation with PrivateAmount wrapping of currency displays
  */
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
 import { renderWithProviders, createTestQueryClient } from '@/test/test-utils';
@@ -130,14 +130,15 @@ describe('AmortizationSchedule', () => {
       expect(table).toBeInTheDocument();
 
       const headers = table?.querySelectorAll('th');
-      expect(headers?.length).toBe(6); // 6 columns
+      expect(headers?.length).toBe(7);
 
       expect(headers?.[0]).toHaveTextContent('Payment #');
       expect(headers?.[1]).toHaveTextContent('Date');
       expect(headers?.[2]).toHaveTextContent('Payment');
       expect(headers?.[3]).toHaveTextContent('Principal');
       expect(headers?.[4]).toHaveTextContent('Interest');
-      expect(headers?.[5]).toHaveTextContent('Remaining Balance');
+      expect(headers?.[5]).toHaveTextContent('Insurance');
+      expect(headers?.[6]).toHaveTextContent('Remaining Balance');
     });
 
     it('should display schedule data correctly', () => {
@@ -150,6 +151,29 @@ describe('AmortizationSchedule', () => {
       // Should have multiple rows (header + data rows)
       const rows = table?.querySelectorAll('tbody tr');
       expect(rows?.length).toBeGreaterThan(0);
+    });
+
+    it('shows insurance separately and includes it in exported cash payments', async () => {
+      const insuredSchedule = {
+        ...mockSchedule,
+        payments: [{ ...mockSchedule.payments[0], paymentAmount: 1510, insurancePayment: 10 }],
+      };
+      const createObjectURL = vi.fn((_blob: Blob) => 'blob:insured');
+      global.URL.createObjectURL = createObjectURL;
+      global.URL.revokeObjectURL = vi.fn();
+      renderWithProviders(<AmortizationSchedule schedule={insuredSchedule} />);
+      const cells = within(screen.getByRole('table')).getAllByRole('cell');
+      expect(cells[2]).toHaveTextContent('$1,510.00');
+      expect(cells[5]).toHaveTextContent('$10.00');
+      fireEvent.click(screen.getByRole('button', { name: /Export CSV/i }));
+      const blob = createObjectURL.mock.calls[0][0] as Blob;
+      const csv = await new Promise<string>(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.readAsText(blob);
+      });
+      expect(csv).toContain('Insurance');
+      expect(csv).toContain('1510.00,1200.00,300.00,10.00,299800.00');
     });
   });
 
@@ -167,7 +191,9 @@ describe('AmortizationSchedule', () => {
 
       renderWithProviders(<AmortizationSchedule schedule={zeroBalanceSchedule} />);
 
-      expect(screen.getByText('$0.00')).toBeInTheDocument();
+      expect(
+        screen.getAllByText('Principal', { selector: 'div' })[0].parentElement
+      ).toHaveTextContent('$0.00');
     });
 
     it('hides the percent breakdown on zero-payment rows instead of rendering NaN%', () => {

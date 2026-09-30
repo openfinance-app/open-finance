@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
+import { usePropertiesSearch } from '@/hooks/useRealEstate';
 
 vi.mock('@/hooks/useDocumentTitle', () => ({ useDocumentTitle: vi.fn() }));
 
@@ -13,7 +14,11 @@ let mockCreateMutateAsync = vi.fn();
 let mockUpdateMutateAsync = vi.fn();
 
 vi.mock('@/hooks/useRealEstate', () => ({
-  usePropertiesSearch: () => ({ data: mockData, isLoading: mockIsLoading, error: mockError }),
+  usePropertiesSearch: vi.fn(() => ({
+    data: mockData,
+    isLoading: mockIsLoading,
+    error: mockError,
+  })),
   useCreateProperty: () => ({ mutateAsync: mockCreateMutateAsync, isPending: false }),
   useUpdateProperty: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
 }));
@@ -170,6 +175,22 @@ describe('RealEstatePage', () => {
     mockData = { content: [], totalPages: 0, totalElements: 0, number: 0, size: 20 };
     renderWithProviders(<RealEstatePage />);
     expect(screen.getByRole('button', { name: /filter/i })).toBeInTheDocument();
+  });
+
+  it('can find inactive properties for reactivation and reset the active filter', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<RealEstatePage />);
+    await user.click(screen.getByRole('button', { name: /filter/i }));
+    await user.selectOptions(screen.getByLabelText('Status'), 'inactive');
+    expect(usePropertiesSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ isActive: false, page: 0 })
+    );
+    await user.selectOptions(screen.getByLabelText('Status'), 'all');
+    expect(usePropertiesSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ isActive: undefined, page: 0 })
+    );
+    await user.click(screen.getByRole('button', { name: 'Clear', exact: true }));
+    expect(screen.getByLabelText('Status')).toHaveValue('active');
   });
 
   it('opens edit form when clicking edit on property card', async () => {

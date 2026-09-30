@@ -34,6 +34,34 @@ public class LiabilityTrancheService {
     private final LiabilityTrancheRepository liabilityTrancheRepository;
     private final LiabilityPrincipalAllocationRepository allocationRepository;
 
+    /** All draw entry points share the same ownership, state, amount, and date checks. */
+    public void draw(
+            Long userId,
+            Liability liability,
+            LiabilityTranche tranche,
+            BigDecimal amount,
+            java.time.LocalDate date) {
+        if (!userId.equals(tranche.getUserId())
+                || !liability.getId().equals(tranche.getLiabilityId())) {
+            throw new InvalidTransactionException("Draw tranche does not belong to this liability");
+        }
+        if (tranche.getStatus() != TrancheStatus.PLANNED) {
+            throw new InvalidTransactionException("Only a planned tranche can be drawn");
+        }
+        if (amount.signum() <= 0 || amount.compareTo(tranche.getPlannedAmount()) > 0) {
+            throw InvalidLiabilityStateException.disbursementOverdraw(
+                    amount, tranche.getId(), tranche.getPlannedAmount());
+        }
+        org.openfinance.util.LoanPostingPolicy.validateDate(liability, date);
+        if (liabilityTrancheRepository.claimDraw(tranche.getId(), userId, liability.getId()) != 1) {
+            throw new InvalidTransactionException("This tranche has already been drawn");
+        }
+        tranche.setStatus(TrancheStatus.DRAWN);
+        tranche.setDrawnAmount(amount);
+        tranche.setDrawnDate(date);
+        liabilityTrancheRepository.save(tranche);
+    }
+
     @Transactional(readOnly = true)
     public BigDecimal allocatedPrincipal(LiabilityTranche tranche) {
         return allocationRepository

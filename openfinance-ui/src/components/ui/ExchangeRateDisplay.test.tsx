@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import { ExchangeRateDisplay, ExchangeRateInline } from './ExchangeRateDisplay';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
+import { useLatestExchangeRate } from '@/hooks/useCurrency';
 
 const defaultRate = {
   data: undefined,
@@ -206,6 +207,15 @@ describe('ExchangeRateDisplay', () => {
 });
 
 describe('ExchangeRateInline', () => {
+  it('does not show a cached latest rate while a caller is loading a dated rate', () => {
+    vi.mocked(useLatestExchangeRate).mockReturnValue({
+      ...defaultRate,
+      data: { rate: 0.9 },
+    } as ReturnType<typeof useLatestExchangeRate>);
+    renderWithProviders(<ExchangeRateInline from="USD" to="EUR" fetchRate={false} />);
+    expect(screen.getByText('Rate unavailable')).toBeInTheDocument();
+    expect(screen.queryByText(/1 USD =/)).not.toBeInTheDocument();
+  });
   beforeEach(async () => {
     vi.clearAllMocks();
     mockAuthentication();

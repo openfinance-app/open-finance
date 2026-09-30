@@ -172,8 +172,8 @@ public class Transaction {
      * <p>Requirement REQ-2.8: Multi-currency support
      */
     @NotBlank(message = "{transaction.currency.notblank}")
-    @Size(min = 3, max = 3, message = "{transaction.currency.size}")
-    @Column(name = "currency", nullable = false, length = 3)
+    @Size(min = 3, max = 10, message = "{transaction.currency.size}")
+    @Column(name = "currency", nullable = false, length = 10)
     private String currency;
 
     /**
@@ -205,8 +205,8 @@ public class Transaction {
      * ISO 4217 currency the user originally entered (e.g. "USD"). Null unless a conversion was
      * applied; when set it differs from {@link #currency} (the account currency).
      */
-    @Size(min = 3, max = 3, message = "{transaction.currency.size}")
-    @Column(name = "original_currency", length = 3)
+    @Size(min = 3, max = 10, message = "{transaction.currency.size}")
+    @Column(name = "original_currency", length = 10)
     private String originalCurrency;
 
     /**

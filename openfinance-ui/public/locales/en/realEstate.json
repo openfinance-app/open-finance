@@ -40,6 +40,10 @@
     "search": "Search",
     "currency": "Currency",
     "propertyType": "Property Type",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "allStatuses": "All statuses",
     "sortBy": "Sort By",
     "minValue": "Min Value",
     "maxValue": "Max Value",
@@ -179,6 +183,7 @@
     "holdingPeriod": "Holding period: {{years}} years",
     "totalAppreciation": "Total Appreciation",
     "annualizedReturnLabel": "Annualized Return",
+    "annualizedReturnConvention": "Compounded over the holding period using current value and estimated net rent retained as cash.",
     "rentalIncome": "Rental Income",
     "totalRentalIncome": "Total Rental Income",
     "rentalYield": "Rental Yield",
@@ -637,7 +642,7 @@
     "buyProperty": "Buy property",
     "confirm": "Confirm purchase",
     "disbursementRoute": "Disbursement route",
-    "valuationPolicy": "The draw records a valuation on its date. A newer dated valuation remains current.",
+    "valuationPolicy": "The draw increases mortgage debt. The Current Value entered for the property is kept separately.",
     "downPaymentAccount": "Down payment account",
     "downPaymentAmount": "Down payment amount",
     "downPaymentDescription": "Down payment for {{name}}",
@@ -659,13 +664,16 @@
       "direct": "Bank pays the seller directly",
       "account": "Bank pays my account"
     },
-    "routeAccountRequired": "Select the account the bank should pay into before continuing.",
+    "routeAccountRequired": "Select the account used to pay the seller before continuing.",
     "steps": {
       "property": "Property",
       "funding": "Funding",
       "review": "Review"
     },
-    "fundingCurrency": "Choose a funding account and mortgage in {{currency}}."
+    "fundingCurrency": "Choose a funding account and mortgage in {{currency}}.",
+    "fundingMismatch": "The loan and your contribution must add up to the purchase price.",
+    "purchasePaymentDescription": "Purchase payment for {{name}}",
+    "accountPayment": "Payment from account"
   },
   "movementPaging": {
     "label": "Movement history pages",

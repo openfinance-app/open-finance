@@ -126,7 +126,12 @@ public class RealEstateService {
     @Caching(
             evict = {
                 @CacheEvict(
-                        value = {"dashboardSummary", "netWorthSummary", "networthAllocation"},
+                        value = {
+                            "dashboardSummary",
+                            "netWorthSummary",
+                            "networthAllocation",
+                            "assetAllocation"
+                        },
                         key = "#userId"),
                 @CacheEvict(value = "portfolioPerformance", allEntries = true)
             })
@@ -252,7 +257,12 @@ public class RealEstateService {
     @Caching(
             evict = {
                 @CacheEvict(
-                        value = {"dashboardSummary", "netWorthSummary", "networthAllocation"},
+                        value = {
+                            "dashboardSummary",
+                            "netWorthSummary",
+                            "networthAllocation",
+                            "assetAllocation"
+                        },
                         key = "#userId"),
                 @CacheEvict(value = "portfolioPerformance", allEntries = true)
             })
@@ -418,7 +428,12 @@ public class RealEstateService {
     @Caching(
             evict = {
                 @CacheEvict(
-                        value = {"dashboardSummary", "netWorthSummary", "networthAllocation"},
+                        value = {
+                            "dashboardSummary",
+                            "netWorthSummary",
+                            "networthAllocation",
+                            "assetAllocation"
+                        },
                         key = "#userId"),
                 @CacheEvict(value = "portfolioPerformance", allEntries = true)
             })
@@ -986,12 +1001,12 @@ public class RealEstateService {
                             .multiply(MathConstants.HUNDRED)
                             .setScale(2, RoundingMode.HALF_UP);
 
-            // Calculate annualized return if property owned for at least 1 year
-            if (yearsOwned > 0) {
-                annualizedReturn =
-                        totalROI.divide(new BigDecimal(yearsOwned), SCALE, RoundingMode.HALF_UP)
-                                .setScale(2, RoundingMode.HALF_UP);
-            }
+            annualizedReturn =
+                    org.openfinance.util.AnnualizedReturns.compound(
+                            costBasis,
+                            costBasis.add(totalGain),
+                            property.getPurchaseDate(),
+                            LocalDate.now());
         }
 
         log.info(

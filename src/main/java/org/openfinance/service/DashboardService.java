@@ -1011,7 +1011,7 @@ public class DashboardService {
         log.debug("Calculating asset allocation for user {}", userId);
 
         // Get all assets for the user
-        List<Asset> assets = assetRepository.findByUserId(userId);
+        List<Asset> assets = assetRepository.findCurrentHoldingsByUserId(userId);
 
         if (assets.isEmpty()) {
             log.debug("No assets found for user {}", userId);
@@ -1155,7 +1155,7 @@ public class DashboardService {
 
         // Get all assets for the user
         List<Asset> assets =
-                assetRepository.findByUserId(userId).stream()
+                assetRepository.findCurrentHoldingsByUserId(userId).stream()
                         .filter(
                                 asset ->
                                         asset.getAcquisitionType()
@@ -1684,7 +1684,7 @@ public class DashboardService {
         }
 
         // Process assets
-        List<Asset> assets = assetRepository.findByUserId(userId);
+        List<Asset> assets = assetRepository.findCurrentHoldingsByUserId(userId);
         for (Asset asset : assets) {
             if (asset.getAcquisitionType() == org.openfinance.entity.AcquisitionType.PLANNED)
                 continue;

@@ -9,7 +9,7 @@
  *  3. Review — executes the endpoint sequence and closes
  *
  * Endpoint sequence (documented decision): create liability → create property
- * (carrying mortgageId) → disburse → down-payment purchase
+ * (carrying mortgageId) → disburse → account-funded purchase
  * transaction. A direct disbursement needs the property to exist, so the
  * disbursement always follows the property creation.
  *
@@ -27,6 +27,7 @@ import { useCreateTransaction } from '@/hooks/useTransactions';
 import { useAuthContext } from '@/context/AuthContext';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { getToday } from '@/utils/date';
+import { add } from '@/utils/money';
 import { PropertyStep } from './wizard/PropertyStep';
 import { FundingStep } from './wizard/FundingStep';
 import { ReviewStep } from './wizard/ReviewStep';
@@ -87,18 +88,22 @@ export function BuyPropertyWizard({
     setFunding(prev => ({ ...prev, ...patch }));
 
   const price = Number(property.purchasePrice);
-  const loan = Number(funding.loanAmount);
+  const loan = funding.source === 'none' ? 0 : Number(funding.loanAmount);
   const down = Number(funding.downPaymentAmount);
+  const cashPayment = funding.source !== 'none' && funding.route === 'direct' ? down : price;
+  const fundingAmountsValid =
+    Number.isFinite(loan) &&
+    Number.isFinite(down) &&
+    loan >= 0 &&
+    down >= 0 &&
+    add(loan, down) === price;
 
   // The 'account' disbursement route sends the funds to a checking account — one must be
   // selected, otherwise the request would go out with an undefined toAccountId.
-  const accountRouteMissingAccount =
-    funding.source !== 'none' &&
-    funding.route === 'account' &&
-    funding.downPaymentAccountId == null;
+  const accountRouteMissingAccount = cashPayment > 0 && funding.downPaymentAccountId == null;
 
   const selectedAccount = accounts.find(a => a.id === funding.downPaymentAccountId);
-  const needsAccount = down > 0 || (funding.source !== 'none' && funding.route === 'account');
+  const needsAccount = cashPayment > 0;
   const fundingCurrencyValid =
     (!needsAccount || selectedAccount?.currency === property.currency) &&
     (funding.source !== 'existing' ||
@@ -118,7 +123,10 @@ export function BuyPropertyWizard({
         price > 0 &&
         Number(property.currentValue) >= 0
       : step === 1
-        ? fundingStepValid && !accountRouteMissingAccount && fundingCurrencyValid
+        ? fundingStepValid &&
+          fundingAmountsValid &&
+          !accountRouteMissingAccount &&
+          fundingCurrencyValid
         : true;
 
   // Once a confirm attempt has created the property, its mortgage link is fixed: switching
@@ -194,18 +202,18 @@ export function BuyPropertyWizard({
     setCreatedIds(prev => ({ ...prev, disbursedLiabilityId: mortgageId }));
   };
 
-  /** Records the optional down payment as a purchase expense on the property. */
-  const createDownPayment = async (propertyId: number) => {
-    if (funding.downPaymentAccountId == null || down <= 0) {
+  /** Account-funded purchases pay the full seller amount; direct loans cover their own portion. */
+  const createPurchasePayment = async (propertyId: number) => {
+    if (funding.downPaymentAccountId == null || cashPayment <= 0) {
       return;
     }
     const request: TransactionRequest = {
       accountId: funding.downPaymentAccountId,
       type: 'EXPENSE',
-      amount: down,
+      amount: cashPayment,
       currency: property.currency,
       date: property.purchaseDate,
-      description: t('wizard.downPaymentDescription', { name: property.name }),
+      description: t('wizard.purchasePaymentDescription', { name: property.name }),
       realEstateId: propertyId,
     };
     await createTransaction.mutateAsync(request);
@@ -215,14 +223,16 @@ export function BuyPropertyWizard({
     setIsSubmitting(true);
     setError(null);
     try {
+      if (!fundingAmountsValid || accountRouteMissingAccount)
+        throw new Error(t('wizard.fundingMismatch'));
       if (!fundingCurrencyValid)
         throw new Error(t('wizard.fundingCurrency', { currency: property.currency }));
       // Sequence (documented decision): liability → property (mortgageId) → disburse →
-      // down-payment. Each step reuses what a previous failed attempt already created.
+      // seller payment. Each step reuses what a previous failed attempt already created.
       const mortgageId = await ensureMortgageId();
       const propertyId = await ensurePropertyId(mortgageId);
       await disburseIfNeeded(mortgageId, propertyId);
-      await createDownPayment(propertyId);
+      await createPurchasePayment(propertyId);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : t('wizard.error'));
@@ -267,6 +277,7 @@ export function BuyPropertyWizard({
           onChange={updateFunding}
           locked={fundingLocked}
           accountRouteMissingAccount={accountRouteMissingAccount}
+          fundingAmountsValid={fundingAmountsValid}
         />
       )}
 
@@ -285,7 +296,7 @@ export function BuyPropertyWizard({
           variant="ghost"
           type="button"
           onClick={step === 0 ? onClose : () => setStep(s => s - 1)}
-          disabled={isSubmitting}
+          disabled={isSubmitting || createdIds.propertyId != null}
         >
           {step === 0 ? t('form.cancel') : t('wizard.back')}
         </Button>

@@ -69,6 +69,18 @@ public class CurrencyConversionHelper {
             boolean includeSecondary,
             Integer scale,
             String entityLabel) {
+        return convert(
+                userId, nativeCurrency, nativeAmount, includeSecondary, scale, entityLabel, null);
+    }
+
+    public ConversionResult convert(
+            Long userId,
+            String nativeCurrency,
+            BigDecimal nativeAmount,
+            boolean includeSecondary,
+            Integer scale,
+            String entityLabel,
+            java.time.LocalDate date) {
 
         User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
         String baseCurrency =
@@ -86,9 +98,13 @@ public class CurrencyConversionHelper {
         } else {
             try {
                 BigDecimal r =
-                        exchangeRateService.getExchangeRate(nativeCurrency, baseCurrency, null);
+                        exchangeRateService.getExchangeRate(nativeCurrency, baseCurrency, date);
                 BigDecimal c =
-                        exchangeRateService.convert(nativeAmount, nativeCurrency, baseCurrency);
+                        date == null
+                                ? exchangeRateService.convert(
+                                        nativeAmount, nativeCurrency, baseCurrency)
+                                : exchangeRateService.convert(
+                                        nativeAmount, nativeCurrency, baseCurrency, date);
                 if (scale != null) {
                     c = c.setScale(scale, RoundingMode.HALF_UP);
                     r = r.setScale(scale, RoundingMode.HALF_UP);
@@ -122,9 +138,13 @@ public class CurrencyConversionHelper {
                     && nativeAmount != null) {
                 try {
                     secRate =
-                            exchangeRateService.getExchangeRate(nativeCurrency, secCurrency, null);
+                            exchangeRateService.getExchangeRate(nativeCurrency, secCurrency, date);
                     secAmount =
-                            exchangeRateService.convert(nativeAmount, nativeCurrency, secCurrency);
+                            date == null
+                                    ? exchangeRateService.convert(
+                                            nativeAmount, nativeCurrency, secCurrency)
+                                    : exchangeRateService.convert(
+                                            nativeAmount, nativeCurrency, secCurrency, date);
                 } catch (Exception e) {
                     log.warn(
                             "Secondary currency conversion failed for {} (user={}, {}->{}) – omitting: {}",

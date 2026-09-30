@@ -41,8 +41,7 @@ public class AmortizationScheduleEntry {
     /**
      * Total payment amount for this period.
      *
-     * <p>For fixed-rate loans, this is typically constant (principal + interest). Equal to
-     * principalPortion + interestPortion.
+     * <p>Includes principal, interest, and insurance in both amortizing and interest-only phases.
      */
     private BigDecimal paymentAmount;
 
@@ -60,6 +59,9 @@ public class AmortizationScheduleEntry {
      * <p>This is the cost of borrowing. Typically decreases over time as principal is paid down.
      */
     private BigDecimal interestPortion;
+
+    /** Insurance paid in cash for this period; it does not reduce principal. */
+    private BigDecimal insurancePortion;
 
     /**
      * Remaining principal balance after this payment is applied.

@@ -63,6 +63,7 @@ class InterestCalculatorServiceTest {
         AccountResponse account =
                 AccountResponse.builder()
                         .balance(balance)
+                        .ownBalance(balance)
                         .isInterestEnabled(true)
                         .interestPeriod(period)
                         .build();
@@ -73,6 +74,7 @@ class InterestCalculatorServiceTest {
         AccountResponse account =
                 AccountResponse.builder()
                         .balance(balance)
+                        .ownBalance(balance)
                         .isInterestEnabled(true)
                         .interestPeriod(period)
                         .currency(currency)

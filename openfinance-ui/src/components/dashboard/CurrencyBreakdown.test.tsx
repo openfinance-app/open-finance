@@ -166,6 +166,13 @@ describe('CurrencyBreakdown underlying positions', () => {
       data: [
         { id: 1, currency: 'EUR', totalValue: 1000, acquisitionType: 'PURCHASE' },
         { id: 2, currency: 'USD', totalValue: 5000, acquisitionType: 'PLANNED' },
+        {
+          id: 3,
+          currency: 'GBP',
+          totalValue: 100000,
+          acquisitionType: 'PURCHASE',
+          isActive: false,
+        },
       ],
       isLoading: false,
       error: null,
@@ -173,6 +180,7 @@ describe('CurrencyBreakdown underlying positions', () => {
     renderWithProviders(<CurrencyBreakdown baseCurrency="EUR" />);
     expect(screen.getByRole('button', { name: 'View assets in EUR' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'View assets in USD' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View assets in GBP' })).not.toBeInTheDocument();
     expect(screen.queryByText('No assets yet')).not.toBeInTheDocument();
   });
 });

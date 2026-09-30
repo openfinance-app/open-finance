@@ -163,6 +163,24 @@ class TransactionLiabilitySyncTest {
                                         .create()));
         ReflectionTestUtils.setField(
                 transactionService, "liabilityTrancheService", liabilityTrancheService);
+        when(liabilityTrancheRepository.claimDraw(any(), any(), any()))
+                .thenAnswer(
+                        invocation ->
+                                liabilityTrancheRepository
+                                                .findByIdAndUserId(
+                                                        invocation.getArgument(0),
+                                                        invocation.getArgument(1))
+                                                .filter(t -> t.getStatus() == TrancheStatus.PLANNED)
+                                                .filter(
+                                                        t ->
+                                                                t.getLiabilityId()
+                                                                        .equals(
+                                                                                invocation
+                                                                                        .getArgument(
+                                                                                                2)))
+                                                .isPresent()
+                                        ? 1
+                                        : 0);
     }
 
     // ---------- Helpers ----------
@@ -557,6 +575,8 @@ class TransactionLiabilitySyncTest {
     @Test
     @DisplayName("Updating a DISBURSEMENT tx amount re-marks the tranche DRAWN with the new amount")
     void updateDisbursementTxAmountUpdatesTrancheDrawnAmount() {
+        LiabilityTranche tranche = drawnTrancheFixture(new BigDecimal("40000.00"));
+        List<TrancheStatus> savedStatuses = new java.util.ArrayList<>();
         when(transactionRepository.findByIdAndUserId(TX_ID, USER_ID))
                 .thenReturn(Optional.of(disbursementEntity(new BigDecimal("40000.00"))));
         when(accountRepository.findByIdAndUserId(ACCOUNT_ID, USER_ID))
@@ -571,9 +591,14 @@ class TransactionLiabilitySyncTest {
                 .thenReturn(Optional.of(liabilityFixture("40000.00", "USD")));
         when(liabilityRepository.save(any(Liability.class))).thenAnswer(inv -> inv.getArgument(0));
         when(liabilityTrancheRepository.findByIdAndUserId(TRANCHE_ID, USER_ID))
-                .thenAnswer(inv -> Optional.of(drawnTrancheFixture(new BigDecimal("40000.00"))));
+                .thenReturn(Optional.of(tranche));
         when(liabilityTrancheRepository.save(any(LiabilityTranche.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
+                .thenAnswer(
+                        inv -> {
+                            LiabilityTranche saved = inv.getArgument(0);
+                            savedStatuses.add(saved.getStatus());
+                            return saved;
+                        });
 
         TransactionRequest update =
                 linkedRequest(new BigDecimal("45000.00"), MovementType.DISBURSEMENT, "USD");
@@ -585,8 +610,7 @@ class TransactionLiabilitySyncTest {
         ArgumentCaptor<LiabilityTranche> trancheCaptor =
                 ArgumentCaptor.forClass(LiabilityTranche.class);
         verify(liabilityTrancheRepository, times(2)).save(trancheCaptor.capture());
-        assertThat(trancheCaptor.getAllValues().get(0).getStatus())
-                .isEqualTo(TrancheStatus.PLANNED);
+        assertThat(savedStatuses).containsExactly(TrancheStatus.PLANNED, TrancheStatus.DRAWN);
         assertThat(trancheCaptor.getValue().getStatus()).isEqualTo(TrancheStatus.DRAWN);
         assertThat(trancheCaptor.getValue().getDrawnAmount())
                 .isEqualByComparingTo(new BigDecimal("45000.00"));

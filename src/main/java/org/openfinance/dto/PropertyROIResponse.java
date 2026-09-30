@@ -121,13 +121,15 @@ public class PropertyROIResponse {
     private BigDecimal totalROI;
 
     /**
-     * Annualized return percentage (totalROI / yearsOwned).
+     * Compound-equivalent annual growth of current value plus modeled accumulated rental income,
+     * relative to cost basis, over the actual holding period.
      *
-     * <p><strong>Calculated field</strong> - average annual return.
+     * <p>Rental income is treated as retained cash at the end of the period, without reinvestment.
+     * This estimate is not a cash-flow-timed IRR.
      *
      * <p>Example: 8.5 represents 8.5% average annual return
      *
-     * <p>Null if yearsOwned is 0 (property purchased within current year).
+     * <p>Null when the holding period is zero or the cost basis is zero.
      */
     private BigDecimal annualizedReturn;
 

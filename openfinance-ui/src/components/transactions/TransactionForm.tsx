@@ -42,7 +42,7 @@ import { formatDateForInput, getToday } from '@/utils/date';
 import { DEFAULT_CURRENCY, getCurrencyDecimals } from '@/utils/currency';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
-import { useLatestExchangeRate } from '@/hooks/useCurrency';
+import { useExchangeRate } from '@/hooks/useCurrency';
 import { multiply, roundToDecimals, sumToDecimals } from '@/utils/money';
 
 const optionalNumber = z
@@ -677,11 +677,12 @@ export function TransactionForm({
   // Account-currency → liability-currency rate for the FX preview/payload. Only needed when the
   // input is in the account currency (when the input IS the liability currency the existing
   // account-conversion machinery already stores the liability view).
-  const { data: liabilityRateData } = useLatestExchangeRate(
+  const transactionDate = watch('date');
+  const { data: liabilityRateData } = useExchangeRate(
     accountCurrency,
     liabilityCurrency ?? '',
-    1,
-    needsLiabilityFx && inputCurrency === accountCurrency
+    transactionDate,
+    !!transactionDate && needsLiabilityFx && inputCurrency === accountCurrency
   );
   const accountToLiabilityRate = liabilityRateData?.rate;
 
@@ -717,7 +718,7 @@ export function TransactionForm({
     inputCurrency !== accountCurrency;
 
   // When editing a previously-converted transaction, reuse the STORED historical rate as long as
-  // the user hasn't changed the currency pair from what was saved; otherwise fetch the latest rate.
+  // the date and currency pair are unchanged; otherwise fetch the rate for the selected date.
   const storedOriginalCurrency = transaction?.originalCurrency;
   const storedConversionRate = transaction?.conversionRate;
   const storedAccountCurrency = transaction?.currency;
@@ -726,13 +727,14 @@ export function TransactionForm({
     !!storedOriginalCurrency &&
     storedConversionRate != null &&
     inputCurrency === storedOriginalCurrency &&
-    accountCurrency === storedAccountCurrency;
+    accountCurrency === storedAccountCurrency &&
+    transactionDate === transaction?.date;
 
-  const { data: liveExchangeRate } = useLatestExchangeRate(
+  const { data: liveExchangeRate } = useExchangeRate(
     inputCurrency,
     accountCurrency,
-    needsConversion && !useStoredRate ? 1 : 0,
-    needsConversion && !useStoredRate
+    transactionDate,
+    !!transactionDate && needsConversion && !useStoredRate
   );
 
   const effectiveRate = useStoredRate ? storedConversionRate : liveExchangeRate?.rate;
@@ -947,8 +949,9 @@ export function TransactionForm({
                 <ExchangeRateInline
                   from={inputCurrency}
                   to={accountCurrency}
-                  rate={useStoredRate ? storedConversionRate : undefined}
-                  hint={useStoredRate ? t('form.rateAtTransactionTime') : undefined}
+                  rate={effectiveRate}
+                  fetchRate={false}
+                  hint={t('form.rateAtTransactionTime')}
                 />
               </div>
             )}

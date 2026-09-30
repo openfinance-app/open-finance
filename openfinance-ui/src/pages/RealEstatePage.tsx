@@ -233,15 +233,17 @@ export default function RealEstatePage() {
     setEditingProperty(null);
   };
 
-  const hasActiveFilters = Object.keys(searchFilters).some(
-    key =>
-      searchFilters[key as keyof PropertySearchFilters] !== undefined &&
-      key !== 'page' &&
-      key !== 'size' &&
-      key !== 'sort' &&
-      key !== 'isActive' &&
-      key !== 'propertyType'
-  );
+  const hasActiveFilters =
+    searchFilters.isActive !== true ||
+    Object.keys(searchFilters).some(
+      key =>
+        searchFilters[key as keyof PropertySearchFilters] !== undefined &&
+        key !== 'page' &&
+        key !== 'size' &&
+        key !== 'sort' &&
+        key !== 'isActive' &&
+        key !== 'propertyType'
+    );
 
   const sortOptions = [
     { value: 'name,asc', label: t('sort.nameAsc') },
@@ -370,6 +372,36 @@ export default function RealEstatePage() {
                 <option value={PropertyTypeEnum.MIXED_USE}>{t('filters.mixedUse')}</option>
                 <option value={PropertyTypeEnum.INDUSTRIAL}>{t('filters.industrial')}</option>
                 <option value={PropertyTypeEnum.OTHER}>{t('filters.other')}</option>
+              </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="propertyStatus"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
+                {t('filters.status')}
+              </label>
+              <select
+                id="propertyStatus"
+                value={
+                  searchFilters.isActive === undefined
+                    ? 'all'
+                    : searchFilters.isActive
+                      ? 'active'
+                      : 'inactive'
+                }
+                onChange={e =>
+                  handleFiltersChange(
+                    'isActive',
+                    e.target.value === 'all' ? undefined : e.target.value === 'active'
+                  )
+                }
+                className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <option value="active">{t('filters.active')}</option>
+                <option value="inactive">{t('filters.inactive')}</option>
+                <option value="all">{t('filters.allStatuses')}</option>
               </select>
             </div>
 

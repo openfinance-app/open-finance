@@ -57,7 +57,7 @@ public class InterestCalculatorService {
                 variationRepository.findByAccountIdOrderByValidFromDesc(accountId);
         if (variations.isEmpty()) return BigDecimal.ZERO;
 
-        BigDecimal balance = account.getBalance();
+        BigDecimal balance = account.getOwnBalance();
         if (balance == null || balance.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
 
         InterestRateVariation variation = getVariationForDate(variations, LocalDate.now());

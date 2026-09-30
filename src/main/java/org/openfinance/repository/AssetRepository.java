@@ -35,6 +35,15 @@ public interface AssetRepository
     @EntityGraph(attributePaths = {"account"})
     List<Asset> findByUserId(Long userId);
 
+    /** Current holdings retain their stored values; inactive property assets are excluded. */
+    @EntityGraph(attributePaths = {"account"})
+    @Query(
+            "SELECT a FROM Asset a WHERE a.userId = :userId "
+                    + "AND a.acquisitionType <> org.openfinance.entity.AcquisitionType.PLANNED "
+                    + "AND NOT EXISTS (SELECT p.id FROM RealEstateProperty p "
+                    + "WHERE p.userId = :userId AND p.assetId = a.id AND p.isActive = false)")
+    List<Asset> findCurrentHoldingsByUserId(@Param("userId") Long userId);
+
     /**
      * Finds all assets in a specific account.
      *

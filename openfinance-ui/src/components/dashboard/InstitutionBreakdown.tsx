@@ -57,6 +57,7 @@ export default function InstitutionBreakdown({
     return undefined;
   };
   for (const account of accounts.data ?? []) {
+    if (account.isActive === false) continue;
     const row = group(account.institution);
     row.accountCount += 1;
     const value = converted(
@@ -69,7 +70,7 @@ export default function InstitutionBreakdown({
     row.totalBalance = add(row.totalBalance, value);
   }
   for (const asset of assets.data ?? []) {
-    if (asset.acquisitionType === 'PLANNED') continue;
+    if (asset.isActive === false || asset.acquisitionType === 'PLANNED') continue;
     const account = accounts.data?.find(a => a.id === asset.accountId);
     const value = converted(
       asset.totalValue,

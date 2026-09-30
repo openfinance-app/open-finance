@@ -150,7 +150,7 @@ public class InvalidTransactionException extends RuntimeException implements Loc
     public static InvalidTransactionException incompleteConversionDetails() {
         return new InvalidTransactionException(
                 "Conversion details must be provided together and valid: originalAmount (> 0),"
-                        + " originalCurrency (3 letters), and conversionRate (> 0).");
+                        + " originalCurrency (3 to 10 letters), and conversionRate (> 0).");
     }
 
     /**

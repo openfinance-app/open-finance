@@ -161,7 +161,8 @@
       "payment": "Payment",
       "principal": "Principal",
       "interest": "Interest",
-      "remainingBalance": "Remaining Balance"
+      "remainingBalance": "Remaining Balance",
+      "insurance": "Insurance"
     },
     "pastContract": "At this payment amount, estimated payoff is {{payoff}}, after the contractual end date {{contract}}. Review the payment amount or the contract terms.",
     "incomplete": "This schedule does not repay the full balance. Review the payment amount and any interest-only period."

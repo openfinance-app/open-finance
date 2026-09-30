@@ -100,6 +100,7 @@ export function AmortizationSchedule({
       'Payment Amount',
       'Principal',
       'Interest',
+      'Insurance',
       'Remaining Balance',
     ];
 
@@ -112,6 +113,7 @@ export function AmortizationSchedule({
           payment.paymentAmount.toFixed(2),
           payment.principalPayment.toFixed(2),
           payment.interestPayment.toFixed(2),
+          (payment.insurancePayment ?? 0).toFixed(2),
           payment.remainingBalance.toFixed(2),
         ].join(',')
       ),
@@ -276,6 +278,9 @@ export function AmortizationSchedule({
                 {t('amortization.col.interest')}
               </th>
               <th className="text-right py-3 px-4 text-sm font-medium text-text-secondary">
+                {t('amortization.col.insurance')}
+              </th>
+              <th className="text-right py-3 px-4 text-sm font-medium text-text-secondary">
                 {t('amortization.col.remainingBalance')}
               </th>
             </tr>
@@ -299,7 +304,7 @@ export function AmortizationSchedule({
                   {phaseLabel && (
                     <tr data-testid={phaseLabel.testId}>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="py-2 px-4 text-xs font-semibold uppercase tracking-wide bg-info/10 border-y border-info/30 text-info"
                       >
                         {phaseLabel.label}
@@ -347,6 +352,13 @@ export function AmortizationSchedule({
                       <div className="text-xs text-text-tertiary">
                         {interestPercent != null && `${formatDecimal(interestPercent, 1)}%`}
                       </div>
+                    </td>
+                    <td className="py-3 px-4 text-sm font-mono text-right text-text-secondary">
+                      <ConvertedAmount
+                        amount={payment.insurancePayment ?? 0}
+                        currency={schedule.currency}
+                        inline
+                      />
                     </td>
                     <td className="py-3 px-4 text-sm font-mono text-right text-text-secondary">
                       <ConvertedAmount
@@ -469,6 +481,16 @@ export function AmortizationSchedule({
                   </div>
                 </div>
 
+                <div>
+                  <div className="text-xs text-text-secondary mb-1">
+                    {t('amortization.col.insurance')}
+                  </div>
+                  <ConvertedAmount
+                    amount={payment.insurancePayment ?? 0}
+                    currency={schedule.currency}
+                    inline
+                  />
+                </div>
                 {/* Remaining Balance */}
                 <div className="pt-2 border-t border-border">
                   <div className="text-xs text-text-secondary mb-1">

@@ -22,10 +22,7 @@ export function ReviewStep({ property, funding }: ReviewStepProps) {
       </dd>
       <dt className="text-text-secondary">{t('form.currentValue')}</dt>
       <dd className="text-right text-text-primary font-mono">
-        {funding.source !== 'none' && funding.route === 'direct'
-          ? funding.loanAmount
-          : property.currentValue}{' '}
-        {property.currency}
+        {property.currentValue} {property.currency}
       </dd>
       <dt className="text-text-secondary">{t('wizard.fundingSource')}</dt>
       <dd className="text-right text-text-primary">
@@ -37,6 +34,13 @@ export function ReviewStep({ property, funding }: ReviewStepProps) {
       <dt className="text-text-secondary">{t('wizard.downPaymentAmount')}</dt>
       <dd className="text-right text-text-primary font-mono">
         {funding.downPaymentAmount || '0'} {property.currency}
+      </dd>
+      <dt className="text-text-secondary">{t('wizard.accountPayment')}</dt>
+      <dd className="text-right text-text-primary font-mono">
+        {funding.source !== 'none' && funding.route === 'direct'
+          ? funding.downPaymentAmount || '0'
+          : property.purchasePrice}{' '}
+        {property.currency}
       </dd>
     </dl>
   );

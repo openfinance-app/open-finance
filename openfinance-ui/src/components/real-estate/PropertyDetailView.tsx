@@ -607,6 +607,9 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                                   : t('propertyDetail.na'),
                             })}
                           </p>
+                          <p className="text-sm text-text-secondary">
+                            {t('propertyDetail.annualizedReturnConvention')}
+                          </p>
                           {roi.yearsOwned != null && (
                             <p className="text-sm text-text-tertiary mt-2">
                               {t('propertyDetail.holdingPeriod', { years: roi.yearsOwned })}

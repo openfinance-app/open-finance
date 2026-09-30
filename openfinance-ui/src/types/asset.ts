@@ -43,6 +43,8 @@ export interface AssetFilters {
 }
 
 export interface Asset {
+  /** False for the retained backing asset of an inactive property. */
+  isActive?: boolean;
   id: number;
   userId: number;
   accountId?: number;

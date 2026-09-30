@@ -179,7 +179,7 @@ vi.mock('@/hooks/useAssets', async importOriginal => {
 
 vi.mock('@/hooks/useCurrency', async importOriginal => {
   const actual = await importOriginal<typeof useCurrencyModule>();
-  return { ...actual, useLatestExchangeRate: vi.fn() };
+  return { ...actual, useExchangeRate: vi.fn() };
 });
 
 // ── Typed mock references ─────────────────────────────────────────────────────
@@ -189,7 +189,7 @@ const mockUsePopularTags = vi.mocked(useTransactionTagsModule.usePopularTags);
 const mockUseCategoryTree = vi.mocked(useTransactionsModule.useCategoryTree);
 const mockUseLiabilities = vi.mocked(useLiabilitiesModule.useLiabilities);
 const mockUseRepaymentPreview = vi.mocked(useLiabilitiesModule.useRepaymentPreview);
-const mockUseLatestExchangeRate = vi.mocked(useCurrencyModule.useLatestExchangeRate);
+const mockUseExchangeRate = vi.mocked(useCurrencyModule.useExchangeRate);
 const mockUseProperties = vi.mocked(useRealEstateModule.useProperties);
 const mockUseAssets = vi.mocked(useAssetsModule.useAssets);
 
@@ -327,7 +327,7 @@ describe('TransactionForm', () => {
       isError: false,
     } as any);
 
-    mockUseLatestExchangeRate.mockReturnValue({
+    mockUseExchangeRate.mockReturnValue({
       data: undefined,
       isLoading: false,
       isError: false,
@@ -1179,7 +1179,7 @@ describe('TransactionForm', () => {
         isError: false,
       } as any);
       // EUR account → USD liability rate
-      mockUseLatestExchangeRate.mockReturnValue({
+      mockUseExchangeRate.mockReturnValue({
         data: { rate: 1.0917 },
         isLoading: false,
         isError: false,
@@ -1236,7 +1236,7 @@ describe('TransactionForm', () => {
         isError: false,
       } as any);
       // USD input → EUR account rate
-      mockUseLatestExchangeRate.mockReturnValue({
+      mockUseExchangeRate.mockReturnValue({
         data: { rate: 0.9 },
         isLoading: false,
         isError: false,
@@ -1359,7 +1359,7 @@ describe('TransactionForm', () => {
         isLoading: false,
         isError: false,
       } as any);
-      mockUseLatestExchangeRate.mockReturnValue({
+      mockUseExchangeRate.mockReturnValue({
         data: { rate: 1.0917 },
         isLoading: false,
         isError: false,
@@ -1833,7 +1833,7 @@ describe('TransactionForm', () => {
     });
 
     it('shows the rate line and a converted preview when a foreign currency is chosen', async () => {
-      mockUseLatestExchangeRate.mockReturnValue({
+      mockUseExchangeRate.mockReturnValue({
         data: { rate: 0.9 },
         isLoading: false,
         isError: false,
@@ -1855,7 +1855,7 @@ describe('TransactionForm', () => {
     });
 
     it('submits the amount converted to the account currency with currency = account currency', async () => {
-      mockUseLatestExchangeRate.mockReturnValue({
+      mockUseExchangeRate.mockReturnValue({
         data: { rate: 0.9 },
         isLoading: false,
         isError: false,
@@ -1881,10 +1881,11 @@ describe('TransactionForm', () => {
       const submitted = onSubmit.mock.calls[0][0];
       expect(submitted.amount).toBe(90);
       expect(submitted.currency).toBe('EUR');
+      expect(mockUseExchangeRate).toHaveBeenCalledWith('USD', 'EUR', '2024-06-15', true);
     });
 
     it('converts each split amount and submits a parent amount equal to their sum', async () => {
-      mockUseLatestExchangeRate.mockReturnValue({
+      mockUseExchangeRate.mockReturnValue({
         data: { rate: 0.9 },
         isLoading: false,
         isError: false,
@@ -1930,7 +1931,7 @@ describe('TransactionForm', () => {
       //   convert(60) = round2(0.081) = 0.08 ; convert(40) = round2(0.054) = 0.05 ; sum = 0.13
       //   naive convert(100) = round2(0.135) = 0.14 (HALF_UP)  ← what we must NOT submit
       // So the submitted parent must be 0.13 (Σ converted splits), not 0.14.
-      mockUseLatestExchangeRate.mockReturnValue({
+      mockUseExchangeRate.mockReturnValue({
         data: { rate: 0.00135 },
         isLoading: false,
         isError: false,
@@ -2179,7 +2180,7 @@ describe('TransactionForm', () => {
 
   describe('Original currency conversion', () => {
     it('submits originalAmount/originalCurrency/conversionRate when converting', async () => {
-      mockUseLatestExchangeRate.mockReturnValue({
+      mockUseExchangeRate.mockReturnValue({
         data: { rate: 0.9 },
         isLoading: false,
         isError: false,

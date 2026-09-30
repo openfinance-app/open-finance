@@ -161,7 +161,8 @@
       "payment": "Paiement",
       "principal": "Capital",
       "interest": "Intérêts",
-      "remainingBalance": "Solde restant"
+      "remainingBalance": "Solde restant",
+      "insurance": "Assurance"
     },
     "pastContract": "Avec cette mensualité, le remboursement est prévu le {{payoff}}, après l’échéance contractuelle du {{contract}}. Vérifiez la mensualité ou les conditions du contrat.",
     "incomplete": "Cet échéancier ne rembourse pas tout le capital. Vérifiez la mensualité et la période de différé."

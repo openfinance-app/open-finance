@@ -314,6 +314,17 @@ public class AssetService {
                     "Acquisition cannot follow an existing asset cost movement");
         }
         // Capture snapshot before update for history
+        if (request.getType() != null
+                && !request.getType().isPhysical()
+                && transactionRepository.findByAssetIdAndUserId(assetId, userId).stream()
+                        .anyMatch(
+                                tx ->
+                                        !Boolean.TRUE.equals(tx.getIsDeleted())
+                                                && tx.getMovementType()
+                                                        == org.openfinance.entity.MovementType
+                                                                .CAPITAL_IMPROVEMENT)) {
+            throw InvalidAssetStateException.typeHasImprovements(assetId);
+        }
         AssetResponse beforeAssetSnapshot = toResponseWithDecryption(asset);
 
         // Store old price and purchase date to detect changes relevant to net worth
@@ -524,7 +535,11 @@ public class AssetService {
             BigDecimal amount,
             LocalDate movementDate,
             LocalDateTime recordedAt) {
-        Asset asset = findPhysicalAsset(assetId, userId);
+        // Existing postings remain reversible even if a legacy type edit changed eligibility.
+        Asset asset =
+                assetRepository
+                        .findByIdAndUserId(assetId, userId)
+                        .orElseThrow(() -> AssetNotFoundException.byIdAndUser(assetId, userId));
         if (asset.getValuationRecordedAt() == null) {
             throw InvalidAssetStateException.valuationBoundaryMissing(assetId);
         }
@@ -1206,6 +1221,12 @@ public class AssetService {
         if (canReadSensitiveFields()) asset.setCapitalizedCost(capitalizedCost(asset));
         // Map to response first (mapper will populate calculated fields automatically)
         AssetResponse response = assetMapper.toResponse(asset);
+        response.setIsActive(
+                asset.getType() != AssetType.REAL_ESTATE
+                        || realEstateRepository
+                                .findByAssetIdAndUserId(asset.getId(), asset.getUserId())
+                                .map(org.openfinance.entity.RealEstateProperty::isActive)
+                                .orElse(true));
 
         // Standardize: if no key, return response with encrypted/null fields
         if (!canReadSensitiveFields()) {

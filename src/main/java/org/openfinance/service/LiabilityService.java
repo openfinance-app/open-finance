@@ -1040,7 +1040,8 @@ public class LiabilityService {
         // Calculate monthly interest rate (annual rate / 12 / 100)
         BigDecimal monthlyRate =
                 interestRate.divide(
-                        BigDecimal.valueOf(MONTHS_PER_YEAR * 100), SCALE, RoundingMode.HALF_UP);
+                        BigDecimal.valueOf(MONTHS_PER_YEAR * 100),
+                        java.math.MathContext.DECIMAL128);
         return new ScheduleInputs(
                 currentBalance,
                 minimumPayment,
@@ -1124,10 +1125,13 @@ public class LiabilityService {
 
         BigDecimal mRate =
                 interestRate.divide(
-                        BigDecimal.valueOf(MONTHS_PER_YEAR * 100), SCALE, RoundingMode.HALF_UP);
+                        BigDecimal.valueOf(MONTHS_PER_YEAR * 100),
+                        java.math.MathContext.DECIMAL128);
         if (mRate.compareTo(BigDecimal.ZERO) > 0) {
             try {
-                BigDecimal onePlusRPowN = mRate.add(BigDecimal.ONE).pow((int) totalMonths);
+                BigDecimal onePlusRPowN =
+                        mRate.add(BigDecimal.ONE)
+                                .pow((int) totalMonths, java.math.MathContext.DECIMAL128);
                 BigDecimal numerator = mRate.multiply(onePlusRPowN);
                 BigDecimal denominator = onePlusRPowN.subtract(BigDecimal.ONE);
                 BigDecimal minimumPayment =
@@ -1216,7 +1220,7 @@ public class LiabilityService {
                 }
 
                 // Actual payment amount for this period
-                actualPayment = principalPortion.add(interestPortion);
+                actualPayment = principalPortion.add(interestPortion).add(monthlyInsurance);
             }
 
             // Update cumulative totals
@@ -1228,6 +1232,7 @@ public class LiabilityService {
                             .paymentNumber(paymentNumber)
                             .paymentDate(currentDate)
                             .paymentAmount(actualPayment)
+                            .insurancePortion(monthlyInsurance)
                             .principalPortion(principalPortion)
                             .interestPortion(interestPortion)
                             .remainingBalance(remainingBalance.max(BigDecimal.ZERO))
@@ -1481,13 +1486,12 @@ public class LiabilityService {
      *   <li><strong>directRealEstateId</strong> (bank paid the seller/property directly): the funds
      *       never touch a user account, so no Transaction row is created (spec §4
      *       DISBURSEMENT_DIRECT has no account leg). The liability balance is increased inline, the
-     *       property's current value is bumped with a value-history entry, and tracking happens via
-     *       the tranche (Drawdowns tab) plus the property history.
+     *       property's independently entered valuation is preserved, and the tranche records the
+     *       funding.
      * </ul>
      *
-     * <p>In both cases the resolved tranche is marked DRAWN <em>before</em> any balance change, so
-     * the sync-side clamp (liability balance ≤ SUM(drawnAmount of DRAWN tranches)) already counts
-     * this drawdown.
+     * <p>Both routes atomically claim the planned tranche through the shared draw validator before
+     * applying balances. Account draws are claimed inside the transaction posting path.
      *
      * @param userId the ID of the user disbursing (for authorization)
      * @param liabilityId the ID of the liability being drawn
@@ -1536,24 +1540,28 @@ public class LiabilityService {
                     request.getAmount(), tranche.getId(), tranche.getPlannedAmount());
         }
         org.openfinance.util.LoanPostingPolicy.validateDate(liability, request.getDate());
+        if (tranche.getId() == null) {
+            liabilityTrancheRepository.save(tranche);
+        }
+
+        if (request.getToAccountId() != null) {
+            disburseToAccount(userId, liability, tranche, request);
+        } else {
+            liabilityTrancheService.draw(
+                    userId, liability, tranche, request.getAmount(), request.getDate());
+            disburseDirectly(userId, liability, tranche, request);
+            invalidateSnapshotsFrom(userId, liability.getStartDate());
+        }
+        // Only mutate an existing tranche after claiming it. A pre-claim flush could otherwise
+        // overwrite another request's DRAWN status with this request's stale PLANNED value.
         tranche.setDirectDisbursement(request.getDirectRealEstateId() != null);
-        tranche.setDrawnAmount(request.getAmount());
-        tranche.setDrawnDate(request.getDate());
         if (request.getDirectRealEstateId() != null) {
             tranche.setRealEstateId(request.getDirectRealEstateId());
         }
         if (request.getNotes() != null && !request.getNotes().isBlank()) {
             tranche.setNotes(request.getNotes());
         }
-        tranche.setStatus(TrancheStatus.DRAWN);
         liabilityTrancheRepository.save(tranche);
-
-        if (request.getToAccountId() != null) {
-            disburseToAccount(userId, liability, tranche, request);
-        } else {
-            disburseDirectly(userId, liability, tranche, request);
-            invalidateSnapshotsFrom(userId, liability.getStartDate());
-        }
         return toResponseWithDecryption(liability);
     }
 

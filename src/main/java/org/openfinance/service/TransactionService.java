@@ -1,6 +1,7 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -19,6 +20,7 @@ import org.openfinance.entity.Category;
 import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.EntityType;
 import org.openfinance.entity.Liability;
+import org.openfinance.entity.LiabilityTranche;
 import org.openfinance.entity.MovementType;
 import org.openfinance.entity.OperationType;
 import org.openfinance.entity.TrancheStatus;
@@ -1785,7 +1787,7 @@ public class TransactionService {
                             && request.getConversionRate() != null
                             && request.getOriginalAmount().compareTo(BigDecimal.ZERO) > 0
                             && request.getConversionRate().compareTo(BigDecimal.ZERO) > 0
-                            && request.getOriginalCurrency().matches("(?i)[a-z]{3}");
+                            && request.getOriginalCurrency().matches("(?i)[a-z]{3,10}");
             if (!valid) {
                 throw InvalidTransactionException.incompleteConversionDetails();
             }
@@ -1794,6 +1796,18 @@ public class TransactionService {
     }
 
     private void validateInstrumentReferences(Long userId, TransactionRequest request) {
+        if (request.getMovementType() == MovementType.DISBURSEMENT
+                && request.getTrancheId() != null) {
+            LiabilityTranche tranche =
+                    liabilityTrancheRepository
+                            .findByIdAndUserId(request.getTrancheId(), userId)
+                            .orElseThrow(
+                                    () -> new InvalidTransactionException("Tranche not found"));
+            if (request.getLiabilityId() == null
+                    || !request.getLiabilityId().equals(tranche.getLiabilityId())) {
+                throw new InvalidTransactionException("Tranche does not belong to this liability");
+            }
+        }
         if (request.getRealEstateId() != null
                 && !realEstateRepository.existsByIdAndUserId(request.getRealEstateId(), userId)) {
             throw RealEstatePropertyNotFoundException.byIdAndUser(
@@ -2053,43 +2067,46 @@ public class TransactionService {
         }
 
         // Populate currency conversion fields (Requirement REQ-9.1)
-        populateConversionFields(
-                response,
-                transaction.getUserId(),
-                transaction.getCurrency(),
-                transaction.getAmount());
+        populateConversionFields(response, transaction);
 
         return response;
     }
 
-    /**
-     * Populates currency conversion metadata fields on a TransactionResponse.
-     *
-     * <p>Fetches the user's base currency from the database, then attempts to convert the
-     * transaction {@code amount} to the base currency using {@link ExchangeRateService}. On
-     * failure, falls back to the native amount with {@code isConverted=false}.
-     *
-     * <p>Requirement REQ-9.1: Transaction amounts displayed in user's base currency
-     *
-     * @param response the response DTO to populate
-     * @param userId the transaction owner's user ID
-     * @param nativeCurrency the transaction's native currency code (ISO 4217)
-     * @param nativeAmount the native transaction amount
-     */
-    private void populateConversionFields(
-            TransactionResponse response,
-            Long userId,
-            String nativeCurrency,
-            BigDecimal nativeAmount) {
-        // Transactions carry no secondary currency and round conversion metadata to 4 decimals for
-        // consistency with entity constraints.
-        CurrencyConversionHelper.ConversionResult r =
+    /** Reports booked base-currency legs exactly; other conversions use the transaction date. */
+    private void populateConversionFields(TransactionResponse response, Transaction transaction) {
+        String baseCurrency = resolveBaseCurrency(transaction.getUserId());
+        BigDecimal bookedBaseAmount = null;
+        if (!baseCurrency.equalsIgnoreCase(transaction.getCurrency())) {
+            if (baseCurrency.equalsIgnoreCase(transaction.getAccountCurrency())) {
+                bookedBaseAmount = transaction.getAccountAmount();
+            } else if (baseCurrency.equalsIgnoreCase(transaction.getOriginalCurrency())) {
+                bookedBaseAmount = transaction.getOriginalAmount();
+            }
+        }
+        if (bookedBaseAmount != null) {
+            response.setBaseCurrency(baseCurrency);
+            response.setAmountInBaseCurrency(bookedBaseAmount);
+            response.setExchangeRate(
+                    transaction.getAmount().signum() == 0
+                            ? null
+                            : bookedBaseAmount.divide(
+                                    transaction.getAmount(), 18, RoundingMode.HALF_UP));
+            response.setIsConverted(true);
+            return;
+        }
+        CurrencyConversionHelper.ConversionResult result =
                 currencyConversionHelper.convert(
-                        userId, nativeCurrency, nativeAmount, false, 4, "transaction");
-        response.setBaseCurrency(r.baseCurrency());
-        response.setAmountInBaseCurrency(r.amountInBaseCurrency());
-        response.setExchangeRate(r.exchangeRate());
-        response.setIsConverted(r.converted());
+                        transaction.getUserId(),
+                        transaction.getCurrency(),
+                        transaction.getAmount(),
+                        false,
+                        null,
+                        "transaction",
+                        transaction.getDate());
+        response.setBaseCurrency(result.baseCurrency());
+        response.setAmountInBaseCurrency(result.amountInBaseCurrency());
+        response.setExchangeRate(result.exchangeRate());
+        response.setIsConverted(result.converted());
     }
 
     /**
@@ -2487,7 +2504,8 @@ public class TransactionService {
             // Record the draw's dated principal before applying the balance delta.
             if (transaction.getMovementType() == MovementType.DISBURSEMENT
                     && transaction.getTrancheId() != null) {
-                markTrancheDrawn(userId, transaction.getTrancheId(), delta, request.getDate());
+                markTrancheDrawn(
+                        userId, liability, transaction.getTrancheId(), delta, request.getDate());
             }
 
             // Persist all tranche/opening-debt allocations before adjusting the total.
@@ -2721,18 +2739,17 @@ public class TransactionService {
      * amount, drawnDate keeps its value once set.
      */
     private void markTrancheDrawn(
-            Long userId, Long trancheId, BigDecimal amount, LocalDate drawnDate) {
-        liabilityTrancheRepository
-                .findByIdAndUserId(trancheId, userId)
-                .ifPresent(
-                        tranche -> {
-                            tranche.setStatus(TrancheStatus.DRAWN);
-                            tranche.setDrawnAmount(amount);
-                            if (tranche.getDrawnDate() == null && drawnDate != null) {
-                                tranche.setDrawnDate(drawnDate);
-                            }
-                            liabilityTrancheRepository.save(tranche);
-                        });
+            Long userId,
+            Liability liability,
+            Long trancheId,
+            BigDecimal amount,
+            LocalDate drawnDate) {
+        LiabilityTranche tranche =
+                liabilityTrancheRepository
+                        .findByIdAndUserId(trancheId, userId)
+                        .orElseThrow(
+                                () -> new InvalidTransactionException("Draw tranche not found"));
+        liabilityTrancheService.draw(userId, liability, tranche, amount, drawnDate);
     }
 
     /**

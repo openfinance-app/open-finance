@@ -40,6 +40,10 @@
     "search": "Rechercher",
     "currency": "Devise",
     "propertyType": "Type de bien",
+    "status": "Statut",
+    "active": "Actifs",
+    "inactive": "Inactifs",
+    "allStatuses": "Tous les statuts",
     "sortBy": "Trier par",
     "minValue": "Valeur min.",
     "maxValue": "Valeur max.",
@@ -179,6 +183,7 @@
     "holdingPeriod": "Période de détention : {{years}} ans",
     "totalAppreciation": "Plus-value totale",
     "annualizedReturnLabel": "Rendement annualisé",
+    "annualizedReturnConvention": "Rendement composé sur la durée de détention, à partir de la valeur actuelle et des loyers nets estimés conservés en trésorerie.",
     "rentalIncome": "Revenus locatifs",
     "totalRentalIncome": "Revenus locatifs totaux",
     "rentalYield": "Rendement locatif",
@@ -637,7 +642,7 @@
     "buyProperty": "Acheter un bien",
     "confirm": "Confirmer l'achat",
     "disbursementRoute": "Mode de déblocage",
-    "valuationPolicy": "Le déblocage enregistre une valorisation à sa date. Une valorisation datée plus récente reste la valeur actuelle.",
+    "valuationPolicy": "Le déblocage augmente la dette du prêt. La valeur actuelle saisie pour le bien reste indépendante.",
     "downPaymentAccount": "Compte de l'apport",
     "downPaymentAmount": "Montant de l'apport",
     "downPaymentDescription": "Apport pour {{name}}",
@@ -659,13 +664,16 @@
       "direct": "La banque paie le vendeur directement",
       "account": "La banque verse sur mon compte"
     },
-    "routeAccountRequired": "Sélectionnez le compte sur lequel la banque doit verser les fonds avant de continuer.",
+    "routeAccountRequired": "Sélectionnez le compte utilisé pour payer le vendeur avant de continuer.",
     "steps": {
       "property": "Bien",
       "funding": "Financement",
       "review": "Récapitulatif"
     },
-    "fundingCurrency": "Choisissez un compte de financement et un prêt en {{currency}}."
+    "fundingCurrency": "Choisissez un compte de financement et un prêt en {{currency}}.",
+    "fundingMismatch": "Le prêt et votre apport doivent couvrir exactement le prix d’achat.",
+    "purchasePaymentDescription": "Paiement de l’achat de {{name}}",
+    "accountPayment": "Paiement depuis le compte"
   },
   "movementPaging": {
     "label": "Pages des mouvements",

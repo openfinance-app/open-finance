@@ -92,6 +92,7 @@ export interface AmortizationPayment {
   paymentAmount: number;
   principalPayment: number;
   interestPayment: number;
+  insurancePayment?: number;
   remainingBalance: number;
   /** True while a DRAWN interest-only tranche window is active (Phase 1 of a two-phase schedule). */
   interestOnlyPhase?: boolean;

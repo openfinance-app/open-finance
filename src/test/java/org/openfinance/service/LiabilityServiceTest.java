@@ -837,7 +837,7 @@ class LiabilityServiceTest {
     }
 
     @Test
-    void shouldAddMonthlyInsurance_ToInterestOnlyWindowPaymentsOnly() {
+    void shouldAddMonthlyInsuranceThroughoutBothSchedulePhases() {
         // Given
         Long liabilityId = 100L;
         Liability liability = createLiabilityEntity(liabilityId, testUserId);
@@ -859,10 +859,20 @@ class LiabilityServiceTest {
         List<AmortizationScheduleEntry> schedule =
                 liabilityService.calculateAmortizationSchedule(liabilityId, testUserId);
 
-        // Then — window payments carry interest + insurance; phase 2 payments are plain P&I
+        // Both phases include insurance in cash outflow, including the final partial payment.
         assertThat(schedule.get(0).getPaymentAmount()).isEqualByComparingTo("239.58");
         assertThat(schedule.get(5).getPaymentAmount()).isEqualByComparingTo("239.58");
-        assertThat(schedule.get(6).getPaymentAmount()).isEqualByComparingTo("1200.00");
+        assertThat(schedule.get(6).getPaymentAmount()).isEqualByComparingTo("1220.83");
+        assertThat(schedule)
+                .allSatisfy(
+                        entry -> {
+                            assertThat(entry.getInsurancePortion()).isEqualByComparingTo("20.83");
+                            assertThat(entry.getPaymentAmount())
+                                    .isEqualByComparingTo(
+                                            entry.getPrincipalPortion()
+                                                    .add(entry.getInterestPortion())
+                                                    .add(new BigDecimal("20.83")));
+                        });
     }
 
     @Test

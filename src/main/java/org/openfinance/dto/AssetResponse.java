@@ -59,6 +59,9 @@ public class AssetResponse {
      */
     private AssetType type;
 
+    /** False when the backing property is inactive; its valuation and history are retained. */
+    private Boolean isActive;
+
     /** Ticker symbol or identifier (e.g., "AAPL", "BTC-USD", "SPY"). */
     private String symbol;
 

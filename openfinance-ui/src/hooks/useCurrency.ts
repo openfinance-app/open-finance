@@ -48,7 +48,7 @@ export function useAllCurrencies() {
 /**
  * Get exchange rate for specific date
  */
-export function useExchangeRate(from: string, to: string, date?: string) {
+export function useExchangeRate(from: string, to: string, date?: string, enabled = true) {
   return useQuery({
     queryKey: ['exchangeRate', from, to, date],
     queryFn: async () => {
@@ -59,7 +59,7 @@ export function useExchangeRate(from: string, to: string, date?: string) {
       const response = await apiClient.get<ExchangeRate>('/currencies/exchange-rates', { params });
       return response.data;
     },
-    enabled: !!from && !!to,
+    enabled: enabled && !!from && !!to,
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
 }

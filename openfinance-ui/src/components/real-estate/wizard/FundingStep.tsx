@@ -16,6 +16,7 @@ interface FundingStepProps {
   /** True once a previous confirm attempt created the property — its mortgage link is fixed. */
   locked: boolean;
   accountRouteMissingAccount: boolean;
+  fundingAmountsValid: boolean;
 }
 
 export function FundingStep({
@@ -24,6 +25,7 @@ export function FundingStep({
   onChange,
   locked,
   accountRouteMissingAccount,
+  fundingAmountsValid,
 }: FundingStepProps) {
   const { t } = useTranslation('realEstate');
 
@@ -162,6 +164,11 @@ export function FundingStep({
       {accountRouteMissingAccount && (
         <p role="alert" className="text-sm text-error">
           {t('wizard.routeAccountRequired')}
+        </p>
+      )}
+      {!fundingAmountsValid && (
+        <p role="alert" className="text-sm text-error">
+          {t('wizard.fundingMismatch')}
         </p>
       )}
     </div>

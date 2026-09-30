@@ -57,6 +57,15 @@ public class InvalidAssetStateException extends RuntimeException implements Loca
                 new Object[] {assetId});
     }
 
+    public static InvalidAssetStateException typeHasImprovements(Long assetId) {
+        return new InvalidAssetStateException(
+                "Reverse capital improvements before changing asset "
+                        + assetId
+                        + " to a non-physical type",
+                "error.asset.type.has.improvements",
+                new Object[] {assetId});
+    }
+
     @Override
     public Object[] getMessageArgs() {
         return messageArgs;
