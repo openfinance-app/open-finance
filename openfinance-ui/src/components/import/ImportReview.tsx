@@ -120,6 +120,8 @@ export function ImportReview({
 
   // Translate known backend validation error strings to the current locale
   const translateValidationError = (err: string): string => {
+    if (err.startsWith('SPLIT_INVALID:')) return t('validation.splitInvalid');
+    if (err.startsWith('RULE_ACTION_INVALID:')) return t('validation.ruleActionInvalid');
     const map: Record<string, string> = {
       'Transaction date is required': t('validation.dateRequired'),
       'Transaction amount is required': t('validation.amountRequired'),
@@ -1023,54 +1025,58 @@ export function ImportReview({
                         </td>
                       </tr>
 
-                      {hasErrors && (
-                        <div className="mb-3">
-                          <div className="flex items-start space-x-2 text-sm">
-                            <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <div className="font-medium text-red-600 mb-1">
-                                {t('review.table.validationErrors')}
+                      {hasErrors && isExpanded && (
+                        <tr>
+                          <td colSpan={8} className="px-4 py-3">
+                            <div className="flex items-start space-x-2 text-sm">
+                              <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <div className="font-medium text-red-600 mb-1">
+                                  {t('review.table.validationErrors')}
+                                </div>
+                                <ul className="list-disc list-inside text-red-600 space-y-0.5">
+                                  {transaction.validationErrors.map((err, i) => (
+                                    <li key={i}>{translateValidationError(err)}</li>
+                                  ))}
+                                </ul>
                               </div>
-                              <ul className="list-disc list-inside text-red-600 space-y-0.5">
-                                {transaction.validationErrors.map((err, i) => (
-                                  <li key={i}>{translateValidationError(err)}</li>
-                                ))}
-                              </ul>
                             </div>
-                          </div>
-                        </div>
+                          </td>
+                        </tr>
                       )}
 
-                      {hasSplits && (
-                        <div>
-                          <div className="font-medium text-text-primary text-sm mb-2">
-                            {t('review.table.splitLines')}
-                          </div>
-                          <div className="space-y-1">
-                            {transaction.splits.map((split, i) => (
-                              <div
-                                key={i}
-                                className="flex items-center justify-between text-sm bg-app-bg rounded px-3 py-2 gap-4"
-                              >
-                                <span className="text-text-secondary flex-1 truncate">
-                                  {split.category ? categoryDisplayName(split.category) : '—'}
-                                </span>
-                                <span className="font-mono text-text-primary whitespace-nowrap">
-                                  <ConvertedAmount
-                                    amount={Number(split.amount)}
-                                    currency={transaction.currency || baseCurrency}
-                                    inline
-                                  />
-                                </span>
-                                {split.memo && (
-                                  <span className="text-text-tertiary text-xs truncate max-w-[160px]">
-                                    {split.memo}
+                      {hasSplits && isExpanded && (
+                        <tr>
+                          <td colSpan={8} className="px-4 py-3">
+                            <div className="font-medium text-text-primary text-sm mb-2">
+                              {t('review.table.splitLines')}
+                            </div>
+                            <div className="space-y-1">
+                              {transaction.splits.map((split, i) => (
+                                <div
+                                  key={i}
+                                  className="flex items-center justify-between text-sm bg-app-bg rounded px-3 py-2 gap-4"
+                                >
+                                  <span className="text-text-secondary flex-1 truncate">
+                                    {split.category ? categoryDisplayName(split.category) : '—'}
                                   </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                                  <span className="font-mono text-text-primary whitespace-nowrap">
+                                    <ConvertedAmount
+                                      amount={Number(split.amount)}
+                                      currency={transaction.currency || baseCurrency}
+                                      inline
+                                    />
+                                  </span>
+                                  {split.memo && (
+                                    <span className="text-text-tertiary text-xs truncate max-w-[160px]">
+                                      {split.memo}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
                       )}
                     </React.Fragment>
                   );

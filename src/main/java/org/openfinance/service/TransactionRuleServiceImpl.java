@@ -418,6 +418,17 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
             return;
         }
         for (TransactionRuleAction action : actions) {
+            if (!org.openfinance.util.RuleActionValidation.hasRequiredValue(
+                            action.getActionType(), action.getActionValue())
+                    || !org.openfinance.util.RuleActionValidation.hasValidAmount(
+                            action.getActionType(),
+                            action.getActionValue(),
+                            action.getActionValue2())) {
+                tx.addValidationError("RULE_ACTION_INVALID: " + action.getActionType());
+                return;
+            }
+        }
+        for (TransactionRuleAction action : actions) {
             applyAction(action, tx);
         }
     }

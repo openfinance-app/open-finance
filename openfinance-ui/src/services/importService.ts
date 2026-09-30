@@ -48,12 +48,14 @@ export const importService = {
    */
   getTransactions: async (
     sessionId: number,
-    encryptionEnabled = true
+    encryptionEnabled = true,
+    signal?: AbortSignal
   ): Promise<ImportTransactionDTO[]> => {
     const response = await apiClient.get<ImportTransactionDTO[]>(
       `/import/sessions/${sessionId}/review`,
       {
         headers: buildEncryptionHeaders(encryptionEnabled),
+        signal,
         timeout: 600000, // 10 minutes — AI categorization with local models can be slow
       }
     );

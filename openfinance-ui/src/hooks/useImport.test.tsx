@@ -198,6 +198,35 @@ describe('useImport hooks', () => {
 
   // ── useUpdateAccount ─────────────────────────────────────────────────
   describe('useUpdateAccount', () => {
+    it('replaces an initial in-flight review when account selection completes', async () => {
+      let releaseOld!: (value: typeof mockTransactions) => void;
+      mockedImportService.getTransactions
+        .mockImplementationOnce(
+          () =>
+            new Promise(resolve => {
+              releaseOld = resolve;
+            })
+        )
+        .mockResolvedValue([{ ...mockTransactions[0], isDuplicate: true }]);
+      mockedImportService.updateAccount.mockResolvedValue({ ...mockSession, accountId: 2 });
+      const { result } = renderHook(
+        () => ({
+          review: useImportTransactions(1, 'PARSED'),
+          account: useUpdateAccount(),
+        }),
+        { wrapper }
+      );
+      await waitFor(() => expect(mockedImportService.getTransactions).toHaveBeenCalledTimes(1));
+      act(() => result.current.account.mutate({ sessionId: 1, accountId: 2 }));
+      await waitFor(() => expect(mockedImportService.updateAccount).toHaveBeenCalled());
+      await act(async () => {
+        releaseOld(mockTransactions);
+      });
+      await waitFor(() => expect(result.current.account.isSuccess).toBe(true));
+      expect(result.current.review.data).toEqual([{ ...mockTransactions[0], isDuplicate: true }]);
+      expect(mockedImportService.getTransactions).toHaveBeenCalledTimes(2);
+    });
+
     it('should update account for import session', async () => {
       const updatedSession = { ...mockSession, accountId: 2 };
       mockedImportService.updateAccount.mockResolvedValue(updatedSession);

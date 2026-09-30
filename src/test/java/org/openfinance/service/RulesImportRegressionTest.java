@@ -161,6 +161,107 @@ class RulesImportRegressionTest {
     }
 
     @Test
+    void foreignCurrencyRepeatsUseSourceAmountsAndRetainConversionDetails() throws Exception {
+        org.mockito.Mockito.when(
+                        fx.convert(
+                                any(),
+                                org.mockito.ArgumentMatchers.eq("USD"),
+                                org.mockito.ArgumentMatchers.eq("EUR"),
+                                any()))
+                .thenAnswer(
+                        i ->
+                                ((BigDecimal) i.getArgument(0))
+                                        .multiply(new BigDecimal("0.87711604")));
+        String csv = "date,amount,currency,payee\n2026-09-29,-10.00,USD,Foreign purchase\n";
+        ImportSession first = upload("foreign.csv", csv, everyday);
+        assertThat(confirm(first).getImportedCount()).isEqualTo(1);
+        org.openfinance.entity.Transaction saved =
+                transactions.findByAccountId(everyday).getFirst();
+        assertThat(saved.getOriginalAmount()).isEqualByComparingTo("10");
+        assertThat(saved.getOriginalCurrency()).isEqualTo("USD");
+        assertThat(saved.getConversionRate()).isEqualByComparingTo("0.87711604");
+        ImportSession repeat = upload("foreign.csv", csv, everyday);
+        assertThat(
+                        imports.reviewTransactions(repeat.getId(), userId)
+                                .getFirst()
+                                .isPotentialDuplicate())
+                .isTrue();
+        assertThat(confirm(repeat).getImportedCount()).isZero();
+        assertThat(accounts.findById(everyday).orElseThrow().getBalance())
+                .isEqualByComparingTo("991.22883960");
+        // Previously imported rows have no source monetary fields. Historical comparison must
+        // still protect them, and the same row in another account must remain importable.
+        saved.setOriginalAmount(null);
+        saved.setOriginalCurrency(null);
+        saved.setConversionRate(null);
+        transactions.save(saved);
+        ImportSession legacy = upload("foreign.csv", csv, everyday);
+        assertThat(
+                        imports.reviewTransactions(legacy.getId(), userId)
+                                .getFirst()
+                                .isPotentialDuplicate())
+                .isTrue();
+        assertThat(confirm(legacy).getImportedCount()).isZero();
+        assertThat(confirm(upload("foreign.csv", csv, savings)).getImportedCount()).isEqualTo(1);
+    }
+
+    @Test
+    void invalidSplitRowsAreExcludedWithoutRollingBackValidRows() throws Exception {
+        rule("Over split", List.of(splitAction("20"), splitAction("20")));
+        ImportSession session =
+                upload(
+                        "mixed.csv",
+                        "date,amount,payee\n2026-09-29,-5.55,Before\n"
+                                + "2026-09-29,-30,Over split\n2026-09-29,-6.66,After\n",
+                        everyday);
+        List<ImportedTransaction> review = imports.reviewTransactions(session.getId(), userId);
+        assertThat(review.get(1).hasErrors()).isTrue();
+        assertThat(review.get(1).getValidationErrors())
+                .anyMatch(e -> e.startsWith("SPLIT_INVALID:"));
+        // Bypassing review must run the same validation at confirmation, through real proxies.
+        ImportSession completed = confirm(session);
+        assertThat(completed.getStatus()).isEqualTo(ImportStatus.COMPLETED);
+        assertThat(completed.getImportedCount()).isEqualTo(2);
+        assertThat(completed.getErrorCount()).isEqualTo(1);
+        assertThat(completed.getSkippedCount()).isEqualTo(1);
+        assertThat(transactions.findByAccountId(everyday)).hasSize(2);
+        assertThat(accounts.findById(everyday).orElseThrow().getBalance())
+                .isEqualByComparingTo("987.79");
+    }
+
+    @Test
+    void correctedSplitTotalClearsTheReviewErrorBeforeConfirmation() throws Exception {
+        rule("Over split", List.of(splitAction("20"), splitAction("20")));
+        ImportSession session = csv("-30", "Over split", everyday);
+        List<ImportedTransaction> review = imports.reviewTransactions(session.getId(), userId);
+        assertThat(review.getFirst().hasErrors()).isTrue();
+        review.getFirst().setAmount(new BigDecimal("-40"));
+        imports.updateParsedTransactions(session.getId(), review, userId);
+        assertThat(imports.reviewTransactions(session.getId(), userId).getFirst().hasErrors())
+                .isFalse();
+        assertThat(confirm(session).getImportedCount()).isEqualTo(1);
+    }
+
+    @Test
+    void malformedSavedSplitActionProducesABlockingReviewError() throws Exception {
+        // Historical rules can predate the controller's parameter validation.
+        rule("Incomplete split", List.of(splitAction(null)));
+        ImportSession session = csv("-22", "Incomplete split", everyday);
+        assertThat(imports.reviewTransactions(session.getId(), userId).getFirst().hasErrors())
+                .isTrue();
+        assertThat(confirm(session).getImportedCount()).isZero();
+        assertThat(transactions.findByAccountId(everyday)).isEmpty();
+    }
+
+    private TransactionRuleRequest.ActionRequest splitAction(String amount) {
+        return TransactionRuleRequest.ActionRequest.builder()
+                .actionType(RuleActionType.ADD_SPLIT)
+                .actionValue("Groceries")
+                .actionValue2(amount)
+                .build();
+    }
+
+    @Test
     void reviewIsReadOnlyAndPreservesExplicitEditsThroughConfirmation() throws Exception {
         rule(
                 "Grocery",

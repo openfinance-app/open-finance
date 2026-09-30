@@ -109,9 +109,9 @@ export function useImportTransactions(
 
   return useQuery<ImportTransactionDTO[]>({
     queryKey: ['import-transactions', sessionId, encryptionEnabled],
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       if (!sessionId) throw new Error('Session ID is required');
-      return importService.getTransactions(sessionId, encryptionEnabled);
+      return importService.getTransactions(sessionId, encryptionEnabled, signal);
     },
     // Wait for parsing and stop fetching once confirmation starts.
     enabled: !!sessionId && canReview,
@@ -194,6 +194,9 @@ export function useUpdateAccount(): UseMutationResult<
       mutationFn: ({ sessionId, accountId }) =>
         importService.updateAccount(sessionId, accountId, encryptionEnabled),
       onSuccess: async (data, variables) => {
+        // Invalidation alone reuses an initial fetch with no cached data. Cancel it
+        // first so a response calculated for the old account cannot win the race.
+        await queryClient.cancelQueries({ queryKey: ['import-transactions', variables.sessionId] });
         queryClient.setQueryData(['import-sessions', variables.sessionId, encryptionEnabled], data);
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['import-sessions'] }),

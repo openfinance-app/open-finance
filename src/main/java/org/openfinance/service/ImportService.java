@@ -478,6 +478,7 @@ public class ImportService {
         // categorization was running. Saved review edits must not run through rules again.
         List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
         prepareUnreviewedTransactions(session, transactions, userId);
+        validateImportedSplitAmounts(transactions, session.getAccountId(), userId);
         detectDuplicates(transactions, session.getAccountId(), session.getFileFormat(), userId);
 
         return transactions;
@@ -540,6 +541,7 @@ public class ImportService {
         }
 
         // Detect duplicates with the currently selected account
+        validateImportedSplitAmounts(transactions, session.getAccountId(), userId);
         detectDuplicates(transactions, session.getAccountId(), session.getFileFormat(), userId);
 
         // Preserve existing ledgerBalance and fileCurrency in metadata
@@ -700,6 +702,8 @@ public class ImportService {
 
         List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
         prepareUnreviewedTransactions(session, transactions, userId);
+        validateImportedSplitAmounts(
+                transactions, accountId != null ? accountId : session.getAccountId(), userId);
         validateImportCategoryMappings(transactions, userId, categoryMappings);
         detectDuplicates(
                 transactions,
@@ -1193,7 +1197,8 @@ public class ImportService {
                 continue; // A new/unselected account has no existing transactions.
             for (Transaction candidate : existing) {
                 if (targetId.equals(candidate.getAccountId())
-                        && matchesDuplicate(tx, candidate, authoritative)) {
+                        && ImportDuplicateMatcher.matches(
+                                tx, candidate, authoritative, exchangeRateService)) {
                     String message =
                             authoritative
                                             && reference != null
@@ -1228,41 +1233,6 @@ public class ImportService {
                             : descriptors.size() == 1 ? fallbackAccountId : null);
         }
         return scopes;
-    }
-
-    private boolean matchesDuplicate(
-            ImportedTransaction imported, Transaction existing, boolean useReferences) {
-        String reference = imported.getReferenceNumber();
-        if (useReferences
-                && reference != null
-                && !reference.isBlank()
-                && existing.getExternalReference() != null
-                && !existing.getExternalReference().isBlank()) {
-            // Different bank-issued IDs are different movements, even with identical
-            // amounts/payees.
-            return reference.equals(existing.getExternalReference());
-        }
-        if (existing.getType() != TransactionType.INCOME
-                && existing.getType() != TransactionType.EXPENSE) {
-            return false;
-        }
-        if ((imported.getAmount().signum() >= 0)
-                != (existing.getType() == TransactionType.INCOME)) {
-            return false;
-        }
-        if (Math.abs(existing.getDate().toEpochDay() - imported.getTransactionDate().toEpochDay())
-                        > 1
-                || existing.getAmount().abs().compareTo(imported.getAmount().abs()) != 0) {
-            return false;
-        }
-        if (imported.getCurrency() != null
-                && existing.getCurrency() != null
-                && !imported.getCurrency().equalsIgnoreCase(existing.getCurrency())) return false;
-        String payee =
-                imported.getOriginalPayee() != null
-                        ? imported.getOriginalPayee()
-                        : imported.getPayee();
-        return isPayeeSimilar(payee, existing.getDescription());
     }
 
     /**
@@ -1314,44 +1284,6 @@ public class ImportService {
     private void markDuplicate(ImportedTransaction tx, String message) {
         tx.addValidationError(message);
         tx.setPotentialDuplicate(true);
-    }
-
-    /**
-     * Check if two payee strings are similar using Levenshtein distance algorithm. Considers payees
-     * similar if they have 85%+ similarity ratio.
-     *
-     * @param payee1 first payee string
-     * @param payee2 second payee string
-     * @return true if payees are similar (85%+ match), false otherwise
-     *     <p>Requirement: REQ-2.10.4 (Duplicate transaction detection)
-     */
-    private boolean isPayeeSimilar(String payee1, String payee2) {
-        boolean empty1 = payee1 == null || payee1.isBlank();
-        boolean empty2 = payee2 == null || payee2.isBlank();
-        if (empty1 && empty2) {
-            return true; // Both missing ΓÇö treat as same unknown payee
-        }
-        if (empty1 || empty2) {
-            return false;
-        }
-
-        // Normalize: lowercase, trim, remove extra spaces
-        String normalized1 = payee1.toLowerCase().trim().replaceAll("\\s+", " ");
-        String normalized2 = payee2.toLowerCase().trim().replaceAll("\\s+", " ");
-
-        // Exact match
-        if (normalized1.equals(normalized2)) {
-            return true;
-        }
-
-        // Contains match (one string contains the other)
-        if (normalized1.contains(normalized2) || normalized2.contains(normalized1)) {
-            return true;
-        }
-
-        // Levenshtein distance similarity (85%+ threshold)
-        double similarity = calculateStringSimilarity(normalized1, normalized2);
-        return similarity >= 0.85;
     }
 
     /**
@@ -1485,7 +1417,8 @@ public class ImportService {
             for (Category cat : userCategories) {
                 String displayName = resolveDisplayName(cat, locale);
                 double similarity =
-                        calculateStringSimilarity(normalizedCategory, displayName.toLowerCase());
+                        ImportDuplicateMatcher.calculateStringSimilarity(
+                                normalizedCategory, displayName.toLowerCase());
                 if (similarity > bestSimilarity && similarity >= 0.80) {
                     bestSimilarity = similarity;
                     bestMatch = cat;
@@ -2690,6 +2623,44 @@ public class ImportService {
         return String.join(":", segments);
     }
 
+    /** Validate enriched rows before any posting, including saved review edits. */
+    private void validateImportedSplitAmounts(
+            List<ImportedTransaction> transactions, Long fallbackAccountId, Long userId) {
+        Map<String, Long> scopes = duplicateAccountScopes(transactions, fallbackAccountId, userId);
+        for (ImportedTransaction tx : transactions) {
+            tx.getValidationErrors().removeIf(error -> error.startsWith("SPLIT_INVALID:"));
+            if (!tx.isSplitTransaction() || tx.hasErrors() || tx.getAmount() == null) continue;
+            String accountKey = buildImportedAccountKey(tx.getAccountName(), tx.getAccountNumber());
+            Long accountId = accountKey == null ? fallbackAccountId : scopes.get(accountKey);
+            String currency = resolveTransactionCurrency(tx, accountId);
+            try {
+                BigDecimal amount = resolveSignedAmount(tx, accountId, currency).abs();
+                List<TransactionSplitRequest> splits =
+                        tx.getSplits().stream()
+                                .map(
+                                        split ->
+                                                TransactionSplitRequest.builder()
+                                                        .amount(
+                                                                split.getAmount() == null
+                                                                        ? null
+                                                                        : split.getAmount().abs())
+                                                        .build())
+                                .toList();
+                splits = transactionSplitService.reconcileForImport(amount, currency, splits);
+                transactionSplitService.validateSplits(
+                        amount,
+                        tx.isTransfer()
+                                ? TransactionType.TRANSFER
+                                : tx.getAmount().signum() < 0
+                                        ? TransactionType.EXPENSE
+                                        : TransactionType.INCOME,
+                        splits);
+            } catch (org.openfinance.exception.InvalidTransactionException ex) {
+                tx.addValidationError("SPLIT_INVALID: " + ex.getMessage());
+            }
+        }
+    }
+
     private List<TransactionSplitRequest> prepareImportedSplits(
             Transaction transaction,
             ImportedTransaction importedTx,
@@ -2836,7 +2807,8 @@ public class ImportService {
     }
 
     private String resolveTransactionCurrency(ImportedTransaction importedTx, Long accountId) {
-        Optional<Account> account = accountRepository.findById(accountId);
+        Optional<Account> account =
+                accountId == null ? Optional.empty() : accountRepository.findById(accountId);
         String accountCurrency = account.map(Account::getCurrency).orElse(null);
         if (accountCurrency != null && !accountCurrency.isBlank()) {
             return accountCurrency;
@@ -3125,6 +3097,17 @@ public class ImportService {
                         .isReconciled("reconciled".equalsIgnoreCase(importedTx.getClearedStatus()))
                         .isDeleted(false);
 
+        if (importedTx.getCurrency() != null
+                && !importedTx.getCurrency().isBlank()
+                && !importedTx.getCurrency().equalsIgnoreCase(currencyCode)
+                && importedTx.getAmount().signum() != 0) {
+            BigDecimal originalAmount = importedTx.getAmount().abs();
+            builder.originalAmount(originalAmount)
+                    .originalCurrency(importedTx.getCurrency())
+                    .conversionRate(
+                            amount.divide(originalAmount, 18, java.math.RoundingMode.HALF_EVEN));
+        }
+
         // Map category
         if (mapCategory
                 && importedTx.getCategory() != null
@@ -3404,75 +3387,5 @@ public class ImportService {
             default:
                 return null;
         }
-    }
-
-    /**
-     * Calculate similarity between two strings using Levenshtein distance. Returns similarity ratio
-     * from 0.0 (completely different) to 1.0 (identical).
-     *
-     * @param s1 first string
-     * @param s2 second string
-     * @return similarity ratio (0.0 to 1.0)
-     */
-    private double calculateStringSimilarity(String s1, String s2) {
-        if (s1 == null || s2 == null) {
-            return 0.0;
-        }
-
-        // Normalize strings
-        String normalized1 = s1.toLowerCase().trim();
-        String normalized2 = s2.toLowerCase().trim();
-
-        if (normalized1.equals(normalized2)) {
-            return 1.0;
-        }
-
-        // Calculate Levenshtein distance
-        int distance = levenshteinDistance(normalized1, normalized2);
-        int maxLength = Math.max(normalized1.length(), normalized2.length());
-
-        if (maxLength == 0) {
-            return 1.0;
-        }
-
-        return 1.0 - ((double) distance / maxLength);
-    }
-
-    /**
-     * Calculate Levenshtein distance between two strings. The Levenshtein distance is the minimum
-     * number of single-character edits (insertions, deletions, or substitutions) required to change
-     * one string into the other.
-     *
-     * @param s1 first string
-     * @param s2 second string
-     * @return the Levenshtein distance
-     */
-    private int levenshteinDistance(String s1, String s2) {
-        int len1 = s1.length();
-        int len2 = s2.length();
-
-        // Create DP table
-        int[][] dp = new int[len1 + 1][len2 + 1];
-
-        // Initialize base cases
-        for (int i = 0; i <= len1; i++) {
-            dp[i][0] = i;
-        }
-        for (int j = 0; j <= len2; j++) {
-            dp[0][j] = j;
-        }
-
-        // Fill DP table
-        for (int i = 1; i <= len1; i++) {
-            for (int j = 1; j <= len2; j++) {
-                if (s1.charAt(i - 1) == s2.charAt(j - 1)) {
-                    dp[i][j] = dp[i - 1][j - 1];
-                } else {
-                    dp[i][j] = 1 + Math.min(Math.min(dp[i - 1][j], dp[i][j - 1]), dp[i - 1][j - 1]);
-                }
-            }
-        }
-
-        return dp[len1][len2];
     }
 }

@@ -134,6 +134,30 @@ describe('RuleForm', () => {
     vi.clearAllMocks();
   });
 
+  it.each(['', '0', '-1'])('rejects an Add Split amount of %s', async amount => {
+    renderWithProviders(
+      <RuleForm
+        open
+        onOpenChange={mockOnOpenChange}
+        onSubmit={mockOnSubmit}
+        rule={{
+          ...mockRule,
+          actions: [
+            {
+              actionType: 'ADD_SPLIT',
+              actionValue: 'Groceries',
+              actionValue2: amount,
+              sortOrder: 0,
+            },
+          ],
+        }}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Update Rule' }));
+    expect(mockOnSubmit).not.toHaveBeenCalled();
+    expect(await screen.findByText('Every split must have a positive amount.')).toBeInTheDocument();
+  });
+
   it('should render create form when no rule provided', () => {
     renderWithProviders(
       <RuleForm open={true} onOpenChange={mockOnOpenChange} rule={null} onSubmit={mockOnSubmit} />

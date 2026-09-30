@@ -64,7 +64,8 @@
       "actionRequired": "Au moins une action est requise.",
       "actionValueRequired": "Toutes les actions doivent avoir une valeur.",
       "priorityNegative": "La priorité doit être égale ou supérieure à 0.",
-      "saveFailed": "Impossible d'enregistrer la règle. Veuillez réessayer."
+      "saveFailed": "Impossible d'enregistrer la règle. Veuillez réessayer.",
+      "splitAmountRequired": "Chaque ventilation doit avoir un montant positif."
     },
     "conditions": {
       "fields": {

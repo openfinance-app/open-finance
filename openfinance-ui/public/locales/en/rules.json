@@ -64,7 +64,8 @@
       "actionRequired": "At least one action is required.",
       "actionValueRequired": "All actions must have a value.",
       "priorityNegative": "Priority must be 0 or greater.",
-      "saveFailed": "Failed to save rule. Please try again."
+      "saveFailed": "Failed to save rule. Please try again.",
+      "splitAmountRequired": "Every split must have a positive amount."
     },
     "conditions": {
       "fields": {

@@ -12,6 +12,7 @@
  * Requirement: REQ-TR-6.3, REQ-TR-6.4
  */
 import { useState, useLayoutEffect } from 'react';
+import Decimal from 'decimal.js';
 import { AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
@@ -171,6 +172,20 @@ export function RuleForm({
       );
       if (hasEmptyActionValue) {
         newErrors.actions = t('form.errors.actionValueRequired');
+      } else if (
+        formState.actions.some(a => {
+          if (a.actionType !== 'ADD_SPLIT') return false;
+          try {
+            const amount = new Decimal(a.actionValue2?.trim() || 'NaN');
+            return (
+              !amount.isFinite() || !amount.gt(0) || amount.decimalPlaces() > 18 || amount.e >= 26
+            );
+          } catch {
+            return true;
+          }
+        })
+      ) {
+        newErrors.actions = t('form.errors.splitAmountRequired');
       }
     }
 

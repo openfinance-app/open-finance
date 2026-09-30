@@ -81,6 +81,10 @@ public class TransactionSplitService {
      *     <p>Requirement REQ-SPL-1.5: Splits only for INCOME/EXPENSE
      *     <p>Requirement REQ-SPL-2.6: Server-side amount validation
      */
+    @Transactional(
+            propagation = org.springframework.transaction.annotation.Propagation.SUPPORTS,
+            readOnly = true,
+            noRollbackFor = InvalidTransactionException.class)
     public void validateSplits(
             BigDecimal totalAmount,
             TransactionType transactionType,
@@ -135,6 +139,10 @@ public class TransactionSplitService {
      * @param splits the imported split requests; each split amount must be non-null
      * @return new split requests with reconciled amounts (category/description preserved)
      */
+    @Transactional(
+            propagation = org.springframework.transaction.annotation.Propagation.SUPPORTS,
+            readOnly = true,
+            noRollbackFor = InvalidTransactionException.class)
     public List<TransactionSplitRequest> reconcileForImport(
             BigDecimal total, String currency, List<TransactionSplitRequest> splits) {
         if (CollectionUtils.isEmpty(splits)) {

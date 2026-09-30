@@ -35,6 +35,43 @@ describe('ImportReview source categories', () => {
     mockAuthentication();
   });
 
+  it('keeps validation and collapsible split details inside table rows', async () => {
+    const { container } = renderWithProviders(
+      <ImportReview
+        transactions={[
+          {
+            transactionDate: '2026-09-29',
+            amount: '-30',
+            currency: 'EUR',
+            payee: 'Split shop',
+            category: null,
+            memo: '',
+            validationErrors: ['SPLIT_INVALID: Bad total'],
+            splits: [
+              { amount: '20', category: 'Groceries', memo: '' },
+              { amount: '20', category: 'Utilities', memo: '' },
+            ],
+          } as ImportTransactionDTO,
+        ]}
+        onTransactionsChange={vi.fn()}
+        categoryMappings={{}}
+        onCategoryMappingsChange={vi.fn()}
+        newCategoryNames={[]}
+        onNewCategoryNamesChange={vi.fn()}
+      />
+    );
+    const body = container.querySelector('tbody')!;
+    expect([...body.children].every(node => node.tagName === 'TR')).toBe(true);
+    expect(screen.getByText('Split Lines')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Hide errors'));
+    expect(screen.queryByText('Split Lines')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Show errors'));
+    expect(await screen.findByText('Split Lines')).toBeInTheDocument();
+    expect([...body.children].every(node => node.tagName === 'TR')).toBe(true);
+    fireEvent.click(screen.getByTitle('Hide errors'));
+    expect(screen.queryByText('Split Lines')).not.toBeInTheDocument();
+  });
+
   it('preserves exact decimal strings when saving a category edit', () => {
     const onTransactionsChange = vi.fn();
     const transaction = {

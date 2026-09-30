@@ -238,7 +238,9 @@
     "dateRequired": "Transaction date is required",
     "amountRequired": "Transaction amount is required",
     "amountZero": "Transaction amount cannot be zero",
-    "dateFuture": "Transaction date cannot be in the future"
+    "dateFuture": "Transaction date cannot be in the future",
+    "splitInvalid": "Invalid split: use at least two positive amounts whose total matches the transaction. Correct the transaction or its split rule before importing this row.",
+    "ruleActionInvalid": "A matched rule has an incomplete or invalid action. Edit the rule and import this file again."
   },
   "categoryMapping": {
     "title": "Map Categories",

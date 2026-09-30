@@ -127,6 +127,20 @@ public class TransactionRuleRequest {
         /** Tertiary parameter. Used by ADD_SPLIT: optional description for the split line. */
         private String actionValue3;
 
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(message = "{rule.action.value.required}")
+        public boolean isValidActionValue() {
+            return org.openfinance.util.RuleActionValidation.hasRequiredValue(
+                    actionType, actionValue);
+        }
+
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(message = "{rule.action.amount.invalid}")
+        public boolean isValidActionAmount() {
+            return org.openfinance.util.RuleActionValidation.hasValidAmount(
+                    actionType, actionValue, actionValue2);
+        }
+
         /** Display/application order of this action within the rule. */
         @Builder.Default private Integer sortOrder = 0;
     }
