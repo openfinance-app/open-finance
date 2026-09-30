@@ -238,7 +238,7 @@ export default function HistoryPage() {
                         </td>
                         <td className="px-4 py-4 min-w-40">
                           {item.entityLabel || '—'}
-                          {fields.length > 0 && (
+                          {(fields.length > 0 || (item.affectedRecords ?? 0) > 1) && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -290,39 +290,40 @@ export default function HistoryPage() {
                           )}
                         </td>
                       </tr>
-                      {expanded === item.id && fields.length > 0 && (
-                        <tr id={`history-details-${item.id}`}>
-                          <td colSpan={5} className="px-4 py-4 bg-muted/20">
-                            <dl className="space-y-2">
-                              {fields.map(field => (
-                                <div
-                                  key={field.field}
-                                  className="grid gap-2 sm:grid-cols-[minmax(8rem,1fr)_2fr_2fr]"
-                                >
-                                  <dt className="font-medium">
-                                    {t(`fields.${field.field}`, {
-                                      defaultValue: field.field.replaceAll('_', ' '),
-                                    })}
-                                  </dt>
-                                  <dd className="break-words">
-                                    <span className="text-muted-foreground">{t('before')}: </span>
-                                    {valueLabel(field.before)}
-                                  </dd>
-                                  <dd className="break-words">
-                                    <span className="text-muted-foreground">{t('after')}: </span>
-                                    {valueLabel(field.after)}
-                                  </dd>
-                                </div>
-                              ))}
-                            </dl>
-                            {(item.affectedRecords ?? 0) > 1 && (
-                              <p className="mt-3 text-xs text-muted-foreground">
-                                {t('relatedRecords', { count: item.affectedRecords })}
-                              </p>
-                            )}
-                          </td>
-                        </tr>
-                      )}
+                      {expanded === item.id &&
+                        (fields.length > 0 || (item.affectedRecords ?? 0) > 1) && (
+                          <tr id={`history-details-${item.id}`}>
+                            <td colSpan={5} className="px-4 py-4 bg-muted/20">
+                              <dl className="space-y-2">
+                                {fields.map(field => (
+                                  <div
+                                    key={field.field}
+                                    className="grid gap-2 sm:grid-cols-[minmax(8rem,1fr)_2fr_2fr]"
+                                  >
+                                    <dt className="font-medium">
+                                      {t(`fields.${field.field}`, {
+                                        defaultValue: field.field.replaceAll('_', ' '),
+                                      })}
+                                    </dt>
+                                    <dd className="break-words">
+                                      <span className="text-muted-foreground">{t('before')}: </span>
+                                      {valueLabel(field.before)}
+                                    </dd>
+                                    <dd className="break-words">
+                                      <span className="text-muted-foreground">{t('after')}: </span>
+                                      {valueLabel(field.after)}
+                                    </dd>
+                                  </div>
+                                ))}
+                              </dl>
+                              {(item.affectedRecords ?? 0) > 1 && (
+                                <p className="mt-3 text-xs text-muted-foreground">
+                                  {t('relatedRecords', { count: item.affectedRecords })}
+                                </p>
+                              )}
+                            </td>
+                          </tr>
+                        )}
                     </Fragment>
                   );
                 })}

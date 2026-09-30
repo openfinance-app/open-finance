@@ -210,6 +210,8 @@ export function ImportWizard() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['budgetAlerts'] });
     }
     // Reset the guard if a brand-new session begins.
     if (session?.status && session.status !== 'COMPLETED') {

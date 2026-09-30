@@ -51,6 +51,14 @@ public class HistoryBackupSupport {
         }
     }
 
+    private void reserve(Map<String, Map<Long, Long>> ids, String table, String id) {
+        if (table.equals("budget_alerts")) {
+            UUID.fromString(id);
+            return;
+        }
+        reserve(ids, table, Long.parseLong(id));
+    }
+
     private void reserve(Map<String, Map<Long, Long>> ids, String table, long id) {
         if (!HistoryDomainRegistry.TABLES.contains(table) || id <= 0)
             throw BackupException.validation("Invalid reversible history reference");
@@ -90,7 +98,7 @@ public class HistoryBackupSupport {
             changes.add(
                     new HistoryChangeSet.Change(
                             change.table(),
-                            mapped(ids, change.table(), change.id()),
+                            mapped(ids, change.table(), change.id(), transfers),
                             row(change.table(), change.before(), ids, userId, transfers),
                             row(change.table(), change.after(), ids, userId, transfers)));
         List<HistoryChangeSet.Guard> guards =
@@ -99,9 +107,9 @@ public class HistoryBackupSupport {
                                 guard ->
                                         new HistoryChangeSet.Guard(
                                                 guard.table(),
-                                                mapped(ids, guard.table(), guard.id()),
-                                                references(guard.before(), ids),
-                                                references(guard.after(), ids)))
+                                                mapped(ids, guard.table(), guard.id(), transfers),
+                                                references(guard.before(), ids, transfers),
+                                                references(guard.after(), ids, transfers)))
                         .toList();
         return payloads.write(new HistoryChangeSet(state.format(), changes, guards));
     }
@@ -146,24 +154,40 @@ public class HistoryBackupSupport {
                                             .findFirst()
                                             .orElse(null);
                         if (target != null)
-                            result.put(
-                                    column,
-                                    Long.toString(mapped(ids, target, Long.parseLong(value))));
+                            result.put(column, mapped(ids, target, value, transfers));
                     }
                 });
         return result;
     }
 
     private List<HistoryChangeSet.Reference> references(
-            List<HistoryChangeSet.Reference> source, Map<String, Map<Long, Long>> ids) {
+            List<HistoryChangeSet.Reference> source,
+            Map<String, Map<Long, Long>> ids,
+            Map<String, String> transfers) {
         return source.stream()
                 .map(
                         reference ->
                                 new HistoryChangeSet.Reference(
                                         reference.table(),
                                         reference.column(),
-                                        mapped(ids, reference.table(), reference.id())))
+                                        mapped(ids, reference.table(), reference.id(), transfers)))
                 .toList();
+    }
+
+    public static String remapAlertId(String id, Map<String, String> mappings) {
+        UUID.fromString(id);
+        return mappings.computeIfAbsent(
+                "budget_alerts:" + id, ignored -> UUID.randomUUID().toString());
+    }
+
+    private static String mapped(
+            Map<String, Map<Long, Long>> ids,
+            String table,
+            String id,
+            Map<String, String> transfers) {
+        return table.equals("budget_alerts")
+                ? remapAlertId(id, transfers)
+                : Long.toString(mapped(ids, table, Long.parseLong(id)));
     }
 
     private static long mapped(Map<String, Map<Long, Long>> ids, String table, long id) {
@@ -176,6 +200,7 @@ public class HistoryBackupSupport {
     /** Keep SQLite from assigning an ID reserved by an undone action to a new unrelated row. */
     public void reserveSequences(Map<String, Map<Long, Long>> ids) {
         for (String table : HistoryDomainRegistry.TABLES) {
+            if (table.equals("budget_alerts")) continue;
             long maximum =
                     ids.getOrDefault(table, Map.of()).values().stream()
                             .mapToLong(Long::longValue)

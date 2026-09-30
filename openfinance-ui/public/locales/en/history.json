@@ -55,7 +55,8 @@
     "expired": "The 30-day undo window has expired.",
     "changed": "This record changed later. Undo its later changes first.",
     "dependencies": "Related records changed or now conflict. Resolve those changes first.",
-    "state": "The operation has already changed state. Refresh history."
+    "state": "The operation has already changed state. Refresh history.",
+    "budgetOverlap": "Another budget already covers this category and period. Remove the overlap first."
   },
   "fields": {
     "name": "Name",
@@ -94,6 +95,9 @@
     "transaction_type": "Type",
     "asset_type": "Type",
     "liability_type": "Type",
-    "property_type": "Type"
+    "property_type": "Type",
+    "rollover": "Rollover",
+    "period": "Budget period",
+    "category_id": "Category"
   }
 }

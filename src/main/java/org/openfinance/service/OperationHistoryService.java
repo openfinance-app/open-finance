@@ -281,7 +281,7 @@ public class OperationHistoryService {
     private static Set<Long> attachmentIds(HistoryChangeSet state) {
         return state.changes().stream()
                 .filter(change -> change.table().equals("attachments"))
-                .map(HistoryChangeSet.Change::id)
+                .map(change -> Long.valueOf(change.id()))
                 .collect(java.util.stream.Collectors.toSet());
     }
 
@@ -372,7 +372,8 @@ public class OperationHistoryService {
                                 change ->
                                         change.table().equals(table)
                                                 && (requestedId == null
-                                                        || change.id() == requestedId))
+                                                        || change.id()
+                                                                .equals(requestedId.toString())))
                         .findFirst()
                         .orElseGet(
                                 () ->
@@ -385,11 +386,11 @@ public class OperationHistoryService {
         if (id == null)
             id =
                     primary.table().equals(table)
-                            ? primary.id()
+                            ? Long.valueOf(primary.id())
                             : type == EntityType.LIABILITY
                                             && primaryState.get("liability_id") != null
                                     ? Long.valueOf(primaryState.get("liability_id"))
-                                    : primary.id();
+                                    : Long.valueOf(primary.id());
         if (operation == OperationType.CREATE
                 && primary.before() != null
                 && type != EntityType.IMPORT) operation = OperationType.UPDATE;
@@ -424,12 +425,12 @@ public class OperationHistoryService {
                         .entityLabel(label)
                         .operationType(operation)
                         .actionStateJson(payloads.write(changes))
-                        .changedFieldsJson(actionDiff(primary))
+                        .changedFieldsJson(actionDiff(primary, userId))
                         .build();
         historyRepository.save(entry);
     }
 
-    private String actionDiff(HistoryChangeSet.Change change) {
+    private String actionDiff(HistoryChangeSet.Change change, Long userId) {
         Set<String> visible =
                 Set.of(
                         "name",
@@ -468,7 +469,10 @@ public class OperationHistoryService {
                         "start_date",
                         "end_date",
                         "status",
-                        "priority");
+                        "priority",
+                        "rollover",
+                        "period",
+                        "category_id");
         Map<String, Object[]> diff = new LinkedHashMap<>();
         Map<String, String> before = change.before() == null ? Map.of() : change.before();
         Map<String, String> after = change.after() == null ? Map.of() : change.after();
@@ -477,17 +481,21 @@ public class OperationHistoryService {
                 diff.put(
                         field,
                         new Object[] {
-                            displayValue(field, before.get(field)),
-                            displayValue(field, after.get(field))
+                            displayValue(field, before.get(field), userId),
+                            displayValue(field, after.get(field), userId)
                         });
         }
         return diff.isEmpty() ? null : buildChangedFieldsJson(diff);
     }
 
-    private Object displayValue(String field, String value) {
+    private Object displayValue(String field, String value, Long userId) {
         if (value != null
-                && Set.of("is_active", "active", "is_enabled", "is_reconciled").contains(field))
-            return value.equals("1") || Boolean.parseBoolean(value);
+                && Set.of("is_active", "active", "is_enabled", "is_reconciled", "rollover")
+                        .contains(field)) return value.equals("1") || Boolean.parseBoolean(value);
+        if (value != null && field.equals("category_id")) {
+            String label = states.label("categories", Long.valueOf(value), userId);
+            return label == null ? value : label;
+        }
         return value;
     }
 

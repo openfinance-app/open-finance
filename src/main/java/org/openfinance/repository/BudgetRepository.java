@@ -63,6 +63,7 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
      * @return Optional containing the budget if found and owned by user, empty otherwise
      */
     @Query("SELECT b FROM Budget b WHERE b.id = :id AND b.userId = :userId")
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "category")
     Optional<Budget> findByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
     /**

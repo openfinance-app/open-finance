@@ -11,10 +11,19 @@ public record HistoryChangeSet(int format, List<Change> changes, List<Guard> gua
     public static final int FORMAT = 1;
     public static final Set<String> TECHNICAL = Set.of("version", "updated_at");
 
-    public record Key(String table, long id) {}
+    public record Key(String table, String id) {
+        public Key(String table, long id) {
+            this(table, Long.toString(id));
+        }
+    }
 
     public record Change(
-            String table, long id, Map<String, String> before, Map<String, String> after) {
+            String table, String id, Map<String, String> before, Map<String, String> after) {
+        public Change(
+                String table, long id, Map<String, String> before, Map<String, String> after) {
+            this(table, Long.toString(id), before, after);
+        }
+
         public Key key() {
             return new Key(table, id);
         }
@@ -42,9 +51,17 @@ public record HistoryChangeSet(int format, List<Change> changes, List<Guard> gua
     /**
      * Incoming references are checked as well as row contents, including polymorphic attachments.
      */
-    public record Reference(String table, String column, long id) {}
+    public record Reference(String table, String column, String id) {
+        public Reference(String table, String column, long id) {
+            this(table, column, Long.toString(id));
+        }
+    }
 
-    public record Guard(String table, long id, List<Reference> before, List<Reference> after) {}
+    public record Guard(String table, String id, List<Reference> before, List<Reference> after) {
+        public Guard(String table, long id, List<Reference> before, List<Reference> after) {
+            this(table, Long.toString(id), before, after);
+        }
+    }
 
     public static boolean equal(
             Map<String, String> a, Map<String, String> b, boolean ignoreBalance) {

@@ -20,6 +20,7 @@ import org.openfinance.dto.BudgetResponse;
 import org.openfinance.dto.BudgetSuggestion;
 import org.openfinance.dto.BudgetSummaryResponse;
 import org.openfinance.entity.Budget;
+import org.openfinance.entity.BudgetAlert;
 import org.openfinance.entity.BudgetPeriod;
 import org.openfinance.entity.Category;
 import org.openfinance.entity.CategoryType;
@@ -31,12 +32,12 @@ import org.openfinance.entity.TransactionType;
 import org.openfinance.exception.BudgetNotFoundException;
 import org.openfinance.exception.CategoryNotFoundException;
 import org.openfinance.mapper.BudgetMapper;
+import org.openfinance.repository.BudgetAlertRepository;
 import org.openfinance.repository.BudgetRepository;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.TransactionSplitRepository;
-import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.history.ReversibleOperation;
 import org.springframework.context.MessageSource;
@@ -86,6 +87,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class BudgetService {
 
     private final BudgetRepository budgetRepository;
+    private final BudgetAlertRepository budgetAlertRepository;
     private final CategoryRepository categoryRepository;
     private final CurrencyRepository currencyRepository;
     private final TransactionRepository transactionRepository;
@@ -156,6 +158,7 @@ public class BudgetService {
 
         // Save to database
         Budget savedBudget = budgetRepository.save(budget);
+        createDefaultAlerts(savedBudget);
         indexBudgetSearchTokens(savedBudget, request.getNotes());
         log.info(
                 "Budget created successfully: id={}, userId={}, category={}, period={}",
@@ -295,20 +298,11 @@ public class BudgetService {
                         .findByIdAndUserId(budgetId, userId)
                         .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
 
-        String label = null;
-        BudgetResponse snapshot = null;
-        if (EncryptionContext.getKey() != null) {
-            // We need category for toResponseWithDecryption
-            Category category = budget.getCategory();
-            // Note: category name might be encrypted if not system category
-            // but category.getName() in service/entity is typically the encrypted string?
-            // Wait, Category name is encrypted if private.
-            // BudgetResponse's categoryName will be decrypted by toResponseWithDecryption
-            snapshot = toResponseWithDecryption(budget, category);
-            label = snapshot.getCategoryName();
-        }
+        BudgetResponse snapshot = toResponseWithDecryption(budget, budget.getCategory());
+        String label = snapshot.getCategoryName();
 
         // Hard delete
+        budgetAlertRepository.deleteByBudgetId(budgetId);
         budgetRepository.delete(budget);
         searchTokenService.removeEntity("BUDGET", budgetId);
 
@@ -744,120 +738,40 @@ public class BudgetService {
                 .build();
     }
 
-    /**
-     * Returns the spending history for a budget broken down into sub-periods.
-     *
-     * <p>The budget's date range (startDate → endDate) is split into sub-periods matching the
-     * budget's {@link BudgetPeriod}:
-     *
-     * <ul>
-     *   <li>WEEKLY → 7-day windows
-     *   <li>MONTHLY → calendar months
-     *   <li>QUARTERLY → 3-month windows
-     *   <li>YEARLY → 1-year windows (edge case: a multi-year budget)
-     * </ul>
-     *
-     * <p>For each sub-period, the actual transaction spend is calculated and compared against the
-     * budget amount, producing a status indicator.
-     *
-     * <p>Requirement REQ-2.9.1.4: Budget history per sub-period
-     *
-     * @param budgetId the budget ID
-     * @param userId the authenticated user's ID
-     * @param encryptionKey the AES-256 encryption key for decrypting the amount
-     * @return full history response with per-period breakdown
-     * @throws BudgetNotFoundException if the budget doesn't belong to the user
-     * @throws IllegalArgumentException if any parameter is null
-     */
+    /** A dated budget owns one allowance for its complete inclusive interval. */
     @Transactional(readOnly = true)
     public BudgetHistoryResponse getBudgetHistory(Long budgetId, Long userId) {
-        if (budgetId == null) {
-            throw new IllegalArgumentException("Budget ID cannot be null");
-        }
-        if (userId == null) {
-            throw new IllegalArgumentException("User ID cannot be null");
-        }
-        log.debug("Generating budget history for budget {}: userId={}", budgetId, userId);
-
-        // Fetch and verify ownership
+        BudgetProgressResponse progress = calculateBudgetProgress(budgetId, userId);
         Budget budget =
                 budgetRepository
                         .findByIdAndUserId(budgetId, userId)
                         .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
-
-        Category category =
-                categoryRepository
-                        .findByIdAndUserId(budget.getCategoryId(), userId)
-                        .orElseThrow(() -> new CategoryNotFoundException(budget.getCategoryId()));
-
-        // Amount already decrypted by JPA converter
-        String decryptedAmount = budget.getAmount();
-        BigDecimal budgetedPerPeriod = new BigDecimal(decryptedAmount);
-
-        // A dated budget owns only its explicit interval; following periods have their own records.
-        List<LocalDate[]> windows =
-                buildSubPeriodWindows(
-                        budget.getPeriod(), budget.getStartDate(), budget.getEndDate());
-        BigDecimal carry = rolloverAmount(budget);
-
-        BigDecimal totalSpent = BigDecimal.ZERO;
-        BigDecimal totalBudgeted = BigDecimal.ZERO;
-        List<BudgetHistoryEntry> entries = new ArrayList<>();
-
-        for (LocalDate[] window : windows) {
-            LocalDate periodStart = window[0];
-            LocalDate periodEnd = window[1];
-
-            BigDecimal spent =
-                    calculateSpentAmount(
-                            category, periodStart, periodEnd, userId, budget.getCurrency());
-            BigDecimal available = budgetedPerPeriod.add(carry);
-            BigDecimal remaining = available.subtract(spent);
-            BigDecimal percentage = BigDecimal.ZERO;
-            if (available.compareTo(BigDecimal.ZERO) > 0) {
-                percentage =
-                        spent.divide(available, 4, RoundingMode.HALF_UP)
-                                .multiply(BigDecimal.valueOf(100))
-                                .setScale(2, RoundingMode.HALF_UP);
-            }
-
-            totalSpent = totalSpent.add(spent);
-            totalBudgeted = totalBudgeted.add(available);
-
-            entries.add(
-                    BudgetHistoryEntry.builder()
-                            .label(formatPeriodLabel(budget.getPeriod(), periodStart, periodEnd))
-                            .periodStart(periodStart)
-                            .periodEnd(periodEnd)
-                            .budgeted(available)
-                            .spent(spent)
-                            .remaining(remaining)
-                            .percentageSpent(percentage)
-                            .status(determineStatus(percentage))
-                            .build());
-            carry =
-                    Boolean.TRUE.equals(budget.getRollover())
-                            ? remaining.max(BigDecimal.ZERO)
-                            : BigDecimal.ZERO;
-        }
-
-        log.debug(
-                "Budget history generated: budgetId={}, entries={}, totalSpent={}",
-                budgetId,
-                entries.size(),
-                totalSpent);
-
+        BudgetHistoryEntry entry =
+                BudgetHistoryEntry.builder()
+                        .label(
+                                formatPeriodLabel(
+                                        budget.getPeriod(),
+                                        budget.getStartDate(),
+                                        budget.getEndDate()))
+                        .periodStart(budget.getStartDate())
+                        .periodEnd(budget.getEndDate())
+                        .budgeted(progress.getBudgeted())
+                        .spent(progress.getSpent())
+                        .remaining(progress.getRemaining())
+                        .percentageSpent(progress.getPercentageSpent())
+                        .status(progress.getStatus())
+                        .build();
         return BudgetHistoryResponse.builder()
                 .budgetId(budget.getId())
-                .categoryName(getDecryptedCategoryName(category))
-                .amount(budgetedPerPeriod)
+                .categoryName(progress.getCategoryName())
+                .amount(new BigDecimal(budget.getAmount()))
                 .currency(budget.getCurrency())
                 .period(budget.getPeriod())
                 .startDate(budget.getStartDate())
                 .endDate(budget.getEndDate())
-                .history(entries)
-                .totalSpent(totalSpent)
-                .totalBudgeted(totalBudgeted)
+                .history(List.of(entry))
+                .totalSpent(progress.getSpent())
+                .totalBudgeted(progress.getBudgeted())
                 .build();
     }
 
@@ -950,7 +864,13 @@ public class BudgetService {
                 BigDecimal windowSpent =
                         txList.stream()
                                 .filter(t -> t.getType() == TransactionType.EXPENSE)
-                                .map(Transaction::getAmount)
+                                .map(
+                                        t ->
+                                                budgetAmount(
+                                                        t.getAmount(),
+                                                        t.getCurrency(),
+                                                        suggestionCurrency,
+                                                        t.getDate()))
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                 int windowTxCount =
@@ -966,7 +886,7 @@ public class BudgetService {
                 BigDecimal splitSpent =
                         splits.stream()
                                 .filter(s -> s.getAmount() != null)
-                                .map(TransactionSplit::getAmount)
+                                .map(split -> splitBudgetAmount(split, suggestionCurrency))
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
                 windowSpent = windowSpent.add(splitSpent);
 
@@ -1167,23 +1087,31 @@ public class BudgetService {
         BigDecimal splitSpent =
                 splits.stream()
                         .filter(s -> s.getAmount() != null)
-                        .map(
-                                split -> {
-                                    Transaction parent = split.getTransaction();
-                                    if (parent == null)
-                                        parent =
-                                                transactionRepository
-                                                        .findById(split.getTransactionId())
-                                                        .orElseThrow();
-                                    return budgetAmount(
-                                            split.getAmount(),
-                                            parent.getCurrency(),
-                                            currency,
-                                            parent.getDate());
-                                })
+                        .map(split -> splitBudgetAmount(split, currency))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return mainSpent.add(splitSpent);
+    }
+
+    private BigDecimal splitBudgetAmount(TransactionSplit split, String currency) {
+        Transaction parent = split.getTransaction();
+        if (parent == null)
+            parent = transactionRepository.findById(split.getTransactionId()).orElseThrow();
+        return budgetAmount(split.getAmount(), parent.getCurrency(), currency, parent.getDate());
+    }
+
+    private void createDefaultAlerts(Budget budget) {
+        budgetAlertRepository.saveAll(
+                List.of(75, 90, 100).stream()
+                        .map(
+                                threshold ->
+                                        BudgetAlert.builder()
+                                                .budget(budget)
+                                                .threshold(BigDecimal.valueOf(threshold))
+                                                .isEnabled(true)
+                                                .isRead(true)
+                                                .build())
+                        .toList());
     }
 
     private BigDecimal budgetAmount(

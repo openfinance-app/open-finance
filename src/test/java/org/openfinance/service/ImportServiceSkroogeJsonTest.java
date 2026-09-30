@@ -107,6 +107,8 @@ class ImportServiceSkroogeJsonTest {
 
     private final ImportProperties importProperties = new ImportProperties();
 
+    @Mock private BudgetAlertService budgetAlertService;
+
     private ImportService importService;
     private ObjectMapper objectMapper;
 
@@ -131,6 +133,7 @@ class ImportServiceSkroogeJsonTest {
         importService =
                 new ImportService(
                         importSessionRepository,
+                        budgetAlertService,
                         transactionRepository,
                         accountRepository,
                         categoryRepository,

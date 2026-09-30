@@ -108,6 +108,7 @@ export function useCreateBudget() {
     onSuccess: () => {
       // Invalidate all budget-related queries
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['budgetAlerts'] });
     },
   });
 }
@@ -128,6 +129,7 @@ export function useUpdateBudget() {
     onSuccess: (_, variables) => {
       // Invalidate budget queries
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['budgetAlerts'] });
       queryClient.invalidateQueries({ queryKey: ['budgets', variables.id] });
     },
   });
@@ -141,12 +143,12 @@ export function useDeleteBudget() {
 
   return useMutation<void, Error, number>({
     mutationFn: async (budgetId: number) => {
-      // Note: DELETE endpoint doesn't require encryption key
-      await apiClient.delete(`/budgets/${budgetId}`);
+      await apiClient.delete(`/budgets/${budgetId}`, { headers: buildEncryptionHeaders() });
     },
     onSuccess: () => {
       // Invalidate budget queries
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['budgetAlerts'] });
     },
   });
 }
@@ -155,8 +157,8 @@ export function useDeleteBudget() {
  * Fetch the per-sub-period spending history for a budget.
  *
  * Calls GET /api/v1/budgets/{id}/history and returns a BudgetHistoryResponse
- * containing metadata about the budget plus an ordered list of sub-period
- * entries (e.g. 12 monthly rows for a yearly "Food" budget).
+ * containing metadata and spending for its complete dated interval.
+ * Each dated budget owns one allowance, including any prior-period rollover.
  *
  * REQ-2.9.1.4: Budget history per sub-period breakdown
  */
@@ -211,6 +213,7 @@ export function useBulkCreateBudgets() {
     onSuccess: () => {
       // Invalidate all budget-related queries so the BudgetsPage refreshes
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['budgetAlerts'] });
     },
   });
 }

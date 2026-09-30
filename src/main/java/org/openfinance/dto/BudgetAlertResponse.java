@@ -64,12 +64,14 @@ public class BudgetAlertResponse {
     private BigDecimal threshold;
 
     /** Whether this alert is currently enabled. */
+    @lombok.Getter(onMethod_ = @com.fasterxml.jackson.annotation.JsonProperty("isEnabled"))
     private boolean isEnabled;
 
     /** Timestamp when alert was last triggered. Null if never triggered. */
     private LocalDateTime lastTriggered;
 
     /** Whether user has read/acknowledged this alert. */
+    @lombok.Getter(onMethod_ = @com.fasterxml.jackson.annotation.JsonProperty("isRead"))
     private boolean isRead;
 
     /**

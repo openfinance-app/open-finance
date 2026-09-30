@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.openfinance.entity.BudgetAlert;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -40,6 +41,9 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface BudgetAlertRepository extends JpaRepository<BudgetAlert, UUID> {
+    @Override
+    @EntityGraph(attributePaths = {"budget", "budget.category"})
+    Optional<BudgetAlert> findById(UUID id);
 
     /**
      * Finds all alerts for a specific budget.
@@ -51,6 +55,7 @@ public interface BudgetAlertRepository extends JpaRepository<BudgetAlert, UUID> 
      * @return list of alerts for the budget, empty list if none found
      */
     @Query("SELECT a FROM BudgetAlert a WHERE a.budget.id = :budgetId ORDER BY a.threshold ASC")
+    @EntityGraph(attributePaths = {"budget", "budget.category"})
     List<BudgetAlert> findByBudgetId(@Param("budgetId") Long budgetId);
 
     /**
@@ -117,6 +122,7 @@ public interface BudgetAlertRepository extends JpaRepository<BudgetAlert, UUID> 
      */
     @Query(
             "SELECT a FROM BudgetAlert a WHERE a.budget.userId = :userId AND a.isRead = false AND a.lastTriggered IS NOT NULL ORDER BY a.lastTriggered DESC")
+    @EntityGraph(attributePaths = {"budget", "budget.category"})
     List<BudgetAlert> findUnreadAlertsByUserId(@Param("userId") Long userId);
 
     /**

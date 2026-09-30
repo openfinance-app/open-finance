@@ -9,6 +9,7 @@ import { formatDecimal } from '@/utils/format';
  * AccountDetailModal.
  */
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Calendar } from 'lucide-react';
 import {
@@ -24,6 +25,7 @@ import {
 import { Card } from '@/components/ui/Card';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
+import { AlertSettings } from '@/components/alerts/AlertSettings';
 import { useBudget, useBudgetHistory } from '@/hooks/useBudgets';
 import { useVisibility } from '@/context/VisibilityContext';
 import { useAuthContext } from '@/context/AuthContext';
@@ -248,13 +250,20 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
       : 0;
   const isOverBudget = historyData ? historyData.totalSpent > historyData.totalBudgeted : false;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal panel */}
-      <div className="relative bg-surface border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('detail.historyTitle', {
+          category: historyData?.categoryName ?? budget?.categoryName ?? '',
+        })}
+        className="relative bg-surface border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4"
+      >
         {/* ── Header ── */}
         <div className="sticky top-0 z-10 bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -494,10 +503,14 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                   </div>
                 )}
               </Card>
+              <Card className="p-4 sm:p-6">
+                <AlertSettings budgetId={budgetId} />
+              </Card>
             </>
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

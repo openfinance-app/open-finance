@@ -96,6 +96,8 @@ class ImportServiceMultiAccountTest {
 
     private final ImportProperties importProperties = new ImportProperties();
 
+    @Mock private BudgetAlertService budgetAlertService;
+
     private ImportService importService;
     private ObjectMapper objectMapper;
 
@@ -120,6 +122,7 @@ class ImportServiceMultiAccountTest {
         importService =
                 new ImportService(
                         importSessionRepository,
+                        budgetAlertService,
                         transactionRepository,
                         accountRepository,
                         categoryRepository,

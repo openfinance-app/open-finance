@@ -222,7 +222,9 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
           <span className="text-xs">
             {budget.daysRemaining > 0
               ? t('card.daysLeft', { count: budget.daysRemaining })
-              : t('card.expired')}
+              : budget.daysRemaining === 0
+                ? t('card.endsToday')
+                : t('card.expired')}
           </span>
         </div>
       </div>

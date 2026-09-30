@@ -16,6 +16,7 @@ import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { useAuthContext } from '@/context/AuthContext';
 import { isValidDecimalString } from '@/utils/money';
+import { budgetPeriodEnd } from '@/utils/budget-dates';
 import type { BudgetRequest, BudgetResponse, BudgetPeriod } from '@/types/budget';
 
 const BUDGET_PERIODS: BudgetPeriod[] = ['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY'];
@@ -109,25 +110,8 @@ export function BudgetForm({
   // Auto-compute end date from start date + period (only for new budgets)
   useEffect(() => {
     if (isEditing || !watchedStartDate) return;
-    const start = new Date(watchedStartDate);
-    if (isNaN(start.getTime())) return;
-
-    const end = new Date(start);
-    switch (watchedPeriod) {
-      case 'WEEKLY':
-        end.setDate(end.getDate() + 7);
-        break;
-      case 'MONTHLY':
-        end.setMonth(end.getMonth() + 1);
-        break;
-      case 'QUARTERLY':
-        end.setMonth(end.getMonth() + 3);
-        break;
-      case 'YEARLY':
-        end.setFullYear(end.getFullYear() + 1);
-        break;
-    }
-    setValue('endDate', end.toISOString().split('T')[0], { shouldValidate: true });
+    const endDate = budgetPeriodEnd(watchedStartDate, watchedPeriod);
+    if (endDate) setValue('endDate', endDate, { shouldValidate: true });
   }, [watchedPeriod, watchedStartDate, isEditing, setValue]);
 
   const handleFormSubmit = handleSubmit((data: BudgetFormData) => {

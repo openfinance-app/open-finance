@@ -151,6 +151,8 @@ class ImportServiceTest {
 
     private final ImportProperties importProperties = new ImportProperties();
 
+    @Mock private BudgetAlertService budgetAlertService;
+
     private ImportService importService;
 
     private static final Long USER_ID = 123L;
@@ -197,6 +199,7 @@ class ImportServiceTest {
         importService =
                 new ImportService(
                         importSessionRepository,
+                        budgetAlertService,
                         transactionRepository,
                         accountRepository,
                         categoryRepository,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type AriaAttributes } from 'react';
 import { cn } from '@/lib/utils';
 import { useNumberFormat } from '@/context/NumberFormatContext';
 import type { NumberFormat } from '@/context/NumberFormatContext';
@@ -22,6 +22,7 @@ interface NumberInputProps {
   max?: string | number;
   /** Accessible label for testing when label element not present. */
   ['aria-label']?: string;
+  ['aria-invalid']?: AriaAttributes['aria-invalid'];
   ['data-testid']?: string;
 }
 
@@ -171,6 +172,7 @@ export function NumberInput({
   min,
   max,
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
   'data-testid': dataTestId,
 }: NumberInputProps) {
   let numberFormat: NumberFormat = '1,234.56';
@@ -237,7 +239,7 @@ export function NumberInput({
         max={max}
         value={display}
         placeholder={displayPlaceholder}
-        aria-invalid={error ? 'true' : 'false'}
+        aria-invalid={error ? 'true' : (ariaInvalid ?? 'false')}
         aria-label={ariaLabel}
         data-testid={dataTestId}
         onChange={e => {

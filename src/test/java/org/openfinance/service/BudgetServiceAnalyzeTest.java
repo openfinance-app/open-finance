@@ -45,6 +45,7 @@ import org.openfinance.security.EncryptionService;
 class BudgetServiceAnalyzeTest {
 
     @Mock private BudgetRepository budgetRepository;
+    @Mock private org.openfinance.repository.BudgetAlertRepository budgetAlertRepository;
 
     @Mock private CategoryRepository categoryRepository;
 

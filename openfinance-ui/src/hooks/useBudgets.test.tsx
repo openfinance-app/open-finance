@@ -370,7 +370,9 @@ describe('useDeleteBudget', () => {
     await act(async () => {
       await result.current.mutateAsync(1);
     });
-    expect(mockedApiClient.delete).toHaveBeenCalledWith('/budgets/1');
+    expect(mockedApiClient.delete).toHaveBeenCalledWith('/budgets/1', {
+      headers: { 'X-Encryption-Session': 'test-key' },
+    });
   });
 });
 

@@ -66,6 +66,7 @@ public class BudgetAlert {
     /** Unique identifier for the budget alert. */
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.VARCHAR)
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 

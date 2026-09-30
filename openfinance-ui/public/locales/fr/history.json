@@ -55,7 +55,8 @@
     "expired": "Le délai d’annulation de 30 jours est dépassé.",
     "changed": "Cet enregistrement a été modifié depuis. Annulez d’abord les modifications suivantes.",
     "dependencies": "Des enregistrements liés ont changé ou sont en conflit. Résolvez d’abord ces modifications.",
-    "state": "L’état de cette opération a déjà changé. Actualisez l’historique."
+    "state": "L’état de cette opération a déjà changé. Actualisez l’historique.",
+    "budgetOverlap": "Un autre budget couvre déjà cette catégorie et cette période. Supprimez le chevauchement d’abord."
   },
   "fields": {
     "name": "Nom",
@@ -94,6 +95,9 @@
     "transaction_type": "Type",
     "asset_type": "Type",
     "liability_type": "Type",
-    "property_type": "Type"
+    "property_type": "Type",
+    "rollover": "Report du solde",
+    "period": "Période du budget",
+    "category_id": "Catégorie"
   }
 }

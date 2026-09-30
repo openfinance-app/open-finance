@@ -108,6 +108,7 @@ public class ImportService {
     private static final int MIN_CONTAINMENT_SLUG_LENGTH = 4;
 
     private final ImportSessionRepository importSessionRepository;
+    private final BudgetAlertService budgetAlertService;
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
@@ -978,6 +979,7 @@ public class ImportService {
             }
 
             importSessionRepository.save(session);
+            budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
 
             return session;
 
@@ -1714,6 +1716,7 @@ public class ImportService {
         }
 
         importSessionRepository.save(session);
+        budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
         return session;
     }
 
@@ -2006,6 +2009,7 @@ public class ImportService {
         }
 
         importSessionRepository.save(session);
+        budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
         return session;
     }
 

@@ -368,6 +368,184 @@ class OperationHistoryControllerIntegrationTest {
     }
 
     @Test
+    void undoBudgetDeletionRejectsReplacementOverlapAndKeepsBothActionsIntact() throws Exception {
+        JsonNode category =
+                call(post("/api/v1/categories"), Map.of("name", "Water audit", "type", "EXPENSE"));
+        Map<String, Object> request = auditBudgetRequest(category.get("id").asLong());
+        JsonNode original = call(post("/api/v1/budgets"), request);
+        call(delete("/api/v1/budgets/" + original.get("id").asLong()), null);
+        JsonNode deletion = latest("BUDGET");
+        assertThat(deletion.get("entityLabel").asText()).isEqualTo("Water audit");
+        request.put("amount", "50");
+        JsonNode replacement = call(post("/api/v1/budgets"), request);
+        long replacementAction = latest("BUDGET").get("id").asLong();
+        JsonNode conflict = historyEntry(deletion.get("id").asLong());
+        assertThat(conflict.get("canUndo").asBoolean()).isFalse();
+        assertThat(conflict.get("unavailableReason").asText()).isEqualTo("budgetOverlap");
+        rejectReverse(deletion.get("id").asLong());
+        assertThat(call(get("/api/v1/budgets"), null)).hasSize(1);
+        assertThat(
+                        call(get("/api/v1/budgets/" + replacement.get("id").asLong()), null)
+                                .get("amount")
+                                .decimalValue())
+                .isEqualByComparingTo("50");
+        reverse(replacementAction, false);
+        reverse(deletion.get("id").asLong(), false);
+        assertThat(
+                        call(get("/api/v1/budgets/" + original.get("id").asLong()), null)
+                                .get("amount")
+                                .decimalValue())
+                .isEqualByComparingTo("100");
+    }
+
+    @Test
+    void redoBudgetCreationRejectsReplacementOverlap() throws Exception {
+        JsonNode category =
+                call(post("/api/v1/categories"), Map.of("name", "Redo budget", "type", "EXPENSE"));
+        Map<String, Object> request = auditBudgetRequest(category.get("id").asLong());
+        call(post("/api/v1/budgets"), request);
+        long creation = latest("BUDGET").get("id").asLong();
+        reverse(creation, false);
+        call(post("/api/v1/budgets"), request);
+        assertThat(historyEntry(creation).get("canRedo").asBoolean()).isFalse();
+        mockMvc.perform(
+                        post("/api/v1/history/" + creation + "/redo")
+                                .header("Authorization", "Bearer " + authToken)
+                                .header("X-Encryption-Session", encryptionSession))
+                .andExpect(status().isConflict());
+        assertThat(call(get("/api/v1/budgets"), null)).hasSize(1);
+    }
+
+    @Test
+    void alertSettingsSupportPartialUpdatesWithoutResettingOtherFields() throws Exception {
+        JsonNode category =
+                call(
+                        post("/api/v1/categories"),
+                        Map.of("name", "Alert settings", "type", "EXPENSE"));
+        JsonNode budget =
+                call(post("/api/v1/budgets"), auditBudgetRequest(category.get("id").asLong()));
+        String budgetId = budget.get("id").asText();
+        JsonNode definitions = call(get("/api/v1/budgets/alerts/" + budgetId), null);
+        String alertId = definitions.get(0).get("id").asText();
+        JsonNode disabled =
+                call(put("/api/v1/budgets/alerts/" + alertId), Map.of("isEnabled", false));
+        assertThat(disabled.get("isEnabled").asBoolean()).isFalse();
+        JsonNode edited = call(put("/api/v1/budgets/alerts/" + alertId), Map.of("threshold", 80));
+        assertThat(edited.get("threshold").decimalValue()).isEqualByComparingTo("80");
+        assertThat(edited.get("isEnabled").asBoolean()).isFalse();
+        JsonNode enabled =
+                call(put("/api/v1/budgets/alerts/" + alertId), Map.of("isEnabled", true));
+        assertThat(enabled.get("isEnabled").asBoolean()).isTrue();
+        assertThat(enabled.get("threshold").decimalValue()).isEqualByComparingTo("80");
+        call(delete("/api/v1/budgets/alerts/" + alertId), null);
+        assertThat(call(get("/api/v1/budgets/alerts/" + budgetId), null)).hasSize(2);
+        JsonNode created =
+                call(post("/api/v1/budgets/alerts?budgetId=" + budgetId), Map.of("threshold", 85));
+        assertThat(created.get("isEnabled").asBoolean()).isTrue();
+        assertThat(call(get("/api/v1/budgets/alerts/" + budgetId), null)).hasSize(3);
+    }
+
+    @Test
+    void defaultAlertsTriggerAndReverseWithTransactionsIncludingReadNotifications()
+            throws Exception {
+        JsonNode category =
+                call(
+                        post("/api/v1/categories"),
+                        Map.of("name", "Grocery alerts", "type", "EXPENSE"));
+        JsonNode account = createAccount("Alert checking");
+        Map<String, Object> request = auditBudgetRequest(category.get("id").asLong());
+        JsonNode budget = call(post("/api/v1/budgets"), request);
+        long budgetId = budget.get("id").asLong();
+        JsonNode definitions = call(get("/api/v1/budgets/alerts/" + budgetId), null);
+        assertThat(definitions).hasSize(3);
+        for (JsonNode definition : definitions) {
+            java.util.UUID.fromString(definition.get("id").asText());
+            assertThat(definition.get("isEnabled").asBoolean()).isTrue();
+            assertThat(definition.get("isRead").asBoolean()).isTrue();
+        }
+        Map<String, Object> expense = new java.util.HashMap<>(expenseRequest(account, "90"));
+        expense.put("date", java.time.LocalDate.now().toString());
+        expense.put("categoryId", category.get("id").asLong());
+        call(post("/api/v1/transactions"), expense);
+        long posting = latest("TRANSACTION").get("id").asLong();
+        JsonNode unread = call(get("/api/v1/budgets/alerts/unread"), null);
+        assertThat(unread).hasSize(2);
+        assertThat(unread.get(0).get("currentSpentPercentage").decimalValue())
+                .isEqualByComparingTo("90");
+        call(put("/api/v1/budgets/alerts/" + unread.get(0).get("id").asText() + "/read"), null);
+        reverse(posting, false);
+        assertBalance(account, "1000");
+        assertThat(call(get("/api/v1/budgets/alerts/unread"), null)).isEmpty();
+        reverse(posting, true);
+        assertBalance(account, "910");
+        assertThat(call(get("/api/v1/budgets/alerts/unread"), null)).hasSize(2);
+        request.put("rollover", true);
+        call(put("/api/v1/budgets/" + budgetId), request);
+        JsonNode changes =
+                objectMapper.readTree(latest("BUDGET").get("changedFieldsJson").asText());
+        assertThat(changes.get("rollover").get("before").asBoolean()).isFalse();
+        assertThat(changes.get("rollover").get("after").asBoolean()).isTrue();
+        call(delete("/api/v1/budgets/" + budgetId), null);
+        reverse(latest("BUDGET").get("id").asLong(), false);
+        assertThat(call(get("/api/v1/budgets/alerts/" + budgetId), null)).hasSize(3);
+    }
+
+    @Test
+    void backupRemapsUuidAlertsInUndoneBudgetHistory() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+                Boolean.TRUE.equals(
+                        jdbc.execute(
+                                (org.springframework.jdbc.core.ConnectionCallback<Boolean>)
+                                        connection ->
+                                                connection
+                                                        .getMetaData()
+                                                        .getDatabaseProductName()
+                                                        .equals("SQLite"))));
+        JsonNode category =
+                call(
+                        post("/api/v1/categories"),
+                        Map.of("name", "Archived alerts", "type", "EXPENSE"));
+        call(post("/api/v1/budgets"), auditBudgetRequest(category.get("id").asLong()));
+        reverse(latest("BUDGET").get("id").asLong(), false);
+        java.nio.file.Path backup =
+                java.nio.file.Files.createTempFile("budget-alert-history-", ".db");
+        try {
+            org.openfinance.security.EncryptionContext.setKey(historyKey());
+            archives.write(userId, backup);
+            archives.restore(userId, backup, "Password123!");
+        } finally {
+            org.openfinance.security.EncryptionContext.clear();
+            java.nio.file.Files.deleteIfExists(backup);
+        }
+        JsonNode restored = latest("BUDGET");
+        reverse(restored.get("id").asLong(), true);
+        assertThat(call(get("/api/v1/budgets/alerts/" + restored.get("entityId").asLong()), null))
+                .hasSize(3);
+        reverse(restored.get("id").asLong(), false);
+        assertThat(call(get("/api/v1/budgets"), null)).isEmpty();
+    }
+
+    private Map<String, Object> auditBudgetRequest(long categoryId) {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        return new java.util.HashMap<>(
+                Map.of(
+                        "categoryId",
+                        categoryId,
+                        "amount",
+                        "100",
+                        "currency",
+                        "EUR",
+                        "period",
+                        "MONTHLY",
+                        "startDate",
+                        today.withDayOfMonth(1).toString(),
+                        "endDate",
+                        today.withDayOfMonth(today.lengthOfMonth()).toString(),
+                        "rollover",
+                        false));
+    }
+
+    @Test
     void categoryAndBudgetCrudRestoreTheirOriginalIdentifiers() throws Exception {
         JsonNode category =
                 call(post("/api/v1/categories"), Map.of("name", "Food", "type", "EXPENSE"));

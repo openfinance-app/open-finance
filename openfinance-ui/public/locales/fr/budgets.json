@@ -9,7 +9,30 @@
     "exceeded": "Budget dépassé : {{categoryName}}",
     "warning": "Avertissement budget : {{categoryName}}",
     "exceededMessage": "Vous avez dépensé {{pct}} % de votre budget {{categoryName}}.",
-    "warningMessage": "Vous avez utilisé {{pct}} % de votre budget {{categoryName}}."
+    "warningMessage": "Vous avez utilisé {{pct}} % de votre budget {{categoryName}}.",
+    "title": "Paramètres des alertes",
+    "loading": "Chargement des alertes...",
+    "add": "Ajouter une alerte",
+    "empty": "Aucune alerte configurée",
+    "emptyDescription": "Ajoutez une alerte pour être averti lorsque les dépenses atteignent un seuil.",
+    "threshold": "Seuil de l’alerte",
+    "quickSelect": "Sélection rapide :",
+    "preview": "L’alerte sera déclenchée lorsque :",
+    "previewDescription": "Les dépenses atteignent {{threshold}} % du budget",
+    "create": "Créer l’alerte",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "thresholdSuffix": "du budget",
+    "triggered": "Déclenchée",
+    "enable": "Activer l’alerte",
+    "disable": "Désactiver l’alerte",
+    "edit": "Modifier le seuil",
+    "delete": "Supprimer l’alerte",
+    "thresholdLabel": "Alerte de budget à {{threshold}} %",
+    "confirmDelete": "Supprimer cette alerte de budget ?",
+    "thresholdInvalid": "Le seuil doit être compris entre 1 % et 150 %.",
+    "duplicate": "Une alerte à {{threshold}} % existe déjà.",
+    "saveError": "Impossible d’enregistrer l’alerte. Veuillez réessayer."
   },
   "empty": {
     "noBudgets": "Aucun budget pour l'instant",
@@ -24,7 +47,7 @@
     "createTitle": "Créer un budget",
     "delete": {
       "title": "Supprimer le budget",
-      "description": "Êtes-vous sûr(e) de vouloir supprimer le budget pour « {{name}} » ? Cette action est irréversible.",
+      "description": "Êtes-vous sûr(e) de vouloir supprimer le budget pour « {{name}} » ?",
       "confirmText": "Supprimer"
     }
   },
@@ -67,12 +90,12 @@
       "onTrack": "Dans le budget",
       "warning": "Attention",
       "exceeded": "Dépassé"
-    }
+    },
+    "endsToday": "Se termine aujourd’hui"
   },
   "detail": {
     "overallUsage": "Utilisation globale",
     "spendingByPeriod": "Dépenses par période",
-    "periodBreakdown": "Détail par période ({{count}} périodes)",
     "noHistory": "Aucune entrée d'historique trouvée pour ce budget.",
     "loadError": "Impossible de charger l'historique du budget.",
     "historyTitle": "Historique de {{category}}",
@@ -82,7 +105,9 @@
       "dateRange": "Plage de dates",
       "pctUsed": "% utilisé",
       "status": "Statut"
-    }
+    },
+    "periodBreakdown_other": "Détail par période ({{count}} périodes)",
+    "periodBreakdown_one": "Détail par période ({{count}} période)"
   },
   "summary": {
     "title": "Aperçu du budget",
@@ -146,7 +171,8 @@
       "createError": "Impossible de créer les budgets. Veuillez réessayer.",
       "creating": "Création en cours…",
       "createBudgets_one": "Créer {{count}} budget",
-      "createBudgets_other": "Créer {{count}} budgets"
+      "createBudgets_other": "Créer {{count}} budgets",
+      "amountFor": "Montant du budget pour {{category}}"
     },
     "step3": {
       "created": "Créés",

@@ -97,6 +97,8 @@ describe('BudgetProgressCard Smoke Test', () => {
           {
             budgetId: 1,
             categoryName: 'Food',
+            startDate: '2000-01-01',
+            endDate: '2099-12-31',
             spent: 200,
             budgeted: 400,
             percentageSpent: 50,
@@ -153,6 +155,8 @@ describe('BudgetProgressCard row navigation', () => {
           {
             budgetId: 1,
             categoryName: 'Food',
+            startDate: '2000-01-01',
+            endDate: '2099-12-31',
             spent: 200,
             budgeted: 400,
             percentageSpent: 50,

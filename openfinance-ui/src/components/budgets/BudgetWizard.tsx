@@ -17,7 +17,9 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { useAnalyzeBudgets, useBulkCreateBudgets } from '@/hooks/useBudgets';
 import type { BudgetPeriod, BudgetSuggestion, BudgetBulkCreateResponse } from '@/types/budget';
-import { format, addMonths, addQuarters, addYears, addWeeks } from 'date-fns';
+import { format } from 'date-fns';
+import { budgetPeriodEnd } from '@/utils/budget-dates';
+import { isValidDecimalString } from '@/utils/money';
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -37,27 +39,6 @@ type WizardStep = 1 | 2 | 3;
 /** Today as ISO "YYYY-MM-DD". */
 function today(): string {
   return format(new Date(), 'yyyy-MM-dd');
-}
-
-/**
- * End-date for a budget period starting today.
- * Uses addMonths/addQuarters/addYears so the end date is always a full period
- * after the start date, regardless of the day within the month.
- */
-function periodEndDate(period: BudgetPeriod): string {
-  const start = new Date();
-  switch (period) {
-    case 'WEEKLY':
-      return format(addWeeks(start, 1), 'yyyy-MM-dd');
-    case 'MONTHLY':
-      return format(addMonths(start, 1), 'yyyy-MM-dd');
-    case 'QUARTERLY':
-      return format(addQuarters(start, 1), 'yyyy-MM-dd');
-    case 'YEARLY':
-      return format(addYears(start, 1), 'yyyy-MM-dd');
-    default:
-      return format(addMonths(start, 1), 'yyyy-MM-dd');
-  }
 }
 
 // ─── sub-components ──────────────────────────────────────────────────────────
@@ -94,6 +75,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
   const [suggestions, setSuggestions] = useState<BudgetSuggestion[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [editedAmounts, setEditedAmounts] = useState<Record<number, string>>({});
+  const [validateAmounts, setValidateAmounts] = useState(false);
   const [bulkResult, setBulkResult] = useState<BudgetBulkCreateResponse | null>(null);
 
   // ── hooks ───────────────────────────────────────────────────────────────────
@@ -125,6 +107,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
     setSuggestions([]);
     setSelectedIds(new Set());
     setEditedAmounts({});
+    setValidateAmounts(false);
     setBulkResult(null);
     analyzeMutation.reset();
     bulkCreateMutation.reset();
@@ -181,17 +164,17 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
   /** Step 2 → bulk-create selected suggestions. */
   const handleCreate = async () => {
     const selected = suggestions.filter(s => selectedIds.has(s.categoryId));
+    setValidateAmounts(true);
+    if (selected.some(s => !validAmount(s))) return;
     const startDate = today();
 
     const budgets = selected.map(s => ({
       categoryId: s.categoryId,
-      amount: String(
-        parseFloat(editedAmounts[s.categoryId] ?? String(s.suggestedAmount)) || s.suggestedAmount
-      ),
+      amount: editedAmounts[s.categoryId] ?? String(s.suggestedAmount),
       currency: s.currency,
       period: s.period,
       startDate,
-      endDate: periodEndDate(s.period),
+      endDate: budgetPeriodEnd(startDate, s.period),
       rollover: false,
     }));
 
@@ -207,6 +190,10 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
   // ── render helpers ──────────────────────────────────────────────────────────
 
   const selectedCount = selectedIds.size;
+  const validAmount = (suggestion: BudgetSuggestion): boolean => {
+    const amount = editedAmounts[suggestion.categoryId] ?? String(suggestion.suggestedAmount);
+    return isValidDecimalString(amount) && Number(amount) > 0;
+  };
 
   // ── render ──────────────────────────────────────────────────────────────────
   return (
@@ -397,6 +384,10 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                             <span className="text-xs text-text-tertiary">{s.currency}</span>
                             <NumberInput
                               min="0"
+                              aria-label={t('wizard.step2.amountFor', { category: s.categoryName })}
+                              aria-invalid={
+                                validateAmounts && selectedIds.has(s.categoryId) && !validAmount(s)
+                              }
                               value={editedAmounts[s.categoryId] ?? String(s.suggestedAmount)}
                               onChange={value =>
                                 setEditedAmounts(prev => ({
@@ -407,6 +398,11 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                               className="w-24 h-8 px-2 text-right text-sm rounded bg-background border border-border text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
                             />
                           </div>
+                          {validateAmounts && selectedIds.has(s.categoryId) && !validAmount(s) && (
+                            <p role="alert" className="mt-1 max-w-40 text-xs text-error">
+                              {t('validation.amountPositive')}
+                            </p>
+                          )}
                         </div>
                       </div>
                     );

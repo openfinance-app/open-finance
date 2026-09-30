@@ -114,11 +114,7 @@ public class HistoryStateStore {
                                     + owned(table)
                                     + " ORDER BY id",
                             userId)
-                    .forEach(
-                            row ->
-                                    rows.put(
-                                            new Key(table, ((Number) row.get("id")).longValue()),
-                                            row));
+                    .forEach(row -> rows.put(new Key(table, row.get("id").toString()), row));
         }
         for (Long id : attachmentIds) {
             Map<String, Object> row = rows.get(new Key("attachments", id));
@@ -273,6 +269,10 @@ public class HistoryStateStore {
             Map<String, String> expected = redo ? change.before() : change.after();
             if (!valid(change, userId)) return "legacy";
             Map<String, String> actual = plain(change.table(), current.rows().get(change.key()));
+            // Acknowledging a notification must not prevent reversing its financial action.
+            if (change.table().equals("budget_alerts") && expected != null && actual != null) {
+                actual.put("is_read", expected.get("is_read"));
+            }
             if (!HistoryChangeSet.equal(expected, actual, change.additiveBalance())) {
                 log.debug(
                         "History state conflict on {}/{} in columns {}",
@@ -301,7 +301,59 @@ public class HistoryStateStore {
             if (!new LinkedHashSet<>(expected).equals(new LinkedHashSet<>(actual)))
                 return "dependencies";
         }
+        if (budgetOverlap(changeSet, current, redo)) return "budgetOverlap";
         return nameConflict(changeSet, current, redo) ? "dependencies" : null;
+    }
+
+    private static int compareIds(Change first, Change second) {
+        return first.table().equals("budget_alerts")
+                ? first.id().compareTo(second.id())
+                : Long.compare(Long.parseLong(first.id()), Long.parseLong(second.id()));
+    }
+
+    private boolean validId(String table, String id) {
+        if (id == null) return false;
+        try {
+            if (table.equals("budget_alerts"))
+                return java.util.UUID.fromString(id).toString().equals(id);
+            return Long.parseLong(id) > 0;
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    /** Validate the resulting graph, including rows restored together by a bulk action. */
+    private boolean budgetOverlap(HistoryChangeSet changes, Snapshot current, boolean redo) {
+        Map<String, Map<String, String>> budgets = new LinkedHashMap<>();
+        current.rows()
+                .forEach(
+                        (key, row) -> {
+                            if (key.table().equals("budgets"))
+                                budgets.put(key.id(), plain("budgets", row));
+                        });
+        Set<String> restored = new LinkedHashSet<>();
+        for (Change change : changes.changes()) {
+            if (!change.table().equals("budgets")) continue;
+            Map<String, String> target = redo ? change.after() : change.before();
+            if (target == null) budgets.remove(change.id());
+            else {
+                budgets.put(change.id(), target);
+                restored.add(change.id());
+            }
+        }
+        for (String id : restored) {
+            Map<String, String> target = budgets.get(id);
+            for (Map.Entry<String, Map<String, String>> other : budgets.entrySet()) {
+                if (id.equals(other.getKey())) continue;
+                Map<String, String> row = other.getValue();
+                if (Objects.equals(target.get("category_id"), row.get("category_id"))
+                        && Objects.equals(target.get("period"), row.get("period"))
+                        && target.get("start_date").compareTo(row.get("end_date")) <= 0
+                        && target.get("end_date").compareTo(row.get("start_date")) >= 0)
+                    return true;
+            }
+        }
+        return false;
     }
 
     private boolean nameConflict(HistoryChangeSet changeSet, Snapshot current, boolean redo) {
@@ -326,7 +378,7 @@ public class HistoryStateStore {
                 return true;
             for (Map.Entry<Key, Map<String, Object>> existing : current.rows().entrySet()) {
                 if (!existing.getKey().table().equals(change.table())
-                        || existing.getKey().id() == change.id()) continue;
+                        || existing.getKey().id().equals(change.id())) continue;
                 Map<String, String> candidate =
                         destinations.containsKey(existing.getKey())
                                 ? destinations.get(existing.getKey())
@@ -343,10 +395,10 @@ public class HistoryStateStore {
     }
 
     private boolean valid(Change change, Long userId) {
-        if (!TABLES.contains(change.table()) || change.id() <= 0) return false;
+        if (!TABLES.contains(change.table()) || !validId(change.table(), change.id())) return false;
         for (Map<String, String> row : java.util.Arrays.asList(change.before(), change.after())) {
             if (row == null) continue;
-            if (!Long.toString(change.id()).equals(row.get("id"))
+            if (!change.id().equals(row.get("id"))
                     || !columns(change.table()).keySet().equals(row.keySet())) return false;
             if (row.containsKey("user_id") && !userId.toString().equals(row.get("user_id")))
                 return false;
@@ -359,14 +411,16 @@ public class HistoryStateStore {
             throw new org.openfinance.exception.HistoryConflictException("legacy");
         if (sqlite) return; // The write gate already owns SQLite's writer lock.
         changes.changes().stream()
-                .sorted(Comparator.comparing(Change::table).thenComparingLong(Change::id))
+                .sorted(
+                        Comparator.comparing(Change::table)
+                                .thenComparing(HistoryStateStore::compareIds))
                 .forEach(
                         change ->
                                 jdbc.queryForList(
                                         "SELECT id FROM "
                                                 + identifier(change.table())
                                                 + " WHERE id = ? FOR UPDATE",
-                                        change.id()));
+                                        value(change.table(), "id", change.id())));
     }
 
     public void restore(HistoryChangeSet changeSet, Snapshot current, boolean redo, Long userId) {
@@ -380,7 +434,7 @@ public class HistoryStateStore {
         List<Change> ordered = new ArrayList<>(changeSet.changes());
         ordered.sort(
                 Comparator.comparingInt((Change change) -> TABLES.indexOf(change.table()))
-                        .thenComparingLong(Change::id));
+                        .thenComparing(HistoryStateStore::compareIds));
         List<Change> reverse = new ArrayList<>(ordered);
         Collections.reverse(reverse);
         for (Change change : reverse) {
@@ -390,7 +444,7 @@ public class HistoryStateStore {
                                 + identifier(change.table())
                                 + " WHERE id = ? AND "
                                 + owned(change.table()),
-                        change.id(),
+                        value(change.table(), "id", change.id()),
                         userId);
         }
         for (Change change : ordered) {
@@ -405,14 +459,17 @@ public class HistoryStateStore {
                 userId,
                 EncryptionContext.getKey(),
                 changeSet.changes().stream()
+                        .filter(change -> !change.table().equals("budget_alerts"))
                         .collect(
                                 Collectors.groupingBy(
                                         Change::table,
-                                        Collectors.mapping(Change::id, Collectors.toSet()))));
+                                        Collectors.mapping(
+                                                change -> Long.valueOf(change.id()),
+                                                Collectors.toSet()))));
     }
 
     private void assertNoForeignReferences(HistoryChangeSet set, Long userId) {
-        Map<String, List<Long>> affected =
+        Map<String, List<String>> affected =
                 set.changes().stream()
                         .collect(
                                 Collectors.groupingBy(
@@ -421,10 +478,12 @@ public class HistoryStateStore {
         affected.forEach(
                 (parent, ids) -> {
                     for (int start = 0; start < ids.size(); start += 500) {
-                        List<Long> batch = ids.subList(start, Math.min(ids.size(), start + 500));
+                        List<String> batch = ids.subList(start, Math.min(ids.size(), start + 500));
                         String parameters =
                                 String.join(",", Collections.nCopies(batch.size(), "?"));
-                        List<Object> arguments = new ArrayList<>(batch);
+                        List<Object> arguments =
+                                new ArrayList<>(
+                                        batch.stream().map(id -> value(parent, "id", id)).toList());
                         arguments.add(userId);
                         for (Map.Entry<EntityType, String> entity :
                                 HistoryDomainRegistry.ENTITIES.entrySet()) {
@@ -525,7 +584,7 @@ public class HistoryStateStore {
                         .toList();
         List<Object> arguments = new ArrayList<>();
         fields.forEach(field -> arguments.add(value(change.table(), field, values.get(field))));
-        arguments.add(change.id());
+        arguments.add(value(change.table(), "id", change.id()));
         arguments.add(userId);
         jdbc.update(
                 "UPDATE "

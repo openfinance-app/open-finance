@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ROUTES, ROUTE_PATTERNS } from '@/constants/routes';
 import { AuthProvider } from './context/AuthContext';
 import { VisibilityProvider } from './context/VisibilityContext';
@@ -79,7 +79,15 @@ const PageLoadingFallback = () => (
 // ---------------------------------------------------------------------------
 // React Query client — configured outside the component to avoid re-creation
 // ---------------------------------------------------------------------------
-const queryClient = new QueryClient({
+const queryClient: QueryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onSuccess: () => {
+      // History captures changes from every domain, not just its own Undo/Redo buttons.
+      queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['session-history-exists'] });
+      queryClient.invalidateQueries({ queryKey: ['budgetAlerts'] });
+    },
+  }),
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,

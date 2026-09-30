@@ -1,13 +1,16 @@
 package org.openfinance.controller;
 
 import jakarta.validation.Valid;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.BudgetAlertRequest;
 import org.openfinance.dto.BudgetAlertResponse;
+import org.openfinance.dto.BudgetAlertUpdateRequest;
 import org.openfinance.dto.BudgetProgressResponse;
 import org.openfinance.entity.BudgetAlert;
 import org.openfinance.mapper.BudgetAlertMapper;
@@ -142,8 +145,21 @@ public class BudgetAlertController {
         log.debug("Fetching unread alerts for user {}", userId);
 
         List<BudgetAlert> alerts = alertService.findUnreadAlerts(userId);
+        Map<Long, BudgetProgressResponse> progressByBudget = new HashMap<>();
         List<BudgetAlertResponse> responses =
-                alerts.stream().map(alertMapper::toResponse).collect(Collectors.toList());
+                alerts.stream()
+                        .map(
+                                alert -> {
+                                    BudgetProgressResponse progress =
+                                            progressByBudget.computeIfAbsent(
+                                                    alert.getBudget().getId(),
+                                                    id ->
+                                                            budgetService.calculateBudgetProgress(
+                                                                    id, userId));
+                                    return alertMapper.toResponseWithProgress(
+                                            alert, progress.getPercentageSpent());
+                                })
+                        .collect(Collectors.toList());
 
         log.debug("Found {} unread alerts for user {}", responses.size(), userId);
         return ResponseEntity.ok(responses);
@@ -180,7 +196,7 @@ public class BudgetAlertController {
     @PutMapping("/{alertId}")
     public ResponseEntity<BudgetAlertResponse> updateAlert(
             @PathVariable UUID alertId,
-            @Valid @RequestBody BudgetAlertRequest request,
+            @Valid @RequestBody BudgetAlertUpdateRequest request,
             Authentication authentication) {
 
         Long userId = ControllerUtil.extractUserId(authentication);

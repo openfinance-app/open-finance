@@ -69,6 +69,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 class BudgetServiceTest {
 
     @Mock private BudgetRepository budgetRepository;
+    @Mock private org.openfinance.repository.BudgetAlertRepository budgetAlertRepository;
 
     @Mock private CategoryRepository categoryRepository;
 
@@ -409,6 +410,7 @@ class BudgetServiceTest {
     void shouldDeleteBudget() {
         // Given
         testBudget.setCategory(testCategory);
+        when(budgetMapper.toResponse(testBudget)).thenReturn(testResponse);
         when(budgetRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(testBudget));
         doNothing().when(budgetRepository).delete(testBudget);
 
@@ -843,19 +845,9 @@ class BudgetServiceTest {
         when(budgetRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(testBudget));
         when(categoryRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(testCategory));
 
-        // Mock transaction queries: Feb returns transaction1 (350.25), Mar returns
-        // transaction2 (450.00), others empty
         when(transactionRepository.findByCategoryIdInAndDateRange(
                         anyList(), any(), any(), anyLong()))
-                .thenAnswer(
-                        invocation -> {
-                            LocalDate start = invocation.getArgument(1);
-                            if (LocalDate.of(2026, 2, 1).equals(start))
-                                return List.of(transaction1);
-                            if (LocalDate.of(2026, 3, 1).equals(start))
-                                return List.of(transaction2);
-                            return List.of();
-                        });
+                .thenReturn(List.of(transaction1, transaction2));
         when(transactionSplitRepository.findByCategoryIdInAndDateRange(
                         anyList(), any(), any(), anyLong()))
                 .thenReturn(List.of());
@@ -873,32 +865,19 @@ class BudgetServiceTest {
         assertThat(history.getStartDate()).isEqualTo(LocalDate.of(2026, 1, 1));
         assertThat(history.getEndDate()).isEqualTo(LocalDate.of(2026, 12, 31));
 
-        assertThat(history.getHistory())
-                .hasSize(12); // testBudget spans full year → 12 monthly entries
-
-        // Check the February entry (index 1) which has transaction1 (350.25)
-        BudgetHistoryEntry febEntry = history.getHistory().get(1);
-        assertThat(febEntry.getLabel()).isEqualTo("Feb 2026");
-        assertThat(febEntry.getPeriodStart()).isEqualTo(LocalDate.of(2026, 2, 1));
-        assertThat(febEntry.getPeriodEnd()).isEqualTo(LocalDate.of(2026, 2, 28));
-        assertThat(febEntry.getBudgeted()).isEqualByComparingTo(new BigDecimal("500.00"));
-        assertThat(febEntry.getSpent()).isEqualByComparingTo(new BigDecimal("350.25"));
-        assertThat(febEntry.getRemaining()).isEqualByComparingTo(new BigDecimal("149.75"));
-        assertThat(febEntry.getPercentageSpent()).isEqualByComparingTo(new BigDecimal("70.05"));
-        assertThat(febEntry.getStatus()).isEqualTo("ON_TRACK");
-
-        // Total: Feb 350.25 + Mar 450.00 = 800.25 spent; 12 * 500 = 6000 budgeted
-        assertThat(history.getTotalSpent()).isEqualByComparingTo(new BigDecimal("800.25"));
-        assertThat(history.getTotalBudgeted()).isEqualByComparingTo(new BigDecimal("6000.00"));
-
-        verify(budgetRepository).findByIdAndUserId(1L, 1L);
-        verify(categoryRepository).findByIdAndUserId(1L, 1L);
+        assertThat(history.getHistory()).hasSize(1);
+        BudgetHistoryEntry entry = history.getHistory().getFirst();
+        assertThat(entry.getPeriodStart()).isEqualTo(testBudget.getStartDate());
+        assertThat(entry.getPeriodEnd()).isEqualTo(testBudget.getEndDate());
+        assertThat(entry.getBudgeted()).isEqualByComparingTo("500.00");
+        assertThat(entry.getSpent()).isEqualByComparingTo("800.25");
+        assertThat(entry.getRemaining()).isEqualByComparingTo("-300.25");
+        assertThat(entry.getStatus()).isEqualTo("EXCEEDED");
+        assertThat(history.getTotalSpent()).isEqualByComparingTo("800.25");
+        assertThat(history.getTotalBudgeted()).isEqualByComparingTo("500.00");
         verify(transactionRepository)
                 .findByCategoryIdInAndDateRange(
-                        eq(List.of(1L)),
-                        eq(LocalDate.of(2026, 2, 1)),
-                        eq(LocalDate.of(2026, 2, 28)),
-                        eq(1L));
+                        List.of(1L), testBudget.getStartDate(), testBudget.getEndDate(), 1L);
     }
 
     @Test
@@ -975,9 +954,7 @@ class BudgetServiceTest {
         BudgetHistoryResponse history = budgetService.getBudgetHistory(1L, 1L);
 
         // Then
-        assertThat(history.getHistory())
-                .hasSize(12); // testBudget spans 2026-01-01 to 2026-12-31 → 12 monthly
-        // entries
+        assertThat(history.getHistory()).hasSize(1); // One allowance for the whole dated record.
         BudgetHistoryEntry entry = history.getHistory().get(0);
         assertThat(entry.getSpent()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(entry.getRemaining()).isEqualByComparingTo(new BigDecimal("500.00"));
@@ -985,8 +962,7 @@ class BudgetServiceTest {
         assertThat(entry.getStatus()).isEqualTo("ON_TRACK");
 
         assertThat(history.getTotalSpent()).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(history.getTotalBudgeted())
-                .isEqualByComparingTo(new BigDecimal("6000.00")); // 12 * 500
+        assertThat(history.getTotalBudgeted()).isEqualByComparingTo(new BigDecimal("500.00"));
     }
 
     @Test

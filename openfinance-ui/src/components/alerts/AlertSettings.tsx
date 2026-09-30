@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { isAxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 import {
   useAlertsByBudget,
@@ -29,6 +30,7 @@ interface AlertSettingsProps {
 }
 
 export function AlertSettings({ budgetId }: AlertSettingsProps) {
+  const { t } = useTranslation('budgets');
   const { data: alerts = [], isLoading } = useAlertsByBudget(budgetId, false);
   const createAlert = useCreateAlert();
   const updateAlert = useUpdateAlert();
@@ -38,20 +40,28 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
   const [newThreshold, setNewThreshold] = useState(75);
   const [error, setError] = useState<string | null>(null);
 
+  const onError = (error: unknown): void => {
+    setError(
+      isAxiosError<{ message?: string }>(error)
+        ? (error.response?.data?.message ?? t('alerts.saveError'))
+        : t('alerts.saveError')
+    );
+  };
+
   const handleCreateAlert = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     // Validate threshold
-    if (newThreshold < 1 || newThreshold > 150) {
-      setError('Threshold must be between 1% and 150%');
+    if (!Number.isFinite(newThreshold) || newThreshold < 1 || newThreshold > 150) {
+      setError(t('alerts.thresholdInvalid'));
       return;
     }
 
     // Check for duplicate threshold
     const isDuplicate = alerts.some((alert: BudgetAlert) => alert.threshold === newThreshold);
     if (isDuplicate) {
-      setError(`Alert for ${newThreshold}% threshold already exists`);
+      setError(t('alerts.duplicate', { threshold: newThreshold }));
       return;
     }
 
@@ -67,26 +77,27 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
           setIsAddingAlert(false);
           setNewThreshold(75);
         },
-        onError: (err: any) => {
-          setError(err.message || 'Failed to create alert');
-        },
+        onError,
       }
     );
   };
 
   const handleToggleEnabled = (alertId: string, isEnabled: boolean) => {
     const data: UpdateAlertRequest = { isEnabled };
-    updateAlert.mutate({ alertId, data });
+    setError(null);
+    updateAlert.mutate({ alertId, data }, { onError });
   };
 
   const handleUpdateThreshold = (alertId: string, threshold: number) => {
     const data: UpdateAlertRequest = { threshold };
-    updateAlert.mutate({ alertId, data });
+    setError(null);
+    updateAlert.mutate({ alertId, data }, { onError });
   };
 
   const handleDeleteAlert = (alertId: string) => {
-    if (confirm('Are you sure you want to delete this alert?')) {
-      deleteAlert.mutate(alertId);
+    if (confirm(t('alerts.confirmDelete'))) {
+      setError(null);
+      deleteAlert.mutate(alertId, { onError });
     }
   };
 
@@ -98,7 +109,7 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
     return (
       <div className="py-8 text-center text-text-secondary">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-        <p className="mt-2 text-sm">Loading alerts...</p>
+        <p className="mt-2 text-sm">{t('alerts.loading')}</p>
       </div>
     );
   }
@@ -107,21 +118,24 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="plate-label ">Alert Settings</h3>
+        <h3 className="plate-label ">{t('alerts.title')}</h3>
         {!isAddingAlert && (
           <button
             onClick={() => setIsAddingAlert(true)}
             className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary text-black rounded-lg hover:bg-primary-hover transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Add Alert
+            {t('alerts.add')}
           </button>
         )}
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
+        <div
+          role="alert"
+          className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm"
+        >
           {error}
         </div>
       )}
@@ -143,30 +157,32 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
         </div>
       ) : (
         <div className="py-8 text-center text-text-secondary">
-          <p className="text-sm">No alerts configured</p>
-          <p className="text-xs mt-1">
-            Add an alert to get notified when spending exceeds a threshold
-          </p>
+          <p className="text-sm">{t('alerts.empty')}</p>
+          <p className="text-xs mt-1">{t('alerts.emptyDescription')}</p>
         </div>
       )}
 
-      {/* Add Alert Form */}
+      {/* Add alert form */}
       {isAddingAlert && (
         <form
           onSubmit={handleCreateAlert}
           className="p-4 bg-surface rounded-lg border border-border"
         >
-          <label className="block text-sm font-medium text-text-secondary mb-2">
-            Alert Threshold
+          <label
+            htmlFor="new-budget-alert-threshold"
+            className="block text-sm font-medium text-text-secondary mb-2"
+          >
+            {t('alerts.threshold')}
           </label>
 
           {/* Threshold Slider */}
           <div className="space-y-3">
             <input
+              id="new-budget-alert-threshold"
               type="range"
               min="1"
               max="150"
-              step="5"
+              step="1"
               value={newThreshold}
               onChange={e => setNewThreshold(Number(e.target.value))}
               className="w-full h-2 bg-surface-elevated rounded-lg appearance-none cursor-pointer accent-primary"
@@ -181,7 +197,7 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
           {/* Suggested Thresholds */}
           {availableThresholds.length > 0 && (
             <div className="mt-3">
-              <p className="text-xs text-text-secondary mb-2">Quick select:</p>
+              <p className="text-xs text-text-secondary mb-2">{t('alerts.quickSelect')}</p>
               <div className="flex flex-wrap gap-2">
                 {availableThresholds.map(threshold => (
                   <button
@@ -199,10 +215,9 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
 
           {/* Visual Preview */}
           <div className="mt-4 p-3 bg-background rounded border border-border">
-            <p className="text-xs text-text-secondary mb-1">Alert will trigger when:</p>
+            <p className="text-xs text-text-secondary mb-1">{t('alerts.preview')}</p>
             <p className="text-sm text-text-primary">
-              Spending reaches <span className="font-bold text-primary">{newThreshold}%</span> of
-              budget
+              {t('alerts.previewDescription', { threshold: newThreshold })}
             </p>
           </div>
 
@@ -214,7 +229,7 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-black rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50"
             >
               <Check className="w-4 h-4" />
-              Create Alert
+              {t('alerts.create')}
             </button>
             <button
               type="button"
@@ -224,7 +239,7 @@ export function AlertSettings({ budgetId }: AlertSettingsProps) {
               }}
               className="px-4 py-2 bg-surface-elevated hover:bg-surface-elevated/70 text-text-primary rounded-lg transition-colors"
             >
-              Cancel
+              {t('alerts.cancel')}
             </button>
           </div>
         </form>
@@ -250,11 +265,17 @@ function AlertSettingItem({
   isUpdating,
   isDeleting,
 }: AlertSettingItemProps) {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation('budgets');
   const [isEditing, setIsEditing] = useState(false);
   const [editThreshold, setEditThreshold] = useState(alert.threshold);
+  const [invalidThreshold, setInvalidThreshold] = useState(false);
 
   const handleSaveEdit = () => {
+    if (!Number.isFinite(editThreshold) || editThreshold < 1 || editThreshold > 150) {
+      setInvalidThreshold(true);
+      return;
+    }
+    setInvalidThreshold(false);
     if (editThreshold !== alert.threshold) {
       onUpdateThreshold(editThreshold);
     }
@@ -263,11 +284,16 @@ function AlertSettingItem({
 
   const handleCancelEdit = () => {
     setEditThreshold(alert.threshold);
+    setInvalidThreshold(false);
     setIsEditing(false);
   };
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-surface rounded-lg border border-border">
+    <div
+      role="group"
+      aria-label={t('alerts.thresholdLabel', { threshold: alert.threshold })}
+      className="flex items-center gap-3 p-3 bg-surface rounded-lg border border-border"
+    >
       {/* Enable Toggle */}
       <button
         onClick={() => onToggleEnabled(!alert.isEnabled)}
@@ -275,7 +301,7 @@ function AlertSettingItem({
         className={`w-10 h-6 rounded-full transition-colors relative flex-shrink-0 ${
           alert.isEnabled ? 'bg-primary' : 'bg-surface-elevated'
         } disabled:opacity-50`}
-        aria-label={alert.isEnabled ? 'Disable alert' : 'Enable alert'}
+        aria-label={t(alert.isEnabled ? 'alerts.disable' : 'alerts.enable')}
       >
         <div
           className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
@@ -286,35 +312,47 @@ function AlertSettingItem({
 
       {/* Threshold Display/Edit */}
       {isEditing ? (
-        <div className="flex-1 flex items-center gap-2">
+        <div className="flex-1 flex flex-wrap items-center gap-2">
           <NumberInput
             min="1"
             max="150"
+            aria-label={t('alerts.threshold')}
+            aria-invalid={invalidThreshold}
             value={String(editThreshold)}
-            onChange={val => setEditThreshold(Number(val))}
+            onChange={val => {
+              setEditThreshold(Number(val));
+              setInvalidThreshold(false);
+            }}
             className="w-20 px-2 py-1 bg-background border border-border rounded text-text-primary text-sm"
           />
           <span className="text-sm text-text-secondary">%</span>
           <button
             onClick={handleSaveEdit}
             className="p-1 text-green-400 hover:text-green-300 transition-colors"
-            aria-label="Save"
+            aria-label={t('alerts.save')}
           >
             <Check className="w-4 h-4" />
           </button>
           <button
             onClick={handleCancelEdit}
             className="p-1 text-text-secondary hover:text-text-primary transition-colors"
-            aria-label="Cancel"
+            aria-label={t('alerts.cancel')}
           >
             <X className="w-4 h-4" />
           </button>
+          {invalidThreshold && (
+            <p role="alert" className="w-full text-xs text-error">
+              {t('alerts.thresholdInvalid')}
+            </p>
+          )}
         </div>
       ) : (
         <div className="flex-1 flex items-center gap-2">
           <span className="text-sm font-semibold text-text-primary">{alert.threshold}%</span>
-          <span className="text-xs text-text-secondary">threshold</span>
-          {alert.lastTriggered && <span className="text-xs text-yellow-500">• Triggered</span>}
+          <span className="text-xs text-text-secondary">{t('alerts.thresholdSuffix')}</span>
+          {alert.lastTriggered && (
+            <span className="text-xs text-yellow-500">{t('alerts.triggered')}</span>
+          )}
         </div>
       )}
 
@@ -325,7 +363,7 @@ function AlertSettingItem({
             onClick={() => setIsEditing(true)}
             disabled={isUpdating || isDeleting}
             className="p-1.5 text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
-            aria-label={t('aria.editThreshold')}
+            aria-label={t('alerts.edit')}
           >
             <Edit2 className="w-4 h-4" />
           </button>
@@ -333,7 +371,7 @@ function AlertSettingItem({
             onClick={onDelete}
             disabled={isUpdating || isDeleting}
             className="p-1.5 text-text-secondary hover:text-red-400 transition-colors disabled:opacity-50"
-            aria-label={t('aria.deleteAlert')}
+            aria-label={t('alerts.delete')}
           >
             <Trash2 className="w-4 h-4" />
           </button>

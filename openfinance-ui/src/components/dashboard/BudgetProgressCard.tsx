@@ -26,6 +26,8 @@ import { useBudgetSummary } from '@/hooks/useBudgets';
 import { useAuthContext } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { formatPercentage } from '@/utils/format';
+import { activeBudgetSummary } from '@/utils/budget-summary';
+import { divide, multiply } from '@/utils/money';
 import type { BudgetProgressResponse, BudgetStatus } from '@/types/budget';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -159,8 +161,8 @@ export default function BudgetProgressCard() {
     secondaryExchangeRate,
   } = useSecondaryConversion(baseCurrency);
 
-  // Fetch summary for the current (default) period — no period filter keeps it current
-  const { data: summary, isLoading, isError } = useBudgetSummary();
+  const { data: allPeriods, isLoading, isError } = useBudgetSummary();
+  const summary = allPeriods ? activeBudgetSummary(allPeriods) : undefined;
 
   // ── loading skeleton ───────────────────────────────────────────────────────
   if (isLoading) {
@@ -221,7 +223,11 @@ export default function BudgetProgressCard() {
   }
 
   // ── derived values ─────────────────────────────────────────────────────────
-  const globalPct = Math.min(summary.averageSpentPercentage, 100);
+  const overallPct =
+    summary.totalBudgeted > 0
+      ? multiply(divide(summary.totalSpent, summary.totalBudgeted), 100)
+      : 0;
+  const globalPct = Math.min(overallPct, 100);
   const exceededCount = summary.budgets.filter(b => b.status === 'EXCEEDED').length;
   const warningCount = summary.budgets.filter(b => b.status === 'WARNING').length;
 
@@ -236,7 +242,6 @@ export default function BudgetProgressCard() {
   const hasMore = sorted.length > MAX_VISIBLE;
 
   // Overall bar color
-  const overallPct = summary.averageSpentPercentage;
   const overallBarColor =
     overallPct >= 100 ? 'bg-error' : overallPct >= 75 ? 'bg-warning' : 'bg-success';
 
@@ -315,7 +320,7 @@ export default function BudgetProgressCard() {
                     : 'text-success'
               )}
             >
-              {formatPercentage(summary.averageSpentPercentage, 1)}
+              {formatPercentage(overallPct, 1)}
             </span>
             <span className="font-mono text-text-secondary">
               {t('cards.budgetCard.of') + ' '}

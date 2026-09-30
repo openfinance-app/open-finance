@@ -9,7 +9,30 @@
     "exceeded": "Budget Exceeded: {{categoryName}}",
     "warning": "Budget Warning: {{categoryName}}",
     "exceededMessage": "You've spent {{pct}}% of your {{categoryName}} budget.",
-    "warningMessage": "You've used {{pct}}% of your {{categoryName}} budget."
+    "warningMessage": "You've used {{pct}}% of your {{categoryName}} budget.",
+    "title": "Alert Settings",
+    "loading": "Loading alerts...",
+    "add": "Add Alert",
+    "empty": "No alerts configured",
+    "emptyDescription": "Add an alert to get notified when spending reaches a threshold.",
+    "threshold": "Alert Threshold",
+    "quickSelect": "Quick select:",
+    "preview": "Alert will trigger when:",
+    "previewDescription": "Spending reaches {{threshold}}% of the budget",
+    "create": "Create Alert",
+    "cancel": "Cancel",
+    "save": "Save",
+    "thresholdSuffix": "threshold",
+    "triggered": "Triggered",
+    "enable": "Enable alert",
+    "disable": "Disable alert",
+    "edit": "Edit threshold",
+    "delete": "Delete alert",
+    "thresholdLabel": "{{threshold}}% budget alert",
+    "confirmDelete": "Delete this budget alert?",
+    "thresholdInvalid": "Threshold must be between 1% and 150%.",
+    "duplicate": "An alert for {{threshold}}% already exists.",
+    "saveError": "Unable to save the alert. Please try again."
   },
   "empty": {
     "noBudgets": "No budgets yet",
@@ -24,7 +47,7 @@
     "createTitle": "Create Budget",
     "delete": {
       "title": "Delete Budget",
-      "description": "Are you sure you want to delete the budget for \"{{name}}\"? This action cannot be undone.",
+      "description": "Are you sure you want to delete the budget for \"{{name}}\"?",
       "confirmText": "Delete"
     }
   },
@@ -114,7 +137,8 @@
       "createError": "Failed to create budgets. Please try again.",
       "creating": "Creating…",
       "createBudgets_one": "Create {{count}} Budget",
-      "createBudgets_other": "Create {{count}} Budgets"
+      "createBudgets_other": "Create {{count}} Budgets",
+      "amountFor": "Budget amount for {{category}}"
     },
     "step3": {
       "created": "Created",
@@ -143,12 +167,12 @@
       "onTrack": "On Track",
       "warning": "Warning",
       "exceeded": "Exceeded"
-    }
+    },
+    "endsToday": "Ends today"
   },
   "detail": {
     "overallUsage": "Overall Usage",
     "spendingByPeriod": "Spending by Period",
-    "periodBreakdown": "Period Breakdown ({{count}} periods)",
     "noHistory": "No history entries found for this budget.",
     "loadError": "Failed to load budget history.",
     "historyTitle": "{{category}} History",
@@ -158,6 +182,8 @@
       "dateRange": "Date Range",
       "pctUsed": "% Used",
       "status": "Status"
-    }
+    },
+    "periodBreakdown_other": "Period Breakdown ({{count}} periods)",
+    "periodBreakdown_one": "Period Breakdown ({{count}} period)"
   }
 }

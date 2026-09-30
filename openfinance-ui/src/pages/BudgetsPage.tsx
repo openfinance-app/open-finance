@@ -114,10 +114,12 @@ export default function BudgetsPage() {
   // Paginate the filtered results
   const totalElements = filteredBudgets.length;
   const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
+  const visiblePage = Math.min(currentPage, totalPages - 1);
+  if (!summaryLoading && currentPage !== visiblePage) setCurrentPage(visiblePage);
   const paginatedBudgets = useMemo(() => {
-    const start = currentPage * pageSize;
+    const start = visiblePage * pageSize;
     return filteredBudgets.slice(start, start + pageSize);
-  }, [filteredBudgets, currentPage, pageSize]);
+  }, [filteredBudgets, visiblePage, pageSize]);
 
   // Determine whether any filter is currently active
   const hasActiveFilters =
@@ -348,7 +350,7 @@ export default function BudgetsPage() {
           {totalPages > 1 && (
             <div className="mt-6">
               <Pagination
-                currentPage={currentPage}
+                currentPage={visiblePage}
                 totalPages={totalPages}
                 pageSize={pageSize}
                 totalElements={totalElements}

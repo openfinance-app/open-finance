@@ -224,13 +224,13 @@ describe('BudgetCard', () => {
       expect(body).toContain('100');
     });
 
-    it('should handle expired budget (daysRemaining = 0)', () => {
+    it('should show a budget ending today as active', () => {
       const budget = createMockBudget({ daysRemaining: 0 });
       renderWithProviders(
         <BudgetCard budget={budget} onEdit={mockOnEdit} onDelete={mockOnDelete} />
       );
 
-      expect(screen.getByText('Expired')).toBeInTheDocument();
+      expect(screen.getByText('Ends today')).toBeInTheDocument();
     });
 
     it('should handle negative daysRemaining', () => {

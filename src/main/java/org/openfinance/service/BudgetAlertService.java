@@ -102,6 +102,9 @@ public class BudgetAlertService {
         BudgetProgressResponse currentProgress = null;
 
         for (BudgetAlert alert : enabledAlerts) {
+            java.time.LocalDate today = java.time.LocalDate.now();
+            if (today.isBefore(alert.getBudget().getStartDate())
+                    || today.isAfter(alert.getBudget().getEndDate())) continue;
             Long budgetId = alert.getBudget().getId();
 
             // Fetch budget progress (cache per budget to avoid redundant calls)

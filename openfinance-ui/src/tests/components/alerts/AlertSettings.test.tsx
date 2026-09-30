@@ -219,7 +219,8 @@ describe('AlertSettings', () => {
       const toggleBtn = screen.getByRole('button', { name: /disable alert/i });
       fireEvent.click(toggleBtn);
       expect(mockUpdateAlertMutate).toHaveBeenCalledWith(
-        expect.objectContaining({ alertId: '1', data: { isEnabled: false } })
+        expect.objectContaining({ alertId: '1', data: { isEnabled: false } }),
+        expect.objectContaining({ onError: expect.any(Function) })
       );
     });
 
@@ -232,7 +233,8 @@ describe('AlertSettings', () => {
       const toggleBtn = screen.getByRole('button', { name: /enable alert/i });
       fireEvent.click(toggleBtn);
       expect(mockUpdateAlertMutate).toHaveBeenCalledWith(
-        expect.objectContaining({ alertId: '2', data: { isEnabled: true } })
+        expect.objectContaining({ alertId: '2', data: { isEnabled: true } }),
+        expect.objectContaining({ onError: expect.any(Function) })
       );
     });
 
@@ -261,7 +263,8 @@ describe('AlertSettings', () => {
       fireEvent.change(input, { target: { value: '90' } });
       fireEvent.click(screen.getByRole('button', { name: /save/i }));
       expect(mockUpdateAlertMutate).toHaveBeenCalledWith(
-        expect.objectContaining({ alertId: '1', data: { threshold: 90 } })
+        expect.objectContaining({ alertId: '1', data: { threshold: 90 } }),
+        expect.objectContaining({ onError: expect.any(Function) })
       );
     });
 
@@ -280,6 +283,22 @@ describe('AlertSettings', () => {
       expect(mockUpdateAlertMutate).not.toHaveBeenCalled();
     });
 
+    it('keeps an invalid threshold edit visible and explains the error', () => {
+      mockUseAlertsByBudget.mockReturnValue({ data: [makeAlert()], isLoading: false });
+      renderWithProviders(<AlertSettings budgetId={1} />);
+      fireEvent.click(screen.getByRole('button', { name: /edit threshold/i }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Alert Threshold' }), {
+        target: { value: '0' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /save/i }));
+      expect(screen.getByRole('alert')).toHaveTextContent(/between 1% and 150%/i);
+      expect(screen.getByRole('textbox', { name: 'Alert Threshold' })).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+      expect(mockUpdateAlertMutate).not.toHaveBeenCalled();
+    });
+
     it('should delete alert with confirmation', () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
       mockUseAlertsByBudget.mockReturnValue({
@@ -289,7 +308,10 @@ describe('AlertSettings', () => {
       renderWithProviders(<AlertSettings budgetId={1} />);
       const deleteBtn = screen.getByRole('button', { name: /delete alert/i });
       fireEvent.click(deleteBtn);
-      expect(mockDeleteAlertMutate).toHaveBeenCalledWith('1');
+      expect(mockDeleteAlertMutate).toHaveBeenCalledWith(
+        '1',
+        expect.objectContaining({ onError: expect.any(Function) })
+      );
       vi.restoreAllMocks();
     });
 
@@ -327,14 +349,14 @@ describe('AlertSettings', () => {
       const form = document.querySelector('form')!;
       fireEvent.submit(form);
       await waitFor(() => {
-        expect(screen.getByText(/server error|failed to create/i)).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toHaveTextContent(/unable to save/i);
       });
     });
 
     it('should show visual preview with selected threshold', () => {
       renderWithProviders(<AlertSettings budgetId={1} />);
       fireEvent.click(screen.getByRole('button', { name: /add alert/i }));
-      expect(screen.getByText(/spending reaches/i)).toBeInTheDocument();
+      expect(screen.getByText(/spending reaches 75%/i)).toBeInTheDocument();
       expect(screen.getAllByText('75%').length).toBeGreaterThan(0);
     });
 

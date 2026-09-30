@@ -445,6 +445,17 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
         ids.put("users", Map.of(sourceUser, userId));
         ids.put("currencies", mapCurrencies(data));
         for (String table : TABLES) {
+            if (table.equals("budget_alerts")) {
+                java.util.Set<String> alertIds = new java.util.HashSet<>();
+                for (Map<String, Object> row : data.get(table)) {
+                    String id = row.get("id").toString();
+                    UUID.fromString(id);
+                    if (!alertIds.add(id))
+                        throw BackupException.validation("Duplicate record identifier in backup");
+                }
+                ids.put(table, new LinkedHashMap<>());
+                continue;
+            }
             long next =
                     jdbc.queryForObject(
                             "SELECT COALESCE(MAX(id), 0) FROM " + identifier(table), Long.class);
@@ -584,7 +595,11 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
         for (Map.Entry<String, Object> entry : row.entrySet()) {
             String column = entry.getKey();
             Object value = entry.getValue();
-            if (column.equals("id")) value = mapped(ids, table, value, false);
+            if (column.equals("id"))
+                value =
+                        table.equals("budget_alerts")
+                                ? HistoryBackupSupport.remapAlertId(value.toString(), transfers)
+                                : mapped(ids, table, value, false);
             else if (column.equals("user_id")) value = userId;
             else if (column.equals("entity_id"))
                 value =
