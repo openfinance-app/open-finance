@@ -85,6 +85,8 @@ public class NetWorthService {
     private final LiabilityRepository liabilityRepository;
     private final org.openfinance.repository.RealEstateRepository realEstateRepository;
     private final RealEstateValueHistoryRepository realEstateValueHistoryRepository;
+    private final org.openfinance.repository.PropertyStatusHistoryRepository
+            propertyStatusHistoryRepository;
     private final org.openfinance.security.EncryptionService encryptionService;
     private final ExchangeRateService exchangeRateService;
     private final AccountCurrencyService accountCurrencyService;
@@ -795,8 +797,13 @@ public class NetWorthService {
         }
 
         // Pre-load data needed for encrypted entities (only when key is available)
-        List<RealEstateProperty> realEstateProps =
-                realEstateRepository.findByUserIdAndIsActive(userId, true);
+        List<RealEstateProperty> realEstateProps = realEstateRepository.findByUserId(userId);
+        Map<Long, List<org.openfinance.entity.PropertyStatusHistory>> statusByProperty =
+                propertyStatusHistoryRepository.findByUserId(userId).stream()
+                        .collect(
+                                Collectors.groupingBy(
+                                        org.openfinance.entity.PropertyStatusHistory
+                                                ::getPropertyId));
         List<Liability> liabilities = liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId);
 
         // Pre-load real estate value history, grouped by property ID
@@ -918,6 +925,9 @@ public class NetWorthService {
                     // (latest history entry whose effectiveDate <= targetDate),
                     // falling back to purchasePrice if no history entry exists yet.
                     for (RealEstateProperty property : realEstateProps) {
+                        if (!propertyWasActive(
+                                statusByProperty.getOrDefault(property.getId(), List.of()),
+                                targetDate)) continue;
                         if (property.getAcquisitionType()
                                 == org.openfinance.entity.AcquisitionType.PLANNED) continue;
                         if (property.getPurchaseDate() != null
@@ -1112,6 +1122,19 @@ public class NetWorthService {
                         Comparator.comparing(AccountStatusHistory::getEffectiveDate)
                                 .thenComparing(AccountStatusHistory::getId))
                 .map(AccountStatusHistory::isActive)
+                .orElse(true);
+    }
+
+    private boolean propertyWasActive(
+            List<org.openfinance.entity.PropertyStatusHistory> history, LocalDate date) {
+        return history.stream()
+                .filter(h -> !h.getEffectiveDate().isAfter(date))
+                .max(
+                        Comparator.comparing(
+                                        org.openfinance.entity.PropertyStatusHistory
+                                                ::getEffectiveDate)
+                                .thenComparing(org.openfinance.entity.PropertyStatusHistory::getId))
+                .map(org.openfinance.entity.PropertyStatusHistory::isActive)
                 .orElse(true);
     }
 

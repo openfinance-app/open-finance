@@ -122,7 +122,7 @@ export interface DisbursementRequest {
   toAccountId?: number;
   directRealEstateId?: number;
   trancheId?: number;
-  amount: number;
+  amount: number | string;
   date: string;
   notes?: string;
 }

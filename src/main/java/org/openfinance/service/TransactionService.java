@@ -1840,12 +1840,22 @@ public class TransactionService {
             }
             return;
         }
-        // The form rounds the original loan amount to cents, and an inverse rate to 8 places.
+        // Allow rounding in each currency's units and the form's inverse rate (8+ places).
+        BigDecimal halfOriginalUnit =
+                new BigDecimal("0.5")
+                        .movePointLeft(
+                                org.openfinance.util.MoneyPrecision.scale(
+                                        request.getOriginalCurrency()));
+        BigDecimal halfBookedUnit =
+                new BigDecimal("0.5")
+                        .movePointLeft(
+                                org.openfinance.util.MoneyPrecision.scale(request.getCurrency()));
+        BigDecimal halfRateUnit = new BigDecimal("0.5").movePointLeft(Math.max(8, rate.scale()));
         BigDecimal tolerance =
-                new BigDecimal("0.005")
+                halfOriginalUnit
                         .multiply(rate)
-                        .add(original.multiply(new BigDecimal("0.000000005")))
-                        .add(new BigDecimal("0.005"));
+                        .add(original.multiply(halfRateUnit))
+                        .add(halfBookedUnit);
         if (original.multiply(rate).subtract(request.getAmount()).abs().compareTo(tolerance) > 0) {
             throw new InvalidTransactionException(
                     "Original amount and conversion rate do not reconcile with the transaction amount");

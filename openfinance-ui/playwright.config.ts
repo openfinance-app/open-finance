@@ -37,6 +37,7 @@ export default defineConfig({
 
   /** Shared settings for all projects below */
   use: {
+    launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH },
     /** Base URL of the running dev server */
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
 

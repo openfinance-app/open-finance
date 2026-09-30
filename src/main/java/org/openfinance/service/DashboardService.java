@@ -46,7 +46,6 @@ import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
-import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -1722,19 +1721,8 @@ public class DashboardService {
                                     .isLiability(true)
                                     .currency(baseCurrency));
 
-            // Decrypt current balance
-            BigDecimal balance = BigDecimal.ZERO;
-            try {
-                if (liability.getCurrentBalance() != null
-                        && !liability.getCurrentBalance().isBlank()) {
-                    String decryptedBalance =
-                            encryptionService.decrypt(
-                                    liability.getCurrentBalance(), EncryptionContext.getKey());
-                    balance = new BigDecimal(decryptedBalance);
-                }
-            } catch (Exception e) {
-                log.warn("Failed to decrypt liability balance for id={}", liability.getId(), e);
-            }
+            // The JPA converter has already decrypted this field.
+            BigDecimal balance = new BigDecimal(liability.getCurrentBalance());
 
             NetWorthAllocation.NetWorthAllocationBuilder builder = categoryMap.get(category);
             BigDecimal currentValue = categoryMap.get(category).build().getValue();

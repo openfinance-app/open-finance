@@ -32,6 +32,13 @@ Run `mvn compile spotbugs:check`. A new identity fails the check. Review it agai
 source and fix real defects; do not regenerate this file from current output just
 to make CI pass.
 
+The fourth finance correction round reviewed 24 exact reference identities: 16
+existing Spring fields whose constructor signatures changed, four intentionally
+shared collaborators in the atomic purchase service, and four accessors for the
+request-scoped, validated nested purchase DTOs. The new broad catch and two dead
+stores were fixed in source. An independent unmodified-HEAD run still reports 64
+unmatched existing findings; these were not added to the baseline by this change.
+
 ## Dependency applicability reviews
 
 `dependency-check-suppressions.xml` identifies individual CVEs and exact artifact

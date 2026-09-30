@@ -9,6 +9,7 @@ import { useDateFormatter } from '@/hooks/useDateFormatter';
  * unified LiabilityDetailDialog (Overview / Amortization / Linked Payments tabs).
  */
 import { useState, useEffect } from 'react';
+import { isAxiosError } from 'axios';
 import { ROW_HIGHLIGHT_SCROLL_DELAY_MS } from '@/constants/timing';
 import { useTranslation } from 'react-i18next';
 import { Pencil, Trash2, CreditCard, BarChart2 } from 'lucide-react';
@@ -28,7 +29,7 @@ import type { Liability } from '@/types/liability';
 interface LiabilityListProps {
   liabilities: Liability[];
   onEdit: (liability: Liability) => void;
-  onDelete: (liabilityId: number) => void;
+  onDelete: (liabilityId: number) => void | Promise<void>;
   /** Requirement 2.1: Callback to open the unified details dialog for a liability */
   onViewDetails?: (liability: Liability) => void;
   highlightedId?: number | null;
@@ -42,6 +43,8 @@ export function LiabilityList({
   highlightedId,
 }: LiabilityListProps) {
   const [deletingLiability, setDeletingLiability] = useState<Liability | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { t: tc } = useTranslation('common');
   const { t } = useTranslation('liabilities');
   const { date: formatDate } = useDateFormatter();
@@ -59,13 +62,25 @@ export function LiabilityList({
   }, [highlightedId, liabilities]);
 
   const handleDeleteClick = (liability: Liability) => {
+    setDeleteError(null);
     setDeletingLiability(liability);
   };
 
-  const handleConfirmDelete = () => {
-    if (deletingLiability) {
-      onDelete(deletingLiability.id);
+  const handleConfirmDelete = async () => {
+    if (!deletingLiability || isDeleting) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await onDelete(deletingLiability.id);
       setDeletingLiability(null);
+    } catch (error) {
+      setDeleteError(
+        isAxiosError<{ message?: string }>(error) && error.response?.data.message
+          ? error.response.data.message
+          : t('deleteError')
+      );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -100,6 +115,10 @@ export function LiabilityList({
             liability.fundedAmount ?? liability.principal
           );
           const monthsRemaining = calculateMonthsRemaining(liability.endDate);
+          const monthlyPayment =
+            liability.currentBalance > 0
+              ? (liability.effectiveMonthlyPayment ?? liability.minimumPayment ?? 0)
+              : 0;
 
           return (
             <div
@@ -238,18 +257,19 @@ export function LiabilityList({
                     </div>
                   </div>
                 )}
-                {liability.minimumPayment !== undefined && liability.minimumPayment > 0 && (
+                {(liability.effectiveMonthlyPayment != null ||
+                  liability.minimumPayment != null) && (
                   <div>
                     <div className="text-xs text-text-secondary mb-1">
                       {t('list.monthlyPayment')}
                     </div>
                     <div className="text-sm font-mono text-text-primary">
                       <ConvertedAmount
-                        amount={liability.minimumPayment}
+                        amount={monthlyPayment}
                         currency={liability.currency}
                         convertedAmount={
                           liability.isConverted && liability.exchangeRate
-                            ? multiply(liability.minimumPayment, liability.exchangeRate)
+                            ? multiply(monthlyPayment, liability.exchangeRate)
                             : undefined
                         }
                         baseCurrency={liability.baseCurrency}
@@ -325,7 +345,14 @@ export function LiabilityList({
         description={t('dialogs.deleteDescription', { name: deletingLiability?.name })}
         confirmText={t('dialogs.deleteConfirm')}
         variant="danger"
-      />
+        loading={isDeleting}
+      >
+        {deleteError && (
+          <p role="alert" className="text-sm text-error">
+            {deleteError}
+          </p>
+        )}
+      </ConfirmationDialog>
     </>
   );
 }

@@ -16,6 +16,7 @@ import { NumberInput } from '@/components/ui/NumberInput';
 import { useDisburseLiability } from '@/hooks/useLiabilities';
 import { useAccounts } from '@/hooks/useAccounts';
 import { getToday } from '@/utils/date';
+import { isValidDecimalString } from '@/utils/money';
 import type { Liability, LiabilityTranche } from '@/types/liability';
 
 type DisburseRoute = 'account' | 'property';
@@ -43,6 +44,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
 
   const numericAmount = Number(amount);
   const valid =
+    isValidDecimalString(amount) &&
     numericAmount > 0 &&
     (route === 'property' ? linkedPropertyId != null : accountId !== undefined);
 
@@ -53,7 +55,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
         liabilityId: Number(liability.id),
         request: {
           trancheId: tranche?.id,
-          amount: numericAmount,
+          amount: amount.trim(),
           date,
           toAccountId: route === 'account' ? accountId : undefined,
           directRealEstateId: route === 'property' ? (linkedPropertyId ?? undefined) : undefined,
@@ -84,7 +86,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
             value={amount}
             onChange={setAmount}
             placeholder="0.00"
-            min="0.01"
+            min="0"
           />
         </div>
         <div>

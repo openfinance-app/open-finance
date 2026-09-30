@@ -138,6 +138,8 @@ class TransactionLiabilitySyncTest {
                 new RealEstateService(
                         realEstateRepository,
                         realEstateValueHistoryRepository,
+                        org.mockito.Mockito.mock(
+                                org.openfinance.repository.PropertyStatusHistoryRepository.class),
                         liabilityRepository,
                         currencyRepository,
                         realEstateMapper,

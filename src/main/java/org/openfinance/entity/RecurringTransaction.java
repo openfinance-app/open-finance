@@ -125,7 +125,10 @@ public class RecurringTransaction {
      * <p>Always positive. The transaction type determines debit/credit behavior.
      */
     @NotNull(message = "{recurringTransaction.amount.notnull}")
-    @DecimalMin(value = "0.01", message = "{recurringTransaction.amount.decimalMin}")
+    @DecimalMin(
+            value = "0",
+            inclusive = false,
+            message = "{recurringTransaction.amount.decimalMin}")
     @Digits(integer = 26, fraction = 18, message = "{recurringTransaction.amount.digits}")
     @Column(nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)

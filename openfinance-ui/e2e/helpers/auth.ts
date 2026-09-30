@@ -119,8 +119,10 @@ export async function registerUser(
   // Password fields — target by id to avoid matching toggle buttons
   await page.locator('#password').fill(user.password);
   await page.locator('#confirmPassword').fill(user.password);
-  await page.locator('#masterPassword').fill(user.masterPassword);
-  await page.locator('#confirmMasterPassword').fill(user.masterPassword);
+  if (await page.locator('#masterPassword').isVisible()) {
+    await page.locator('#masterPassword').fill(user.masterPassword);
+    await page.locator('#confirmMasterPassword').fill(user.masterPassword);
+  }
 
   await page.getByRole('button', { name: /create account|register|sign up/i }).click();
   // After successful registration navigate to /login

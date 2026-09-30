@@ -69,7 +69,7 @@ public class RecurringTransactionRequest {
      * <p>Requirement REQ-2.3.6: Record recurring transaction amount
      */
     @NotNull(message = "{recurring.amount.required}")
-    @DecimalMin(value = "0.01", message = "{recurring.amount.min}")
+    @DecimalMin(value = "0", inclusive = false, message = "{recurring.amount.min}")
     @Digits(integer = 26, fraction = 18, message = "{recurring.amount.digits}")
     private BigDecimal amount;
 

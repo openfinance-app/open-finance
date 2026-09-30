@@ -85,6 +85,8 @@ public class RealEstateService {
 
     private final RealEstateRepository realEstateRepository;
     private final RealEstateValueHistoryRepository valueHistoryRepository;
+    private final org.openfinance.repository.PropertyStatusHistoryRepository
+            propertyStatusHistoryRepository;
     private final LiabilityRepository liabilityRepository;
     private final CurrencyRepository currencyRepository;
     private final RealEstateMapper realEstateMapper;
@@ -166,6 +168,7 @@ public class RealEstateService {
 
         // Map request to entity
         RealEstateProperty property = realEstateMapper.toEntity(request);
+        property.setActive(request.isActive());
         if (property.getAcquisitionType() == null)
             property.setAcquisitionType(org.openfinance.entity.AcquisitionType.PURCHASE);
         property.setUserId(userId);
@@ -176,6 +179,7 @@ public class RealEstateService {
 
         // Save to database
         RealEstateProperty savedProperty = realEstateRepository.save(property);
+        if (!savedProperty.isActive()) recordOwnershipStatus(savedProperty);
 
         // Sync with Assets module (Requirement: Real Estate appearing in Net Worth)
         try {
@@ -318,6 +322,7 @@ public class RealEstateService {
         // detection
         String oldEncryptedValue = property.getCurrentValue();
         LocalDate oldPurchaseDate = property.getPurchaseDate();
+        boolean wasActive = property.isActive();
         boolean currencyChanged =
                 request.getCurrency() != null
                         && !request.getCurrency().equalsIgnoreCase(property.getCurrency());
@@ -345,6 +350,8 @@ public class RealEstateService {
         }
         // Update entity fields (MapStruct will skip null values)
         realEstateMapper.updateEntityFromRequest(request, property);
+        property.setActive(request.isActive());
+        if (wasActive != property.isActive()) recordOwnershipStatus(property);
         if (request.isMortgageIdPresent() || request.getMortgageId() != null) {
             property.setMortgageId(request.getMortgageId());
             property.setMortgage(null);
@@ -465,7 +472,10 @@ public class RealEstateService {
         String label = snapshot.getName();
 
         // Soft delete - set isActive to false
-        property.setActive(false);
+        if (property.isActive()) {
+            property.setActive(false);
+            recordOwnershipStatus(property);
+        }
         realEstateRepository.save(property);
         searchTokenService.removeEntity("REAL_ESTATE", propertyId);
 
@@ -484,7 +494,7 @@ public class RealEstateService {
         }
 
         log.info("Property soft-deleted successfully: id={}, userId={}", propertyId, userId);
-        invalidateSnapshotsFrom(userId, property.getPurchaseDate());
+        invalidateSnapshotsFrom(userId, LocalDate.now());
 
         // Record in operation history
         operationHistoryService.record(
@@ -1588,10 +1598,17 @@ public class RealEstateService {
         return defaultCurrencyProvider.resolveForUser(userId);
     }
 
-    /**
-     * Invalidates net worth snapshots from {@code fromDate} onward (up to today). Called after any
-     * real estate write so the dashboard chart rebuilds affected months.
-     */
+    private void recordOwnershipStatus(RealEstateProperty property) {
+        propertyStatusHistoryRepository.save(
+                org.openfinance.entity.PropertyStatusHistory.builder()
+                        .propertyId(property.getId())
+                        .userId(property.getUserId())
+                        .effectiveDate(LocalDate.now())
+                        .active(property.isActive())
+                        .build());
+    }
+
+    /** Invalidates derived chart snapshots after a property write. */
     private void invalidateSnapshotsFrom(Long userId, LocalDate fromDate) {
         if (fromDate == null) return;
         try {

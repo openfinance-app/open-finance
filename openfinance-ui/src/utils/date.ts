@@ -152,7 +152,7 @@ export function useRelativeDateFormatter(): (date: string | Date) => string {
  * rolls to the previous/next day (e.g. local "1st of the month" 00:30 becomes the prior month's
  * last day in UTC+n).
  */
-function toLocalISODate(date: Date): string {
+export function toLocalISODate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');

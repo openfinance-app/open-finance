@@ -37,8 +37,8 @@ public class DisbursementRequest {
 
     /** Disbursed amount. */
     @NotNull(message = "{disbursement.amount.required}")
-    @DecimalMin(value = "0.01", message = "{disbursement.amount.min}")
-    @Digits(integer = 17, fraction = 2, message = "{disbursement.amount.digits}")
+    @DecimalMin(value = "0", inclusive = false, message = "{disbursement.amount.min}")
+    @Digits(integer = 26, fraction = 18, message = "{disbursement.amount.digits}")
     private BigDecimal amount;
 
     /** Date of the disbursement. */

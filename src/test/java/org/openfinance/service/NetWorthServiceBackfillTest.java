@@ -71,6 +71,10 @@ class NetWorthServiceBackfillTest {
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
     @Mock private NetWorthSnapshotWriter snapshotWriter;
 
+    @Mock
+    private org.openfinance.repository.PropertyStatusHistoryRepository
+            propertyStatusHistoryRepository;
+
     @InjectMocks private NetWorthService netWorthService;
 
     private static final Long USER_ID = 1L;
@@ -91,7 +95,7 @@ class NetWorthServiceBackfillTest {
 
         when(accountRepository.findByUserId(USER_ID)).thenReturn(List.of());
         when(assetRepository.findByUserId(USER_ID)).thenReturn(List.of());
-        when(realEstateRepository.findByUserIdAndIsActive(USER_ID, true)).thenReturn(List.of());
+        when(realEstateRepository.findByUserId(USER_ID)).thenReturn(List.of());
         when(realEstateValueHistoryRepository.findByUserId(USER_ID)).thenReturn(List.of());
         when(netWorthRepository.findByUserIdAndSnapshotDate(any(), any()))
                 .thenReturn(Optional.empty());

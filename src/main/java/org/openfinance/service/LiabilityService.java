@@ -555,6 +555,14 @@ public class LiabilityService {
             throw InvalidLiabilityStateException.liabilityDeletionBlocked(liabilityId);
         }
 
+        // Clear both sides of the relationship, including inactive properties, before removal.
+        // Hibernate may already have loaded the read-only mortgage association for the snapshot.
+        for (RealEstateProperty property : realEstateRepository.findByMortgageId(liabilityId)) {
+            property.setMortgageId(null);
+            property.setMortgage(null);
+        }
+        realEstateRepository.flush();
+
         // Delete liability
         liabilityRepository.delete(liability);
         searchTokenService.removeEntity("LIABILITY", liabilityId);
@@ -920,6 +928,12 @@ public class LiabilityService {
                         .orElseThrow(
                                 () -> LiabilityNotFoundException.byIdAndUser(liabilityId, userId));
 
+        return remainingSchedule(liability);
+    }
+
+    private List<AmortizationScheduleEntry> remainingSchedule(Liability liability) {
+        Long liabilityId = liability.getId();
+        Long userId = liability.getUserId();
         // Decrypt + validate balance/rate/minimum payment; empty schedule when insufficient.
         ScheduleInputs inputs = resolveScheduleInputs(liability, liabilityId, userId);
         if (inputs == null) {
@@ -1332,28 +1346,9 @@ public class LiabilityService {
         String decryptedName = liability.getName();
         BigDecimal principal = decryptAmount(liability.getPrincipal());
         BigDecimal currentBalance = currentDebt(liability);
-        BigDecimal insurancePercentage = decryptAmount(liability.getInsurancePercentage());
 
         // --- Principal paid ---
         BigDecimal principalPaid = recordedPrincipalPaid(liability);
-
-        // --- Remaining term (projection only) ---
-
-        Integer monthsRemaining = null;
-        if (liability.getEndDate() != null) {
-            int mr = (int) ChronoUnit.MONTHS.between(LocalDate.now(), liability.getEndDate());
-            monthsRemaining = Math.max(mr, 0);
-        }
-
-        // --- Monthly insurance cost ---
-        BigDecimal monthlyInsuranceCost = null;
-        if (insurancePercentage != null && insurancePercentage.compareTo(BigDecimal.ZERO) > 0) {
-            monthlyInsuranceCost =
-                    principal
-                            .multiply(insurancePercentage)
-                            .divide(BigDecimal.valueOf(100), SCALE, RoundingMode.HALF_UP)
-                            .divide(BigDecimal.valueOf(MONTHS_PER_YEAR), 2, RoundingMode.HALF_UP);
-        }
 
         List<Transaction> linkedTransactions =
                 transactionRepository.findByLiabilityIdAndUserId(liabilityId, userId).stream()
@@ -1364,19 +1359,15 @@ public class LiabilityService {
         BigDecimal feesPaid = paid.fees();
 
         // --- Projected remaining insurance ---
-        BigDecimal projectedInsurance = BigDecimal.ZERO;
-        if (monthlyInsuranceCost != null && monthsRemaining != null) {
-            projectedInsurance =
-                    monthlyInsuranceCost
-                            .multiply(BigDecimal.valueOf(monthsRemaining))
-                            .setScale(2, RoundingMode.HALF_UP);
-        }
-
         BigDecimal projectedFees = BigDecimal.ZERO;
 
         // --- Projected remaining interest (from amortization) ---
         List<AmortizationScheduleEntry> schedule =
                 calculateAmortizationSchedule(liabilityId, userId);
+        BigDecimal projectedInsurance =
+                schedule.stream()
+                        .map(AmortizationScheduleEntry::getInsurancePortion)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal projectedInterest = BigDecimal.ZERO;
         if (!schedule.isEmpty()) {
@@ -2476,11 +2467,14 @@ public class LiabilityService {
         // Calculate monthly interest cost
         BigDecimal monthlyInterestCost = null;
         if (decryptedInterestRate != null && decryptedInterestRate.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal monthlyRate =
-                    decryptedInterestRate.divide(
-                            BigDecimal.valueOf(MONTHS_PER_YEAR * 100), SCALE, RoundingMode.HALF_UP);
             monthlyInterestCost =
-                    decryptedCurrentBalance.multiply(monthlyRate).setScale(2, RoundingMode.HALF_UP);
+                    decryptedCurrentBalance
+                            .multiply(decryptedInterestRate)
+                            .divide(
+                                    BigDecimal.valueOf(MONTHS_PER_YEAR * 100),
+                                    org.openfinance.util.MoneyPrecision.scale(
+                                            liability.getCurrency()),
+                                    RoundingMode.HALF_UP);
         }
 
         // Calculate monthly insurance cost (Requirement REQ-LIA-3.2)
@@ -2489,19 +2483,12 @@ public class LiabilityService {
         BigDecimal totalInsuranceCost = null;
         if (decryptedInsurancePercentage != null
                 && decryptedInsurancePercentage.compareTo(BigDecimal.ZERO) > 0) {
-            monthlyInsuranceCost =
-                    decryptedPrincipal
-                            .multiply(decryptedInsurancePercentage)
-                            .divide(BigDecimal.valueOf(100), SCALE, RoundingMode.HALF_UP)
-                            .divide(BigDecimal.valueOf(MONTHS_PER_YEAR), 2, RoundingMode.HALF_UP);
+            monthlyInsuranceCost = monthlyInsuranceOf(liability);
 
-            // Total insurance cost over remaining months (Requirement REQ-LIA-3.2)
-            if (monthsRemaining != null) {
-                totalInsuranceCost =
-                        monthlyInsuranceCost
-                                .multiply(BigDecimal.valueOf(monthsRemaining))
-                                .setScale(2, RoundingMode.HALF_UP);
-            }
+            totalInsuranceCost =
+                    remainingSchedule(liability).stream()
+                            .map(AmortizationScheduleEntry::getInsurancePortion)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
         }
 
         // For projected total interest, we'd need to call calculateTotalInterest,

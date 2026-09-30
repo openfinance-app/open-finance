@@ -22,6 +22,48 @@ import type {
 } from '../types/realEstate';
 import { useAuthContext } from '@/context/AuthContext';
 import { buildEncryptionHeaders } from '@/utils/encryption';
+import type { LiabilityRequest } from '@/types/liability';
+
+export interface PropertyPurchaseRequest {
+  operationId: string;
+  property: RealEstatePropertyRequest;
+  newMortgage?: LiabilityRequest;
+  existingMortgageId?: number;
+  loanAmount: string;
+  downPayment: string;
+  route: 'DIRECT' | 'ACCOUNT';
+  accountId?: number;
+  paymentDescription: string;
+}
+
+export function usePurchaseProperty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (request: PropertyPurchaseRequest) => {
+      const response = await apiClient.post<{ propertyId: number; mortgageId: number | null }>(
+        '/real-estate/purchase',
+        request,
+        { headers: buildEncryptionHeaders() }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      for (const key of [
+        'realEstate',
+        'liabilities',
+        'transactions',
+        'accounts',
+        'assets',
+        'assetFinancing',
+        'networth',
+        'dashboard',
+        'history',
+      ]) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
+    },
+  });
+}
 
 const API_BASE_URL = '/real-estate';
 

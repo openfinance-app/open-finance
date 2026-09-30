@@ -171,6 +171,24 @@ describe('LiabilityForm', () => {
   });
 
   describe('Form Validation', () => {
+    it('saves an ordinary loan returned by the API with no linked property', async () => {
+      renderWithProviders(
+        <LiabilityForm
+          liability={{ ...mockLiability, type: 'LOAN', linkedPropertyId: null }}
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+          isLoading={false}
+        />
+      );
+      fireEvent.change(screen.getByLabelText(/notes/i), { target: { value: 'Updated notes' } });
+      fireEvent.click(screen.getByRole('button', { name: /update liability/i }));
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ notes: 'Updated notes', realEstateId: null })
+        )
+      );
+    });
+
     it('validates required fields', async () => {
       renderWithProviders(
         <LiabilityForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} isLoading={false} />
@@ -281,6 +299,7 @@ describe('LiabilityForm', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           name: 'Test Mortgage',
           type: 'OTHER',
+          interestRate: 0,
           principal: '300000',
           currentBalance: '250000',
           startDate: '2020-01-01',
@@ -357,6 +376,7 @@ describe('LiabilityForm', () => {
 
       await waitFor(() => {
         const submittedData = mockOnSubmit.mock.calls[0][0];
+        expect(submittedData.interestRate).toBe(0);
         expect(submittedData.insurancePercentage).toBeUndefined();
         expect(submittedData.additionalFees).toBeUndefined();
       });

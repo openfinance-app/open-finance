@@ -300,7 +300,7 @@ describe('LiabilityDetailDialog', () => {
       expect(call.liabilityId).toBe(1);
       expect(call.request.trancheId).toBeUndefined();
       expect(call.request.toAccountId).toBe(3);
-      expect(call.request.amount).toBe(12000);
+      expect(call.request.amount).toBe('12000');
       expect(call.request.date).toBe('2025-06-15');
     });
   });

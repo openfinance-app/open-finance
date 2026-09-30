@@ -7,6 +7,7 @@
  * when the user clicks "View Details" on any liability card.
  */
 import { useEffect, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { Plus, Filter } from 'lucide-react';
@@ -43,6 +44,7 @@ export default function LiabilitiesPage() {
 
   const [showFilters, setShowFilters] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [editingLiability, setEditingLiability] = useState<Liability | null>(null);
   /** Requirement 2.1: Single state for unified details dialog */
   const [viewingDetailLiability, setViewingDetailLiability] = useState<Liability | null>(null);
@@ -72,21 +74,19 @@ export default function LiabilitiesPage() {
   const hasLiabilities = (allLiabilities?.content?.length ?? 0) > 0;
 
   const handleCreate = () => {
+    setSaveError(null);
     setEditingLiability(null);
     setIsFormOpen(true);
   };
 
   const handleEdit = (liability: Liability) => {
+    setSaveError(null);
     setEditingLiability(liability);
     setIsFormOpen(true);
   };
 
   const handleDelete = async (liabilityId: number) => {
-    try {
-      await deleteLiability.mutateAsync(liabilityId);
-    } catch (err) {
-      console.error('Failed to delete liability:', err);
-    }
+    await deleteLiability.mutateAsync(liabilityId);
   };
 
   /** Requirement 2.1: Open the unified details dialog for the selected liability */
@@ -95,6 +95,7 @@ export default function LiabilitiesPage() {
   };
 
   const handleFormSubmit = async (data: LiabilityRequest) => {
+    setSaveError(null);
     try {
       if (editingLiability) {
         await updateLiability.mutateAsync({ id: editingLiability.id, data });
@@ -104,7 +105,11 @@ export default function LiabilitiesPage() {
       setIsFormOpen(false);
       setEditingLiability(null);
     } catch (err) {
-      console.error('Failed to save liability:', err);
+      setSaveError(
+        isAxiosError<{ message?: string }>(err) && err.response?.data.message
+          ? err.response.data.message
+          : t('saveError')
+      );
     }
   };
 
@@ -248,6 +253,11 @@ export default function LiabilitiesPage() {
             onCancel={handleFormCancel}
             isLoading={createLiability.isPending || updateLiability.isPending}
           />
+          {saveError && (
+            <p role="alert" className="text-sm text-error">
+              {saveError}
+            </p>
+          )}
         </DialogContent>
       </Dialog>
 

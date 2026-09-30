@@ -12,7 +12,7 @@ import type { LiabilityTranche } from '@/types/liability';
  * Request payload of the create-tranche endpoint (Task 9 interest-only UI).
  */
 export interface TrancheRequest {
-  plannedAmount: number;
+  plannedAmount: number | string;
   plannedDate?: string;
   fee?: number;
   interestOnly?: boolean;

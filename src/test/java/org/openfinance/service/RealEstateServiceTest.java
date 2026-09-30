@@ -89,6 +89,11 @@ class RealEstateServiceTest {
 
     @Mock private AssetFinancingService assetFinancingService;
     @Mock private org.openfinance.repository.TransactionRepository transactionRepository;
+
+    @Mock
+    private org.openfinance.repository.PropertyStatusHistoryRepository
+            propertyStatusHistoryRepository;
+
     @InjectMocks private RealEstateService realEstateService;
 
     private LocalDate purchaseDate;

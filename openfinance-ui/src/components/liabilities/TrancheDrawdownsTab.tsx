@@ -23,6 +23,7 @@ import { DisburseForm } from '@/components/liabilities/DisburseForm';
 import { useTranches, useCreateTranche, getTrancheLabel } from '@/hooks/useTranches';
 import type { Liability, TrancheStatus } from '@/types/liability';
 import { cn } from '@/lib/utils';
+import { isValidDecimalString } from '@/utils/money';
 
 /** Badge colors per tranche status. */
 const statusBadgeClass: Record<TrancheStatus, string> = {
@@ -43,7 +44,7 @@ function AddTrancheForm({ liability, onDone }: { liability: Liability; onDone: (
   const amount = Number(plannedAmount);
   // The backend treats a missing interestOnlyUntil as an open-ended interest-only phase, so
   // the end date is optional here too.
-  const valid = amount > 0;
+  const valid = isValidDecimalString(plannedAmount) && amount > 0;
 
   const submit = async () => {
     if (!valid) return;
@@ -51,7 +52,7 @@ function AddTrancheForm({ liability, onDone }: { liability: Liability; onDone: (
       await createTranche.mutateAsync({
         liabilityId: Number(liability.id),
         request: {
-          plannedAmount: amount,
+          plannedAmount: plannedAmount.trim(),
           plannedDate: plannedDate || undefined,
           interestOnly,
           interestOnlyUntil: interestOnly && interestOnlyUntil ? interestOnlyUntil : undefined,
@@ -79,7 +80,7 @@ function AddTrancheForm({ liability, onDone }: { liability: Liability; onDone: (
             value={plannedAmount}
             onChange={setPlannedAmount}
             placeholder="0.00"
-            min="0.01"
+            min="0"
           />
         </div>
         <div>

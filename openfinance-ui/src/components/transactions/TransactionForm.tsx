@@ -39,7 +39,7 @@ import type {
 } from '@/types/transaction';
 import type { Account } from '@/types/account';
 import { formatDateForInput, getToday } from '@/utils/date';
-import { DEFAULT_CURRENCY, getCurrencyDecimals } from '@/utils/currency';
+import { DEFAULT_CURRENCY, getCurrencyDecimals, getMonetaryScale } from '@/utils/currency';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { useExchangeRate } from '@/hooks/useCurrency';
@@ -353,7 +353,10 @@ function withLiabilityFxOverride(
   liabilityRate: number
 ): ConversionTriple {
   return {
-    originalAmount: roundToDecimals(multiply(submitAmount, liabilityRate), 2),
+    originalAmount: roundToDecimals(
+      multiply(submitAmount, liabilityRate),
+      getMonetaryScale(liabilityCurrency)
+    ),
     originalCurrency: liabilityCurrency,
     conversionRate: roundToDecimals(1 / liabilityRate, 8),
   };

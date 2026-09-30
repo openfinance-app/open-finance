@@ -276,7 +276,7 @@ export function RecurringTransactionForm({
                 onBlur={field.onBlur}
                 placeholder="0.00"
                 error={errors.amount?.message}
-                min="0.01"
+                min="0"
               />
             )}
           />

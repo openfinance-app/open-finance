@@ -173,7 +173,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
             liability.additionalFees !== undefined && liability.additionalFees !== null
               ? String(liability.additionalFees)
               : '',
-          realEstateId: liability.linkedPropertyId,
+          realEstateId: liability.linkedPropertyId ?? undefined,
           creditLimit: liability.creditLimit == null ? '' : String(liability.creditLimit),
           previouslyFunded: liability.fundingStatus !== 'UNDRAWN',
           representedByAccountId: liability.representedByAccountId?.toString() ?? '',
@@ -205,8 +205,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
       type: data.type,
       principal: data.principal.trim(),
       currentBalance: data.currentBalance.trim(),
-      interestRate:
-        data.interestRate && data.interestRate > 0 ? Number(data.interestRate) : undefined,
+      interestRate: data.interestRate == null ? undefined : Number(data.interestRate),
       startDate: data.startDate,
       endDate: data.endDate && data.endDate !== '' ? data.endDate : undefined,
       minimumPayment:
@@ -239,6 +238,11 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
 
   return (
     <form onSubmit={handleFormSubmit} className="space-y-4">
+      {Object.keys(errors).length > 0 && (
+        <p role="alert" className="text-sm text-error">
+          {t('form.validation.reviewFields')}
+        </p>
+      )}
       {/* Top Row: Name and Type */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Liability Name */}

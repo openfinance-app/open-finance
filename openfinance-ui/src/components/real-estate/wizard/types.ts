@@ -31,17 +31,6 @@ export interface FundingStepState {
   downPaymentAccountId?: number;
 }
 
-/** IDs of resources already created by a previous confirm attempt (retry dedupe). */
-export interface CreatedIdsState {
-  liabilityId?: number;
-  propertyId?: number;
-  /**
-   * Liability whose disbursement already completed. A retry after a later failure (e.g. the
-   * down-payment transaction) must not replay it.
-   */
-  disbursedLiabilityId?: number;
-}
-
 export const PROPERTY_TYPE_OPTIONS = [
   'RESIDENTIAL',
   'COMMERCIAL',

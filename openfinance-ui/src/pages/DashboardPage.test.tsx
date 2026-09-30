@@ -11,6 +11,7 @@ import { http, HttpResponse } from 'msw';
 import { renderWithProviders, mockAuthentication, clearAuthentication } from '@/test/test-utils';
 import { server } from '@/test/mocks/server';
 import DashboardPage from '@/pages/DashboardPage';
+import { periodToDateRange } from '@/utils/navigation';
 
 describe('DashboardPage Integration Tests', () => {
   beforeEach(() => {
@@ -52,6 +53,32 @@ describe('DashboardPage Integration Tests', () => {
   });
 
   describe('Data Fetching and Rendering', () => {
+    it('compares the exact 30-day boundary even when a nearby chart sample is closer', async () => {
+      const range = periodToDateRange(30);
+      const requested: string[] = [];
+      server.use(
+        http.get('/api/v1/dashboard/networth-history', ({ request }) => {
+          const url = new URL(request.url);
+          requested.push(url.search);
+          return HttpResponse.json(
+            url.searchParams.get('startDate') === range.from
+              ? [
+                  { date: range.from, netWorth: 18000 },
+                  { date: range.to, netWorth: 20000 },
+                ]
+              : [
+                  { date: '2020-01-01', netWorth: 1000 },
+                  { date: range.to, netWorth: 25000 },
+                ]
+          );
+        })
+      );
+      renderWithProviders(<DashboardPage />);
+      await waitFor(() => expect(screen.getByText(/2,000\.00/)).toBeInTheDocument());
+      expect(requested.some(query => query.includes(`startDate=${range.from}`))).toBe(true);
+      expect(screen.queryByText(/5,000\.00.*20\.00%/)).not.toBeInTheDocument();
+    });
+
     it('compares a custom historical month with its closing value rather than today', async () => {
       sessionStorage.setItem(
         'dashboard_period',

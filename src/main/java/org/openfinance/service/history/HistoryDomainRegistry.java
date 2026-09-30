@@ -18,6 +18,7 @@ public final class HistoryDomainRegistry {
                     "assets",
                     "liabilities",
                     "real_estate_properties",
+                    "property_status_history",
                     "liability_tranches",
                     "payees",
                     "budgets",

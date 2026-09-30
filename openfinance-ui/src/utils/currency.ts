@@ -175,6 +175,19 @@ export function getCurrencyDecimals(currencyCode: string | null | undefined): nu
   return 2; // Default for most fiat currencies
 }
 
+/** Precision for calculated money; display preferences must not change a posting. */
+export function getMonetaryScale(currencyCode: string): number {
+  if (isCryptoCurrency(currencyCode)) return 18;
+  try {
+    return (
+      new Intl.NumberFormat('en', { style: 'currency', currency: currencyCode }).resolvedOptions()
+        .maximumFractionDigits ?? 18
+    );
+  } catch {
+    return 18;
+  }
+}
+
 /**
  * Check if a currency is a cryptocurrency
  */

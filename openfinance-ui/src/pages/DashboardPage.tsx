@@ -465,6 +465,10 @@ export default function DashboardPage() {
     isLoading: historyLoading,
     error: historyError,
   } = useNetWorthHistory(historyPeriod, activeDateRange);
+  const { data: comparisonHistory, error: comparisonError } = useNetWorthHistory(
+    periodDays,
+    navDateRange
+  );
   const { data: assetAllocations, isLoading: allocationLoading } = useAssetAllocation();
   const { data: portfolioPerformances, isLoading: performanceLoading } = usePortfolioPerformance(
     periodDays,
@@ -484,38 +488,26 @@ export default function DashboardPage() {
     activeDateRange
   );
 
-  // ── Period change computed from history chart (BUG-D1) ─────────────────────
+  // Exact comparison boundaries are independent of the chart's wider sampling window.
   const periodChange = useMemo(() => {
-    if (
-      historyError ||
-      !netWorthHistory ||
-      netWorthHistory.length < 2 ||
-      summary?.netWorth?.netWorth == null
-    )
-      return null;
-    // Find the data point closest to periodDays ago (not just the first point
-    // in the history, which may span a wider window for chart context).
-    // eslint-disable-next-line react-hooks/rules-of-hooks -- Date.now() is intentionally used to find closest historical data point
-    const targetTime = activeDateRange
-      ? new Date(activeDateRange.from).getTime()
-      : Date.now() - periodDays * 86_400_000;
-    let closest = netWorthHistory[0];
-    let closestDiff = Math.abs(new Date(closest.date).getTime() - targetTime);
-    for (const point of netWorthHistory) {
-      const diff = Math.abs(new Date(point.date).getTime() - targetTime);
-      if (diff < closestDiff) {
-        closestDiff = diff;
-        closest = point;
-      }
-    }
-    if (closest.netWorth === 0) return null;
+    if (comparisonError || !comparisonHistory) return null;
+    const openingValue = comparisonHistory.find(
+      point => point.date === navDateRange.from
+    )?.netWorth;
     const closingValue = activeDateRange
-      ? netWorthHistory[netWorthHistory.length - 1].netWorth
-      : summary.netWorth.netWorth;
-    const changeAmount = subtract(closingValue, closest.netWorth);
-    const changePercent = percentage(changeAmount, Math.abs(closest.netWorth));
+      ? comparisonHistory.find(point => point.date === navDateRange.to)?.netWorth
+      : summary?.netWorth?.netWorth;
+    if (openingValue == null || openingValue === 0 || closingValue == null) return null;
+    const changeAmount = subtract(closingValue, openingValue);
+    const changePercent = percentage(changeAmount, Math.abs(openingValue));
     return { amount: changeAmount, percentage: changePercent };
-  }, [netWorthHistory, historyError, summary?.netWorth?.netWorth, periodDays, activeDateRange]);
+  }, [
+    comparisonHistory,
+    comparisonError,
+    summary?.netWorth?.netWorth,
+    navDateRange,
+    activeDateRange,
+  ]);
 
   // ── Close card menu on outside click ───────────────────────────────────────
   useEffect(() => {

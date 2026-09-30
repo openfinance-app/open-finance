@@ -65,7 +65,8 @@
       "insuranceRateMax": "Insurance rate cannot exceed 100%",
       "feesNonNegative": "Fees cannot be negative",
       "feesInvalid": "Enter a valid amount (e.g. 1234.56)",
-      "endDateAfterStart": "End date must be after start date"
+      "endDateAfterStart": "End date must be after start date",
+      "reviewFields": "Please check the form fields before saving."
     },
     "balanceLocked": "Balance comes from recorded movements. Use a repayment, draw or reversal to change it.",
     "creditLimit": "Credit limit (optional)",
@@ -286,5 +287,7 @@
     "total": "total",
     "transaction": "Transaction #{{id}}",
     "title": "{{name}} — Details"
-  }
+  },
+  "saveError": "The liability could not be saved. Please try again.",
+  "deleteError": "The liability could not be deleted. Please try again."
 }

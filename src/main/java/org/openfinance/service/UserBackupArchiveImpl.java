@@ -52,6 +52,7 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
                     "assets",
                     "liabilities",
                     "real_estate_properties",
+                    "property_status_history",
                     "liability_tranches",
                     "payees",
                     "budgets",

@@ -4,7 +4,7 @@
  *
  * Requirement 2.1: Test "View Details" button opens unified dialog
  */
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
 import { renderWithProviders } from '@/test/test-utils';
@@ -69,11 +69,13 @@ vi.mock('@/components/ConfirmationDialog', () => ({
     description,
     confirmText,
     variant,
+    children,
   }: any) =>
     open ? (
       <div data-testid="confirmation-dialog">
         <h2>{title}</h2>
         <p>{description}</p>
+        {children}
         <button onClick={onConfirm} data-variant={variant}>
           {confirmText}
         </button>
@@ -538,6 +540,45 @@ describe('LiabilityList', () => {
   });
 
   describe('Delete confirmation', () => {
+    it('keeps the confirmation open and reports a failed deletion', async () => {
+      mockOnDelete.mockRejectedValueOnce(new Error('Request failed'));
+      renderWithProviders(
+        <LiabilityList liabilities={[mockLiability]} onEdit={mockOnEdit} onDelete={mockOnDelete} />
+      );
+      fireEvent.click(screen.getByRole('button', { name: /delete liability/i }));
+      fireEvent.click(screen.getByText('Delete'));
+      await waitFor(() =>
+        expect(screen.getByRole('alert')).toHaveTextContent(/could not be deleted/i)
+      );
+      expect(screen.getByTestId('confirmation-dialog')).toBeInTheDocument();
+    });
+
+    it.each([
+      { balance: 10000, effective: 110, expected: /110/ },
+      { balance: 0, effective: 0, expected: /0/ },
+    ])(
+      'displays the effective payment for balance $balance',
+      ({ balance, effective, expected }) => {
+        renderWithProviders(
+          <LiabilityList
+            liabilities={[
+              {
+                ...mockLiability,
+                currentBalance: balance,
+                minimumPayment: 1000,
+                effectiveMonthlyPayment: effective,
+              },
+            ]}
+            onEdit={mockOnEdit}
+            onDelete={mockOnDelete}
+          />
+        );
+        const payment = screen.getByText('Monthly Payment').parentElement!;
+        expect(within(payment).getByText(expected)).toBeInTheDocument();
+        expect(payment).not.toHaveTextContent('1,000');
+      }
+    );
+
     it('calls onDelete when confirmation is confirmed', () => {
       renderWithProviders(
         <LiabilityList

@@ -68,6 +68,16 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class RealEstateController {
     private final RealEstateService realEstateService;
+    private final org.openfinance.service.PropertyPurchaseService propertyPurchaseService;
+
+    @PostMapping("/purchase")
+    public ResponseEntity<PropertyPurchaseResponse> purchase(
+            Authentication authentication, @Valid @RequestBody PropertyPurchaseRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(
+                        propertyPurchaseService.purchase(
+                                ControllerUtil.extractUserId(authentication), request));
+    }
 
     /**
      * Creates a new real estate property for the authenticated user.

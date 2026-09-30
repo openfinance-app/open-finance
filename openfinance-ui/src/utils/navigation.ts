@@ -3,6 +3,7 @@
  * Target pages consume these params on mount and strip them (see pages).
  */
 import type { DateRange } from '@/components/ui/PeriodSelector';
+import { toLocalISODate } from '@/utils/date';
 
 export type TransactionTypeFilter = 'INCOME' | 'EXPENSE' | 'TRANSFER';
 
@@ -30,9 +31,8 @@ export function buildTransactionsLink(params: TransactionsLinkParams): string {
 
 /** `{from: today − days, to: today}` as ISO yyyy-MM-dd — matches the dashboard period semantics. */
 export function periodToDateRange(days: number): DateRange {
-  const toIso = (d: Date) => d.toISOString().slice(0, 10);
   const today = new Date();
   const start = new Date(today);
   start.setDate(today.getDate() - days);
-  return { from: toIso(start), to: toIso(today) };
+  return { from: toLocalISODate(start), to: toLocalISODate(today) };
 }

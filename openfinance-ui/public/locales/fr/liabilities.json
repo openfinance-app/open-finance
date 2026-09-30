@@ -65,7 +65,8 @@
       "insuranceRateMax": "Le taux d'assurance ne peut pas dépasser 100 %",
       "feesNonNegative": "Les frais ne peuvent pas être négatifs",
       "feesInvalid": "Saisissez un montant valide (ex. 1234,56)",
-      "endDateAfterStart": "La date de fin doit être postérieure à la date de début"
+      "endDateAfterStart": "La date de fin doit être postérieure à la date de début",
+      "reviewFields": "Veuillez vérifier les champs du formulaire avant d’enregistrer."
     },
     "balanceLocked": "Le solde provient des mouvements enregistrés. Utilisez un remboursement, un déblocage ou une annulation pour le modifier.",
     "creditLimit": "Plafond de crédit (facultatif)",
@@ -286,5 +287,7 @@
     "total": "au total",
     "transaction": "Opération n° {{id}}",
     "title": "{{name}} — Détails"
-  }
+  },
+  "saveError": "Le passif n’a pas pu être enregistré. Veuillez réessayer.",
+  "deleteError": "Le passif n’a pas pu être supprimé. Veuillez réessayer."
 }

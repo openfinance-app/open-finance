@@ -213,7 +213,7 @@ describe('TrancheDrawdownsTab', () => {
     expect(mutateAsync).toHaveBeenCalledWith({
       liabilityId: 5,
       request: expect.objectContaining({
-        plannedAmount: 50000,
+        plannedAmount: '50000',
         interestOnly: true,
         interestOnlyUntil: '2027-06-01',
         currency: 'USD',
@@ -248,7 +248,7 @@ describe('TrancheDrawdownsTab', () => {
     expect(mutateAsync).toHaveBeenCalledWith({
       liabilityId: 5,
       request: expect.objectContaining({
-        plannedAmount: 40000,
+        plannedAmount: '40000',
         interestOnly: true,
         interestOnlyUntil: undefined,
       }),
@@ -279,7 +279,7 @@ describe('TrancheDrawdownsTab', () => {
     await waitFor(() => expect(mutateAsync).toHaveBeenCalled());
     expect(mutateAsync).toHaveBeenCalledWith({
       liabilityId: 5,
-      request: expect.objectContaining({ plannedAmount: 25000, interestOnly: false }),
+      request: expect.objectContaining({ plannedAmount: '25000', interestOnly: false }),
     });
   });
 
@@ -326,7 +326,7 @@ describe('TrancheDrawdownsTab', () => {
       request: {
         trancheId: 2,
         toAccountId: 3,
-        amount: 50000,
+        amount: '50000',
         date: '2025-06-15',
         directRealEstateId: undefined,
       },
@@ -363,7 +363,7 @@ describe('TrancheDrawdownsTab', () => {
       request: {
         trancheId: 3,
         toAccountId: undefined,
-        amount: 15000,
+        amount: '15000',
         date: expect.any(String),
         directRealEstateId: 8,
       },

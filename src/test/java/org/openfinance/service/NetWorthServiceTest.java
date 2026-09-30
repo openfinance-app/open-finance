@@ -81,6 +81,10 @@ class NetWorthServiceTest {
 
     @Mock private NetWorthSnapshotWriter snapshotWriter;
 
+    @Mock
+    private org.openfinance.repository.PropertyStatusHistoryRepository
+            propertyStatusHistoryRepository;
+
     @InjectMocks private NetWorthService netWorthService;
 
     private Long testUserId;

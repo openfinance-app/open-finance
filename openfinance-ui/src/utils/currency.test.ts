@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import {
+  getMonetaryScale,
   getCurrencySymbol,
   getCurrencyName,
   isValidCurrency,
@@ -13,6 +14,18 @@ import {
   applyNumberFormat,
   CURRENCIES,
 } from './currency';
+
+it('keeps posting precision independent of display preferences', () => {
+  setDecimalPlacesOverride(2);
+  try {
+    expect(getMonetaryScale('BTC')).toBe(18);
+    expect(getMonetaryScale('KWD')).toBe(3);
+    expect(getMonetaryScale('JPY')).toBe(0);
+    expect(getMonetaryScale('EUR')).toBe(2);
+  } finally {
+    setDecimalPlacesOverride(null);
+  }
+});
 
 describe('getCurrencySymbol', () => {
   it('returns $ for USD', () => {

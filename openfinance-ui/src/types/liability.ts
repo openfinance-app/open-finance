@@ -32,7 +32,7 @@ export interface Liability {
     country?: string;
     logo?: string;
   };
-  linkedPropertyId?: number;
+  linkedPropertyId?: number | null;
   linkedPropertyName?: string;
   // Requirement 1.1: Insurance percentage and additional fees fields
   insurancePercentage?: number;

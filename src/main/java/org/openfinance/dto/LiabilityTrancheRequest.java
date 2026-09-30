@@ -38,8 +38,8 @@ public class LiabilityTrancheRequest {
 
     /** Planned drawdown amount; required on create, optional on update (null = unchanged). */
     @NotNull(groups = OnCreate.class, message = "{liabilityTranche.plannedAmount.required}")
-    @DecimalMin(value = "0.01", message = "{liabilityTranche.plannedAmount.min}")
-    @Digits(integer = 17, fraction = 2, message = "{liabilityTranche.plannedAmount.digits}")
+    @DecimalMin(value = "0", inclusive = false, message = "{liabilityTranche.plannedAmount.min}")
+    @Digits(integer = 26, fraction = 18, message = "{liabilityTranche.plannedAmount.digits}")
     private BigDecimal plannedAmount;
 
     /** Planned drawdown date. */
@@ -47,11 +47,11 @@ public class LiabilityTrancheRequest {
 
     /** Fee associated with this tranche. */
     @DecimalMin(value = "0.00", message = "{liabilityTranche.fee.min}")
-    @Digits(integer = 17, fraction = 2, message = "{liabilityTranche.fee.digits}")
+    @Digits(integer = 26, fraction = 18, message = "{liabilityTranche.fee.digits}")
     private BigDecimal fee;
 
     /** Whether this tranche is interest-only. */
-    @Builder.Default private Boolean interestOnly = false;
+    private Boolean interestOnly;
 
     /** End date of the interest-only period. */
     private LocalDate interestOnlyUntil;
