@@ -1,9 +1,13 @@
 package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -18,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.BudgetHistoryResponse;
+import org.openfinance.dto.BudgetRequest;
 import org.openfinance.dto.BudgetSuggestion;
 import org.openfinance.entity.Budget;
 import org.openfinance.entity.BudgetPeriod;
@@ -51,6 +56,8 @@ class BudgetAuditRegressionTest {
     @Mock private SearchTokenService search;
     @Mock private DefaultCurrencyProvider defaultCurrency;
     @Mock private ExchangeRateService exchangeRates;
+    @Mock private org.springframework.context.ApplicationEventPublisher events;
+
     @InjectMocks private BudgetService service;
 
     private Category groceries() {
@@ -61,6 +68,79 @@ class BudgetAuditRegressionTest {
                 .type(CategoryType.EXPENSE)
                 .isSystem(true)
                 .build();
+    }
+
+    @Test
+    void unavailableReportingCurrencyRejectsCreationAndUpdateBeforeChangingState() {
+        Category category = groceries();
+        Budget budget =
+                Budget.builder()
+                        .id(7L)
+                        .userId(9L)
+                        .categoryId(4L)
+                        .currency("EUR")
+                        .amount("100")
+                        .startDate(LocalDate.now())
+                        .endDate(LocalDate.now().plusMonths(1))
+                        .period(BudgetPeriod.MONTHLY)
+                        .build();
+        BudgetRequest request =
+                BudgetRequest.builder()
+                        .categoryId(4L)
+                        .currency("FRF")
+                        .amount(new BigDecimal("200"))
+                        .startDate(LocalDate.now().plusMonths(2))
+                        .endDate(LocalDate.now().plusMonths(3))
+                        .period(BudgetPeriod.MONTHLY)
+                        .rollover(false)
+                        .build();
+        when(categories.findByIdAndUserId(4L, 9L)).thenReturn(Optional.of(category));
+        when(budgets.findByIdAndUserId(7L, 9L)).thenReturn(Optional.of(budget));
+        when(defaultCurrency.resolveForUser(9L)).thenReturn("EUR");
+        when(exchangeRates.getExchangeRate("FRF", "EUR", LocalDate.now()))
+                .thenThrow(new IllegalStateException("No rate"));
+        when(messages.getMessage(eq("budget.currency.unavailable"), any(), any()))
+                .thenReturn("No reporting rate is available");
+
+        assertThatThrownBy(() -> service.createBudget(request, 9L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("No reporting rate");
+        assertThatThrownBy(() -> service.updateBudget(7L, request, 9L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("No reporting rate");
+        assertThat(budget.getCurrency()).isEqualTo("EUR");
+        assertThat(budget.getAmount()).isEqualTo("100");
+        assertThat(budget.getStartDate()).isEqualTo(LocalDate.now());
+        verify(budgets, never()).save(any());
+        verifyNoInteractions(mapper, alerts, history, events);
+    }
+
+    @Test
+    void dashboardFiltersInactiveBudgetsBeforeAttemptingTheirCurrencyConversion() {
+        Budget future =
+                Budget.builder()
+                        .id(7L)
+                        .userId(9L)
+                        .categoryId(4L)
+                        .currency("FRF")
+                        .startDate(LocalDate.now().plusDays(1))
+                        .endDate(LocalDate.now().plusMonths(1))
+                        .build();
+        Budget expired =
+                Budget.builder()
+                        .id(8L)
+                        .userId(9L)
+                        .categoryId(4L)
+                        .currency("FRF")
+                        .startDate(LocalDate.now().minusMonths(1))
+                        .endDate(LocalDate.now().minusDays(1))
+                        .build();
+        when(budgets.findByUserId(9L)).thenReturn(List.of(future, expired));
+        when(defaultCurrency.resolveForUser(9L)).thenReturn("EUR");
+
+        assertThat(service.getAllBudgetsSummary(9L, true).getTotalBudgeted()).isZero();
+        verifyNoInteractions(exchangeRates, transactions, splits);
+        verify(budgets, never()).findByIdAndUserId(any(), any());
     }
 
     @ParameterizedTest

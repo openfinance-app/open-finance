@@ -8,6 +8,7 @@ import { useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
@@ -30,7 +31,10 @@ function createBudgetSchema(t: (key: string) => string) {
         .min(1, t('validation.amountInvalid'))
         .refine(isValidDecimalString, t('validation.amountInvalid'))
         .refine(v => Number(v) > 0, t('validation.amountPositive')),
-      currency: z.string().length(3, t('validation.currencyRequired')),
+      currency: z
+        .string()
+        .trim()
+        .regex(/^[A-Z]{3,10}$/, t('validation.currencyRequired')),
       period: z.enum(['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']),
       startDate: z.string().min(1, t('validation.startDateRequired')),
       endDate: z.string().min(1, t('validation.endDateRequired')),
@@ -97,7 +101,7 @@ export function BudgetForm({
           amount: '0',
           currency: baseCurrency,
           period: 'MONTHLY',
-          startDate: new Date().toISOString().split('T')[0],
+          startDate: format(new Date(), 'yyyy-MM-dd'),
           endDate: '',
           rollover: false,
           notes: '',
@@ -123,7 +127,7 @@ export function BudgetForm({
       startDate: data.startDate,
       endDate: data.endDate,
       rollover: data.rollover,
-      notes: data.notes || undefined,
+      notes: data.notes ?? '',
     });
   });
 

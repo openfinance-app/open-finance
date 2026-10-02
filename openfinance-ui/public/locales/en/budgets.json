@@ -104,7 +104,7 @@
     "amountPositive": "Amount must be greater than 0",
     "amountInvalid": "Enter a valid amount (e.g. 1234.56)",
     "endDateAfterStart": "End date must be at least 1 day after start date",
-    "currencyRequired": "Currency must be a 3-letter code",
+    "currencyRequired": "Select a currency",
     "startDateRequired": "Start date is required",
     "endDateRequired": "End date is required",
     "notesTooLong": "Notes are too long"
@@ -185,5 +185,6 @@
     },
     "periodBreakdown_other": "Period Breakdown ({{count}} periods)",
     "periodBreakdown_one": "Period Breakdown ({{count}} period)"
-  }
+  },
+  "summaryUnavailable": "Budget totals are unavailable. The list below shows each allowance in its original currency. You can still edit or delete budgets."
 }

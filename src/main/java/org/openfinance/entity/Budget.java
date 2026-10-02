@@ -132,8 +132,8 @@ public class Budget {
      * <p>Requirement REQ-2.8: Multi-currency support
      */
     @NotNull(message = "{budget.currency.notnull}")
-    @Size(min = 3, max = 3, message = "{budget.currency.size}")
-    @Column(name = "currency", nullable = false, length = 3)
+    @Size(min = 3, max = 10, message = "{budget.currency.size}")
+    @Column(name = "currency", nullable = false, length = 10)
     private String currency;
 
     /** FK to the currencies table for referential integrity. */

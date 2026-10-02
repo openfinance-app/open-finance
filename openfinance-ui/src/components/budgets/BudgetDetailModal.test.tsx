@@ -304,4 +304,21 @@ describe('BudgetDetailModal', () => {
       expect(privateAmounts.length).toBeGreaterThan(0);
     });
   });
+  it('keeps foreign history amounts in their native currency in totals and rows', () => {
+    mockUseBudgetHistory.mockReturnValue({
+      data: {
+        ...mockHistoryData,
+        currency: 'EUR',
+        totalBudgeted: 100,
+        totalSpent: 70,
+        history: [{ ...mockHistoryData.history[0], budgeted: 100, spent: 70, remaining: 30 }],
+      },
+      isLoading: false,
+    } as ReturnType<typeof useBudgetsModule.useBudgetHistory>);
+    renderWithProviders(<BudgetDetailModal {...defaultProps} />);
+    expect(screen.getAllByText('€100.00')).toHaveLength(2);
+    expect(screen.getAllByText('€70.00')).toHaveLength(2);
+    expect(screen.getAllByText('€30.00')).toHaveLength(2);
+    expect(screen.queryByText('$100.00')).not.toBeInTheDocument();
+  });
 });

@@ -36,6 +36,7 @@ vi.mock('@/components/ui/CurrencySelector', () => ({
       <option value="">{placeholder || 'Select currency'}</option>
       <option value="USD">USD</option>
       <option value="EUR">EUR</option>
+      <option value="USDT">USDT</option>
     </select>
   ),
 }));
@@ -229,5 +230,31 @@ describe('BudgetForm', () => {
       const notesInput = screen.getByLabelText(/Notes/i) as HTMLTextAreaElement;
       expect(notesInput.value).toBe('Monthly food budget');
     });
+  });
+  it('submits a cleared note explicitly and accepts a catalog currency with four characters', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <BudgetForm budget={mockBudget} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+    );
+    await user.clear(screen.getByLabelText(/Notes/i));
+    await user.selectOptions(screen.getByTestId('currency-selector'), 'USDT');
+    await user.click(screen.getByRole('button', { name: /update budget/i }));
+    await waitFor(() =>
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ notes: '', currency: 'USDT' })
+      )
+    );
+  });
+
+  it('starts on the local calendar day just after midnight', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 1, 0, 30));
+    try {
+      renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
+      expect(screen.getByLabelText(/Start Date/i)).toHaveValue('2026-10-01');
+      expect(screen.getByLabelText(/End Date/i)).toHaveValue('2026-10-31');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

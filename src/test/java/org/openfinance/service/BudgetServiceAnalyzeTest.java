@@ -60,6 +60,9 @@ class BudgetServiceAnalyzeTest {
     @Mock private OperationHistoryService operationHistoryService;
 
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+    @Mock private ExchangeRateService exchangeRateService;
+
+    @Mock private org.springframework.context.ApplicationEventPublisher events;
 
     @InjectMocks private BudgetService budgetService;
 

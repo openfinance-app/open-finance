@@ -54,10 +54,222 @@ class OperationHistoryControllerIntegrationTest {
     @Autowired private org.openfinance.service.ImportService imports;
     @Autowired private org.openfinance.repository.ImportSessionRepository importSessions;
     @Autowired private org.openfinance.config.EncryptionProperties encryptionProperties;
+    @Autowired private org.openfinance.repository.CurrencyRepository currencies;
+    @Autowired private org.openfinance.repository.ExchangeRateRepository exchangeRates;
 
     private String authToken;
     private String encryptionSession;
     private Long userId;
+
+    @Test
+    void catalogCurrencyPersistsThroughBudgetCreationUpdateAndHistory() throws Exception {
+        currencies
+                .findByCode("EUR")
+                .orElseGet(
+                        () ->
+                                currencies.save(
+                                        org.openfinance.entity.Currency.builder()
+                                                .code("EUR")
+                                                .name("Euro")
+                                                .symbol("€")
+                                                .build()));
+        currencies
+                .findByCode("USDT")
+                .orElseGet(
+                        () ->
+                                currencies.save(
+                                        org.openfinance.entity.Currency.builder()
+                                                .code("USDT")
+                                                .name("Tether")
+                                                .symbol("USDT")
+                                                .type(org.openfinance.entity.CurrencyType.CRYPTO)
+                                                .build()));
+        exchangeRates.save(
+                org.openfinance.entity.ExchangeRate.builder()
+                        .baseCurrency("USDT")
+                        .targetCurrency("EUR")
+                        .rate(new java.math.BigDecimal("0.88"))
+                        .rateDate(java.time.LocalDate.now())
+                        .build());
+        long category =
+                call(
+                                post("/api/v1/categories"),
+                                Map.of("name", "Crypto allowance", "type", "EXPENSE"))
+                        .get("id")
+                        .asLong();
+        Map<String, Object> request =
+                new java.util.HashMap<>(
+                        Map.of(
+                                "categoryId",
+                                category,
+                                "amount",
+                                "100",
+                                "currency",
+                                "USDT",
+                                "period",
+                                "MONTHLY",
+                                "startDate",
+                                java.time.LocalDate.now().toString(),
+                                "endDate",
+                                java.time.LocalDate.now().plusDays(29).toString(),
+                                "rollover",
+                                false));
+        long budget = call(post("/api/v1/budgets"), request).get("id").asLong();
+        assertThat(call(get("/api/v1/budgets/" + budget), null).get("currency").asText())
+                .isEqualTo("USDT");
+        assertThat(call(get("/api/v1/budgets/summary"), null).get("totalBudgeted").decimalValue())
+                .isEqualByComparingTo("88");
+        request.put("amount", "150");
+        call(put("/api/v1/budgets/" + budget), request);
+        long update = latest("BUDGET").get("id").asLong();
+        reverse(update, false);
+        assertThat(
+                        call(get("/api/v1/budgets/" + budget + "/history"), null)
+                                .get("totalBudgeted")
+                                .decimalValue())
+                .isEqualByComparingTo("100");
+        reverse(update, true);
+        assertThat(
+                        call(get("/api/v1/budgets/" + budget + "/history"), null)
+                                .get("totalBudgeted")
+                                .decimalValue())
+                .isEqualByComparingTo("150");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(
+            strings = {"amount", "category", "date", "splits"})
+    void expenseEditsTriggerAlertsAndHistoryRestoresTheirState(String change) throws Exception {
+        JsonNode account = createAccount("Budget edits");
+        long food =
+                call(post("/api/v1/categories"), Map.of("name", "Food edits", "type", "EXPENSE"))
+                        .get("id")
+                        .asLong();
+        long other =
+                call(post("/api/v1/categories"), Map.of("name", "Other edits", "type", "EXPENSE"))
+                        .get("id")
+                        .asLong();
+        String today = java.time.LocalDate.now().toString();
+        long budget =
+                call(
+                                post("/api/v1/budgets"),
+                                Map.of(
+                                        "categoryId",
+                                        food,
+                                        "currency",
+                                        "EUR",
+                                        "amount",
+                                        "100",
+                                        "period",
+                                        "MONTHLY",
+                                        "startDate",
+                                        today,
+                                        "endDate",
+                                        java.time.LocalDate.now().plusDays(29).toString(),
+                                        "rollover",
+                                        false))
+                        .get("id")
+                        .asLong();
+        Map<String, Object> request = new java.util.HashMap<>(expenseRequest(account, "90"));
+        request.put("date", today);
+        request.put("categoryId", food);
+        switch (change) {
+            case "amount" -> request.put("amount", "70");
+            case "category" -> request.put("categoryId", other);
+            case "date" -> request.put("date", java.time.LocalDate.now().minusDays(1).toString());
+            case "splits" -> {
+                request.remove("categoryId");
+                request.put("amount", "100");
+                request.put(
+                        "splits",
+                        java.util.List.of(
+                                Map.of("categoryId", food, "amount", "70"),
+                                Map.of("categoryId", other, "amount", "30")));
+            }
+            default -> throw new AssertionError(change);
+        }
+        JsonNode payment = call(post("/api/v1/transactions"), request);
+        assertThat(call(get("/api/v1/budgets/alerts/unread/count"), null).asInt()).isZero();
+        String previousBalance =
+                call(get("/api/v1/accounts/" + account.get("id").asLong()), null)
+                        .get("balance")
+                        .asText();
+        request.put("date", today);
+        if (change.equals("splits")) {
+            request.put(
+                    "splits",
+                    java.util.List.of(
+                            Map.of("categoryId", food, "amount", "90"),
+                            Map.of("categoryId", other, "amount", "10")));
+        } else {
+            request.put("amount", "90");
+            request.put("categoryId", food);
+        }
+        call(put("/api/v1/transactions/" + payment.get("id").asLong()), request);
+        long update = latest("TRANSACTION").get("id").asLong();
+        assertThat(
+                        call(get("/api/v1/budgets/" + budget + "/progress"), null)
+                                .get("spent")
+                                .decimalValue())
+                .isEqualByComparingTo("90");
+        assertThat(call(get("/api/v1/budgets/alerts/unread/count"), null).asInt()).isEqualTo(2);
+        assertBalance(account, change.equals("splits") ? "900" : "910");
+        reverse(update, false);
+        assertBalance(account, previousBalance);
+        assertThat(call(get("/api/v1/budgets/alerts/unread/count"), null).asInt()).isZero();
+        reverse(update, true);
+        assertThat(call(get("/api/v1/budgets/alerts/unread/count"), null).asInt()).isEqualTo(2);
+    }
+
+    @Test
+    void allowanceAndNoteEditsTriggerAlertsAndRemainReversible() throws Exception {
+        JsonNode account = createAccount("Allowance edit");
+        long food =
+                call(
+                                post("/api/v1/categories"),
+                                Map.of("name", "Allowance food", "type", "EXPENSE"))
+                        .get("id")
+                        .asLong();
+        String today = java.time.LocalDate.now().toString();
+        Map<String, Object> request =
+                new java.util.HashMap<>(
+                        Map.of(
+                                "categoryId",
+                                food,
+                                "currency",
+                                "EUR",
+                                "amount",
+                                "200",
+                                "period",
+                                "MONTHLY",
+                                "startDate",
+                                today,
+                                "endDate",
+                                java.time.LocalDate.now().plusDays(29).toString(),
+                                "rollover",
+                                false,
+                                "notes",
+                                "Reserve"));
+        long budget = call(post("/api/v1/budgets"), request).get("id").asLong();
+        Map<String, Object> expense = new java.util.HashMap<>(expenseRequest(account, "80"));
+        expense.put("date", today);
+        expense.put("categoryId", food);
+        call(post("/api/v1/transactions"), expense);
+        request.put("amount", "100");
+        request.put("notes", "");
+        call(put("/api/v1/budgets/" + budget), request);
+        long update = latest("BUDGET").get("id").asLong();
+        assertThat(call(get("/api/v1/budgets/" + budget), null).get("notes").asText()).isEmpty();
+        assertThat(call(get("/api/v1/budgets/alerts/unread/count"), null).asInt()).isEqualTo(1);
+        reverse(update, false);
+        assertThat(call(get("/api/v1/budgets/" + budget), null).get("notes").asText())
+                .isEqualTo("Reserve");
+        assertThat(call(get("/api/v1/budgets/alerts/unread/count"), null).asInt()).isZero();
+        reverse(update, true);
+        assertThat(call(get("/api/v1/budgets/" + budget), null).get("notes").asText()).isEmpty();
+        assertThat(call(get("/api/v1/budgets/alerts/unread/count"), null).asInt()).isEqualTo(1);
+        assertBalance(account, "920");
+    }
 
     @Test
     void payeeRenameUpdatesEncryptedTransactionsAndHistoryWithoutChangingBalances()

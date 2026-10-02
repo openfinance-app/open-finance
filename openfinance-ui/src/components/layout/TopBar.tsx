@@ -59,9 +59,8 @@ export function TopBar({ searchRef }: TopBarProps) {
           >
             {isAmountsVisible ? <Eye size={20} /> : <EyeOff size={20} />}
           </button>
-
-          <NotificationBadge />
         </div>
+        <NotificationBadge />
 
         {/* User dropdown menu (Task 4.3.13) */}
         <UserDropdownMenu />

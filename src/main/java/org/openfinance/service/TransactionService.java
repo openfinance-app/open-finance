@@ -1113,6 +1113,9 @@ public class TransactionService {
         invalidateSnapshotsFor(
                 userId, oldDate != null && oldDate.isBefore(newDate) ? oldDate : newDate);
 
+        // Amount, date, category and split edits can all cross an active budget threshold.
+        budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
+
         // Decrypt and return response with denormalized data
         TransactionResponse updateTxResponse = toResponseWithDecryption(updatedTransaction);
 

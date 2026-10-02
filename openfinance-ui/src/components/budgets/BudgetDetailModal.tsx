@@ -28,7 +28,6 @@ import { LoadingSkeleton } from '@/components/LoadingComponents';
 import { AlertSettings } from '@/components/alerts/AlertSettings';
 import { useBudget, useBudgetHistory } from '@/hooks/useBudgets';
 import { useVisibility } from '@/context/VisibilityContext';
-import { useAuthContext } from '@/context/AuthContext';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { cn } from '@/lib/utils';
@@ -211,18 +210,18 @@ interface BudgetDetailModalProps {
 
 export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps) {
   const { isAmountsVisible } = useVisibility();
-  const { baseCurrency } = useAuthContext();
   const { format: formatCurrency } = useFormatCurrency();
-  const {
-    convert,
-    secondaryCurrency: secCurrency,
-    secondaryExchangeRate,
-  } = useSecondaryConversion(baseCurrency);
   const { t } = useTranslation('budgets');
   const { t: tc } = useTranslation('common');
 
   const { data: budget, isLoading: isBudgetLoading } = useBudget(budgetId);
   const { data: historyData, isLoading: isHistoryLoading } = useBudgetHistory(budgetId);
+  const currency = historyData?.currency ?? budget?.currency;
+  const {
+    convert,
+    secondaryCurrency: secCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(currency);
 
   const isLoading = isBudgetLoading || isHistoryLoading;
 
@@ -328,7 +327,7 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                   <p className="text-xl font-bold text-text-primary font-mono">
                     <ConvertedAmount
                       amount={historyData.totalBudgeted}
-                      currency={baseCurrency}
+                      currency={historyData.currency}
                       isConverted={false}
                       secondaryAmount={convert(historyData.totalBudgeted)}
                       secondaryCurrency={secCurrency}
@@ -349,7 +348,7 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                   >
                     <ConvertedAmount
                       amount={historyData.totalSpent}
-                      currency={baseCurrency}
+                      currency={historyData.currency}
                       isConverted={false}
                       secondaryAmount={convert(historyData.totalSpent)}
                       secondaryCurrency={secCurrency}
@@ -370,7 +369,7 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                   >
                     <ConvertedAmount
                       amount={historyData.totalBudgeted - historyData.totalSpent}
-                      currency={baseCurrency}
+                      currency={historyData.currency}
                       isConverted={false}
                       secondaryAmount={convert(historyData.totalBudgeted - historyData.totalSpent)}
                       secondaryCurrency={secCurrency}
@@ -422,11 +421,11 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                         tickLine={false}
                         tickFormatter={(v: number) =>
                           isAmountsVisible
-                            ? formatCurrency(v, baseCurrency, { compact: true })
+                            ? formatCurrency(v, historyData.currency, { compact: true })
                             : '••••••'
                         }
                       />
-                      <Tooltip content={<CustomTooltip currency={baseCurrency} />} />
+                      <Tooltip content={<CustomTooltip currency={historyData.currency} />} />
                       <Legend
                         wrapperStyle={{
                           fontSize: 12,
@@ -495,7 +494,7 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                           <HistoryRow
                             key={`${entry.periodStart}-${idx}`}
                             entry={entry}
-                            currency={baseCurrency}
+                            currency={historyData.currency}
                           />
                         ))}
                       </tbody>

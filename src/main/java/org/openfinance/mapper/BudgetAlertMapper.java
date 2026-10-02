@@ -1,10 +1,14 @@
 package org.openfinance.mapper;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Locale;
+import lombok.RequiredArgsConstructor;
 import org.openfinance.dto.BudgetAlertResponse;
 import org.openfinance.entity.Budget;
 import org.openfinance.entity.BudgetAlert;
 import org.openfinance.entity.Category;
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,7 +28,10 @@ import org.springframework.stereotype.Component;
  * @since 1.0
  */
 @Component
+@RequiredArgsConstructor
 public class BudgetAlertMapper {
+
+    private final MessageSource messageSource;
 
     /**
      * Converts BudgetAlert entity to response DTO.
@@ -36,19 +43,24 @@ public class BudgetAlertMapper {
      * @param alert the budget alert entity
      * @return the alert response DTO
      */
-    public BudgetAlertResponse toResponse(BudgetAlert alert) {
+    public BudgetAlertResponse toResponse(BudgetAlert alert, Locale locale) {
         if (alert == null) {
             return null;
         }
 
         Budget budget = alert.getBudget();
         Category category = (budget != null) ? budget.getCategory() : null;
+        String categoryName = localizedCategoryName(category, locale);
 
         return BudgetAlertResponse.builder()
                 .id(alert.getId())
                 .budgetId(budget != null ? budget.getId() : null)
-                .budgetName(category != null ? category.getName() + " Budget" : null)
-                .categoryName(category != null ? category.getName() : null)
+                .budgetName(
+                        categoryName != null
+                                ? messageSource.getMessage(
+                                        "budget.alert.name", new Object[] {categoryName}, locale)
+                                : null)
+                .categoryName(categoryName)
                 .threshold(alert.getThreshold())
                 .isEnabled(alert.isEnabled())
                 .lastTriggered(alert.getLastTriggered())
@@ -68,8 +80,8 @@ public class BudgetAlertMapper {
      * @return the alert response DTO with spending context
      */
     public BudgetAlertResponse toResponseWithProgress(
-            BudgetAlert alert, BigDecimal currentSpentPercentage) {
-        BudgetAlertResponse response = toResponse(alert);
+            BudgetAlert alert, BigDecimal currentSpentPercentage, Locale locale) {
+        BudgetAlertResponse response = toResponse(alert, locale);
 
         if (response != null && currentSpentPercentage != null) {
             response.setCurrentSpentPercentage(currentSpentPercentage);
@@ -80,7 +92,8 @@ public class BudgetAlertMapper {
                         generateAlertMessage(
                                 response.getCategoryName(),
                                 currentSpentPercentage,
-                                alert.getThreshold()));
+                                alert.getThreshold(),
+                                locale));
             }
         }
 
@@ -104,18 +117,27 @@ public class BudgetAlertMapper {
      * @return formatted alert message
      */
     private String generateAlertMessage(
-            String categoryName, BigDecimal spentPercentage, BigDecimal threshold) {
-        String prefix;
+            String categoryName, BigDecimal spentPercentage, BigDecimal threshold, Locale locale) {
+        String key;
         if (threshold.compareTo(BigDecimal.valueOf(100)) >= 0
                 && spentPercentage.compareTo(BigDecimal.valueOf(100)) >= 0) {
-            prefix = "Alert: Budget exceeded!";
+            key = "budget.alert.exceeded";
         } else if (threshold.compareTo(BigDecimal.valueOf(90)) >= 0) {
-            prefix = "Critical:";
+            key = "budget.alert.critical";
         } else {
-            prefix = "Warning:";
+            key = "budget.alert.warning";
         }
 
-        return String.format(
-                "%s You've spent %.1f%% of your %s budget", prefix, spentPercentage, categoryName);
+        return messageSource.getMessage(
+                key,
+                new Object[] {spentPercentage.setScale(1, RoundingMode.HALF_UP), categoryName},
+                locale);
+    }
+
+    private String localizedCategoryName(Category category, Locale locale) {
+        if (category == null) return null;
+        return Boolean.TRUE.equals(category.getIsSystem()) && category.getNameKey() != null
+                ? messageSource.getMessage(category.getNameKey(), null, category.getName(), locale)
+                : category.getName();
     }
 }

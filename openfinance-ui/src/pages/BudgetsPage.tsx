@@ -27,6 +27,7 @@ import { BudgetSummaryCard } from '@/components/budgets/BudgetSummaryCard';
 import { AlertBanner } from '@/components/budgets/AlertBanner';
 import { BudgetWizard } from '@/components/budgets/BudgetWizard';
 import { BudgetDetailModal } from '@/components/budgets/BudgetDetailModal';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
@@ -35,6 +36,7 @@ import {
   useUpdateBudget,
   useDeleteBudget,
   useBudget,
+  useBudgets,
 } from '@/hooks/useBudgets';
 import type { BudgetRequest, BudgetResponse } from '@/types/budget';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '@/constants/pagination';
@@ -42,6 +44,7 @@ import { matchesQuery } from '@/utils/searchMatch';
 
 export default function BudgetsPage() {
   const { t } = useTranslation('budgets');
+  const { t: tc } = useTranslation('common');
   useDocumentTitle(t('title'));
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -78,6 +81,8 @@ export default function BudgetsPage() {
     filters.period === undefined || filters.period === '' ? undefined : filters.period;
 
   const { data: summary, isLoading: summaryLoading, error } = useBudgetSummary(periodFilter);
+  // The native list does not require exchange rates and remains editable if totals fail.
+  const { data: nativeBudgets, isLoading: nativeLoading } = useBudgets(periodFilter, !!error);
   const { data: editingBudget, isLoading: editBudgetLoading } = useBudget(editingBudgetId);
 
   const createBudget = useCreateBudget();
@@ -90,17 +95,24 @@ export default function BudgetsPage() {
     return summary.budgets;
   }, [summary]);
 
-  // Deep link ?open=<budgetId>: auto-open the detail modal once budgets load
-  const openParam = searchParams.get('open') ? parseInt(searchParams.get('open')!) : null;
+  // Detail loads by ID, independently of the list's filters and reporting conversion.
+  const openParam = Number(searchParams.get('open'));
   useEffect(() => {
-    if (!openParam) return;
-    if (allBudgetProgress.some(b => b.budgetId === openParam)) {
-      setDetailBudgetId(openParam);
-      const next = new URLSearchParams(searchParams);
-      next.delete('open');
-      setSearchParams(next, { replace: true });
-    }
-  }, [openParam, allBudgetProgress, searchParams, setSearchParams]);
+    if (!Number.isSafeInteger(openParam) || openParam <= 0) return;
+    setFilters({});
+    setCurrentPage(0);
+    setDetailBudgetId(openParam);
+    const next = new URLSearchParams(searchParams);
+    next.delete('open');
+    next.delete('alertKeyword');
+    setSearchParams(next, { replace: true });
+  }, [openParam, searchParams, setSearchParams]);
+
+  const filteredNativeBudgets = (nativeBudgets ?? []).filter(
+    budget =>
+      !(filters.keyword || '').trim() ||
+      matchesQuery(budget.categoryName, (filters.keyword || '').trim(), !!filters.keywordRegex)
+  );
 
   // Apply keyword filter (client-side, case-insensitive or regex match on category name)
   const filteredBudgets = useMemo(() => {
@@ -209,20 +221,9 @@ export default function BudgetsPage() {
     });
   };
 
-  const deletingBudgetName = allBudgetProgress.find(
-    b => b.budgetId === deletingBudgetId
-  )?.categoryName;
-
-  if (error) {
-    return (
-      <div className="p-8">
-        <PageHeader title={t('title')} />
-        <div className="mt-6 p-4 bg-error/10 border border-error/20 rounded-lg text-error">
-          {t('loadError')}
-        </div>
-      </div>
-    );
-  }
+  const deletingBudgetName =
+    allBudgetProgress.find(b => b.budgetId === deletingBudgetId)?.categoryName ??
+    nativeBudgets?.find(b => b.id === deletingBudgetId)?.categoryName;
 
   return (
     <div className="p-8">
@@ -258,7 +259,7 @@ export default function BudgetsPage() {
       )}
 
       {/* Alerts */}
-      {budgetAlerts.length > 0 && (
+      {!error && budgetAlerts.length > 0 && (
         <div className="space-y-3 mb-6">
           {budgetAlerts.map(budget => (
             <AlertBanner
@@ -287,11 +288,50 @@ export default function BudgetsPage() {
       )}
 
       {/* Summary Card */}
-      {!summaryLoading && summary && summary.totalBudgets > 0 && (
+      {!error && !summaryLoading && summary && summary.totalBudgets > 0 && (
         <BudgetSummaryCard
           summary={summary}
           filteredBudgets={hasActiveFilters ? filteredBudgets : undefined}
         />
+      )}
+
+      {error && (
+        <div className="space-y-4">
+          <div
+            role="alert"
+            className="p-4 bg-error/10 border border-error/20 rounded-lg text-error"
+          >
+            {t('summaryUnavailable')}
+          </div>
+          {nativeLoading ? (
+            <LoadingSkeleton className="h-32" />
+          ) : !nativeBudgets ? (
+            <p className="text-error">{t('loadError')}</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredNativeBudgets.map(budget => (
+                <div
+                  key={budget.id}
+                  className="p-4 rounded-lg border border-border bg-surface space-y-3"
+                >
+                  <h2 className="font-semibold">{budget.categoryName}</h2>
+                  <p className="text-sm text-text-secondary">
+                    {t(`form.periods.${budget.period}`)} · {budget.startDate} – {budget.endDate}
+                  </p>
+                  <ConvertedAmount amount={budget.amount} currency={budget.currency} inline />
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => handleEdit(budget.id)}>
+                      {tc('aria.editBudget')}
+                    </Button>
+                    <Button variant="outline" onClick={() => handleDelete(budget.id)}>
+                      {tc('aria.deleteBudget')}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Loading State */}
@@ -304,7 +344,7 @@ export default function BudgetsPage() {
       )}
 
       {/* Empty State — no budgets at all */}
-      {!summaryLoading && allBudgetProgress.length === 0 && (
+      {!error && !summaryLoading && allBudgetProgress.length === 0 && (
         <EmptyState
           title={t('empty.noBudgets')}
           description={t('empty.addFirst')}
@@ -316,23 +356,28 @@ export default function BudgetsPage() {
       )}
 
       {/* Empty State — filters returned no results */}
-      {!summaryLoading && allBudgetProgress.length > 0 && filteredBudgets.length === 0 && (
-        <EmptyState
-          title={t('empty.noMatch')}
-          description={hasActiveFilters ? t('empty.noMatchDescription') : t('empty.noBudgetsFound')}
-          action={
-            hasActiveFilters
-              ? {
-                  label: t('empty.clearFilters'),
-                  onClick: () => handleFiltersChange({}),
-                }
-              : undefined
-          }
-        />
-      )}
+      {!error &&
+        !summaryLoading &&
+        allBudgetProgress.length > 0 &&
+        filteredBudgets.length === 0 && (
+          <EmptyState
+            title={t('empty.noMatch')}
+            description={
+              hasActiveFilters ? t('empty.noMatchDescription') : t('empty.noBudgetsFound')
+            }
+            action={
+              hasActiveFilters
+                ? {
+                    label: t('empty.clearFilters'),
+                    onClick: () => handleFiltersChange({}),
+                  }
+                : undefined
+            }
+          />
+        )}
 
       {/* Budgets Grid */}
-      {!summaryLoading && paginatedBudgets.length > 0 && (
+      {!error && !summaryLoading && paginatedBudgets.length > 0 && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {paginatedBudgets.map(budget => (

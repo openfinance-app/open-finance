@@ -161,7 +161,7 @@ export default function BudgetProgressCard() {
     secondaryExchangeRate,
   } = useSecondaryConversion(baseCurrency);
 
-  const { data: allPeriods, isLoading, isError } = useBudgetSummary();
+  const { data: allPeriods, isLoading, isError } = useBudgetSummary(undefined, true);
   const summary = allPeriods ? activeBudgetSummary(allPeriods) : undefined;
 
   // ── loading skeleton ───────────────────────────────────────────────────────

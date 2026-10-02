@@ -40,6 +40,7 @@ import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.history.ReversibleOperation;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
@@ -99,6 +100,7 @@ public class BudgetService {
     private final SearchTokenService searchTokenService;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
     private final ExchangeRateService exchangeRateService;
+    private final ApplicationEventPublisher events;
 
     // Status thresholds
     private static final BigDecimal WARNING_THRESHOLD = BigDecimal.valueOf(75);
@@ -148,6 +150,7 @@ public class BudgetService {
 
         // Validate no duplicate budget
         validateNoDuplicateBudget(request, userId, null);
+        validateReportingCurrency(request.getCurrency(), userId);
 
         // Map request to entity
         Budget budget = budgetMapper.toEntity(request);
@@ -159,6 +162,7 @@ public class BudgetService {
         // Save to database
         Budget savedBudget = budgetRepository.save(budget);
         createDefaultAlerts(savedBudget);
+        events.publishEvent(new BudgetChanged(userId));
         indexBudgetSearchTokens(savedBudget, request.getNotes());
         log.info(
                 "Budget created successfully: id={}, userId={}, category={}, period={}",
@@ -230,6 +234,9 @@ public class BudgetService {
 
         // Validate no duplicate budget (exclude current budget)
         validateNoDuplicateBudget(request, userId, budgetId);
+        if (!budget.getCurrency().equalsIgnoreCase(request.getCurrency())) {
+            validateReportingCurrency(request.getCurrency(), userId);
+        }
 
         // Capture snapshot before update for history
         BudgetResponse beforeSnapshot = toResponseWithDecryption(budget, category);
@@ -243,6 +250,7 @@ public class BudgetService {
 
         // Save changes
         Budget updatedBudget = budgetRepository.save(budget);
+        events.publishEvent(new BudgetChanged(userId));
         indexBudgetSearchTokens(updatedBudget, request.getNotes());
         log.info("Budget updated successfully: id={}, userId={}", budgetId, userId);
 
@@ -460,7 +468,8 @@ public class BudgetService {
      * @throws BudgetNotFoundException if budget not found or doesn't belong to user
      * @throws IllegalArgumentException if any parameter is null
      */
-    @Transactional(readOnly = true)
+    // Missing FX quotes must not mark a caller's financial write rollback-only during alert checks.
+    @Transactional(readOnly = true, noRollbackFor = IllegalStateException.class)
     public BudgetProgressResponse calculateBudgetProgress(Long budgetId, Long userId) {
         if (budgetId == null) {
             throw new IllegalArgumentException("Budget ID cannot be null");
@@ -557,95 +566,16 @@ public class BudgetService {
      */
     @Transactional(readOnly = true)
     public BudgetSummaryResponse getBudgetSummary(Long userId, BudgetPeriod period) {
-        if (userId == null) {
-            throw new IllegalArgumentException("User ID cannot be null");
-        }
-        if (period == null) {
-            throw new IllegalArgumentException("Period cannot be null");
-        }
-        log.debug("Generating budget summary for user {} with period {}", userId, period);
+        return getBudgetSummary(userId, period, false);
+    }
 
-        // Fetch budgets for period
-        List<Budget> budgets = budgetRepository.findByUserIdAndPeriod(userId, period);
-
-        if (budgets.isEmpty()) {
-            log.debug("No budgets found for user {} with period {}", userId, period);
-            return BudgetSummaryResponse.builder()
-                    .period(period)
-                    .totalBudgets(0)
-                    .activeBudgets(0)
-                    .totalBudgeted(BigDecimal.ZERO)
-                    .totalSpent(BigDecimal.ZERO)
-                    .totalRemaining(BigDecimal.ZERO)
-                    .averageSpentPercentage(BigDecimal.ZERO)
-                    .budgets(List.of())
-                    .currency(defaultCurrencyProvider.resolveForUser(userId)) // Default
-                    .build();
-        }
-
-        // Calculate progress for each budget
-        List<BudgetProgressResponse> progressList =
-                budgets.stream()
-                        .map(budget -> calculateBudgetProgress(budget.getId(), userId))
-                        .map(progress -> convertSummaryProgress(progress, userId))
-                        .collect(Collectors.toList());
-
-        // Aggregate statistics
-        BigDecimal totalBudgeted =
-                progressList.stream()
-                        .map(BudgetProgressResponse::getBudgeted)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalSpent =
-                progressList.stream()
-                        .map(BudgetProgressResponse::getSpent)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalRemaining = totalBudgeted.subtract(totalSpent);
-
-        BigDecimal averageSpentPercentage = BigDecimal.ZERO;
-        if (!progressList.isEmpty()) {
-            BigDecimal sumPercentages =
-                    progressList.stream()
-                            .map(BudgetProgressResponse::getPercentageSpent)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-            averageSpentPercentage =
-                    sumPercentages.divide(
-                            BigDecimal.valueOf(progressList.size()), 2, RoundingMode.HALF_UP);
-        }
-
-        // Count active budgets (current date within budget period)
-        LocalDate today = LocalDate.now();
-        int activeBudgets =
-                (int)
-                        budgets.stream()
-                                .filter(
-                                        b ->
-                                                !today.isBefore(b.getStartDate())
-                                                        && !today.isAfter(b.getEndDate()))
-                                .count();
-
-        // Every summary row and aggregate uses the reporting currency.
-        String currency = defaultCurrencyProvider.resolveForUser(userId);
-
-        log.debug(
-                "Budget summary generated: totalBudgets={}, activeBudgets={}, totalBudgeted={}, totalSpent={}",
-                budgets.size(),
-                activeBudgets,
-                totalBudgeted,
-                totalSpent);
-
-        return BudgetSummaryResponse.builder()
-                .period(period)
-                .totalBudgets(budgets.size())
-                .activeBudgets(activeBudgets)
-                .totalBudgeted(totalBudgeted)
-                .totalSpent(totalSpent)
-                .totalRemaining(totalRemaining)
-                .averageSpentPercentage(averageSpentPercentage)
-                .budgets(progressList)
-                .currency(currency)
-                .build();
+    @Transactional(readOnly = true)
+    public BudgetSummaryResponse getBudgetSummary(
+            Long userId, BudgetPeriod period, boolean activeOnly) {
+        if (period == null) throw new IllegalArgumentException("Period cannot be null");
+        if (userId == null) throw new IllegalArgumentException("User ID cannot be null");
+        return summarizeBudgets(
+                budgetRepository.findByUserIdAndPeriod(userId, period), userId, period, activeOnly);
     }
 
     /**
@@ -664,16 +594,36 @@ public class BudgetService {
      */
     @Transactional(readOnly = true)
     public BudgetSummaryResponse getAllBudgetsSummary(Long userId) {
+        return getAllBudgetsSummary(userId, false);
+    }
+
+    @Transactional(readOnly = true)
+    public BudgetSummaryResponse getAllBudgetsSummary(Long userId, boolean activeOnly) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
         log.debug("Generating all-period budget summary for user {}", userId);
 
         List<Budget> budgets = budgetRepository.findByUserId(userId);
+        return summarizeBudgets(budgets, userId, null, activeOnly);
+    }
+
+    private BudgetSummaryResponse summarizeBudgets(
+            List<Budget> budgets, Long userId, BudgetPeriod period, boolean activeOnly) {
+        if (activeOnly) {
+            LocalDate today = LocalDate.now();
+            budgets =
+                    budgets.stream()
+                            .filter(
+                                    budget ->
+                                            !today.isBefore(budget.getStartDate())
+                                                    && !today.isAfter(budget.getEndDate()))
+                            .toList();
+        }
 
         if (budgets.isEmpty()) {
             return BudgetSummaryResponse.builder()
-                    .period(null)
+                    .period(period)
                     .totalBudgets(0)
                     .activeBudgets(0)
                     .totalBudgeted(BigDecimal.ZERO)
@@ -726,7 +676,7 @@ public class BudgetService {
                 totalSpent);
 
         return BudgetSummaryResponse.builder()
-                .period(null)
+                .period(period)
                 .totalBudgets(budgets.size())
                 .activeBudgets(activeBudgets)
                 .totalBudgeted(totalBudgeted)
@@ -1439,6 +1389,21 @@ public class BudgetService {
                 .findByCode(currencyCode)
                 .map(org.openfinance.entity.Currency::getId)
                 .orElse(null);
+    }
+
+    private void validateReportingCurrency(String currency, Long userId) {
+        String reportingCurrency = defaultCurrencyProvider.resolveForUser(userId);
+        if (currency.equalsIgnoreCase(reportingCurrency)) return;
+        try {
+            exchangeRateService.getExchangeRate(currency, reportingCurrency, LocalDate.now());
+        } catch (IllegalStateException e) {
+            throw new IllegalArgumentException(
+                    messageSource.getMessage(
+                            "budget.currency.unavailable",
+                            new Object[] {currency, reportingCurrency},
+                            LocaleContextHolder.getLocale()),
+                    e);
+        }
     }
 
     private void indexBudgetSearchTokens(Budget budget, String notes) {

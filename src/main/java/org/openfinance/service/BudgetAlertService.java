@@ -11,6 +11,7 @@ import org.openfinance.entity.Budget;
 import org.openfinance.entity.BudgetAlert;
 import org.openfinance.repository.BudgetAlertRepository;
 import org.openfinance.repository.BudgetRepository;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,6 +64,11 @@ public class BudgetAlertService {
      */
     private static final int ALERT_COOLDOWN_HOURS = 24;
 
+    @EventListener
+    public void onBudgetChanged(BudgetChanged event) {
+        checkBudgetAlertsAfterTransaction(event.userId());
+    }
+
     /**
      * Checks all budget alerts after a transaction is created.
      *
@@ -110,6 +116,7 @@ public class BudgetAlertService {
             // Fetch budget progress (cache per budget to avoid redundant calls)
             if (!budgetId.equals(currentBudgetId)) {
                 currentBudgetId = budgetId;
+                currentProgress = null;
                 try {
                     currentProgress = budgetService.calculateBudgetProgress(budgetId, userId);
                 } catch (Exception e) {
@@ -120,6 +127,8 @@ public class BudgetAlertService {
                     continue;
                 }
             }
+
+            if (currentProgress == null) continue;
 
             // Check if alert should trigger
             if (shouldTriggerAlert(alert, currentProgress)) {
@@ -205,6 +214,11 @@ public class BudgetAlertService {
      * @throws IllegalStateException if alert already exists for this budget and threshold
      */
     public BudgetAlert createAlert(Long budgetId, Long userId, BigDecimal threshold) {
+        return createAlert(budgetId, userId, threshold, true);
+    }
+
+    public BudgetAlert createAlert(
+            Long budgetId, Long userId, BigDecimal threshold, boolean enabled) {
         if (budgetId == null || userId == null || threshold == null) {
             throw new IllegalArgumentException("BudgetId, userId, and threshold cannot be null");
         }
@@ -238,11 +252,12 @@ public class BudgetAlertService {
                 BudgetAlert.builder()
                         .budget(budget)
                         .threshold(threshold)
-                        .isEnabled(true)
+                        .isEnabled(enabled)
                         .isRead(true) // Not triggered yet, so marked as read
                         .build();
 
         BudgetAlert saved = alertRepository.save(alert);
+        evaluateConfiguredAlert(saved, userId);
         log.info(
                 "Created alert {} for budget {} with threshold {}%",
                 saved.getId(), budgetId, threshold);
@@ -307,6 +322,7 @@ public class BudgetAlertService {
         }
 
         BudgetAlert updated = alertRepository.save(alert);
+        evaluateConfiguredAlert(updated, userId);
         log.info(
                 "Updated alert {}: threshold={}, enabled={}",
                 alertId,
@@ -314,6 +330,23 @@ public class BudgetAlertService {
                 updated.isEnabled());
 
         return updated;
+    }
+
+    private void evaluateConfiguredAlert(BudgetAlert alert, Long userId) {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (!alert.isEnabled()
+                || today.isBefore(alert.getBudget().getStartDate())
+                || today.isAfter(alert.getBudget().getEndDate())) return;
+        try {
+            BudgetProgressResponse progress =
+                    budgetService.calculateBudgetProgress(alert.getBudget().getId(), userId);
+            if (shouldTriggerAlert(alert, progress)) {
+                alert.trigger();
+                alertRepository.save(alert);
+            }
+        } catch (IllegalStateException e) {
+            log.warn("Cannot evaluate budget alert {}: {}", alert.getId(), e.getMessage());
+        }
     }
 
     /**

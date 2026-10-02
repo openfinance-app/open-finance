@@ -157,15 +157,14 @@ const NotificationDropdown = forwardRef<HTMLDivElement, NotificationDropdownProp
 
     const handleBudgetAlertClick = (alert: BudgetAlert) => {
       markAsRead.mutate(alert.id);
-      const keyword = encodeURIComponent(alert.budgetName);
-      navigate(`/budget?alertKeyword=${keyword}`);
+      navigate(`/budget?open=${alert.budgetId}`);
       onClose();
     };
 
     return (
       <div
         ref={ref}
-        className="absolute right-0 mt-2 w-96 bg-surface rounded-lg shadow-xl border border-border overflow-hidden z-50 animate-fade-in"
+        className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto mt-2 sm:w-96 bg-surface rounded-lg shadow-xl border border-border overflow-hidden z-50 animate-fade-in"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">

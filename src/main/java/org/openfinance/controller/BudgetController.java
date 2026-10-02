@@ -516,14 +516,20 @@ public class BudgetController {
      */
     @GetMapping("/summary")
     public ResponseEntity<BudgetSummaryResponse> getBudgetSummary(
-            @RequestParam(required = false) BudgetPeriod period, Authentication authentication) {
+            @RequestParam(required = false) BudgetPeriod period,
+            @RequestParam(defaultValue = "false") boolean activeOnly,
+            Authentication authentication) {
 
         log.info("Retrieving budget summary: period={}", period);
         User user = (User) authentication.getPrincipal();
         BudgetSummaryResponse summary =
                 period != null
-                        ? budgetService.getBudgetSummary(user.getId(), period)
-                        : budgetService.getAllBudgetsSummary(user.getId());
+                        ? (activeOnly
+                                ? budgetService.getBudgetSummary(user.getId(), period, true)
+                                : budgetService.getBudgetSummary(user.getId(), period))
+                        : (activeOnly
+                                ? budgetService.getAllBudgetsSummary(user.getId(), true)
+                                : budgetService.getAllBudgetsSummary(user.getId()));
 
         log.info(
                 "Budget summary retrieved: period={}, totalBudgets={}, totalSpent={}",

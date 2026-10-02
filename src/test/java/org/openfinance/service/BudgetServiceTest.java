@@ -93,6 +93,8 @@ class BudgetServiceTest {
 
     @Mock private ExchangeRateService exchangeRateService;
 
+    @Mock private org.springframework.context.ApplicationEventPublisher events;
+
     @InjectMocks private BudgetService budgetService;
 
     private Category testCategory;

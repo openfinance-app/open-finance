@@ -138,7 +138,7 @@
     "amountPositive": "Le montant doit être supérieur à 0",
     "amountInvalid": "Saisissez un montant valide (ex. 1234,56)",
     "endDateAfterStart": "La date de fin doit être au moins 1 jour après la date de début",
-    "currencyRequired": "La devise doit être un code de 3 lettres",
+    "currencyRequired": "Sélectionnez une devise",
     "startDateRequired": "La date de début est obligatoire",
     "endDateRequired": "La date de fin est obligatoire",
     "notesTooLong": "Les notes sont trop longues"
@@ -185,5 +185,6 @@
     "back": "Retour",
     "cancel": "Annuler",
     "done": "Terminé"
-  }
+  },
+  "summaryUnavailable": "Les totaux des budgets sont indisponibles. La liste ci-dessous affiche chaque montant prévu dans sa devise d’origine. Vous pouvez toujours modifier ou supprimer les budgets."
 }

@@ -17,6 +17,7 @@ import org.openfinance.mapper.BudgetAlertMapper;
 import org.openfinance.service.BudgetAlertService;
 import org.openfinance.service.BudgetService;
 import org.openfinance.util.ControllerUtil;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -85,13 +86,15 @@ public class BudgetAlertController {
                 "Creating alert for budget {} by user {}: threshold={}%",
                 budgetId, userId, request.getThreshold());
 
-        BudgetAlert alert = alertService.createAlert(budgetId, userId, request.getThreshold());
+        BudgetAlert alert =
+                alertService.createAlert(
+                        budgetId,
+                        userId,
+                        request.getThreshold(),
+                        !Boolean.FALSE.equals(request.getIsEnabled()));
 
-        if (request.getIsEnabled() != null && request.getIsEnabled() != alert.isEnabled()) {
-            alert = alertService.updateAlert(alert.getId(), userId, null, request.getIsEnabled());
-        }
-
-        BudgetAlertResponse response = alertMapper.toResponse(alert);
+        BudgetAlertResponse response =
+                alertMapper.toResponse(alert, LocaleContextHolder.getLocale());
 
         log.info(
                 "Alert created: id={}, budgetId={}, threshold={}%",
@@ -124,7 +127,9 @@ public class BudgetAlertController {
                         .map(
                                 alert ->
                                         alertMapper.toResponseWithProgress(
-                                                alert, progress.getPercentageSpent()))
+                                                alert,
+                                                progress.getPercentageSpent(),
+                                                LocaleContextHolder.getLocale()))
                         .collect(Collectors.toList());
 
         return ResponseEntity.ok(responses);
@@ -157,7 +162,9 @@ public class BudgetAlertController {
                                                             budgetService.calculateBudgetProgress(
                                                                     id, userId));
                                     return alertMapper.toResponseWithProgress(
-                                            alert, progress.getPercentageSpent());
+                                            alert,
+                                            progress.getPercentageSpent(),
+                                            LocaleContextHolder.getLocale());
                                 })
                         .collect(Collectors.toList());
 
@@ -205,7 +212,8 @@ public class BudgetAlertController {
         BudgetAlert alert =
                 alertService.updateAlert(
                         alertId, userId, request.getThreshold(), request.getIsEnabled());
-        BudgetAlertResponse response = alertMapper.toResponse(alert);
+        BudgetAlertResponse response =
+                alertMapper.toResponse(alert, LocaleContextHolder.getLocale());
 
         log.info(
                 "Alert updated: id={}, threshold={}%, enabled={}",

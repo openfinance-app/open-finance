@@ -24,9 +24,10 @@ import type {
 /**
  * Fetch all budgets with optional period filter
  */
-export function useBudgets(period?: BudgetPeriod) {
+export function useBudgets(period?: BudgetPeriod, enabled = true) {
   return useQuery<BudgetResponse[]>({
     queryKey: ['budgets', period],
+    enabled,
     queryFn: async () => {
       const params = period ? `?period=${period}` : '';
       const response = await apiClient.get<BudgetResponse[]>(`/budgets${params}`, {
@@ -79,12 +80,15 @@ export function useBudgetProgress(budgetId: number | null) {
 /**
  * Fetch budget summary with aggregate data
  */
-export function useBudgetSummary(period?: BudgetPeriod) {
+export function useBudgetSummary(period?: BudgetPeriod, activeOnly = false) {
   return useQuery<BudgetSummaryResponse>({
-    queryKey: ['budgets', 'summary', period],
+    queryKey: ['budgets', 'summary', period, activeOnly],
     queryFn: async () => {
-      const params = period ? `?period=${period}` : '';
-      const response = await apiClient.get<BudgetSummaryResponse>(`/budgets/summary${params}`, {
+      const params = new URLSearchParams();
+      if (period) params.set('period', period);
+      if (activeOnly) params.set('activeOnly', 'true');
+      const query = params.size ? `?${params}` : '';
+      const response = await apiClient.get<BudgetSummaryResponse>(`/budgets/summary${query}`, {
         headers: buildEncryptionHeaders(),
       });
       return response.data;

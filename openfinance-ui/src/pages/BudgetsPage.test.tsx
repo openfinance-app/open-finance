@@ -121,6 +121,7 @@ import {
   useUpdateBudget,
   useDeleteBudget,
   useBudget,
+  useBudgets,
 } from '@/hooks/useBudgets';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -191,6 +192,10 @@ describe('BudgetsPage', () => {
   beforeEach(() => {
     queryClient = createTestQueryClient();
     vi.clearAllMocks();
+
+    vi.mocked(useBudgets).mockReturnValue({ data: undefined, isLoading: false } as ReturnType<
+      typeof useBudgets
+    >);
 
     // Default mocks
     mockUseDocumentTitle.mockImplementation(() => {});
@@ -734,6 +739,46 @@ describe('BudgetsPage', () => {
     });
   });
 
+  it('keeps native budget amounts and edit controls available when summary conversion fails', async () => {
+    mockUseBudgetSummary.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('No rate'),
+    } as ReturnType<typeof useBudgetSummary>);
+    vi.mocked(useBudgets).mockReturnValue({
+      data: [
+        {
+          id: 44,
+          categoryName: 'Pets',
+          amount: 100,
+          currency: 'FRF',
+          period: 'MONTHLY',
+          startDate: '2026-01-01',
+          endDate: '2026-01-31',
+        },
+      ],
+      isLoading: false,
+    } as ReturnType<typeof useBudgets>);
+    mockUseCreateBudget.mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as ReturnType<
+      typeof useCreateBudget
+    >);
+    mockUseUpdateBudget.mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as ReturnType<
+      typeof useUpdateBudget
+    >);
+    mockUseDeleteBudget.mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as ReturnType<
+      typeof useDeleteBudget
+    >);
+    renderWithProviders(<BudgetsPage />, { queryClient });
+    expect(screen.getByRole('alert')).toHaveTextContent('Budget totals are unavailable');
+    expect(screen.getByText('Pets')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add Budget' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Delete budget' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit budget' }));
+    expect(await screen.findByTestId('budget-form')).toBeInTheDocument();
+    expect(mockUseBudget).toHaveBeenCalledWith(44);
+    expect(screen.queryByTestId('budget-summary-card')).not.toBeInTheDocument();
+  });
+
   describe('Deep Link ?open=', () => {
     const deepLinkBudget: BudgetProgressResponse = {
       budgetId: 9,
@@ -791,15 +836,15 @@ describe('BudgetsPage', () => {
       expect(options).toEqual({ replace: true });
     });
 
-    it('does not open the modal for an unknown budget id', async () => {
+    it('opens a budget independently of the currently filtered summary', async () => {
       mockUseSearchParams.mockReturnValue([new URLSearchParams('open=1234'), mockSetSearchParams]);
 
       renderWithProviders(<BudgetsPage />, { queryClient });
 
       // Wait until the budgets grid has rendered so the effect had a chance to run
       await waitFor(() => expect(screen.getByTestId('budget-card-1')).toBeInTheDocument());
-      expect(screen.queryByTestId('budget-detail-modal')).not.toBeInTheDocument();
-      expect(mockSetSearchParams).not.toHaveBeenCalled();
+      expect(screen.getByTestId('budget-detail-modal')).toHaveTextContent('Detail 1234');
+      expect(mockSetSearchParams).toHaveBeenCalled();
     });
   });
 });

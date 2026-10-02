@@ -201,7 +201,7 @@ describe('NotificationBadge', () => {
       // Click on the budget alert item
       const alertItem = screen.getByText('Groceries').closest('[role="button"]');
       if (alertItem) fireEvent.click(alertItem);
-      expect(mockNavigate).toHaveBeenCalledWith('/budget?alertKeyword=Groceries');
+      expect(mockNavigate).toHaveBeenCalledWith('/budget?open=1');
     });
 
     it('should call markAsRead when mark read button is clicked', async () => {
