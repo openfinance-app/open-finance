@@ -22,6 +22,29 @@ class InsightWriterTest {
     @Mock InsightRepository repository;
 
     @Test
+    void failedCompetitorRefreshKeepsOffersButRemovesAnObsoleteLocalRatio() {
+        Insight summary = insight(1L, InsightType.RECURRING_BILLING, false);
+        summary.setSourceKey("recurring:summary");
+        Insight ratio = insight(2L, InsightType.RECURRING_BILLING, false);
+        ratio.setSourceKey("recurring:ratio");
+        Insight offer = insight(3L, InsightType.RECURRING_BILLING, false);
+        offer.setSourceKey("recurring:competitor:10");
+        when(repository.findByUser_IdOrderByPriorityAscCreatedAtDesc(1L))
+                .thenReturn(List.of(summary, ratio, offer));
+        Insight refreshed = insight(null, InsightType.RECURRING_BILLING, false);
+        refreshed.setSourceKey("recurring:summary");
+        refreshed.setDescription("Updated local totals");
+        EncryptionProperties encryption = new EncryptionProperties();
+        encryption.setEnabled(false);
+        new InsightWriterImpl(repository, encryption)
+                .replaceGenerated(1L, List.of(refreshed), Set.of(InsightType.RECURRING_BILLING));
+        ArgumentCaptor<Iterable<Insight>> deleted = ArgumentCaptor.forClass(Iterable.class);
+        verify(repository).deleteAll(deleted.capture());
+        assertThat(deleted.getValue()).containsExactly(ratio);
+        assertThat(summary.getDescription()).isEqualTo("Updated local totals");
+    }
+
+    @Test
     void partialRefreshPreservesExternalResultsDismissalsAndDetectorAlerts() {
         Insight staleLocal = insight(1L, InsightType.SPENDING_ANOMALY, false);
         Insight external = insight(2L, InsightType.REGION_COMPARISON, false);

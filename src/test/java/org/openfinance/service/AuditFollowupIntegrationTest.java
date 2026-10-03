@@ -306,6 +306,13 @@ class AuditFollowupIntegrationTest {
                         String.class,
                         sessionId);
         assertThat(stored).doesNotContain("privateMarker").doesNotContain("financial details");
+        com.fasterxml.jackson.databind.node.ObjectNode simulationInputs =
+                (com.fasterxml.jackson.databind.node.ObjectNode)
+                        mapper.readTree(
+                                Files.readString(
+                                        Path.of(
+                                                "src/test/resources/fixtures/buy-rent-simulation.json")));
+        simulationInputs.put("privateMarker", "owner financial details");
         long simulation =
                 json(
                                 "POST",
@@ -316,7 +323,7 @@ class AuditFollowupIntegrationTest {
                                         "simulationType",
                                         "buy_rent",
                                         "data",
-                                        payload),
+                                        simulationInputs.toString()),
                                 owner,
                                 201)
                         .get("id")

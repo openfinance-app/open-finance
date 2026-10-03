@@ -132,7 +132,7 @@ class AIServiceTest {
         lenient()
                 .when(
                         contextBuilder.forQuestion(
-                                anyLong(), any(Locale.class), anyString(), anyString()))
+                                anyLong(), any(Locale.class), anyString(), anyString(), anyList()))
                 .thenAnswer(invocation -> invocation.getArgument(3));
         contextBudget =
                 new org.openfinance.service.ai.AIContextBudget(
@@ -188,6 +188,13 @@ class AIServiceTest {
         ArgumentCaptor<String> context = ArgumentCaptor.forClass(String.class);
         verify(aiProvider)
                 .sendStructuredPrompt(eq("What was my target?"), context.capture(), any());
+        verify(contextBuilder)
+                .forQuestion(
+                        eq(userId),
+                        any(Locale.class),
+                        eq("What was my target?"),
+                        eq("Current finances"),
+                        eq(List.of("My target is 500")));
         assertThat(context.getValue())
                 .contains(
                         "My target is 500",

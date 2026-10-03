@@ -105,7 +105,17 @@ public class AIService {
                         ? contextBuilder.buildContext(userId, locale)
                         : contextBuilder.buildMinimalContext(userId, locale);
 
-        context = contextBuilder.forQuestion(userId, locale, request.getQuestion(), context);
+        List<AIDto.Message> history = parseMessages(conversation.getMessages());
+        context =
+                contextBuilder.forQuestion(
+                        userId,
+                        locale,
+                        request.getQuestion(),
+                        context,
+                        history.stream()
+                                .filter(message -> "user".equals(message.getRole()))
+                                .map(AIDto.Message::getContent)
+                                .toList());
 
         // 2a. Add language instruction for non-English locales
         String languageInstruction = buildLanguageInstruction(locale);
@@ -115,7 +125,7 @@ public class AIService {
                         languageInstruction.isEmpty()
                                 ? context
                                 : languageInstruction + "\n\n" + context,
-                        parseMessages(conversation.getMessages()),
+                        history,
                         maxHistoryMessages);
 
         // 3. Call AI provider (block on the reactive call to stay on the servlet
@@ -157,7 +167,7 @@ public class AIService {
                             .sendStructuredPrompt(question, instructions, schema)
                             .block(requestLimits.remaining(deadline));
             try {
-                return FinancialResponseGuard.verifyStructured(response, context, locale);
+                return FinancialResponseGuard.verifyRequestedFacts(response, context, locale);
             } catch (org.openfinance.service.ai.AIProviderException invalid) {
                 if (attempt == 1) throw invalid;
                 instructions =

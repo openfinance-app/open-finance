@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ import org.openfinance.entity.Budget;
 import org.openfinance.entity.Category;
 import org.openfinance.entity.Liability;
 import org.openfinance.entity.Transaction;
+import org.openfinance.entity.TransactionSplit;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.AssetRepository;
@@ -28,6 +30,7 @@ import org.openfinance.repository.BudgetRepository;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.TransactionRepository;
+import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.service.BudgetService;
 import org.openfinance.service.DefaultCurrencyProvider;
 import org.openfinance.service.ExchangeRateService;
@@ -46,6 +49,7 @@ public class FinancialContextBuilder {
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
+    private final TransactionSplitRepository transactionSplitRepository;
     private final AssetRepository assetRepository;
     private final LiabilityRepository liabilityRepository;
     private final BudgetRepository budgetRepository;
@@ -74,20 +78,34 @@ public class FinancialContextBuilder {
 
     /** Keep only facts that address this request; history cannot override their scope. */
     public String forQuestion(Long userId, Locale locale, String question, String context) {
-        FinancialQuestion query = FinancialQuestion.parse(question, LocalDate.now());
-        if (query.mentions("\\bbudget")) return selectBudgetFacts(context, query);
-        if (query.mentions("net worth|patrimoine|valeur nette"))
-            return selectFacts(context, java.util.Set.of("net_worth"));
-        if (query.mentions("spen[dt]|expenses?|income|earn|cash ?flow|depens|revenu|gagne|cout")) {
-            return spendingContext(userId, locale, query, context);
-        }
-        if (query.mentions("balance|solde|checking|compte"))
-            return selectAccountFacts(context, query);
-        // General advice and unrelated questions need no numeric account facts.
-        return selectFacts(context, java.util.Set.of());
+        return forQuestion(userId, locale, question, context, List.of());
     }
 
-    private String selectAccountFacts(String context, FinancialQuestion query) {
+    public String forQuestion(
+            Long userId,
+            Locale locale,
+            String question,
+            String context,
+            List<String> previousUserQuestions) {
+        FinancialQuestion query =
+                FinancialQuestion.resolve(question, LocalDate.now(), previousUserQuestions);
+        Set<String> selected = new HashSet<>();
+        if (query.mentions("\\bbudget")) selected.addAll(selectBudgetFacts(context, query));
+        if (query.mentions("net worth|patrimoine|valeur nette")) selected.add("net_worth");
+        if (query.mentions("\\b(assets?|actifs?)\\b")) selected.add("assets.total");
+        if (query.mentions("\\b(liabilities|debts?|passifs?|dettes?)\\b"))
+            selected.add("liabilities.total");
+        if (query.mentions("balance|solde|checking|compte"))
+            selected.addAll(selectAccountFacts(context, query));
+        String scoped = selectFacts(context, selected);
+        if (query.mentions("spen[dt]|expenses?|income|earn|cash ?flow|depens|revenu|gagne|cout")) {
+            return spendingContext(userId, locale, query, scoped);
+        }
+        // General advice and unrelated questions need no numeric account facts.
+        return scoped;
+    }
+
+    private Set<String> selectAccountFacts(String context, FinancialQuestion query) {
         List<FinancialFact> accounts =
                 readFacts(context).stream().filter(f -> f.id().startsWith("account.")).toList();
         Set<String> selected = new HashSet<>();
@@ -98,10 +116,10 @@ public class FinancialContextBuilder {
         }
         if (selected.isEmpty())
             selected.add(accounts.size() == 1 ? accounts.get(0).id() : "accounts.total");
-        return selectFacts(context, selected);
+        return selected;
     }
 
-    private String selectBudgetFacts(String context, FinancialQuestion query) {
+    private Set<String> selectBudgetFacts(String context, FinancialQuestion query) {
         List<FinancialFact> budgets =
                 readFacts(context).stream().filter(f -> f.id().startsWith("budget.")).toList();
         Set<String> entities =
@@ -124,7 +142,7 @@ public class FinancialContextBuilder {
                         .filter(f -> f.id().endsWith(suffix))
                         .map(FinancialFact::id)
                         .collect(java.util.stream.Collectors.toSet());
-        return selectFacts(context, ids);
+        return ids;
     }
 
     private List<FinancialFact> readFacts(String context) {
@@ -158,12 +176,16 @@ public class FinancialContextBuilder {
                                     }
                                 })
                         .collect(java.util.stream.Collectors.joining("\n"))
-                + "\nOnly the facts retained for the current question may be cited. If none are supplied, leave factIds empty.\n";
+                + "\nThe retained facts have already been selected for the current question. Include every supplied fact ID; the application renders these requested facts. If none are supplied, leave factIds empty.\n";
     }
 
     private String spendingContext(
             Long userId, Locale locale, FinancialQuestion query, String context) {
-        StringBuilder selected = new StringBuilder(selectFacts(context, Set.of()));
+        if (!query.periodResolved()) {
+            return context
+                    + "\nThe requested period could not be resolved. Ask for explicit start and end dates. Do not substitute another period.\n";
+        }
+        StringBuilder selected = new StringBuilder(context);
         String currency = defaultCurrencyProvider.resolveForUser(userId);
         List<Category> categories = categoryRepository.findByUserId(userId);
         List<Category> matching =
@@ -174,20 +196,32 @@ public class FinancialContextBuilder {
         String period = query.start() + " / " + query.end();
         try {
             if (!matching.isEmpty()) {
+                List<Long> transactionIds =
+                        transactions.stream()
+                                .map(Transaction::getId)
+                                .filter(java.util.Objects::nonNull)
+                                .toList();
+                Map<Long, List<TransactionSplit>> splits =
+                        transactionIds.isEmpty()
+                                ? Map.of()
+                                : transactionSplitRepository
+                                        .findByTransactionIdIn(transactionIds)
+                                        .stream()
+                                        .collect(
+                                                java.util.stream.Collectors.groupingBy(
+                                                        TransactionSplit::getTransactionId));
                 for (Category category : matching) {
                     Set<Long> categoryIds = descendants(category, categories);
-                    List<Transaction> filtered =
-                            transactions.stream()
-                                    .filter(tx -> categoryIds.contains(tx.getCategoryId()))
-                                    .toList();
                     boolean incomeCategory =
                             category.getType() == org.openfinance.entity.CategoryType.INCOME;
                     fact(
                             selected,
                             "requested.category." + category.getId(),
                             incomeCategory ? "categoryIncome" : "categoryExpenses",
-                            total(
-                                    filtered,
+                            categoryTotal(
+                                    transactions,
+                                    splits,
+                                    categoryIds,
                                     incomeCategory
                                             ? TransactionType.INCOME
                                             : TransactionType.EXPENSE,
@@ -234,10 +268,52 @@ public class FinancialContextBuilder {
                             locale);
             }
         } catch (RuntimeException ex) {
-            return selectFacts(context, Set.of())
+            return context
                     + "Requested period data unavailable. Do not substitute current balances or partial totals.\n";
         }
         return selected.toString();
+    }
+
+    private BigDecimal categoryTotal(
+            List<Transaction> transactions,
+            Map<Long, List<TransactionSplit>> splits,
+            Set<Long> categoryIds,
+            TransactionType type,
+            String currency) {
+        BigDecimal amount = BigDecimal.ZERO;
+        for (Transaction transaction : transactions) {
+            if (Boolean.TRUE.equals(transaction.getIsDeleted())
+                    || transaction.getTransferId() != null
+                    || transaction.getType() != type) continue;
+            List<TransactionSplit> lines =
+                    transaction.getId() == null
+                            ? List.of()
+                            : splits.getOrDefault(transaction.getId(), List.of());
+            if (lines.isEmpty()) {
+                if (categoryIds.contains(transaction.getCategoryId())) {
+                    amount =
+                            amount.add(
+                                    exchangeRateService.convert(
+                                            transaction.getAmount(),
+                                            transaction.getCurrency(),
+                                            currency,
+                                            transaction.getDate()));
+                }
+            } else {
+                for (TransactionSplit line : lines) {
+                    if (categoryIds.contains(line.getCategoryId())) {
+                        amount =
+                                amount.add(
+                                        exchangeRateService.convert(
+                                                line.getAmount(),
+                                                transaction.getCurrency(),
+                                                currency,
+                                                transaction.getDate()));
+                    }
+                }
+            }
+        }
+        return amount;
     }
 
     private boolean categoryMentioned(Category category, FinancialQuestion query) {

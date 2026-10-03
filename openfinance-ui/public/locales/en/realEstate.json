@@ -760,6 +760,7 @@
   "storage": {
     "saveFailed": "Saving failed. Your inputs have been kept; please retry.",
     "loadFailed": "Could not load saved simulations.",
+    "partiallyLoaded": "Some saved simulations contain invalid data and could not be loaded. Your other simulations are available.",
     "deleteFailed": "Could not delete the simulation.",
     "emptyName": "Enter a simulation name.",
     "notFound": "Simulation not found.",

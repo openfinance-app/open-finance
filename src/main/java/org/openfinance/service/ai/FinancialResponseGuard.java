@@ -120,6 +120,27 @@ public final class FinancialResponseGuard {
         return schema;
     }
 
+    /** The server has already selected these facts for this request; the model cannot drop them. */
+    public static String verifyRequestedFacts(String response, String context, Locale locale) {
+        String verified = verifyStructured(response, context, locale);
+        try {
+            Map<String, FinancialFact> requested = facts(context);
+            com.fasterxml.jackson.databind.node.ObjectNode answer =
+                    (com.fasterxml.jackson.databind.node.ObjectNode) JSON.readTree(response);
+            Set<String> selected = new LinkedHashSet<>();
+            answer.path("factIds").forEach(id -> selected.add(id.asText()));
+            if (selected.containsAll(requested.keySet())) return verified;
+            // Omitted facts can be accompanied by misleading claims of unavailable data.
+            // Render the verified records without that incomplete explanation.
+            answer.put("explanation", "");
+            com.fasterxml.jackson.databind.node.ArrayNode ids = answer.putArray("factIds");
+            requested.keySet().forEach(ids::add);
+            return verifyStructured(JSON.writeValueAsString(answer), context, locale).strip();
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+            throw new AIProviderException("AI", "Invalid structured financial answer", ex);
+        }
+    }
+
     private static boolean containsFigure(String text) {
         return FIGURE.matcher(text).find() || WRITTEN_FIGURE.matcher(text).find();
     }

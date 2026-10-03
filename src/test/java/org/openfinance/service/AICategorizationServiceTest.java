@@ -39,6 +39,66 @@ class AICategorizationServiceTest {
     }
 
     @Test
+    void retriesAnInvalidMixedResponseAtomicallyWithTypeConstrainedRows() {
+        ImportedTransaction expense =
+                ImportedTransaction.builder()
+                        .amount(new BigDecimal("-25"))
+                        .payee("Netflix")
+                        .memo("Streaming subscription")
+                        .build();
+        ImportedTransaction income =
+                ImportedTransaction.builder()
+                        .amount(new BigDecimal("2500"))
+                        .payee("Employer")
+                        .memo("Monthly salary")
+                        .build();
+        when(aiProvider.sendStructuredPrompt(anyString(), anyString(), any()))
+                .thenReturn(
+                        Mono.just(
+                                "{\"results\":[{\"index\":1,\"category\":\"Subscriptions\"},{\"index\":2,\"category\":\"Subscriptions\"}]}"))
+                .thenAnswer(
+                        invocation -> {
+                            assertThat(expense.getCategory()).isNull();
+                            assertThat(income.getCategory()).isNull();
+                            return Mono.just(
+                                    "{\"results\":[{\"index\":2,\"category\":\"Salary\"},{\"index\":1,\"category\":\"Subscriptions\"}]}");
+                        });
+        service.categorizeWithAI(
+                List.of(expense, income),
+                List.of(
+                        category(1L, "Subscriptions", CategoryType.EXPENSE),
+                        category(2L, "Salary", CategoryType.INCOME)));
+        assertThat(expense.getCategory()).isEqualTo("Subscriptions");
+        assertThat(income.getCategory()).isEqualTo("Salary");
+        org.mockito.ArgumentCaptor<com.fasterxml.jackson.databind.JsonNode> schema =
+                org.mockito.ArgumentCaptor.forClass(com.fasterxml.jackson.databind.JsonNode.class);
+        verify(aiProvider, times(2))
+                .sendStructuredPrompt(anyString(), anyString(), schema.capture());
+        com.fasterxml.jackson.databind.JsonNode alternatives =
+                schema.getValue().at("/properties/results/items/anyOf");
+        assertThat(alternatives.get(0).at("/properties/index/enum").toString()).isEqualTo("[1]");
+        assertThat(alternatives.get(0).at("/properties/category/enum").toString())
+                .isEqualTo("[\"\",\"Subscriptions\"]");
+        assertThat(alternatives.get(1).at("/properties/index/enum").toString()).isEqualTo("[2]");
+        assertThat(alternatives.get(1).at("/properties/category/enum").toString())
+                .isEqualTo("[\"\",\"Salary\"]");
+    }
+
+    @Test
+    void doesNotRetryATransportFailure() {
+        ImportedTransaction expense =
+                ImportedTransaction.builder().amount(new BigDecimal("-25")).build();
+        when(aiProvider.sendStructuredPrompt(anyString(), anyString(), any()))
+                .thenReturn(Mono.error(new IllegalStateException("offline")));
+        service.categorizeWithAI(
+                List.of(expense), List.of(category(1L, "Food", CategoryType.EXPENSE)));
+        verify(aiProvider).sendStructuredPrompt(anyString(), anyString(), any());
+        assertThat(expense.getCategory()).isNull();
+        assertThat(expense.getValidationErrors())
+                .anyMatch(value -> value.startsWith("AI_UNAVAILABLE:"));
+    }
+
+    @Test
     void rejectsIncomeCategoriesForAnExpense() {
         ImportedTransaction expense =
                 ImportedTransaction.builder()

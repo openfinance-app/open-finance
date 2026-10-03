@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '@/services/apiClient';
 import i18n from '@/i18n';
+import { isBuyRentInputs, isInvestmentInputs } from '@/validators/simulationShape';
 import type {
   SavedSimulation,
   SimulationType,
@@ -57,22 +58,20 @@ function sanitizeName(name: string): string {
   return name.trim().slice(0, 100);
 }
 
-function validateSimulation(data: unknown): data is BuyRentInputs | InvestmentInputs {
-  if (!data || typeof data !== 'object') return false;
-  const obj = data as Record<string, unknown>;
-
-  if ('purchase' in obj && 'rental' in obj) {
-    return true;
-  }
-
-  if ('credit' in obj && 'property' in obj && 'revenue' in obj) {
-    return true;
-  }
-
-  return false;
+function validateSimulation(
+  data: unknown,
+  type: unknown
+): data is BuyRentInputs | InvestmentInputs {
+  return type === 'buy_rent'
+    ? isBuyRentInputs(data)
+    : type === 'rental_investment' && isInvestmentInputs(data);
 }
 
 function parseApiSimulation(apiSim: ApiSimulation): SavedSimulation {
+  const data: unknown = JSON.parse(apiSim.data);
+  if (!validateSimulation(data, apiSim.simulationType)) {
+    throw new Error('Invalid simulation inputs');
+  }
   return {
     metadata: {
       id: String(apiSim.id),
@@ -81,7 +80,7 @@ function parseApiSimulation(apiSim: ApiSimulation): SavedSimulation {
       createdAt: new Date(apiSim.createdAt),
       updatedAt: new Date(apiSim.updatedAt),
     },
-    data: JSON.parse(apiSim.data),
+    data,
   };
 }
 
@@ -96,9 +95,18 @@ export function useSimulationStorage(): UseSimulationStorageReturn {
     try {
       setIsLoading(true);
       const response = await apiClient.get<ApiSimulation[]>('/real-estate-simulations');
-      const parsed = response.data.map(parseApiSimulation);
+      const parsed: SavedSimulation[] = [];
+      for (const simulation of response.data) {
+        try {
+          parsed.push(parseApiSimulation(simulation));
+        } catch {
+          // A damaged legacy record must not hide the user's other saved work.
+        }
+      }
       setSimulations(parsed);
-      setError(null);
+      setError(
+        parsed.length < response.data.length ? i18n.t('realEstate:storage.partiallyLoaded') : null
+      );
     } catch (err) {
       console.error('Failed to load simulations:', err);
       setError(i18n.t('realEstate:storage.loadFailed'));
@@ -271,9 +279,11 @@ export function useSimulationStorage(): UseSimulationStorageReturn {
         const validSimulations = parsed.filter((s): s is SavedSimulation => {
           return (
             s &&
+            s.metadata &&
             typeof s.metadata === 'object' &&
+            typeof s.metadata.name === 'string' &&
             typeof s.data === 'object' &&
-            validateSimulation(s.data)
+            validateSimulation(s.data, s.metadata.type)
           );
         });
 
@@ -298,7 +308,6 @@ export function useSimulationStorage(): UseSimulationStorageReturn {
 
         // Refresh the list
         await refreshSimulations();
-        setError(null);
         return true;
       } catch (err) {
         console.error('Failed to import simulations:', err);

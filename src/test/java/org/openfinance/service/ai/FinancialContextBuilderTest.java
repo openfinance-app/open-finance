@@ -43,6 +43,7 @@ class FinancialContextBuilderTest {
     @Mock AccountRepository accountRepository;
     @Mock org.openfinance.repository.CategoryRepository categoryRepository;
     @Mock TransactionRepository transactionRepository;
+    @Mock org.openfinance.repository.TransactionSplitRepository transactionSplitRepository;
     @Mock AssetRepository assetRepository;
     @Mock LiabilityRepository liabilityRepository;
     @Mock BudgetRepository budgetRepository;
@@ -250,6 +251,132 @@ class FinancialContextBuilderTest {
                         .get("requested.category.51");
         assertThat(fact.amount()).isEqualTo("2500.00");
         assertThat(fact.label()).isEqualTo("Category income");
+    }
+
+    @Test
+    void allocatesSplitsBeforeCategoryFilteringAndConvertsAtTheTransactionDate() {
+        org.openfinance.entity.Category groceries =
+                org.openfinance.entity.Category.builder()
+                        .id(41L)
+                        .name("Groceries")
+                        .type(org.openfinance.entity.CategoryType.EXPENSE)
+                        .build();
+        org.openfinance.entity.Category utilities =
+                org.openfinance.entity.Category.builder()
+                        .id(42L)
+                        .name("Utilities")
+                        .type(org.openfinance.entity.CategoryType.EXPENSE)
+                        .build();
+        when(categoryRepository.findByUserId(1L)).thenReturn(List.of(groceries, utilities));
+        Transaction ordinary = tx("72.35", "EUR", TransactionType.EXPENSE);
+        ordinary.setId(10L);
+        ordinary.setCategoryId(41L);
+        Transaction split = tx("100", "USD", TransactionType.EXPENSE);
+        split.setId(11L);
+        split.setCategoryId(41L);
+        split.setDate(LocalDate.of(2025, 9, 15));
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        1L, LocalDate.of(2025, 9, 1), LocalDate.of(2025, 9, 30)))
+                .thenReturn(List.of(ordinary, split));
+        lenient()
+                .when(transactionSplitRepository.findByTransactionIdIn(List.of(10L, 11L)))
+                .thenReturn(
+                        List.of(
+                                org.openfinance.entity.TransactionSplit.builder()
+                                        .transactionId(11L)
+                                        .categoryId(41L)
+                                        .amount(new BigDecimal("60"))
+                                        .build(),
+                                org.openfinance.entity.TransactionSplit.builder()
+                                        .transactionId(11L)
+                                        .categoryId(42L)
+                                        .amount(new BigDecimal("40"))
+                                        .build()));
+        Map<String, FinancialFact> selected =
+                facts(
+                        builder.forQuestion(
+                                1L,
+                                Locale.ENGLISH,
+                                "How much did I spend on Groceries and Utilities in September 2025?",
+                                ""));
+        assertThat(selected.get("requested.category.41").amount()).isEqualTo("102.35");
+        assertThat(selected.get("requested.category.42").amount()).isEqualTo("20.00");
+        verify(exchangeRateService).convert(new BigDecimal("60"), "USD", "EUR", split.getDate());
+    }
+
+    @Test
+    void selectsAllRequestedMetricsIncludingAssetsAndLiabilities() throws Exception {
+        String context = "[VERIFIED_FINANCIAL_DATA]\n";
+        for (String id :
+                List.of(
+                        "net_worth",
+                        "assets.total",
+                        "liabilities.total",
+                        "budget.1.remaining",
+                        "account.1")) {
+            context +=
+                    "[FACT] "
+                            + objectMapper.writeValueAsString(
+                                    new FinancialFact(
+                                            id,
+                                            id,
+                                            "100.00",
+                                            "EUR",
+                                            "today",
+                                            id.startsWith("budget") ? "Groceries" : ""))
+                            + "\n";
+        }
+        assertThat(
+                        facts(
+                                builder.forQuestion(
+                                        1L,
+                                        Locale.ENGLISH,
+                                        "What is my net worth and remaining Groceries budget?",
+                                        context)))
+                .containsOnlyKeys("net_worth", "budget.1.remaining");
+        assertThat(
+                        facts(
+                                builder.forQuestion(
+                                        1L,
+                                        Locale.ENGLISH,
+                                        "How much are my total assets and liabilities?",
+                                        context)))
+                .containsOnlyKeys("assets.total", "liabilities.total");
+    }
+
+    @Test
+    void historySelectsTheCategoryWithTheNewPeriodAndUnresolvedPeriodsReadNoLedger() {
+        org.openfinance.entity.Category groceries =
+                org.openfinance.entity.Category.builder()
+                        .id(41L)
+                        .name("Groceries")
+                        .type(org.openfinance.entity.CategoryType.EXPENSE)
+                        .build();
+        when(categoryRepository.findByUserId(1L)).thenReturn(List.of(groceries));
+        Transaction purchase = tx("72.35", "EUR", TransactionType.EXPENSE);
+        purchase.setCategoryId(41L);
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        1L, LocalDate.of(2025, 10, 1), LocalDate.of(2025, 10, 31)))
+                .thenReturn(List.of(purchase));
+        FinancialFact fact =
+                facts(
+                                builder.forQuestion(
+                                        1L,
+                                        Locale.ENGLISH,
+                                        "And in October 2025?",
+                                        "",
+                                        List.of(
+                                                "How much did I spend on Groceries in September 2025?")))
+                        .get("requested.category.41");
+        assertThat(fact.amount()).isEqualTo("72.35");
+        assertThat(fact.period()).isEqualTo("2025-10-01 / 2025-10-31");
+        clearInvocations(transactionRepository);
+        assertThat(
+                        builder.forQuestion(
+                                1L, Locale.ENGLISH, "How much did I spend last quarter?", ""))
+                .doesNotContain("[FACT]")
+                .contains("Ask for explicit start and end dates");
+        verifyNoInteractions(transactionRepository);
     }
 
     @Test

@@ -1,0 +1,42 @@
+{
+  "purchase": {
+    "propertyPrice": 300000,
+    "renovationAmount": 0,
+    "isNewProperty": false,
+    "notaryFeesPercent": 7,
+    "agencyFees": 0,
+    "downPayment": 60000,
+    "loanDuration": 25,
+    "interestRate": 4.2,
+    "totalInsurance": 12900,
+    "applicationFees": 2000,
+    "guaranteeFees": 2750,
+    "accountFees": 720,
+    "propertyTax": 2000,
+    "coOwnershipCharges": 1200,
+    "maintenancePercent": 1,
+    "homeInsurance": 600,
+    "bankFees": 0,
+    "garbageTax": 150
+  },
+  "rental": {
+    "monthlyRent": 1200,
+    "monthlyCharges": 100,
+    "securityDeposit": 1200,
+    "rentalInsurance": 200,
+    "garbageTax": 150,
+    "initialSavings": 0,
+    "monthlySavings": 0
+  },
+  "market": {
+    "priceEvolution": 2,
+    "rentEvolution": 2,
+    "investmentReturn": 4,
+    "inflation": 2
+  },
+  "resale": {
+    "targetYear": 10,
+    "desiredProfit": 50000,
+    "resaleFeesPercent": 8
+  }
+}

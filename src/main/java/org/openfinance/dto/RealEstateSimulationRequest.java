@@ -1,5 +1,6 @@
 package org.openfinance.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -21,7 +22,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RealEstateSimulationRequest {
 
-    @NotNull(message = "{simulation.name.required}")
+    @NotBlank(message = "{simulation.name.required}")
     @Size(min = 1, max = 200, message = "{simulation.name.between}")
     private String name;
 
@@ -29,7 +30,7 @@ public class RealEstateSimulationRequest {
     @Pattern(regexp = "buy_rent|rental_investment", message = "{simulation.type.invalid}")
     private String simulationType;
 
-    @NotNull(message = "{simulation.data.required}")
+    @NotBlank(message = "{simulation.data.required}")
     @Size(max = 10000, message = "{simulation.data.max}")
     private String data;
 }

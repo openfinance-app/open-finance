@@ -760,6 +760,7 @@
   "storage": {
     "saveFailed": "Échec de la sauvegarde. Vos paramètres sont conservés ; réessayez.",
     "loadFailed": "Impossible de charger les simulations.",
+    "partiallyLoaded": "Certaines simulations enregistrées contiennent des données invalides et n’ont pas pu être chargées. Vos autres simulations restent disponibles.",
     "deleteFailed": "Impossible de supprimer la simulation.",
     "emptyName": "Saisissez un nom.",
     "notFound": "Simulation introuvable.",

@@ -35,6 +35,7 @@ export function isInvestmentInputs(value: unknown): value is InvestmentInputs {
     return false;
   const input = value as InvestmentInputs;
   return (
+    (input.currency === undefined || input.currency === 'EUR') &&
     ['unfurnished', 'basic', 'standard', 'luxury'].includes(input.property.furnishingType) &&
     (input.tax === undefined || matchesShape(input.tax, DEFAULT_RENTAL_TAX_CONTEXT))
   );

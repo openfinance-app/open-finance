@@ -173,6 +173,23 @@ class InsightServiceTest {
     }
 
     @Test
+    void keepsRecurringTotalsWhenOptionalCompetitorDataIsUnavailable() {
+        when(recurringTransactionRepository.findByUserIdAndIsActive(1L))
+                .thenReturn(List.of(recurring(1L, "EUR"), recurring(2L, "USD")));
+        when(aiProvider.sendPrompt(startsWith("Review these"), anyString()))
+                .thenReturn(Mono.error(new IllegalStateException("No sourced offers")));
+        InsightService.GenerationResult result = service.generateInsightsDetailed(1L);
+        assertThat(result.insights())
+                .filteredOn(i -> i.getTitle().equals("Recurring Expenses Summary"))
+                .singleElement()
+                .satisfies(
+                        i ->
+                                assertThat(i.getDescription())
+                                        .contains("180 EUR/month", "2160 EUR/year"));
+        assertThat(result.unavailableSources()).contains(InsightType.RECURRING_BILLING);
+    }
+
+    @Test
     void convertsRecurringCostsAndHistoricalIncomeBeforeSumming() {
         when(recurringTransactionRepository.findByUserIdAndIsActive(1L))
                 .thenReturn(List.of(recurring(1L, "EUR"), recurring(2L, "USD")));
@@ -254,7 +271,15 @@ class InsightServiceTest {
         InsightService.GenerationResult result = service.generateInsightsDetailed(1L);
         assertThat(result.unavailableSources()).contains(InsightType.RECURRING_BILLING);
         assertThat(result.insights())
-                .noneMatch(insight -> insight.getType() == InsightType.RECURRING_BILLING);
+                .filteredOn(insight -> insight.getType() == InsightType.RECURRING_BILLING)
+                .singleElement()
+                .satisfies(
+                        insight -> {
+                            assertThat(insight.getTitle()).isEqualTo("Recurring Expenses Summary");
+                            assertThat(insight.getDescription())
+                                    .contains("100 EUR/month")
+                                    .doesNotContain("999999");
+                        });
     }
 
     @Test

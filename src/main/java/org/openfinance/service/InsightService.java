@@ -157,7 +157,7 @@ public class InsightService {
                 generated,
                 unavailable,
                 InsightType.RECURRING_BILLING,
-                () -> generateRecurringBillingInsights(userId, deadline));
+                () -> generateRecurringBillingInsights(userId, deadline, unavailable));
         List<Insight> saved = insightWriter.replaceGenerated(userId, generated, unavailable);
         return new GenerationResult(
                 saved.stream().map(this::toDto).toList(), List.copyOf(unavailable));
@@ -889,7 +889,8 @@ public class InsightService {
      * <p>Examines active recurring transactions to summarize total recurring costs, identify high
      * ratios relative to income, and flag potential savings.
      */
-    private List<Insight> generateRecurringBillingInsights(Long userId, long deadline) {
+    private List<Insight> generateRecurringBillingInsights(
+            Long userId, long deadline, java.util.Set<InsightType> unavailable) {
         List<Insight> insights = new ArrayList<>();
 
         try {
@@ -985,11 +986,18 @@ public class InsightService {
                 }
             }
 
-            insights.addAll(
-                    generateCompetitorInsights(
-                            userId, recurringExpenses, currency, locale, deadline));
+            try {
+                insights.addAll(
+                        generateCompetitorInsights(
+                                userId, recurringExpenses, currency, locale, deadline));
+            } catch (com.fasterxml.jackson.core.JsonProcessingException | RuntimeException ex) {
+                unavailable.add(InsightType.RECURRING_BILLING);
+                log.warn(
+                        "Competitor suggestions unavailable for user {}; retaining recurring totals",
+                        userId);
+            }
 
-        } catch (com.fasterxml.jackson.core.JsonProcessingException | RuntimeException e) {
+        } catch (RuntimeException e) {
             throw generationFailure(e);
         }
 

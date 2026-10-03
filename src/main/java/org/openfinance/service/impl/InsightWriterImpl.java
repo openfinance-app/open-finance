@@ -29,6 +29,9 @@ public class InsightWriterImpl implements InsightWriter {
         }
         List<Insight> previous = repository.findByUser_IdOrderByPriorityAscCreatedAtDesc(userId);
         Set<Long> retained = new HashSet<>();
+        boolean recurringTotalsAvailable =
+                generated.stream()
+                        .anyMatch(insight -> "recurring:summary".equals(insight.getSourceKey()));
         for (Insight next : generated) {
             Insight existing =
                     previous.stream().filter(old -> sameSource(old, next)).findFirst().orElse(null);
@@ -46,7 +49,18 @@ public class InsightWriterImpl implements InsightWriter {
         repository.deleteAll(
                 previous.stream()
                         .filter(old -> old.getType() != InsightType.UNUSUAL_TRANSACTION)
-                        .filter(old -> !unavailableTypes.contains(old.getType()))
+                        .filter(
+                                old ->
+                                        !unavailableTypes.contains(old.getType())
+                                                || (recurringTotalsAvailable
+                                                        && old.getType()
+                                                                == InsightType.RECURRING_BILLING
+                                                        && ("recurring:summary"
+                                                                        .equals(old.getSourceKey())
+                                                                || "recurring:ratio"
+                                                                        .equals(
+                                                                                old
+                                                                                        .getSourceKey()))))
                         .filter(old -> !Boolean.TRUE.equals(old.getDismissed()))
                         .filter(old -> !retained.contains(old.getId()))
                         .toList());

@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RealEstateSimulationService {
 
     private final RealEstateSimulationRepository simulationRepository;
+    private final RealEstateSimulationValidator simulationValidator;
 
     /** Create a new simulation. */
     @Transactional
@@ -39,6 +40,8 @@ public class RealEstateSimulationService {
                 userId,
                 request.getSimulationType(),
                 request.getName());
+
+        simulationValidator.validate(request.getSimulationType(), request.getData());
 
         // Check for duplicate name
         if (simulationRepository.existsByUserIdAndName(userId, request.getName())) {
@@ -112,6 +115,8 @@ public class RealEstateSimulationService {
                                 () ->
                                         new ResourceNotFoundException(
                                                 "Simulation not found with id: " + simulationId));
+
+        simulationValidator.validate(request.getSimulationType(), request.getData());
 
         // Check for duplicate name (excluding current simulation)
         if (!simulation.getName().equals(request.getName())

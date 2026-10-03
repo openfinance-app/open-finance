@@ -5,7 +5,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useSimulationStorage } from './useSimulationStorage';
 import apiClient from '@/services/apiClient';
 import type { BuyRentInputs } from '@/types/realEstateTools';
-import { DEFAULT_BUY_RENT_INPUTS } from '@/types/realEstateTools';
+import { DEFAULT_BUY_RENT_INPUTS, DEFAULT_INVESTMENT_INPUTS } from '@/types/realEstateTools';
+import { mockAuthentication } from '@/test/test-utils';
 
 vi.mock('@/services/apiClient');
 const mockedApiClient = apiClient as any;
@@ -34,13 +35,14 @@ describe('useSimulationStorage', () => {
       },
       property: { totalPrice: 250000, furnishingType: 'unfurnished', furnitureValue: 0 },
       revenue: { monthlyRent: 900, recoverableCharges: 100, occupancyRate: 95, badDebtRate: 1 },
-      expenses: { propertyTax: 2000 },
+      expenses: DEFAULT_INVESTMENT_INPUTS.expenses,
     }),
     createdAt: '2025-01-16T10:00:00Z',
     updatedAt: '2025-01-16T10:00:00Z',
   };
 
   beforeEach(async () => {
+    mockAuthentication();
     await i18n.changeLanguage('en');
     i18n.addResourceBundle('en', 'realEstate', translations, true, true);
     vi.clearAllMocks();
@@ -84,6 +86,32 @@ describe('useSimulationStorage', () => {
 
     expect(result.current.simulations).toEqual([]);
     expect(result.current.error).toBe('Could not load saved simulations.');
+  });
+
+  it('keeps valid saves of both types available when legacy entries are malformed or incomplete', async () => {
+    mockedApiClient.get.mockResolvedValue({
+      data: [
+        mockApiSimulation,
+        { ...mockApiSimulation, id: 3, data: '{' },
+        mockApiSimulation2,
+        { ...mockApiSimulation, id: 4, data: '{"purchase":{},"rental":{}}' },
+        { ...mockApiSimulation2, id: 5, data: mockApiSimulation.data },
+      ],
+    });
+    const { result } = renderHook(() => useSimulationStorage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.simulations.map(simulation => simulation.metadata.id)).toEqual([
+      '1',
+      '2',
+    ]);
+    expect(result.current.getSimulationsByType('buy_rent')).toHaveLength(1);
+    expect(result.current.getSimulationsByType('rental_investment')).toHaveLength(1);
+    expect(result.current.loadSimulation('1')?.data).toEqual(DEFAULT_BUY_RENT_INPUTS);
+    expect(result.current.error).toBe(translations.storage.partiallyLoaded);
+    expect(mockedApiClient.delete).not.toHaveBeenCalled();
+    mockedApiClient.get.mockResolvedValue({ data: [mockApiSimulation, mockApiSimulation2] });
+    await act(async () => result.current.refreshSimulations());
+    expect(result.current.error).toBeNull();
   });
 
   it('should save a simulation', async () => {

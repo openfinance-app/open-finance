@@ -1,0 +1,31 @@
+{
+  "credit": {
+    "monthlyPayment": 1000,
+    "annualCost": 12000,
+    "totalCost": 300000,
+    "assurance": 50,
+    "bankFees": 500
+  },
+  "property": {
+    "totalPrice": 250000,
+    "furnishingType": "unfurnished",
+    "furnitureValue": 0
+  },
+  "revenue": {
+    "monthlyRent": 900,
+    "recoverableCharges": 100,
+    "occupancyRate": 95,
+    "badDebtRate": 1
+  },
+  "expenses": {
+    "propertyTax": 2000,
+    "nonRecoverableCharges": 1200,
+    "annualMaintenance": 2000,
+    "cfe": 1500,
+    "cvae": 0,
+    "managementFees": 800,
+    "pnoInsurance": 300,
+    "accountingFees": 600,
+    "marginalTaxRate": 30
+  }
+}

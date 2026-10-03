@@ -303,15 +303,35 @@ public class AICategorizationService {
         }
         prompt.append("\n\nTransaction data: ").append(transactionData);
 
+        com.fasterxml.jackson.databind.JsonNode schema =
+                categorizationSchema(
+                        indices.stream().map(transactions::get).toList(),
+                        incomeCategoryNames,
+                        expenseCategoryNames);
+        long deadline = System.nanoTime() + timeout.toNanos();
         String response =
                 aiProvider
                         .sendStructuredPrompt(
                                 prompt.toString(),
                                 "You classify transactions using only the supplied category names.",
-                                categorizationSchema(
-                                        batchSize, incomeCategoryNames, expenseCategoryNames))
+                                schema)
                         .block(timeout);
-        return applyAIResults(transactions, indices, response, displayNameMap);
+        try {
+            return applyAIResults(transactions, indices, response, displayNameMap);
+        } catch (org.openfinance.service.ai.AIProviderException invalidResponse) {
+            // No assignments are applied until the whole response validates. Retry once within
+            // the original batch budget, without retrying transport errors or extending a timeout.
+            long remaining = deadline - System.nanoTime();
+            if (remaining <= 0) throw invalidResponse;
+            String corrected =
+                    aiProvider
+                            .sendStructuredPrompt(
+                                    prompt.toString(),
+                                    "The previous response was invalid. Return every index exactly once with a category allowed for that row's income or expense type, or an empty category when uncertain.",
+                                    schema)
+                            .block(Duration.ofNanos(remaining));
+            return applyAIResults(transactions, indices, corrected, displayNameMap);
+        }
     }
 
     private void markUnavailable(List<ImportedTransaction> transactions) {
@@ -324,28 +344,38 @@ public class AICategorizationService {
     }
 
     private com.fasterxml.jackson.databind.JsonNode categorizationSchema(
-            int count, List<String> income, List<String> expenses) {
+            List<ImportedTransaction> transactions, List<String> income, List<String> expenses) {
+        int count = transactions.size();
         com.fasterxml.jackson.databind.node.ObjectNode schema = objectMapper.createObjectNode();
         schema.put("type", "object").put("additionalProperties", false);
         schema.putArray("required").add("results");
         com.fasterxml.jackson.databind.node.ObjectNode array =
                 schema.putObject("properties").putObject("results");
         array.put("type", "array").put("minItems", count).put("maxItems", count);
-        com.fasterxml.jackson.databind.node.ObjectNode item = array.putObject("items");
-        item.put("type", "object").put("additionalProperties", false);
-        item.putArray("required").add("index").add("category");
-        com.fasterxml.jackson.databind.node.ObjectNode properties = item.putObject("properties");
-        properties
-                .putObject("index")
-                .put("type", "integer")
-                .put("minimum", 1)
-                .put("maximum", count);
-        com.fasterxml.jackson.databind.node.ArrayNode names =
-                properties.putObject("category").put("type", "string").putArray("enum");
-        names.add("");
-        java.util.stream.Stream.concat(income.stream(), expenses.stream())
-                .distinct()
-                .forEach(names::add);
+        com.fasterxml.jackson.databind.node.ArrayNode alternatives =
+                array.putObject("items").putArray("anyOf");
+        for (CategoryType type : List.of(CategoryType.EXPENSE, CategoryType.INCOME)) {
+            List<Integer> indices =
+                    java.util.stream.IntStream.range(0, count)
+                            .filter(i -> categoryType(transactions.get(i)) == type)
+                            .map(i -> i + 1)
+                            .boxed()
+                            .toList();
+            if (indices.isEmpty()) continue;
+            com.fasterxml.jackson.databind.node.ObjectNode item = alternatives.addObject();
+            item.put("type", "object").put("additionalProperties", false);
+            item.putArray("required").add("index").add("category");
+            com.fasterxml.jackson.databind.node.ObjectNode properties =
+                    item.putObject("properties");
+            com.fasterxml.jackson.databind.node.ArrayNode rowIndices =
+                    properties.putObject("index").put("type", "integer").putArray("enum");
+            indices.forEach(rowIndices::add);
+            com.fasterxml.jackson.databind.node.ArrayNode names =
+                    properties.putObject("category").put("type", "string").putArray("enum");
+            names.add("");
+            (type == CategoryType.INCOME ? income : expenses)
+                    .stream().distinct().forEach(names::add);
+        }
         return schema;
     }
 

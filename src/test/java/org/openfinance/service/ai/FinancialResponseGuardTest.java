@@ -15,6 +15,35 @@ class FinancialResponseGuardTest {
             """;
 
     @Test
+    void rendersAllServerSelectedFactsWhenTheModelOmitsPartOfACompoundRequest() {
+        String context =
+                CONTEXT.lines()
+                        .filter(line -> !line.contains("cashflow.expenses"))
+                        .collect(java.util.stream.Collectors.joining("\n"));
+        for (String ids : new String[] {"[\"net_worth\"]", "[]"}) {
+            String verified =
+                    FinancialResponseGuard.verifyRequestedFacts(
+                            "{\"explanation\":\"Your budget is unavailable.\",\"factIds\":"
+                                    + ids
+                                    + "}",
+                            context,
+                            Locale.ENGLISH);
+            assertThat(verified)
+                    .contains(
+                            "Net worth: **3600.00 EUR**",
+                            "Budget limit — Groceries: **100.00 EUR**")
+                    .doesNotContain("unavailable", "Month-to-date expenses");
+        }
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () ->
+                                FinancialResponseGuard.verifyRequestedFacts(
+                                        "{\"explanation\":\"Overview\",\"factIds\":[\"invented\"]}",
+                                        context,
+                                        Locale.ENGLISH))
+                .isInstanceOf(AIProviderException.class);
+    }
+
+    @Test
     void structuredRepliesRenderKnownFactsWithoutAcceptingModelAmountsOrNumberWordsInNames() {
         for (String explanation :
                 new String[] {
