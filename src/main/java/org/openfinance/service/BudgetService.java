@@ -145,8 +145,7 @@ public class BudgetService {
                 request.getPeriod(),
                 request.getAmount());
 
-        // Validate category ownership
-        Category category = validateCategoryOwnership(request.getCategoryId(), userId);
+        Category category = validateExpenseCategory(request.getCategoryId(), userId);
 
         // Validate no duplicate budget
         validateNoDuplicateBudget(request, userId, null);
@@ -229,8 +228,7 @@ public class BudgetService {
                         .findByIdAndUserId(budgetId, userId)
                         .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
 
-        // Validate category ownership
-        Category category = validateCategoryOwnership(request.getCategoryId(), userId);
+        Category category = validateExpenseCategory(request.getCategoryId(), userId);
 
         // Validate no duplicate budget (exclude current budget)
         validateNoDuplicateBudget(request, userId, budgetId);
@@ -262,7 +260,7 @@ public class BudgetService {
                 userId,
                 EntityType.BUDGET,
                 budgetId,
-                category.getName(), // decrypted from validateCategoryOwnership earlier
+                category.getName(),
                 OperationType.UPDATE,
                 beforeSnapshot,
                 null);
@@ -313,6 +311,7 @@ public class BudgetService {
         budgetAlertRepository.deleteByBudgetId(budgetId);
         budgetRepository.delete(budget);
         searchTokenService.removeEntity("BUDGET", budgetId);
+        events.publishEvent(new BudgetChanged(userId));
 
         log.info("Budget deleted successfully: id={}, userId={}", budgetId, userId);
 
@@ -751,15 +750,23 @@ public class BudgetService {
      * @param lookbackMonths number of months to scan (1–24)
      * @param categoryIds restrict analysis to these category IDs; pass {@code null} to analyse ALL
      *     EXPENSE categories
-     * @param encryptionKey the AES-256 encryption key (required for the {@code hasExistingBudget}
-     *     check — not used directly here but enforced for consistency)
      * @return ordered list of suggestions (one per qualifying EXPENSE category)
-     * @throws IllegalArgumentException if userId, period, or encryptionKey is null
+     * @throws IllegalArgumentException if userId or period is null
      */
     @Transactional(readOnly = true)
     public List<BudgetSuggestion> analyzeCategorySpending(
             Long userId, BudgetPeriod period, int lookbackMonths, List<Long> categoryIds) {
+        return analyzeCategorySpending(userId, period, lookbackMonths, categoryIds, null);
+    }
 
+    /** Converts each expense at its posting date before averaging in the requested currency. */
+    @Transactional(readOnly = true)
+    public List<BudgetSuggestion> analyzeCategorySpending(
+            Long userId,
+            BudgetPeriod period,
+            int lookbackMonths,
+            List<Long> categoryIds,
+            String currency) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -793,9 +800,10 @@ public class BudgetService {
 
         List<BudgetSuggestion> suggestions = new ArrayList<>();
 
-        // Default currency for suggestions is the user's base currency; the caller may still
-        // override it via the request.
-        String suggestionCurrency = defaultCurrencyProvider.resolveForUser(userId);
+        String suggestionCurrency =
+                currency == null || currency.isBlank()
+                        ? defaultCurrencyProvider.resolveForUser(userId)
+                        : currency.strip().toUpperCase(Locale.ROOT);
 
         for (Category category : categories) {
             // Split window into sub-periods matching the target budget period
@@ -884,7 +892,7 @@ public class BudgetService {
                             .averageSpent(averageSpent)
                             .transactionCount(totalTxCount)
                             .period(period)
-                            .currency(suggestionCurrency) // caller may override via request
+                            .currency(suggestionCurrency)
                             .startDate(startDate)
                             .endDate(endDate)
                             .hasExistingBudget(hasExistingBudget)
@@ -1097,7 +1105,7 @@ public class BudgetService {
     }
 
     /**
-     * Validates that a category exists and belongs to the user.
+     * Validates that an expense category exists and belongs to the user.
      *
      * <p>Requirement REQ-3.2: Authorization - verify category ownership
      *
@@ -1106,15 +1114,22 @@ public class BudgetService {
      * @return the Category entity if valid
      * @throws CategoryNotFoundException if category doesn't exist or doesn't belong to user
      */
-    private Category validateCategoryOwnership(Long categoryId, Long userId) {
-        return categoryRepository
-                .findByIdAndUserId(categoryId, userId)
-                .orElseThrow(
-                        () ->
-                                new CategoryNotFoundException(
-                                        String.format(
-                                                "Category not found with id: %d for user: %d",
-                                                categoryId, userId)));
+    private Category validateExpenseCategory(Long categoryId, Long userId) {
+        Category category =
+                categoryRepository
+                        .findByIdAndUserId(categoryId, userId)
+                        .orElseThrow(
+                                () ->
+                                        new CategoryNotFoundException(
+                                                String.format(
+                                                        "Category not found with id: %d for user: %d",
+                                                        categoryId, userId)));
+        if (category.getType() != CategoryType.EXPENSE) {
+            throw new IllegalArgumentException(
+                    messageSource.getMessage(
+                            "budget.category.expenseOnly", null, LocaleContextHolder.getLocale()));
+        }
+        return category;
     }
 
     /**

@@ -4,11 +4,13 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import java.util.Locale;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.openfinance.entity.BudgetPeriod;
+import org.openfinance.validation.ValidCurrency;
 
 /**
  * Request DTO for triggering automatic budget suggestion analysis.
@@ -53,11 +55,19 @@ public class BudgetSuggestionRequest {
     private int lookbackMonths = 6;
 
     /**
-     * Optional ISO 4217 currency code (e.g. "EUR", "USD") to use for the suggested budget amounts.
+     * Optional ISO or active catalog currency code for the suggested budget amounts.
      *
-     * <p>When {@code null} the service defaults to {@code "EUR"}.
+     * <p>When null or blank, defaults to the user's base currency. Expenses are converted at their
+     * posting dates before averaging and rounding.
      */
-    private String currency;
+    @ValidCurrency private String currency;
+
+    public void setCurrency(String currency) {
+        this.currency =
+                currency == null || currency.isBlank()
+                        ? null
+                        : currency.strip().toUpperCase(Locale.ROOT);
+    }
 
     /**
      * Optional list of category IDs to restrict the analysis to.

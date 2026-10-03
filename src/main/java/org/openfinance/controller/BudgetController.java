@@ -588,15 +588,8 @@ public class BudgetController {
                         user.getId(),
                         request.getPeriod(),
                         request.getLookbackMonths(),
-                        request.getCategoryIds());
-
-        // Override currency if specified in the request
-        if (request.getCurrency() != null && !request.getCurrency().isBlank()) {
-            suggestions =
-                    suggestions.stream()
-                            .peek(s -> s.setCurrency(request.getCurrency()))
-                            .collect(java.util.stream.Collectors.toList());
-        }
+                        request.getCategoryIds(),
+                        request.getCurrency());
 
         log.info(
                 "Suggestion analysis complete: userId={}, suggestions={}",

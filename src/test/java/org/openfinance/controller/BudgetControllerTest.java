@@ -897,7 +897,7 @@ class BudgetControllerTest {
                                 .build());
 
         when(budgetService.analyzeCategorySpending(
-                        eq(USER_ID), eq(BudgetPeriod.MONTHLY), eq(6), eq(null)))
+                        eq(USER_ID), eq(BudgetPeriod.MONTHLY), eq(6), eq(null), eq("EUR")))
                 .thenReturn(suggestions);
 
         // When & Then
@@ -917,7 +917,8 @@ class BudgetControllerTest {
                 .andExpect(jsonPath("$[0].hasExistingBudget").value(false));
 
         verify(budgetService)
-                .analyzeCategorySpending(eq(USER_ID), eq(BudgetPeriod.MONTHLY), eq(6), eq(null));
+                .analyzeCategorySpending(
+                        eq(USER_ID), eq(BudgetPeriod.MONTHLY), eq(6), eq(null), eq("EUR"));
     }
 
     @Test
