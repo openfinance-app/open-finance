@@ -100,6 +100,20 @@ public class TransactionRuleRequest {
                             .contains(value.trim().toUpperCase(java.util.Locale.ROOT));
         }
 
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(message = "{rule.condition.amount.invalid}")
+        public boolean isValidAmountCondition() {
+            if (field != RuleConditionField.AMOUNT || value == null || value.isBlank()) {
+                return true; // Required values are checked by @NotBlank.
+            }
+            try {
+                new java.math.BigDecimal(value.trim());
+                return true;
+            } catch (NumberFormatException ex) {
+                return false;
+            }
+        }
+
         /** Display/evaluation order of this condition within the rule. */
         @Builder.Default private Integer sortOrder = 0;
     }

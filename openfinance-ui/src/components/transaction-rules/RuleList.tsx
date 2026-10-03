@@ -170,7 +170,7 @@ export function RuleList({
     <TooltipProvider>
       <div className="bg-surface rounded-xl border border-border overflow-hidden">
         {/* Table header */}
-        <div className="grid grid-cols-[1fr_80px_80px_70px_70px_120px] items-center gap-4 px-4 py-3 border-b border-border text-xs font-medium text-text-secondary uppercase tracking-wide">
+        <div className="hidden lg:grid grid-cols-[minmax(100px,1fr)_80px_80px_70px_70px_120px] items-center gap-4 px-4 py-3 border-b border-border text-xs font-medium text-text-secondary uppercase tracking-wide">
           <SortHeader
             label={t('list.name')}
             sortKey="name"
@@ -286,19 +286,20 @@ function RuleRow({ rule, onEdit, onDelete, onToggle, isMutating }: RuleRowProps)
     .join('\n');
 
   return (
-    <div className="grid grid-cols-[1fr_80px_80px_70px_70px_120px] items-center gap-4 px-4 py-3 hover:bg-background/50 transition-colors group">
+    <div className="grid grid-cols-2 lg:grid-cols-[minmax(100px,1fr)_80px_80px_70px_70px_120px] items-center gap-3 lg:gap-4 px-4 py-3 hover:bg-background/50 transition-colors group">
       {/* Name */}
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-text-primary truncate">{rule.name}</p>
+      <div className="min-w-0 col-span-2 lg:col-span-1">
+        <p className="text-sm font-medium text-text-primary break-words lg:truncate">{rule.name}</p>
       </div>
 
       {/* Priority */}
-      <div className="text-center">
+      <div className="flex items-center gap-2 lg:block lg:text-center">
+        <span className="text-xs text-text-secondary lg:hidden">{t('list.priority')}</span>
         <span className="text-sm text-text-secondary">{rule.priority}</span>
       </div>
 
       {/* Status badge */}
-      <div className="flex justify-center">
+      <div className="flex justify-end lg:justify-center">
         <Badge
           variant={rule.isEnabled ? 'default' : 'outline'}
           className={rule.isEnabled ? 'bg-green-500/10 text-green-600' : ''}
@@ -308,7 +309,8 @@ function RuleRow({ rule, onEdit, onDelete, onToggle, isMutating }: RuleRowProps)
       </div>
 
       {/* Condition count with tooltip */}
-      <div className="flex justify-center">
+      <div className="flex items-center gap-2 lg:justify-center">
+        <span className="text-xs text-text-secondary lg:hidden">{t('list.conditions')}</span>
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="text-sm text-text-secondary cursor-default tabular-nums underline decoration-dotted underline-offset-2">
@@ -322,7 +324,8 @@ function RuleRow({ rule, onEdit, onDelete, onToggle, isMutating }: RuleRowProps)
       </div>
 
       {/* Action count with tooltip */}
-      <div className="flex justify-center">
+      <div className="flex items-center justify-end gap-2 lg:justify-center">
+        <span className="text-xs text-text-secondary lg:hidden">{t('list.actions')}</span>
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="text-sm text-text-secondary cursor-default tabular-nums underline decoration-dotted underline-offset-2">
@@ -336,7 +339,7 @@ function RuleRow({ rule, onEdit, onDelete, onToggle, isMutating }: RuleRowProps)
       </div>
 
       {/* Controls */}
-      <div className="flex items-center justify-end gap-1">
+      <div className="col-span-2 lg:col-span-1 flex items-center justify-start lg:justify-end gap-3 lg:gap-1">
         {/* Toggle enabled */}
         <button
           type="button"

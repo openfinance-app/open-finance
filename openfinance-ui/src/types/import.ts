@@ -98,6 +98,8 @@ export interface ImportTransactionDTO {
   /** Decimal strings retain source precision; numbers support older API responses. */
   amount: string | number;
   currency: string;
+  /** Server-resolved source currency for review, including implicit account currency. */
+  reviewCurrency?: string;
   memo: string | null;
   category: string | null;
   clearedStatus: string;
@@ -128,6 +130,11 @@ export interface ImportProcessRequest {
 export interface ImportConfirmRequest {
   /** Optional — when null the backend auto-creates an account from the session's suggestedAccountName */
   accountId: number | null;
+  categoryMappings: Record<string, number>;
+  skipDuplicates: boolean;
+}
+
+export interface ImportReviewOptions {
   categoryMappings: Record<string, number>;
   skipDuplicates: boolean;
 }

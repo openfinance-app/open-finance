@@ -26,6 +26,7 @@ import org.openfinance.config.ImportProperties;
 import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.ImportParseResult;
+import org.openfinance.dto.ImportReviewRequest;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.SkroogeImportMetadata;
 import org.openfinance.dto.SkroogeImportParseResult;
@@ -482,7 +483,34 @@ public class ImportService {
         validateImportedSplitAmounts(transactions, session.getAccountId(), userId);
         detectDuplicates(transactions, session.getAccountId(), session.getFileFormat(), userId);
 
+        resolveReviewCurrencies(session, transactions, userId);
+
         return transactions;
+    }
+
+    private void resolveReviewCurrencies(
+            ImportSession session, List<ImportedTransaction> transactions, Long userId) {
+        Map<String, Long> scopes =
+                duplicateAccountScopes(transactions, session.getAccountId(), userId);
+        Map<Long, String> currencies =
+                accountRepository.findByUserId(userId).stream()
+                        .filter(
+                                account ->
+                                        account.getCurrency() != null
+                                                && !account.getCurrency().isBlank())
+                        .collect(Collectors.toMap(Account::getId, Account::getCurrency));
+        String fileCurrency = extractFileCurrency(session.getMetadata(), userId);
+        for (ImportedTransaction transaction : transactions) {
+            String currency = transaction.getCurrency();
+            if (currency == null || currency.isBlank()) {
+                String key =
+                        buildImportedAccountKey(
+                                transaction.getAccountName(), transaction.getAccountNumber());
+                Long accountId = key == null ? session.getAccountId() : scopes.get(key);
+                currency = currencies.getOrDefault(accountId, fileCurrency);
+            }
+            transaction.setReviewCurrency(currency);
+        }
     }
 
     /**
@@ -532,6 +560,20 @@ public class ImportService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ImportSession updateParsedTransactions(
             Long sessionId, List<ImportedTransaction> transactions, Long userId) {
+        return saveReview(sessionId, transactions, userId, null);
+    }
+
+    /** Persist review choices with the rows so reloading can restore the same confirmation. */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public ImportSession updateReview(Long sessionId, ImportReviewRequest request, Long userId) {
+        return saveReview(sessionId, request.getTransactions(), userId, request);
+    }
+
+    private ImportSession saveReview(
+            Long sessionId,
+            List<ImportedTransaction> transactions,
+            Long userId,
+            ImportReviewRequest review) {
         log.info("Updating parsed transactions for session: {}", sessionId);
 
         ImportSession session = getSessionForUser(sessionId, userId);
@@ -573,6 +615,14 @@ public class ImportService {
 
         Map<String, Object> extraMetadata = preserveMetadata(session.getMetadata());
         extraMetadata.put("reviewSaved", true);
+        if (review != null) {
+            validateImportCategoryMappings(transactions, userId, review.getCategoryMappings());
+            extraMetadata.put(
+                    "reviewOptions",
+                    Map.of(
+                            "categoryMappings", review.getCategoryMappings(),
+                            "skipDuplicates", review.isSkipDuplicates()));
+        }
         String metadata =
                 serializeTransactions(transactions, ledgerBalance, fileCurrency, extraMetadata);
         if (importSessionRepository.saveReview(

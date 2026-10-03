@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportConfirmRequest;
 import org.openfinance.dto.ImportProcessRequest;
+import org.openfinance.dto.ImportReviewRequest;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.service.ImportService;
@@ -568,6 +569,16 @@ public class ImportController {
         ImportSession session = importService.updateParsedTransactions(id, transactions, userId);
 
         return ResponseEntity.ok(session);
+    }
+
+    /** Save the reviewed rows and confirmation choices in one encrypted session update. */
+    @PutMapping("/sessions/{id}/review")
+    public ResponseEntity<ImportSession> updateReview(
+            @PathVariable Long id,
+            @Valid @RequestBody ImportReviewRequest request,
+            Authentication authentication) {
+        Long userId = ControllerUtil.extractUserId(authentication);
+        return ResponseEntity.ok(importService.updateReview(id, request, userId));
     }
 
     /**

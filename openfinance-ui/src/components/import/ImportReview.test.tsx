@@ -36,6 +36,37 @@ describe('ImportReview source categories', () => {
     mockAuthentication();
   });
 
+  it('uses the resolved account currency for rows and splits without a file currency', () => {
+    renderWithProviders(
+      <ImportReview
+        transactions={[
+          {
+            transactionDate: '2026-10-03',
+            amount: '-12.34',
+            currency: '',
+            reviewCurrency: 'USD',
+            payee: 'Dollar coffee',
+            category: null,
+            memo: '',
+            validationErrors: [],
+            splits: [
+              { amount: '6.17', category: 'Food', memo: '' },
+              { amount: '6.17', category: 'Shopping', memo: '' },
+            ],
+          } as ImportTransactionDTO,
+        ]}
+        onTransactionsChange={vi.fn()}
+        categoryMappings={{}}
+        onCategoryMappingsChange={vi.fn()}
+        newCategoryNames={[]}
+        onNewCategoryNamesChange={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/-\$12\.34/)).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Expand splits'));
+    expect(screen.getAllByText(/\$6\.17/)).toHaveLength(2);
+  });
+
   it('leaves an AI abstention unassigned instead of guessing from a memo substring', () => {
     const changed = vi.fn();
     renderWithProviders(

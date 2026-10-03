@@ -260,7 +260,8 @@ describe('useImport hooks', () => {
       expect(mockedImportService.updateTransactions).toHaveBeenCalledWith(
         1,
         mockTransactions,
-        true
+        true,
+        undefined
       );
     });
   });

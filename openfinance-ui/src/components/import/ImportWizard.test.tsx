@@ -4,21 +4,41 @@ import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import { Link, Route, Routes } from 'react-router';
 import { useImportDraftStore } from '@/stores/importDraft';
 import type { ImportTransactionDTO } from '@/types/import';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { ImportWizard } from '@/components/import/ImportWizard';
 
 const cancel = vi.fn();
 const confirm = vi.fn();
 const saveReview = vi.fn();
 let sessionStatus = 'PARSED';
+let sessionMetadata = '';
+let sessionError: Error | null = null;
+let reviewing = false;
 const transactions = [
   { date: '2026-09-10', amount: -10.99, payee: 'Groceries', validationErrors: [] },
 ];
 vi.mock('@/hooks/useImport', () => ({
   useStartImport: () => ({ mutateAsync: async () => ({ id: 42 }) }),
   useImportSession: (id: number | null) => ({
-    data: id ? { id, status: sessionStatus, cancellable: true, readyForReview: true } : undefined,
+    data:
+      id && !sessionError
+        ? {
+            id,
+            status: sessionStatus,
+            cancellable: true,
+            readyForReview: true,
+            confirmable: true,
+            fileName: 'statement.csv',
+            accountId: 7,
+            metadata: sessionMetadata,
+          }
+        : undefined,
+    error: id ? sessionError : null,
   }),
-  useImportTransactions: (id: number | null) => ({ data: id ? transactions : undefined }),
+  useImportTransactions: (id: number | null) => ({
+    data: id ? transactions : undefined,
+    isLoading: reviewing,
+  }),
   useConfirmImport: () => ({ mutateAsync: confirm }),
   useCancelImport: () => ({ mutateAsync: cancel, isPending: false }),
   useUpdateAccount: () => ({ mutateAsync: vi.fn() }),
@@ -67,11 +87,85 @@ vi.mock('@/components/import/ImportReview', () => ({
 describe('ImportWizard cancellation', () => {
   beforeEach(() => {
     sessionStatus = 'PARSED';
+    sessionMetadata = '';
+    sessionError = null;
+    reviewing = false;
     useImportDraftStore.getState().clear();
     mockAuthentication();
     confirm.mockReset().mockResolvedValue({ id: 42, status: 'IMPORTING' });
     saveReview.mockReset().mockResolvedValue({ id: 42 });
     cancel.mockReset().mockResolvedValue({ id: 42, status: 'CANCELLED' });
+  });
+
+  it('recovers a confirmation from the server using only a stored session reference', async () => {
+    sessionStorage.setItem(
+      'import_recovery',
+      JSON.stringify({ userId: 1, sessionId: 42, selectedStep: 'confirm' })
+    );
+    sessionStatus = 'REVIEWING';
+    sessionMetadata = JSON.stringify({
+      reviewOptions: { categoryMappings: { Food: 308 }, skipDuplicates: false },
+    });
+    renderWithProviders(
+      <ProtectedRoute>
+        <ImportWizard />
+      </ProtectedRoute>
+    );
+    expect(await screen.findByRole('heading', { name: 'Confirm Import' })).toBeInTheDocument();
+    expect(screen.getByText('statement.csv')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Skip potential duplicates' })).not.toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }));
+    await waitFor(() =>
+      expect(confirm).toHaveBeenCalledWith({
+        sessionId: 42,
+        accountId: 7,
+        categoryMappings: { Food: 308 },
+        skipDuplicates: false,
+      })
+    );
+    expect(JSON.parse(sessionStorage.getItem('import_recovery')!)).toEqual({
+      userId: 1,
+      sessionId: 42,
+      selectedStep: 'progress',
+    });
+  });
+
+  it('waits for restored review data before enabling confirmation', async () => {
+    sessionStorage.setItem(
+      'import_recovery',
+      JSON.stringify({ userId: 1, sessionId: 42, selectedStep: 'confirm' })
+    );
+    reviewing = true;
+    const view = renderWithProviders(
+      <ProtectedRoute>
+        <ImportWizard />
+      </ProtectedRoute>
+    );
+    expect(await screen.findByRole('button', { name: 'Confirm Import' })).toBeDisabled();
+    reviewing = false;
+    view.rerender(
+      <ProtectedRoute>
+        <ImportWizard />
+      </ProtectedRoute>
+    );
+    expect(await screen.findByRole('button', { name: 'Confirm Import' })).toBeEnabled();
+  });
+
+  it('lets the user start over when a recovery session no longer exists', async () => {
+    sessionStorage.setItem(
+      'import_recovery',
+      JSON.stringify({ userId: 1, sessionId: 42, selectedStep: 'confirm' })
+    );
+    sessionError = new Error('Not found');
+    renderWithProviders(
+      <ProtectedRoute>
+        <ImportWizard />
+      </ProtectedRoute>
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load this import');
+    fireEvent.click(screen.getByRole('button', { name: 'Start Over' }));
+    expect(await screen.findByRole('button', { name: 'Upload statement' })).toBeInTheDocument();
+    expect(sessionStorage.getItem('import_recovery')).toBeNull();
   });
 
   async function enterReview() {

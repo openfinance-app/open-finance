@@ -252,13 +252,13 @@ export function RuleActionBuilder({ actions, onChange }: RuleActionBuilderProps)
       {actions.map((action, index) => (
         <div
           key={index}
-          className="flex items-start gap-2 p-3 bg-surface rounded-lg border border-border"
+          className="flex flex-col sm:flex-row items-stretch sm:items-start gap-2 p-3 bg-surface rounded-lg border border-border"
         >
           {/* Action type selector */}
           <select
             value={action.actionType}
             onChange={e => handleTypeChange(index, e.target.value as RuleActionType)}
-            className="min-w-[160px] h-9 rounded-md border border-border bg-background px-3 pr-8 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary shrink-0"
+            className="min-w-0 sm:min-w-[160px] h-9 rounded-md border border-border bg-background px-3 pr-8 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary shrink-0"
             aria-label="Action type"
           >
             {ALL_ACTION_TYPES.map(type => (

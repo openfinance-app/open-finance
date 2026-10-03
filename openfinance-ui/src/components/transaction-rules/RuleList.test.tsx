@@ -213,10 +213,16 @@ describe('RuleList', () => {
     );
 
     expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('Priority')).toBeInTheDocument();
+    expect(
+      screen.getAllByText('Priority').find(element => element.closest('button'))!
+    ).toBeInTheDocument();
     expect(screen.getByText('Status')).toBeInTheDocument();
-    expect(screen.getByText('Conditions')).toBeInTheDocument();
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(
+      screen.getAllByText('Conditions').find(element => element.closest('button'))!
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText('Actions').find(element => element.closest('button'))!
+    ).toBeInTheDocument();
     expect(screen.getByText('Controls')).toBeInTheDocument();
   });
 
@@ -253,7 +259,9 @@ describe('RuleList', () => {
       />
     );
 
-    const priorityHeader = screen.getByText('Priority');
+    const priorityHeader = screen
+      .getAllByText('Priority')
+      .find(element => element.closest('button'))!;
     fireEvent.click(priorityHeader);
     expect(screen.getByText('Groceries Rule')).toBeInTheDocument();
   });
@@ -285,7 +293,9 @@ describe('RuleList', () => {
       />
     );
 
-    const conditionsHeader = screen.getByText('Conditions');
+    const conditionsHeader = screen
+      .getAllByText('Conditions')
+      .find(element => element.closest('button'))!;
     fireEvent.click(conditionsHeader);
     expect(screen.getByText('Groceries Rule')).toBeInTheDocument();
   });
@@ -301,7 +311,9 @@ describe('RuleList', () => {
       />
     );
 
-    const actionsHeader = screen.getByText('Actions');
+    const actionsHeader = screen
+      .getAllByText('Actions')
+      .find(element => element.closest('button'))!;
     fireEvent.click(actionsHeader);
     expect(screen.getByText('Groceries Rule')).toBeInTheDocument();
   });

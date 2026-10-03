@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openfinance.config.TestDatabaseConfig;
 import org.openfinance.dto.AccountRequest;
+import org.openfinance.dto.ImportReviewRequest;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.TransactionRuleRequest;
 import org.openfinance.dto.UserRegistrationRequest;
@@ -63,6 +64,92 @@ class RulesImportRegressionTest {
     private Long userId;
     private Long everyday;
     private Long savings;
+
+    @Test
+    void reviewResolvesImplicitCurrenciesWithoutChangingAmountsWhenSelectingAnotherAccount()
+            throws Exception {
+        currencyRepository.save(
+                org.openfinance.entity.Currency.builder()
+                        .code("USD")
+                        .name("US Dollar")
+                        .symbol("$")
+                        .build());
+        Long dollars =
+                accountService
+                        .createAccount(
+                                userId,
+                                AccountRequest.builder()
+                                        .name("Dollar wallet")
+                                        .type(AccountType.CHECKING)
+                                        .currency("USD")
+                                        .initialBalance(new BigDecimal("100"))
+                                        .build())
+                        .getId();
+        ImportSession session = csv("-12.34", "Coffee", dollars);
+        List<ImportedTransaction> reviewed = imports.reviewTransactions(session.getId(), userId);
+        assertThat(reviewed.getFirst().getReviewCurrency()).isEqualTo("USD");
+        assertThat(reviewed.getFirst().getCurrency()).isNull();
+        imports.updateParsedTransactions(session.getId(), reviewed, userId);
+        imports.updateAccount(session.getId(), everyday, userId);
+        ImportedTransaction switched =
+                imports.reviewTransactions(session.getId(), userId).getFirst();
+        assertThat(switched.getReviewCurrency()).isEqualTo("EUR");
+        assertThat(switched.getCurrency()).isNull();
+        assertThat(switched.getAmount()).isEqualByComparingTo("-12.34");
+
+        ImportSession explicit =
+                upload(
+                        "explicit.csv",
+                        "date,amount,payee,currency\n2026-09-02,-12.34,Coffee,USD\n",
+                        everyday);
+        assertThat(
+                        imports.reviewTransactions(explicit.getId(), userId)
+                                .getFirst()
+                                .getReviewCurrency())
+                .isEqualTo("USD");
+
+        ImportSession multi =
+                upload(
+                        "multiple.qif",
+                        "!Account\nNEveryday audit\nTBank\n^\n!Type:Bank\nD09/02/2026\nT-1\nPCoffee\n^\n"
+                                + "!Account\nNDollar wallet\nTBank\n^\n!Type:Bank\nD09/02/2026\nT-2\nPTea\n^\n",
+                        everyday);
+        assertThat(imports.reviewTransactions(multi.getId(), userId))
+                .extracting(ImportedTransaction::getReviewCurrency)
+                .containsExactly("EUR", "USD");
+    }
+
+    @Test
+    void savesReviewChoicesWithRowsAndPreservesThemThroughLegacyUpdates() throws Exception {
+        ImportSession session = csv("-12.34", "Reviewed purchase", everyday);
+        List<ImportedTransaction> reviewed = imports.reviewTransactions(session.getId(), userId);
+        reviewed.getFirst().setMemo("Receipt verified");
+        ImportReviewRequest request = new ImportReviewRequest();
+        request.setTransactions(reviewed);
+        request.setSkipDuplicates(false);
+        ImportSession saved = imports.updateReview(session.getId(), request, userId);
+        assertThat(saved.getStatus()).isEqualTo(ImportStatus.REVIEWING);
+        assertThat(
+                        new com.fasterxml.jackson.databind.ObjectMapper()
+                                .readTree(saved.getMetadata())
+                                .path("reviewOptions")
+                                .path("skipDuplicates")
+                                .booleanValue())
+                .isFalse();
+        ImportSession legacy = imports.updateParsedTransactions(session.getId(), reviewed, userId);
+        assertThat(
+                        new com.fasterxml.jackson.databind.ObjectMapper()
+                                .readTree(legacy.getMetadata())
+                                .path("reviewOptions")
+                                .path("skipDuplicates")
+                                .booleanValue())
+                .isFalse();
+        assertThat(imports.reviewTransactions(session.getId(), userId).getFirst().getMemo())
+                .isEqualTo("Receipt verified");
+        confirm(session);
+        assertThatThrownBy(() -> imports.updateReview(session.getId(), request, userId))
+                .isInstanceOf(IllegalStateException.class);
+    }
 
     @BeforeEach
     void setUp() {

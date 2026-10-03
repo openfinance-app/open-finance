@@ -107,6 +107,11 @@ public class ImportedTransaction {
      */
     private String currency;
 
+    /** Currency of the displayed source amount, resolved for rows without an explicit currency. */
+    @com.fasterxml.jackson.annotation.JsonProperty(
+            access = com.fasterxml.jackson.annotation.JsonProperty.Access.READ_ONLY)
+    private String reviewCurrency;
+
     /**
      * Source balance delta derived from the import format's account balance table, when available.
      *

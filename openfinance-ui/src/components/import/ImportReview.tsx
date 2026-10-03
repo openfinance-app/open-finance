@@ -848,7 +848,9 @@ export function ImportReview({
                           >
                             <ConvertedAmount
                               amount={Number(transaction.amount)}
-                              currency={transaction.currency || baseCurrency}
+                              currency={
+                                transaction.currency || transaction.reviewCurrency || baseCurrency
+                              }
                               inline
                             />
                           </span>
@@ -1059,7 +1061,11 @@ export function ImportReview({
                                   <span className="font-mono text-text-primary whitespace-nowrap">
                                     <ConvertedAmount
                                       amount={Number(split.amount)}
-                                      currency={transaction.currency || baseCurrency}
+                                      currency={
+                                        transaction.currency ||
+                                        transaction.reviewCurrency ||
+                                        baseCurrency
+                                      }
                                       inline
                                     />
                                   </span>

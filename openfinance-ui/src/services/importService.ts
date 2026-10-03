@@ -10,6 +10,7 @@ import type {
   ImportConfirmRequest,
   ImportSessionResponse,
   ImportTransactionDTO,
+  ImportReviewOptions,
 } from '@/types/import';
 import { buildEncryptionHeaders } from '@/utils/encryption';
 
@@ -131,11 +132,12 @@ export const importService = {
   updateTransactions: async (
     sessionId: number,
     transactions: ImportTransactionDTO[],
-    encryptionEnabled = true
+    encryptionEnabled = true,
+    reviewOptions?: ImportReviewOptions
   ): Promise<ImportSessionResponse> => {
     const response = await apiClient.put<ImportSessionResponse>(
-      `/import/sessions/${sessionId}/transactions`,
-      transactions,
+      `/import/sessions/${sessionId}/${reviewOptions ? 'review' : 'transactions'}`,
+      reviewOptions ? { transactions, ...reviewOptions } : transactions,
       {
         headers: buildEncryptionHeaders(encryptionEnabled),
       }

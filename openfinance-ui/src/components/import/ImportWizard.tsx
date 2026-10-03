@@ -11,14 +11,15 @@
  *   4. Confirm Import  — summary + skip-duplicates toggle
  *   5. Importing       — live progress feedback
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useBeforeUnload } from 'react-router';
 import { ROUTES } from '@/constants/routes';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { FileUpload } from '@/components/import/FileUpload';
 import { useAuthContext } from '@/context/AuthContext';
-import { useImportDraftStore } from '@/stores/importDraft';
+import { useImportDraftStore, readImportRecovery } from '@/stores/importDraft';
+import { readImportReviewOptions } from '@/utils/import-review-options';
 import { getImportReviewCounts } from '@/utils/import-review';
 import { ImportReview } from '@/components/import/ImportReview';
 import { ImportProgress } from '@/components/import/ImportProgress';
@@ -100,67 +101,42 @@ export function ImportWizard() {
   const { user } = useAuthContext();
   const savedDraft = useImportDraftStore.getState();
   const initialDraft = useRef(savedDraft.userId === user?.id ? savedDraft.draft : null).current;
+  const recovery = useRef(!initialDraft && user ? readImportRecovery(user.id) : null).current;
   const [stepError, setStepError] = useState<string | null>(null);
 
   // ── Wizard state ─────────────────────────────────────────────────────────
   const [selectedStep, setCurrentStep] = useState<ImportWizardStep>(
-    initialDraft?.selectedStep ?? 'upload'
+    initialDraft?.selectedStep ?? recovery?.selectedStep ?? 'upload'
   );
   const [uploadId, setUploadId] = useState<string | null>(initialDraft?.uploadId ?? null);
-  const [fileName, setFileName] = useState<string>(initialDraft?.fileName ?? '');
+  const [uploadedFileName, setFileName] = useState<string>(initialDraft?.fileName ?? '');
   const [accountOverride, setAccountId] = useState<number | null | undefined>(
     initialDraft?.accountOverride
   );
-  const [sessionId, setSessionId] = useState<number | null>(initialDraft?.sessionId ?? null);
+  const [sessionId, setSessionId] = useState<number | null>(
+    initialDraft?.sessionId ?? recovery?.sessionId ?? null
+  );
 
   /** Controls the "leave and cancel?" confirmation dialog */
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelFailed, setCancelFailed] = useState(false);
 
   /** Source-category → target-categoryId mappings, collected in the review step */
-  const [categoryMappings, setCategoryMappings] = useState<Record<string, number>>(
-    initialDraft?.categoryMappings ?? {}
-  );
+  const [categoryMappingOverride, setCategoryMappings] = useState<
+    Record<string, number> | undefined
+  >(initialDraft?.categoryMappings);
   /** Category names from the import file that don't exist in DB yet — created on confirm */
   const [newCategoryNames, setNewCategoryNames] = useState<string[]>(
     initialDraft?.newCategoryNames ?? []
   );
-  const [skipDuplicates, setSkipDuplicates] = useState(initialDraft?.skipDuplicates ?? true);
+  const [skipDuplicateOverride, setSkipDuplicates] = useState<boolean | undefined>(
+    initialDraft?.skipDuplicates
+  );
 
   /** Local (editable) copy of parsed transactions */
   const [editedTransactions, setLocalTransactions] = useState<ImportTransactionDTO[] | null>(
     initialDraft?.editedTransactions ?? null
   );
-
-  useEffect(() => {
-    if (!user) return;
-    if (!sessionId && !uploadId) {
-      useImportDraftStore.getState().clear();
-      return;
-    }
-    useImportDraftStore.getState().save(user.id, {
-      selectedStep,
-      uploadId,
-      fileName,
-      accountOverride,
-      sessionId,
-      categoryMappings,
-      newCategoryNames,
-      skipDuplicates,
-      editedTransactions,
-    });
-  }, [
-    user,
-    selectedStep,
-    uploadId,
-    fileName,
-    accountOverride,
-    sessionId,
-    categoryMappings,
-    newCategoryNames,
-    skipDuplicates,
-    editedTransactions,
-  ]);
 
   // ── Remote data & mutations ───────────────────────────────────────────────
   const { data: accounts = [] } = useAccounts();
@@ -170,7 +146,11 @@ export function ImportWizard() {
     ? [...BASE_ACCEPTED_FORMATS, SKROOGE_JSON_FORMAT]
     : BASE_ACCEPTED_FORMATS;
   const startImport = useStartImport();
-  const { data: session, isLoading: isLoadingSession } = useImportSession(sessionId, {
+  const {
+    data: session,
+    isLoading: isLoadingSession,
+    error: sessionError,
+  } = useImportSession(sessionId, {
     pollInterval: 2000,
   });
   // Pass session status so the hook disables itself once the session reaches a
@@ -195,6 +175,45 @@ export function ImportWizard() {
     selectedStep !== 'account'
       ? 'progress'
       : selectedStep;
+
+  const fileName = uploadedFileName || session?.fileName || '';
+  const savedReviewOptions = useMemo(
+    () => readImportReviewOptions(session?.metadata),
+    [session?.metadata]
+  );
+  const categoryMappings = categoryMappingOverride ?? savedReviewOptions.categoryMappings;
+  const skipDuplicates = skipDuplicateOverride ?? savedReviewOptions.skipDuplicates;
+
+  useEffect(() => {
+    if (!user || (sessionId && !session)) return;
+    if (!sessionId && !uploadId) {
+      useImportDraftStore.getState().clear();
+      return;
+    }
+    useImportDraftStore.getState().save(user.id, {
+      selectedStep,
+      uploadId,
+      fileName,
+      accountOverride,
+      sessionId,
+      categoryMappings,
+      newCategoryNames,
+      skipDuplicates,
+      editedTransactions,
+    });
+  }, [
+    user,
+    session,
+    selectedStep,
+    uploadId,
+    fileName,
+    accountOverride,
+    sessionId,
+    categoryMappings,
+    newCategoryNames,
+    skipDuplicates,
+    editedTransactions,
+  ]);
 
   // ── Refresh dependent data once the async import actually completes ───────
   // Confirmation runs asynchronously on the backend, so the imported rows only
@@ -341,6 +360,7 @@ export function ImportWizard() {
   // ── Navigation guards ─────────────────────────────────────────────────────
 
   const canGoNext = (): boolean => {
+    if (sessionId && (!session || isLoadingSession || sessionError)) return false;
     switch (currentStep) {
       case 'upload':
         return !!uploadId;
@@ -353,7 +373,7 @@ export function ImportWizard() {
       case 'review':
         return localTransactions.length > 0;
       case 'confirm':
-        return true;
+        return !!session?.confirmable && !isLoadingTransactions;
       default:
         return false;
     }
@@ -379,7 +399,11 @@ export function ImportWizard() {
 
     if (currentStep === 'review' && sessionId) {
       updateTransactions
-        .mutateAsync({ sessionId, transactions: localTransactions })
+        .mutateAsync({
+          sessionId,
+          transactions: localTransactions,
+          reviewOptions: { categoryMappings, skipDuplicates },
+        })
         .then(() => setCurrentStep(nextStep))
         .catch(e => {
           console.error('Failed to update transactions', e);
@@ -405,7 +429,11 @@ export function ImportWizard() {
     // so edits are not lost upon returning.
     if (currentStep === 'review' && sessionId && localTransactions.length > 0) {
       updateTransactions
-        .mutateAsync({ sessionId, transactions: localTransactions })
+        .mutateAsync({
+          sessionId,
+          transactions: localTransactions,
+          reviewOptions: { categoryMappings, skipDuplicates },
+        })
         .then(() => setCurrentStep(STEPS[prevIndex]))
         .catch(e => {
           console.error('Failed to persist transactions before navigating back', e);
@@ -466,6 +494,15 @@ export function ImportWizard() {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {sessionError && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-200 p-4 text-red-600">
+          <p>{t('errors.session')}</p>
+          <Button variant="outline" onClick={resetWizard} className="mt-2">
+            {t('wizard.accountSelection.startOver')}
+          </Button>
         </div>
       )}
 
@@ -623,12 +660,7 @@ export function ImportWizard() {
                   </div>
                 </div>
                 <div className="mt-2 ml-7">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.location.reload()}
-                    className="bg-white"
-                  >
+                  <Button variant="outline" size="sm" onClick={resetWizard} className="bg-white">
                     {t('wizard.accountSelection.startOver')}
                   </Button>
                 </div>
@@ -648,12 +680,7 @@ export function ImportWizard() {
                   </div>
                 </div>
                 <div className="mt-2 ml-7">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.location.reload()}
-                    className="bg-white"
-                  >
+                  <Button variant="outline" size="sm" onClick={resetWizard} className="bg-white">
                     {t('wizard.accountSelection.startOver')}
                   </Button>
                 </div>
@@ -799,7 +826,20 @@ export function ImportWizard() {
                 type="checkbox"
                 id="skipDuplicates"
                 checked={skipDuplicates}
-                onChange={e => setSkipDuplicates(e.target.checked)}
+                disabled={updateTransactions.isPending}
+                onChange={e => {
+                  const next = e.target.checked;
+                  setSkipDuplicates(next);
+                  if (sessionId) {
+                    updateTransactions
+                      .mutateAsync({
+                        sessionId,
+                        transactions: localTransactions,
+                        reviewOptions: { categoryMappings, skipDuplicates: next },
+                      })
+                      .catch(() => setStepError('errors.reviewSave'));
+                  }
+                }}
                 className="rounded border-border text-primary focus:ring-primary"
               />
               <label

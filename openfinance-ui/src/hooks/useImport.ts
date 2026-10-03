@@ -18,6 +18,7 @@ import type {
   ImportSessionResponse,
   ImportSessionStatus,
   ImportTransactionDTO,
+  ImportReviewOptions,
 } from '@/types/import';
 
 /**
@@ -213,7 +214,7 @@ export function useUpdateAccount(): UseMutationResult<
 export function useUpdateTransactions(): UseMutationResult<
   ImportSessionResponse,
   Error,
-  { sessionId: number; transactions: ImportTransactionDTO[] }
+  { sessionId: number; transactions: ImportTransactionDTO[]; reviewOptions?: ImportReviewOptions }
 > {
   const queryClient = useQueryClient();
   const securityConfig = useSecurityConfig();
@@ -222,10 +223,10 @@ export function useUpdateTransactions(): UseMutationResult<
   return useMutation<
     ImportSessionResponse,
     Error,
-    { sessionId: number; transactions: ImportTransactionDTO[] }
+    { sessionId: number; transactions: ImportTransactionDTO[]; reviewOptions?: ImportReviewOptions }
   >({
-    mutationFn: ({ sessionId, transactions }) =>
-      importService.updateTransactions(sessionId, transactions, encryptionEnabled),
+    mutationFn: ({ sessionId, transactions, reviewOptions }) =>
+      importService.updateTransactions(sessionId, transactions, encryptionEnabled, reviewOptions),
     onSuccess: (data, variables) => {
       queryClient.setQueryData(['import-sessions', variables.sessionId, encryptionEnabled], data);
       queryClient.invalidateQueries({ queryKey: ['import-sessions'] });

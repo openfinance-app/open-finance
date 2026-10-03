@@ -268,6 +268,7 @@
     "summaryNote": "Unmapped categories will not be assigned to transactions. You can skip them or create new categories."
   },
   "errors": {
+    "session": "Could not load this import. You can start a new import or try loading this page again.",
     "start": "Could not start the import. Upload the file again to retry.",
     "account": "Could not save the selected account. Please try again.",
     "reviewSave": "Could not save your review. Your edits are still here; please try again.",
