@@ -570,6 +570,13 @@ body.react-draggable-transparent-selection {
   cursor: grabbing;
 }
 
+/* Follow the card state: the library's body selection guard can disappear mid-gesture. */
+body:has(.react-grid-layout .react-grid-item.resizing),
+body:has(.react-grid-layout .react-grid-item.react-draggable-dragging) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .react-grid-layout .react-grid-item.react-grid-placeholder {
     animation: none;

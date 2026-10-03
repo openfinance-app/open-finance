@@ -347,12 +347,18 @@ export default function InsightsCard() {
           </div>
           <Button
             onClick={handleGenerate}
-            isLoading={generateInsights.isPending}
-            variant="secondary"
-            size="sm"
+            disabled={generateInsights.isPending}
+            aria-busy={generateInsights.isPending}
+            aria-label={t('insightsCard.refresh')}
+            title={t('insightsCard.refresh')}
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-text-secondary hover:text-text-primary md:h-8 md:w-8"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            {t('insightsCard.refresh')}
+            <RefreshCw
+              className={`h-4 w-4 ${generateInsights.isPending ? 'animate-spin motion-reduce:animate-none' : ''}`}
+              aria-hidden="true"
+            />
           </Button>
         </div>
       </CardHeader>
