@@ -2,6 +2,7 @@ package org.openfinance.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -129,8 +130,10 @@ class AIControllerIntegrationTest {
         // Setup default AI provider mock (lenient for tests that don't use it)
         lenient().when(aiProvider.isAvailable()).thenReturn(Mono.just(true));
         lenient()
-                .when(aiProvider.sendPrompt(anyString(), anyString()))
-                .thenReturn(Mono.just("Based on your financial data, here's my analysis..."));
+                .when(aiProvider.sendStructuredPrompt(anyString(), anyString(), any()))
+                .thenReturn(
+                        Mono.just(
+                                "{\"explanation\":\"Based on your financial data, here's my analysis...\",\"factIds\":[]}"));
         lenient().when(aiProvider.getProviderName()).thenReturn("MockProvider");
     }
 

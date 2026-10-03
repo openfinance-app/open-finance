@@ -122,11 +122,19 @@ public class InsightController {
 
         log.info("Generating insights for user");
         User user = (User) authentication.getPrincipal();
-        List<InsightResponse> insights = insightService.generateInsights(user.getId());
+        InsightService.GenerationResult result =
+                insightService.generateInsightsDetailed(user.getId());
+        List<InsightResponse> insights = result.insights();
 
         log.info("Generated {} insights for user {}", insights.size(), user.getId());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(insights);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header(
+                        "X-Insights-Unavailable-Sources",
+                        result.unavailableSources().stream()
+                                .map(Enum::name)
+                                .collect(java.util.stream.Collectors.joining(",")))
+                .body(insights);
     }
 
     /**

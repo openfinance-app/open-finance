@@ -120,54 +120,60 @@ public class InsightService {
      * @return List of newly generated insights
      * @throws ResourceNotFoundException if user not found
      */
+    public record GenerationResult(
+            List<InsightResponse> insights, List<InsightType> unavailableSources) {}
+
     @CacheEvict(value = "insights", key = "#userId")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<InsightResponse> generateInsights(Long userId) {
-        log.info("Generating insights for user {}", userId);
+        return generateInsightsDetailed(userId).insights();
+    }
 
-        // Verify user exists
+    @CacheEvict(value = "insights", key = "#userId")
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public GenerationResult generateInsightsDetailed(Long userId) {
         userRepository
                 .findById(userId)
                 .orElseThrow(
                         () -> new ResourceNotFoundException("User not found with ID: " + userId));
-
         long deadline = requestLimits.deadline();
+        List<Insight> generated = new ArrayList<>();
+        generated.addAll(generateSpendingAnomalyInsights(userId));
+        generated.addAll(generateBudgetInsights(userId));
+        generated.addAll(generateSavingsOpportunities(userId));
+        generated.addAll(generateCashFlowWarnings(userId));
+        java.util.Set<InsightType> unavailable = java.util.EnumSet.noneOf(InsightType.class);
+        generateOptional(
+                generated,
+                unavailable,
+                InsightType.REGION_COMPARISON,
+                () -> generateRegionComparisonInsights(userId, deadline));
+        generateOptional(
+                generated,
+                unavailable,
+                InsightType.TAX_OBLIGATION,
+                () -> generateTaxObligationInsights(userId, deadline));
+        generateOptional(
+                generated,
+                unavailable,
+                InsightType.RECURRING_BILLING,
+                () -> generateRecurringBillingInsights(userId, deadline));
+        List<Insight> saved = insightWriter.replaceGenerated(userId, generated, unavailable);
+        return new GenerationResult(
+                saved.stream().map(this::toDto).toList(), List.copyOf(unavailable));
+    }
 
-        // Generate insights from multiple sources
-        List<Insight> newInsights = new ArrayList<>();
-
+    private void generateOptional(
+            List<Insight> generated,
+            java.util.Set<InsightType> unavailable,
+            InsightType type,
+            java.util.function.Supplier<List<Insight>> generator) {
         try {
-            // 1. Analyze spending patterns
-            newInsights.addAll(generateSpendingAnomalyInsights(userId));
-
-            // 2. Check budget status
-            newInsights.addAll(generateBudgetInsights(userId));
-
-            // 3. Identify savings opportunities
-            newInsights.addAll(generateSavingsOpportunities(userId));
-
-            // 4. Cash flow warnings
-            newInsights.addAll(generateCashFlowWarnings(userId));
-
-            // 5. Region comparison insights (income/net worth vs country averages)
-            newInsights.addAll(generateRegionComparisonInsights(userId, deadline));
-
-            // 6. Tax obligation estimates
-            newInsights.addAll(generateTaxObligationInsights(userId, deadline));
-
-            // 7. Recurring billing analysis
-            newInsights.addAll(generateRecurringBillingInsights(userId, deadline));
-
-            log.info("Generated {} insights for user {}", newInsights.size(), userId);
-        } catch (RuntimeException e) {
-            throw generationFailure(e);
+            generated.addAll(generator.get());
+        } catch (RuntimeException ex) {
+            unavailable.add(type);
+            log.warn("Insight source {} unavailable: {}", type, ex.getClass().getSimpleName());
         }
-
-        // Save all insights
-        List<Insight> savedInsights = insightWriter.replaceGenerated(userId, newInsights);
-
-        // Convert to DTOs
-        return savedInsights.stream().map(this::toDto).collect(Collectors.toList());
     }
 
     /**

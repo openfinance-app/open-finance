@@ -18,17 +18,23 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
   const { t } = useTranslation('realEstate');
   const { buy, rent, comparison } = results.summary;
 
+  const tied = Math.abs(comparison.netWorthDifference) < 0.005;
   const buyAdvantage = comparison.netWorthDifference > 0;
   const worthDifference = Math.abs(comparison.netWorthDifference);
-  const worthDifferencePercent = (worthDifference / Math.max(buy.netWorth, rent.netWorth)) * 100;
+  const worthDifferencePercent =
+    Math.max(buy.netWorth, rent.netWorth) === 0
+      ? 0
+      : (worthDifference / Math.max(buy.netWorth, rent.netWorth)) * 100;
 
   return (
     <div className="space-y-6">
       {/* Winner Banner */}
-      <Card className={buyAdvantage ? 'border-green-500 border-2' : 'border-yellow-500 border-2'}>
+      <Card>
         <CardContent className="p-6">
           <div className="flex items-center justify-center gap-4">
-            {buyAdvantage ? (
+            {tied ? (
+              <p className="text-2xl font-bold">{t('comparison.tie')}</p>
+            ) : buyAdvantage ? (
               <>
                 <CheckCircle className="h-12 w-12 text-green-500" />
                 <div className="text-center">
@@ -175,9 +181,11 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                   {t('comparison.perMonth')}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {comparison.monthlyGap >= 0
-                    ? t('comparison.buyCheaper')
-                    : t('comparison.rentCheaper')}
+                  {Math.abs(comparison.monthlyGap) < 0.005
+                    ? t('comparison.equalPayments')
+                    : comparison.monthlyGap > 0
+                      ? t('comparison.buyCheaper')
+                      : t('comparison.rentCheaper')}
                 </p>
               </div>
             </div>

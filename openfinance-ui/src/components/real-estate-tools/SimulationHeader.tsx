@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import type { SavedSimulation } from '@/types/realEstateTools';
 
 export interface SimulationHeaderProps {
+  simulationType: SavedSimulation['metadata']['type'];
   simulationName: string;
   onNameChange: (name: string) => void;
   onSave: () => void;
@@ -31,6 +32,7 @@ export interface SimulationHeaderProps {
 }
 
 export const SimulationHeader: React.FC<SimulationHeaderProps> = ({
+  simulationType,
   simulationName,
   onNameChange,
   onSave,
@@ -39,8 +41,8 @@ export const SimulationHeader: React.FC<SimulationHeaderProps> = ({
   simulations,
   canSave,
 }) => {
-  const buyRentSimulations = simulations.filter(s => s.metadata.type === 'buy_rent');
-  const { t } = useTranslation('realEstate');
+  const matchingSimulations = simulations.filter(s => s.metadata.type === simulationType);
+  const { t, i18n } = useTranslation('realEstate');
 
   const handleDelete = async (id: string, name: string) => {
     if (confirm(t('comparator.confirmDelete', { name }))) {
@@ -68,22 +70,22 @@ export const SimulationHeader: React.FC<SimulationHeaderProps> = ({
 
         {/* Load Section */}
         <div className="flex-1 flex gap-2 w-full md:w-auto">
-          <Select onValueChange={onLoad}>
+          <Select value="" onValueChange={onLoad}>
             <SelectTrigger className="flex-1">
               <SelectValue placeholder={t('comparator.loadSimulation')} />
             </SelectTrigger>
             <SelectContent>
-              {buyRentSimulations.length === 0 ? (
+              {matchingSimulations.length === 0 ? (
                 <div className="px-2 py-3 text-sm text-muted-foreground">
                   {t('comparator.noSimulationsSaved')}
                 </div>
               ) : (
-                buyRentSimulations.map(sim => (
+                matchingSimulations.map(sim => (
                   <SelectItem key={sim.metadata.id} value={sim.metadata.id}>
                     <div className="flex items-center justify-between w-full">
                       <span>{sim.metadata.name}</span>
                       <span className="text-xs text-muted-foreground ml-2">
-                        {new Date(sim.metadata.updatedAt).toLocaleDateString('fr-FR')}
+                        {new Date(sim.metadata.updatedAt).toLocaleDateString(i18n.language)}
                       </span>
                     </div>
                   </SelectItem>
@@ -92,10 +94,11 @@ export const SimulationHeader: React.FC<SimulationHeaderProps> = ({
             </SelectContent>
           </Select>
 
-          {buyRentSimulations.length > 0 && (
+          {matchingSimulations.length > 0 && (
             <Select
+              value=""
               onValueChange={id => {
-                const sim = buyRentSimulations.find(s => s.metadata.id === id);
+                const sim = matchingSimulations.find(s => s.metadata.id === id);
                 if (sim) handleDelete(id, sim.metadata.name);
               }}
             >
@@ -104,7 +107,7 @@ export const SimulationHeader: React.FC<SimulationHeaderProps> = ({
                 {t('comparator.delete')}
               </SelectTrigger>
               <SelectContent>
-                {buyRentSimulations.map(sim => (
+                {matchingSimulations.map(sim => (
                   <SelectItem key={sim.metadata.id} value={sim.metadata.id}>
                     {sim.metadata.name}
                   </SelectItem>

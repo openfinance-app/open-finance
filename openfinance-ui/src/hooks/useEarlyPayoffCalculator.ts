@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { validateEarlyPayoff } from '@/validators/calculatorValidation';
 import type {
   EarlyPayoffInput,
   EarlyPayoffResult,
@@ -209,11 +210,13 @@ function nextId(): string {
 export function useEarlyPayoffCalculator(cfg: EarlyPayoffCountryConfig) {
   const [input, setInput] = useState<EarlyPayoffInput>(DEFAULT_EARLY_PAYOFF_INPUT);
   const [result, setResult] = useState<EarlyPayoffResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const updateInput = useCallback(
     <K extends keyof EarlyPayoffInput>(key: K, value: EarlyPayoffInput[K]) => {
       setInput(prev => ({ ...prev, [key]: value }));
       setResult(null);
+      setError(null);
     },
     []
   );
@@ -224,6 +227,7 @@ export function useEarlyPayoffCalculator(cfg: EarlyPayoffCountryConfig) {
       lumpSumPayments: [...prev.lumpSumPayments, { id: nextId(), month: 12, amount: 10000 }],
     }));
     setResult(null);
+    setError(null);
   }, []);
 
   const updateLumpSum = useCallback((id: string, field: 'month' | 'amount', value: number) => {
@@ -234,6 +238,7 @@ export function useEarlyPayoffCalculator(cfg: EarlyPayoffCountryConfig) {
       ),
     }));
     setResult(null);
+    setError(null);
   }, []);
 
   const removeLumpSum = useCallback((id: string) => {
@@ -242,11 +247,13 @@ export function useEarlyPayoffCalculator(cfg: EarlyPayoffCountryConfig) {
       lumpSumPayments: prev.lumpSumPayments.filter(ls => ls.id !== id),
     }));
     setResult(null);
+    setError(null);
   }, []);
 
   const resetInputs = useCallback(() => {
     setInput(DEFAULT_EARLY_PAYOFF_INPUT);
     setResult(null);
+    setError(null);
   }, []);
 
   const calculate = useCallback(() => {
@@ -259,7 +266,9 @@ export function useEarlyPayoffCalculator(cfg: EarlyPayoffCountryConfig) {
       monthlyExtraPayment,
     } = input;
 
-    if (loanBalance <= 0 || annualRate < 0 || (remainingYears <= 0 && remainingMonthsExtra <= 0)) {
+    const validationError = validateEarlyPayoff(input);
+    setError(validationError);
+    if (validationError) {
       setResult(null);
       return;
     }
@@ -315,11 +324,12 @@ export function useEarlyPayoffCalculator(cfg: EarlyPayoffCountryConfig) {
     const reducePayment = buildScenario(rpRows, rpBase, rpFinal, base);
 
     setResult({ base, reduceDuration, reducePayment });
-  }, [input]);
+  }, [input, cfg]);
 
   return {
     input,
     result,
+    error,
     updateInput,
     addLumpSum,
     updateLumpSum,

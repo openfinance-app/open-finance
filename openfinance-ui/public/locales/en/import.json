@@ -214,7 +214,8 @@
       "collapse": "Collapse",
       "expandSplits": "Expand splits",
       "selectTransaction": "Select transaction {{number}}"
-    }
+    },
+    "aiUnavailable": "AI suggestions could not be generated for some transactions. You can choose their categories manually and continue importing."
   },
   "progress": {
     "preparing": "Preparing import...",

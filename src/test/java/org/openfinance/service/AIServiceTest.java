@@ -75,9 +75,65 @@ class AIServiceTest {
     private Long userId;
     private User testUser;
 
+    private String jsonAnswer(String text) {
+        com.fasterxml.jackson.databind.node.ObjectNode answer =
+                new ObjectMapper().createObjectNode();
+        answer.put("explanation", text);
+        answer.putArray("factIds");
+        return answer.toString();
+    }
+
+    @Test
+    void retriesAnInvalidClaimAndSavesOnlyTheVerifiedAnswer() {
+        when(contextBuilder.buildMinimalContext(eq(userId), any(Locale.class)))
+                .thenReturn("Current finances");
+        when(aiProvider.sendStructuredPrompt(anyString(), anyString(), any()))
+                .thenReturn(
+                        Mono.just(jsonAnswer("You have 999 euros.")),
+                        Mono.just(jsonAnswer("One practical step is to review your budget.")));
+        AIDto.ChatResponse response =
+                aiService.askQuestion(
+                        userId,
+                        AIDto.ChatRequest.builder()
+                                .question("Help me budget")
+                                .includeFullContext(false)
+                                .build());
+        assertThat(response.getResponse())
+                .isEqualTo("One practical step is to review your budget.");
+        verify(aiProvider, times(2)).sendStructuredPrompt(anyString(), anyString(), any());
+        ArgumentCaptor<AIConversation> saved = ArgumentCaptor.forClass(AIConversation.class);
+        verify(conversationWriter).save(saved.capture());
+        assertThat(saved.getValue().getMessages())
+                .doesNotContain("999")
+                .contains("One practical step");
+    }
+
+    @Test
+    void neverPersistsAnUnverifiedAnswerAsSuccess() {
+        when(contextBuilder.buildMinimalContext(eq(userId), any(Locale.class)))
+                .thenReturn("Current finances");
+        when(aiProvider.sendStructuredPrompt(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(jsonAnswer("You have 999 euros.")));
+        assertThatThrownBy(
+                        () ->
+                                aiService.askQuestion(
+                                        userId,
+                                        AIDto.ChatRequest.builder()
+                                                .question("Help me budget")
+                                                .includeFullContext(false)
+                                                .build()))
+                .isInstanceOf(org.openfinance.service.ai.AIProviderException.class);
+        verifyNoInteractions(conversationWriter);
+    }
+
     @BeforeEach
     void setUp() {
         userId = 1L;
+        lenient()
+                .when(
+                        contextBuilder.forQuestion(
+                                anyLong(), any(Locale.class), anyString(), anyString()))
+                .thenAnswer(invocation -> invocation.getArgument(3));
         contextBudget =
                 new org.openfinance.service.ai.AIContextBudget(
                         aiProvider, new ObjectMapper().findAndRegisterModules());
@@ -120,8 +176,8 @@ class AIServiceTest {
                 .thenReturn(Optional.of(conversation));
         when(contextBuilder.buildMinimalContext(eq(userId), any(Locale.class)))
                 .thenReturn("Current finances");
-        when(aiProvider.sendPrompt(eq("What was my target?"), anyString()))
-                .thenReturn(Mono.just("500"));
+        when(aiProvider.sendStructuredPrompt(eq("What was my target?"), anyString(), any()))
+                .thenReturn(Mono.just(jsonAnswer("We can discuss your previous target.")));
         aiService.askQuestion(
                 userId,
                 AIDto.ChatRequest.builder()
@@ -130,7 +186,8 @@ class AIServiceTest {
                         .includeFullContext(false)
                         .build());
         ArgumentCaptor<String> context = ArgumentCaptor.forClass(String.class);
-        verify(aiProvider).sendPrompt(eq("What was my target?"), context.capture());
+        verify(aiProvider)
+                .sendStructuredPrompt(eq("What was my target?"), context.capture(), any());
         assertThat(context.getValue())
                 .contains(
                         "My target is 500",
@@ -157,7 +214,8 @@ class AIServiceTest {
                 .thenAnswer(inv -> Optional.ofNullable(stored.get()));
         when(contextBuilder.buildMinimalContext(eq(userId), any(Locale.class)))
                 .thenReturn("Context");
-        when(aiProvider.sendPrompt(anyString(), anyString())).thenReturn(Mono.just("Acknowledged"));
+        when(aiProvider.sendStructuredPrompt(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(jsonAnswer("Acknowledged")));
         for (int turn = 0; turn < 12; turn++) {
             aiService.askQuestion(
                     userId,
@@ -171,7 +229,7 @@ class AIServiceTest {
         assertThat(aiService.getConversation(userId, 42L).getMessages().getFirst().getContent())
                 .isEqualTo("Turn 0");
         ArgumentCaptor<String> contexts = ArgumentCaptor.forClass(String.class);
-        verify(aiProvider, times(12)).sendPrompt(anyString(), contexts.capture());
+        verify(aiProvider, times(12)).sendStructuredPrompt(anyString(), contexts.capture(), any());
         assertThat(contexts.getAllValues().getLast()).contains("Turn 10").doesNotContain("Turn 0");
     }
 
@@ -194,8 +252,9 @@ class AIServiceTest {
             String aiResponse = "Here is your financial summary.";
 
             when(contextBuilder.buildContext(eq(userId), any(Locale.class))).thenReturn(context);
-            when(aiProvider.sendPrompt("What is my net worth?", context + "\n"))
-                    .thenReturn(Mono.just(aiResponse));
+            when(aiProvider.sendStructuredPrompt(
+                            eq("What is my net worth?"), eq(context + "\n"), any()))
+                    .thenReturn(Mono.just(jsonAnswer(aiResponse)));
             when(conversationWriter.save(any(AIConversation.class)))
                     .thenAnswer(
                             invocation -> {
@@ -213,7 +272,8 @@ class AIServiceTest {
             assertThat(response.getConversationId()).isNotNull();
 
             verify(contextBuilder).buildContext(eq(userId), any(Locale.class));
-            verify(aiProvider).sendPrompt("What is my net worth?", context + "\n");
+            verify(aiProvider)
+                    .sendStructuredPrompt(eq("What is my net worth?"), eq(context + "\n"), any());
             verify(conversationWriter, atLeastOnce()).save(any(AIConversation.class));
         }
 
@@ -238,8 +298,9 @@ class AIServiceTest {
                     .thenReturn(Optional.of(existingConversation));
             when(contextBuilder.buildMinimalContext(eq(userId), any(Locale.class)))
                     .thenReturn(context);
-            when(aiProvider.sendPrompt("Show me my expenses", context + "\n"))
-                    .thenReturn(Mono.just(aiResponse));
+            when(aiProvider.sendStructuredPrompt(
+                            eq("Show me my expenses"), eq(context + "\n"), any()))
+                    .thenReturn(Mono.just(jsonAnswer(aiResponse)));
 
             // When
             AIDto.ChatResponse response = aiService.askQuestion(userId, request);
@@ -250,7 +311,8 @@ class AIServiceTest {
             assertThat(response.getConversationId()).isEqualTo(conversationId);
 
             verify(contextBuilder).buildMinimalContext(eq(userId), any(Locale.class));
-            verify(aiProvider).sendPrompt("Show me my expenses", context + "\n");
+            verify(aiProvider)
+                    .sendStructuredPrompt(eq("Show me my expenses"), eq(context + "\n"), any());
         }
 
         @Test
@@ -264,7 +326,7 @@ class AIServiceTest {
                             .build();
 
             when(contextBuilder.buildContext(eq(userId), any(Locale.class))).thenReturn("context");
-            when(aiProvider.sendPrompt(anyString(), anyString()))
+            when(aiProvider.sendStructuredPrompt(anyString(), anyString(), any()))
                     .thenReturn(Mono.error(new RuntimeException("Ollama service unavailable")));
 
             // When / Then
@@ -283,7 +345,8 @@ class AIServiceTest {
                             .build();
 
             when(contextBuilder.buildContext(eq(userId), any(Locale.class))).thenReturn("context");
-            when(aiProvider.sendPrompt(anyString(), anyString())).thenReturn(Mono.just("Response"));
+            when(aiProvider.sendStructuredPrompt(anyString(), anyString(), any()))
+                    .thenReturn(Mono.just(jsonAnswer("Response")));
 
             ArgumentCaptor<AIConversation> conversationCaptor =
                     ArgumentCaptor.forClass(AIConversation.class);
@@ -332,8 +395,8 @@ class AIServiceTest {
                             .build();
 
             when(contextBuilder.buildContext(eq(userId), any(Locale.class))).thenReturn("context");
-            when(aiProvider.sendPrompt(eq("Explain my budget"), anyString()))
-                    .thenReturn(Mono.just("Your budget is balanced."));
+            when(aiProvider.sendStructuredPrompt(eq("Explain my budget"), anyString(), any()))
+                    .thenReturn(Mono.just(jsonAnswer("Your budget is balanced.")));
             when(conversationWriter.save(any(AIConversation.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -346,7 +409,7 @@ class AIServiceTest {
                     .verifyComplete();
 
             verify(contextBuilder).buildContext(eq(userId), any(Locale.class));
-            verify(aiProvider).sendPrompt(eq("Explain my budget"), anyString());
+            verify(aiProvider).sendStructuredPrompt(eq("Explain my budget"), anyString(), any());
         }
 
         @Test
@@ -358,8 +421,8 @@ class AIServiceTest {
 
             when(contextBuilder.buildMinimalContext(eq(userId), any(Locale.class)))
                     .thenReturn("context");
-            when(aiProvider.sendPrompt(eq("Test"), anyString()))
-                    .thenReturn(Mono.just("First part, second part"));
+            when(aiProvider.sendStructuredPrompt(eq("Test"), anyString(), any()))
+                    .thenReturn(Mono.just(jsonAnswer("First part, second part")));
 
             ArgumentCaptor<AIConversation> conversationCaptor =
                     ArgumentCaptor.forClass(AIConversation.class);
@@ -608,8 +671,8 @@ class AIServiceTest {
             when(userSettingsRepository.findByUserId(userId)).thenReturn(Optional.of(settings));
             when(contextBuilder.buildMinimalContext(eq(userId), eq(Locale.ENGLISH)))
                     .thenReturn("Minimal context in English");
-            when(aiProvider.sendPrompt(anyString(), anyString()))
-                    .thenReturn(Mono.just("Here is your financial summary."));
+            when(aiProvider.sendStructuredPrompt(anyString(), anyString(), any()))
+                    .thenReturn(Mono.just(jsonAnswer("Here is your financial summary.")));
             when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
 
             AIConversation newConversation = createConversation(null, userId, null);
@@ -654,9 +717,11 @@ class AIServiceTest {
             when(messageSource.getMessage(
                             eq("ai.language.instruction"), any(), anyString(), eq(Locale.FRENCH)))
                     .thenReturn("Important : Veuillez répondre en français");
-            when(aiProvider.sendPrompt(
-                            anyString(), contains("Important : Veuillez répondre en français")))
-                    .thenReturn(Mono.just("Voici votre situation financière."));
+            when(aiProvider.sendStructuredPrompt(
+                            anyString(),
+                            contains("Important : Veuillez répondre en français"),
+                            any()))
+                    .thenReturn(Mono.just(jsonAnswer("Voici votre situation financière.")));
             when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
 
             AIConversation newConversation = createConversation(null, userId, null);
@@ -695,8 +760,8 @@ class AIServiceTest {
             when(userSettingsRepository.findByUserId(userId)).thenReturn(Optional.empty());
             when(contextBuilder.buildMinimalContext(eq(userId), eq(Locale.ENGLISH)))
                     .thenReturn("Minimal context");
-            when(aiProvider.sendPrompt(anyString(), anyString()))
-                    .thenReturn(Mono.just("Here is your account summary."));
+            when(aiProvider.sendStructuredPrompt(anyString(), anyString(), any()))
+                    .thenReturn(Mono.just(jsonAnswer("Here is your account summary.")));
             when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
 
             AIConversation newConversation = createConversation(null, userId, null);
@@ -738,8 +803,8 @@ class AIServiceTest {
             when(userSettingsRepository.findByUserId(userId)).thenReturn(Optional.of(settings));
             when(contextBuilder.buildContext(eq(userId), eq(Locale.ENGLISH)))
                     .thenReturn("Full financial context");
-            when(aiProvider.sendPrompt(anyString(), contextCaptor.capture()))
-                    .thenReturn(Mono.just("Here is your budget"));
+            when(aiProvider.sendStructuredPrompt(anyString(), contextCaptor.capture(), any()))
+                    .thenReturn(Mono.just(jsonAnswer("Here is your budget")));
             when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
 
             AIConversation newConversation = createConversation(null, userId, null);

@@ -5,7 +5,7 @@
  * Requirements: REQ-2.4.x, REQ-2.5.x, REQ-2.6.2, REQ-2.6.3
  */
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, type SetStateAction } from 'react';
 import type {
   InvestmentInputs,
   InvestmentResults,
@@ -20,6 +20,7 @@ import {
   DEFAULT_RENTAL_TAX_CONTEXT,
   FURNITURE_VALUES,
 } from '@/types/realEstateTools';
+import i18n from '@/i18n';
 import { RealEstateCalculationService } from '@/services/realEstateCalculationService';
 import { validateInvestmentInputs } from '@/validators/realEstateValidators';
 import { getRecommendedRegime } from '@/utils/taxRegimeCalculations';
@@ -56,6 +57,7 @@ export interface UseRentalSimulatorReturn {
  */
 function createDefaultInputs(sharedData?: SharedPropertyData): InvestmentInputs {
   return {
+    currency: 'EUR',
     credit: sharedData?.credit || {
       monthlyPayment: 0,
       annualCost: 0,
@@ -72,9 +74,9 @@ function createDefaultInputs(sharedData?: SharedPropertyData): InvestmentInputs 
     revenue: DEFAULT_INVESTMENT_INPUTS.revenue,
     expenses: {
       ...DEFAULT_INVESTMENT_INPUTS.expenses,
-      propertyTax: sharedData?.propertyTax || DEFAULT_INVESTMENT_INPUTS.expenses.propertyTax,
+      propertyTax: sharedData?.propertyTax ?? DEFAULT_INVESTMENT_INPUTS.expenses.propertyTax,
       nonRecoverableCharges:
-        sharedData?.coOwnershipCharges || DEFAULT_INVESTMENT_INPUTS.expenses.nonRecoverableCharges,
+        sharedData?.coOwnershipCharges ?? DEFAULT_INVESTMENT_INPUTS.expenses.nonRecoverableCharges,
     },
   };
 }
@@ -87,9 +89,7 @@ function createDefaultInputs(sharedData?: SharedPropertyData): InvestmentInputs 
  */
 export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSimulatorReturn {
   // Main state
-  const [inputs, setInputsState] = useState<InvestmentInputs>(() =>
-    createDefaultInputs(sharedData)
-  );
+  const [inputs, setRawInputs] = useState<InvestmentInputs>(() => createDefaultInputs(sharedData));
   const [results, setResults] = useState<InvestmentResults | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [errors, setErrors] = useState<ValidationError[]>([]);
@@ -97,19 +97,14 @@ export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSi
   // Refs for cleanup
   const calculationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auto-update furniture value when type changes
-  useEffect(() => {
-    const furnitureValue = FURNITURE_VALUES[inputs.property.furnishingType];
-    if (furnitureValue !== inputs.property.furnitureValue) {
-      setInputsState(prev => ({
-        ...prev,
-        property: {
-          ...prev.property,
-          furnitureValue,
-        },
-      }));
-    }
-  }, [inputs.property.furnishingType]);
+  const setInputsState = useCallback((next: SetStateAction<InvestmentInputs>) => {
+    if (calculationTimeoutRef.current !== null) clearTimeout(calculationTimeoutRef.current);
+    calculationTimeoutRef.current = null;
+    setIsCalculating(false);
+    setResults(null);
+    setErrors([]);
+    setRawInputs(next);
+  }, []);
 
   // Validate inputs when they change
   useEffect(() => {
@@ -154,7 +149,7 @@ export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSi
         },
       }));
     },
-    []
+    [setInputsState]
   );
 
   /**
@@ -167,10 +162,13 @@ export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSi
         property: {
           ...prev.property,
           [field]: value,
+          ...(field === 'furnishingType'
+            ? { furnitureValue: FURNITURE_VALUES[value as keyof typeof FURNITURE_VALUES] }
+            : {}),
         },
       }));
     },
-    []
+    [setInputsState]
   );
 
   /**
@@ -186,7 +184,7 @@ export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSi
         },
       }));
     },
-    []
+    [setInputsState]
   );
 
   /**
@@ -202,16 +200,19 @@ export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSi
         },
       }));
     },
-    []
+    [setInputsState]
   );
 
-  const updateTaxInput = useCallback((field: keyof RentalTaxContext, value: number | null) => {
-    setInputsState(prev => ({
-      ...prev,
-      tax: { ...DEFAULT_RENTAL_TAX_CONTEXT, ...prev.tax, [field]: value },
-    }));
-    setResults(null);
-  }, []);
+  const updateTaxInput = useCallback(
+    (field: keyof RentalTaxContext, value: number | null) => {
+      setInputsState(prev => ({
+        ...prev,
+        tax: { ...DEFAULT_RENTAL_TAX_CONTEXT, ...prev.tax, [field]: value },
+      }));
+      setResults(null);
+    },
+    [setInputsState]
+  );
 
   /**
    * Run the calculation
@@ -229,6 +230,7 @@ export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSi
       return;
     }
 
+    setResults(null);
     setIsCalculating(true);
 
     // Use setTimeout to allow UI to show loading state
@@ -242,7 +244,7 @@ export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSi
         setErrors([
           {
             field: 'general',
-            message: 'Une erreur est survenue lors du calcul. Veuillez vérifier vos données.',
+            message: i18n.t('validation.calculation', { ns: 'realEstate' }),
           },
         ]);
       } finally {
@@ -259,7 +261,7 @@ export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSi
         clearTimeout(calculationTimeoutRef.current);
       }
     };
-  }, []);
+  }, [setInputsState]);
 
   /**
    * Reset to default values
@@ -268,33 +270,39 @@ export function useRentalSimulator(sharedData?: SharedPropertyData): UseRentalSi
     setInputsState(createDefaultInputs(sharedData));
     setResults(null);
     setErrors([]);
-  }, [sharedData]);
+  }, [sharedData, setInputsState]);
 
   /**
    * Set all inputs at once (for loading saved simulations)
    */
-  const setInputs = useCallback((newInputs: InvestmentInputs) => {
-    setInputsState(newInputs);
-  }, []);
+  const setInputs = useCallback(
+    (newInputs: InvestmentInputs) => {
+      setInputsState({ ...newInputs, currency: 'EUR' });
+    },
+    [setInputsState]
+  );
 
   /**
    * Load shared data from Buy/Rent comparator
    */
-  const loadSharedData = useCallback((data: SharedPropertyData) => {
-    setInputsState(prev => ({
-      ...prev,
-      credit: data.credit,
-      property: {
-        ...prev.property,
-        totalPrice: data.totalPrice,
-      },
-      expenses: {
-        ...prev.expenses,
-        propertyTax: data.propertyTax,
-        nonRecoverableCharges: data.coOwnershipCharges,
-      },
-    }));
-  }, []);
+  const loadSharedData = useCallback(
+    (data: SharedPropertyData) => {
+      setInputsState(prev => ({
+        ...prev,
+        credit: data.credit,
+        property: {
+          ...prev.property,
+          totalPrice: data.totalPrice,
+        },
+        expenses: {
+          ...prev.expenses,
+          propertyTax: data.propertyTax,
+          nonRecoverableCharges: data.coOwnershipCharges,
+        },
+      }));
+    },
+    [setInputsState]
+  );
 
   /**
    * Get result for a specific regime

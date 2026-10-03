@@ -9,6 +9,7 @@ vi.mock('@/hooks/useCategories', () => ({
   useCategories: () => ({
     data: [
       { id: 7, name: 'Fast Food', type: 'EXPENSE' },
+      { id: 8, name: 'Shopping', type: 'EXPENSE' },
       {
         id: 308,
         name: 'Courses alimentaires',
@@ -33,6 +34,33 @@ vi.mock('@/components/ui/PayeeSelector', () => ({
 describe('ImportReview source categories', () => {
   beforeEach(() => {
     mockAuthentication();
+  });
+
+  it('leaves an AI abstention unassigned instead of guessing from a memo substring', () => {
+    const changed = vi.fn();
+    renderWithProviders(
+      <ImportReview
+        transactions={[
+          {
+            transactionDate: '2026-10-03',
+            amount: '-37.82',
+            currency: 'EUR',
+            payee: 'Green Basket Supermarket',
+            memo: 'Weekly grocery shopping',
+            category: null,
+            validationErrors: [],
+            splits: [],
+          } as ImportTransactionDTO,
+        ]}
+        onTransactionsChange={changed}
+        categoryMappings={{}}
+        onCategoryMappingsChange={vi.fn()}
+        newCategoryNames={[]}
+        onNewCategoryNamesChange={vi.fn()}
+      />
+    );
+    expect(screen.getByText('+ Assign')).toBeInTheDocument();
+    expect(changed).not.toHaveBeenCalled();
   });
 
   it('keeps validation and collapsible split details inside table rows', async () => {

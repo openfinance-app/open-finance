@@ -65,6 +65,7 @@ interface EditState {
 const INFO_PREFIXES = [
   'AUTO-MATCH:',
   'AI_MATCH:',
+  'AI_UNAVAILABLE:',
   'CATEGORY_SUGGESTION:',
   'CATEGORY_UNKNOWN:',
   'DUPLICATE:',
@@ -76,7 +77,7 @@ const INFO_PREFIXES = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Keep explicit file categories; infer only when the file did not supply one. */
+/** Canonicalize supplied categories; preserve the backend's decision to abstain. */
 function autoAssignCategory(
   transaction: ImportTransactionDTO,
   categories: Array<{ id: number; name: string }>
@@ -86,18 +87,6 @@ function autoAssignCategory(
       category => category.name.toLowerCase() === transaction.category!.trim().toLowerCase()
     );
     return exact?.name ?? transaction.category;
-  }
-
-  // 3. Substring match: does any category name appear in payee / memo?
-  //    Require word-boundary matching and minimum 3-char category name to avoid
-  //    false positives (e.g., category "In" matching every payee containing "in").
-  const text = `${transaction.payee ?? ''} ${transaction.memo ?? ''}`.toLowerCase();
-  for (const cat of categories) {
-    const catName = cat.name.toLowerCase();
-    if (catName.length >= 3) {
-      const escaped = catName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      if (new RegExp(`\\b${escaped}\\b`).test(text)) return cat.name;
-    }
   }
 
   return null;
@@ -418,6 +407,13 @@ export function ImportReview({
   // -------------------------------------------------------------------------
   return (
     <div className="space-y-4">
+      {transactions.some(transaction =>
+        transaction.validationErrors?.some(error => error.startsWith('AI_UNAVAILABLE:'))
+      ) && (
+        <p role="status" className="text-sm text-text-secondary">
+          {t('review.aiUnavailable')}
+        </p>
+      )}
       {/* ── Auto-assign notification ──────────────────────────────────────── */}
       {autoAssignedCount > 0 && (
         <button

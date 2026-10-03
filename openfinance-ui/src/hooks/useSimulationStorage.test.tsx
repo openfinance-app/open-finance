@@ -1,4 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
+import i18n from '@/i18n';
+import translations from '../../public/locales/en/realEstate.json';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useSimulationStorage } from './useSimulationStorage';
 import apiClient from '@/services/apiClient';
@@ -38,7 +40,9 @@ describe('useSimulationStorage', () => {
     updatedAt: '2025-01-16T10:00:00Z',
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('en');
+    i18n.addResourceBundle('en', 'realEstate', translations, true, true);
     vi.clearAllMocks();
     // Default: GET /real-estate-simulations returns list
     mockedApiClient.get.mockResolvedValue({ data: [mockApiSimulation, mockApiSimulation2] });
@@ -79,7 +83,7 @@ describe('useSimulationStorage', () => {
     });
 
     expect(result.current.simulations).toEqual([]);
-    expect(result.current.error).toBe('Erreur lors du chargement des simulations');
+    expect(result.current.error).toBe('Could not load saved simulations.');
   });
 
   it('should save a simulation', async () => {
@@ -117,7 +121,7 @@ describe('useSimulationStorage', () => {
     });
 
     expect(success).toBe(false);
-    expect(result.current.error).toBe('Le nom de la simulation ne peut pas être vide');
+    expect(result.current.error).toBe('Enter a simulation name.');
     expect(mockedApiClient.post).not.toHaveBeenCalled();
   });
 
@@ -173,7 +177,7 @@ describe('useSimulationStorage', () => {
     });
 
     expect(success).toBe(false);
-    expect(result.current.error).toBe('Server error');
+    expect(result.current.error).toBe('Saving failed. Your inputs have been kept; please retry.');
   });
 
   it('should load a simulation by id', async () => {
@@ -232,7 +236,7 @@ describe('useSimulationStorage', () => {
     });
 
     expect(success).toBe(false);
-    expect(result.current.error).toBe('Erreur lors de la suppression');
+    expect(result.current.error).toBe('Could not delete the simulation.');
   });
 
   it('should rename a simulation', async () => {
@@ -272,7 +276,7 @@ describe('useSimulationStorage', () => {
     });
 
     expect(success).toBe(false);
-    expect(result.current.error).toBe('Le nom ne peut pas être vide');
+    expect(result.current.error).toBe('Enter a simulation name.');
   });
 
   it('should reject rename for non-existent simulation', async () => {
@@ -288,7 +292,7 @@ describe('useSimulationStorage', () => {
     });
 
     expect(success).toBe(false);
-    expect(result.current.error).toBe('Simulation non trouvée');
+    expect(result.current.error).toBe('Simulation not found.');
   });
 
   it('should filter simulations by type', async () => {

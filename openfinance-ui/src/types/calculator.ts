@@ -127,6 +127,7 @@ export interface SensitivityScenario {
  * Savings longevity result
  */
 export interface SavingsLongevityResult {
+  exceedsProjection?: boolean;
   /** Years savings will last */
   yearsUntilDepletion: number;
 

@@ -188,6 +188,7 @@ public class ImportedTransaction {
             List.of(
                     "AUTO-MATCH:",
                     "AI_MATCH:",
+                    "AI_UNAVAILABLE:",
                     "CATEGORY_SUGGESTION:",
                     "CATEGORY_UNKNOWN:",
                     "DUPLICATE:",

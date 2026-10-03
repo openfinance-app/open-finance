@@ -15,6 +15,30 @@ class FinancialResponseGuardTest {
             """;
 
     @Test
+    void structuredRepliesRenderKnownFactsWithoutAcceptingModelAmountsOrNumberWordsInNames() {
+        for (String explanation :
+                new String[] {
+                    "Round Two Checking is available.",
+                    "Le solde est 3600 euros.",
+                    "Your balance is 999999."
+                }) {
+            String answer = "{\"explanation\":\"" + explanation + "\",\"factIds\":[\"net_worth\"]}";
+            String verified =
+                    FinancialResponseGuard.verifyStructured(answer, CONTEXT, Locale.ENGLISH);
+            assertThat(verified)
+                    .contains("Net worth: **3600.00 EUR**")
+                    .doesNotContain("999999", "Round Two", "Le solde");
+        }
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () ->
+                                FinancialResponseGuard.verifyStructured(
+                                        "{\"explanation\":\"999 euros\",\"factIds\":[\"not_a_fact\"]}",
+                                        CONTEXT,
+                                        Locale.ENGLISH))
+                .isInstanceOf(AIProviderException.class);
+    }
+
+    @Test
     void bindsAnAmountToItsMetricPeriodAndCurrency() {
         String response =
                 FinancialResponseGuard.verify(

@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/Table';
 import { getRegimeDisplayName, getRegimeDescription } from '@/utils/taxRegimeCalculations';
 import type { RegimeCalculationResult, TaxRegime } from '@/types/realEstateTools';
-import { useAuthContext } from '@/context/AuthContext';
+import { RENTAL_SIMULATION_CURRENCY } from '@/types/realEstateTools';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useTranslation } from 'react-i18next';
 
@@ -33,7 +33,7 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
   isOpen,
   onToggle,
 }) => {
-  const { baseCurrency } = useAuthContext();
+  const baseCurrency = RENTAL_SIMULATION_CURRENCY;
   const { t } = useTranslation('realEstate');
   const isEligible = result.eligible;
   const status = result.details.calculationStatus ?? 'complete';

@@ -222,7 +222,7 @@ describe('useBuyRentCalculations', () => {
     expect(result.current.inputs.rental.garbageTax).toBe(DEFAULT_BUY_RENT_INPUTS.rental.garbageTax);
     // initialSavings and monthlySavings are auto-derived from downPayment and derivedValues
     expect(result.current.inputs.rental.initialSavings).toBe(
-      DEFAULT_BUY_RENT_INPUTS.purchase.downPayment
+      DEFAULT_BUY_RENT_INPUTS.purchase.downPayment - DEFAULT_BUY_RENT_INPUTS.rental.securityDeposit
     );
     expect(result.current.inputs.rental.monthlySavings).toBe(
       mockDerivedValues.suggestedMonthlySavings
@@ -257,7 +257,11 @@ describe('useBuyRentCalculations', () => {
 
     const analysis = result.current.getYearNAnalysis(5);
     expect(analysis).toEqual({ year: 5, buyAdvantage: 10000 });
-    expect(mockedService.calculateYearNAnalysis).toHaveBeenCalledWith(mockResults, 5);
+    expect(mockedService.calculateYearNAnalysis).toHaveBeenCalledWith(
+      mockResults,
+      5,
+      DEFAULT_BUY_RENT_INPUTS.resale.resaleFeesPercent
+    );
   });
 
   it('should return null for year N analysis when no results', () => {

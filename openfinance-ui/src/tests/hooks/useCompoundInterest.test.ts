@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+import toolsEnglish from '../../../public/locales/en/tools.json';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCompoundInterest } from '@/hooks/useCompoundInterest';
@@ -40,6 +42,35 @@ const MOCK_RESULT: CompoundInterestResult = {
 describe('useCompoundInterest', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    i18n.addResourceBundle('en', 'tools', toolsEnglish, true, true);
+    void i18n.changeLanguage('en');
+  });
+
+  it('ignores an old response after the inputs change or reset', async () => {
+    for (const change of ['edit', 'reset']) {
+      let resolveRequest!: (value: CompoundInterestResult) => void;
+      mockCalculate.mockImplementationOnce(
+        () => new Promise(resolve => (resolveRequest = resolve))
+      );
+      const { result, unmount } = renderHook(() => useCompoundInterest());
+      let pending!: Promise<void>;
+      act(() => {
+        pending = result.current.calculate();
+      });
+      expect(result.current.isLoading).toBe(true);
+      act(() => {
+        if (change === 'edit') result.current.updateInput('principal', 5000);
+        else result.current.resetInputs();
+      });
+      await act(async () => {
+        resolveRequest(MOCK_RESULT);
+        await pending;
+      });
+      expect(result.current.result).toBeNull();
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.error).toBeNull();
+      unmount();
+    }
   });
 
   // -------------------------------------------------------------------------
@@ -253,7 +284,7 @@ describe('useCompoundInterest', () => {
         await result.current.calculate();
       });
 
-      expect(result.current.error).toBe('Network timeout');
+      expect(result.current.error).toBe(toolsEnglish.validation.calculationFailed);
     });
 
     it('sets fallback error message for non-Error rejections', async () => {
@@ -264,7 +295,7 @@ describe('useCompoundInterest', () => {
         await result.current.calculate();
       });
 
-      expect(result.current.error).toBe('Calculation failed. Please check your inputs.');
+      expect(result.current.error).toBe(toolsEnglish.validation.calculationFailed);
     });
 
     it('clears loading state after failure', async () => {

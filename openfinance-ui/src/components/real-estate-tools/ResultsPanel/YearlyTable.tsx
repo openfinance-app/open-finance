@@ -60,6 +60,7 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                 <TableHead>{t('yearlyTable.rentCost')}</TableHead>
                 <TableHead>{t('yearlyTable.rentCumulative')}</TableHead>
                 <TableHead>{t('yearlyTable.savings')}</TableHead>
+                <TableHead>{t('results.buySavings')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -143,11 +144,18 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                           inline
                         />
                       </TableCell>
+                      <TableCell>
+                        <ConvertedAmount
+                          amount={year.buy.savings ?? 0}
+                          currency={baseCurrency}
+                          inline
+                        />
+                      </TableCell>
                     </TableRow>
 
                     {isExpanded && (
                       <TableRow>
-                        <TableCell colSpan={9} className="bg-muted/30 p-4">
+                        <TableCell colSpan={10} className="bg-muted/30 p-4">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
                               <p className="font-medium text-muted-foreground">

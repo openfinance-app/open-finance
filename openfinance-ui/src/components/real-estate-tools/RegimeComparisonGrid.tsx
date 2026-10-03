@@ -17,7 +17,7 @@ import type {
   TaxRegime,
   RegimeCalculationResult,
 } from '@/types/realEstateTools';
-import { useAuthContext } from '@/context/AuthContext';
+import { RENTAL_SIMULATION_CURRENCY } from '@/types/realEstateTools';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useTranslation } from 'react-i18next';
 
@@ -38,7 +38,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
   isRegimeEligible,
   forceCollapse,
 }) => {
-  const { baseCurrency } = useAuthContext();
+  const baseCurrency = RENTAL_SIMULATION_CURRENCY;
   const { t } = useTranslation('realEstate');
   const [microFoncierOpen, setMicroFoncierOpen] = useState(false);
   const [reelFoncierOpen, setReelFoncierOpen] = useState(false);

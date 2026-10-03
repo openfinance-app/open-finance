@@ -165,7 +165,8 @@
     "loadFailed": "Échec du chargement des insights",
     "tooltip": "Les insights alimentés par l'IA analysent vos transactions et vos habitudes de dépenses pour faire ressortir des recommandations, des avertissements et des opportunités personnalisés.",
     "refreshFailed": "L’actualisation a échoué. Vos analyses précédentes sont conservées.",
-    "dismissFailed": "Impossible de masquer cette analyse. Veuillez réessayer."
+    "dismissFailed": "Impossible de masquer cette analyse. Veuillez réessayer.",
+    "partialRefresh": "Les analyses locales ont été actualisées. Certaines analyses IA externes sont indisponibles ; leurs résultats précédents ont été conservés."
   },
   "calendar": {
     "title": "Historique des flux de trésorerie",

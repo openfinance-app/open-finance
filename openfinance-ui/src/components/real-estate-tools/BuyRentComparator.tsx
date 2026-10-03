@@ -8,6 +8,12 @@
  */
 
 import React from 'react';
+import { CurrencySelector } from '@/components/ui/CurrencySelector';
+import { convertBuyRentInputs } from '@/utils/simulation-currency';
+import type { BuyRentInputs } from '@/types/realEstateTools';
+import { isBuyRentInputs } from '@/validators/simulationShape';
+import { useConvertCurrency } from '@/hooks/useCurrency';
+import { multiply, roundToDecimals } from '@/utils/money';
 import { Calculator, Save, ArrowRight, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ACCORDION_SYNC_BREAKPOINT } from '@/constants/breakpoints';
@@ -37,11 +43,16 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
   onNavigateToRentalSimulator,
 }) => {
   const [simulationName, setSimulationName] = React.useState('');
+  const [legacyInputs, setLegacyInputs] = React.useState<BuyRentInputs | null>(null);
+  const [legacyCurrency, setLegacyCurrency] = React.useState<string>();
+  const [currencyNotice, setCurrencyNotice] = React.useState<string | null>(null);
   const [purchaseOpen, setPurchaseOpen] = React.useState(true);
   const [rentalOpen, setRentalOpen] = React.useState(true);
   const [marketOpen, setMarketOpen] = React.useState(true);
   const [resaleOpen, setResaleOpen] = React.useState(true);
   const { baseCurrency } = useAuthContext();
+  const conversion = useConvertCurrency();
+  const [transferError, setTransferError] = React.useState<string | null>(null);
   const { buyVsRentInitialInputs } = useCountryToolConfig();
   const { t } = useTranslation('realEstate');
 
@@ -62,8 +73,15 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
     isValidResaleYear,
   } = useBuyRentCalculations(buyVsRentInitialInputs);
 
-  const { simulations, saveSimulation, loadSimulation, deleteSimulation, hasSimulationWithName } =
-    useSimulationStorage();
+  const {
+    simulations,
+    saveSimulation,
+    loadSimulation,
+    deleteSimulation,
+    hasSimulationWithName,
+    error: storageError,
+    isSaving,
+  } = useSimulationStorage();
 
   const hasErrors = errors.length > 0;
   const generalErrors = errors.filter(e => e.field === 'general');
@@ -76,22 +94,63 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
     }
     setNameError(null);
 
-    const success = await saveSimulation(simulationName, 'buy_rent', inputs);
+    const success = await saveSimulation(simulationName, 'buy_rent', {
+      ...inputs,
+      currency: baseCurrency,
+    });
     if (success) {
       setSimulationName('');
     }
   };
 
-  const handleLoadSimulation = (id: string) => {
-    const simulation = loadSimulation(id);
-    if (simulation) {
-      setInputs(simulation.data as typeof inputs);
+  const loadInCurrentCurrency = async (data: BuyRentInputs, sourceCurrency: string) => {
+    setNameError(null);
+    setCurrencyNotice(null);
+    try {
+      const rate =
+        sourceCurrency === baseCurrency
+          ? 1
+          : (
+              await conversion.mutateAsync({
+                amount: 1,
+                fromCurrency: sourceCurrency,
+                toCurrency: baseCurrency,
+              })
+            ).exchangeRate;
+      setInputs(convertBuyRentInputs(data, baseCurrency, rate));
+      setLegacyInputs(null);
+      if (sourceCurrency !== baseCurrency) {
+        setCurrencyNotice(
+          t('comparator.convertedSimulation', { from: sourceCurrency, to: baseCurrency })
+        );
+      }
+    } catch {
+      setNameError(t('comparator.conversionFailed'));
     }
   };
 
-  const handleNavigateToRental = () => {
+  const handleLoadSimulation = (id: string) => {
+    const simulation = loadSimulation(id);
+    setLegacyInputs(null);
+    setCurrencyNotice(null);
+    if (simulation?.metadata.type !== 'buy_rent' || !isBuyRentInputs(simulation.data)) {
+      setNameError(t('validation.invalidSimulation'));
+      return;
+    }
+    if (!simulation.data.currency) {
+      setNameError(null);
+      setLegacyCurrency(undefined);
+      setLegacyInputs(simulation.data);
+      return;
+    }
+    void loadInCurrentCurrency(simulation.data, simulation.data.currency);
+  };
+
+  const handleNavigateToRental = async () => {
+    setTransferError(null);
     if (onNavigateToRentalSimulator) {
       const sharedData: SharedPropertyData = {
+        currency: baseCurrency,
         totalPrice: derivedValues.totalPrice,
         credit: {
           monthlyPayment: derivedValues.monthlyPayment,
@@ -107,44 +166,45 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
         propertyTax: inputs.purchase.propertyTax,
         coOwnershipCharges: inputs.purchase.coOwnershipCharges,
       };
-      onNavigateToRentalSimulator(sharedData);
+      try {
+        const rate =
+          baseCurrency === 'EUR'
+            ? 1
+            : (
+                await conversion.mutateAsync({
+                  amount: 1,
+                  fromCurrency: baseCurrency,
+                  toCurrency: 'EUR',
+                })
+              ).exchangeRate;
+        if (!Number.isFinite(rate) || rate <= 0) throw new Error('Invalid exchange rate');
+        const amount = (value: number): number => roundToDecimals(multiply(value, rate), 2);
+        onNavigateToRentalSimulator({
+          currency: 'EUR',
+          totalPrice: amount(sharedData.totalPrice),
+          propertyTax: amount(sharedData.propertyTax),
+          coOwnershipCharges: amount(sharedData.coOwnershipCharges),
+          credit: {
+            monthlyPayment: amount(sharedData.credit.monthlyPayment),
+            annualCost: amount(sharedData.credit.annualCost),
+            totalCost: amount(sharedData.credit.totalCost),
+            assurance: amount(sharedData.credit.assurance),
+            bankFees: amount(sharedData.credit.bankFees),
+          },
+        });
+      } catch {
+        setTransferError(t('validation.currencyConversion'));
+      }
     }
   };
 
   const handlePropertySelect = (propertyData: Partial<typeof inputs>) => {
-    if (propertyData.purchase) {
-      Object.keys(propertyData.purchase).forEach(key => {
-        updatePurchaseInput(
-          key as keyof typeof inputs.purchase,
-          propertyData.purchase![key as keyof typeof inputs.purchase]
-        );
-      });
-    }
-    if (propertyData.rental) {
-      Object.keys(propertyData.rental).forEach(key => {
-        updateRentalInput(
-          key as keyof typeof inputs.rental,
-          propertyData.rental![key as keyof typeof inputs.rental]
-        );
-      });
-    }
-    if (propertyData.market) {
-      Object.keys(propertyData.market).forEach(key => {
-        updateMarketInput(
-          key as keyof typeof inputs.market,
-          propertyData.market![key as keyof typeof inputs.market]
-        );
-      });
-    }
-    if (propertyData.resale) {
-      Object.keys(propertyData.resale).forEach(key => {
-        updateResaleInput(
-          key as keyof typeof inputs.resale,
-          propertyData.resale![key as keyof typeof inputs.resale]
-        );
-      });
-    }
-    calculate();
+    calculate({
+      purchase: { ...inputs.purchase, ...propertyData.purchase },
+      rental: { ...inputs.rental, ...propertyData.rental },
+      market: { ...inputs.market, ...propertyData.market },
+      resale: { ...inputs.resale, ...propertyData.resale },
+    });
   };
 
   const handleCalculate = () => {
@@ -190,17 +250,28 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <PageHeader title={t('comparator.title')} description={t('comparator.description')} />
+      {storageError && (
+        <Alert variant="error" role="alert" className="mb-4">
+          <AlertDescription>{storageError}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Top Bar: Simulation + Property Selector */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <SimulationHeader
+          simulationType="buy_rent"
           simulationName={simulationName}
           onNameChange={setSimulationName}
           onSave={handleSaveSimulation}
           onLoad={handleLoadSimulation}
           onDelete={deleteSimulation}
           simulations={simulations}
-          canSave={!hasSimulationWithName(simulationName) && simulationName.trim().length > 0}
+          canSave={
+            !isSaving &&
+            !hasErrors &&
+            !hasSimulationWithName(simulationName) &&
+            simulationName.trim().length > 0
+          }
         />
 
         <div className="flex items-center">
@@ -212,6 +283,11 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
         </div>
       </div>
 
+      {transferError && (
+        <Alert variant="error" className="mb-6">
+          <AlertDescription>{transferError}</AlertDescription>
+        </Alert>
+      )}
       {/* Error Alerts */}
       {generalErrors.length > 0 && (
         <Alert variant="error" className="mb-6">
@@ -224,6 +300,31 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
           <AlertDescription>{nameError}</AlertDescription>
         </Alert>
       )}
+
+      {legacyInputs && (
+        <div className="mb-6 space-y-3" role="group" aria-label={t('comparator.originalCurrency')}>
+          <p>{t('comparator.legacyCurrency')}</p>
+          <CurrencySelector
+            value={legacyCurrency}
+            onValueChange={setLegacyCurrency}
+            placeholder={t('comparator.originalCurrency')}
+          />
+          <Button
+            disabled={!legacyCurrency || conversion.isPending}
+            onClick={() =>
+              legacyCurrency && void loadInCurrentCurrency(legacyInputs, legacyCurrency)
+            }
+          >
+            {t('comparator.loadWithCurrency')}
+          </Button>
+        </div>
+      )}
+      {currencyNotice && (
+        <p role="status" className="mb-6 text-sm">
+          {currencyNotice}
+        </p>
+      )}
+      <p className="mb-4 text-sm text-muted-foreground">{t('comparator.commonBudget')}</p>
 
       {/* Summary Card */}
       <Card className="p-4 bg-muted/50 mb-6">
@@ -340,7 +441,7 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
             variant="secondary"
             size="lg"
             onClick={handleNavigateToRental}
-            disabled={isCalculating}
+            disabled={isCalculating || hasErrors || conversion.isPending}
           >
             <Save className="mr-2 h-4 w-4" />
             {t('comparator.simulateRental')}
@@ -353,7 +454,7 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
       {results && (
         <ResultsPanel
           results={results}
-          inputs={inputs}
+          inputs={{ ...inputs, currency: baseCurrency }}
           getYearNAnalysis={getYearNAnalysis}
           isValidResaleYear={isValidResaleYear}
         />

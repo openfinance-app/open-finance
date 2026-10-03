@@ -18,14 +18,14 @@ public final class FinancialResponseGuard {
                     Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern WRITTEN_FIGURE =
             Pattern.compile(
-                    "\\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|"
+                    "\\b(?:zero|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|"
                             + "thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|"
                             + "thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|"
                             + "millions?|billions?|trillions?|half|quarter|dozen|twice|thrice|"
                             + "zéro|deux|trois|quatre|cinq|sept|huit|neuf|dix|onze|douze|treize|"
                             + "quatorze|quinze|seize|vingt|trente|quarante|cinquante|soixante|"
                             + "centaines?|cents?|milliers?|mille|milliards?|demi|moitié|quart)\\b"
-                            + "|\\b(?:un|une)\\b(?!\\s+\\p{L})",
+                            + "|\\b(?:one|un|une)\\b(?!\\s+\\p{L})",
                     Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
 
     private FinancialResponseGuard() {}
@@ -68,6 +68,56 @@ public final class FinancialResponseGuard {
         } catch (com.fasterxml.jackson.core.JsonProcessingException | RuntimeException ex) {
             return rejected(locale);
         }
+    }
+
+    /** A rejected model answer must never be saved as a successful chat response. */
+    public static String verifyStructured(String response, String context, Locale locale) {
+        if (response == null || !response.stripLeading().startsWith("{"))
+            throw new AIProviderException("AI", "Invalid structured financial answer");
+        String verified = verify(response, context, locale);
+        if (verified.equals(rejected(locale))) {
+            // A correct fact must not be lost because prose repeats an amount or an entity
+            // such as "Round Two Checking". Discard that prose; never accept its arithmetic.
+            try {
+                JsonNode answer = JSON.readTree(response);
+                if (answer.path("explanation").isTextual()
+                        && answer.path("factIds").isArray()
+                        && !answer.path("factIds").isEmpty()
+                        && containsFigure(answer.path("explanation").asText())) {
+                    ((com.fasterxml.jackson.databind.node.ObjectNode) answer)
+                            .put("explanation", "");
+                    verified = verify(JSON.writeValueAsString(answer), context, locale).strip();
+                }
+            } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+                throw new AIProviderException("AI", "Invalid structured financial answer", ex);
+            }
+            if (verified.equals(rejected(locale)))
+                throw new AIProviderException("AI", "Unverified financial answer");
+        }
+        return verified;
+    }
+
+    public static JsonNode responseSchema(String context) {
+        com.fasterxml.jackson.databind.node.ObjectNode schema = JSON.createObjectNode();
+        schema.put("type", "object").put("additionalProperties", false);
+        schema.putArray("required").add("explanation").add("factIds");
+        com.fasterxml.jackson.databind.node.ObjectNode properties = schema.putObject("properties");
+        properties.putObject("explanation").put("type", "string");
+        com.fasterxml.jackson.databind.node.ObjectNode ids = properties.putObject("factIds");
+        ids.put("type", "array");
+        com.fasterxml.jackson.databind.node.ObjectNode item =
+                ids.putObject("items").put("type", "string");
+        try {
+            Set<String> allowed = facts(context).keySet();
+            if (allowed.isEmpty()) ids.put("maxItems", 0);
+            else {
+                com.fasterxml.jackson.databind.node.ArrayNode values = item.putArray("enum");
+                allowed.forEach(values::add);
+            }
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+            throw new IllegalStateException("Invalid financial facts", ex);
+        }
+        return schema;
     }
 
     private static boolean containsFigure(String text) {

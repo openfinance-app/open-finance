@@ -113,6 +113,7 @@ export function calculateSavingsLongevity(
   monthsUntilDepletion: number;
   isInfinite: boolean;
   finalBalance: number | null;
+  exceedsProjection?: boolean;
 } {
   const monthlyRate = divide(divide(annualReturnRate, 100), 12);
   let balance = currentSavings;
@@ -134,6 +135,14 @@ export function calculateSavingsLongevity(
     }
   }
 
+  if (monthlyRate === 0) {
+    return {
+      monthsUntilDepletion: Math.ceil(divide(currentSavings, monthlyExpenses)),
+      isInfinite: false,
+      finalBalance: 0,
+    };
+  }
+
   // Calculate month by month depletion
   while (balance > 0 && months < maxMonths) {
     // Add investment returns
@@ -148,6 +157,7 @@ export function calculateSavingsLongevity(
     monthsUntilDepletion: months,
     isInfinite: false,
     finalBalance: balance > 0 ? balance : 0,
+    exceedsProjection: balance > 0,
   };
 }
 

@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { Separator } from '@/components/ui/Separator';
 import { useTranslation } from 'react-i18next';
 import type { OwnerExpensesInputs, ValidationError } from '@/types/realEstateTools';
-import { useAuthContext } from '@/context/AuthContext';
+import { RENTAL_SIMULATION_CURRENCY } from '@/types/realEstateTools';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface ExpensesSectionProps {
@@ -32,7 +32,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
   isOpen,
   onToggle,
 }) => {
-  const { baseCurrency } = useAuthContext();
+  const baseCurrency = RENTAL_SIMULATION_CURRENCY;
   const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) =>
@@ -78,6 +78,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <Label htmlFor="propertyTax">{t('expensesSection.propertyTax')}</Label>
               <NumberInput
                 id="propertyTax"
+                error={getFieldError('propertyTax')}
                 value={String(inputs.propertyTax)}
                 onChange={value => onUpdate('propertyTax', parseFloat(value) || 0)}
                 min={0}
@@ -88,6 +89,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <Label htmlFor="cfe">{t('expensesSection.cfe')}</Label>
               <NumberInput
                 id="cfe"
+                error={getFieldError('cfe')}
                 value={String(inputs.cfe)}
                 onChange={value => onUpdate('cfe', parseFloat(value) || 0)}
                 min={0}
@@ -98,6 +100,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <Label htmlFor="cvae">{t('expensesSection.cvae')}</Label>
               <NumberInput
                 id="cvae"
+                error={getFieldError('cvae')}
                 value={String(inputs.cvae)}
                 onChange={value => onUpdate('cvae', parseFloat(value) || 0)}
                 min={0}
@@ -120,6 +123,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               </Label>
               <NumberInput
                 id="nonRecoverableCharges"
+                error={getFieldError('nonRecoverableCharges')}
                 value={String(inputs.nonRecoverableCharges)}
                 onChange={value => onUpdate('nonRecoverableCharges', parseFloat(value) || 0)}
                 min={0}
@@ -130,6 +134,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <Label htmlFor="annualMaintenance">{t('expensesSection.annualMaintenance')}</Label>
               <NumberInput
                 id="annualMaintenance"
+                error={getFieldError('annualMaintenance')}
                 value={String(inputs.annualMaintenance)}
                 onChange={value => onUpdate('annualMaintenance', parseFloat(value) || 0)}
                 min={0}
@@ -150,6 +155,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <Label htmlFor="managementFees">{t('expensesSection.managementFees')}</Label>
               <NumberInput
                 id="managementFees"
+                error={getFieldError('managementFees')}
                 value={String(inputs.managementFees)}
                 onChange={value => onUpdate('managementFees', parseFloat(value) || 0)}
                 min={0}
@@ -160,6 +166,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <Label htmlFor="pnoInsurance">{t('expensesSection.pnoInsurance')}</Label>
               <NumberInput
                 id="pnoInsurance"
+                error={getFieldError('pnoInsurance')}
                 value={String(inputs.pnoInsurance)}
                 onChange={value => onUpdate('pnoInsurance', parseFloat(value) || 0)}
                 min={0}
@@ -170,6 +177,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               <Label htmlFor="accountingFees">{t('expensesSection.accountingFees')}</Label>
               <NumberInput
                 id="accountingFees"
+                error={getFieldError('accountingFees')}
                 value={String(inputs.accountingFees)}
                 onChange={value => onUpdate('accountingFees', parseFloat(value) || 0)}
                 min={0}

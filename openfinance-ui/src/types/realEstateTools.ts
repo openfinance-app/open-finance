@@ -111,6 +111,8 @@ export interface ResaleInputs {
  * Complete Buy/Rent input data
  */
 export interface BuyRentInputs {
+  /** Monetary unit; absent only in legacy saves. */
+  currency?: string;
   purchase: PurchaseInputs;
   rental: RentalInputs;
   market: MarketInputs;
@@ -151,11 +153,18 @@ export interface YearlyResult {
     remainingCapital: number;
     minimumResalePrice: number;
     details: BuyCostDetails;
+    savings?: number;
+    savingsContributions?: number;
+    netWorth?: number;
+    netExpense?: number;
   };
   rent: {
     annualCost: number;
     cumulativeCost: number;
     savings: number;
+    savingsContributions?: number;
+    netWorth?: number;
+    netExpense?: number;
   };
 }
 
@@ -171,6 +180,7 @@ export interface BuyScenarioSummary {
   remainingCapital: number;
   netWorth: number;
   totalCreditCost: number;
+  accumulatedSavings?: number;
 }
 
 /**
@@ -193,7 +203,7 @@ export interface ComparisonMetrics {
   netWorthDifference: number;
   netExpenseDifference: number;
   monthlyGap: number;
-  winner: 'buy' | 'rent';
+  winner: 'buy' | 'rent' | 'tie';
 }
 
 /**
@@ -222,9 +232,10 @@ export interface YearNAnalysis {
   totalCostsRent: number;
   netExpenseBuy: number;
   netExpenseRent: number;
-  annualProfitability: number;
+  annualProfitability: number | null;
   minimumResalePrice: number;
   rentSavings: number;
+  buySavings?: number;
 }
 
 // ============================================
@@ -316,7 +327,10 @@ export type RentalCalculationStatus =
   | 'needsHouseholdIncome'
   | 'professionalOutOfScope';
 
+export const RENTAL_SIMULATION_CURRENCY = 'EUR';
+
 export interface InvestmentInputs {
+  currency?: 'EUR';
   credit: InvestmentCreditInfo;
   property: InvestmentPropertyInputs;
   revenue: RentalRevenueInputs;
@@ -434,6 +448,7 @@ export interface SavedSimulation {
  * REQ-4.2.1
  */
 export interface SharedPropertyData {
+  currency?: string;
   totalPrice: number;
   credit: InvestmentCreditInfo;
   propertyTax: number;

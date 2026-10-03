@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { validateLoan } from '@/validators/calculatorValidation';
 import {
   DEFAULT_LOAN_CALCULATOR_INPUT,
   type LoanCalculatorInput,
@@ -10,12 +11,14 @@ import { add, divide, multiply, pow, subtract } from '@/utils/money';
 interface LoanCalculatorState {
   input: LoanCalculatorInput;
   result: LoanCalculatorResult | null;
+  error: string | null;
 }
 
 export function useLoanCalculator() {
   const [state, setState] = useState<LoanCalculatorState>({
     input: DEFAULT_LOAN_CALCULATOR_INPUT,
     result: null,
+    error: null,
   });
 
   const updateInput = useCallback(
@@ -23,6 +26,8 @@ export function useLoanCalculator() {
       setState(prev => ({
         ...prev,
         input: { ...prev.input, [key]: value },
+        result: null,
+        error: null,
       }));
     },
     []
@@ -32,14 +37,20 @@ export function useLoanCalculator() {
     setState({
       input: DEFAULT_LOAN_CALCULATOR_INPUT,
       result: null,
+      error: null,
     });
   }, []);
 
   const calculate = useCallback(() => {
     const { principal, annualRate, years } = state.input;
+    const error = validateLoan(state.input);
+    if (error) {
+      setState(prev => ({ ...prev, result: null, error }));
+      return;
+    }
 
     const monthlyRate = divide(divide(annualRate, 100), 12);
-    const totalPayments = years * 12;
+    const totalPayments = Math.round(years * 12);
 
     let monthlyPayment = 0;
 
@@ -87,6 +98,7 @@ export function useLoanCalculator() {
 
     setState(prev => ({
       ...prev,
+      error: null,
       result: {
         monthlyPayment,
         totalInterest,
@@ -99,6 +111,7 @@ export function useLoanCalculator() {
   return {
     input: state.input,
     result: state.result,
+    error: state.error,
     updateInput,
     resetInputs,
     calculate,

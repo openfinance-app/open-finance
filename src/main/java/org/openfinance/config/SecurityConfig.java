@@ -211,6 +211,7 @@ public class SecurityConfig {
 
         // Allow all headers
         configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("X-Insights-Unavailable-Sources"));
 
         // Allow credentials (cookies, authorization headers)
         configuration.setAllowCredentials(true);

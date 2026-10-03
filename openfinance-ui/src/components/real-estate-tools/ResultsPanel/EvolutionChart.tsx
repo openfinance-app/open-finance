@@ -46,8 +46,10 @@ export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
     i18n.t('realEstate:evolutionChart.yearLabel', { year: y.year })
   );
 
-  const buyNetWorth = results.years.map(y => y.buy.propertyValue - y.buy.remainingCapital);
-  const rentNetWorth = results.years.map(y => y.rent.savings);
+  const buyNetWorth = results.years.map(
+    y => y.buy.netWorth ?? y.buy.propertyValue - y.buy.remainingCapital
+  );
+  const rentNetWorth = results.years.map(y => y.rent.netWorth ?? y.rent.savings);
 
   const data = {
     labels: years,

@@ -3,6 +3,7 @@ import type { ImportTransactionDTO } from '@/types/import';
 const INFORMATIONAL_PREFIXES = [
   'AUTO-MATCH:',
   'AI_MATCH:',
+  'AI_UNAVAILABLE:',
   'CATEGORY_SUGGESTION:',
   'CATEGORY_UNKNOWN:',
   'DUPLICATE:',

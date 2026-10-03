@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '@/services/apiClient';
+import i18n from '@/i18n';
 import type {
   SavedSimulation,
   SimulationType,
@@ -19,6 +20,7 @@ const MAX_SIMULATIONS = 50;
 export interface UseSimulationStorageReturn {
   simulations: SavedSimulation[];
   isLoading: boolean;
+  isSaving: boolean;
   error: string | null;
 
   // Actions
@@ -87,6 +89,7 @@ export function useSimulationStorage(): UseSimulationStorageReturn {
   const [simulations, setSimulations] = useState<SavedSimulation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load simulations from API on mount
   const refreshSimulations = useCallback(async () => {
@@ -98,7 +101,7 @@ export function useSimulationStorage(): UseSimulationStorageReturn {
       setError(null);
     } catch (err) {
       console.error('Failed to load simulations:', err);
-      setError('Erreur lors du chargement des simulations');
+      setError(i18n.t('realEstate:storage.loadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -114,16 +117,17 @@ export function useSimulationStorage(): UseSimulationStorageReturn {
       type: SimulationType,
       data: BuyRentInputs | InvestmentInputs
     ): Promise<boolean> => {
+      setIsSaving(true);
       try {
         const sanitizedName = sanitizeName(name);
 
         if (!sanitizedName) {
-          setError('Le nom de la simulation ne peut pas être vide');
+          setError(i18n.t('realEstate:storage.emptyName'));
           return false;
         }
 
         if (simulations.length >= MAX_SIMULATIONS) {
-          setError(`Limite de ${MAX_SIMULATIONS} simulations atteinte.`);
+          setError(i18n.t('realEstate:storage.limit', { count: MAX_SIMULATIONS }));
           return false;
         }
 
@@ -137,11 +141,12 @@ export function useSimulationStorage(): UseSimulationStorageReturn {
         setSimulations(prev => [...prev, newSimulation]);
         setError(null);
         return true;
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to save simulation:', err);
-        const message = err.response?.data?.message || 'Erreur lors de la sauvegarde';
-        setError(message);
+        setError(i18n.t('realEstate:storage.saveFailed'));
         return false;
+      } finally {
+        setIsSaving(false);
       }
     },
     [simulations.length]
@@ -162,7 +167,7 @@ export function useSimulationStorage(): UseSimulationStorageReturn {
       return true;
     } catch (err) {
       console.error('Failed to delete simulation:', err);
-      setError('Erreur lors de la suppression');
+      setError(i18n.t('realEstate:storage.deleteFailed'));
       return false;
     }
   }, []);
@@ -173,13 +178,13 @@ export function useSimulationStorage(): UseSimulationStorageReturn {
         const sanitizedName = sanitizeName(newName);
 
         if (!sanitizedName) {
-          setError('Le nom ne peut pas être vide');
+          setError(i18n.t('realEstate:storage.emptyName'));
           return false;
         }
 
         const simulation = simulations.find(s => s.metadata.id === id);
         if (!simulation) {
-          setError('Simulation non trouvée');
+          setError(i18n.t('realEstate:storage.notFound'));
           return false;
         }
 
@@ -208,7 +213,7 @@ export function useSimulationStorage(): UseSimulationStorageReturn {
         return true;
       } catch (err) {
         console.error('Failed to rename simulation:', err);
-        setError('Erreur lors du renommage');
+        setError(i18n.t('realEstate:storage.renameFailed'));
         return false;
       }
     },
@@ -244,7 +249,7 @@ export function useSimulationStorage(): UseSimulationStorageReturn {
       return false;
     } catch (err) {
       console.error('Failed to clear simulations:', err);
-      setError('Erreur lors de la suppression');
+      setError(i18n.t('realEstate:storage.deleteFailed'));
       return false;
     }
   }, [simulations]);
@@ -307,6 +312,7 @@ export function useSimulationStorage(): UseSimulationStorageReturn {
   return {
     simulations,
     isLoading,
+    isSaving,
     error,
 
     saveSimulation,

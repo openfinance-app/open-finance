@@ -1,4 +1,5 @@
 import React from 'react';
+import { isInvestmentInputs } from '@/validators/simulationShape';
 import { Calculator, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ACCORDION_SYNC_BREAKPOINT } from '@/constants/breakpoints';
@@ -16,7 +17,7 @@ import { ExpensesSection } from './InvestmentForm/ExpensesSection';
 import { RegimeComparisonGrid } from './RegimeComparisonGrid';
 import { TaxContextSection } from '@/components/real-estate-tools/InvestmentForm/TaxContextSection';
 import type { SharedPropertyData } from '@/types/realEstateTools';
-import { useAuthContext } from '@/context/AuthContext';
+import { RENTAL_SIMULATION_CURRENCY } from '@/types/realEstateTools';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface PropertyRentalSimulatorProps {
@@ -29,12 +30,14 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
   onNavigateBack,
 }) => {
   const { t } = useTranslation('realEstate');
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [legacyCurrency, setLegacyCurrency] = React.useState(false);
   const [simulationName, setSimulationName] = React.useState('');
   const [propertyOpen, setPropertyOpen] = React.useState(true);
   const [revenueOpen, setRevenueOpen] = React.useState(true);
   const [expensesOpen, setExpensesOpen] = React.useState(true);
   const [resultsCollapseCount, setResultsCollapseCount] = React.useState(0);
-  const { baseCurrency } = useAuthContext();
+  const baseCurrency = RENTAL_SIMULATION_CURRENCY;
 
   const {
     inputs,
@@ -54,11 +57,18 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
     isRegimeEligible,
   } = useRentalSimulator(sharedData);
 
-  const { simulations, saveSimulation, loadSimulation, deleteSimulation, hasSimulationWithName } =
-    useSimulationStorage();
+  const {
+    simulations,
+    saveSimulation,
+    loadSimulation,
+    deleteSimulation,
+    hasSimulationWithName,
+    error: storageError,
+    isSaving,
+  } = useSimulationStorage();
 
   const hasErrors = errors.length > 0;
-  const generalErrors = errors.filter(e => e.field === 'general');
+  const generalErrors = errors;
 
   const handleSaveSimulation = async () => {
     if (!simulationName.trim()) return;
@@ -68,7 +78,13 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
 
   const handleLoadSimulation = (id: string) => {
     const simulation = loadSimulation(id);
-    if (simulation) setInputs(simulation.data as typeof inputs);
+    if (simulation?.metadata.type === 'rental_investment' && isInvestmentInputs(simulation.data)) {
+      setInputs(simulation.data);
+      setLoadError(null);
+      setLegacyCurrency(simulation.data.currency !== 'EUR');
+    } else {
+      setLoadError(t('validation.invalidSimulation'));
+    }
   };
 
   const handleCalculate = () => {
@@ -118,7 +134,23 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
         title={t('rentalSimulator.title')}
         description={t('rentalSimulator.description')}
       />
+      {storageError && (
+        <Alert variant="error" role="alert" className="mb-4">
+          <AlertDescription>{storageError}</AlertDescription>
+        </Alert>
+      )}
 
+      <p className="text-sm text-muted-foreground mb-6">{t('rentalSimulator.currencyNotice')}</p>
+      {loadError && (
+        <Alert variant="error">
+          <AlertDescription>{loadError}</AlertDescription>
+        </Alert>
+      )}
+      {legacyCurrency && (
+        <Alert>
+          <AlertDescription>{t('rentalSimulator.legacyCurrency')}</AlertDescription>
+        </Alert>
+      )}
       {/* Back Button */}
       {onNavigateBack && (
         <Button variant="outline" onClick={onNavigateBack} className="mb-6">
@@ -128,17 +160,33 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
       )}
 
       {/* Shared Data Panel */}
-      {sharedData && <SharedParametersPanel sharedData={sharedData} />}
+      {sharedData && (
+        <SharedParametersPanel
+          sharedData={{
+            ...sharedData,
+            totalPrice: inputs.property.totalPrice,
+            credit: inputs.credit,
+            propertyTax: inputs.expenses.propertyTax,
+            coOwnershipCharges: inputs.expenses.nonRecoverableCharges,
+          }}
+        />
+      )}
 
       {/* Simulation Header */}
       <SimulationHeader
+        simulationType="rental_investment"
         simulationName={simulationName}
         onNameChange={setSimulationName}
         onSave={handleSaveSimulation}
         onLoad={handleLoadSimulation}
         onDelete={deleteSimulation}
         simulations={simulations}
-        canSave={!hasSimulationWithName(simulationName) && simulationName.trim().length > 0}
+        canSave={
+          !isSaving &&
+          !hasErrors &&
+          !hasSimulationWithName(simulationName) &&
+          simulationName.trim().length > 0
+        }
       />
 
       {/* Error Alerts */}

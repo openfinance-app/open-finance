@@ -1,7 +1,6 @@
 package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -94,7 +93,7 @@ class InsightServiceTest {
                 .when(netWorthService.calculateTotalLiabilities(1L, "EUR"))
                 .thenReturn(BigDecimal.ZERO);
         lenient()
-                .when(insightWriter.replaceGenerated(eq(1L), anyList()))
+                .when(insightWriter.replaceGenerated(eq(1L), anyList(), anySet()))
                 .thenAnswer(i -> i.getArgument(1));
         lenient()
                 .when(exchangeRateService.convert(any(), anyString(), eq("EUR")))
@@ -207,12 +206,20 @@ class InsightServiceTest {
     }
 
     @Test
-    void failureCannotPublishOrDeletePreviousResults() {
+    void externalFailureStillPublishesLocalInsightsAndRetainsUnavailableSources() {
         when(aiProvider.sendPrompt(anyString(), anyString()))
                 .thenReturn(Mono.error(new AIProviderException("fixture", "unavailable")));
-        assertThatThrownBy(() -> service.generateInsights(1L))
-                .isInstanceOf(AIProviderException.class);
-        verifyNoInteractions(insightWriter, insightRepository);
+        InsightService.GenerationResult result = service.generateInsightsDetailed(1L);
+        assertThat(result.unavailableSources())
+                .contains(InsightType.REGION_COMPARISON, InsightType.TAX_OBLIGATION);
+        verify(insightWriter)
+                .replaceGenerated(
+                        eq(1L),
+                        anyList(),
+                        argThat(
+                                types ->
+                                        types.contains(InsightType.REGION_COMPARISON)
+                                                && types.contains(InsightType.TAX_OBLIGATION)));
     }
 
     @Test
@@ -222,9 +229,10 @@ class InsightServiceTest {
                         Mono.just(
                                 "{\"baseRate\":-25,\"topRate\":40,\"standardDeduction\":-1000"
                                         + provenance()));
-        assertThatThrownBy(() -> service.generateInsights(1L))
-                .isInstanceOf(AIProviderException.class);
-        verifyNoInteractions(insightWriter);
+        InsightService.GenerationResult result = service.generateInsightsDetailed(1L);
+        assertThat(result.unavailableSources()).contains(InsightType.TAX_OBLIGATION);
+        assertThat(result.insights())
+                .noneMatch(insight -> insight.getType() == InsightType.TAX_OBLIGATION);
     }
 
     @Test
@@ -233,9 +241,10 @@ class InsightServiceTest {
                 .thenReturn(List.of(recurring(1L, "EUR")));
         when(aiProvider.sendPrompt(startsWith("Review these"), anyString()))
                 .thenReturn(Mono.just("[{\"originalServiceId\":999,\"potentialSavings\":999999}]"));
-        assertThatThrownBy(() -> service.generateInsights(1L))
-                .isInstanceOf(AIProviderException.class);
-        verifyNoInteractions(insightWriter);
+        InsightService.GenerationResult result = service.generateInsightsDetailed(1L);
+        assertThat(result.unavailableSources()).contains(InsightType.RECURRING_BILLING);
+        assertThat(result.insights())
+                .noneMatch(insight -> insight.getType() == InsightType.RECURRING_BILLING);
     }
 
     @Test
@@ -244,9 +253,14 @@ class InsightServiceTest {
                 .thenReturn(List.of(tx("100", "USD", TransactionType.INCOME)));
         when(exchangeRateService.convert(any(), eq("USD"), eq("EUR"), any()))
                 .thenThrow(new IllegalStateException("No rate"));
-        assertThatThrownBy(() -> service.generateInsights(1L))
-                .isInstanceOf(AIProviderException.class);
-        verifyNoInteractions(insightWriter);
+        InsightService.GenerationResult result = service.generateInsightsDetailed(1L);
+        assertThat(result.unavailableSources())
+                .contains(InsightType.REGION_COMPARISON, InsightType.TAX_OBLIGATION);
+        assertThat(result.insights())
+                .noneMatch(
+                        insight ->
+                                insight.getType() == InsightType.REGION_COMPARISON
+                                        || insight.getType() == InsightType.TAX_OBLIGATION);
     }
 
     private Transaction tx(String amount, String currency, TransactionType type) {

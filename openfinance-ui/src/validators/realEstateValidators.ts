@@ -25,18 +25,24 @@ export const buyRentValidationRules = {
     min: 0,
     max: 100000000, // 100M EUR max
     required: true,
-    message: 'Le prix du bien doit être positif',
+    get message() {
+      return i18n.t('validation.propertyPrice', { ns: 'realEstate' });
+    },
   },
   renovationAmount: {
     min: 0,
     max: 10000000, // 10M EUR max
     required: false,
-    message: 'Le montant des travaux doit être positif',
+    get message() {
+      return i18n.t('validation.renovationAmount', { ns: 'realEstate' });
+    },
   },
   downPayment: {
     min: 0,
     required: true,
-    message: "L'apport personnel doit être positif",
+    get message() {
+      return i18n.t('validation.downPayment', { ns: 'realEstate' });
+    },
     getCrossFieldError: (inputs: BuyRentInputs) => {
       const totalPrice =
         inputs.purchase.propertyPrice +
@@ -44,7 +50,7 @@ export const buyRentValidationRules = {
         (inputs.purchase.propertyPrice * inputs.purchase.notaryFeesPercent) / 100 +
         inputs.purchase.agencyFees;
       if (inputs.purchase.downPayment > totalPrice) {
-        return "L'apport ne peut pas dépasser le prix total du bien";
+        return i18n.t('validation.downPaymentTotal', { ns: 'realEstate' });
       }
       return null;
     },
@@ -53,85 +59,113 @@ export const buyRentValidationRules = {
     min: 1,
     max: 40,
     required: true,
-    message: 'La durée doit être entre 1 et 40 ans',
+    get message() {
+      return i18n.t('validation.loanDuration', { ns: 'realEstate' });
+    },
   },
   interestRate: {
     min: 0,
     max: 100,
     required: true,
-    message: 'Le taux doit être entre 0% et 100%',
+    get message() {
+      return i18n.t('validation.interestRate', { ns: 'realEstate' });
+    },
   },
   notaryFeesPercent: {
     min: 0,
     max: 100,
     required: true,
-    message: 'Les frais de notaire doivent être entre 0% et 100%',
+    get message() {
+      return i18n.t('validation.notaryFeesPercent', { ns: 'realEstate' });
+    },
   },
   agencyFees: {
     min: 0,
     max: 10000000,
     required: false,
-    message: 'Les frais agence doivent être positifs',
+    get message() {
+      return i18n.t('validation.agencyFees', { ns: 'realEstate' });
+    },
   },
   totalInsurance: {
     min: 0,
     max: 1000000,
     required: false,
-    message: 'Le montant assurance doit être positif',
+    get message() {
+      return i18n.t('validation.totalInsurance', { ns: 'realEstate' });
+    },
   },
   applicationFees: {
     min: 0,
     max: 100000,
     required: false,
-    message: 'Les frais de dossier doivent être positifs',
+    get message() {
+      return i18n.t('validation.applicationFees', { ns: 'realEstate' });
+    },
   },
   guaranteeFees: {
     min: 0,
     max: 100000,
     required: false,
-    message: 'Les frais de garantie doivent être positifs',
+    get message() {
+      return i18n.t('validation.guaranteeFees', { ns: 'realEstate' });
+    },
   },
   accountFees: {
     min: 0,
     max: 100000,
     required: false,
-    message: 'Les frais de tenue de compte doivent être positifs',
+    get message() {
+      return i18n.t('validation.accountFees', { ns: 'realEstate' });
+    },
   },
   propertyTax: {
     min: 0,
     max: 1000000,
     required: false,
-    message: 'La taxe foncière doit être positive',
+    get message() {
+      return i18n.t('validation.propertyTax', { ns: 'realEstate' });
+    },
   },
   coOwnershipCharges: {
     min: 0,
     max: 1000000,
     required: false,
-    message: 'Les charges de copropriété doivent être positives',
+    get message() {
+      return i18n.t('validation.coOwnershipCharges', { ns: 'realEstate' });
+    },
   },
   maintenancePercent: {
     min: 0,
     max: 100,
     required: false,
-    message: 'Le pourcentage entretien doit être entre 0% et 100%',
+    get message() {
+      return i18n.t('validation.maintenancePercent', { ns: 'realEstate' });
+    },
   },
   homeInsurance: {
     min: 0,
     max: 100000,
     required: false,
-    message: "L'assurance habitation doit être positive",
+    get message() {
+      return i18n.t('validation.homeInsurance', { ns: 'realEstate' });
+    },
   },
   bankFees: {
     min: 0,
     max: 100000,
     required: false,
-    message: 'Les frais bancaires doivent être positifs',
+    get message() {
+      return i18n.t('validation.bankFees', { ns: 'realEstate' });
+    },
   },
   garbageTax: {
     min: 0,
     max: 10000,
     required: false,
-    message: 'La taxe ordures doit être positive',
+    get message() {
+      return i18n.t('validation.garbageTax', { ns: 'realEstate' });
+    },
   },
 };
 
@@ -143,37 +177,49 @@ export const rentalValidationRules = {
     min: 0,
     max: 50000,
     required: true,
-    message: 'Le loyer mensuel doit être positif',
+    get message() {
+      return i18n.t('validation.monthlyRent', { ns: 'realEstate' });
+    },
   },
   monthlyCharges: {
     min: 0,
     max: 10000,
     required: false,
-    message: 'Les charges locatives doivent être positives',
+    get message() {
+      return i18n.t('validation.monthlyCharges', { ns: 'realEstate' });
+    },
   },
   securityDeposit: {
     min: 0,
     max: 50000,
     required: false,
-    message: 'Le dépôt de garantie doit être positif',
+    get message() {
+      return i18n.t('validation.securityDeposit', { ns: 'realEstate' });
+    },
   },
   rentalInsurance: {
     min: 0,
     max: 10000,
     required: false,
-    message: "L'assurance locative doit être positive",
+    get message() {
+      return i18n.t('validation.rentalInsurance', { ns: 'realEstate' });
+    },
   },
   initialSavings: {
     min: 0,
     max: 100000000,
     required: false,
-    message: "L'épargne initiale doit être positive",
+    get message() {
+      return i18n.t('validation.initialSavings', { ns: 'realEstate' });
+    },
   },
   monthlySavings: {
     min: -10000,
     max: 50000,
     required: false,
-    message: "L'épargne mensuelle doit être valide",
+    get message() {
+      return i18n.t('validation.monthlySavings', { ns: 'realEstate' });
+    },
   },
 };
 
@@ -185,25 +231,33 @@ export const marketValidationRules = {
     min: -50,
     max: 50,
     required: false,
-    message: "L'évolution des prix doit être entre -50% et +50%",
+    get message() {
+      return i18n.t('validation.priceEvolution', { ns: 'realEstate' });
+    },
   },
   rentEvolution: {
     min: -50,
     max: 50,
     required: false,
-    message: "L'évolution des loyers doit être entre -50% et +50%",
+    get message() {
+      return i18n.t('validation.rentEvolution', { ns: 'realEstate' });
+    },
   },
   investmentReturn: {
     min: -20,
     max: 50,
     required: false,
-    message: 'Le rendement placement doit être entre -20% et +50%',
+    get message() {
+      return i18n.t('validation.investmentReturn', { ns: 'realEstate' });
+    },
   },
   inflation: {
     min: -10,
     max: 50,
     required: false,
-    message: "L'inflation doit être entre -10% et +50%",
+    get message() {
+      return i18n.t('validation.inflation', { ns: 'realEstate' });
+    },
   },
 };
 
@@ -215,10 +269,15 @@ export const resaleValidationRules = {
     min: 1,
     max: 100,
     required: false,
-    message: "L'année de revente doit être entre 1 et 100",
+    get message() {
+      return i18n.t('validation.targetYear', { ns: 'realEstate' });
+    },
     getCrossFieldError: (inputs: BuyRentInputs) => {
       if (inputs.resale.targetYear > inputs.purchase.loanDuration) {
-        return `L'année de revente ne peut pas dépasser la durée du prêt (${inputs.purchase.loanDuration} ans)`;
+        return i18n.t('validation.resaleTerm', {
+          ns: 'realEstate',
+          years: inputs.purchase.loanDuration,
+        });
       }
       return null;
     },
@@ -227,13 +286,17 @@ export const resaleValidationRules = {
     min: -1000000,
     max: 10000000,
     required: false,
-    message: 'Le bénéfice souhaité doit être valide',
+    get message() {
+      return i18n.t('validation.desiredProfit', { ns: 'realEstate' });
+    },
   },
   resaleFeesPercent: {
     min: 0,
     max: 100,
     required: false,
-    message: 'Les frais de revente doivent être entre 0% et 100%',
+    get message() {
+      return i18n.t('validation.resaleFeesPercent', { ns: 'realEstate' });
+    },
   },
 };
 
@@ -385,6 +448,18 @@ export function validateBuyRentInputs(inputs: BuyRentInputs): ValidationError[] 
     }
   }
 
+  if (!Number.isInteger(inputs.purchase.loanDuration))
+    errors.push({
+      field: 'purchase.loanDuration',
+      message: buyRentValidationRules.loanDuration.message,
+    });
+  if (!Number.isInteger(inputs.resale.targetYear))
+    errors.push({ field: 'resale.targetYear', message: resaleValidationRules.targetYear.message });
+  if (inputs.resale.resaleFeesPercent >= 100)
+    errors.push({
+      field: 'resale.resaleFeesPercent',
+      message: resaleValidationRules.resaleFeesPercent.message,
+    });
   return errors;
 }
 
@@ -397,48 +472,25 @@ export function validateBuyRentInputs(inputs: BuyRentInputs): ValidationError[] 
 export function validateInvestmentInputs(inputs: InvestmentInputs): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  // Validate revenue inputs
-  if (inputs.revenue.monthlyRent < 0) {
-    errors.push({ field: 'revenue.monthlyRent', message: 'Le loyer mensuel doit être positif' });
-  }
-
-  if (inputs.revenue.monthlyRent > 50000) {
-    errors.push({
-      field: 'revenue.monthlyRent',
-      message: 'Le loyer mensuel maximum est de 50 000€',
-    });
-  }
-
-  if (inputs.revenue.occupancyRate < 0 || inputs.revenue.occupancyRate > 100) {
-    errors.push({
-      field: 'revenue.occupancyRate',
-      message: 'Le taux occupation doit être entre 0% et 100%',
-    });
-  }
-
-  if (inputs.revenue.badDebtRate < 0 || inputs.revenue.badDebtRate > 100) {
-    errors.push({
-      field: 'revenue.badDebtRate',
-      message: "Le taux d'impayés doit être entre 0% et 100%",
-    });
-  }
-
-  // Validate expense inputs
-  if (inputs.expenses.marginalTaxRate < 0 || inputs.expenses.marginalTaxRate > 60) {
-    errors.push({ field: 'expenses.marginalTaxRate', message: 'La TMI doit être entre 0% et 60%' });
-  }
-
-  // Validate property inputs
-  if (inputs.property.totalPrice <= 0) {
-    errors.push({ field: 'property.totalPrice', message: 'Le prix du bien doit être positif' });
-  }
-
-  if (inputs.property.furnitureValue < 0) {
-    errors.push({
-      field: 'property.furnitureValue',
-      message: 'La valeur du mobilier doit être positive',
-    });
-  }
+  const check = (field: string, value: number, min: number, max: number): void => {
+    if (!Number.isFinite(value) || value < min || value > max)
+      errors.push({
+        field,
+        message: i18n.t('validation.amountRange', { ns: 'realEstate', min, max }),
+      });
+  };
+  check('revenue.monthlyRent', inputs.revenue.monthlyRent, 0, 50000);
+  check('revenue.recoverableCharges', inputs.revenue.recoverableCharges, 0, 1000000);
+  check('revenue.occupancyRate', inputs.revenue.occupancyRate, 0, 100);
+  check('revenue.badDebtRate', inputs.revenue.badDebtRate, 0, 100);
+  Object.entries(inputs.expenses).forEach(([field, value]) =>
+    check(`expenses.${field}`, value, 0, field === 'marginalTaxRate' ? 60 : 100000000)
+  );
+  Object.entries(inputs.credit).forEach(([field, value]) =>
+    check(`credit.${field}`, value, 0, 100000000)
+  );
+  check('property.totalPrice', inputs.property.totalPrice, 0.01, 100000000);
+  check('property.furnitureValue', inputs.property.furnitureValue, 0, 10000000);
 
   if (inputs.tax) {
     const { incomeYear, otherHouseholdIncome, otherFurnishedReceipts, otherUnfurnishedRent } =

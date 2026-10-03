@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { Progress } from '@/components/ui/Progress';
 import { useTranslation } from 'react-i18next';
 import type { RentalRevenueInputs, ValidationError } from '@/types/realEstateTools';
-import { useAuthContext } from '@/context/AuthContext';
+import { RENTAL_SIMULATION_CURRENCY } from '@/types/realEstateTools';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface RevenueSectionProps {
@@ -32,7 +32,7 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
   isOpen,
   onToggle,
 }) => {
-  const { baseCurrency } = useAuthContext();
+  const baseCurrency = RENTAL_SIMULATION_CURRENCY;
   const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) =>

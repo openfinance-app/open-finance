@@ -279,7 +279,11 @@ function buildRegimeResult(
   const totalTaxes = add(incomeTax, socialContributions);
 
   // Calculate charges breakdown
-  const creditCharges = inputs.credit.annualCost;
+  const creditCharges = sum([
+    inputs.credit.annualCost,
+    inputs.credit.assurance ?? 0,
+    inputs.credit.bankFees ?? 0,
+  ]);
   const otherCharges = calculateDeductibleExpenses(inputs.expenses);
   const totalCharges = add(creditCharges, otherCharges);
 
@@ -305,7 +309,7 @@ function buildRegimeResult(
       annualCreditCost: creditCharges,
       monthlyCreditPayment: inputs.credit.monthlyPayment,
       detail: {
-        credit: creditCharges,
+        credit: inputs.credit.annualCost,
         assurance: inputs.credit.assurance,
         fraisBancaires: inputs.credit.bankFees,
       },
@@ -498,11 +502,5 @@ export function getRegimeDisplayName(regime: TaxRegime): string {
  * @returns French description
  */
 export function getRegimeDescription(regime: TaxRegime): string {
-  const descriptions: Record<TaxRegime, string> = {
-    micro_foncier: 'Abattement forfaitaire de 30% pour les revenus ≤ 15 000€',
-    reel_foncier: 'Déduction des frais réels pour locations non meublées',
-    lmnp_reel: 'Amortissements sur 25 ans (bâtiment) et 5 ans (mobilier)',
-    micro_bic: 'Abattement forfaitaire de 50% pour locations meublées de longue durée',
-  };
-  return descriptions[regime] || '';
+  return i18n.t(`regimeDescriptions.${regime}`, { ns: 'realEstate' });
 }

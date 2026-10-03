@@ -165,7 +165,8 @@
     "loadFailed": "Failed to load insights",
     "tooltip": "AI-powered insights analyse your transactions and spending patterns to surface personalized recommendations, warnings, and opportunities.",
     "refreshFailed": "Refresh failed. Your previous insights have been kept.",
-    "dismissFailed": "Could not dismiss this insight. Please try again."
+    "dismissFailed": "Could not dismiss this insight. Please try again.",
+    "partialRefresh": "Local insights were refreshed. Some external AI analyses are unavailable; previous results from those sources were kept."
   },
   "calendar": {
     "title": "Cash Flow History",

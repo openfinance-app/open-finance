@@ -228,7 +228,13 @@
     "loadSimulation": "Charger une simulation...",
     "noSimulationsSaved": "Aucune simulation sauvegardée",
     "delete": "Supprimer",
-    "confirmDelete": "Voulez-vous vraiment supprimer la simulation \"{{name}}\" ?"
+    "confirmDelete": "Voulez-vous vraiment supprimer la simulation \"{{name}}\" ?",
+    "originalCurrency": "Devise d'origine",
+    "legacyCurrency": "Cette ancienne simulation ne précise pas sa devise. Choisissez la devise des montants enregistrés pour la charger.",
+    "loadWithCurrency": "Charger avec cette devise",
+    "convertedSimulation": "Simulation convertie de {{from}} en {{to}} au taux actuel.",
+    "conversionFailed": "Conversion impossible. La simulation enregistrée est conservée.",
+    "commonBudget": "Les deux scénarios utilisent le même capital initial et le même budget annuel. L'écart de coût est épargné chaque mois dans le scénario le moins cher. Le patrimoine inclut cette épargne et les frais de revente."
   },
   "regimeCard": {
     "recommended": "Recommandé",
@@ -328,7 +334,8 @@
     "rentNetWorth": "Patrimoine Location",
     "advantage": "Avantage",
     "regimeComparison": "Comparaison des régimes fiscaux",
-    "generatedBy": "Généré par Open-Finance - Ces résultats sont fournis à titre indicatif."
+    "generatedBy": "Généré par Open-Finance - Ces résultats sont fournis à titre indicatif.",
+    "currency": "Devise"
   },
   "accessibility": {
     "calculate": "Calculer la simulation",
@@ -435,9 +442,9 @@
     "rentalInsurance": "Assurance locative/an",
     "garbageTax": "Taxe ordures ménagères/an",
     "initialSavings": "Montant d'épargne initial",
-    "autoAdjusted": "Auto-ajusté selon l'apport",
+    "autoAdjusted": "Capital initial restant après le dépôt de garantie remboursable.",
     "monthlySavings": "Épargne mensuelle additionnelle",
-    "calculatedFromGap": "Calculée selon l'écart achat-location"
+    "calculatedFromGap": "Coûts d'achat moins coûts de location la première année. Le comparatif recalcule et investit l'écart chaque année."
   },
   "marketSection": {
     "title": "Marché Immobilier",
@@ -526,7 +533,10 @@
     "rentAdvantages": "Avantages de la location",
     "flexibility": "Flexibilité pour déménager",
     "noMaintenanceCosts": "Pas de charges d'entretien importantes",
-    "savingsAvailable": "Épargne disponible pour autres investissements"
+    "savingsAvailable": "Épargne disponible pour autres investissements",
+    "returnUnavailable": "Non défini pour ces flux",
+    "returnMethod": "Rendement annuel de l’apport, des dépenses annuelles et du produit de vente net du crédit et des frais.",
+    "buySavings": "Épargne de l’acheteur"
   },
   "yearlyTable": {
     "title": "Détail année par année",
@@ -577,11 +587,11 @@
     "buy": "Achat",
     "rent": "Location",
     "difference": "Différence",
-    "averageMonthlyCost": "Coût mensuel moyen",
+    "averageMonthlyCost": "Paiements mensuels moyens de logement",
     "perMonth": "mois",
     "monthlyGap": "Écart mensuel",
-    "buyCheaper": "L'achat coûte moins cher",
-    "rentCheaper": "La location coûte moins cher",
+    "buyCheaper": "L'achat nécessite moins de paiements de logement, frais initiaux inclus.",
+    "rentCheaper": "La location nécessite moins de paiements de logement, frais initiaux inclus.",
     "costAnalysis": "Analyse des coûts",
     "totalBuyCost": "Coût total achat",
     "totalRentCost": "Coût total location",
@@ -595,7 +605,9 @@
     "rentAdvantage1": "Flexibilité pour déménager",
     "rentAdvantage2": "Pas de charges d'entretien importantes",
     "rentAdvantage3": "Épargne disponible pour autres investissements",
-    "betterPerformance": "Meilleure performance financière sur {{years}} ans"
+    "betterPerformance": "Meilleure performance financière sur {{years}} ans",
+    "tie": "Patrimoines nets équivalents",
+    "equalPayments": "Paiements de logement égaux."
   },
   "rentalSimulator": {
     "title": "Simulateur de Location Meublée",
@@ -607,7 +619,9 @@
     "eligibleRegimes": "Régimes éligibles",
     "calculating": "Calcul en cours...",
     "calculateAllRegimes": "Calculer les 4 régimes",
-    "reset": "Réinitialiser"
+    "reset": "Réinitialiser",
+    "currencyNotice": "Tous les montants de cette simulation fiscale française sont en EUR. Les montants transférés sont convertis au taux de change courant.",
+    "legacyCurrency": "Cette ancienne simulation ne précise pas sa devise. Vérifiez tous les montants en EUR avant de calculer ou d’enregistrer."
   },
   "calculationError": {
     "title": "Erreur de calcul",
@@ -698,5 +712,58 @@
     "invalid": "Saisissez des montants annuels positifs ou nuls et une année de revenus 2025 ou 2026.",
     "assumptions": "La comparaison utilise les recettes annuelles du foyer saisies pour les plafonds micro. Elle n’applique pas les règles transitoires, dispositifs immobiliers particuliers, reports de déficits ou abattements personnels. L’amortissement reste une estimation simplifiée. La déduction des intérêts d’emprunt et l’exclusion du terrain de l’amortissement ne sont pas modélisées. L’abattement minimum micro-BIC du foyer est réparti au prorata des recettes locatives.",
     "rates": "Revenus {{year}} : plafond micro-BIC longue durée {{threshold}} € ; prélèvements sociaux de 18,6 % en meublé et 17,2 % en location nue."
+  },
+  "validation": {
+    "propertyPrice": "Le prix du bien doit être positif",
+    "renovationAmount": "Le montant des travaux doit être positif",
+    "downPayment": "L'apport personnel doit être positif",
+    "loanDuration": "La durée doit être entre 1 et 40 ans",
+    "interestRate": "Le taux doit être entre 0% et 100%",
+    "notaryFeesPercent": "Les frais de notaire doivent être entre 0% et 100%",
+    "agencyFees": "Les frais agence doivent être positifs",
+    "totalInsurance": "Le montant assurance doit être positif",
+    "applicationFees": "Les frais de dossier doivent être positifs",
+    "guaranteeFees": "Les frais de garantie doivent être positifs",
+    "accountFees": "Les frais de tenue de compte doivent être positifs",
+    "propertyTax": "La taxe foncière doit être positive",
+    "coOwnershipCharges": "Les charges de copropriété doivent être positives",
+    "maintenancePercent": "Le pourcentage entretien doit être entre 0% et 100%",
+    "homeInsurance": "L'assurance habitation doit être positive",
+    "bankFees": "Les frais bancaires doivent être positifs",
+    "garbageTax": "La taxe ordures doit être positive",
+    "monthlyRent": "Le loyer mensuel doit être positif",
+    "monthlyCharges": "Les charges locatives doivent être positives",
+    "securityDeposit": "Le dépôt de garantie doit être positif",
+    "rentalInsurance": "L'assurance locative doit être positive",
+    "initialSavings": "L'épargne initiale doit être positive",
+    "monthlySavings": "L'épargne mensuelle doit être valide",
+    "priceEvolution": "L'évolution des prix doit être entre -50% et +50%",
+    "rentEvolution": "L'évolution des loyers doit être entre -50% et +50%",
+    "investmentReturn": "Le rendement placement doit être entre -20% et +50%",
+    "inflation": "L'inflation doit être entre -10% et +50%",
+    "targetYear": "L'année de revente doit être entre 1 et 100",
+    "desiredProfit": "Le bénéfice souhaité doit être valide",
+    "resaleFeesPercent": "Les frais de revente doivent être entre 0% et 100%",
+    "downPaymentTotal": "L’apport ne peut pas dépasser le prix total du bien.",
+    "resaleTerm": "L’année de revente ne peut pas dépasser la durée du prêt ({{years}} ans).",
+    "amountRange": "Saisissez un montant fini compris entre {{min}} et {{max}}.",
+    "calculation": "Le calcul a échoué. Vérifiez vos données.",
+    "invalidSimulation": "Cette simulation contient des données incompatibles ou incomplètes.",
+    "currencyConversion": "La conversion a échoué. Aucun montant n’a été transféré. Réessayez lorsqu’un taux de change est disponible."
+  },
+  "regimeDescriptions": {
+    "micro_foncier": "Abattement forfaitaire de 30% pour les revenus ≤ 15 000€",
+    "reel_foncier": "Déduction des frais réels pour locations non meublées",
+    "lmnp_reel": "Amortissements sur 25 ans (bâtiment) et 5 ans (mobilier)",
+    "micro_bic": "Abattement forfaitaire de 50% pour locations meublées de longue durée"
+  },
+  "storage": {
+    "saveFailed": "Échec de la sauvegarde. Vos paramètres sont conservés ; réessayez.",
+    "loadFailed": "Impossible de charger les simulations.",
+    "deleteFailed": "Impossible de supprimer la simulation.",
+    "emptyName": "Saisissez un nom.",
+    "notFound": "Simulation introuvable.",
+    "renameFailed": "Impossible de renommer la simulation.",
+    "limit": "Limite de {{count}} simulations atteinte."
   }
 }

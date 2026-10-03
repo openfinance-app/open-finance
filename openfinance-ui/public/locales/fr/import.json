@@ -214,7 +214,8 @@
       "collapse": "Réduire",
       "expandSplits": "Afficher la ventilation",
       "selectTransaction": "Sélectionner l’opération {{number}}"
-    }
+    },
+    "aiUnavailable": "Les suggestions IA sont indisponibles pour certaines opérations. Vous pouvez choisir leurs catégories manuellement et poursuivre l’import."
   },
   "progress": {
     "preparing": "Préparation de l'importation...",

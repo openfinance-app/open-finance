@@ -46,6 +46,11 @@ class AIContextBudgetTest {
                         return reactor.core.publisher.Mono.empty();
                     }
 
+                    public reactor.core.publisher.Mono<String> sendStructuredPrompt(
+                            String p, String c, com.fasterxml.jackson.databind.JsonNode schema) {
+                        return reactor.core.publisher.Mono.empty();
+                    }
+
                     public reactor.core.publisher.Flux<String> streamResponse(String p, String c) {
                         return reactor.core.publisher.Flux.empty();
                     }
@@ -59,7 +64,7 @@ class AIContextBudgetTest {
                     }
                 };
         AIContextBudget budget = new AIContextBudget(provider, new ObjectMapper());
-        ReflectionTestUtils.setField(budget, "maxContextTokens", 600);
+        ReflectionTestUtils.setField(budget, "maxContextTokens", 1000);
         ReflectionTestUtils.setField(budget, "ollamaOutputTokens", 100);
         String context =
                 budget.compose(

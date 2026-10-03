@@ -235,8 +235,8 @@ class CompoundInterestControllerTest {
         }
 
         @Test
-        @DisplayName("Zero principal returns 400 (must be > 0)")
-        void zeroPrincipalReturnsBadRequest() throws Exception {
+        @DisplayName("Zero principal is accepted for a savings plan")
+        void zeroPrincipalIsAccepted() throws Exception {
             CompoundInterestRequest req =
                     CompoundInterestRequest.builder()
                             .principal(BigDecimal.ZERO)
@@ -249,7 +249,7 @@ class CompoundInterestControllerTest {
                             post(URL)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(req)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isOk());
         }
 
         @Test
@@ -271,8 +271,8 @@ class CompoundInterestControllerTest {
         }
 
         @Test
-        @DisplayName("Zero annualRate returns 400 (must be > 0)")
-        void zeroAnnualRateReturnsBadRequest() throws Exception {
+        @DisplayName("Zero annualRate is accepted")
+        void zeroAnnualRateIsAccepted() throws Exception {
             CompoundInterestRequest req =
                     CompoundInterestRequest.builder()
                             .principal(new BigDecimal("1000"))
@@ -285,7 +285,7 @@ class CompoundInterestControllerTest {
                             post(URL)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(req)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isOk());
         }
 
         @Test

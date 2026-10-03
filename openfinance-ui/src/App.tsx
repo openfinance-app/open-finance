@@ -86,6 +86,7 @@ const queryClient: QueryClient = new QueryClient({
       queryClient.invalidateQueries({ queryKey: ['history'] });
       queryClient.invalidateQueries({ queryKey: ['session-history-exists'] });
       queryClient.invalidateQueries({ queryKey: ['budgetAlerts'] });
+      queryClient.invalidateQueries({ queryKey: ['userFinancialData'] });
     },
   }),
   defaultOptions: {

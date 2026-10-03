@@ -70,7 +70,9 @@
       "timeToFreedom_years_one": "{{count}} an",
       "timeToFreedom_years_other": "{{count}} ans",
       "timeToFreedom_months_one": "{{count}} mois",
-      "timeToFreedom_months_other": "{{count}} mois"
+      "timeToFreedom_months_other": "{{count}} mois",
+      "beyondProjection": "Au moins {{years}} ans",
+      "projectionFunded": "Il reste de l’épargne à la fin de la projection ; la date d’épuisement n’est pas déterminée."
     }
   },
   "compoundInterest": {
@@ -237,5 +239,22 @@
   },
   "financialData": {
     "conversionUnavailable": "Les données financières ne peuvent pas être converties dans votre devise de référence."
+  },
+  "validation": {
+    "principal": "Saisissez un capital initial positif ou nul.",
+    "loanPrincipal": "Saisissez un capital restant dû strictement positif.",
+    "rate": "Saisissez un taux annuel compris entre 0 % et 100 %.",
+    "wholeYears": "Saisissez un nombre entier d’années entre 1 et 100.",
+    "frequency": "Sélectionnez une fréquence de capitalisation disponible.",
+    "contribution": "Saisissez un versement positif ou nul dans la limite des montants acceptés.",
+    "loanTerm": "Saisissez une durée positive de 100 ans maximum correspondant à un nombre entier de mois (par exemple, 1,5 an).",
+    "savings": "Saisissez une épargne positive ou nulle dans la limite des montants acceptés.",
+    "expenses": "Saisissez des dépenses mensuelles positives ou nulles dans la limite des montants acceptés.",
+    "withdrawal": "Saisissez un taux de retrait compris entre 0,5 % et 10 %.",
+    "return": "Saisissez un rendement attendu compris entre -10 % et 30 %.",
+    "inflation": "Saisissez un taux d’inflation compris entre -99 % et 100 %.",
+    "remainingTerm": "Saisissez des années entières et 0 à 11 mois supplémentaires, pour une durée totale de 1 mois à 100 ans.",
+    "lumpSum": "Chaque versement doit avoir un mois entier compris dans la durée restante et un montant positif ou nul.",
+    "calculationFailed": "Calcul impossible. Vérifiez les valeurs et réessayez."
   }
 }

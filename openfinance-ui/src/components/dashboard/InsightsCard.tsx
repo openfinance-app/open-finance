@@ -222,6 +222,11 @@ export default function InsightsCard() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
+          {!!generateInsights.unavailableSources?.length && (
+            <p role="status" className="mb-3 text-sm text-text-secondary">
+              {t('insightsCard.partialRefresh')}
+            </p>
+          )}
           {mutationError && (
             <p role="alert" className="mb-3 text-sm text-red-600">
               {mutationError}
@@ -252,6 +257,11 @@ export default function InsightsCard() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
+          {!!generateInsights.unavailableSources?.length && (
+            <p role="status" className="mb-3 text-sm text-text-secondary">
+              {t('insightsCard.partialRefresh')}
+            </p>
+          )}
           {mutationError && (
             <p role="alert" className="mb-3 text-sm text-red-600">
               {mutationError}
@@ -295,6 +305,11 @@ export default function InsightsCard() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col items-center justify-center text-center py-6">
+          {!!generateInsights.unavailableSources?.length && (
+            <p role="status" className="mb-3 text-sm text-text-secondary">
+              {t('insightsCard.partialRefresh')}
+            </p>
+          )}
           {mutationError && (
             <p role="alert" className="mb-3 text-sm text-red-600">
               {mutationError}
@@ -342,6 +357,11 @@ export default function InsightsCard() {
         </div>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
+        {!!generateInsights.unavailableSources?.length && (
+          <p role="status" className="mb-3 text-sm text-text-secondary">
+            {t('insightsCard.partialRefresh')}
+          </p>
+        )}
         {mutationError && (
           <p role="alert" className="mb-3 text-sm text-red-600">
             {mutationError}

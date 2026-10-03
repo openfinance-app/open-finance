@@ -31,10 +31,10 @@ public interface AIProvider {
 
     /** Conservative byte-token upper bound for providers without a locally available tokenizer. */
     default int countInputTokens(String prompt, String context) {
-        return (instructions(context) + prompt)
+        return (instructions(context) + prompt + FinancialResponseGuard.responseSchema(context))
                         .getBytes(java.nio.charset.StandardCharsets.UTF_8)
                         .length
-                + 64;
+                + 384;
     }
 
     /**
@@ -45,6 +45,10 @@ public interface AIProvider {
      * @return Mono emitting the AI-generated response text
      */
     Mono<String> sendPrompt(String prompt, String context);
+
+    /** Task-specific JSON output without advisor prose or external tools. */
+    Mono<String> sendStructuredPrompt(
+            String prompt, String context, com.fasterxml.jackson.databind.JsonNode schema);
 
     /**
      * Streams the AI response in real-time as it is generated.

@@ -41,6 +41,7 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 @ExtendWith(MockitoExtension.class)
 class FinancialContextBuilderTest {
     @Mock AccountRepository accountRepository;
+    @Mock org.openfinance.repository.CategoryRepository categoryRepository;
     @Mock TransactionRepository transactionRepository;
     @Mock AssetRepository assetRepository;
     @Mock LiabilityRepository liabilityRepository;
@@ -184,6 +185,86 @@ class FinancialContextBuilderTest {
         } finally {
             LocaleContextHolder.resetLocaleContext();
         }
+    }
+
+    @Test
+    void retrievesTheRequestedHistoricalCategoryIncludingChildrenAndDatedFx() {
+        org.openfinance.entity.Category parent =
+                org.openfinance.entity.Category.builder().id(40L).name("Food").build();
+        org.openfinance.entity.Category child =
+                org.openfinance.entity.Category.builder()
+                        .id(41L)
+                        .parentId(40L)
+                        .name("Groceries")
+                        .build();
+        when(categoryRepository.findByUserId(1L)).thenReturn(List.of(parent, child));
+        Transaction groceries = tx("100", "EUR", TransactionType.EXPENSE);
+        groceries.setCategoryId(41L);
+        Transaction converted = tx("70", "USD", TransactionType.EXPENSE);
+        converted.setCategoryId(41L);
+        Transaction unrelated = tx("500", "EUR", TransactionType.EXPENSE);
+        unrelated.setCategoryId(42L);
+        Transaction removed = tx("1000", "EUR", TransactionType.EXPENSE);
+        removed.setCategoryId(41L);
+        removed.setIsDeleted(true);
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        1L, LocalDate.of(2025, 9, 1), LocalDate.of(2025, 9, 30)))
+                .thenReturn(List.of(groceries, converted, unrelated, removed));
+        Map<String, FinancialFact> selected =
+                facts(
+                        builder.forQuestion(
+                                1L,
+                                Locale.ENGLISH,
+                                "How much did I spend on Food in September 2025?",
+                                "[VERIFIED_FINANCIAL_DATA]"));
+        assertThat(selected).containsOnlyKeys("requested.category.40");
+        assertThat(selected.get("requested.category.40").amount()).isEqualTo("135.00");
+        assertThat(selected.get("requested.category.40").period())
+                .isEqualTo("2025-09-01 / 2025-09-30");
+    }
+
+    @Test
+    void categoryIncomeDoesNotUseExpenseTotals() {
+        org.openfinance.entity.Category salary =
+                org.openfinance.entity.Category.builder()
+                        .id(51L)
+                        .name("Salary")
+                        .type(org.openfinance.entity.CategoryType.INCOME)
+                        .build();
+        when(categoryRepository.findByUserId(1L)).thenReturn(List.of(salary));
+        Transaction income = tx("2500", "EUR", TransactionType.INCOME);
+        income.setCategoryId(51L);
+        Transaction other = tx("500", "EUR", TransactionType.INCOME);
+        other.setCategoryId(52L);
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        1L, LocalDate.of(2025, 9, 1), LocalDate.of(2025, 9, 30)))
+                .thenReturn(List.of(income, other));
+        FinancialFact fact =
+                facts(
+                                builder.forQuestion(
+                                        1L,
+                                        Locale.ENGLISH,
+                                        "What was my Salary income in September 2025?",
+                                        "[VERIFIED_FINANCIAL_DATA]"))
+                        .get("requested.category.51");
+        assertThat(fact.amount()).isEqualTo("2500.00");
+        assertThat(fact.label()).isEqualTo("Category income");
+    }
+
+    @Test
+    void unrelatedQuestionsDoNotExposeFinancialFactsOrInviteIrrelevantNumbers() {
+        String context =
+                "[VERIFIED_FINANCIAL_DATA]\n[FACT] {\"id\":\"net_worth\",\"label\":\"Net worth\",\"amount\":\"100.00\",\"currency\":\"EUR\",\"period\":\"today\",\"entity\":\"\"}\n";
+        assertThat(
+                        builder.forQuestion(
+                                1L, Locale.ENGLISH, "What is the capital of Italy?", context))
+                .doesNotContain("[FACT]");
+        assertThat(
+                        builder.forQuestion(
+                                1L, Locale.ENGLISH, "What is my mortgage interest rate?", context))
+                .doesNotContain("[FACT]");
+        assertThat(facts(builder.forQuestion(1L, Locale.ENGLISH, "What is my net worth?", context)))
+                .containsOnlyKeys("net_worth");
     }
 
     private Transaction tx(String amount, String currency, TransactionType type) {

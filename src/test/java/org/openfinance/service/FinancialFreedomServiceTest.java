@@ -307,6 +307,32 @@ class FinancialFreedomServiceTest {
     class CalculateSavingsLongevityTests {
 
         @Test
+        void zeroReturnHasAnExactDepletionDateBeyondTheProjectionLimit() {
+            SavingsLongevityResult result =
+                    service.calculateSavingsLongevity(
+                            new BigDecimal("150000"), new BigDecimal("100"), BigDecimal.ZERO);
+            assertEquals(1500, result.getTotalMonthsUntilDepletion());
+            assertEquals(125, result.getYearsUntilDepletion());
+            assertEquals(java.time.Year.now().getValue() + 125, result.getDepletionYear());
+            assertTrue(result.isWillDeplete());
+            assertFalse(result.isExceedsProjection());
+        }
+
+        @Test
+        void remainingSavingsAtTheLimitAreNotReportedAsDepleted() throws Exception {
+            SavingsLongevityResult result =
+                    service.calculateSavingsLongevity(
+                            new BigDecimal("150000"), new BigDecimal("100"), new BigDecimal("0.1"));
+            assertFalse(result.isInfinite());
+            assertFalse(result.isWillDeplete());
+            assertNull(result.getDepletionYear());
+            assertTrue(result.getFinalBalance().signum() > 0);
+            com.fasterxml.jackson.databind.JsonNode json =
+                    new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(result);
+            assertTrue(json.path("exceedsProjection").asBoolean());
+        }
+
+        @Test
         @DisplayName("Should calculate longevity correctly")
         void shouldCalculateLongevityCorrectly() {
             SavingsLongevityResult result =

@@ -9,7 +9,7 @@ import React from 'react';
 import { Link2, Home, Wallet, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { useAuthContext } from '@/context/AuthContext';
+import { RENTAL_SIMULATION_CURRENCY } from '@/types/realEstateTools';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useTranslation } from 'react-i18next';
 import type { SharedPropertyData } from '@/types/realEstateTools';
@@ -19,7 +19,7 @@ export interface SharedParametersPanelProps {
 }
 
 export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({ sharedData }) => {
-  const { baseCurrency } = useAuthContext();
+  const baseCurrency = RENTAL_SIMULATION_CURRENCY;
   const { t } = useTranslation('realEstate');
   if (!sharedData) {
     return null;

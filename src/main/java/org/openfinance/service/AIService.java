@@ -105,6 +105,8 @@ public class AIService {
                         ? contextBuilder.buildContext(userId, locale)
                         : contextBuilder.buildMinimalContext(userId, locale);
 
+        context = contextBuilder.forQuestion(userId, locale, request.getQuestion(), context);
+
         // 2a. Add language instruction for non-English locales
         String languageInstruction = buildLanguageInstruction(locale);
         String fullContext =
@@ -124,17 +126,13 @@ public class AIService {
         // WebClient's Netty event-loop threads — pass the needed value in explicitly instead.
         String aiResponse;
         try {
-            aiResponse =
-                    aiProvider
-                            .sendPrompt(request.getQuestion(), fullContext)
-                            .block(requestLimits.remaining(deadline));
+            aiResponse = verifiedAnswer(request.getQuestion(), fullContext, locale, deadline);
         } catch (RuntimeException ex) {
             throw ex instanceof org.openfinance.service.ai.AIProviderException providerError
                     ? providerError
                     : new org.openfinance.service.ai.AIProviderException(
                             aiProvider.getProviderName(), "AI request failed", ex);
         }
-        aiResponse = FinancialResponseGuard.verify(aiResponse, fullContext, locale);
 
         // 4. Save conversation messages
         saveConversationMessages(conversation, request.getQuestion(), aiResponse);
@@ -147,6 +145,28 @@ public class AIService {
 
         // 6. Return formatted response
         return buildChatResponse(conversation, aiResponse);
+    }
+
+    private String verifiedAnswer(String question, String context, Locale locale, long deadline) {
+        com.fasterxml.jackson.databind.JsonNode schema =
+                FinancialResponseGuard.responseSchema(context);
+        String instructions = context;
+        for (int attempt = 0; attempt < 2; attempt++) {
+            String response =
+                    aiProvider
+                            .sendStructuredPrompt(question, instructions, schema)
+                            .block(requestLimits.remaining(deadline));
+            try {
+                return FinancialResponseGuard.verifyStructured(response, context, locale);
+            } catch (org.openfinance.service.ai.AIProviderException invalid) {
+                if (attempt == 1) throw invalid;
+                instructions =
+                        context
+                                + "\nYour previous answer did not satisfy the contract. Keep explanation qualitative: no digits, monetary amounts, currencies, or numbers spelled out. Select the relevant factIds for numeric answers; the application will display their exact values. Return JSON only.";
+            }
+        }
+        throw new org.openfinance.service.ai.AIProviderException(
+                aiProvider.getProviderName(), "Unverified answer");
     }
 
     /** Buffered compatibility API. Resolve and persist on the authenticated servlet thread. */

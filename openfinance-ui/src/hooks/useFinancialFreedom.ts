@@ -24,6 +24,7 @@ import {
   calculateRealReturn,
 } from '../utils/financialCalculations';
 import { divide, multiply, percentage } from '@/utils/money';
+import { validateFreedom } from '@/validators/calculatorValidation';
 
 /**
  * State interface for the calculator hook
@@ -83,6 +84,8 @@ export function useFinancialFreedom() {
       setState(prev => ({
         ...prev,
         input: { ...prev.input, [key]: value },
+        result: null,
+        longevityResult: null,
         error: null,
       }));
     },
@@ -154,10 +157,13 @@ export function useFinancialFreedom() {
     const { input } = state;
 
     // Validate inputs
-    if (input.currentSavings < 0 || input.monthlyExpenses < 0) {
+    const error = validateFreedom(input);
+    if (error) {
       setState(prev => ({
         ...prev,
-        error: 'Invalid input values',
+        error,
+        result: null,
+        longevityResult: null,
       }));
       return null;
     }
@@ -184,7 +190,7 @@ export function useFinancialFreedom() {
     const yearsToFreedom = Math.floor(monthsToFreedom / 12);
     const monthsRemainder = Math.round(monthsToFreedom % 12);
 
-    const isAchievable = monthsToFreedom < 600; // 50 years max
+    const isAchievable = monthsToFreedom <= 600; // 50 years max
     const progressPercentage =
       targetAmount === 0 ? 100 : percentage(input.currentSavings, targetAmount);
     const annualPassiveIncome = multiply(targetAmount, divide(withdrawalRate, 100));
@@ -214,6 +220,7 @@ export function useFinancialFreedom() {
     setState(prev => ({
       ...prev,
       result,
+      error: null,
       isLoading: false,
     }));
 
@@ -223,11 +230,17 @@ export function useFinancialFreedom() {
         yearsUntilDepletion: Math.floor(longevity.monthsUntilDepletion / 12),
         totalMonthsUntilDepletion: longevity.monthsUntilDepletion,
         isInfinite: longevity.isInfinite,
-        depletionYear: longevity.isInfinite
-          ? null
-          : new Date().getFullYear() + Math.floor(longevity.monthsUntilDepletion / 12),
+        exceedsProjection: longevity.exceedsProjection,
+        depletionYear:
+          longevity.isInfinite || longevity.exceedsProjection
+            ? null
+            : new Date(
+                new Date().getFullYear(),
+                new Date().getMonth() + Math.ceil(longevity.monthsUntilDepletion),
+                1
+              ).getFullYear(),
         finalBalance: longevity.finalBalance,
-        willDeplete: !longevity.isInfinite && longevity.monthsUntilDepletion < 1200,
+        willDeplete: !longevity.isInfinite && !longevity.exceedsProjection,
         depletionProjections: [],
         monthlyExpenses: input.monthlyExpenses,
         currentSavings: input.currentSavings,

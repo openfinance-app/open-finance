@@ -24,7 +24,7 @@ import type {
   ValidationError,
   FurnishingType,
 } from '@/types/realEstateTools';
-import { useAuthContext } from '@/context/AuthContext';
+import { RENTAL_SIMULATION_CURRENCY } from '@/types/realEstateTools';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface PropertySectionProps {
@@ -42,7 +42,7 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
   isOpen,
   onToggle,
 }) => {
-  const { baseCurrency } = useAuthContext();
+  const baseCurrency = RENTAL_SIMULATION_CURRENCY;
   const { t } = useTranslation('realEstate');
 
   const getFieldError = (field: string) =>

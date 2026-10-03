@@ -223,6 +223,7 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
   const {
     input,
     result,
+    error,
     updateInput,
     addLumpSum,
     updateLumpSum,
@@ -276,6 +277,11 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {error && (
+            <p role="alert" className="text-sm text-error">
+              {error}
+            </p>
+          )}
           <form
             className="space-y-6"
             onSubmit={e => {

@@ -1,3 +1,6 @@
+import i18n from '@/i18n';
+import realEstateEnglish from '../../public/locales/en/realEstate.json';
+import realEstateFrench from '../../public/locales/fr/realEstate.json';
 /**
  * Unit Tests for Tax Regime Calculations
  *
@@ -539,7 +542,12 @@ describe('Tax Regime Calculations', () => {
   });
 
   describe('getRegimeDescription', () => {
-    it('should return descriptions for all regimes', () => {
+    it('returns descriptions in the active language', async () => {
+      i18n.addResourceBundle('en', 'realEstate', realEstateEnglish, true, true);
+      i18n.addResourceBundle('fr', 'realEstate', realEstateFrench, true, true);
+      await i18n.changeLanguage('en');
+      expect(getRegimeDescription('lmnp_reel')).toContain('25 years');
+      await i18n.changeLanguage('fr');
       expect(getRegimeDescription('micro_foncier')).toContain('30%');
       expect(getRegimeDescription('micro_bic')).toContain('50%');
       expect(getRegimeDescription('lmnp_reel')).toContain('25 ans');

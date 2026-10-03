@@ -6,8 +6,8 @@
  * Requirements: REQ-4.2.1, REQ-5.4
  */
 
-import React, { useState } from 'react';
-import { Routes, Route, useNavigate, Navigate } from 'react-router';
+import React from 'react';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router';
 import { ROUTES } from '@/constants/routes';
 import { BuyRentComparator } from './BuyRentComparator';
 import { PropertyRentalSimulator } from './PropertyRentalSimulator';
@@ -27,12 +27,12 @@ const RentalSimulatorGuard: React.FC<{
 
 export const RealEstateToolsWrapper: React.FC = () => {
   const navigate = useNavigate();
-  const [sharedData, setSharedData] = useState<SharedPropertyData | undefined>();
+  const location = useLocation();
+  const sharedData = (location.state as { sharedData?: SharedPropertyData } | null)?.sharedData;
 
   // Handle navigation from Buy/Rent to Rental Simulator with shared data
   const handleNavigateToRentalSimulator = (data: SharedPropertyData) => {
-    setSharedData(data);
-    navigate(ROUTES.REAL_ESTATE_TOOLS_RENTAL);
+    navigate(ROUTES.REAL_ESTATE_TOOLS_RENTAL, { state: { sharedData: data } });
   };
 
   // Handle navigation back to Buy/Rent Comparator

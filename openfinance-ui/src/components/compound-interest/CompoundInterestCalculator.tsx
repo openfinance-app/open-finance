@@ -80,7 +80,10 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
           <div className="mt-4 space-y-6">
             {/* ---- Error ---- */}
             {error && (
-              <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 rounded-md">
+              <div
+                role="alert"
+                className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 rounded-md"
+              >
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {error}
               </div>
@@ -118,7 +121,7 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
                   </Label>
                   <NumberInput
                     id="ci-rate"
-                    min={0.01}
+                    min={0}
                     max={100}
                     value={String(input.annualRate)}
                     onChange={val => updateInput('annualRate', Number(val))}

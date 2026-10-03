@@ -15,9 +15,10 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 
 export interface SummaryCardsProps {
   results: BuyRentResults;
+  monthlySavings: number;
 }
 
-export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
+export const SummaryCards: React.FC<SummaryCardsProps> = ({ results, monthlySavings }) => {
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('realEstate');
   const { buy, rent, comparison } = results.summary;
@@ -62,6 +63,16 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
               <p className="text-sm text-muted-foreground">{t('results.netWorth')}</p>
               <p className="text-xl font-bold text-primary">
                 <ConvertedAmount amount={buy.netWorth} currency={baseCurrency} inline />
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">{t('results.accumulatedSavings')}</p>
+              <p className="text-lg font-semibold">
+                <ConvertedAmount
+                  amount={buy.accumulatedSavings ?? 0}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
             <div>
@@ -117,11 +128,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
             <div>
               <p className="text-sm text-muted-foreground">{t('results.monthlySavings')}</p>
               <p className="text-lg font-semibold">
-                <ConvertedAmount
-                  amount={results.years[0]?.rent.savings || 0}
-                  currency={baseCurrency}
-                  inline
-                />
+                <ConvertedAmount amount={monthlySavings} currency={baseCurrency} inline />
               </p>
             </div>
           </div>
@@ -153,12 +160,14 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results }) => {
                 />
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {t('results.inFavorOf', {
-                  scenario:
-                    comparison.winner === 'buy'
-                      ? t('results.buyGenitive')
-                      : t('results.rentGenitive'),
-                })}
+                {comparison.winner === 'tie'
+                  ? t('comparison.tie')
+                  : t('results.inFavorOf', {
+                      scenario:
+                        comparison.winner === 'buy'
+                          ? t('results.buyGenitive')
+                          : t('results.rentGenitive'),
+                    })}
               </p>
             </div>
             <div className="text-center">

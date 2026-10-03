@@ -4,6 +4,7 @@
  *
  * Provides React Query hooks for insight operations
  */
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import { AI_REQUEST_TIMEOUT_MS } from '@/constants/timing';
@@ -52,8 +53,10 @@ export function useInsights() {
  */
 export function useGenerateInsights() {
   const queryClient = useQueryClient();
+  const [unavailableSources, setUnavailableSources] = useState<string[]>([]);
 
-  return useMutation<Insight[], Error, void>({
+  const mutation = useMutation<Insight[], Error, void>({
+    onMutate: () => setUnavailableSources([]),
     mutationFn: async () => {
       const response = await apiClient.post<Insight[]>(
         '/insights/generate',
@@ -63,6 +66,10 @@ export function useGenerateInsights() {
           headers: buildEncryptionHeaders(),
         }
       );
+      const unavailable = response.headers?.['x-insights-unavailable-sources'];
+      setUnavailableSources(
+        typeof unavailable === 'string' ? unavailable.split(',').filter(Boolean) : []
+      );
       return response.data;
     },
     onSuccess: () => {
@@ -70,6 +77,7 @@ export function useGenerateInsights() {
       queryClient.invalidateQueries({ queryKey: ['insights'] });
     },
   });
+  return { ...mutation, unavailableSources };
 }
 
 /**

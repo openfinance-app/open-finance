@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+import toolsEnglish from '../../public/locales/en/tools.json';
 /**
  * Tests for useFinancialFreedom Hook
  */
@@ -17,6 +19,8 @@ const mockGetCalculationDefaults = vi.mocked(calculatorApi.getCalculationDefault
 describe('useFinancialFreedom', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    i18n.addResourceBundle('en', 'tools', toolsEnglish, true, true);
+    void i18n.changeLanguage('en');
 
     // Mock defaults
     mockGetCalculationDefaults.mockResolvedValue({
@@ -327,7 +331,7 @@ describe('useFinancialFreedom', () => {
       });
 
       expect(calculationResult).toBeNull();
-      expect(result.current.error).toBe('Invalid input values');
+      expect(result.current.error).toBe(toolsEnglish.validation.savings);
     });
 
     it('should calculate longevity result', () => {

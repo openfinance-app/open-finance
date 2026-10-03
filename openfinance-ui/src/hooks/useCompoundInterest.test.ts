@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+import toolsEnglish from '../../public/locales/en/tools.json';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCompoundInterest } from './useCompoundInterest';
@@ -13,6 +15,8 @@ const mockCalculate = vi.mocked(calculateCompoundInterest);
 describe('useCompoundInterest', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    i18n.addResourceBundle('en', 'tools', toolsEnglish, true, true);
+    void i18n.changeLanguage('en');
   });
 
   it('initialises with default input and no result', () => {
@@ -89,7 +93,7 @@ describe('useCompoundInterest', () => {
       await result.current.calculate();
     });
 
-    expect(result.current.error).toBe('Network error');
+    expect(result.current.error).toBe(toolsEnglish.validation.calculationFailed);
     expect(result.current.result).toBeNull();
     expect(result.current.isLoading).toBe(false);
   });
@@ -103,7 +107,7 @@ describe('useCompoundInterest', () => {
       await result.current.calculate();
     });
 
-    expect(result.current.error).toBe('Calculation failed. Please check your inputs.');
+    expect(result.current.error).toBe(toolsEnglish.validation.calculationFailed);
   });
 
   it('updateInput clears previous error', async () => {
@@ -115,7 +119,7 @@ describe('useCompoundInterest', () => {
       await result.current.calculate();
     });
 
-    expect(result.current.error).toBe('fail');
+    expect(result.current.error).toBe(toolsEnglish.validation.calculationFailed);
 
     act(() => {
       result.current.updateInput('principal', 5000);

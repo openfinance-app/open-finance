@@ -32,7 +32,7 @@ interface LoanCalculatorProps {
 export function LoanCalculator({ className }: LoanCalculatorProps) {
   const { t, i18n } = useTranslation('tools');
   const { baseCurrency } = useAuthContext();
-  const { input, result, updateInput, resetInputs, calculate } = useLoanCalculator();
+  const { input, result, error, updateInput, resetInputs, calculate } = useLoanCalculator();
   const { format: formatCurrency } = useFormatCurrency();
 
   const handleCalculate = useCallback(() => {
@@ -49,6 +49,11 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {error && (
+            <p role="alert" className="text-sm text-error">
+              {error}
+            </p>
+          )}
           <form
             className="mt-4 space-y-6"
             onSubmit={e => {

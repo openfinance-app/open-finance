@@ -20,7 +20,8 @@ public class InsightWriterImpl implements InsightWriter {
 
     @Override
     @Transactional
-    public List<Insight> replaceGenerated(Long userId, List<Insight> generated) {
+    public List<Insight> replaceGenerated(
+            Long userId, List<Insight> generated, Set<InsightType> unavailableTypes) {
         if (encryptionProperties.isEnabled()
                 && org.openfinance.security.EncryptionContext.getKey() == null) {
             throw new org.springframework.security.access.AccessDeniedException(
@@ -45,6 +46,7 @@ public class InsightWriterImpl implements InsightWriter {
         repository.deleteAll(
                 previous.stream()
                         .filter(old -> old.getType() != InsightType.UNUSUAL_TRANSACTION)
+                        .filter(old -> !unavailableTypes.contains(old.getType()))
                         .filter(old -> !Boolean.TRUE.equals(old.getDismissed()))
                         .filter(old -> !retained.contains(old.getId()))
                         .toList());

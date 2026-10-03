@@ -148,7 +148,10 @@ function CalculatorInputForm({
   return (
     <div className="space-y-6">
       {error && (
-        <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+        <div
+          role="alert"
+          className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md"
+        >
           <AlertCircle className="h-4 w-4" />
           {error}
         </div>
@@ -209,7 +212,10 @@ function CalculatorInputForm({
       )}
 
       {userDataError && (
-        <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+        <div
+          role="alert"
+          className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-md"
+        >
           <AlertCircle className="h-4 w-4" />
           {t('financialFreedom.calculator.dataLoadError')}
         </div>
@@ -304,7 +310,7 @@ function CalculatorInputForm({
           <NumberInput
             id="withdrawalRate"
             value={String(input.withdrawalRate ?? 4)}
-            onChange={val => onChange('withdrawalRate', parseFloat(val) || 4)}
+            onChange={val => onChange('withdrawalRate', val === '' ? 4 : Number(val))}
             placeholder="4"
           />
           <Slider
@@ -336,7 +342,7 @@ function CalculatorInputForm({
           <NumberInput
             id="inflationRate"
             value={String(input.inflationRate ?? 2.5)}
-            onChange={val => onChange('inflationRate', parseFloat(val) || 2.5)}
+            onChange={val => onChange('inflationRate', val === '' ? 2.5 : Number(val))}
             placeholder="2.5"
           />
           <div className="flex items-center space-x-2 mt-2">
@@ -384,7 +390,7 @@ function FreedomResults({
   longevityResult?: any;
   currency: string;
 }) {
-  const { t } = useTranslation('tools');
+  const { t, i18n } = useTranslation('tools');
   const yearsToFreedom = result.yearsToFreedom;
 
   const yearsText = t('financialFreedom.results.timeToFreedom_years', {
@@ -446,15 +452,40 @@ function FreedomResults({
                       {t('financialFreedom.results.returnsExceedExpenses')}
                     </p>
                   </>
-                ) : (
+                ) : longevityResult.exceedsProjection ? (
                   <>
                     <p className="text-5xl font-bold text-primary">
-                      {t('financialFreedom.results.yearsPlural', {
-                        count: longevityResult.yearsUntilDepletion,
+                      {t('financialFreedom.results.beyondProjection', {
+                        years: longevityResult.yearsUntilDepletion,
                       })}
                     </p>
                     <p className="text-sm text-muted-foreground mt-2">
-                      {t('financialFreedom.results.until', { year: longevityResult.depletionYear })}
+                      {t('financialFreedom.results.projectionFunded')}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-5xl font-bold text-primary">
+                      {longevityResult.yearsUntilDepletion > 0 &&
+                        t('financialFreedom.results.timeToFreedom_years', {
+                          count: longevityResult.yearsUntilDepletion,
+                        })}
+                      {longevityResult.yearsUntilDepletion > 0 && ' '}
+                      {(longevityResult.totalMonthsUntilDepletion % 12 !== 0 ||
+                        longevityResult.yearsUntilDepletion === 0) &&
+                        t('financialFreedom.results.timeToFreedom_months', {
+                          count: Math.ceil(longevityResult.totalMonthsUntilDepletion % 12),
+                        })}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {t('financialFreedom.results.until', {
+                        year: new Date(
+                          new Date().getFullYear(),
+                          new Date().getMonth() +
+                            Math.ceil(longevityResult.totalMonthsUntilDepletion),
+                          1
+                        ).toLocaleDateString(i18n.language, { month: 'long', year: 'numeric' }),
+                      })}
                     </p>
                   </>
                 )}

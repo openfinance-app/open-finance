@@ -77,4 +77,10 @@ public class SavingsLongevityResult {
 
     /** Human-readable message about the longevity result. */
     private String message;
+
+    /** True when savings remain after a finite projection without a known depletion date. */
+    @JsonProperty("exceedsProjection")
+    public boolean isExceedsProjection() {
+        return !infinite && !willDeplete && finalBalance != null && finalBalance.signum() > 0;
+    }
 }

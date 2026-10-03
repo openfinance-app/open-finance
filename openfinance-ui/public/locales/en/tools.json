@@ -70,7 +70,9 @@
       "timeToFreedom_years_one": "{{count}} year",
       "timeToFreedom_years_other": "{{count}} years",
       "timeToFreedom_months_one": "{{count}} month",
-      "timeToFreedom_months_other": "{{count}} months"
+      "timeToFreedom_months_other": "{{count}} months",
+      "beyondProjection": "At least {{years}} years",
+      "projectionFunded": "Savings remain at the end of the projection; no depletion date has been determined."
     }
   },
   "compoundInterest": {
@@ -237,5 +239,22 @@
   },
   "financialData": {
     "conversionUnavailable": "Financial data cannot be converted to your reporting currency."
+  },
+  "validation": {
+    "principal": "Enter a starting amount of zero or more.",
+    "loanPrincipal": "Enter a loan balance greater than zero.",
+    "rate": "Enter an annual interest rate between 0% and 100%.",
+    "wholeYears": "Enter a whole number of years between 1 and 100.",
+    "frequency": "Select a supported compounding frequency.",
+    "contribution": "Enter a non-negative contribution within the supported amount limit.",
+    "loanTerm": "Enter a positive term of up to 100 years that equals a whole number of months (for example, 1.5 years).",
+    "savings": "Enter non-negative savings within the supported amount limit.",
+    "expenses": "Enter non-negative monthly expenses within the supported amount limit.",
+    "withdrawal": "Enter a withdrawal rate between 0.5% and 10%.",
+    "return": "Enter an expected return between -10% and 30%.",
+    "inflation": "Enter an inflation rate between -99% and 100%.",
+    "remainingTerm": "Enter whole remaining years and 0–11 additional months, totaling 1 month to 100 years.",
+    "lumpSum": "Each payment needs a whole month within the remaining loan term and a non-negative amount.",
+    "calculationFailed": "Could not calculate. Check the inputs and try again."
   }
 }

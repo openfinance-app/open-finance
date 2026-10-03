@@ -125,29 +125,14 @@ export function calculateCompoundInterest(
 ): number {
   if (years <= 0) return principal;
 
-  const rate = divide(annualRate, 100);
-
-  // Compound interest for initial principal
-  const principalGrowth = multiply(principal, pow(add(1, rate), years));
-
-  // Future value of monthly contributions
-  if (monthlyContribution > 0 && rate > 0) {
-    const monthlyRate = divide(rate, 12);
-    const months = years * 12;
-    const contributionGrowth = multiply(
-      monthlyContribution,
-      divide(subtract(pow(add(1, monthlyRate), months), 1), monthlyRate)
-    );
-    return roundToDecimals(add(principalGrowth, contributionGrowth), 2);
-  } else if (monthlyContribution > 0) {
-    // 0% interest - simple accumulation
-    return roundToDecimals(
-      add(principalGrowth, multiply(multiply(monthlyContribution, 12), years)),
-      2
-    );
-  }
-
-  return roundToDecimals(principalGrowth, 2);
+  const annualFactor = add(1, divide(annualRate, 100));
+  const monthlyRate = subtract(pow(annualFactor, 1 / 12), 1);
+  const growth = pow(annualFactor, years);
+  const contributions =
+    Math.abs(monthlyRate) < 1e-12
+      ? multiply(monthlyContribution, years * 12)
+      : multiply(monthlyContribution, divide(subtract(growth, 1), monthlyRate));
+  return roundToDecimals(add(multiply(principal, growth), contributions), 2);
 }
 
 /**

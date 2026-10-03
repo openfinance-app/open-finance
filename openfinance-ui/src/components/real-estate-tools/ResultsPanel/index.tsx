@@ -50,7 +50,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   const { baseCurrency } = useAuthContext();
 
   const handleExportCSV = () => {
-    const csv = exportBuyRentToCSV(inputs, results);
+    const csv = exportBuyRentToCSV({ ...inputs, currency: baseCurrency }, results);
     downloadFile(
       csv,
       `${t('exportImport.exportCSVFilename')}-${new Date().toISOString().split('T')[0]}.csv`,
@@ -67,7 +67,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-      data: inputs,
+      data: { ...inputs, currency: baseCurrency },
     };
     const json = exportToJSON(simulation, results);
     downloadFile(
@@ -114,7 +114,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       </div>
 
       {/* Summary Cards */}
-      <SummaryCards results={results} />
+      <SummaryCards results={results} monthlySavings={inputs.rental.monthlySavings} />
 
       {/* Detailed Results Tabs */}
       <div className="space-y-4">

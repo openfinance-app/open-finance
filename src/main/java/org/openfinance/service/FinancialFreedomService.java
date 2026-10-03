@@ -302,9 +302,18 @@ public class FinancialFreedomService {
             }
         }
 
+        if (!infinite && monthlyRate.signum() == 0 && monthlyExpenses.signum() > 0) {
+            BigDecimal exactMonths =
+                    currentSavings.divide(monthlyExpenses, 0, RoundingMode.CEILING);
+            if (exactMonths.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) <= 0) {
+                months = exactMonths.intValueExact();
+                balance = BigDecimal.ZERO;
+            }
+        }
+        boolean exceedsProjection = !infinite && balance.signum() > 0;
         int yearsUntilDepletion = months / MONTHS_PER_YEAR;
         Integer depletionYear =
-                yearsUntilDepletion > 0
+                !infinite && !exceedsProjection && yearsUntilDepletion > 0
                         ? Year.now().plusYears(yearsUntilDepletion).getValue()
                         : null;
 
@@ -313,7 +322,7 @@ public class FinancialFreedomService {
         if (infinite) {
             message =
                     "Your savings will last indefinitely because your investment returns exceed your monthly expenses.";
-        } else if (months >= MAX_MONTHS) {
+        } else if (exceedsProjection) {
             message =
                     String.format(
                             "Your savings will last for at least %d years.", MAX_LONGEVITY_YEARS);
@@ -330,7 +339,7 @@ public class FinancialFreedomService {
                 .infinite(infinite)
                 .depletionYear(depletionYear)
                 .finalBalance(balance.compareTo(BigDecimal.ZERO) > 0 ? balance : BigDecimal.ZERO)
-                .willDeplete(!infinite && months < MAX_MONTHS)
+                .willDeplete(!infinite && !exceedsProjection)
                 .depletionProjections(depletionProjections)
                 .monthlyExpenses(monthlyExpenses)
                 .currentSavings(currentSavings)
