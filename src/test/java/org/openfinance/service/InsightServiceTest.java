@@ -8,7 +8,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +40,7 @@ import org.openfinance.repository.UserSettingsRepository;
 import org.openfinance.service.ai.AIProvider;
 import org.openfinance.service.ai.AIProviderException;
 import org.openfinance.service.ai.AIRequestLimits;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import reactor.core.publisher.Mono;
 
@@ -71,6 +74,7 @@ class InsightServiceTest {
         ResourceBundleMessageSource source = new ResourceBundleMessageSource();
         source.setBasename("i18n/messages");
         source.setDefaultEncoding("UTF-8");
+        source.setFallbackToSystemLocale(false);
         return source;
     }
 
@@ -82,6 +86,7 @@ class InsightServiceTest {
 
     @BeforeEach
     void setup() {
+        LocaleContextHolder.setLocale(Locale.ENGLISH);
         lenient()
                 .when(userRepository.findById(1L))
                 .thenReturn(Optional.of(User.builder().id(1L).build()));
@@ -130,6 +135,11 @@ class InsightServiceTest {
                                                     : "{\"medianIncome\":2500,\"medianNetWorth\":150000"
                                                             + provenance());
                         });
+    }
+
+    @AfterEach
+    void tearDown() {
+        LocaleContextHolder.resetLocaleContext();
     }
 
     @Test

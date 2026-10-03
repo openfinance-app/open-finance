@@ -58,6 +58,7 @@ class FinancialContextBuilderTest {
         ResourceBundleMessageSource source = new ResourceBundleMessageSource();
         source.setBasename("i18n/messages");
         source.setDefaultEncoding("UTF-8");
+        source.setFallbackToSystemLocale(false);
         return source;
     }
 
