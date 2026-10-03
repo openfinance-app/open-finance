@@ -94,7 +94,7 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
 
         {/* Actions */}
         <div className="flex items-center gap-1 ml-4">
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="sm"

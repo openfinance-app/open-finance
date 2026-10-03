@@ -36,6 +36,32 @@ describe('ImportReview source categories', () => {
     mockAuthentication();
   });
 
+  it('identifies a legacy rule with an incompatible condition in the review error', () => {
+    renderWithProviders(
+      <ImportReview
+        transactions={[
+          {
+            transactionDate: '2026-10-03',
+            amount: '-20',
+            currency: 'EUR',
+            payee: 'Coffee',
+            category: null,
+            memo: '',
+            validationErrors: ['RULE_CONDITION_INVALID: Old coffee rule'],
+            splits: [],
+          } as ImportTransactionDTO,
+        ]}
+        onTransactionsChange={vi.fn()}
+        categoryMappings={{}}
+        onCategoryMappingsChange={vi.fn()}
+        newCategoryNames={[]}
+        onNewCategoryNamesChange={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/Rule "Old coffee rule" uses an operator/)).toBeInTheDocument();
+    expect(screen.queryByText(/RULE_CONDITION_INVALID:/)).not.toBeInTheDocument();
+  });
+
   it('uses the resolved account currency for rows and splits without a file currency', () => {
     renderWithProviders(
       <ImportReview

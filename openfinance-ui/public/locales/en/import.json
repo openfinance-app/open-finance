@@ -241,7 +241,8 @@
     "amountZero": "Transaction amount cannot be zero",
     "dateFuture": "Transaction date cannot be in the future",
     "splitInvalid": "Invalid split: use at least two positive amounts whose total matches the transaction. Correct the transaction or its split rule before importing this row.",
-    "ruleActionInvalid": "A matched rule has an incomplete or invalid action. Edit the rule and import this file again."
+    "ruleActionInvalid": "A matched rule has an incomplete or invalid action. Edit the rule and import this file again.",
+    "ruleConditionInvalid": "Rule \"{{rule}}\" uses an operator that is incompatible with its condition. Edit or disable the rule, then import this file again."
   },
   "categoryMapping": {
     "title": "Map Categories",

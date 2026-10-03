@@ -41,6 +41,7 @@ import {
 import type { BudgetRequest, BudgetResponse } from '@/types/budget';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '@/constants/pagination';
 import { matchesQuery } from '@/utils/searchMatch';
+import { activeBudgetSummary } from '@/utils/budget-summary';
 
 export default function BudgetsPage() {
   const { t } = useTranslation('budgets');
@@ -81,6 +82,7 @@ export default function BudgetsPage() {
     filters.period === undefined || filters.period === '' ? undefined : filters.period;
 
   const { data: summary, isLoading: summaryLoading, error } = useBudgetSummary(periodFilter);
+  const currentSummary = summary ? activeBudgetSummary(summary) : undefined;
   // The native list does not require exchange rates and remains editable if totals fail.
   const { data: nativeBudgets, isLoading: nativeLoading } = useBudgets(periodFilter, !!error);
   const { data: editingBudget, isLoading: editBudgetLoading } = useBudget(editingBudgetId);
@@ -150,16 +152,13 @@ export default function BudgetsPage() {
   };
 
   // Alert banners for budgets that need attention (WARNING or EXCEEDED)
-  const budgetAlerts = useMemo(() => {
-    if (!allBudgetProgress) return [];
-    return allBudgetProgress
-      .filter(
-        budget =>
-          (budget.status === 'WARNING' || budget.status === 'EXCEEDED') &&
-          !dismissedAlerts.has(budget.budgetId)
-      )
-      .slice(0, 3); // Show max 3 alerts
-  }, [allBudgetProgress, dismissedAlerts]);
+  const budgetAlerts = (currentSummary?.budgets ?? [])
+    .filter(
+      budget =>
+        (budget.status === 'WARNING' || budget.status === 'EXCEEDED') &&
+        !dismissedAlerts.has(budget.budgetId)
+    )
+    .slice(0, 3); // Show max 3 alerts
 
   const handleCreate = () => {
     setEditingBudgetId(null);
@@ -288,10 +287,16 @@ export default function BudgetsPage() {
       )}
 
       {/* Summary Card */}
-      {!error && !summaryLoading && summary && summary.totalBudgets > 0 && (
+      {!error && !summaryLoading && summary && summary.totalBudgets > 0 && currentSummary && (
         <BudgetSummaryCard
-          summary={summary}
-          filteredBudgets={hasActiveFilters ? filteredBudgets : undefined}
+          summary={currentSummary}
+          filteredBudgets={
+            hasActiveFilters
+              ? currentSummary.budgets.filter(budget =>
+                  filteredBudgets.some(filtered => filtered.budgetId === budget.budgetId)
+                )
+              : undefined
+          }
         />
       )}
 

@@ -2,7 +2,7 @@
  * BudgetSummaryCard Component
  * TASK-8.2.7: Create budget summary card for BudgetsPage
  *
- * Displays aggregate budget statistics at the top of the budgets page.
+ * Displays current budget statistics at the top of the budgets page.
  * Shows global totals prominently and, when a filter is active, also shows
  * filtered sub-totals in a smaller secondary line below each metric.
  */
@@ -19,9 +19,9 @@ import type { BudgetProgressResponse, BudgetSummaryResponse } from '@/types/budg
 import { cn } from '@/lib/utils';
 
 interface BudgetSummaryCardProps {
-  /** Global budget summary (all budgets for the selected period) */
+  /** Current budgets for the selected period, excluding expired and future allowances. */
   summary: BudgetSummaryResponse;
-  /** Currently displayed / filtered budget progress items — drives secondary sub-totals */
+  /** Current budgets matching the list filters — drives secondary sub-totals. */
   filteredBudgets?: BudgetProgressResponse[];
 }
 

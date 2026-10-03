@@ -241,7 +241,8 @@
     "amountZero": "Le montant de la transaction ne peut pas être nul",
     "dateFuture": "La date de la transaction ne peut pas être dans le futur",
     "splitInvalid": "Ventilation invalide : indiquez au moins deux montants positifs dont la somme correspond à la transaction. Corrigez la transaction ou sa règle de ventilation avant d’importer cette ligne.",
-    "ruleActionInvalid": "Une règle correspondante contient une action incomplète ou invalide. Corrigez la règle, puis importez à nouveau ce fichier."
+    "ruleActionInvalid": "Une règle correspondante contient une action incomplète ou invalide. Corrigez la règle, puis importez à nouveau ce fichier.",
+    "ruleConditionInvalid": "La règle « {{rule}} » utilise un opérateur incompatible avec sa condition. Corrigez ou désactivez la règle, puis importez à nouveau ce fichier."
   },
   "categoryMapping": {
     "title": "Correspondance des catégories",

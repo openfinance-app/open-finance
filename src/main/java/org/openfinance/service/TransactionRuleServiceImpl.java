@@ -226,6 +226,9 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
             ImportedTransaction tx = transactions.get(i);
 
             for (TransactionRule rule : enabledRules) {
+                if (!hasCompatibleConditions(rule, tx)) {
+                    continue;
+                }
                 if (allConditionsMatch(rule.getConditions(), rule.getConditionMatch(), tx)) {
                     applyActions(rule.getActions(), tx);
                     tx.addValidationError("RULE_MATCH: Rule '" + rule.getName() + "' matched");
@@ -246,6 +249,24 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
     // -----------------------------------------------------------------------
     // Private helpers — condition evaluation
     // -----------------------------------------------------------------------
+
+    /** Report legacy invalid conditions before AND/OR evaluation can short-circuit. */
+    private boolean hasCompatibleConditions(TransactionRule rule, ImportedTransaction tx) {
+        if (rule.getConditions() == null) {
+            return true;
+        }
+        for (TransactionRuleCondition condition : rule.getConditions()) {
+            if (condition.getOperator() == null
+                    || !condition.getOperator().supports(condition.getField())) {
+                String error = "RULE_CONDITION_INVALID: " + rule.getName();
+                if (!tx.getValidationErrors().contains(error)) {
+                    tx.addValidationError(error);
+                }
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * Returns {@code true} if conditions match the transaction according to the given match mode:

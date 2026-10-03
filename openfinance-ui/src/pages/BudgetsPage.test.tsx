@@ -4,7 +4,8 @@
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient } from '@tanstack/react-query';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { renderWithProviders } from '@/test/test-utils';
+import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import BudgetsPage from './BudgetsPage';
 
 // Mock the hooks
@@ -54,8 +55,22 @@ vi.mock('@/components/budgets/BudgetCard', () => ({
 }));
 
 vi.mock('@/components/budgets/BudgetSummaryCard', () => ({
-  BudgetSummaryCard: ({ summary }: { summary: any }) => (
-    <div data-testid="budget-summary-card">Summary: {summary.totalBudgets} budgets</div>
+  BudgetSummaryCard: ({
+    summary,
+    filteredBudgets,
+  }: {
+    summary: BudgetSummaryResponse;
+    filteredBudgets?: BudgetProgressResponse[];
+  }) => (
+    <div data-testid="budget-summary-card">
+      <span>Summary: {summary.totalBudgets} budgets</span>
+      <output aria-label="Current allowance">{summary.totalBudgeted}</output>
+      <output aria-label="Current spending">{summary.totalSpent}</output>
+      <output aria-label="Current remaining">{summary.totalRemaining}</output>
+      <output aria-label="Filtered remaining">
+        {filteredBudgets?.reduce((total, budget) => total + budget.remaining, 0)}
+      </output>
+    </div>
   ),
 }));
 
@@ -145,6 +160,12 @@ const createTestQueryClient = () =>
     },
   });
 
+const currentBudgetDates = {
+  startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+  endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+  daysRemaining: 10,
+};
+
 const mockBudgetSummary: BudgetSummaryResponse = {
   totalBudgets: 2,
   totalBudgeted: 1000,
@@ -154,8 +175,9 @@ const mockBudgetSummary: BudgetSummaryResponse = {
   budgets: [
     {
       budgetId: 1,
+      ...currentBudgetDates,
       categoryName: 'Groceries',
-      amount: 500,
+      budgeted: 500,
       spent: 350.25,
       remaining: 149.75,
       percentageSpent: 70.05,
@@ -165,8 +187,9 @@ const mockBudgetSummary: BudgetSummaryResponse = {
     },
     {
       budgetId: 2,
+      ...currentBudgetDates,
       categoryName: 'Entertainment',
-      amount: 500,
+      budgeted: 500,
       spent: 300,
       remaining: 200,
       percentageSpent: 60,
@@ -190,6 +213,7 @@ describe('BudgetsPage', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
+    mockAuthentication();
     queryClient = createTestQueryClient();
     vi.clearAllMocks();
 
@@ -401,6 +425,102 @@ describe('BudgetsPage', () => {
     });
   });
 
+  describe('Current spending guidance', () => {
+    const progress = (
+      budgetId: number,
+      categoryName: string,
+      budgeted: number,
+      spent: number,
+      dates = currentBudgetDates
+    ): BudgetProgressResponse => ({
+      budgetId,
+      categoryName,
+      budgeted,
+      spent,
+      remaining: budgeted - spent,
+      percentageSpent: (spent / budgeted) * 100,
+      status: spent / budgeted >= 0.75 ? 'WARNING' : 'ON_TRACK',
+      currency: 'EUR',
+      period: 'MONTHLY',
+      ...dates,
+    });
+    const budgets = [
+      progress(10, 'Food', 250, 210.63, {
+        startDate: '2000-09-01',
+        endDate: '2000-09-30',
+        daysRemaining: -3,
+      }),
+      progress(11, 'Food', 289.37, 149.73),
+      progress(12, 'Household', 100, 54.75),
+      progress(13, 'Transit', 50, 39.9),
+      progress(14, 'Future travel', 900, 0, {
+        startDate: '2100-01-01',
+        endDate: '2100-01-31',
+        daysRemaining: 30000,
+      }),
+    ];
+    beforeEach(() => {
+      mockUseBudgetSummary.mockReturnValue({
+        data: {
+          ...mockBudgetSummary,
+          totalBudgets: 5,
+          activeBudgets: 3,
+          totalBudgeted: 1589.37,
+          totalSpent: 455.01,
+          totalRemaining: 1134.36,
+          budgets,
+        },
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useBudgetSummary>);
+      mockUseCreateBudget.mockReturnValue({
+        mutateAsync: vi.fn(),
+        isPending: false,
+      } as unknown as ReturnType<typeof useCreateBudget>);
+      mockUseUpdateBudget.mockReturnValue({
+        mutateAsync: vi.fn(),
+        isPending: false,
+      } as unknown as ReturnType<typeof useUpdateBudget>);
+      mockUseDeleteBudget.mockReturnValue({
+        mutateAsync: vi.fn(),
+        isPending: false,
+      } as unknown as ReturnType<typeof useDeleteBudget>);
+    });
+
+    it('excludes expired rollover and future allowances from guidance while retaining every card', () => {
+      renderWithProviders(<BudgetsPage />, { queryClient });
+      expect(screen.getByLabelText('Current allowance')).toHaveTextContent('439.37');
+      expect(screen.getByLabelText('Current spending')).toHaveTextContent('244.38');
+      expect(screen.getByLabelText('Current remaining')).toHaveTextContent('194.99');
+      expect(screen.getAllByText('Food', { exact: true })).toHaveLength(2);
+      expect(screen.getByText('Future travel', { exact: true })).toBeInTheDocument();
+      expect(screen.getAllByTestId('alert-banner')).toHaveLength(1);
+      expect(screen.getByTestId('alert-banner')).toHaveTextContent('Transit');
+    });
+
+    it('limits filtered spending subtotals to current budgets', () => {
+      renderWithProviders(<BudgetsPage />, { queryClient });
+      fireEvent.click(screen.getByRole('button', { name: /filters/i }));
+      fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'Food' } });
+      expect(screen.getAllByText('Food', { exact: true })).toHaveLength(2);
+      expect(screen.getByLabelText('Current remaining')).toHaveTextContent('194.99');
+      expect(screen.getByLabelText('Filtered remaining')).toHaveTextContent('139.64');
+    });
+
+    it('shows zero currently available when only past and future budgets exist', () => {
+      mockUseBudgetSummary.mockReturnValue({
+        data: { ...mockBudgetSummary, totalBudgets: 2, budgets: [budgets[0], budgets[4]] },
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useBudgetSummary>);
+      renderWithProviders(<BudgetsPage />, { queryClient });
+      expect(screen.getByLabelText('Current remaining')).toHaveTextContent(/^0$/);
+      expect(screen.queryByTestId('alert-banner')).not.toBeInTheDocument();
+      expect(screen.getByText('Food', { exact: true })).toBeInTheDocument();
+      expect(screen.getByText('Future travel', { exact: true })).toBeInTheDocument();
+    });
+  });
+
   describe('Document Title', () => {
     it('sets document title to "Budgets"', () => {
       mockUseBudgetSummary.mockReturnValue({
@@ -503,8 +623,9 @@ describe('BudgetsPage', () => {
   describe('Alert Banners', () => {
     const warningBudget = {
       budgetId: 3,
+      ...currentBudgetDates,
       categoryName: 'Dining',
-      amount: 200,
+      budgeted: 200,
       spent: 180,
       remaining: 20,
       percentageSpent: 90,
@@ -515,8 +636,9 @@ describe('BudgetsPage', () => {
 
     const exceededBudget = {
       budgetId: 4,
+      ...currentBudgetDates,
       categoryName: 'Shopping',
-      amount: 300,
+      budgeted: 300,
       spent: 350,
       remaining: -50,
       percentageSpent: 116.67,
@@ -650,8 +772,9 @@ describe('BudgetsPage', () => {
   describe('Alert Dismiss', () => {
     const warningBudget = {
       budgetId: 3,
+      ...currentBudgetDates,
       categoryName: 'Dining',
-      amount: 200,
+      budgeted: 200,
       spent: 180,
       remaining: 20,
       percentageSpent: 90,
@@ -782,6 +905,7 @@ describe('BudgetsPage', () => {
   describe('Deep Link ?open=', () => {
     const deepLinkBudget: BudgetProgressResponse = {
       budgetId: 9,
+      ...currentBudgetDates,
       categoryName: 'Groceries',
       budgeted: 400,
       spent: 100,

@@ -111,6 +111,11 @@ export function ImportReview({
   const translateValidationError = (err: string): string => {
     if (err.startsWith('SPLIT_INVALID:')) return t('validation.splitInvalid');
     if (err.startsWith('RULE_ACTION_INVALID:')) return t('validation.ruleActionInvalid');
+    if (err.startsWith('RULE_CONDITION_INVALID:')) {
+      return t('validation.ruleConditionInvalid', {
+        rule: err.slice('RULE_CONDITION_INVALID:'.length).trim(),
+      });
+    }
     const map: Record<string, string> = {
       'Transaction date is required': t('validation.dateRequired'),
       'Transaction amount is required': t('validation.amountRequired'),

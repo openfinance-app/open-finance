@@ -1149,6 +1149,45 @@ class TransactionRuleServiceImplTest {
     class DisabledAndEdgeCases {
 
         @Test
+        @DisplayName("Legacy incompatible conditions report an error without executing actions")
+        void incompatibleConditionIsReportedBeforeAndOrShortCircuiting() {
+            for (String match : List.of("AND", "OR")) {
+                TransactionRule legacy =
+                        rule(
+                                "Old coffee rule",
+                                0,
+                                List.of(
+                                        condition(
+                                                RuleConditionField.DESCRIPTION,
+                                                RuleConditionOperator.CONTAINS,
+                                                "Coffee"),
+                                        condition(
+                                                RuleConditionField.AMOUNT,
+                                                RuleConditionOperator.CONTAINS,
+                                                "20")),
+                                List.of(action(RuleActionType.SET_AMOUNT, "-200")));
+                legacy.setConditionMatch(match);
+                when(transactionRuleRepository
+                                .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(
+                                        USER_ID))
+                        .thenReturn(List.of(legacy));
+                ImportedTransaction transaction =
+                        tx("Coffee", "Original", new BigDecimal("-20"), "EXPENSE");
+
+                assertThat(service.applyRules(List.of(transaction), USER_ID)).isEmpty();
+                assertThat(service.applyRules(List.of(transaction), USER_ID)).isEmpty();
+                assertThat(transaction.getAmount()).isEqualByComparingTo("-20");
+                assertThat(transaction.getMemo()).isEqualTo("Original");
+                assertThat(transaction.hasErrors()).isTrue();
+                assertThat(transaction.getValidationErrors())
+                        .singleElement()
+                        .asString()
+                        .startsWith("RULE_CONDITION_INVALID:")
+                        .contains("Old coffee rule");
+            }
+        }
+
+        @Test
         @DisplayName("Disabled rule is never evaluated")
         void disabledRule_neverFires() {
             // The repository method only returns enabled rules — mock returns empty

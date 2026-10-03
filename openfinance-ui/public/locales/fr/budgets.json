@@ -110,7 +110,7 @@
     "periodBreakdown_one": "Détail par période ({{count}} période)"
   },
   "summary": {
-    "title": "Aperçu du budget",
+    "title": "Aperçu des budgets en cours",
     "totalBudgeted": "Total budgétisé",
     "totalSpent": "Total dépensé",
     "remaining": "Restant",

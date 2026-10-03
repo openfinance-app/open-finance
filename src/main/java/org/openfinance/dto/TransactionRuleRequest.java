@@ -91,6 +91,13 @@ public class TransactionRuleRequest {
         private String value;
 
         @com.fasterxml.jackson.annotation.JsonIgnore
+        @jakarta.validation.constraints.AssertTrue(message = "{rule.condition.operator.invalid}")
+        public boolean isValidConditionOperator() {
+            // Missing values have their own @NotNull messages.
+            return field == null || operator == null || operator.supports(field);
+        }
+
+        @com.fasterxml.jackson.annotation.JsonIgnore
         @jakarta.validation.constraints.AssertTrue(
                 message = "{rule.condition.transactionType.invalid}")
         public boolean isValidTransactionType() {
