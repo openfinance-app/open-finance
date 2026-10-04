@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { PiggyBank, TrendingUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { IEstimatedInterestSummary } from '@/types/dashboard';
+import type { IAccountInterest, IEstimatedInterestSummary } from '@/types/dashboard';
 import { ConvertedAmount } from '../ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
@@ -11,6 +11,10 @@ import { SimpleSelect } from '../ui/SimpleSelect';
 interface EstimatedInterestCardProps {
   summary: IEstimatedInterestSummary;
   period: string;
+}
+
+function isLiability(interest: IAccountInterest): boolean {
+  return interest.sourceType ? interest.sourceType === 'LIABILITY' : interest.projectedInterest < 0;
 }
 
 /**
@@ -27,11 +31,11 @@ export default function EstimatedInterestCard({ summary, period }: EstimatedInte
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
 
-  const openDetails = (accountId: number, projectedInterest: number) => {
+  const openDetails = (interest: IAccountInterest) => {
     navigate(
-      projectedInterest >= 0
-        ? `/accounts?highlight=${accountId}`
-        : `/liabilities?highlight=${accountId}`
+      isLiability(interest)
+        ? `/liabilities?highlight=${interest.accountId}`
+        : `/accounts?highlight=${interest.accountId}`
     );
   };
 
@@ -43,8 +47,8 @@ export default function EstimatedInterestCard({ summary, period }: EstimatedInte
     if (!summary || !summary.accounts) return [];
     return summary.accounts.filter(acc => {
       if (filterType === 'ALL') return true;
-      if (filterType === 'ACCOUNTS') return acc.projectedInterest >= 0;
-      if (filterType === 'LIABILITIES') return acc.projectedInterest < 0;
+      if (filterType === 'ACCOUNTS') return !isLiability(acc);
+      if (filterType === 'LIABILITIES') return isLiability(acc);
       return true;
     });
   }, [summary, filterType]);
@@ -130,8 +134,8 @@ export default function EstimatedInterestCard({ summary, period }: EstimatedInte
             filteredAccounts.map((account, index) => (
               <button
                 type="button"
-                key={`${account.accountId}-${account.projectedInterest < 0 ? 'liability' : 'account'}-${index}`}
-                onClick={() => openDetails(account.accountId, account.projectedInterest)}
+                key={`${account.accountId}-${isLiability(account) ? 'liability' : 'account'}-${index}`}
+                onClick={() => openDetails(account)}
                 className="w-full flex justify-between items-center p-3 hover:bg-surface-elevated rounded-lg transition-colors border border-transparent hover:border-border text-left"
                 aria-label={t('estimatedInterest.viewDetails', { account: account.accountName })}
               >

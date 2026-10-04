@@ -131,4 +131,30 @@ describe('EstimatedInterestCard navigation', () => {
     await user.click(screen.getByRole('button', { name: 'View details for Loan Account' }));
     expect(mockNavigate).toHaveBeenCalledWith('/liabilities?highlight=2');
   });
+
+  it('keeps repaid loans in the liabilities filter and opens their details', async () => {
+    const user = userEvent.setup();
+    const summary: IEstimatedInterestSummary = {
+      totalEarned: -2,
+      totalProjected: 0,
+      currency: 'EUR',
+      accounts: [
+        {
+          accountId: 10,
+          accountName: 'Repaid loan',
+          interestEarned: -2,
+          projectedInterest: 0,
+          sourceType: 'LIABILITY',
+        },
+      ],
+    };
+    renderWithProviders(<EstimatedInterestCard summary={summary} period="1Y" />);
+    await user.selectOptions(screen.getByRole('combobox'), 'LIABILITIES');
+    await user.click(screen.getByRole('button', { name: 'View details for Repaid loan' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/liabilities?highlight=10');
+    await user.selectOptions(screen.getByRole('combobox'), 'ACCOUNTS');
+    expect(
+      screen.queryByRole('button', { name: 'View details for Repaid loan' })
+    ).not.toBeInTheDocument();
+  });
 });

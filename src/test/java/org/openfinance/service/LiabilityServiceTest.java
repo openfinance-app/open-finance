@@ -18,6 +18,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -71,6 +73,8 @@ class LiabilityServiceTest {
 
     @Mock private LiabilityTrancheService liabilityTrancheService;
 
+    @Mock private NetWorthService netWorthService;
+
     @InjectMocks private LiabilityService liabilityService;
 
     private Long testUserId;
@@ -94,6 +98,59 @@ class LiabilityServiceTest {
     }
 
     // ============ Helper Methods ============
+
+    @ParameterizedTest
+    @CsvSource({
+        "EUR,900,100,4.13",
+        "JPY,90000,10000,413",
+        "BTC,0.00000000000009,0.00000000000001,0.000000000000000413"
+    })
+    void scheduleAndPreviewRoundExactHalfUnitsConsistently(
+            String currency, BigDecimal balance, BigDecimal payment, BigDecimal interest) {
+        Liability loan = createLiabilityEntity(100L, testUserId);
+        loan.setCurrency(currency);
+        loan.setCurrentBalance(balance.toPlainString());
+        loan.setInterestRate("5.5");
+        loan.setMinimumPayment(payment.toPlainString());
+        when(liabilityRepository.findByIdAndUserId(100L, testUserId)).thenReturn(Optional.of(loan));
+        when(netWorthService.getLiabilityBalanceAt(loan, LocalDate.now())).thenReturn(balance);
+
+        org.openfinance.dto.RepaymentPreviewResponse preview =
+                liabilityService.getRepaymentPreview(testUserId, 100L, payment, LocalDate.now());
+        List<AmortizationScheduleEntry> schedule =
+                liabilityService.calculateAmortizationSchedule(100L, testUserId);
+
+        assertThat(preview.getInterest()).isEqualByComparingTo(interest);
+        assertThat(schedule.get(0).getInterestPortion()).isEqualByComparingTo(interest);
+        assertThat(schedule.get(0).getPrincipalPortion())
+                .isEqualByComparingTo(payment.subtract(interest));
+        assertThat(schedule.get(schedule.size() - 1).getRemainingBalance()).isZero();
+        assertThat(
+                        schedule.stream()
+                                .map(AmortizationScheduleEntry::getPrincipalPortion)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add))
+                .isEqualByComparingTo(balance);
+    }
+
+    @Test
+    void mortgageSchedulePreservesHalfCentAtLaterInstallment() {
+        Liability loan = createLiabilityEntity(100L, testUserId);
+        loan.setCurrency("EUR");
+        loan.setCurrentBalance("47600");
+        loan.setInterestRate("4");
+        loan.setMinimumPayment("520");
+        when(liabilityRepository.findByIdAndUserId(100L, testUserId)).thenReturn(Optional.of(loan));
+
+        List<AmortizationScheduleEntry> schedule =
+                liabilityService.calculateAmortizationSchedule(100L, testUserId);
+
+        assertThat(schedule.get(32).getInterestPortion()).isEqualByComparingTo("118.07");
+        assertThat(
+                        schedule.stream()
+                                .map(AmortizationScheduleEntry::getInterestPortion)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add))
+                .isEqualByComparingTo("9283.08");
+    }
 
     private LiabilityRequest createValidRequest() {
         LiabilityRequest request = new LiabilityRequest();

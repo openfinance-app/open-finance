@@ -165,6 +165,7 @@ export interface IAccountInterest {
   accountName: string;
   interestEarned: number;
   projectedInterest: number;
+  sourceType?: 'ACCOUNT' | 'LIABILITY';
 }
 
 /**

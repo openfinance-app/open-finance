@@ -109,6 +109,29 @@ class AccountServiceTest {
         EncryptionContext.clear();
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"1D,1", "7D,7", "2,2", "30,30"})
+    void balanceHistoryRespectsInclusiveShortPeriods(String period, long days) {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        Account account =
+                Account.builder()
+                        .id(1L)
+                        .userId(1L)
+                        .currency("EUR")
+                        .openingDate(today.minusYears(1))
+                        .openingBalance(new BigDecimal("1000"))
+                        .balance(new BigDecimal("1000"))
+                        .build();
+        when(accountRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(account));
+
+        List<org.openfinance.dto.BalanceHistoryPoint> history =
+                accountService.getAccountBalanceHistory(1L, 1L, period);
+
+        assertThat(history.get(0).date()).isEqualTo(today.minusDays(days - 1));
+        assertThat(history)
+                .allSatisfy(point -> assertThat(point.balance()).isEqualByComparingTo("1000"));
+    }
+
     @Test
     @DisplayName("Should create account successfully and encrypt sensitive fields")
     void shouldCreateAccountSuccessfully() {

@@ -1308,173 +1308,11 @@ public class DashboardService {
      */
     @Cacheable(value = "borrowingCapacity", key = "#userId + '_' + #analysisPeriod")
     public BorrowingCapacity getBorrowingCapacity(Long userId, int analysisPeriod) {
-        if (userId == null) {
-            throw new IllegalArgumentException("User ID cannot be null");
-        }
         if (analysisPeriod <= 0) {
             throw new IllegalArgumentException("Analysis period must be positive");
         }
-        log.debug(
-                "Calculating borrowing capacity for user {} over {} days", userId, analysisPeriod);
-
-        // Get user's base currency
-        User user =
-                userRepository
-                        .findById(userId)
-                        .orElseThrow(
-                                () ->
-                                        new IllegalArgumentException(
-                                                "User not found with ID: " + userId));
-        String baseCurrency = defaultCurrencyProvider.resolve(user.getBaseCurrency());
-
-        // Calculate date range
         LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(analysisPeriod);
-
-        // Get all transactions in the period
-        List<Transaction> transactions =
-                transactionRepository.findByUserIdAndDateBetween(userId, startDate, endDate);
-
-        // Calculate total income and expenses (convert to user's base currency).
-        // Internal transfer legs (transferId != null) are excluded.
-        BigDecimal totalIncome =
-                transactions.stream()
-                        .filter(
-                                t ->
-                                        t.getType() == TransactionType.INCOME
-                                                && t.getMovementType()
-                                                        != org.openfinance.entity.MovementType
-                                                                .DISBURSEMENT
-                                                && !t.getIsDeleted()
-                                                && t.getTransferId() == null)
-                        .map(
-                                t ->
-                                        convertToBase(
-                                                t.getAmount(),
-                                                t.getCurrency(),
-                                                baseCurrency,
-                                                t.getDate()))
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalExpenses =
-                transactions.stream()
-                        .filter(
-                                t ->
-                                        t.getType() == TransactionType.EXPENSE
-                                                && !t.getIsDeleted()
-                                                && t.getTransferId() == null)
-                        .map(
-                                t ->
-                                        convertToBase(
-                                                t.getAmount(),
-                                                t.getCurrency(),
-                                                baseCurrency,
-                                                t.getDate()))
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Calculate average monthly income and expenses
-        BigDecimal monthsInPeriod =
-                BigDecimal.valueOf(analysisPeriod).divide(DAYS_PER_MONTH, 2, RoundingMode.HALF_UP);
-
-        BigDecimal monthlyIncome =
-                monthsInPeriod.compareTo(BigDecimal.ZERO) > 0
-                        ? totalIncome.divide(monthsInPeriod, 2, RoundingMode.HALF_UP)
-                        : BigDecimal.ZERO;
-
-        BigDecimal monthlyExpenses =
-                monthsInPeriod.compareTo(BigDecimal.ZERO) > 0
-                        ? totalExpenses.divide(monthsInPeriod, 2, RoundingMode.HALF_UP)
-                        : BigDecimal.ZERO;
-
-        // Get all liabilities and calculate total monthly debt payments (converted to
-        // base currency)
-        List<Liability> liabilities = liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId);
-
-        List<BigDecimal> debtPayments =
-                liabilities.stream().map(liabilityService::effectiveMonthlyPayment).toList();
-        boolean debtPaymentsComplete = debtPayments.stream().allMatch(java.util.Objects::nonNull);
-        BigDecimal monthlyDebtPayments = BigDecimal.ZERO;
-        for (int i = 0; i < liabilities.size(); i++) {
-            if (debtPayments.get(i) != null)
-                monthlyDebtPayments =
-                        monthlyDebtPayments.add(
-                                convertToBase(
-                                        debtPayments.get(i),
-                                        liabilities.get(i).getCurrency(),
-                                        baseCurrency));
-        }
-
-        // Calculate debt-to-income ratio
-        BigDecimal debtToIncomeRatio =
-                monthlyIncome.compareTo(BigDecimal.ZERO) > 0
-                        ? monthlyDebtPayments
-                                .divide(monthlyIncome, 4, RoundingMode.HALF_UP)
-                                .multiply(BigDecimal.valueOf(100))
-                                .setScale(2, RoundingMode.HALF_UP)
-                        : BigDecimal.ZERO;
-
-        // Calculate recommended max borrowing (40% DTI threshold)
-        BigDecimal maxDebtAt40Percent = monthlyIncome.multiply(DTI_MAX_RATIO);
-        BigDecimal recommendedMaxBorrowing =
-                maxDebtAt40Percent
-                        .subtract(monthlyDebtPayments)
-                        .max(BigDecimal.ZERO); // Cannot be negative
-
-        // Estimate available borrowing capacity (simplified: 10 years at recommended
-        // monthly payment)
-        // This is a rough estimate; actual borrowing depends on interest rates and loan
-        // terms
-        BigDecimal availableBorrowingCapacity =
-                recommendedMaxBorrowing
-                        .multiply(MONTHS_PER_YEAR) // Annual
-                        .multiply(
-                                BigDecimal.valueOf(
-                                        businessRules
-                                                .getDebtToIncome()
-                                                .getBorrowingTermYears())) // loan term
-                        .setScale(2, RoundingMode.HALF_UP);
-
-        // Determine financial health status
-        // BUG-002 fix: When no income data, return INSUFFICIENT_DATA instead of falsely
-        // EXCELLENT
-        String financialHealthStatus;
-        if (!debtPaymentsComplete || monthlyIncome.compareTo(BigDecimal.ZERO) == 0) {
-            financialHealthStatus = "INSUFFICIENT_DATA";
-        } else if (debtToIncomeRatio.compareTo(
-                        businessRules.getDebtToIncome().getExcellentMaxPercent())
-                <= 0) {
-            financialHealthStatus = "EXCELLENT";
-        } else if (debtToIncomeRatio.compareTo(businessRules.getDebtToIncome().getGoodMaxPercent())
-                <= 0) {
-            financialHealthStatus = "GOOD";
-        } else if (debtToIncomeRatio.compareTo(businessRules.getDebtToIncome().getFairMaxPercent())
-                <= 0) {
-            financialHealthStatus = "FAIR";
-        } else {
-            financialHealthStatus = "POOR";
-        }
-
-        BorrowingCapacity capacity =
-                BorrowingCapacity.builder()
-                        .monthlyIncome(monthlyIncome)
-                        .monthlyExpenses(monthlyExpenses)
-                        .monthlyDebtPayments(monthlyDebtPayments)
-                        .debtPaymentsComplete(debtPaymentsComplete)
-                        .debtToIncomeRatio(debtToIncomeRatio)
-                        .recommendedMaxBorrowing(
-                                debtPaymentsComplete ? recommendedMaxBorrowing : BigDecimal.ZERO)
-                        .availableBorrowingCapacity(
-                                debtPaymentsComplete ? availableBorrowingCapacity : BigDecimal.ZERO)
-                        .financialHealthStatus(financialHealthStatus)
-                        .currency(baseCurrency)
-                        .analysisPeriod(analysisPeriod)
-                        .build();
-
-        log.info(
-                "Borrowing capacity for user {}: DTI={}%, status={}, available={}",
-                userId, debtToIncomeRatio, financialHealthStatus, availableBorrowingCapacity);
-
-        return capacity;
+        return getBorrowingCapacity(userId, endDate.minusDays(analysisPeriod - 1L), endDate);
     }
 
     /**
@@ -1489,7 +1327,11 @@ public class DashboardService {
         if (startDate == null || endDate == null) {
             throw new IllegalArgumentException("Start and end dates cannot be null");
         }
-        int analysisPeriod = (int) java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
+        if (endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("End date must be on or after start date");
+        }
+        int analysisPeriod =
+                Math.toIntExact(java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1);
         log.debug(
                 "Calculating borrowing capacity for user {} from {} to {}",
                 userId,
@@ -1544,14 +1386,12 @@ public class DashboardService {
                                                 t.getDate()))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal monthsInPeriod =
-                analysisPeriod > 0
-                        ? BigDecimal.valueOf(analysisPeriod)
-                                .divide(DAYS_PER_MONTH, 2, RoundingMode.HALF_UP)
-                        : BigDecimal.ONE;
-
-        BigDecimal monthlyIncome = totalIncome.divide(monthsInPeriod, 2, RoundingMode.HALF_UP);
-        BigDecimal monthlyExpenses = totalExpenses.divide(monthsInPeriod, 2, RoundingMode.HALF_UP);
+        BigDecimal days = BigDecimal.valueOf(analysisPeriod);
+        int scale = org.openfinance.util.MoneyPrecision.scale(baseCurrency);
+        BigDecimal monthlyIncome =
+                totalIncome.multiply(DAYS_PER_MONTH).divide(days, scale, RoundingMode.HALF_UP);
+        BigDecimal monthlyExpenses =
+                totalExpenses.multiply(DAYS_PER_MONTH).divide(days, scale, RoundingMode.HALF_UP);
 
         List<Liability> liabilities = liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId);
         List<BigDecimal> debtPayments =
@@ -1993,7 +1833,12 @@ public class DashboardService {
                 projected = convertToBase(projected, account.getCurrency(), baseCurrency);
 
                 accountInterests.add(
-                        new AccountInterest(account.getId(), accountName, earned, projected));
+                        new AccountInterest(
+                                account.getId(),
+                                accountName,
+                                earned,
+                                projected,
+                                AccountInterest.SourceType.ACCOUNT));
                 totalEarned = totalEarned.add(earned);
                 totalProjected = totalProjected.add(projected);
             }
@@ -2016,22 +1861,15 @@ public class DashboardService {
                         && !liability.getCurrentBalance().isBlank()) {
                     currentBalance = new BigDecimal(liability.getCurrentBalance());
                 }
+                int scale = org.openfinance.util.MoneyPrecision.scale(baseCurrency);
                 BigDecimal annualInterest =
-                        currentBalance
-                                .multiply(
-                                        interestRate.divide(
-                                                BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP))
-                                .setScale(2, RoundingMode.HALF_UP);
-                // Convert to base currency if needed
-                annualInterest =
-                        convertToBase(annualInterest, liability.getCurrency(), baseCurrency);
-
-                // Period fraction for "earned" (negative = cost)
-                BigDecimal periodFraction = computePeriodFraction(period);
+                        convertToBase(
+                                        currentBalance.multiply(interestRate).movePointLeft(2),
+                                        liability.getCurrency(),
+                                        baseCurrency)
+                                .setScale(scale, RoundingMode.HALF_UP);
                 BigDecimal periodInterest =
-                        annualInterest
-                                .multiply(periodFraction)
-                                .setScale(2, RoundingMode.HALF_UP)
+                        historicalLiabilityInterest(liability, period, interestRate, baseCurrency)
                                 .negate();
 
                 // Name already decrypted by JPA converter
@@ -2042,10 +1880,11 @@ public class DashboardService {
                                 liability.getId(),
                                 liabilityName,
                                 periodInterest,
-                                annualInterest.negate()));
+                                annualInterest.negate(),
+                                AccountInterest.SourceType.LIABILITY));
                 totalEarned = totalEarned.add(periodInterest);
                 totalProjected = totalProjected.add(annualInterest.negate());
-            } catch (Exception e) {
+            } catch (NumberFormatException e) {
                 log.warn(
                         "Failed to process interest for liability id={}: {}",
                         liability.getId(),
@@ -2065,7 +1904,6 @@ public class DashboardService {
                 .build();
     }
 
-    /** Returns fraction of year for a given period string (1M=1/12, 1Y=1, etc.) */
     /**
      * Computes yearly balance variations for the user's accounts, institutions, and total net
      * worth. Year range is determined from the user's earliest transaction date to the latest
@@ -2222,47 +2060,34 @@ public class DashboardService {
         return defaultCurrencyProvider.resolveForUser(userId);
     }
 
-    private BigDecimal computePeriodFraction(String period) {
-        if (period == null) return oneMonthFraction();
-        switch (period.toUpperCase()) {
-            case "1D":
-                return daysFraction(1);
-            case "7D":
-                return daysFraction(7);
-            case "1M":
-                return oneMonthFraction();
-            case "YTD":
-                {
-                    long daysSoFar =
-                            java.time.temporal.ChronoUnit.DAYS.between(
-                                    LocalDate.now().withDayOfYear(1), LocalDate.now());
-                    return daysFraction(daysSoFar);
-                }
-            case "1Y":
-                return BigDecimal.ONE;
-            case "ALL":
-                return new BigDecimal("5"); // Approximate 5-year
-            default:
-                {
-                    try {
-                        int days = Integer.parseInt(period);
-                        return daysFraction(days);
-                    } catch (NumberFormatException e) {
-                        return oneMonthFraction();
-                    }
-                }
-        }
-    }
-
-    /** One month as an exact fraction of a year (1/12), computed in BigDecimal (never double). */
-    private BigDecimal oneMonthFraction() {
-        return BigDecimal.ONE.divide(MONTHS_PER_YEAR, 10, RoundingMode.HALF_UP);
-    }
-
     /**
-     * {@code days} as an exact fraction of a 365-day year, computed in BigDecimal (never double).
+     * Estimates elapsed interest from closing principal each day, using the recorded annual rate.
      */
-    private BigDecimal daysFraction(long days) {
-        return BigDecimal.valueOf(days).divide(DAYS_PER_YEAR, 10, RoundingMode.HALF_UP);
+    private BigDecimal historicalLiabilityInterest(
+            Liability liability, String period, BigDecimal annualPercentage, String baseCurrency) {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate =
+                org.openfinance.util.HistoricalPeriod.startDate(
+                        period == null ? "1M" : period, endDate, liability.getStartDate());
+        BigDecimal balanceDays = BigDecimal.ZERO;
+        for (org.openfinance.dto.BalanceHistoryPoint point :
+                netWorthService.getStandaloneLiabilityBalanceHistory(
+                        liability, startDate, endDate)) {
+            if (point.balance().signum() > 0) {
+                balanceDays =
+                        balanceDays.add(
+                                convertToBase(
+                                        point.balance(),
+                                        liability.getCurrency(),
+                                        baseCurrency,
+                                        point.date()));
+            }
+        }
+        return balanceDays
+                .multiply(annualPercentage)
+                .divide(
+                        DAYS_PER_YEAR.multiply(BigDecimal.valueOf(100)),
+                        org.openfinance.util.MoneyPrecision.scale(baseCurrency),
+                        RoundingMode.HALF_UP);
     }
 }

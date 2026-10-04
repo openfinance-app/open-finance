@@ -39,6 +39,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
   const retainedPercent =
     asset.totalCost > 0 ? Math.min(percentage(currentValue, asset.totalCost), 100) : 0;
   const hasValueChange = asset.totalCost > 0 && currentValue !== asset.totalCost;
+  const isPlanned = asset.acquisitionType === 'PLANNED';
 
   return (
     <Card
@@ -64,6 +65,16 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           </Badge>
         )}
       </div>
+
+      {isPlanned && (
+        <div className="flex items-center gap-2 text-sm text-text-secondary">
+          <Calendar className="h-4 w-4" />
+          <span>
+            {t('form.acquisitionTypes.PLANNED')}
+            {asset.purchaseDate && <> · {date(asset.purchaseDate)}</>}
+          </span>
+        </div>
+      )}
 
       {/* Brand, Model, Serial Number */}
       <div className="space-y-1.5">
@@ -232,7 +243,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           <Info className="h-4 w-4" />
           <span>
             {t('physicalCard.usefulLife', { count: asset.usefulLifeYears })}
-            {!!asset.holdingDays && (
+            {!isPlanned && asset.holdingDays != null && asset.holdingDays >= 0 && (
               <span className="ml-1">
                 {t('physicalCard.yearsOwned', { count: Math.floor(asset.holdingDays / 365) })}
               </span>

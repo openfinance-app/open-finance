@@ -49,6 +49,36 @@ describe('PhysicalAssetCard', () => {
     expect(screen.getByText('MacBook Pro')).toBeInTheDocument();
   });
 
+  it.each([-59, 365])(
+    'shows planned acquisition without ownership for holdingDays %s',
+    holdingDays => {
+      renderWithProviders(
+        <PhysicalAssetCard
+          asset={{
+            ...mockAsset,
+            acquisitionType: 'PLANNED',
+            purchaseDate: '2026-12-01',
+            usefulLifeYears: 5,
+            holdingDays,
+          }}
+        />
+      );
+      expect(screen.getByText(/Planned acquisition/)).toBeInTheDocument();
+      expect(screen.getByText(/12\/01\/2026|01\/12\/2026|2026-12-01/)).toBeInTheDocument();
+      expect(screen.queryByText(/year.*owned/)).not.toBeInTheDocument();
+    }
+  );
+
+  it('preserves ownership duration for acquired assets', () => {
+    renderWithProviders(
+      <PhysicalAssetCard
+        asset={{ ...mockAsset, acquisitionType: 'GIFT', usefulLifeYears: 5, holdingDays: 365 }}
+      />
+    );
+    expect(screen.getByText(/1 year owned/)).toBeInTheDocument();
+    expect(screen.queryByText(/Planned acquisition/)).not.toBeInTheDocument();
+  });
+
   it('renders brand', () => {
     renderWithProviders(<PhysicalAssetCard asset={mockAsset} />);
     expect(screen.getByText('Apple')).toBeInTheDocument();

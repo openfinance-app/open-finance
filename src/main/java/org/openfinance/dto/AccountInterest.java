@@ -19,9 +19,17 @@ public class AccountInterest {
     /** The name of the account (decrypted for display). */
     private String accountName;
 
-    /** The actual net interest earned over the selected period. */
+    /** The estimated net interest earned or paid over the selected period. */
     private BigDecimal interestEarned;
 
     /** The projected 1-year net interest based on current balance and rate. */
     private BigDecimal projectedInterest;
+
+    /** Identifies the details page even when a repaid liability has no projected interest. */
+    private SourceType sourceType;
+
+    public enum SourceType {
+        ACCOUNT,
+        LIABILITY
+    }
 }

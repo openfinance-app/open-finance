@@ -1503,16 +1503,8 @@ public class AccountService {
 
     /** Calculate start date based on period string. */
     private java.time.LocalDate calculateStartDate(String period, java.time.LocalDate openingDate) {
-        java.time.LocalDate now = java.time.LocalDate.now();
-
-        return switch (period.toUpperCase()) {
-            case "1M" -> now.minusMonths(1);
-            case "3M" -> now.minusMonths(3);
-            case "6M" -> now.minusMonths(6);
-            case "1Y" -> now.minusYears(1);
-            case "ALL" -> openingDate; // Use account opening date
-            default -> now.minusMonths(3); // Default to 3 months
-        };
+        return org.openfinance.util.HistoricalPeriod.startDate(
+                period, java.time.LocalDate.now(), openingDate);
     }
 
     private void indexAccountSearchTokens(Account account, String name, String description) {

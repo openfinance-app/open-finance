@@ -961,7 +961,7 @@ public class LiabilityService {
     private record ScheduleInputs(
             BigDecimal balance,
             BigDecimal minimumPayment,
-            BigDecimal monthlyRate,
+            BigDecimal annualPercentage,
             int moneyScale) {}
 
     /** Total interest of a generated schedule (sum of the per-row interest portions). */
@@ -980,7 +980,8 @@ public class LiabilityService {
     private List<AmortizationScheduleEntry> buildSchedule(
             ScheduleInputs inputs, InterestOnlyWindow window, BigDecimal monthlyInsurance) {
         LocalDate firstPaymentDate = LocalDate.now();
-        BigDecimal firstMonthInterest = inputs.balance().multiply(inputs.monthlyRate());
+        BigDecimal firstMonthInterest =
+                monthlyInterest(inputs.balance(), inputs.annualPercentage(), inputs.moneyScale());
         if (!window.activeOn(firstPaymentDate)
                 && inputs.minimumPayment().compareTo(firstMonthInterest) <= 0) {
             log.warn(
@@ -1005,11 +1006,10 @@ public class LiabilityService {
         if (balance.signum() <= 0) return BigDecimal.ZERO;
         BigDecimal rate = decryptAmount(liability.getInterestRate());
         BigDecimal interest =
-                balance.multiply(orZero(rate))
-                        .divide(
-                                BigDecimal.valueOf(MONTHS_PER_YEAR * 100),
-                                org.openfinance.util.MoneyPrecision.scale(liability.getCurrency()),
-                                RoundingMode.HALF_UP);
+                monthlyInterest(
+                        balance,
+                        orZero(rate),
+                        org.openfinance.util.MoneyPrecision.scale(liability.getCurrency()));
         if (isInterestOnlyWindowActive(
                 liabilityTrancheRepository.findByLiabilityIdAndUserId(
                         liability.getId(), liability.getUserId()),
@@ -1051,16 +1051,17 @@ public class LiabilityService {
             }
         }
 
-        // Calculate monthly interest rate (annual rate / 12 / 100)
-        BigDecimal monthlyRate =
-                interestRate.divide(
-                        BigDecimal.valueOf(MONTHS_PER_YEAR * 100),
-                        java.math.MathContext.DECIMAL128);
         return new ScheduleInputs(
                 currentBalance,
                 minimumPayment,
-                monthlyRate,
+                interestRate,
                 org.openfinance.util.MoneyPrecision.scale(liability.getCurrency()));
+    }
+
+    /** Multiply before division so exact half-unit ties survive until monetary rounding. */
+    private BigDecimal monthlyInterest(BigDecimal balance, BigDecimal annualPercentage, int scale) {
+        return balance.multiply(annualPercentage)
+                .divide(BigDecimal.valueOf(MONTHS_PER_YEAR * 100), scale, RoundingMode.HALF_UP);
     }
 
     /** Resolved interest-only window of a liability's DRAWN interest-only tranches. */
@@ -1199,9 +1200,8 @@ public class LiabilityService {
                 && paymentNumber <= MAX_AMORTIZATION_PERIODS) {
             // Calculate interest for this period
             BigDecimal interestPortion =
-                    remainingBalance
-                            .multiply(inputs.monthlyRate())
-                            .setScale(inputs.moneyScale(), RoundingMode.HALF_UP);
+                    monthlyInterest(
+                            remainingBalance, inputs.annualPercentage(), inputs.moneyScale());
             boolean interestOnlyRow = window.activeOn(currentDate);
 
             BigDecimal principalPortion;
@@ -2103,11 +2103,10 @@ public class LiabilityService {
         BigDecimal insurancePct = orZero(decryptAmount(liability.getInsurancePercentage()));
 
         BigDecimal interest =
-                balance.multiply(rate)
-                        .divide(
-                                BigDecimal.valueOf(MONTHS_PER_YEAR * 100),
-                                org.openfinance.util.MoneyPrecision.scale(liability.getCurrency()),
-                                RoundingMode.HALF_UP);
+                monthlyInterest(
+                        balance,
+                        rate,
+                        org.openfinance.util.MoneyPrecision.scale(liability.getCurrency()));
         BigDecimal insurance =
                 principalAmt
                         .multiply(insurancePct)
