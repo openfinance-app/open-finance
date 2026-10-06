@@ -18,6 +18,10 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+        // Proxied calls are same-origin; drop Origin so backend CORS doesn't 403 other dev URLs.
+        configure: proxy => {
+          proxy.on('proxyReq', proxyReq => proxyReq.removeHeader('origin'));
+        },
       },
     },
   },
