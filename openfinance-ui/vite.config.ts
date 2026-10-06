@@ -12,6 +12,8 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    // Listen on all interfaces so the dev container's published port reaches Vite.
+    host: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
