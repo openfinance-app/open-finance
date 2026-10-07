@@ -1,4 +1,4 @@
-import i18n from '@/i18n';
+import i18n from '@/test/i18n-test';
 import realEstateEnglish from '../../public/locales/en/realEstate.json';
 import realEstateFrench from '../../public/locales/fr/realEstate.json';
 /**
